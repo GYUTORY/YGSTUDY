@@ -1,149 +1,3002 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Security/Insecure_Deserialization/ rel=canonical><link href=../Command_Injection/ rel=prev><link href=../XML_External_Entity/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../feed_rss_updated.xml><link rel=icon href=../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>안전하지 않은 역직렬화 (Insecure Deserialization) - YGSTUDY</title><link rel=stylesheet href=../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../stylesheets/extra.css><script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#안전하지-않은-역직렬화-insecure-deserialization class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 안전하지 않은 역직렬화 (Insecure Deserialization) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_4 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Security </span> </a> <label class="md-nav__link " for=__nav_7_4 id=__nav_7_4_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_4_label aria-expanded=true> <label class=md-nav__title for=__nav_7_4> <span class="md-nav__icon md-icon"></span> Security </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Basic/ class=md-nav__link> <span class=md-ellipsis> 보안 기초 개념 </span> </a> </li> <li class=md-nav__item> <a href=../Threat_Modeling/ class=md-nav__link> <span class=md-ellipsis> 위협 모델링 </span> </a> </li> <li class=md-nav__item> <a href=../OWASP_Top_10/ class=md-nav__link> <span class=md-ellipsis> OWASP Top 10 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/ class=md-nav__link> <span class=md-ellipsis> 보안 심화 및 취약점 분석 </span> </a> </li> <li class=md-nav__item> <a href=../Tenant_Key_Management/ class=md-nav__link> <span class=md-ellipsis> 테넌트별 암호화 키 격리 </span> </a> </li> <li class=md-nav__item> <a href=../Cross_Tenant_Leak/ class=md-nav__link> <span class=md-ellipsis> 크로스 테넌트 유출 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../API_Security/ class=md-nav__link> <span class=md-ellipsis> API 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../AES/ class=md-nav__link> <span class=md-ellipsis> 암호화 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../HTTPS_and_TLS/ class=md-nav__link> <span class=md-ellipsis> 전송 구간 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../OAuth/ class=md-nav__link> <span class=md-ellipsis> 인증과 세션 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_4_12 checked> <label class=md-nav__link for=__nav_7_4_12 id=__nav_7_4_12_label tabindex=0> <span class=md-ellipsis> 웹 취약점 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_4_12_label aria-expanded=true> <label class=md-nav__title for=__nav_7_4_12> <span class="md-nav__icon md-icon"></span> 웹 취약점 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../XSS/ class=md-nav__link> <span class=md-ellipsis> XSS </span> </a> </li> <li class=md-nav__item> <a href=../CSRF/ class=md-nav__link> <span class=md-ellipsis> CSRF </span> </a> </li> <li class=md-nav__item> <a href=../SSRF/ class=md-nav__link> <span class=md-ellipsis> SSRF </span> </a> </li> <li class=md-nav__item> <a href=../Clickjacking/ class=md-nav__link> <span class=md-ellipsis> Clickjacking </span> </a> </li> <li class=md-nav__item> <a href=../Command_Injection/ class=md-nav__link> <span class=md-ellipsis> Command Injection </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 안전하지 않은 역직렬화 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 안전하지 않은 역직렬화 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#직렬화와-역직렬화에서-뭐가-위험한가 class=md-nav__link> <span class=md-ellipsis> 직렬화와 역직렬화에서 뭐가 위험한가 </span> </a> </li> <li class=md-nav__item> <a href=#가젯-체인이라는-개념 class=md-nav__link> <span class=md-ellipsis> 가젯 체인이라는 개념 </span> </a> </li> <li class=md-nav__item> <a href=#java레거시-이진-직렬화의-위험성-역사적-맥락 class=md-nav__link> <span class=md-ellipsis> Java/레거시: 이진 직렬화의 위험성 (역사적 맥락) </span> </a> <nav class=md-nav aria-label="Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#근본적인-방어--이진-직렬화-자체를-안-쓴다 class=md-nav__link> <span class=md-ellipsis> 근본적인 방어 — 이진 직렬화 자체를 안 쓴다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#python-pickle class=md-nav__link> <span class=md-ellipsis> Python: pickle </span> </a> <nav class=md-nav aria-label="Python: pickle"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#python에서의-방어 class=md-nav__link> <span class=md-ellipsis> Python에서의 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#nodejs-node-serialize class=md-nav__link> <span class=md-ellipsis> Node.js: node-serialize </span> </a> <nav class=md-nav aria-label="Node.js: node-serialize"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#nodejs에서의-방어 class=md-nav__link> <span class=md-ellipsis> Node.js에서의 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#php-unserialize class=md-nav__link> <span class=md-ellipsis> PHP: unserialize </span> </a> <nav class=md-nav aria-label="PHP: unserialize"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#php에서의-방어 class=md-nav__link> <span class=md-ellipsis> PHP에서의 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#공통-방어-원칙 class=md-nav__link> <span class=md-ellipsis> 공통 방어 원칙 </span> </a> <nav class=md-nav aria-label="공통 방어 원칙"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-신뢰할-수-없는-입력을-역직렬화하지-않는다 class=md-nav__link> <span class=md-ellipsis> 1. 신뢰할 수 없는 입력을 역직렬화하지 않는다 </span> </a> </li> <li class=md-nav__item> <a href=#2-데이터-전용-포맷을-쓴다 class=md-nav__link> <span class=md-ellipsis> 2. 데이터 전용 포맷을 쓴다 </span> </a> </li> <li class=md-nav__item> <a href=#3-화이트리스트-기반-클래스-필터링 class=md-nav__link> <span class=md-ellipsis> 3. 화이트리스트 기반 클래스 필터링 </span> </a> </li> <li class=md-nav__item> <a href=#4-무결성-검증-서명 class=md-nav__link> <span class=md-ellipsis> 4. 무결성 검증 (서명) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무에서-점검할-것 class=md-nav__link> <span class=md-ellipsis> 실무에서 점검할 것 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../XML_External_Entity/ class=md-nav__link> <span class=md-ellipsis> XXE 주입 </span> </a> </li> <li class=md-nav__item> <a href=../Path_Traversal/ class=md-nav__link> <span class=md-ellipsis> Path Traversal </span> </a> </li> <li class=md-nav__item> <a href=../Open_Redirect/ class=md-nav__link> <span class=md-ellipsis> Open Redirect </span> </a> </li> <li class=md-nav__item> <a href=../Open_Redirect_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> Open Redirect 심화 </span> </a> </li> <li class=md-nav__item> <a href=../Web_Cache_Poisoning/ class=md-nav__link> <span class=md-ellipsis> 웹 캐시 포이즈닝 </span> </a> </li> <li class=md-nav__item> <a href=../CORS_and_Security_Headers/ class=md-nav__link> <span class=md-ellipsis> CORS와 브라우저 보안 헤더 </span> </a> </li> <li class=md-nav__item> <a href=../File_Upload_Security/ class=md-nav__link> <span class=md-ellipsis> 파일 업로드 보안 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../D_Do_S_Defense/ class=md-nav__link> <span class=md-ellipsis> 공격 방어 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Zero_Trust_Architecture/ class=md-nav__link> <span class=md-ellipsis> 인프라 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Dev_Sec_Ops/ class=md-nav__link> <span class=md-ellipsis> 운영과 컴플라이언스 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../SQL_%EC%9D%B8%EC%A0%9D%EC%85%98/ class=md-nav__link> <span class=md-ellipsis> SQL Injection </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#직렬화와-역직렬화에서-뭐가-위험한가 class=md-nav__link> <span class=md-ellipsis> 직렬화와 역직렬화에서 뭐가 위험한가 </span> </a> </li> <li class=md-nav__item> <a href=#가젯-체인이라는-개념 class=md-nav__link> <span class=md-ellipsis> 가젯 체인이라는 개념 </span> </a> </li> <li class=md-nav__item> <a href=#java레거시-이진-직렬화의-위험성-역사적-맥락 class=md-nav__link> <span class=md-ellipsis> Java/레거시: 이진 직렬화의 위험성 (역사적 맥락) </span> </a> <nav class=md-nav aria-label="Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#근본적인-방어--이진-직렬화-자체를-안-쓴다 class=md-nav__link> <span class=md-ellipsis> 근본적인 방어 — 이진 직렬화 자체를 안 쓴다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#python-pickle class=md-nav__link> <span class=md-ellipsis> Python: pickle </span> </a> <nav class=md-nav aria-label="Python: pickle"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#python에서의-방어 class=md-nav__link> <span class=md-ellipsis> Python에서의 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#nodejs-node-serialize class=md-nav__link> <span class=md-ellipsis> Node.js: node-serialize </span> </a> <nav class=md-nav aria-label="Node.js: node-serialize"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#nodejs에서의-방어 class=md-nav__link> <span class=md-ellipsis> Node.js에서의 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#php-unserialize class=md-nav__link> <span class=md-ellipsis> PHP: unserialize </span> </a> <nav class=md-nav aria-label="PHP: unserialize"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#php에서의-방어 class=md-nav__link> <span class=md-ellipsis> PHP에서의 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#공통-방어-원칙 class=md-nav__link> <span class=md-ellipsis> 공통 방어 원칙 </span> </a> <nav class=md-nav aria-label="공통 방어 원칙"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-신뢰할-수-없는-입력을-역직렬화하지-않는다 class=md-nav__link> <span class=md-ellipsis> 1. 신뢰할 수 없는 입력을 역직렬화하지 않는다 </span> </a> </li> <li class=md-nav__item> <a href=#2-데이터-전용-포맷을-쓴다 class=md-nav__link> <span class=md-ellipsis> 2. 데이터 전용 포맷을 쓴다 </span> </a> </li> <li class=md-nav__item> <a href=#3-화이트리스트-기반-클래스-필터링 class=md-nav__link> <span class=md-ellipsis> 3. 화이트리스트 기반 클래스 필터링 </span> </a> </li> <li class=md-nav__item> <a href=#4-무결성-검증-서명 class=md-nav__link> <span class=md-ellipsis> 4. 무결성 검증 (서명) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무에서-점검할-것 class=md-nav__link> <span class=md-ellipsis> 실무에서 점검할 것 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>java</span> <span class=md-tag>nodejs</span> <span class=md-tag>python</span> <span class=md-tag>security</span> </nav> <h1 id=안전하지-않은-역직렬화-insecure-deserialization>안전하지 않은 역직렬화 (Insecure Deserialization)<a class=headerlink href=#안전하지-않은-역직렬화-insecure-deserialization title="Permanent link">&para;</a></h1> <p>역직렬화 취약점은 한 번 터지면 대부분 RCE(원격 코드 실행)로 직결된다. SQL Injection처럼 데이터만 새는 게 아니라, 공격자가 서버에서 임의 코드를 돌릴 수 있게 된다. 그런데도 코드 리뷰에서 잘 안 잡힌다. <code>readObject()</code> 한 줄, <code>pickle.loads()</code> 한 줄이 어떤 의미인지 모르고 지나가기 때문이다.</p> <p>직렬화 포맷 자체를 다루는 내용은 <a href=../../DataBase/DataRepresentation/Serialization_Formats_Deep_Dive/ >Serialization_Formats_Deep_Dive</a>에 있다. 여기서는 그 포맷들이 어떻게 공격에 악용되는지, 그리고 어떻게 막는지만 본다.</p> <h2 id=직렬화와-역직렬화에서-뭐가-위험한가>직렬화와 역직렬화에서 뭐가 위험한가<a class=headerlink href=#직렬화와-역직렬화에서-뭐가-위험한가 title="Permanent link">&para;</a></h2> <p>직렬화는 메모리에 있는 객체를 바이트 스트림으로 바꾸는 것이고, 역직렬화는 그 반대다. 문제는 역직렬화 쪽에 있다.</p> <p>직렬화된 데이터에는 단순한 값만 들어있는 게 아니다. "어떤 클래스의 객체인지", "그 객체의 필드가 무엇인지"가 같이 들어있다. 역직렬화 코드는 이 정보를 보고 객체를 다시 만든다. 즉 입력 데이터가 "어떤 클래스를 인스턴스화할지"를 지정할 수 있다는 뜻이다.</p> <p>공격자가 직렬화된 바이트를 마음대로 조작할 수 있으면, "이 클래스의 객체를 만들어라"라고 서버에 지시할 수 있다. 그 과정에서 호출되는 생성자, 콜백 메서드, 필드 세팅 로직이 공격 표면이 된다.</p> <pre class=mermaid-diagram><code>flowchart LR
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Security/Insecure_Deserialization/">
+      
+      
+        <link rel="prev" href="../Command_Injection/">
+      
+      
+        <link rel="next" href="../XML_External_Entity/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>안전하지 않은 역직렬화 (Insecure Deserialization) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#안전하지-않은-역직렬화-insecure-deserialization" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              안전하지 않은 역직렬화 (Insecure Deserialization)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 기초 개념
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Threat_Modeling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    위협 모델링
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OWASP_Top_10/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OWASP Top 10
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 심화 및 취약점 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Tenant_Key_Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테넌트별 암호화 키 격리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Cross_Tenant_Leak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    크로스 테넌트 유출
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../API_Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../AES/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    암호화
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../HTTPS_and_TLS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    전송 구간 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../OAuth/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증과 세션
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4_12" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_4_12" id="__nav_7_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 취약점
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_4_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    웹 취약점
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../XSS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XSS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CSRF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSRF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SSRF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSRF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Clickjacking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clickjacking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Command_Injection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    안전하지 않은 역직렬화
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    안전하지 않은 역직렬화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#직렬화와-역직렬화에서-뭐가-위험한가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        직렬화와 역직렬화에서 뭐가 위험한가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#가젯-체인이라는-개념" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        가젯 체인이라는 개념
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#java레거시-이진-직렬화의-위험성-역사적-맥락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#근본적인-방어--이진-직렬화-자체를-안-쓴다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        근본적인 방어 — 이진 직렬화 자체를 안 쓴다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-pickle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python: pickle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python: pickle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python에서의-방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python에서의 방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nodejs-node-serialize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node.js: node-serialize
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node.js: node-serialize">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nodejs에서의-방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node.js에서의 방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#php-unserialize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PHP: unserialize
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PHP: unserialize">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#php에서의-방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PHP에서의 방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#공통-방어-원칙" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        공통 방어 원칙
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="공통 방어 원칙">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-신뢰할-수-없는-입력을-역직렬화하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 신뢰할 수 없는 입력을 역직렬화하지 않는다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-데이터-전용-포맷을-쓴다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 데이터 전용 포맷을 쓴다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-화이트리스트-기반-클래스-필터링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 화이트리스트 기반 클래스 필터링
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-무결성-검증-서명" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 무결성 검증 (서명)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-점검할-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 점검할 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../XML_External_Entity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XXE 주입
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Path_Traversal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path Traversal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Open_Redirect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Open Redirect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Open_Redirect_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Open Redirect 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Web_Cache_Poisoning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 캐시 포이즈닝
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CORS_and_Security_Headers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CORS와 브라우저 보안 헤더
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../File_Upload_Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    파일 업로드 보안
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../D_Do_S_Defense/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    공격 방어
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Zero_Trust_Architecture/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인프라 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Dev_Sec_Ops/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영과 컴플라이언스
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../SQL_%EC%9D%B8%EC%A0%9D%EC%85%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL Injection
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#직렬화와-역직렬화에서-뭐가-위험한가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        직렬화와 역직렬화에서 뭐가 위험한가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#가젯-체인이라는-개념" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        가젯 체인이라는 개념
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#java레거시-이진-직렬화의-위험성-역사적-맥락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#근본적인-방어--이진-직렬화-자체를-안-쓴다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        근본적인 방어 — 이진 직렬화 자체를 안 쓴다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-pickle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python: pickle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python: pickle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python에서의-방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python에서의 방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nodejs-node-serialize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node.js: node-serialize
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Node.js: node-serialize">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nodejs에서의-방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node.js에서의 방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#php-unserialize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PHP: unserialize
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PHP: unserialize">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#php에서의-방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PHP에서의 방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#공통-방어-원칙" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        공통 방어 원칙
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="공통 방어 원칙">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-신뢰할-수-없는-입력을-역직렬화하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 신뢰할 수 없는 입력을 역직렬화하지 않는다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-데이터-전용-포맷을-쓴다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 데이터 전용 포맷을 쓴다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-화이트리스트-기반-클래스-필터링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 화이트리스트 기반 클래스 필터링
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-무결성-검증-서명" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 무결성 검증 (서명)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-점검할-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 점검할 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">java</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">nodejs</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">python</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">security</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="안전하지-않은-역직렬화-insecure-deserialization">안전하지 않은 역직렬화 (Insecure Deserialization)<a class="headerlink" href="#안전하지-않은-역직렬화-insecure-deserialization" title="Permanent link">&para;</a></h1>
+<p>역직렬화 취약점은 한 번 터지면 대부분 RCE(원격 코드 실행)로 직결된다. SQL Injection처럼 데이터만 새는 게 아니라, 공격자가 서버에서 임의 코드를 돌릴 수 있게 된다. 그런데도 코드 리뷰에서 잘 안 잡힌다. <code>readObject()</code> 한 줄, <code>pickle.loads()</code> 한 줄이 어떤 의미인지 모르고 지나가기 때문이다.</p>
+<p>직렬화 포맷 자체를 다루는 내용은 <a href="../../DataBase/DataRepresentation/Serialization_Formats_Deep_Dive/">Serialization_Formats_Deep_Dive</a>에 있다. 여기서는 그 포맷들이 어떻게 공격에 악용되는지, 그리고 어떻게 막는지만 본다.</p>
+<h2 id="직렬화와-역직렬화에서-뭐가-위험한가">직렬화와 역직렬화에서 뭐가 위험한가<a class="headerlink" href="#직렬화와-역직렬화에서-뭐가-위험한가" title="Permanent link">&para;</a></h2>
+<p>직렬화는 메모리에 있는 객체를 바이트 스트림으로 바꾸는 것이고, 역직렬화는 그 반대다. 문제는 역직렬화 쪽에 있다.</p>
+<p>직렬화된 데이터에는 단순한 값만 들어있는 게 아니다. "어떤 클래스의 객체인지", "그 객체의 필드가 무엇인지"가 같이 들어있다. 역직렬화 코드는 이 정보를 보고 객체를 다시 만든다. 즉 입력 데이터가 "어떤 클래스를 인스턴스화할지"를 지정할 수 있다는 뜻이다.</p>
+<p>공격자가 직렬화된 바이트를 마음대로 조작할 수 있으면, "이 클래스의 객체를 만들어라"라고 서버에 지시할 수 있다. 그 과정에서 호출되는 생성자, 콜백 메서드, 필드 세팅 로직이 공격 표면이 된다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     A[공격자가 조작한&lt;br/&gt;직렬화 페이로드] --&gt; B[서버 역직렬화 코드]
     B --&gt; C[클래스 인스턴스화]
     C --&gt; D[생성자/콜백/세터 자동 실행]
     D --&gt; E[가젯 체인 동작]
-    E --&gt; F[RCE / 임의 명령 실행]</code></pre> <p>핵심은 "역직렬화 = 단순한 데이터 파싱"이 아니라는 점이다. 역직렬화는 코드 실행을 동반한다. 그래서 신뢰할 수 없는 데이터를 역직렬화하는 순간 게임이 끝난다.</p> <h2 id=가젯-체인이라는-개념>가젯 체인이라는 개념<a class=headerlink href=#가젯-체인이라는-개념 title="Permanent link">&para;</a></h2> <p>처음 이 취약점을 공부할 때 가장 헷갈리는 게 가젯 체인(gadget chain)이다. "공격자가 자기 악성 클래스를 서버에 보내면 되는 거 아닌가?"라고 생각하기 쉬운데, 그게 아니다.</p> <p>서버는 자기가 클래스패스에 가지고 있는 클래스만 역직렬화할 수 있다. 공격자가 정의한 적 없는 클래스는 만들 수 없다. 그래서 공격자는 <strong>이미 서버 클래스패스에 존재하는 클래스들</strong>을 조합한다.</p> <p>가젯(gadget)은 역직렬화 과정에서 자동으로 호출되는 메서드를 가진 클래스다. 예를 들어 Java에서 <code>readObject()</code>가 호출될 때 내부적으로 특정 메서드를 부르는 클래스가 있다고 하자. 그 메서드가 또 다른 객체의 메서드를 부르고, 그게 또 다른 걸 부르고... 이렇게 연쇄적으로 호출되는 사슬을 엮어서 마지막에 <code>Runtime.exec()</code> 같은 위험한 호출에 도달하게 만드는 게 가젯 체인이다.</p> <pre class=mermaid-diagram><code>flowchart TD
+    E --&gt; F[RCE / 임의 명령 실행]</code></pre>
+<p>핵심은 "역직렬화 = 단순한 데이터 파싱"이 아니라는 점이다. 역직렬화는 코드 실행을 동반한다. 그래서 신뢰할 수 없는 데이터를 역직렬화하는 순간 게임이 끝난다.</p>
+<h2 id="가젯-체인이라는-개념">가젯 체인이라는 개념<a class="headerlink" href="#가젯-체인이라는-개념" title="Permanent link">&para;</a></h2>
+<p>처음 이 취약점을 공부할 때 가장 헷갈리는 게 가젯 체인(gadget chain)이다. "공격자가 자기 악성 클래스를 서버에 보내면 되는 거 아닌가?"라고 생각하기 쉬운데, 그게 아니다.</p>
+<p>서버는 자기가 클래스패스에 가지고 있는 클래스만 역직렬화할 수 있다. 공격자가 정의한 적 없는 클래스는 만들 수 없다. 그래서 공격자는 <strong>이미 서버 클래스패스에 존재하는 클래스들</strong>을 조합한다.</p>
+<p>가젯(gadget)은 역직렬화 과정에서 자동으로 호출되는 메서드를 가진 클래스다. 예를 들어 Java에서 <code>readObject()</code>가 호출될 때 내부적으로 특정 메서드를 부르는 클래스가 있다고 하자. 그 메서드가 또 다른 객체의 메서드를 부르고, 그게 또 다른 걸 부르고... 이렇게 연쇄적으로 호출되는 사슬을 엮어서 마지막에 <code>Runtime.exec()</code> 같은 위험한 호출에 도달하게 만드는 게 가젯 체인이다.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     A[readObject 진입] --&gt; B[가젯1: 자동 호출 메서드]
     B --&gt; C[가젯2: 다음 메서드 호출]
     C --&gt; D[가젯3: 리플렉션 호출]
     D --&gt; E[Runtime.exec 도달]
-    E --&gt; F[OS 명령 실행]</code></pre> <p>여기서 중요한 건 가젯 체인에 쓰이는 클래스들이 <strong>취약점이 있는 라이브러리가 아니라 흔히 쓰는 정상 라이브러리</strong>라는 점이다. Apache Commons Collections, Spring, Groovy 같은 라이브러리가 클래스패스에 있으면 거기서 가젯이 나온다. 그래서 "우리 코드엔 문제없는데?"라고 안심하면 안 된다. 의존성에 commons-collections가 들어있고 어딘가에서 신뢰할 수 없는 데이터를 역직렬화하면 그걸로 끝이다.</p> <p>ysoserial이라는 도구가 이런 가젯 체인을 자동으로 만들어준다. 라이브러리 조합별로 페이로드를 생성해주기 때문에, 공격자 입장에서는 직접 체인을 발굴할 필요도 없다. 방어하는 입장에서는 이게 무섭다. "우리는 commons-collections 3.1 쓰는데 ysoserial에 CommonsCollections1 체인이 있네"면 바로 공격 가능하다고 봐야 한다.</p> <h2 id=java레거시-이진-직렬화의-위험성-역사적-맥락>Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)<a class=headerlink href=#java레거시-이진-직렬화의-위험성-역사적-맥락 title="Permanent link">&para;</a></h2> <p>Java의 <code>ObjectInputStream</code> 기반 역직렬화가 가장 악명 높은 사례다. RMI, JMX, 일부 메시징, 옛날 세션 클러스터링, 일부 캐시 라이브러리가 내부적으로 Java 직렬화를 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>// Java에서의 취약한 코드 (개념 설명)
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>ObjectInputStream ois = new ObjectInputStream(inputStream);
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>Object obj = ois.readObject(); // 사용자 입력을 바로 역직렬화
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>// readObject() 호출 시 페이로드 안의 객체 그래프가 복원되면서
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>// 각 객체의 readObject, readResolve, hashCode 메서드가 자동 호출됨
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>// → 가젯 체인의 시작점
-</span></code></pre></div> <p><code>readObject()</code>가 호출되는 순간 페이로드 안에 들어있는 객체 그래프가 복원되면서 각 객체의 <code>readObject</code>, <code>readResolve</code>, <code>finalize</code>, <code>hashCode</code> 같은 메서드가 자동 호출된다. 이 자동 호출이 가젯 체인의 시작점이다.</p> <p>실제 사고 사례가 많다. 2015년 Apache Commons Collections 가젯이 공개되면서 WebLogic, WebSphere, JBoss, Jenkins 등 수많은 제품에서 RCE가 터졌다. 2017년 Jenkins, 2021년 여러 제품에서도 같은 패턴이 반복됐다. 공통점은 전부 신뢰할 수 없는 입력을 Java 직렬화로 역직렬화했다는 것이다.</p> <h3 id=근본적인-방어--이진-직렬화-자체를-안-쓴다>근본적인 방어 — 이진 직렬화 자체를 안 쓴다<a class=headerlink href=#근본적인-방어--이진-직렬화-자체를-안-쓴다 title="Permanent link">&para;</a></h3> <p>Java 직렬화 자체를 안 쓰는 게 낫다. Node.js에서도 동일한 원칙이 적용된다.</p> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1>// 위험 — node-serialize 같은 라이브러리로 임의 함수를 역직렬화</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=kd>const</span><span class=w> </span><span class=nx>data</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>serialize</span><span class=p>.</span><span class=nx>unserialize</span><span class=p>(</span><span class=nx>userInput</span><span class=p>);</span><span class=w>  </span><span class=c1>// IIFE 패턴으로 코드 실행 가능</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=c1>// 안전 — JSON.parse는 함수를 실행하지 않는다</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=kd>const</span><span class=w> </span><span class=nx>data</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nb>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>userInput</span><span class=p>)</span><span class=w> </span><span class=kr>as</span><span class=w> </span><span class=nx>ExpectedType</span><span class=p>;</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=c1>// 더 안전 — 스키마 검증까지 추가</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>z</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;zod&#39;</span><span class=p>;</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=kd>const</span><span class=w> </span><span class=nx>OrderSchema</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>z</span><span class=p>.</span><span class=nx>object</span><span class=p>({</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a><span class=w>  </span><span class=nx>id</span><span class=o>:</span><span class=w>     </span><span class=kt>z.string</span><span class=p>().</span><span class=nx>uuid</span><span class=p>(),</span>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=w>  </span><span class=nx>amount</span><span class=o>:</span><span class=w> </span><span class=kt>z.number</span><span class=p>().</span><span class=nx>positive</span><span class=p>(),</span>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a><span class=p>});</span>
-</span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a>
-</span><span id=__span-1-15><a id=__codelineno-1-15 name=__codelineno-1-15 href=#__codelineno-1-15></a><span class=kd>const</span><span class=w> </span><span class=nx>order</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>OrderSchema</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nb>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>userInput</span><span class=p>));</span>
-</span><span id=__span-1-16><a id=__codelineno-1-16 name=__codelineno-1-16 href=#__codelineno-1-16></a><span class=c1>// 스키마에 맞지 않으면 ZodError 던짐 — 예상치 못한 필드 차단</span>
-</span></code></pre></div> <p>외부와 주고받는 데이터는 JSON, Protobuf 같은 데이터 전용 포맷으로 바꾼다. <code>zod</code>, <code>io-ts</code>, <code>class-validator</code> 같은 라이브러리로 입력 스키마를 명시적으로 검증하면 임의 클래스 인스턴스화 문제가 사라진다.</p> <h2 id=python-pickle>Python: pickle<a class=headerlink href=#python-pickle title="Permanent link">&para;</a></h2> <p>Python의 <code>pickle</code>은 설계 자체가 위험하다. 공식 문서에도 "신뢰할 수 없는 데이터를 unpickle하지 마라"라고 빨간 박스로 박혀 있다.</p> <p>pickle은 <code>__reduce__</code> 메서드를 통해 객체 복원 방법을 직접 지정할 수 있다. 이걸 악용하면 unpickle 시점에 임의 함수를 호출하게 만들 수 있다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=kn>import</span><span class=w> </span><span class=nn>pickle</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=kn>import</span><span class=w> </span><span class=nn>os</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=k>class</span><span class=w> </span><span class=nc>Exploit</span><span class=p>:</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>    <span class=k>def</span><span class=w> </span><span class=nf>__reduce__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>        <span class=c1># unpickle 시 이 명령이 실행된다</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>        <span class=k>return</span> <span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>system</span><span class=p>,</span> <span class=p>(</span><span class=s1>&#39;id&#39;</span><span class=p>,))</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=c1># 공격자가 만드는 페이로드</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=n>payload</span> <span class=o>=</span> <span class=n>pickle</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>Exploit</span><span class=p>())</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a><span class=c1># 서버가 신뢰 없이 역직렬화하면 끝</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a><span class=n>pickle</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>payload</span><span class=p>)</span>  <span class=c1># &#39;id&#39; 명령 실행됨</span>
-</span></code></pre></div> <p><code>pickle.loads()</code>를 호출하는 순간 <code>os.system('id')</code>가 실행된다. 별도의 가젯 체인을 발굴할 필요도 없다. <code>__reduce__</code>가 그냥 "복원할 때 이 callable을 이 인자로 불러라"를 명시하기 때문이다. Java보다 훨씬 직관적으로 위험하다.</p> <p>실무에서 pickle이 새어나오는 경로가 의외로 많다.</p> <ul> <li>Redis, Memcached에 객체를 pickle로 캐싱하고, 캐시 서버가 노출되거나 다른 서비스와 공유될 때</li> <li>Celery 같은 태스크 큐의 직렬화 포맷을 pickle로 둘 때 (브로커를 장악하면 워커에서 RCE)</li> <li>머신러닝 모델 파일(<code>.pkl</code>, <code>joblib</code>, PyTorch <code>.pt</code>의 일부)을 외부에서 받아 로드할 때</li> <li>멀티프로세싱이나 분산 처리에서 객체를 주고받을 때</li> </ul> <p>특히 ML 모델 로딩은 요즘 자주 터지는 경로다. Hugging Face 같은 데서 받은 모델을 그냥 <code>torch.load()</code>하면 내부적으로 pickle을 쓰기 때문에 악성 모델 파일 하나로 RCE가 난다. PyTorch는 <code>weights_only=True</code> 옵션을 권장하는 방향으로 바뀌고 있다.</p> <h3 id=python에서의-방어>Python에서의 방어<a class=headerlink href=#python에서의-방어 title="Permanent link">&para;</a></h3> <p>pickle은 화이트리스트 필터링이 Java만큼 깔끔하지 않다. <code>pickle.Unpickler</code>를 상속해서 <code>find_class</code>를 오버라이드하는 방법이 있다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=kn>import</span><span class=w> </span><span class=nn>pickle</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=kn>import</span><span class=w> </span><span class=nn>io</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=k>class</span><span class=w> </span><span class=nc>RestrictedUnpickler</span><span class=p>(</span><span class=n>pickle</span><span class=o>.</span><span class=n>Unpickler</span><span class=p>):</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>    <span class=c1># 허용할 (모듈, 클래스) 조합만 명시</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>    <span class=n>ALLOWED</span> <span class=o>=</span> <span class=p>{</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a>        <span class=p>(</span><span class=s1>&#39;myapp.dto&#39;</span><span class=p>,</span> <span class=s1>&#39;OrderDto&#39;</span><span class=p>),</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a>        <span class=p>(</span><span class=s1>&#39;myapp.dto&#39;</span><span class=p>,</span> <span class=s1>&#39;UserDto&#39;</span><span class=p>),</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a>    <span class=p>}</span>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a>    <span class=k>def</span><span class=w> </span><span class=nf>find_class</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>module</span><span class=p>,</span> <span class=n>name</span><span class=p>):</span>
-</span><span id=__span-3-12><a id=__codelineno-3-12 name=__codelineno-3-12 href=#__codelineno-3-12></a>        <span class=k>if</span> <span class=p>(</span><span class=n>module</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>ALLOWED</span><span class=p>:</span>
-</span><span id=__span-3-13><a id=__codelineno-3-13 name=__codelineno-3-13 href=#__codelineno-3-13></a>            <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>find_class</span><span class=p>(</span><span class=n>module</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
-</span><span id=__span-3-14><a id=__codelineno-3-14 name=__codelineno-3-14 href=#__codelineno-3-14></a>        <span class=k>raise</span> <span class=n>pickle</span><span class=o>.</span><span class=n>UnpicklingError</span><span class=p>(</span>
-</span><span id=__span-3-15><a id=__codelineno-3-15 name=__codelineno-3-15 href=#__codelineno-3-15></a>            <span class=sa>f</span><span class=s2>&quot;허용되지 않은 클래스: </span><span class=si>{</span><span class=n>module</span><span class=si>}</span><span class=s2>.</span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>&quot;</span>
-</span><span id=__span-3-16><a id=__codelineno-3-16 name=__codelineno-3-16 href=#__codelineno-3-16></a>        <span class=p>)</span>
-</span><span id=__span-3-17><a id=__codelineno-3-17 name=__codelineno-3-17 href=#__codelineno-3-17></a>
-</span><span id=__span-3-18><a id=__codelineno-3-18 name=__codelineno-3-18 href=#__codelineno-3-18></a><span class=k>def</span><span class=w> </span><span class=nf>safe_loads</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>):</span>
-</span><span id=__span-3-19><a id=__codelineno-3-19 name=__codelineno-3-19 href=#__codelineno-3-19></a>    <span class=k>return</span> <span class=n>RestrictedUnpickler</span><span class=p>(</span><span class=n>io</span><span class=o>.</span><span class=n>BytesIO</span><span class=p>(</span><span class=n>data</span><span class=p>))</span><span class=o>.</span><span class=n>load</span><span class=p>()</span>
-</span></code></pre></div> <p><code>os</code>, <code>subprocess</code>, <code>builtins</code> 같은 모듈은 절대 허용 목록에 넣으면 안 된다. 그런데 이렇게 막아도 우회 경로가 계속 나오기 때문에, 가장 확실한 건 그냥 pickle을 안 쓰는 것이다.</p> <p>신뢰 경계를 넘는 데이터는 JSON으로 바꾼다. 객체가 필요하면 JSON으로 받은 뒤 명시적으로 검증해서 dataclass로 변환한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=kn>import</span><span class=w> </span><span class=nn>json</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=nd>@dataclass</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=k>class</span><span class=w> </span><span class=nc>OrderDto</span><span class=p>:</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>    <span class=n>order_id</span><span class=p>:</span> <span class=nb>str</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>    <span class=n>amount</span><span class=p>:</span> <span class=nb>int</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=k>def</span><span class=w> </span><span class=nf>parse_order</span><span class=p>(</span><span class=n>raw</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>OrderDto</span><span class=p>:</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>    <span class=n>data</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>raw</span><span class=p>)</span>  <span class=c1># 데이터만 파싱, 코드 실행 없음</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>    <span class=c1># 필드 명시적으로 꺼내고 타입 검증</span>
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a>    <span class=k>return</span> <span class=n>OrderDto</span><span class=p>(</span>
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a>        <span class=n>order_id</span><span class=o>=</span><span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=s2>&quot;order_id&quot;</span><span class=p>]),</span>
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a>        <span class=n>amount</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=s2>&quot;amount&quot;</span><span class=p>]),</span>
-</span><span id=__span-4-15><a id=__codelineno-4-15 name=__codelineno-4-15 href=#__codelineno-4-15></a>    <span class=p>)</span>
-</span></code></pre></div> <p>Celery는 직렬화 포맷을 <code>json</code>으로 강제하는 게 좋다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=n>app</span><span class=o>.</span><span class=n>conf</span><span class=o>.</span><span class=n>update</span><span class=p>(</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>    <span class=n>task_serializer</span><span class=o>=</span><span class=s1>&#39;json&#39;</span><span class=p>,</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>    <span class=n>result_serializer</span><span class=o>=</span><span class=s1>&#39;json&#39;</span><span class=p>,</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>    <span class=n>accept_content</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;json&#39;</span><span class=p>],</span>  <span class=c1># pickle 수신 자체를 거부</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=p>)</span>
-</span></code></pre></div> <h2 id=nodejs-node-serialize>Node.js: node-serialize<a class=headerlink href=#nodejs-node-serialize title="Permanent link">&para;</a></h2> <p>Node.js는 표준 라이브러리에 위험한 역직렬화가 없다. 문제는 서드파티 패키지다. <code>node-serialize</code>가 대표적이다.</p> <p><code>node-serialize</code>는 함수도 직렬화/역직렬화할 수 있게 만들어졌다. 직렬화된 데이터에 함수 본문이 문자열로 들어가는데, 역직렬화할 때 이걸 <code>eval</code>로 되살린다. 게다가 IIFE(즉시 실행 함수) 형태를 넣으면 역직렬화하는 순간 실행된다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=kd>const</span><span class=w> </span><span class=nx>serialize</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;node-serialize&#39;</span><span class=p>);</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=c1>// 공격자 페이로드. _$$ND_FUNC$$_ 마커 뒤 함수가 eval된다.</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=c1>// 끝에 ()를 붙여 즉시 실행시킨다.</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=kd>const</span><span class=w> </span><span class=nx>payload</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;{&quot;rce&quot;:&quot;_$$ND_FUNC$$_function(){&#39;</span><span class=w> </span><span class=o>+</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>    </span><span class=s1>&#39;require(\&#39;child_process\&#39;).exec(\&#39;id\&#39;, function(e,o){console.log(o)});&#39;</span><span class=w> </span><span class=o>+</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>    </span><span class=s1>&#39;}()&quot;}&#39;</span><span class=p>;</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=nx>serialize</span><span class=p>.</span><span class=nx>unserialize</span><span class=p>(</span><span class=nx>payload</span><span class=p>);</span><span class=w>  </span><span class=c1>// 역직렬화 시점에 &#39;id&#39; 실행</span>
-</span></code></pre></div> <p><code>unserialize</code>가 객체 안의 <code>_$$ND_FUNC$$_</code> 마커를 보고 그 뒤 문자열을 함수로 복원하는데, 끝에 <code>()</code>가 붙어 있으면 복원과 동시에 실행된다. 이게 핵심이다.</p> <h3 id=nodejs에서의-방어>Node.js에서의 방어<a class=headerlink href=#nodejs에서의-방어 title="Permanent link">&para;</a></h3> <p>답은 단순하다. <code>node-serialize</code> 같은 함수 직렬화 패키지를 쓰지 않는다. 객체 직렬화가 필요하면 <code>JSON.stringify</code> / <code>JSON.parse</code>만 쓴다. JSON에는 함수가 없으므로 코드 실행이 일어날 수 없다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1>// 데이터만 직렬화. 함수는 애초에 들어가지 않는다.</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=kd>const</span><span class=w> </span><span class=nx>data</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nb>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>rawInput</span><span class=p>);</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=c1>// 받은 데이터는 스키마 검증 후 사용</span>
-</span></code></pre></div> <p>JSON으로 받되 구조 검증이 필요하면 Zod, Joi, ajv 같은 스키마 검증기를 같이 쓴다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=kd>const</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>z</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;zod&#39;</span><span class=p>);</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=kd>const</span><span class=w> </span><span class=nx>OrderSchema</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>z</span><span class=p>.</span><span class=nx>object</span><span class=p>({</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>    </span><span class=nx>orderId</span><span class=o>:</span><span class=w> </span><span class=nx>z</span><span class=p>.</span><span class=nx>string</span><span class=p>(),</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>    </span><span class=nx>amount</span><span class=o>:</span><span class=w> </span><span class=nx>z</span><span class=p>.</span><span class=nx>number</span><span class=p>().</span><span class=kr>int</span><span class=p>().</span><span class=nx>positive</span><span class=p>(),</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=p>});</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=kd>function</span><span class=w> </span><span class=nx>parseOrder</span><span class=p>(</span><span class=nx>raw</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=nx>data</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nb>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>raw</span><span class=p>);</span>
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=nx>OrderSchema</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>data</span><span class=p>);</span><span class=w>  </span><span class=c1>// 스키마 안 맞으면 예외</span>
-</span><span id=__span-8-11><a id=__codelineno-8-11 name=__codelineno-8-11 href=#__codelineno-8-11></a><span class=p>}</span>
-</span></code></pre></div> <p><code>JSON.parse</code>의 reviver 함수를 쓸 때도 거기서 임의 코드를 부르지 않도록 조심한다. 그리고 프로토타입 오염(<code>__proto__</code> 주입)은 역직렬화와 별개의 문제지만 JSON 파싱 후 객체를 그대로 머지할 때 자주 같이 터지므로, 신뢰할 수 없는 객체를 깊은 병합할 때 주의한다.</p> <h2 id=php-unserialize>PHP: unserialize<a class=headerlink href=#php-unserialize title="Permanent link">&para;</a></h2> <p>PHP의 <code>unserialize()</code>도 매직 메서드 때문에 위험하다. 객체가 역직렬화될 때 <code>__wakeup()</code>이 호출되고, 객체가 소멸될 때 <code>__destruct()</code>가 호출된다. 스크립트가 끝나면 객체가 소멸되므로 <code>__destruct()</code>는 거의 항상 불린다. 여기에 위험한 동작이 있는 클래스가 클래스패스에 있으면 가젯이 된다 (PHP에서는 POP 체인, Property Oriented Programming이라고 부른다).</p> <div class="language-php highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=cp>&lt;?php</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=k>class</span> <span class=nc>Logger</span> <span class=p>{</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>    <span class=k>public</span> <span class=nv>$logFile</span><span class=p>;</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>    <span class=k>public</span> <span class=nv>$data</span><span class=p>;</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>    <span class=k>function</span> <span class=fm>__destruct</span><span class=p>()</span> <span class=p>{</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>        <span class=c1>// 소멸 시 파일에 쓴다 — 공격자가 logFile, data를 조작하면 웹쉘 작성 가능</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a>        <span class=nb>file_put_contents</span><span class=p>(</span><span class=nv>$this</span><span class=o>-&gt;</span><span class=na>logFile</span><span class=p>,</span> <span class=nv>$this</span><span class=o>-&gt;</span><span class=na>data</span><span class=p>);</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a>    <span class=p>}</span>
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=p>}</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a>
-</span><span id=__span-9-12><a id=__codelineno-9-12 name=__codelineno-9-12 href=#__codelineno-9-12></a><span class=c1>// 공격자가 보내는 직렬화 문자열</span>
-</span><span id=__span-9-13><a id=__codelineno-9-13 name=__codelineno-9-13 href=#__codelineno-9-13></a><span class=c1>// O:6:&quot;Logger&quot;:2:{s:7:&quot;logFile&quot;;s:9:&quot;shell.php&quot;;s:4:&quot;data&quot;;s:...:&quot;&lt;?php system($_GET[c]); ?&gt;&quot;;}</span>
-</span><span id=__span-9-14><a id=__codelineno-9-14 name=__codelineno-9-14 href=#__codelineno-9-14></a><span class=nv>$obj</span> <span class=o>=</span> <span class=nb>unserialize</span><span class=p>(</span><span class=nv>$_POST</span><span class=p>[</span><span class=s1>&#39;data&#39;</span><span class=p>]);</span>  <span class=c1>// __destruct에서 웹쉘 생성</span>
-</span><span id=__span-9-15><a id=__codelineno-9-15 name=__codelineno-9-15 href=#__codelineno-9-15></a><span class=cp>?&gt;</span>
-</span></code></pre></div> <p>공격자는 클래스의 프로퍼티 값을 직렬화 문자열로 직접 지정할 수 있다. 위 예처럼 <code>logFile</code>을 <code>shell.php</code>로, <code>data</code>를 PHP 코드로 채워 보내면 스크립트 종료 시 웹쉘이 만들어진다. 실제로는 여러 클래스의 매직 메서드를 엮는 POP 체인으로 더 복잡한 공격을 한다. Laravel, Symfony 같은 프레임워크의 클래스를 가젯으로 쓰는 phpggc 같은 도구도 있다(ysoserial의 PHP 버전).</p> <h3 id=php에서의-방어>PHP에서의 방어<a class=headerlink href=#php에서의-방어 title="Permanent link">&para;</a></h3> <p>PHP 7부터 <code>unserialize</code>에 <code>allowed_classes</code> 옵션이 생겼다. 두 번째 인자로 허용 클래스를 지정하거나 아예 객체 복원을 막을 수 있다.</p> <div class="language-php highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=cp>&lt;?php</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=c1>// 객체 복원 자체를 금지 — 배열, 스칼라만 복원</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=nv>$data</span> <span class=o>=</span> <span class=nb>unserialize</span><span class=p>(</span><span class=nv>$input</span><span class=p>,</span> <span class=p>[</span><span class=s1>&#39;allowed_classes&#39;</span> <span class=o>=&gt;</span> <span class=k>false</span><span class=p>]);</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=c1>// 특정 클래스만 허용</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=nv>$data</span> <span class=o>=</span> <span class=nb>unserialize</span><span class=p>(</span><span class=nv>$input</span><span class=p>,</span> <span class=p>[</span><span class=s1>&#39;allowed_classes&#39;</span> <span class=o>=&gt;</span> <span class=p>[</span><span class=s1>&#39;OrderDto&#39;</span><span class=p>,</span> <span class=s1>&#39;UserDto&#39;</span><span class=p>]]);</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=cp>?&gt;</span>
-</span></code></pre></div> <p><code>allowed_classes =&gt; false</code>로 두면 직렬화 문자열에 객체가 있어도 <code>__PHP_Incomplete_Class</code>로 복원되어 매직 메서드가 안 불린다. 객체를 주고받을 필요가 없으면 이게 가장 안전하다.</p> <p>여기서도 더 나은 답은 <code>unserialize</code> 대신 <code>json_decode</code>를 쓰는 것이다. 외부 입력으로 들어오는 직렬화 데이터는 PHP 직렬화 포맷이 아니라 JSON으로 받는다.</p> <h2 id=공통-방어-원칙>공통 방어 원칙<a class=headerlink href=#공통-방어-원칙 title="Permanent link">&para;</a></h2> <p>언어마다 문법은 다르지만 방어 원칙은 같다. 우선순위 순서대로 적용한다.</p> <h3 id=1-신뢰할-수-없는-입력을-역직렬화하지-않는다>1. 신뢰할 수 없는 입력을 역직렬화하지 않는다<a class=headerlink href=#1-신뢰할-수-없는-입력을-역직렬화하지-않는다 title="Permanent link">&para;</a></h3> <p>가장 확실한 방어다. 사용자 입력, 외부 API 응답, 쿠키, 헤더, 메시지 큐 페이로드를 네이티브 직렬화 포맷으로 역직렬화하지 않는다. "내부 서비스끼리만 쓰니까 괜찮다"는 위험한 가정이다. 내부망이 뚫리거나 내부 서비스가 탈취되면 그대로 측면 이동(lateral movement) 경로가 된다.</p> <h3 id=2-데이터-전용-포맷을-쓴다>2. 데이터 전용 포맷을 쓴다<a class=headerlink href=#2-데이터-전용-포맷을-쓴다 title="Permanent link">&para;</a></h3> <p>JSON, Protobuf, MessagePack처럼 코드 실행이 불가능한 포맷을 쓴다. 이 포맷들은 "데이터"만 표현하지 "어떤 클래스를 만들어라"를 표현하지 않는다. 받은 데이터는 명시적으로 검증해서 도메인 객체로 변환한다.</p> <p>단, JSON이라도 다형성 역직렬화(polymorphic deserialization)를 켜면 위험해진다. Jackson의 <code>enableDefaultTyping()</code>이나 <code>@JsonTypeInfo</code>로 타입 정보를 JSON에 넣고 그걸로 클래스를 결정하게 하면, 결국 입력이 클래스를 지정하는 셈이라 Java 직렬화와 같은 문제가 생긴다. CVE도 많이 나왔다. 다형성이 꼭 필요하면 허용 타입을 화이트리스트로 묶는다(<code>PolymorphicTypeValidator</code>).</p> <h3 id=3-화이트리스트-기반-클래스-필터링>3. 화이트리스트 기반 클래스 필터링<a class=headerlink href=#3-화이트리스트-기반-클래스-필터링 title="Permanent link">&para;</a></h3> <p>네이티브 직렬화를 도저히 못 버리는 경우(레거시 RMI, 기존 프로토콜 등)에만 쓴다. Java는 <code>ObjectInputFilter</code>, Python은 <code>find_class</code> 오버라이드, PHP는 <code>allowed_classes</code>다. 반드시 "기본 거부 + 명시 허용" 구조여야 한다. 블랙리스트는 항상 우회된다.</p> <h3 id=4-무결성-검증-서명>4. 무결성 검증 (서명)<a class=headerlink href=#4-무결성-검증-서명 title="Permanent link">&para;</a></h3> <p>역직렬화하기 전에 데이터가 변조되지 않았는지 확인한다. HMAC으로 서명하고, 역직렬화 전에 서명을 먼저 검증한다. 서명이 안 맞으면 파싱조차 하지 않는다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=kn>import</span><span class=w> </span><span class=nn>hmac</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=kn>import</span><span class=w> </span><span class=nn>hashlib</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=n>SECRET</span> <span class=o>=</span> <span class=sa>b</span><span class=s2>&quot;server-side-secret-key&quot;</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=k>def</span><span class=w> </span><span class=nf>sign</span><span class=p>(</span><span class=n>payload</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bytes</span><span class=p>:</span>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a>    <span class=n>mac</span> <span class=o>=</span> <span class=n>hmac</span><span class=o>.</span><span class=n>new</span><span class=p>(</span><span class=n>SECRET</span><span class=p>,</span> <span class=n>payload</span><span class=p>,</span> <span class=n>hashlib</span><span class=o>.</span><span class=n>sha256</span><span class=p>)</span><span class=o>.</span><span class=n>digest</span><span class=p>()</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>    <span class=k>return</span> <span class=n>mac</span> <span class=o>+</span> <span class=n>payload</span>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=k>def</span><span class=w> </span><span class=nf>verify_and_extract</span><span class=p>(</span><span class=n>signed</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bytes</span><span class=p>:</span>
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>    <span class=n>mac</span><span class=p>,</span> <span class=n>payload</span> <span class=o>=</span> <span class=n>signed</span><span class=p>[:</span><span class=mi>32</span><span class=p>],</span> <span class=n>signed</span><span class=p>[</span><span class=mi>32</span><span class=p>:]</span>
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a>    <span class=n>expected</span> <span class=o>=</span> <span class=n>hmac</span><span class=o>.</span><span class=n>new</span><span class=p>(</span><span class=n>SECRET</span><span class=p>,</span> <span class=n>payload</span><span class=p>,</span> <span class=n>hashlib</span><span class=o>.</span><span class=n>sha256</span><span class=p>)</span><span class=o>.</span><span class=n>digest</span><span class=p>()</span>
-</span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a>    <span class=k>if</span> <span class=ow>not</span> <span class=n>hmac</span><span class=o>.</span><span class=n>compare_digest</span><span class=p>(</span><span class=n>mac</span><span class=p>,</span> <span class=n>expected</span><span class=p>):</span>
-</span><span id=__span-11-14><a id=__codelineno-11-14 name=__codelineno-11-14 href=#__codelineno-11-14></a>        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;서명 불일치 — 변조된 데이터&quot;</span><span class=p>)</span>
-</span><span id=__span-11-15><a id=__codelineno-11-15 name=__codelineno-11-15 href=#__codelineno-11-15></a>    <span class=k>return</span> <span class=n>payload</span>  <span class=c1># 검증 통과한 뒤에만 역직렬화로 넘긴다</span>
-</span></code></pre></div> <p>주의할 점이 두 가지 있다. 첫째, 서명 검증은 변조를 막을 뿐 "정당한 키를 가진 쪽이 보낸 악성 페이로드"는 못 막는다. 키가 유출되면 무력화된다. 둘째, 서명만 믿고 역직렬화 자체를 안전하다고 착각하면 안 된다. 서명은 변조 방어이고, 클래스 화이트리스트는 별개로 같이 걸어야 한다. 비교는 반드시 <code>compare_digest</code>처럼 타이밍 공격에 안전한 함수로 한다.</p> <p>이 패턴이 실무에서 자주 보이는 곳이 세션 쿠키와 JWT다. 서버가 세션 객체를 직렬화해서 쿠키에 넣을 때 서명을 빠뜨리면 공격자가 쿠키를 조작해 역직렬화 공격을 한다. Rails의 옛날 <code>secret_token</code> 사고, PHP 세션 핸들러 사고가 다 이 패턴이었다.</p> <pre class=mermaid-diagram><code>flowchart TD
+    E --&gt; F[OS 명령 실행]</code></pre>
+<p>여기서 중요한 건 가젯 체인에 쓰이는 클래스들이 <strong>취약점이 있는 라이브러리가 아니라 흔히 쓰는 정상 라이브러리</strong>라는 점이다. Apache Commons Collections, Spring, Groovy 같은 라이브러리가 클래스패스에 있으면 거기서 가젯이 나온다. 그래서 "우리 코드엔 문제없는데?"라고 안심하면 안 된다. 의존성에 commons-collections가 들어있고 어딘가에서 신뢰할 수 없는 데이터를 역직렬화하면 그걸로 끝이다.</p>
+<p>ysoserial이라는 도구가 이런 가젯 체인을 자동으로 만들어준다. 라이브러리 조합별로 페이로드를 생성해주기 때문에, 공격자 입장에서는 직접 체인을 발굴할 필요도 없다. 방어하는 입장에서는 이게 무섭다. "우리는 commons-collections 3.1 쓰는데 ysoserial에 CommonsCollections1 체인이 있네"면 바로 공격 가능하다고 봐야 한다.</p>
+<h2 id="java레거시-이진-직렬화의-위험성-역사적-맥락">Java/레거시: 이진 직렬화의 위험성 (역사적 맥락)<a class="headerlink" href="#java레거시-이진-직렬화의-위험성-역사적-맥락" title="Permanent link">&para;</a></h2>
+<p>Java의 <code>ObjectInputStream</code> 기반 역직렬화가 가장 악명 높은 사례다. RMI, JMX, 일부 메시징, 옛날 세션 클러스터링, 일부 캐시 라이브러리가 내부적으로 Java 직렬화를 쓴다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>// Java에서의 취약한 코드 (개념 설명)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ObjectInputStream ois = new ObjectInputStream(inputStream);
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Object obj = ois.readObject(); // 사용자 입력을 바로 역직렬화
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>// readObject() 호출 시 페이로드 안의 객체 그래프가 복원되면서
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>// 각 객체의 readObject, readResolve, hashCode 메서드가 자동 호출됨
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>// → 가젯 체인의 시작점
+</span></code></pre></div>
+<p><code>readObject()</code>가 호출되는 순간 페이로드 안에 들어있는 객체 그래프가 복원되면서 각 객체의 <code>readObject</code>, <code>readResolve</code>, <code>finalize</code>, <code>hashCode</code> 같은 메서드가 자동 호출된다. 이 자동 호출이 가젯 체인의 시작점이다.</p>
+<p>실제 사고 사례가 많다. 2015년 Apache Commons Collections 가젯이 공개되면서 WebLogic, WebSphere, JBoss, Jenkins 등 수많은 제품에서 RCE가 터졌다. 2017년 Jenkins, 2021년 여러 제품에서도 같은 패턴이 반복됐다. 공통점은 전부 신뢰할 수 없는 입력을 Java 직렬화로 역직렬화했다는 것이다.</p>
+<h3 id="근본적인-방어--이진-직렬화-자체를-안-쓴다">근본적인 방어 — 이진 직렬화 자체를 안 쓴다<a class="headerlink" href="#근본적인-방어--이진-직렬화-자체를-안-쓴다" title="Permanent link">&para;</a></h3>
+<p>Java 직렬화 자체를 안 쓰는 게 낫다. Node.js에서도 동일한 원칙이 적용된다.</p>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// 위험 — node-serialize 같은 라이브러리로 임의 함수를 역직렬화</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">serialize</span><span class="p">.</span><span class="nx">unserialize</span><span class="p">(</span><span class="nx">userInput</span><span class="p">);</span><span class="w">  </span><span class="c1">// IIFE 패턴으로 코드 실행 가능</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1">// 안전 — JSON.parse는 함수를 실행하지 않는다</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">userInput</span><span class="p">)</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">ExpectedType</span><span class="p">;</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1">// 더 안전 — 스키마 검증까지 추가</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;zod&#39;</span><span class="p">;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="kd">const</span><span class="w"> </span><span class="nx">OrderSchema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">z</span><span class="p">.</span><span class="nx">object</span><span class="p">({</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w">     </span><span class="kt">z.string</span><span class="p">().</span><span class="nx">uuid</span><span class="p">(),</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nx">amount</span><span class="o">:</span><span class="w"> </span><span class="kt">z.number</span><span class="p">().</span><span class="nx">positive</span><span class="p">(),</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="p">});</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="kd">const</span><span class="w"> </span><span class="nx">order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">OrderSchema</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">userInput</span><span class="p">));</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1">// 스키마에 맞지 않으면 ZodError 던짐 — 예상치 못한 필드 차단</span>
+</span></code></pre></div>
+<p>외부와 주고받는 데이터는 JSON, Protobuf 같은 데이터 전용 포맷으로 바꾼다. <code>zod</code>, <code>io-ts</code>, <code>class-validator</code> 같은 라이브러리로 입력 스키마를 명시적으로 검증하면 임의 클래스 인스턴스화 문제가 사라진다.</p>
+<h2 id="python-pickle">Python: pickle<a class="headerlink" href="#python-pickle" title="Permanent link">&para;</a></h2>
+<p>Python의 <code>pickle</code>은 설계 자체가 위험하다. 공식 문서에도 "신뢰할 수 없는 데이터를 unpickle하지 마라"라고 빨간 박스로 박혀 있다.</p>
+<p>pickle은 <code>__reduce__</code> 메서드를 통해 객체 복원 방법을 직접 지정할 수 있다. 이걸 악용하면 unpickle 시점에 임의 함수를 호출하게 만들 수 있다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Exploit</span><span class="p">:</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="c1"># unpickle 시 이 명령이 실행된다</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">return</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,))</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># 공격자가 만드는 페이로드</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">payload</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">Exploit</span><span class="p">())</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># 서버가 신뢰 없이 역직렬화하면 끝</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>  <span class="c1"># &#39;id&#39; 명령 실행됨</span>
+</span></code></pre></div>
+<p><code>pickle.loads()</code>를 호출하는 순간 <code>os.system('id')</code>가 실행된다. 별도의 가젯 체인을 발굴할 필요도 없다. <code>__reduce__</code>가 그냥 "복원할 때 이 callable을 이 인자로 불러라"를 명시하기 때문이다. Java보다 훨씬 직관적으로 위험하다.</p>
+<p>실무에서 pickle이 새어나오는 경로가 의외로 많다.</p>
+<ul>
+<li>Redis, Memcached에 객체를 pickle로 캐싱하고, 캐시 서버가 노출되거나 다른 서비스와 공유될 때</li>
+<li>Celery 같은 태스크 큐의 직렬화 포맷을 pickle로 둘 때 (브로커를 장악하면 워커에서 RCE)</li>
+<li>머신러닝 모델 파일(<code>.pkl</code>, <code>joblib</code>, PyTorch <code>.pt</code>의 일부)을 외부에서 받아 로드할 때</li>
+<li>멀티프로세싱이나 분산 처리에서 객체를 주고받을 때</li>
+</ul>
+<p>특히 ML 모델 로딩은 요즘 자주 터지는 경로다. Hugging Face 같은 데서 받은 모델을 그냥 <code>torch.load()</code>하면 내부적으로 pickle을 쓰기 때문에 악성 모델 파일 하나로 RCE가 난다. PyTorch는 <code>weights_only=True</code> 옵션을 권장하는 방향으로 바뀌고 있다.</p>
+<h3 id="python에서의-방어">Python에서의 방어<a class="headerlink" href="#python에서의-방어" title="Permanent link">&para;</a></h3>
+<p>pickle은 화이트리스트 필터링이 Java만큼 깔끔하지 않다. <code>pickle.Unpickler</code>를 상속해서 <code>find_class</code>를 오버라이드하는 방법이 있다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">RestrictedUnpickler</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">Unpickler</span><span class="p">):</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="c1"># 허용할 (모듈, 클래스) 조합만 명시</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">ALLOWED</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="p">(</span><span class="s1">&#39;myapp.dto&#39;</span><span class="p">,</span> <span class="s1">&#39;OrderDto&#39;</span><span class="p">),</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="p">(</span><span class="s1">&#39;myapp.dto&#39;</span><span class="p">,</span> <span class="s1">&#39;UserDto&#39;</span><span class="p">),</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="p">}</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">find_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ALLOWED</span><span class="p">:</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">find_class</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="k">raise</span> <span class="n">pickle</span><span class="o">.</span><span class="n">UnpicklingError</span><span class="p">(</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>            <span class="sa">f</span><span class="s2">&quot;허용되지 않은 클래스: </span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="p">)</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="k">def</span><span class="w"> </span><span class="nf">safe_loads</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">):</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="k">return</span> <span class="n">RestrictedUnpickler</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="p">))</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+</span></code></pre></div>
+<p><code>os</code>, <code>subprocess</code>, <code>builtins</code> 같은 모듈은 절대 허용 목록에 넣으면 안 된다. 그런데 이렇게 막아도 우회 경로가 계속 나오기 때문에, 가장 확실한 건 그냥 pickle을 안 쓰는 것이다.</p>
+<p>신뢰 경계를 넘는 데이터는 JSON으로 바꾼다. 객체가 필요하면 JSON으로 받은 뒤 명시적으로 검증해서 dataclass로 변환한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nd">@dataclass</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">OrderDto</span><span class="p">:</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">parse_order</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderDto</span><span class="p">:</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>  <span class="c1"># 데이터만 파싱, 코드 실행 없음</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="c1"># 필드 명시적으로 꺼내고 타입 검증</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="k">return</span> <span class="n">OrderDto</span><span class="p">(</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">order_id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;order_id&quot;</span><span class="p">]),</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="n">amount</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;amount&quot;</span><span class="p">]),</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="p">)</span>
+</span></code></pre></div>
+<p>Celery는 직렬화 포맷을 <code>json</code>으로 강제하는 게 좋다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">task_serializer</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">result_serializer</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">accept_content</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">],</span>  <span class="c1"># pickle 수신 자체를 거부</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="nodejs-node-serialize">Node.js: node-serialize<a class="headerlink" href="#nodejs-node-serialize" title="Permanent link">&para;</a></h2>
+<p>Node.js는 표준 라이브러리에 위험한 역직렬화가 없다. 문제는 서드파티 패키지다. <code>node-serialize</code>가 대표적이다.</p>
+<p><code>node-serialize</code>는 함수도 직렬화/역직렬화할 수 있게 만들어졌다. 직렬화된 데이터에 함수 본문이 문자열로 들어가는데, 역직렬화할 때 이걸 <code>eval</code>로 되살린다. 게다가 IIFE(즉시 실행 함수) 형태를 넣으면 역직렬화하는 순간 실행된다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">serialize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;node-serialize&#39;</span><span class="p">);</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1">// 공격자 페이로드. _$$ND_FUNC$$_ 마커 뒤 함수가 eval된다.</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1">// 끝에 ()를 붙여 즉시 실행시킨다.</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="kd">const</span><span class="w"> </span><span class="nx">payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;{&quot;rce&quot;:&quot;_$$ND_FUNC$$_function(){&#39;</span><span class="w"> </span><span class="o">+</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="s1">&#39;require(\&#39;child_process\&#39;).exec(\&#39;id\&#39;, function(e,o){console.log(o)});&#39;</span><span class="w"> </span><span class="o">+</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="s1">&#39;}()&quot;}&#39;</span><span class="p">;</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nx">serialize</span><span class="p">.</span><span class="nx">unserialize</span><span class="p">(</span><span class="nx">payload</span><span class="p">);</span><span class="w">  </span><span class="c1">// 역직렬화 시점에 &#39;id&#39; 실행</span>
+</span></code></pre></div>
+<p><code>unserialize</code>가 객체 안의 <code>_$$ND_FUNC$$_</code> 마커를 보고 그 뒤 문자열을 함수로 복원하는데, 끝에 <code>()</code>가 붙어 있으면 복원과 동시에 실행된다. 이게 핵심이다.</p>
+<h3 id="nodejs에서의-방어">Node.js에서의 방어<a class="headerlink" href="#nodejs에서의-방어" title="Permanent link">&para;</a></h3>
+<p>답은 단순하다. <code>node-serialize</code> 같은 함수 직렬화 패키지를 쓰지 않는다. 객체 직렬화가 필요하면 <code>JSON.stringify</code> / <code>JSON.parse</code>만 쓴다. JSON에는 함수가 없으므로 코드 실행이 일어날 수 없다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">// 데이터만 직렬화. 함수는 애초에 들어가지 않는다.</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">rawInput</span><span class="p">);</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">// 받은 데이터는 스키마 검증 후 사용</span>
+</span></code></pre></div>
+<p>JSON으로 받되 구조 검증이 필요하면 Zod, Joi, ajv 같은 스키마 검증기를 같이 쓴다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;zod&#39;</span><span class="p">);</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kd">const</span><span class="w"> </span><span class="nx">OrderSchema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">z</span><span class="p">.</span><span class="nx">object</span><span class="p">({</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nx">orderId</span><span class="o">:</span><span class="w"> </span><span class="nx">z</span><span class="p">.</span><span class="nx">string</span><span class="p">(),</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nx">amount</span><span class="o">:</span><span class="w"> </span><span class="nx">z</span><span class="p">.</span><span class="nx">number</span><span class="p">().</span><span class="kr">int</span><span class="p">().</span><span class="nx">positive</span><span class="p">(),</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">});</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="kd">function</span><span class="w"> </span><span class="nx">parseOrder</span><span class="p">(</span><span class="nx">raw</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">raw</span><span class="p">);</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">OrderSchema</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span><span class="w">  </span><span class="c1">// 스키마 안 맞으면 예외</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>JSON.parse</code>의 reviver 함수를 쓸 때도 거기서 임의 코드를 부르지 않도록 조심한다. 그리고 프로토타입 오염(<code>__proto__</code> 주입)은 역직렬화와 별개의 문제지만 JSON 파싱 후 객체를 그대로 머지할 때 자주 같이 터지므로, 신뢰할 수 없는 객체를 깊은 병합할 때 주의한다.</p>
+<h2 id="php-unserialize">PHP: unserialize<a class="headerlink" href="#php-unserialize" title="Permanent link">&para;</a></h2>
+<p>PHP의 <code>unserialize()</code>도 매직 메서드 때문에 위험하다. 객체가 역직렬화될 때 <code>__wakeup()</code>이 호출되고, 객체가 소멸될 때 <code>__destruct()</code>가 호출된다. 스크립트가 끝나면 객체가 소멸되므로 <code>__destruct()</code>는 거의 항상 불린다. 여기에 위험한 동작이 있는 클래스가 클래스패스에 있으면 가젯이 된다 (PHP에서는 POP 체인, Property Oriented Programming이라고 부른다).</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">class</span> <span class="nc">Logger</span> <span class="p">{</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="k">public</span> <span class="nv">$logFile</span><span class="p">;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="k">public</span> <span class="nv">$data</span><span class="p">;</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="k">function</span> <span class="fm">__destruct</span><span class="p">()</span> <span class="p">{</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        <span class="c1">// 소멸 시 파일에 쓴다 — 공격자가 logFile, data를 조작하면 웹쉘 작성 가능</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>        <span class="nb">file_put_contents</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">logFile</span><span class="p">,</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">data</span><span class="p">);</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="p">}</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="p">}</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="c1">// 공격자가 보내는 직렬화 문자열</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="c1">// O:6:&quot;Logger&quot;:2:{s:7:&quot;logFile&quot;;s:9:&quot;shell.php&quot;;s:4:&quot;data&quot;;s:...:&quot;&lt;?php system($_GET[c]); ?&gt;&quot;;}</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="nv">$obj</span> <span class="o">=</span> <span class="nb">unserialize</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]);</span>  <span class="c1">// __destruct에서 웹쉘 생성</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+<p>공격자는 클래스의 프로퍼티 값을 직렬화 문자열로 직접 지정할 수 있다. 위 예처럼 <code>logFile</code>을 <code>shell.php</code>로, <code>data</code>를 PHP 코드로 채워 보내면 스크립트 종료 시 웹쉘이 만들어진다. 실제로는 여러 클래스의 매직 메서드를 엮는 POP 체인으로 더 복잡한 공격을 한다. Laravel, Symfony 같은 프레임워크의 클래스를 가젯으로 쓰는 phpggc 같은 도구도 있다(ysoserial의 PHP 버전).</p>
+<h3 id="php에서의-방어">PHP에서의 방어<a class="headerlink" href="#php에서의-방어" title="Permanent link">&para;</a></h3>
+<p>PHP 7부터 <code>unserialize</code>에 <code>allowed_classes</code> 옵션이 생겼다. 두 번째 인자로 허용 클래스를 지정하거나 아예 객체 복원을 막을 수 있다.</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="cp">&lt;?php</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1">// 객체 복원 자체를 금지 — 배열, 스칼라만 복원</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nv">$data</span> <span class="o">=</span> <span class="nb">unserialize</span><span class="p">(</span><span class="nv">$input</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;allowed_classes&#39;</span> <span class="o">=&gt;</span> <span class="k">false</span><span class="p">]);</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1">// 특정 클래스만 허용</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="nv">$data</span> <span class="o">=</span> <span class="nb">unserialize</span><span class="p">(</span><span class="nv">$input</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;allowed_classes&#39;</span> <span class="o">=&gt;</span> <span class="p">[</span><span class="s1">&#39;OrderDto&#39;</span><span class="p">,</span> <span class="s1">&#39;UserDto&#39;</span><span class="p">]]);</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="cp">?&gt;</span>
+</span></code></pre></div>
+<p><code>allowed_classes =&gt; false</code>로 두면 직렬화 문자열에 객체가 있어도 <code>__PHP_Incomplete_Class</code>로 복원되어 매직 메서드가 안 불린다. 객체를 주고받을 필요가 없으면 이게 가장 안전하다.</p>
+<p>여기서도 더 나은 답은 <code>unserialize</code> 대신 <code>json_decode</code>를 쓰는 것이다. 외부 입력으로 들어오는 직렬화 데이터는 PHP 직렬화 포맷이 아니라 JSON으로 받는다.</p>
+<h2 id="공통-방어-원칙">공통 방어 원칙<a class="headerlink" href="#공통-방어-원칙" title="Permanent link">&para;</a></h2>
+<p>언어마다 문법은 다르지만 방어 원칙은 같다. 우선순위 순서대로 적용한다.</p>
+<h3 id="1-신뢰할-수-없는-입력을-역직렬화하지-않는다">1. 신뢰할 수 없는 입력을 역직렬화하지 않는다<a class="headerlink" href="#1-신뢰할-수-없는-입력을-역직렬화하지-않는다" title="Permanent link">&para;</a></h3>
+<p>가장 확실한 방어다. 사용자 입력, 외부 API 응답, 쿠키, 헤더, 메시지 큐 페이로드를 네이티브 직렬화 포맷으로 역직렬화하지 않는다. "내부 서비스끼리만 쓰니까 괜찮다"는 위험한 가정이다. 내부망이 뚫리거나 내부 서비스가 탈취되면 그대로 측면 이동(lateral movement) 경로가 된다.</p>
+<h3 id="2-데이터-전용-포맷을-쓴다">2. 데이터 전용 포맷을 쓴다<a class="headerlink" href="#2-데이터-전용-포맷을-쓴다" title="Permanent link">&para;</a></h3>
+<p>JSON, Protobuf, MessagePack처럼 코드 실행이 불가능한 포맷을 쓴다. 이 포맷들은 "데이터"만 표현하지 "어떤 클래스를 만들어라"를 표현하지 않는다. 받은 데이터는 명시적으로 검증해서 도메인 객체로 변환한다.</p>
+<p>단, JSON이라도 다형성 역직렬화(polymorphic deserialization)를 켜면 위험해진다. Jackson의 <code>enableDefaultTyping()</code>이나 <code>@JsonTypeInfo</code>로 타입 정보를 JSON에 넣고 그걸로 클래스를 결정하게 하면, 결국 입력이 클래스를 지정하는 셈이라 Java 직렬화와 같은 문제가 생긴다. CVE도 많이 나왔다. 다형성이 꼭 필요하면 허용 타입을 화이트리스트로 묶는다(<code>PolymorphicTypeValidator</code>).</p>
+<h3 id="3-화이트리스트-기반-클래스-필터링">3. 화이트리스트 기반 클래스 필터링<a class="headerlink" href="#3-화이트리스트-기반-클래스-필터링" title="Permanent link">&para;</a></h3>
+<p>네이티브 직렬화를 도저히 못 버리는 경우(레거시 RMI, 기존 프로토콜 등)에만 쓴다. Java는 <code>ObjectInputFilter</code>, Python은 <code>find_class</code> 오버라이드, PHP는 <code>allowed_classes</code>다. 반드시 "기본 거부 + 명시 허용" 구조여야 한다. 블랙리스트는 항상 우회된다.</p>
+<h3 id="4-무결성-검증-서명">4. 무결성 검증 (서명)<a class="headerlink" href="#4-무결성-검증-서명" title="Permanent link">&para;</a></h3>
+<p>역직렬화하기 전에 데이터가 변조되지 않았는지 확인한다. HMAC으로 서명하고, 역직렬화 전에 서명을 먼저 검증한다. 서명이 안 맞으면 파싱조차 하지 않는다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">SECRET</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;server-side-secret-key&quot;</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">sign</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">mac</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">SECRET</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="k">return</span> <span class="n">mac</span> <span class="o">+</span> <span class="n">payload</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">verify_and_extract</span><span class="p">(</span><span class="n">signed</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="n">mac</span><span class="p">,</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">signed</span><span class="p">[:</span><span class="mi">32</span><span class="p">],</span> <span class="n">signed</span><span class="p">[</span><span class="mi">32</span><span class="p">:]</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="n">expected</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">SECRET</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="n">mac</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;서명 불일치 — 변조된 데이터&quot;</span><span class="p">)</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>    <span class="k">return</span> <span class="n">payload</span>  <span class="c1"># 검증 통과한 뒤에만 역직렬화로 넘긴다</span>
+</span></code></pre></div>
+<p>주의할 점이 두 가지 있다. 첫째, 서명 검증은 변조를 막을 뿐 "정당한 키를 가진 쪽이 보낸 악성 페이로드"는 못 막는다. 키가 유출되면 무력화된다. 둘째, 서명만 믿고 역직렬화 자체를 안전하다고 착각하면 안 된다. 서명은 변조 방어이고, 클래스 화이트리스트는 별개로 같이 걸어야 한다. 비교는 반드시 <code>compare_digest</code>처럼 타이밍 공격에 안전한 함수로 한다.</p>
+<p>이 패턴이 실무에서 자주 보이는 곳이 세션 쿠키와 JWT다. 서버가 세션 객체를 직렬화해서 쿠키에 넣을 때 서명을 빠뜨리면 공격자가 쿠키를 조작해 역직렬화 공격을 한다. Rails의 옛날 <code>secret_token</code> 사고, PHP 세션 핸들러 사고가 다 이 패턴이었다.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     A[입력 수신] --&gt; B{서명 검증}
     B --&gt;|실패| C[즉시 거부 — 파싱 안 함]
     B --&gt;|통과| D{데이터 포맷?}
@@ -152,4 +3005,145 @@
     F --&gt;|허용 안 됨| C
     F --&gt;|허용됨| G[역직렬화]
     E --&gt; H[비즈니스 로직]
-    G --&gt; H</code></pre> <h2 id=실무에서-점검할-것>실무에서 점검할 것<a class=headerlink href=#실무에서-점검할-것 title="Permanent link">&para;</a></h2> <p>코드베이스에서 다음 패턴을 찾으면 일단 의심한다.</p> <ul> <li>Java: <code>ObjectInputStream</code>, <code>readObject</code>, RMI/JMX 설정, <code>XMLDecoder</code>, 그리고 <code>enableDefaultTyping</code>이 켜진 Jackson</li> <li>Python: <code>pickle.loads</code>, <code>pickle.load</code>, <code>cPickle</code>, <code>yaml.load</code>(Loader 미지정 시 위험 — <code>yaml.safe_load</code>를 써야 한다), <code>torch.load</code>, <code>joblib.load</code></li> <li>Node.js: <code>node-serialize</code>, <code>serialize-to-js</code>, <code>funcster</code> 같은 함수 직렬화 패키지, <code>eval</code> 기반 역직렬화</li> <li>PHP: <code>unserialize</code>에 <code>allowed_classes</code>가 없는 경우, <code>phar://</code> 래퍼를 통한 역직렬화(파일 경로만 줘도 unserialize가 트리거된다)</li> </ul> <p>의존성도 같이 본다. commons-collections, groovy, spring 같은 라이브러리가 클래스패스에 있고 어딘가에서 네이티브 역직렬화를 하면 가젯 체인이 성립할 수 있다. SCA(Software Composition Analysis) 도구로 취약 버전을 추적한다.</p> <p>마지막으로, YAML도 역직렬화 취약점이 자주 나온다. PyYAML의 <code>yaml.load()</code>는 기본 Loader가 임의 객체를 생성할 수 있어서 pickle과 같은 문제가 있다. 반드시 <code>yaml.safe_load()</code>를 쓴다. Ruby의 <code>YAML.load</code>(Psych), <code>Marshal.load</code>도 동일하게 위험하다. "YAML이니까 데이터겠지"라고 방심하면 안 된다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../XML_External_Entity/ >XXE (XML External Entity) 주입</a></li> <li><a href=../../DataBase/DataRepresentation/Buffer/ >Buffer</a></li> <li><a href=../AES/ >AES (Advanced Encryption Standard)</a></li> <li><a href=../CORS_and_Security_Headers/ >CORS와 브라우저 보안 헤더</a></li> <li><a href=../End_to_End_Encryption/ >E2EE 종단간 암호화</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Command_Injection/ class="md-footer__link md-footer__link--prev" aria-label="이전: Command Injection"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Command Injection </div> </div> </a> <a href=../XML_External_Entity/ class="md-footer__link md-footer__link--next" aria-label="다음: XXE 주입"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> XXE 주입 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../javascripts/extra.js></script> <script src=../../javascripts/mermaid-init.js></script> </body> </html>
+    G --&gt; H</code></pre>
+<h2 id="실무에서-점검할-것">실무에서 점검할 것<a class="headerlink" href="#실무에서-점검할-것" title="Permanent link">&para;</a></h2>
+<p>코드베이스에서 다음 패턴을 찾으면 일단 의심한다.</p>
+<ul>
+<li>Java: <code>ObjectInputStream</code>, <code>readObject</code>, RMI/JMX 설정, <code>XMLDecoder</code>, 그리고 <code>enableDefaultTyping</code>이 켜진 Jackson</li>
+<li>Python: <code>pickle.loads</code>, <code>pickle.load</code>, <code>cPickle</code>, <code>yaml.load</code>(Loader 미지정 시 위험 — <code>yaml.safe_load</code>를 써야 한다), <code>torch.load</code>, <code>joblib.load</code></li>
+<li>Node.js: <code>node-serialize</code>, <code>serialize-to-js</code>, <code>funcster</code> 같은 함수 직렬화 패키지, <code>eval</code> 기반 역직렬화</li>
+<li>PHP: <code>unserialize</code>에 <code>allowed_classes</code>가 없는 경우, <code>phar://</code> 래퍼를 통한 역직렬화(파일 경로만 줘도 unserialize가 트리거된다)</li>
+</ul>
+<p>의존성도 같이 본다. commons-collections, groovy, spring 같은 라이브러리가 클래스패스에 있고 어딘가에서 네이티브 역직렬화를 하면 가젯 체인이 성립할 수 있다. SCA(Software Composition Analysis) 도구로 취약 버전을 추적한다.</p>
+<p>마지막으로, YAML도 역직렬화 취약점이 자주 나온다. PyYAML의 <code>yaml.load()</code>는 기본 Loader가 임의 객체를 생성할 수 있어서 pickle과 같은 문제가 있다. 반드시 <code>yaml.safe_load()</code>를 쓴다. Ruby의 <code>YAML.load</code>(Psych), <code>Marshal.load</code>도 동일하게 위험하다. "YAML이니까 데이터겠지"라고 방심하면 안 된다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../XML_External_Entity/">XXE (XML External Entity) 주입</a></li>
+<li><a href="../../DataBase/DataRepresentation/Buffer/">Buffer</a></li>
+<li><a href="../AES/">AES (Advanced Encryption Standard)</a></li>
+<li><a href="../CORS_and_Security_Headers/">CORS와 브라우저 보안 헤더</a></li>
+<li><a href="../End_to_End_Encryption/">E2EE 종단간 암호화</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Command_Injection/" class="md-footer__link md-footer__link--prev" aria-label="이전: Command Injection">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Command Injection
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../XML_External_Entity/" class="md-footer__link md-footer__link--next" aria-label="다음: XXE 주입">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                XXE 주입
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

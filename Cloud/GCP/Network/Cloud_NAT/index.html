@@ -1,4 +1,1802 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/GCP/Network/Cloud_NAT/ rel=canonical><link href=../ rel=prev><link href=../Cloud_VPN/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Cloud NAT - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#cloud-nat class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Cloud NAT </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AWS/ class=md-nav__link> <span class=md-ellipsis> AWS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> GCP </span> </a> <label class="md-nav__link " for=__nav_6_1_3 id=__nav_6_1_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_3> <span class="md-nav__icon md-icon"></span> GCP </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Data/ class=md-nav__link> <span class=md-ellipsis> Data </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_3_4 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_3_4_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_3_4> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#cloud-nat란 class=md-nav__link> <span class=md-ellipsis> Cloud NAT란 </span> </a> </li> <li class=md-nav__item> <a href=#기본-구성 class=md-nav__link> <span class=md-ellipsis> 기본 구성 </span> </a> </li> <li class=md-nav__item> <a href=#nat-ip-할당-방식 class=md-nav__link> <span class=md-ellipsis> NAT IP 할당 방식 </span> </a> <nav class=md-nav aria-label="NAT IP 할당 방식"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#자동-할당 class=md-nav__link> <span class=md-ellipsis> 자동 할당 </span> </a> </li> <li class=md-nav__item> <a href=#수동-할당 class=md-nav__link> <span class=md-ellipsis> 수동 할당 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#포트-할당과-포트-고갈 class=md-nav__link> <span class=md-ellipsis> 포트 할당과 포트 고갈 </span> </a> <nav class=md-nav aria-label="포트 할당과 포트 고갈"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#포트-할당-로직 class=md-nav__link> <span class=md-ellipsis> 포트 할당 로직 </span> </a> </li> <li class=md-nav__item> <a href=#포트-고갈이-발생하는-경우 class=md-nav__link> <span class=md-ellipsis> 포트 고갈이 발생하는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#포트-고갈-대응 class=md-nav__link> <span class=md-ellipsis> 포트 고갈 대응 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dynamic-port-allocation class=md-nav__link> <span class=md-ellipsis> Dynamic Port Allocation </span> </a> </li> <li class=md-nav__item> <a href=#endpoint-independent-mapping-eim class=md-nav__link> <span class=md-ellipsis> Endpoint-Independent Mapping (EIM) </span> </a> </li> <li class=md-nav__item> <a href=#cloud-nat-로그 class=md-nav__link> <span class=md-ellipsis> Cloud NAT 로그 </span> </a> <nav class=md-nav aria-label="Cloud NAT 로그"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#로그-활성화 class=md-nav__link> <span class=md-ellipsis> 로그 활성화 </span> </a> </li> <li class=md-nav__item> <a href=#로그-분석 class=md-nav__link> <span class=md-ellipsis> 로그 분석 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#모니터링 class=md-nav__link> <span class=md-ellipsis> 모니터링 </span> </a> </li> <li class=md-nav__item> <a href=#실무에서-겪는-문제들 class=md-nav__link> <span class=md-ellipsis> 실무에서 겪는 문제들 </span> </a> <nav class=md-nav aria-label="실무에서 겪는 문제들"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#gke와-cloud-nat-포트-고갈 class=md-nav__link> <span class=md-ellipsis> GKE와 Cloud NAT 포트 고갈 </span> </a> </li> <li class=md-nav__item> <a href=#nat-ip-변경-시-외부-연동-장애 class=md-nav__link> <span class=md-ellipsis> NAT IP 변경 시 외부 연동 장애 </span> </a> </li> <li class=md-nav__item> <a href=#cloud-nat와-private-google-access class=md-nav__link> <span class=md-ellipsis> Cloud NAT와 Private Google Access </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#cloud-nat-적용-범위-정리 class=md-nav__link> <span class=md-ellipsis> Cloud NAT 적용 범위 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>cloud</span> <span class=md-tag>gcp</span> <span class=md-tag>network</span> <span class=md-tag>vpc</span> </nav> <h1 id=cloud-nat>Cloud NAT<a class=headerlink href=#cloud-nat title="Permanent link">&para;</a></h1> <h2 id=cloud-nat란>Cloud NAT란<a class=headerlink href=#cloud-nat란 title="Permanent link">&para;</a></h2> <p>외부 IP가 없는 VM이 인터넷에 나가야 할 때 쓰는 GCP 관리형 NAT 서비스다. Cloud Router 위에 소프트웨어로 구현되어 있어서, 별도 VM 인스턴스를 띄울 필요가 없다.</p> <p>AWS NAT Gateway와 비교하면 구조적 차이가 크다.</p> <table> <thead> <tr> <th>항목</th> <th>GCP Cloud NAT</th> <th>AWS NAT Gateway</th> </tr> </thead> <tbody> <tr> <td>인스턴스 필요 여부</td> <td>불필요. Cloud Router에 설정</td> <td>리전/AZ마다 NAT Gateway 인스턴스 생성</td> </tr> <tr> <td>AZ 단위 생성</td> <td>불필요. 리전 단위로 하나만 설정</td> <td>AZ마다 각각 생성해야 고가용성 확보</td> </tr> <tr> <td>대역폭 제한</td> <td>자동 스케일링, 별도 제한 없음</td> <td>인스턴스당 45Gbps</td> </tr> <tr> <td>비용 구조</td> <td>처리 데이터량 기준</td> <td>인스턴스 시간 + 데이터 처리량</td> </tr> <tr> <td>관리 포인트</td> <td>Cloud Router 설정만</td> <td>NAT Gateway + 라우팅 테이블 수정</td> </tr> </tbody> </table> <p>AWS에서는 3개 AZ를 쓰면 NAT Gateway 3개를 만들고, 각 프라이빗 서브넷 라우팅 테이블에 연결해야 한다. GCP는 리전 단위로 Cloud NAT 하나만 설정하면 해당 리전 모든 서브넷에 적용된다.</p> <h2 id=기본-구성>기본 구성<a class=headerlink href=#기본-구성 title="Permanent link">&para;</a></h2> <p>Cloud NAT는 Cloud Router에 종속된다. Cloud Router 없이 단독으로 존재할 수 없다.</p> <pre class=mermaid-diagram><code>graph TB
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/GCP/Network/Cloud_NAT/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../Cloud_VPN/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Cloud NAT - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cloud-nat" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cloud NAT
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AWS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_3" id="__nav_6_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    GCP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Data/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_3_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_3_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#cloud-nat란" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud NAT란
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#기본-구성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        기본 구성
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nat-ip-할당-방식" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NAT IP 할당 방식
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="NAT IP 할당 방식">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#자동-할당" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자동 할당
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#수동-할당" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        수동 할당
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#포트-할당과-포트-고갈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        포트 할당과 포트 고갈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="포트 할당과 포트 고갈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#포트-할당-로직" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        포트 할당 로직
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#포트-고갈이-발생하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        포트 고갈이 발생하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#포트-고갈-대응" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        포트 고갈 대응
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dynamic-port-allocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dynamic Port Allocation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoint-independent-mapping-eim" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoint-Independent Mapping (EIM)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloud-nat-로그" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud NAT 로그
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cloud NAT 로그">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#로그-활성화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그 활성화
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#로그-분석" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그 분석
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#모니터링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        모니터링
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-겪는-문제들" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 겪는 문제들
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="실무에서 겪는 문제들">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gke와-cloud-nat-포트-고갈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GKE와 Cloud NAT 포트 고갈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nat-ip-변경-시-외부-연동-장애" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NAT IP 변경 시 외부 연동 장애
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-nat와-private-google-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud NAT와 Private Google Access
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloud-nat-적용-범위-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud NAT 적용 범위 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">gcp</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">vpc</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="cloud-nat">Cloud NAT<a class="headerlink" href="#cloud-nat" title="Permanent link">&para;</a></h1>
+<h2 id="cloud-nat란">Cloud NAT란<a class="headerlink" href="#cloud-nat란" title="Permanent link">&para;</a></h2>
+<p>외부 IP가 없는 VM이 인터넷에 나가야 할 때 쓰는 GCP 관리형 NAT 서비스다. Cloud Router 위에 소프트웨어로 구현되어 있어서, 별도 VM 인스턴스를 띄울 필요가 없다.</p>
+<p>AWS NAT Gateway와 비교하면 구조적 차이가 크다.</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>GCP Cloud NAT</th>
+<th>AWS NAT Gateway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>인스턴스 필요 여부</td>
+<td>불필요. Cloud Router에 설정</td>
+<td>리전/AZ마다 NAT Gateway 인스턴스 생성</td>
+</tr>
+<tr>
+<td>AZ 단위 생성</td>
+<td>불필요. 리전 단위로 하나만 설정</td>
+<td>AZ마다 각각 생성해야 고가용성 확보</td>
+</tr>
+<tr>
+<td>대역폭 제한</td>
+<td>자동 스케일링, 별도 제한 없음</td>
+<td>인스턴스당 45Gbps</td>
+</tr>
+<tr>
+<td>비용 구조</td>
+<td>처리 데이터량 기준</td>
+<td>인스턴스 시간 + 데이터 처리량</td>
+</tr>
+<tr>
+<td>관리 포인트</td>
+<td>Cloud Router 설정만</td>
+<td>NAT Gateway + 라우팅 테이블 수정</td>
+</tr>
+</tbody>
+</table>
+<p>AWS에서는 3개 AZ를 쓰면 NAT Gateway 3개를 만들고, 각 프라이빗 서브넷 라우팅 테이블에 연결해야 한다. GCP는 리전 단위로 Cloud NAT 하나만 설정하면 해당 리전 모든 서브넷에 적용된다.</p>
+<h2 id="기본-구성">기본 구성<a class="headerlink" href="#기본-구성" title="Permanent link">&para;</a></h2>
+<p>Cloud NAT는 Cloud Router에 종속된다. Cloud Router 없이 단독으로 존재할 수 없다.</p>
+<pre class="mermaid-diagram"><code>graph TB
     subgraph VPC["VPC Network (리전: asia-northeast3)"]
         subgraph SubA["Subnet A (10.0.1.0/24)"]
             VM1["VM-1&lt;br/&gt;내부 IP만"]
@@ -28,42 +1826,60 @@
     style SubA fill:#fce8e6,stroke:#ea4335
     style SubB fill:#fef7e0,stroke:#fbbc04
     style NAT fill:#e6f4ea,stroke:#34a853
-    style CR fill:#e6f4ea,stroke:#34a853</code></pre> <p>Cloud Router가 리전 단위로 존재하고, Cloud NAT 설정이 그 위에 올라간다. 서브넷에 있는 VM들은 외부로 나갈 때 Cloud NAT를 거쳐 NAT IP로 변환된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>Cloud Router (리전 단위)
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>└── Cloud NAT 설정
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>    ├── NAT IP (자동 할당 또는 수동 지정)
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>    ├── 적용 대상 서브넷 (전체 또는 지정)
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>    └── 포트 할당 설정
-</span></code></pre></div> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1># Cloud Router 생성</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>create<span class=w> </span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>    </span>--network<span class=o>=</span>my-vpc<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=c1># Cloud NAT 생성 (기본 설정)</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>create<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=w>    </span>--nat-all-subnet-ip-ranges<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a><span class=w>    </span>--auto-allocate-nat-external-ips
-</span></code></pre></div> <p><code>--nat-all-subnet-ip-ranges</code>는 해당 리전의 모든 서브넷에 NAT를 적용한다. 특정 서브넷만 적용하려면 <code>--nat-custom-subnet-ip-ranges</code>를 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1># 특정 서브넷에만 Cloud NAT 적용</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>create<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>    </span>--nat-custom-subnet-ip-ranges<span class=o>=</span>subnet-a,subnet-b<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>    </span>--auto-allocate-nat-external-ips
-</span></code></pre></div> <h2 id=nat-ip-할당-방식>NAT IP 할당 방식<a class=headerlink href=#nat-ip-할당-방식 title="Permanent link">&para;</a></h2> <h3 id=자동-할당>자동 할당<a class=headerlink href=#자동-할당 title="Permanent link">&para;</a></h3> <p><code>--auto-allocate-nat-external-ips</code> 옵션을 사용하면 GCP가 NAT IP를 자동으로 할당하고 관리한다. 트래픽이 늘어나면 IP가 자동 추가되고, 줄어들면 회수된다.</p> <p>간편하지만 문제가 있다. NAT IP가 언제든 바뀔 수 있어서, 외부 서비스에서 IP 화이트리스트를 요구하는 경우 사용이 어렵다. 결제 API, 파트너사 연동처럼 고정 IP가 필요한 상황에서는 수동 할당을 써야 한다.</p> <h3 id=수동-할당>수동 할당<a class=headerlink href=#수동-할당 title="Permanent link">&para;</a></h3> <p>미리 예약한 외부 고정 IP를 NAT IP로 지정한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># 고정 IP 예약</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>gcloud<span class=w> </span>compute<span class=w> </span>addresses<span class=w> </span>create<span class=w> </span>nat-ip-1<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>gcloud<span class=w> </span>compute<span class=w> </span>addresses<span class=w> </span>create<span class=w> </span>nat-ip-2<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=c1># 예약된 IP로 Cloud NAT 생성</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>create<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-12><a id=__codelineno-3-12 name=__codelineno-3-12 href=#__codelineno-3-12></a><span class=w>    </span>--nat-all-subnet-ip-ranges<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-13><a id=__codelineno-3-13 name=__codelineno-3-13 href=#__codelineno-3-13></a><span class=w>    </span>--nat-external-ip-pool<span class=o>=</span>nat-ip-1,nat-ip-2
-</span></code></pre></div> <p>수동 할당 시 주의할 점: NAT IP 수가 부족하면 포트가 고갈된다. 자동 할당은 GCP가 알아서 IP를 추가하지만, 수동 할당은 직접 IP를 추가해야 한다. 모니터링 없이 수동 할당을 쓰면 트래픽 증가 시 갑자기 외부 통신이 끊기는 경우가 있다.</p> <h2 id=포트-할당과-포트-고갈>포트 할당과 포트 고갈<a class=headerlink href=#포트-할당과-포트-고갈 title="Permanent link">&para;</a></h2> <p>Cloud NAT의 핵심 개념이고, 운영 중 가장 자주 문제가 되는 부분이다.</p> <h3 id=포트-할당-로직>포트 할당 로직<a class=headerlink href=#포트-할당-로직 title="Permanent link">&para;</a></h3> <p>Cloud NAT는 각 VM에 NAT 포트를 할당한다. 하나의 NAT 포트는 <code>(NAT IP, 프로토콜, 포트 번호, 목적지 IP, 목적지 포트)</code> 5-tuple로 식별되는 하나의 연결에 매핑된다.</p> <pre class=mermaid-diagram><code>flowchart LR
+    style CR fill:#e6f4ea,stroke:#34a853</code></pre>
+<p>Cloud Router가 리전 단위로 존재하고, Cloud NAT 설정이 그 위에 올라간다. 서브넷에 있는 VM들은 외부로 나갈 때 Cloud NAT를 거쳐 NAT IP로 변환된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Cloud Router (리전 단위)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>└── Cloud NAT 설정
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    ├── NAT IP (자동 할당 또는 수동 지정)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    ├── 적용 대상 서브넷 (전체 또는 지정)
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    └── 포트 할당 설정
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Cloud Router 생성</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>create<span class="w"> </span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span>--network<span class="o">=</span>my-vpc<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Cloud NAT 생성 (기본 설정)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>create<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span>--nat-all-subnet-ip-ranges<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span>--auto-allocate-nat-external-ips
+</span></code></pre></div>
+<p><code>--nat-all-subnet-ip-ranges</code>는 해당 리전의 모든 서브넷에 NAT를 적용한다. 특정 서브넷만 적용하려면 <code>--nat-custom-subnet-ip-ranges</code>를 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 특정 서브넷에만 Cloud NAT 적용</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>create<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--nat-custom-subnet-ip-ranges<span class="o">=</span>subnet-a,subnet-b<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span>--auto-allocate-nat-external-ips
+</span></code></pre></div>
+<h2 id="nat-ip-할당-방식">NAT IP 할당 방식<a class="headerlink" href="#nat-ip-할당-방식" title="Permanent link">&para;</a></h2>
+<h3 id="자동-할당">자동 할당<a class="headerlink" href="#자동-할당" title="Permanent link">&para;</a></h3>
+<p><code>--auto-allocate-nat-external-ips</code> 옵션을 사용하면 GCP가 NAT IP를 자동으로 할당하고 관리한다. 트래픽이 늘어나면 IP가 자동 추가되고, 줄어들면 회수된다.</p>
+<p>간편하지만 문제가 있다. NAT IP가 언제든 바뀔 수 있어서, 외부 서비스에서 IP 화이트리스트를 요구하는 경우 사용이 어렵다. 결제 API, 파트너사 연동처럼 고정 IP가 필요한 상황에서는 수동 할당을 써야 한다.</p>
+<h3 id="수동-할당">수동 할당<a class="headerlink" href="#수동-할당" title="Permanent link">&para;</a></h3>
+<p>미리 예약한 외부 고정 IP를 NAT IP로 지정한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 고정 IP 예약</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>addresses<span class="w"> </span>create<span class="w"> </span>nat-ip-1<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>addresses<span class="w"> </span>create<span class="w"> </span>nat-ip-2<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># 예약된 IP로 Cloud NAT 생성</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>create<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span>--nat-all-subnet-ip-ranges<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span>--nat-external-ip-pool<span class="o">=</span>nat-ip-1,nat-ip-2
+</span></code></pre></div>
+<p>수동 할당 시 주의할 점: NAT IP 수가 부족하면 포트가 고갈된다. 자동 할당은 GCP가 알아서 IP를 추가하지만, 수동 할당은 직접 IP를 추가해야 한다. 모니터링 없이 수동 할당을 쓰면 트래픽 증가 시 갑자기 외부 통신이 끊기는 경우가 있다.</p>
+<h2 id="포트-할당과-포트-고갈">포트 할당과 포트 고갈<a class="headerlink" href="#포트-할당과-포트-고갈" title="Permanent link">&para;</a></h2>
+<p>Cloud NAT의 핵심 개념이고, 운영 중 가장 자주 문제가 되는 부분이다.</p>
+<h3 id="포트-할당-로직">포트 할당 로직<a class="headerlink" href="#포트-할당-로직" title="Permanent link">&para;</a></h3>
+<p>Cloud NAT는 각 VM에 NAT 포트를 할당한다. 하나의 NAT 포트는 <code>(NAT IP, 프로토콜, 포트 번호, 목적지 IP, 목적지 포트)</code> 5-tuple로 식별되는 하나의 연결에 매핑된다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     VM["VM&lt;br/&gt;10.0.0.2:5000"] --&gt;|"외부 요청"| NAT["Cloud NAT"]
     NAT --&gt;|"5-tuple 매핑"| POOL["포트 풀에서&lt;br/&gt;포트 할당"]
     POOL --&gt; CONN["NAT IP:포트 ←→ 목적지 IP:포트&lt;br/&gt;(35.x.x.1:12345 → 203.0.113.10:443)"]
@@ -77,25 +1893,41 @@
     end
 
     style NAT fill:#e6f4ea,stroke:#34a853
-    style 할당규칙 fill:#f3e8fd,stroke:#a855f7</code></pre> <p>기본 설정에서 VM당 최소 64개 포트가 할당된다. 하나의 NAT IP에 사용 가능한 포트 범위가 1024~65535이므로, NAT IP 하나당 약 64,512개 포트를 사용할 수 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>NAT IP 1개 기준:
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>- 사용 가능 포트: 64,512개 (1024~65535)
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>- VM당 최소 포트: 64개 (기본값)
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>- 수용 가능 VM 수: 약 1,008대 (64,512 / 64)
-</span></code></pre></div> <h3 id=포트-고갈이-발생하는-경우>포트 고갈이 발생하는 경우<a class=headerlink href=#포트-고갈이-발생하는-경우 title="Permanent link">&para;</a></h3> <p>VM에서 동시에 많은 외부 연결을 맺으면 할당된 포트가 부족해진다. 다음 상황에서 자주 발생한다:</p> <ul> <li>외부 API를 대량으로 호출하는 배치 작업</li> <li>크롤러나 스크레이퍼가 동시에 수백 개 연결을 맺는 경우</li> <li>GKE 노드에서 Pod 수가 많고, 각 Pod가 외부 연결을 사용하는 경우</li> </ul> <p>포트가 고갈되면 <code>compute.googleapis.com/nat/dropped_sent_packets_count</code> 메트릭이 증가한다. 로그에는 <code>OUT_OF_RESOURCES</code> 이유로 패킷 드롭이 기록된다.</p> <h3 id=포트-고갈-대응>포트 고갈 대응<a class=headerlink href=#포트-고갈-대응 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># VM당 최소 포트 수 늘리기</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>    </span>--min-ports-per-vm<span class=o>=</span><span class=m>256</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=c1># NAT IP 추가 (수동 할당인 경우)</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>gcloud<span class=w> </span>compute<span class=w> </span>addresses<span class=w> </span>create<span class=w> </span>nat-ip-3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-13><a id=__codelineno-5-13 name=__codelineno-5-13 href=#__codelineno-5-13></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-14><a id=__codelineno-5-14 name=__codelineno-5-14 href=#__codelineno-5-14></a><span class=w>    </span>--nat-external-ip-pool<span class=o>=</span>nat-ip-1,nat-ip-2,nat-ip-3
-</span></code></pre></div> <p><code>--min-ports-per-vm</code> 값을 늘리면 VM당 사용 가능한 포트가 늘어나지만, NAT IP당 수용 가능한 VM 수가 줄어든다. 256으로 설정하면 NAT IP 하나당 약 252대까지만 수용 가능하다. 무작정 늘리면 안 된다.</p> <h2 id=dynamic-port-allocation>Dynamic Port Allocation<a class=headerlink href=#dynamic-port-allocation title="Permanent link">&para;</a></h2> <p>GCP에서 포트 고갈 문제를 해결하기 위해 도입한 기능이다. 기본 포트 할당은 정적(static)이라서, 트래픽이 적은 VM도 고정된 수의 포트를 점유한다. Dynamic Port Allocation을 켜면 VM의 실제 사용량에 따라 포트가 동적으로 할당된다.</p> <pre class=mermaid-diagram><code>graph TB
+    style 할당규칙 fill:#f3e8fd,stroke:#a855f7</code></pre>
+<p>기본 설정에서 VM당 최소 64개 포트가 할당된다. 하나의 NAT IP에 사용 가능한 포트 범위가 1024~65535이므로, NAT IP 하나당 약 64,512개 포트를 사용할 수 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>NAT IP 1개 기준:
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>- 사용 가능 포트: 64,512개 (1024~65535)
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>- VM당 최소 포트: 64개 (기본값)
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>- 수용 가능 VM 수: 약 1,008대 (64,512 / 64)
+</span></code></pre></div>
+<h3 id="포트-고갈이-발생하는-경우">포트 고갈이 발생하는 경우<a class="headerlink" href="#포트-고갈이-발생하는-경우" title="Permanent link">&para;</a></h3>
+<p>VM에서 동시에 많은 외부 연결을 맺으면 할당된 포트가 부족해진다. 다음 상황에서 자주 발생한다:</p>
+<ul>
+<li>외부 API를 대량으로 호출하는 배치 작업</li>
+<li>크롤러나 스크레이퍼가 동시에 수백 개 연결을 맺는 경우</li>
+<li>GKE 노드에서 Pod 수가 많고, 각 Pod가 외부 연결을 사용하는 경우</li>
+</ul>
+<p>포트가 고갈되면 <code>compute.googleapis.com/nat/dropped_sent_packets_count</code> 메트릭이 증가한다. 로그에는 <code>OUT_OF_RESOURCES</code> 이유로 패킷 드롭이 기록된다.</p>
+<h3 id="포트-고갈-대응">포트 고갈 대응<a class="headerlink" href="#포트-고갈-대응" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># VM당 최소 포트 수 늘리기</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span>--min-ports-per-vm<span class="o">=</span><span class="m">256</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># NAT IP 추가 (수동 할당인 경우)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>addresses<span class="w"> </span>create<span class="w"> </span>nat-ip-3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span>--nat-external-ip-pool<span class="o">=</span>nat-ip-1,nat-ip-2,nat-ip-3
+</span></code></pre></div>
+<p><code>--min-ports-per-vm</code> 값을 늘리면 VM당 사용 가능한 포트가 늘어나지만, NAT IP당 수용 가능한 VM 수가 줄어든다. 256으로 설정하면 NAT IP 하나당 약 252대까지만 수용 가능하다. 무작정 늘리면 안 된다.</p>
+<h2 id="dynamic-port-allocation">Dynamic Port Allocation<a class="headerlink" href="#dynamic-port-allocation" title="Permanent link">&para;</a></h2>
+<p>GCP에서 포트 고갈 문제를 해결하기 위해 도입한 기능이다. 기본 포트 할당은 정적(static)이라서, 트래픽이 적은 VM도 고정된 수의 포트를 점유한다. Dynamic Port Allocation을 켜면 VM의 실제 사용량에 따라 포트가 동적으로 할당된다.</p>
+<pre class="mermaid-diagram"><code>graph TB
     subgraph STATIC["Static Port Allocation"]
         direction LR
         S_VM1["VM-1 (유휴)&lt;br/&gt;할당: 64포트&lt;br/&gt;사용: 2포트"]
@@ -115,64 +1947,134 @@
     style STATIC fill:#fce8e6,stroke:#ea4335
     style DYNAMIC fill:#e6f4ea,stroke:#34a853
     style S_VM3 fill:#ea4335,color:#fff,stroke:#ea4335
-    style D_VM3 fill:#34a853,color:#fff,stroke:#34a853</code></pre> <p>Static에서는 모든 VM이 동일한 포트를 점유한다. VM-3처럼 트래픽이 많으면 포트가 고갈되고, VM-1처럼 유휴 상태여도 포트를 놓지 않는다. Dynamic으로 전환하면 실제 사용량에 맞게 재분배된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># Dynamic Port Allocation 활성화</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span>--enable-dynamic-port-allocation<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>    </span>--min-ports-per-vm<span class=o>=</span><span class=m>32</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>    </span>--max-ports-per-vm<span class=o>=</span><span class=m>65536</span>
-</span></code></pre></div> <p><code>--min-ports-per-vm</code>은 VM에 항상 보장되는 최소 포트 수다. <code>--max-ports-per-vm</code>은 트래픽이 몰릴 때 최대로 할당 가능한 포트 수다. 동적 할당이라 유휴 VM은 최소값만 가지고 있고, 트래픽이 많은 VM에 포트가 몰린다.</p> <p>동적 할당 활성화 시 주의사항:</p> <ul> <li>Endpoint-Independent Mapping이 비활성화된다. 동적 할당과 EIM은 동시에 사용할 수 없다.</li> <li>포트 할당/회수에 약간의 지연이 있다. 순간적인 버스트 트래픽에는 할당이 뒤따라가지 못해서 일시적으로 패킷 드롭이 발생할 수 있다.</li> <li><code>--min-ports-per-vm</code>을 너무 낮게 설정하면 포트 할당 대기 시간이 길어진다. 32 이하로 내리는 것은 권장하지 않는다.</li> </ul> <h2 id=endpoint-independent-mapping-eim>Endpoint-Independent Mapping (EIM)<a class=headerlink href=#endpoint-independent-mapping-eim title="Permanent link">&para;</a></h2> <p>기본적으로 Cloud NAT는 Endpoint-Independent Mapping이 활성화되어 있다. 이 설정은 NAT 매핑 방식을 결정한다.</p> <p><strong>EIM 활성화 시</strong>: 동일한 내부 IP:포트에서 나가는 트래픽은 목적지가 달라도 같은 NAT IP:포트로 매핑된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 A   →  NAT IP 35.x.x.x:12345
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 B   →  NAT IP 35.x.x.x:12345 (동일)
-</span></code></pre></div> <p><strong>EIM 비활성화 시</strong>: 목적지마다 다른 NAT 포트가 할당된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 A   →  NAT IP 35.x.x.x:12345
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 B   →  NAT IP 35.x.x.x:54321 (다름)
-</span></code></pre></div> <p>EIM이 필요한 경우는 P2P 통신이나 일부 VoIP 프로토콜처럼 외부에서 NAT 매핑을 예측해야 하는 경우다. 대부분의 서버-클라이언트 통신에서는 EIM이 없어도 동작한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># EIM 비활성화</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=w>    </span>--no-enable-endpoint-independent-mapping
-</span></code></pre></div> <p>EIM을 비활성화하면 같은 내부 포트를 여러 목적지에 재사용할 수 있어서, 포트 사용 효율이 높아진다. 포트 고갈이 문제라면 EIM 비활성화를 먼저 검토하는 것이 맞다. 단, Dynamic Port Allocation을 쓰려면 EIM을 반드시 비활성화해야 한다.</p> <h2 id=cloud-nat-로그>Cloud NAT 로그<a class=headerlink href=#cloud-nat-로그 title="Permanent link">&para;</a></h2> <p>Cloud NAT는 연결 생성/삭제와 에러 이벤트를 로깅한다. 포트 고갈이나 연결 문제를 진단할 때 필수다.</p> <h3 id=로그-활성화>로그 활성화<a class=headerlink href=#로그-활성화 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># 모든 이벤트 로깅</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>    </span>--enable-logging<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>    </span>--log-filter<span class=o>=</span>ALL
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a><span class=c1># 에러만 로깅 (비용 절감)</span>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a><span class=w>    </span>--enable-logging<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a><span class=w>    </span>--log-filter<span class=o>=</span>ERRORS_ONLY
-</span></code></pre></div> <p><code>--log-filter</code>는 세 가지 옵션이 있다: - <code>ALL</code>: 모든 NAT 이벤트 (연결 생성, 삭제, 에러) - <code>ERRORS_ONLY</code>: 포트 고갈, 연결 실패 등 에러만 - <code>TRANSLATIONS_ONLY</code>: 정상적인 NAT 변환 이벤트만</p> <p>프로덕션에서는 평소에 <code>ERRORS_ONLY</code>로 두고, 문제 발생 시 <code>ALL</code>로 변경해서 디버깅하는 방식이 비용 면에서 낫다. ALL로 계속 두면 로그 양이 상당하다.</p> <h3 id=로그-분석>로그 분석<a class=headerlink href=#로그-분석 title="Permanent link">&para;</a></h3> <p>Cloud Logging에서 NAT 로그를 필터링하는 쿼리:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a># 포트 고갈로 인한 패킷 드롭 확인
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>resource.type=&quot;nat_gateway&quot;
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>jsonPayload.allocation_status=&quot;DROPPED&quot;
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a># 특정 VM의 NAT 이벤트 확인
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>resource.type=&quot;nat_gateway&quot;
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a>jsonPayload.instance.vm_name=&quot;my-vm&quot;
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a># 특정 목적지로의 연결 이벤트 확인
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a>resource.type=&quot;nat_gateway&quot;
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>jsonPayload.destination.address=&quot;203.0.113.10&quot;
-</span></code></pre></div> <p>로그에서 주로 확인하는 필드:</p> <table> <thead> <tr> <th>필드</th> <th>설명</th> </tr> </thead> <tbody> <tr> <td><code>allocation_status</code></td> <td>DROPPED이면 포트 고갈</td> </tr> <tr> <td><code>connection.src_ip</code></td> <td>NAT 변환 전 내부 IP</td> </tr> <tr> <td><code>connection.nat_ip</code></td> <td>NAT 변환 후 외부 IP</td> </tr> <tr> <td><code>connection.nat_port</code></td> <td>NAT 변환 후 포트</td> </tr> <tr> <td><code>endpoint.vm_name</code></td> <td>해당 VM 이름</td> </tr> </tbody> </table> <h2 id=모니터링>모니터링<a class=headerlink href=#모니터링 title="Permanent link">&para;</a></h2> <p>Cloud NAT 운영 시 반드시 감시해야 하는 메트릭이 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># Cloud Monitoring에서 확인할 주요 메트릭</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=c1># 1. NAT 할당 실패 (포트 고갈 징후)</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>compute.googleapis.com/nat/dropped_sent_packets_count
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=c1># 2. 현재 NAT 연결 수</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>compute.googleapis.com/nat/open_connections
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a><span class=c1># 3. 할당된 포트 사용률</span>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a>compute.googleapis.com/nat/port_usage
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a>
-</span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a><span class=c1># 4. NAT IP당 사용 포트 수</span>
-</span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a>compute.googleapis.com/nat/allocated_ports
-</span></code></pre></div> <p>포트 사용률이 80%를 넘어가면 조치가 필요하다. 자동 할당이면 GCP가 IP를 추가하지만, 수동 할당이면 직접 IP를 추가해야 한다. 알럿 정책을 만들어두는 것이 맞다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1># 포트 고갈 알럿 확인용 - 최근 드롭된 패킷 확인</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>gcloud<span class=w> </span>logging<span class=w> </span><span class=nb>read</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=w>    </span><span class=s1>&#39;resource.type=&quot;nat_gateway&quot; AND jsonPayload.allocation_status=&quot;DROPPED&quot;&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=w>    </span>--limit<span class=o>=</span><span class=m>10</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a><span class=w>    </span>--format<span class=o>=</span><span class=s2>&quot;table(timestamp, jsonPayload.endpoint.vm_name, jsonPayload.destination.address)&quot;</span>
-</span></code></pre></div> <h2 id=실무에서-겪는-문제들>실무에서 겪는 문제들<a class=headerlink href=#실무에서-겪는-문제들 title="Permanent link">&para;</a></h2> <h3 id=gke와-cloud-nat-포트-고갈>GKE와 Cloud NAT 포트 고갈<a class=headerlink href=#gke와-cloud-nat-포트-고갈 title="Permanent link">&para;</a></h3> <p>GKE 노드는 여러 Pod를 실행하고, 각 Pod가 독립적으로 외부 연결을 맺는다. 노드 하나에 Pod가 50개 있고, 각 Pod가 외부 API에 동시 연결 10개씩 맺으면, 노드 하나가 500개 포트를 쓴다. 기본 설정(VM당 64포트)이면 바로 고갈된다.</p> <pre class=mermaid-diagram><code>graph TB
+    style D_VM3 fill:#34a853,color:#fff,stroke:#34a853</code></pre>
+<p>Static에서는 모든 VM이 동일한 포트를 점유한다. VM-3처럼 트래픽이 많으면 포트가 고갈되고, VM-1처럼 유휴 상태여도 포트를 놓지 않는다. Dynamic으로 전환하면 실제 사용량에 맞게 재분배된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Dynamic Port Allocation 활성화</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span>--enable-dynamic-port-allocation<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span>--min-ports-per-vm<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span>--max-ports-per-vm<span class="o">=</span><span class="m">65536</span>
+</span></code></pre></div>
+<p><code>--min-ports-per-vm</code>은 VM에 항상 보장되는 최소 포트 수다. <code>--max-ports-per-vm</code>은 트래픽이 몰릴 때 최대로 할당 가능한 포트 수다. 동적 할당이라 유휴 VM은 최소값만 가지고 있고, 트래픽이 많은 VM에 포트가 몰린다.</p>
+<p>동적 할당 활성화 시 주의사항:</p>
+<ul>
+<li>Endpoint-Independent Mapping이 비활성화된다. 동적 할당과 EIM은 동시에 사용할 수 없다.</li>
+<li>포트 할당/회수에 약간의 지연이 있다. 순간적인 버스트 트래픽에는 할당이 뒤따라가지 못해서 일시적으로 패킷 드롭이 발생할 수 있다.</li>
+<li><code>--min-ports-per-vm</code>을 너무 낮게 설정하면 포트 할당 대기 시간이 길어진다. 32 이하로 내리는 것은 권장하지 않는다.</li>
+</ul>
+<h2 id="endpoint-independent-mapping-eim">Endpoint-Independent Mapping (EIM)<a class="headerlink" href="#endpoint-independent-mapping-eim" title="Permanent link">&para;</a></h2>
+<p>기본적으로 Cloud NAT는 Endpoint-Independent Mapping이 활성화되어 있다. 이 설정은 NAT 매핑 방식을 결정한다.</p>
+<p><strong>EIM 활성화 시</strong>: 동일한 내부 IP:포트에서 나가는 트래픽은 목적지가 달라도 같은 NAT IP:포트로 매핑된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 A   →  NAT IP 35.x.x.x:12345
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 B   →  NAT IP 35.x.x.x:12345 (동일)
+</span></code></pre></div>
+<p><strong>EIM 비활성화 시</strong>: 목적지마다 다른 NAT 포트가 할당된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 A   →  NAT IP 35.x.x.x:12345
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>VM 내부 IP 10.0.0.2:5000 → 외부 서버 B   →  NAT IP 35.x.x.x:54321 (다름)
+</span></code></pre></div>
+<p>EIM이 필요한 경우는 P2P 통신이나 일부 VoIP 프로토콜처럼 외부에서 NAT 매핑을 예측해야 하는 경우다. 대부분의 서버-클라이언트 통신에서는 EIM이 없어도 동작한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># EIM 비활성화</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span>--no-enable-endpoint-independent-mapping
+</span></code></pre></div>
+<p>EIM을 비활성화하면 같은 내부 포트를 여러 목적지에 재사용할 수 있어서, 포트 사용 효율이 높아진다. 포트 고갈이 문제라면 EIM 비활성화를 먼저 검토하는 것이 맞다. 단, Dynamic Port Allocation을 쓰려면 EIM을 반드시 비활성화해야 한다.</p>
+<h2 id="cloud-nat-로그">Cloud NAT 로그<a class="headerlink" href="#cloud-nat-로그" title="Permanent link">&para;</a></h2>
+<p>Cloud NAT는 연결 생성/삭제와 에러 이벤트를 로깅한다. 포트 고갈이나 연결 문제를 진단할 때 필수다.</p>
+<h3 id="로그-활성화">로그 활성화<a class="headerlink" href="#로그-활성화" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 모든 이벤트 로깅</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span>--enable-logging<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span>--log-filter<span class="o">=</span>ALL
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1"># 에러만 로깅 (비용 절감)</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">    </span>--enable-logging<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">    </span>--log-filter<span class="o">=</span>ERRORS_ONLY
+</span></code></pre></div>
+<p><code>--log-filter</code>는 세 가지 옵션이 있다:
+- <code>ALL</code>: 모든 NAT 이벤트 (연결 생성, 삭제, 에러)
+- <code>ERRORS_ONLY</code>: 포트 고갈, 연결 실패 등 에러만
+- <code>TRANSLATIONS_ONLY</code>: 정상적인 NAT 변환 이벤트만</p>
+<p>프로덕션에서는 평소에 <code>ERRORS_ONLY</code>로 두고, 문제 발생 시 <code>ALL</code>로 변경해서 디버깅하는 방식이 비용 면에서 낫다. ALL로 계속 두면 로그 양이 상당하다.</p>
+<h3 id="로그-분석">로그 분석<a class="headerlink" href="#로그-분석" title="Permanent link">&para;</a></h3>
+<p>Cloud Logging에서 NAT 로그를 필터링하는 쿼리:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a># 포트 고갈로 인한 패킷 드롭 확인
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>resource.type=&quot;nat_gateway&quot;
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>jsonPayload.allocation_status=&quot;DROPPED&quot;
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a># 특정 VM의 NAT 이벤트 확인
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>resource.type=&quot;nat_gateway&quot;
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>jsonPayload.instance.vm_name=&quot;my-vm&quot;
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a># 특정 목적지로의 연결 이벤트 확인
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>resource.type=&quot;nat_gateway&quot;
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>jsonPayload.destination.address=&quot;203.0.113.10&quot;
+</span></code></pre></div>
+<p>로그에서 주로 확인하는 필드:</p>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>allocation_status</code></td>
+<td>DROPPED이면 포트 고갈</td>
+</tr>
+<tr>
+<td><code>connection.src_ip</code></td>
+<td>NAT 변환 전 내부 IP</td>
+</tr>
+<tr>
+<td><code>connection.nat_ip</code></td>
+<td>NAT 변환 후 외부 IP</td>
+</tr>
+<tr>
+<td><code>connection.nat_port</code></td>
+<td>NAT 변환 후 포트</td>
+</tr>
+<tr>
+<td><code>endpoint.vm_name</code></td>
+<td>해당 VM 이름</td>
+</tr>
+</tbody>
+</table>
+<h2 id="모니터링">모니터링<a class="headerlink" href="#모니터링" title="Permanent link">&para;</a></h2>
+<p>Cloud NAT 운영 시 반드시 감시해야 하는 메트릭이 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Cloud Monitoring에서 확인할 주요 메트릭</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="c1"># 1. NAT 할당 실패 (포트 고갈 징후)</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>compute.googleapis.com/nat/dropped_sent_packets_count
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="c1"># 2. 현재 NAT 연결 수</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>compute.googleapis.com/nat/open_connections
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="c1"># 3. 할당된 포트 사용률</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>compute.googleapis.com/nat/port_usage
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="c1"># 4. NAT IP당 사용 포트 수</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>compute.googleapis.com/nat/allocated_ports
+</span></code></pre></div>
+<p>포트 사용률이 80%를 넘어가면 조치가 필요하다. 자동 할당이면 GCP가 IP를 추가하지만, 수동 할당이면 직접 IP를 추가해야 한다. 알럿 정책을 만들어두는 것이 맞다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># 포트 고갈 알럿 확인용 - 최근 드롭된 패킷 확인</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>gcloud<span class="w"> </span>logging<span class="w"> </span><span class="nb">read</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="s1">&#39;resource.type=&quot;nat_gateway&quot; AND jsonPayload.allocation_status=&quot;DROPPED&quot;&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span>--limit<span class="o">=</span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span>--format<span class="o">=</span><span class="s2">&quot;table(timestamp, jsonPayload.endpoint.vm_name, jsonPayload.destination.address)&quot;</span>
+</span></code></pre></div>
+<h2 id="실무에서-겪는-문제들">실무에서 겪는 문제들<a class="headerlink" href="#실무에서-겪는-문제들" title="Permanent link">&para;</a></h2>
+<h3 id="gke와-cloud-nat-포트-고갈">GKE와 Cloud NAT 포트 고갈<a class="headerlink" href="#gke와-cloud-nat-포트-고갈" title="Permanent link">&para;</a></h3>
+<p>GKE 노드는 여러 Pod를 실행하고, 각 Pod가 독립적으로 외부 연결을 맺는다. 노드 하나에 Pod가 50개 있고, 각 Pod가 외부 API에 동시 연결 10개씩 맺으면, 노드 하나가 500개 포트를 쓴다. 기본 설정(VM당 64포트)이면 바로 고갈된다.</p>
+<pre class="mermaid-diagram"><code>graph TB
     subgraph GKE["GKE Private Cluster"]
         subgraph NODE1["Node-1 (VM)"]
             P1["Pod A&lt;br/&gt;외부 연결 10개"]
@@ -199,19 +2101,35 @@
     style GKE fill:#e8f0fe,stroke:#4285f4
     style NODE1 fill:#fce8e6,stroke:#ea4335
     style NODE2 fill:#fef7e0,stroke:#fbbc04
-    style CNAT fill:#e6f4ea,stroke:#34a853</code></pre> <p>Cloud NAT는 Pod 단위가 아니라 노드(VM) 단위로 포트를 할당한다. 노드 위에 Pod가 많을수록 노드당 필요한 포트 수가 급격히 늘어난다.</p> <p>GKE 환경에서는:</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a><span class=c1># GKE 노드용 Cloud NAT - 포트를 넉넉하게 설정</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>update<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a><span class=w>    </span>--enable-dynamic-port-allocation<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a><span class=w>    </span>--min-ports-per-vm<span class=o>=</span><span class=m>1024</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a><span class=w>    </span>--max-ports-per-vm<span class=o>=</span><span class=m>65536</span>
-</span></code></pre></div> <p><code>--min-ports-per-vm=1024</code> 정도는 잡아줘야 GKE 노드에서 포트 고갈이 발생하지 않는다. Pod 수와 외부 연결 패턴에 따라 더 높여야 할 수 있다.</p> <h3 id=nat-ip-변경-시-외부-연동-장애>NAT IP 변경 시 외부 연동 장애<a class=headerlink href=#nat-ip-변경-시-외부-연동-장애 title="Permanent link">&para;</a></h3> <p>자동 할당을 쓰고 있다가 NAT IP가 바뀌면, 외부에서 IP 화이트리스트로 관리하는 서비스와의 연결이 끊긴다. 결제 연동, 파트너사 API 같은 곳에서 발생한다.</p> <p>이 경우 수동 할당으로 전환하면 되는데, 전환 과정에서 일시적으로 NAT IP가 바뀌므로 트래픽이 없는 시간에 작업해야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=c1># 현재 사용 중인 NAT IP 확인</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>gcloud<span class=w> </span>compute<span class=w> </span>routers<span class=w> </span>nats<span class=w> </span>describe<span class=w> </span>my-nat<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=w>    </span>--router<span class=o>=</span>my-router<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a><span class=w>    </span>--region<span class=o>=</span>asia-northeast3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a><span class=w>    </span>--format<span class=o>=</span><span class=s2>&quot;get(natIps)&quot;</span>
-</span></code></pre></div> <h3 id=cloud-nat와-private-google-access>Cloud NAT와 Private Google Access<a class=headerlink href=#cloud-nat와-private-google-access title="Permanent link">&para;</a></h3> <p>외부 IP 없는 VM에서 Google API(Cloud Storage, BigQuery 등)에 접근할 때, Private Google Access가 꺼져 있으면 Cloud NAT를 통해 인터넷으로 나갔다가 Google API에 도달한다. 동작은 하지만 불필요한 NAT 트래픽과 비용이 발생한다.</p> <p>Cloud NAT를 설정했으면 Private Google Access도 같이 켜야 한다. 서로 역할이 다르다:</p> <ul> <li><strong>Private Google Access</strong>: Google API 접근 전용. Google 내부 네트워크를 통해 라우팅.</li> <li><strong>Cloud NAT</strong>: 인터넷 접근용. 외부 IP를 통해 인터넷으로 나감.</li> </ul> <pre class=mermaid-diagram><code>graph LR
+    style CNAT fill:#e6f4ea,stroke:#34a853</code></pre>
+<p>Cloud NAT는 Pod 단위가 아니라 노드(VM) 단위로 포트를 할당한다. 노드 위에 Pod가 많을수록 노드당 필요한 포트 수가 급격히 늘어난다.</p>
+<p>GKE 환경에서는:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># GKE 노드용 Cloud NAT - 포트를 넉넉하게 설정</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>update<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span>--enable-dynamic-port-allocation<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span>--min-ports-per-vm<span class="o">=</span><span class="m">1024</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span>--max-ports-per-vm<span class="o">=</span><span class="m">65536</span>
+</span></code></pre></div>
+<p><code>--min-ports-per-vm=1024</code> 정도는 잡아줘야 GKE 노드에서 포트 고갈이 발생하지 않는다. Pod 수와 외부 연결 패턴에 따라 더 높여야 할 수 있다.</p>
+<h3 id="nat-ip-변경-시-외부-연동-장애">NAT IP 변경 시 외부 연동 장애<a class="headerlink" href="#nat-ip-변경-시-외부-연동-장애" title="Permanent link">&para;</a></h3>
+<p>자동 할당을 쓰고 있다가 NAT IP가 바뀌면, 외부에서 IP 화이트리스트로 관리하는 서비스와의 연결이 끊긴다. 결제 연동, 파트너사 API 같은 곳에서 발생한다.</p>
+<p>이 경우 수동 할당으로 전환하면 되는데, 전환 과정에서 일시적으로 NAT IP가 바뀌므로 트래픽이 없는 시간에 작업해야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># 현재 사용 중인 NAT IP 확인</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>gcloud<span class="w"> </span>compute<span class="w"> </span>routers<span class="w"> </span>nats<span class="w"> </span>describe<span class="w"> </span>my-nat<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span>--router<span class="o">=</span>my-router<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span>--region<span class="o">=</span>asia-northeast3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">    </span>--format<span class="o">=</span><span class="s2">&quot;get(natIps)&quot;</span>
+</span></code></pre></div>
+<h3 id="cloud-nat와-private-google-access">Cloud NAT와 Private Google Access<a class="headerlink" href="#cloud-nat와-private-google-access" title="Permanent link">&para;</a></h3>
+<p>외부 IP 없는 VM에서 Google API(Cloud Storage, BigQuery 등)에 접근할 때, Private Google Access가 꺼져 있으면 Cloud NAT를 통해 인터넷으로 나갔다가 Google API에 도달한다. 동작은 하지만 불필요한 NAT 트래픽과 비용이 발생한다.</p>
+<p>Cloud NAT를 설정했으면 Private Google Access도 같이 켜야 한다. 서로 역할이 다르다:</p>
+<ul>
+<li><strong>Private Google Access</strong>: Google API 접근 전용. Google 내부 네트워크를 통해 라우팅.</li>
+<li><strong>Cloud NAT</strong>: 인터넷 접근용. 외부 IP를 통해 인터넷으로 나감.</li>
+</ul>
+<pre class="mermaid-diagram"><code>graph LR
     VM["VM&lt;br/&gt;(외부 IP 없음)"]
 
     subgraph PGA_OFF["Private Google Access OFF"]
@@ -231,4 +2149,170 @@
 
     style PGA_OFF fill:#fce8e6,stroke:#ea4335
     style PGA_ON fill:#e6f4ea,stroke:#34a853
-    style GNET fill:#e8f0fe,stroke:#4285f4</code></pre> <p>PGA가 꺼져 있으면 Google API 호출도 Cloud NAT → 인터넷 → Google API 경로로 우회한다. PGA를 켜면 Google API 트래픽은 내부 네트워크로 직접 라우팅되고, Cloud NAT는 인터넷 트래픽만 처리한다. NAT 포트 사용량과 비용 둘 다 줄어든다.</p> <p>두 가지를 같이 설정하면 Google API 트래픽은 내부 네트워크로, 그 외 트래픽은 Cloud NAT를 통해 외부로 나간다.</p> <h2 id=cloud-nat-적용-범위-정리>Cloud NAT 적용 범위 정리<a class=headerlink href=#cloud-nat-적용-범위-정리 title="Permanent link">&para;</a></h2> <p>Cloud NAT가 적용되는 리소스와 적용되지 않는 리소스를 구분해야 한다.</p> <table> <thead> <tr> <th>리소스</th> <th>Cloud NAT 적용</th> </tr> </thead> <tbody> <tr> <td>외부 IP 없는 VM</td> <td>적용</td> </tr> <tr> <td>GKE 노드 (Private 클러스터)</td> <td>적용</td> </tr> <tr> <td>Cloud Run, Cloud Functions</td> <td>적용 안 됨 (별도 VPC Connector 필요)</td> </tr> <tr> <td>App Engine Flex</td> <td>적용</td> </tr> <tr> <td>App Engine Standard</td> <td>적용 안 됨</td> </tr> </tbody> </table> <p>Cloud Run이나 Cloud Functions에서 고정 IP로 외부 통신이 필요하면, Serverless VPC Access Connector를 설정하고 해당 VPC에 Cloud NAT를 연결해야 한다. 단계가 하나 더 추가된다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../AWS/Network/ALB_ECS_S3_Request_Flow/ >ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li> <li><a href=../../../AWS/Network/Internet_Gateway/ >AWS Internet Gateway</a></li> <li><a href=../../../AWS/Network/Nat_Gateway/ >AWS NAT Gateway</a></li> <li><a href=../../../AWS/Network/Transit_Gateway/ >AWS Transit Gateway</a></li> <li><a href=../../../AWS/Network/VPC_Peering/ >AWS VPC Peering</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ class="md-footer__link md-footer__link--prev" aria-label="이전: Network 전체 보기"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Network 전체 보기 </div> </div> </a> <a href=../Cloud_VPN/ class="md-footer__link md-footer__link--next" aria-label="다음: Cloud VPN"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> Cloud VPN </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    style GNET fill:#e8f0fe,stroke:#4285f4</code></pre>
+<p>PGA가 꺼져 있으면 Google API 호출도 Cloud NAT → 인터넷 → Google API 경로로 우회한다. PGA를 켜면 Google API 트래픽은 내부 네트워크로 직접 라우팅되고, Cloud NAT는 인터넷 트래픽만 처리한다. NAT 포트 사용량과 비용 둘 다 줄어든다.</p>
+<p>두 가지를 같이 설정하면 Google API 트래픽은 내부 네트워크로, 그 외 트래픽은 Cloud NAT를 통해 외부로 나간다.</p>
+<h2 id="cloud-nat-적용-범위-정리">Cloud NAT 적용 범위 정리<a class="headerlink" href="#cloud-nat-적용-범위-정리" title="Permanent link">&para;</a></h2>
+<p>Cloud NAT가 적용되는 리소스와 적용되지 않는 리소스를 구분해야 한다.</p>
+<table>
+<thead>
+<tr>
+<th>리소스</th>
+<th>Cloud NAT 적용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>외부 IP 없는 VM</td>
+<td>적용</td>
+</tr>
+<tr>
+<td>GKE 노드 (Private 클러스터)</td>
+<td>적용</td>
+</tr>
+<tr>
+<td>Cloud Run, Cloud Functions</td>
+<td>적용 안 됨 (별도 VPC Connector 필요)</td>
+</tr>
+<tr>
+<td>App Engine Flex</td>
+<td>적용</td>
+</tr>
+<tr>
+<td>App Engine Standard</td>
+<td>적용 안 됨</td>
+</tr>
+</tbody>
+</table>
+<p>Cloud Run이나 Cloud Functions에서 고정 IP로 외부 통신이 필요하면, Serverless VPC Access Connector를 설정하고 해당 VPC에 Cloud NAT를 연결해야 한다. 단계가 하나 더 추가된다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../AWS/Network/ALB_ECS_S3_Request_Flow/">ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li>
+<li><a href="../../../AWS/Network/Internet_Gateway/">AWS Internet Gateway</a></li>
+<li><a href="../../../AWS/Network/Nat_Gateway/">AWS NAT Gateway</a></li>
+<li><a href="../../../AWS/Network/Transit_Gateway/">AWS Transit Gateway</a></li>
+<li><a href="../../../AWS/Network/VPC_Peering/">AWS VPC Peering</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="이전: Network 전체 보기">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Network 전체 보기
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Cloud_VPN/" class="md-footer__link md-footer__link--next" aria-label="다음: Cloud VPN">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                Cloud VPN
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

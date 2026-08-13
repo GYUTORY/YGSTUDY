@@ -1,55 +1,3316 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Qo_S_Traffic_Shaping/ rel=canonical><link href=../OSI_7_Layer_Model/ rel=prev><link href=../Application%20Layer/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>QoS와 트래픽 셰이핑 (Traffic Shaping) - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#qos와-트래픽-셰이핑 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> QoS와 트래픽 셰이핑 (Traffic Shaping) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> OSI 7계층 </span> </a> <label class="md-nav__link " for=__nav_7_1_7 id=__nav_7_1_7_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7> <span class="md-nav__icon md-icon"></span> OSI 7계층 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../DHCP/ class=md-nav__link> <span class=md-ellipsis> DHCP </span> </a> </li> <li class=md-nav__item> <a href=../GSLB/ class=md-nav__link> <span class=md-ellipsis> GSLB </span> </a> </li> <li class=md-nav__item> <a href=../Network%20Flow/ class=md-nav__link> <span class=md-ellipsis> 네트워크 플로우 </span> </a> </li> <li class=md-nav__item> <a href=../OSI_7_Layer_Model/ class=md-nav__link> <span class=md-ellipsis> OSI 7 계층 모델 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> QoS와 트래픽 셰이핑 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> QoS와 트래픽 셰이핑 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#qos가-건드리는-4가지-지표 class=md-nav__link> <span class=md-ellipsis> QoS가 건드리는 4가지 지표 </span> </a> </li> <li class=md-nav__item> <a href=#dscptos-마킹--패킷에-우선순위를-적는다 class=md-nav__link> <span class=md-ellipsis> DSCP/ToS 마킹 — 패킷에 우선순위를 적는다 </span> </a> </li> <li class=md-nav__item> <a href=#큐잉-규율--패킷을-내보내는-순서 class=md-nav__link> <span class=md-ellipsis> 큐잉 규율 — 패킷을 내보내는 순서 </span> </a> <nav class=md-nav aria-label="큐잉 규율 — 패킷을 내보내는 순서"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#fifo class=md-nav__link> <span class=md-ellipsis> FIFO </span> </a> </li> <li class=md-nav__item> <a href=#wfq-weighted-fair-queuing class=md-nav__link> <span class=md-ellipsis> WFQ (Weighted Fair Queuing) </span> </a> </li> <li class=md-nav__item> <a href=#cbq--htb-class-based-queuing class=md-nav__link> <span class=md-ellipsis> CBQ / HTB (Class-Based Queuing) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#token-bucket-vs-leaky-bucket class=md-nav__link> <span class=md-ellipsis> Token Bucket vs Leaky Bucket </span> </a> <nav class=md-nav aria-label="Token Bucket vs Leaky Bucket"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#leaky-bucket-누수-버킷 class=md-nav__link> <span class=md-ellipsis> Leaky Bucket (누수 버킷) </span> </a> </li> <li class=md-nav__item> <a href=#token-bucket-토큰-버킷 class=md-nav__link> <span class=md-ellipsis> Token Bucket (토큰 버킷) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#폴리싱과-셰이핑의-차이 class=md-nav__link> <span class=md-ellipsis> 폴리싱과 셰이핑의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#linux-tc-실무-예제 class=md-nav__link> <span class=md-ellipsis> Linux tc 실무 예제 </span> </a> <nav class=md-nav aria-label="Linux tc 실무 예제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#단순-대역폭-제한-tbf class=md-nav__link> <span class=md-ellipsis> 단순 대역폭 제한 (TBF) </span> </a> </li> <li class=md-nav__item> <a href=#htb로-클래스-나누기 class=md-nav__link> <span class=md-ellipsis> HTB로 클래스 나누기 </span> </a> </li> <li class=md-nav__item> <a href=#인위적으로-지연손실-넣기-netem class=md-nav__link> <span class=md-ellipsis> 인위적으로 지연/손실 넣기 (netem) </span> </a> </li> <li class=md-nav__item> <a href=#설정-확인과-삭제 class=md-nav__link> <span class=md-ellipsis> 설정 확인과 삭제 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#우선순위-보장이-필요한-상황 class=md-nav__link> <span class=md-ellipsis> 우선순위 보장이 필요한 상황 </span> </a> <nav class=md-nav aria-label="우선순위 보장이 필요한 상황"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#voip--영상-통화 class=md-nav__link> <span class=md-ellipsis> VoIP / 영상 통화 </span> </a> </li> <li class=md-nav__item> <a href=#실시간-스트리밍 class=md-nav__link> <span class=md-ellipsis> 실시간 스트리밍 </span> </a> </li> <li class=md-nav__item> <a href=#회선을-공유하는-사무실 class=md-nav__link> <span class=md-ellipsis> 회선을 공유하는 사무실 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#백엔드에서-마주치는-throttling class=md-nav__link> <span class=md-ellipsis> 백엔드에서 마주치는 throttling </span> </a> <nav class=md-nav aria-label="백엔드에서 마주치는 throttling"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#api-rate-limiting class=md-nav__link> <span class=md-ellipsis> API rate limiting </span> </a> </li> <li class=md-nav__item> <a href=#메시지-큐--외부-api-호출 class=md-nav__link> <span class=md-ellipsis> 메시지 큐 / 외부 API 호출 </span> </a> </li> <li class=md-nav__item> <a href=#커넥션-풀과-동시성-제한 class=md-nav__link> <span class=md-ellipsis> 커넥션 풀과 동시성 제한 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무에서-헷갈리지-않으려면 class=md-nav__link> <span class=md-ellipsis> 실무에서 헷갈리지 않으려면 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Application%20Layer/ class=md-nav__link> <span class=md-ellipsis> Application Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Data%20Link%20Layer/ class=md-nav__link> <span class=md-ellipsis> 데이터 링크 계층 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Network%20Layer/ class=md-nav__link> <span class=md-ellipsis> Network Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Transport%20Layer/ class=md-nav__link> <span class=md-ellipsis> Transport Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#qos가-건드리는-4가지-지표 class=md-nav__link> <span class=md-ellipsis> QoS가 건드리는 4가지 지표 </span> </a> </li> <li class=md-nav__item> <a href=#dscptos-마킹--패킷에-우선순위를-적는다 class=md-nav__link> <span class=md-ellipsis> DSCP/ToS 마킹 — 패킷에 우선순위를 적는다 </span> </a> </li> <li class=md-nav__item> <a href=#큐잉-규율--패킷을-내보내는-순서 class=md-nav__link> <span class=md-ellipsis> 큐잉 규율 — 패킷을 내보내는 순서 </span> </a> <nav class=md-nav aria-label="큐잉 규율 — 패킷을 내보내는 순서"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#fifo class=md-nav__link> <span class=md-ellipsis> FIFO </span> </a> </li> <li class=md-nav__item> <a href=#wfq-weighted-fair-queuing class=md-nav__link> <span class=md-ellipsis> WFQ (Weighted Fair Queuing) </span> </a> </li> <li class=md-nav__item> <a href=#cbq--htb-class-based-queuing class=md-nav__link> <span class=md-ellipsis> CBQ / HTB (Class-Based Queuing) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#token-bucket-vs-leaky-bucket class=md-nav__link> <span class=md-ellipsis> Token Bucket vs Leaky Bucket </span> </a> <nav class=md-nav aria-label="Token Bucket vs Leaky Bucket"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#leaky-bucket-누수-버킷 class=md-nav__link> <span class=md-ellipsis> Leaky Bucket (누수 버킷) </span> </a> </li> <li class=md-nav__item> <a href=#token-bucket-토큰-버킷 class=md-nav__link> <span class=md-ellipsis> Token Bucket (토큰 버킷) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#폴리싱과-셰이핑의-차이 class=md-nav__link> <span class=md-ellipsis> 폴리싱과 셰이핑의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#linux-tc-실무-예제 class=md-nav__link> <span class=md-ellipsis> Linux tc 실무 예제 </span> </a> <nav class=md-nav aria-label="Linux tc 실무 예제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#단순-대역폭-제한-tbf class=md-nav__link> <span class=md-ellipsis> 단순 대역폭 제한 (TBF) </span> </a> </li> <li class=md-nav__item> <a href=#htb로-클래스-나누기 class=md-nav__link> <span class=md-ellipsis> HTB로 클래스 나누기 </span> </a> </li> <li class=md-nav__item> <a href=#인위적으로-지연손실-넣기-netem class=md-nav__link> <span class=md-ellipsis> 인위적으로 지연/손실 넣기 (netem) </span> </a> </li> <li class=md-nav__item> <a href=#설정-확인과-삭제 class=md-nav__link> <span class=md-ellipsis> 설정 확인과 삭제 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#우선순위-보장이-필요한-상황 class=md-nav__link> <span class=md-ellipsis> 우선순위 보장이 필요한 상황 </span> </a> <nav class=md-nav aria-label="우선순위 보장이 필요한 상황"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#voip--영상-통화 class=md-nav__link> <span class=md-ellipsis> VoIP / 영상 통화 </span> </a> </li> <li class=md-nav__item> <a href=#실시간-스트리밍 class=md-nav__link> <span class=md-ellipsis> 실시간 스트리밍 </span> </a> </li> <li class=md-nav__item> <a href=#회선을-공유하는-사무실 class=md-nav__link> <span class=md-ellipsis> 회선을 공유하는 사무실 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#백엔드에서-마주치는-throttling class=md-nav__link> <span class=md-ellipsis> 백엔드에서 마주치는 throttling </span> </a> <nav class=md-nav aria-label="백엔드에서 마주치는 throttling"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#api-rate-limiting class=md-nav__link> <span class=md-ellipsis> API rate limiting </span> </a> </li> <li class=md-nav__item> <a href=#메시지-큐--외부-api-호출 class=md-nav__link> <span class=md-ellipsis> 메시지 큐 / 외부 API 호출 </span> </a> </li> <li class=md-nav__item> <a href=#커넥션-풀과-동시성-제한 class=md-nav__link> <span class=md-ellipsis> 커넥션 풀과 동시성 제한 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무에서-헷갈리지-않으려면 class=md-nav__link> <span class=md-ellipsis> 실무에서 헷갈리지 않으려면 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>network</span> </nav> <h1 id=qos와-트래픽-셰이핑>QoS와 트래픽 셰이핑<a class=headerlink href=#qos와-트래픽-셰이핑 title="Permanent link">&para;</a></h1> <p>대역폭은 유한한데 트래픽은 종류가 다양하다. VoIP 패킷은 200ms만 늦어도 통화가 끊긴 것처럼 들리고, 백업 트래픽은 30분 늦게 끝나도 아무도 모른다. 이 둘이 같은 회선을 쓸 때 누구를 먼저 보낼지 정하는 게 QoS(Quality of Service)다. 트래픽 셰이핑은 그 QoS를 구현하는 방법 중 하나로, 패킷이 나가는 속도 자체를 인위적으로 조절한다.</p> <p>백엔드 개발자가 라우터 QoS를 직접 설정할 일은 많지 않다. 그런데 컨테이너 네트워크 대역폭을 제한하거나, 사내 회선에서 특정 서비스가 대역폭을 다 먹는 문제를 추적하거나, API 게이트웨이에서 rate limit을 거는 순간 여기서 다루는 개념과 똑같은 문제를 만난다. Token Bucket이 왜 burst를 허용하는지 모르면 rate limiter 튜닝도 감으로 하게 된다.</p> <hr> <h2 id=qos가-건드리는-4가지-지표>QoS가 건드리는 4가지 지표<a class=headerlink href=#qos가-건드리는-4가지-지표 title="Permanent link">&para;</a></h2> <p>QoS는 결국 네 가지 숫자를 조정하는 일이다.</p> <ul> <li><strong>대역폭(bandwidth)</strong>: 초당 보낼 수 있는 양. Mbps.</li> <li><strong>지연(latency)</strong>: 패킷이 출발해서 도착할 때까지 걸리는 시간. ms.</li> <li><strong>지터(jitter)</strong>: 지연이 들쭉날쭉한 정도. 패킷마다 도착 간격이 일정하지 않으면 지터가 크다.</li> <li><strong>패킷 손실(loss)</strong>: 큐가 꽉 차서 버려지는 비율.</li> </ul> <p>서비스마다 민감한 지표가 다르다. VoIP는 지연과 지터에 예민하지만 대역폭은 적게 쓴다(코덱에 따라 64kbps 수준). 대용량 파일 전송은 지연이 좀 길어도 상관없지만 대역폭을 많이 요구한다. QoS 설계의 출발점은 "어떤 트래픽이 어떤 지표에 민감한가"를 분류하는 것이다.</p> <hr> <h2 id=dscptos-마킹--패킷에-우선순위를-적는다>DSCP/ToS 마킹 — 패킷에 우선순위를 적는다<a class=headerlink href=#dscptos-마킹--패킷에-우선순위를-적는다 title="Permanent link">&para;</a></h2> <p>라우터가 패킷을 차별하려면 어떤 패킷이 중요한지 알아야 한다. IP 헤더에는 이걸 적는 칸이 있다. 원래 IPv4의 ToS(Type of Service) 필드였는데, 지금은 DSCP(Differentiated Services Code Point)로 재정의됐다.</p> <p>IP 헤더 두 번째 바이트 8비트를 이렇게 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>원래 ToS:   [ Precedence(3) | ToS(4) | unused(1) ]
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>현재 DSCP:  [    DSCP(6)              | ECN(2)     ]
-</span></code></pre></div> <p>DSCP 6비트로 0~63 값을 표현한다. 자주 쓰는 값에는 이름이 붙어 있다.</p> <table> <thead> <tr> <th>DSCP 이름</th> <th>값(10진)</th> <th>용도</th> </tr> </thead> <tbody> <tr> <td>EF (Expedited Forwarding)</td> <td>46</td> <td>VoIP 등 지연에 민감한 실시간 트래픽</td> </tr> <tr> <td>AF41</td> <td>34</td> <td>영상 회의</td> </tr> <tr> <td>AF21</td> <td>18</td> <td>우선순위 있는 데이터</td> </tr> <tr> <td>CS0 / Default</td> <td>0</td> <td>일반 트래픽(best effort)</td> </tr> </tbody> </table> <p>중요한 건, <strong>마킹 자체는 아무 일도 하지 않는다는 점이다</strong>. 패킷에 EF(46)라고 적어도 라우터가 그 값을 보고 우선 처리하도록 설정돼 있지 않으면 일반 패킷과 똑같이 취급된다. 마킹은 "이 패킷은 이런 등급이다"라는 라벨일 뿐이고, 실제 차별은 각 라우터의 큐잉 정책이 한다.</p> <p>또 하나 자주 빠지는 함정. DSCP는 라우터 경계를 넘으면 리셋되는 경우가 많다. 사내망에서 EF로 마킹해도 ISP 라우터에 들어가는 순간 0으로 덮어쓰여 나온다. 인터넷 구간 전체에 QoS를 기대하면 안 되고, 내가 제어하는 구간(사내망, 데이터센터 내부) 안에서만 의미가 있다.</p> <p>리눅스에서 소켓에 DSCP를 찍으려면 <code>IP_TOS</code> 옵션을 쓴다.</p> <div class="language-c highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=kt>int</span><span class=w> </span><span class=n>tos</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>46</span><span class=w> </span><span class=o>&lt;&lt;</span><span class=w> </span><span class=mi>2</span><span class=p>;</span><span class=w>  </span><span class=c1>// DSCP 46(EF). DSCP는 상위 6비트라 2비트 시프트</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=n>setsockopt</span><span class=p>(</span><span class=n>fd</span><span class=p>,</span><span class=w> </span><span class=n>IPPROTO_IP</span><span class=p>,</span><span class=w> </span><span class=n>IP_TOS</span><span class=p>,</span><span class=w> </span><span class=o>&amp;</span><span class=n>tos</span><span class=p>,</span><span class=w> </span><span class=k>sizeof</span><span class=p>(</span><span class=n>tos</span><span class=p>));</span>
-</span></code></pre></div> <p>여기서 <code>&lt;&lt; 2</code>를 빼먹는 실수가 흔하다. <code>IP_TOS</code>는 8비트 전체를 받는데 DSCP는 상위 6비트라서 값을 2칸 왼쪽으로 밀어야 한다. 46을 그대로 넣으면 DSCP 11이 찍힌다.</p> <hr> <h2 id=큐잉-규율--패킷을-내보내는-순서>큐잉 규율 — 패킷을 내보내는 순서<a class=headerlink href=#큐잉-규율--패킷을-내보내는-순서 title="Permanent link">&para;</a></h2> <p>라우터나 호스트의 네트워크 인터페이스에는 보낼 패킷을 잠깐 쌓아두는 큐가 있다. 회선이 보낼 수 있는 속도보다 패킷이 빨리 들어오면 큐에 쌓이고, 큐가 꽉 차면 버린다. 이 큐에서 어떤 순서로 꺼낼지 정하는 규칙이 큐잉 규율(queuing discipline)이다.</p> <h3 id=fifo>FIFO<a class=headerlink href=#fifo title="Permanent link">&para;</a></h3> <p>들어온 순서대로 내보낸다. 단순하고 빠르지만 차별이 없다. 큰 파일 다운로드 패킷이 큐를 가득 채우면 그 뒤에 도착한 VoIP 패킷은 앞 패킷들이 다 나갈 때까지 기다린다. QoS가 필요 없는 환경의 기본값이다.</p> <h3 id=wfq-weighted-fair-queuing>WFQ (Weighted Fair Queuing)<a class=headerlink href=#wfq-weighted-fair-queuing title="Permanent link">&para;</a></h3> <p>플로우(출발지/목적지 IP와 포트 조합)별로 큐를 나누고, 각 큐에서 번갈아 꺼낸다. 한 플로우가 대역폭을 독점하지 못한다. 가중치를 주면 특정 플로우에 더 많은 몫을 배분한다. 대용량 다운로드 한 개가 VoIP 한 개와 회선을 나눠 쓸 때, FIFO면 다운로드가 거의 다 먹지만 WFQ면 둘이 공평하게(또는 가중치대로) 나눈다.</p> <h3 id=cbq--htb-class-based-queuing>CBQ / HTB (Class-Based Queuing)<a class=headerlink href=#cbq--htb-class-based-queuing title="Permanent link">&para;</a></h3> <p>트래픽을 클래스로 나누고 각 클래스에 대역폭을 할당한다. "웹 트래픽 40%, VoIP 10%, 나머지 50%" 같은 식이다. 한 클래스가 자기 몫을 안 쓰면 다른 클래스가 빌려 쓸 수 있게(borrowing) 설정하는 게 보통이다. 리눅스 <code>tc</code>에서는 CBQ보다 HTB(Hierarchical Token Bucket)를 주로 쓴다. CBQ는 계산 방식이 복잡하고 부정확해서 사실상 HTB로 대체됐다.</p> <p>실무에서 계층 구조를 이렇게 짠다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>            전체 1Gbps
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>           /     |      \
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>        VoIP   웹(API)   백업
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>        100M    600M     300M
-</span></code></pre></div> <p>VoIP가 100M를 다 안 쓰면 웹과 백업이 그 여유분을 빌려 쓰고, VoIP 트래픽이 들어오면 다시 회수한다. 이 "빌려주되 필요하면 회수"가 HTB의 핵심이고, 고정 할당만 하는 단순 셰이핑과의 차이다.</p> <hr> <h2 id=token-bucket-vs-leaky-bucket>Token Bucket vs Leaky Bucket<a class=headerlink href=#token-bucket-vs-leaky-bucket title="Permanent link">&para;</a></h2> <p>속도를 제한하는 알고리즘은 크게 두 가지다. 이름이 비슷해서 헷갈리는데 동작이 다르다.</p> <h3 id=leaky-bucket-누수-버킷>Leaky Bucket (누수 버킷)<a class=headerlink href=#leaky-bucket-누수-버킷 title="Permanent link">&para;</a></h3> <p>밑에 구멍 뚫린 양동이를 떠올린다. 패킷이 위에서 들어와 양동이에 고이고, 구멍으로 일정한 속도로만 빠져나간다. 양동이가 넘치면 들어온 패킷을 버린다.</p> <p>핵심은 <strong>출력 속도가 항상 일정하다는 것</strong>이다. 입력이 아무리 몰려도 나가는 건 초당 정해진 양뿐이다. burst를 흡수하지 않고 평탄하게 만든다. 출력이 일정해야 하는 곳, 예를 들어 일정한 비트레이트로 내보내야 하는 미디어 스트림에 맞는다.</p> <h3 id=token-bucket-토큰-버킷>Token Bucket (토큰 버킷)<a class=headerlink href=#token-bucket-토큰-버킷 title="Permanent link">&para;</a></h3> <p>이쪽은 토큰을 담는 양동이다. 일정한 속도로 토큰이 양동이에 채워진다(초당 r개). 패킷을 보내려면 토큰을 하나 써야 한다. 토큰이 있으면 즉시 보내고, 없으면 기다리거나 버린다. 양동이 크기는 b로, 최대 b개까지 토큰이 쌓인다.</p> <p>차이는 여기다. 한동안 트래픽이 없었으면 토큰이 b개까지 차 있다가, 트래픽이 갑자기 몰리면 <strong>쌓인 토큰만큼 한꺼번에 보낼 수 있다</strong>. 즉 burst를 허용한다. 평균 속도는 r로 제한되지만 순간적으로는 b만큼 튀는 걸 봐준다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>Leaky Bucket:  입력 [||||  ||||]  →  출력 [| | | | | | | |]   (항상 평탄)
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>Token Bucket:  입력 [||||  ||||]  →  출력 [|||| _ _ |||| ]    (burst 허용, 평균은 제한)
-</span></code></pre></div> <p>대부분의 rate limiter(API 게이트웨이, nginx <code>limit_req</code>의 burst 옵션, 클라우드 API 쿼터)는 Token Bucket이다. 사용자가 평소엔 조용하다가 가끔 몰아서 요청하는 패턴을 자연스럽게 받아주기 때문이다. 평균 RPS만 제한하고 짧은 burst는 허용하고 싶다면 Token Bucket을 쓰는 게 맞다.</p> <p>이걸 모르고 rate limit을 설계하면 "평균은 안 넘었는데 왜 막혔지" 또는 "burst를 막고 싶은데 왜 통과되지" 같은 혼란을 겪는다. burst 허용 여부가 두 알고리즘을 가르는 기준이다.</p> <hr> <h2 id=폴리싱과-셰이핑의-차이>폴리싱과 셰이핑의 차이<a class=headerlink href=#폴리싱과-셰이핑의-차이 title="Permanent link">&para;</a></h2> <p>둘 다 속도를 제한하는데, 한도를 초과한 트래픽을 어떻게 처리하느냐가 다르다.</p> <ul> <li><strong>폴리싱(Policing)</strong>: 한도 초과분을 <strong>버린다</strong>(또는 DSCP를 낮춰서 재마킹). 큐에 쌓지 않으므로 지연이 늘지 않는다. 대신 손실이 생긴다.</li> <li><strong>셰이핑(Shaping)</strong>: 한도 초과분을 <strong>큐에 쌓았다가 천천히 내보낸다</strong>. 버리지 않으니 손실은 적지만, 큐에서 기다리는 만큼 지연이 늘고 버퍼 메모리를 쓴다.</li> </ul> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>원본 트래픽:  __/‾‾\__/‾‾\__   (튀는 burst)
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>폴리싱:       __/‾|__/‾|__     (한도 위는 잘라서 버림)
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>셰이핑:       __/‾‾‾‾‾‾‾\__    (큐에 담아 평탄하게, 시간 지연됨)
-</span></code></pre></div> <p>TCP 트래픽에는 셰이핑이 보통 낫다. 폴리싱으로 패킷을 버리면 TCP가 재전송하면서 혼잡 윈도우를 줄이고, 결과적으로 처리량이 톱니처럼 출렁인다. 셰이핑은 패킷을 버리지 않고 늦출 뿐이라 TCP가 자연스럽게 속도를 맞춘다.</p> <p>반대로 폴리싱은 입력단에서 빠르게 처리해야 하거나(셰이핑용 버퍼를 둘 수 없는 곳), 초과 트래픽을 확실히 끊어야 할 때 쓴다. ISP가 고객 회선 속도를 강제할 때 흔히 폴리싱을 쓴다.</p> <hr> <h2 id=linux-tc-실무-예제>Linux tc 실무 예제<a class=headerlink href=#linux-tc-실무-예제 title="Permanent link">&para;</a></h2> <p>리눅스에서 트래픽 제어는 <code>tc</code>(traffic control) 명령으로 한다. 개념은 qdisc(큐잉 규율) → class(클래스) → filter(필터) 세 단계다. qdisc를 인터페이스에 붙이고, 그 안에 클래스로 대역폭을 나누고, 필터로 어떤 패킷을 어느 클래스에 넣을지 정한다.</p> <p>주의할 점부터. <code>tc</code>는 기본적으로 <strong>나가는(egress) 트래픽만</strong> 제어한다. 들어오는 트래픽은 이미 회선을 통과한 뒤라 셰이핑할 수 없고, 폴리싱(초과분 폐기)만 제한적으로 가능하다. 다운로드 속도를 제한하고 싶으면 송신 쪽 장비에서 걸거나 ifb(중간 가상 디바이스)로 우회해야 한다.</p> <h3 id=단순-대역폭-제한-tbf>단순 대역폭 제한 (TBF)<a class=headerlink href=#단순-대역폭-제한-tbf title="Permanent link">&para;</a></h3> <p>eth0의 송신 속도를 1Mbps로 제한한다. TBF는 Token Bucket Filter다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>tc<span class=w> </span>qdisc<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>root<span class=w> </span>tbf<span class=w> </span>rate<span class=w> </span>1mbit<span class=w> </span>burst<span class=w> </span>32kbit<span class=w> </span>latency<span class=w> </span>400ms
-</span></code></pre></div> <ul> <li><code>rate 1mbit</code>: 평균 속도 1Mbps</li> <li><code>burst 32kbit</code>: 토큰 버킷 크기. 한 번에 튈 수 있는 양</li> <li><code>latency 400ms</code>: 패킷이 큐에서 최대 기다리는 시간. 이걸 넘으면 버린다</li> </ul> <p><code>burst</code>를 너무 작게 잡으면 토큰 보충이 패킷 속도를 못 따라가 실제 throughput이 설정값보다 낮게 나온다. 고속 회선일수록 burst를 키워야 한다. 1Mbps에 burst를 1kbit로 잡으면 제대로 안 나온다.</p> <h3 id=htb로-클래스-나누기>HTB로 클래스 나누기<a class=headerlink href=#htb로-클래스-나누기 title="Permanent link">&para;</a></h3> <p>위에서 본 계층 구조를 실제로 구성한다. 전체 1Gbps를 VoIP/API/백업으로 나눈다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># 루트 qdisc를 HTB로</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>tc<span class=w> </span>qdisc<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>root<span class=w> </span>handle<span class=w> </span><span class=m>1</span>:<span class=w> </span>htb<span class=w> </span>default<span class=w> </span><span class=m>30</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=c1># 부모 클래스: 전체 1Gbps</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>tc<span class=w> </span>class<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>parent<span class=w> </span><span class=m>1</span>:<span class=w> </span>classid<span class=w> </span><span class=m>1</span>:1<span class=w> </span>htb<span class=w> </span>rate<span class=w> </span>1000mbit
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=c1># 자식 클래스 3개. rate=보장값, ceil=빌려서 최대 쓸 수 있는 값</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>tc<span class=w> </span>class<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>parent<span class=w> </span><span class=m>1</span>:1<span class=w> </span>classid<span class=w> </span><span class=m>1</span>:10<span class=w> </span>htb<span class=w> </span>rate<span class=w> </span>100mbit<span class=w> </span>ceil<span class=w> </span>1000mbit<span class=w>  </span><span class=c1># VoIP</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>tc<span class=w> </span>class<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>parent<span class=w> </span><span class=m>1</span>:1<span class=w> </span>classid<span class=w> </span><span class=m>1</span>:20<span class=w> </span>htb<span class=w> </span>rate<span class=w> </span>600mbit<span class=w> </span>ceil<span class=w> </span>1000mbit<span class=w>  </span><span class=c1># API</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>tc<span class=w> </span>class<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>parent<span class=w> </span><span class=m>1</span>:1<span class=w> </span>classid<span class=w> </span><span class=m>1</span>:30<span class=w> </span>htb<span class=w> </span>rate<span class=w> </span>300mbit<span class=w> </span>ceil<span class=w> </span>1000mbit<span class=w>  </span><span class=c1># 백업(default)</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a><span class=c1># 필터: DSCP EF(46)는 VoIP 클래스로</span>
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a>tc<span class=w> </span>filter<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>parent<span class=w> </span><span class=m>1</span>:<span class=w> </span>protocol<span class=w> </span>ip<span class=w> </span>prio<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a><span class=w>    </span>u32<span class=w> </span>match<span class=w> </span>ip<span class=w> </span>tos<span class=w> </span>0xb8<span class=w> </span>0xfc<span class=w> </span>flowid<span class=w> </span><span class=m>1</span>:10
-</span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a>
-</span><span id=__span-6-16><a id=__codelineno-6-16 name=__codelineno-6-16 href=#__codelineno-6-16></a><span class=c1># 필터: TCP 8080 포트(API)는 API 클래스로</span>
-</span><span id=__span-6-17><a id=__codelineno-6-17 name=__codelineno-6-17 href=#__codelineno-6-17></a>tc<span class=w> </span>filter<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>parent<span class=w> </span><span class=m>1</span>:<span class=w> </span>protocol<span class=w> </span>ip<span class=w> </span>prio<span class=w> </span><span class=m>2</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-18><a id=__codelineno-6-18 name=__codelineno-6-18 href=#__codelineno-6-18></a><span class=w>    </span>u32<span class=w> </span>match<span class=w> </span>ip<span class=w> </span>dport<span class=w> </span><span class=m>8080</span><span class=w> </span>0xffff<span class=w> </span>flowid<span class=w> </span><span class=m>1</span>:20
-</span></code></pre></div> <p><code>rate</code>와 <code>ceil</code>의 관계가 HTB의 전부다. <code>rate</code>는 그 클래스가 항상 보장받는 대역폭이고, <code>ceil</code>은 다른 클래스가 놀고 있을 때 빌려서 쓸 수 있는 상한이다. VoIP는 100M를 보장받지만 회선이 한가하면 1000M까지 끌어 쓴다. 모든 클래스의 <code>rate</code> 합은 부모의 <code>rate</code>를 넘으면 안 된다(넘으면 보장이 깨진다).</p> <p>DSCP 필터의 <code>match ip tos 0xb8 0xfc</code>가 헷갈리는데, EF(46)를 2비트 시프트하면 0xb8이고, 마스크 0xfc는 하위 2비트(ECN)를 무시하고 DSCP 6비트만 비교하라는 뜻이다.</p> <h3 id=인위적으로-지연손실-넣기-netem>인위적으로 지연/손실 넣기 (netem)<a class=headerlink href=#인위적으로-지연손실-넣기-netem title="Permanent link">&para;</a></h3> <p>QoS 설정 자체는 아니지만, 네트워크 장애 상황을 재현할 때 같은 <code>tc</code>로 한다. 백엔드 테스트에서 자주 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 100ms 지연 + 10ms 지터 + 0.1% 패킷 손실</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>tc<span class=w> </span>qdisc<span class=w> </span>add<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>root<span class=w> </span>netem<span class=w> </span>delay<span class=w> </span>100ms<span class=w> </span>10ms<span class=w> </span>loss<span class=w> </span><span class=m>0</span>.1%
-</span></code></pre></div> <p>해외 리전과 통신하는 서비스의 타임아웃 설정이 맞는지, 패킷 손실 상황에서 재시도 로직이 도는지 로컬에서 확인할 때 쓴다. 테스트 끝나면 반드시 <code>tc qdisc del dev eth0 root</code>로 지운다. 안 지우면 그 장비의 모든 트래픽이 계속 느려진다.</p> <h3 id=설정-확인과-삭제>설정 확인과 삭제<a class=headerlink href=#설정-확인과-삭제 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>tc<span class=w> </span>qdisc<span class=w> </span>show<span class=w> </span>dev<span class=w> </span>eth0<span class=w>        </span><span class=c1># 적용된 qdisc 확인</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>tc<span class=w> </span>class<span class=w> </span>show<span class=w> </span>dev<span class=w> </span>eth0<span class=w>        </span><span class=c1># 클래스별 상태</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>tc<span class=w> </span>-s<span class=w> </span>class<span class=w> </span>show<span class=w> </span>dev<span class=w> </span>eth0<span class=w>     </span><span class=c1># 통계 포함(전송량, 드롭 수)</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>tc<span class=w> </span>qdisc<span class=w> </span>del<span class=w> </span>dev<span class=w> </span>eth0<span class=w> </span>root<span class=w>    </span><span class=c1># 전부 제거</span>
-</span></code></pre></div> <p><code>tc -s class show</code>의 드롭 카운터를 봐야 한다. 셰이핑이 의도대로 도는지, 어느 클래스에서 패킷이 버려지는지 여기서 드러난다.</p> <hr> <h2 id=우선순위-보장이-필요한-상황>우선순위 보장이 필요한 상황<a class=headerlink href=#우선순위-보장이-필요한-상황 title="Permanent link">&para;</a></h2> <h3 id=voip--영상-통화>VoIP / 영상 통화<a class=headerlink href=#voip--영상-통화 title="Permanent link">&para;</a></h3> <p>지연과 지터에 가장 민감하다. 음성 패킷이 150ms 안에 도착하지 못하면 통화 품질이 떨어지고, 도착 간격이 들쭉날쭉하면(지터) 끊긴 것처럼 들린다. 대역폭 자체는 적게 쓰니까(통화당 수십 kbps) EF로 마킹해서 큐 맨 앞으로 보내는 게 정석이다. 대용량 백업이 회선을 채워도 VoIP 패킷은 먼저 나가야 한다.</p> <h3 id=실시간-스트리밍>실시간 스트리밍<a class=headerlink href=#실시간-스트리밍 title="Permanent link">&para;</a></h3> <p>라이브 방송 송출처럼 일정한 비트레이트를 유지해야 하는 경우, 출력을 평탄하게 만드는 셰이핑(또는 Leaky Bucket류)이 맞는다. VOD 다운로드는 버퍼가 있으니 지연에 관대하지만, 라이브는 버퍼를 짧게 가져가야 해서 안정적인 대역폭이 더 중요하다.</p> <h3 id=회선을-공유하는-사무실>회선을 공유하는 사무실<a class=headerlink href=#회선을-공유하는-사무실 title="Permanent link">&para;</a></h3> <p>화상회의 중에 누군가 대용량 파일을 올리면 회의가 끊긴다. HTB로 회의 트래픽에 대역폭을 보장하고 백업/업로드를 나머지로 묶으면 해결된다. 사내 회선에서 가장 흔한 QoS 적용 사례다.</p> <hr> <h2 id=백엔드에서-마주치는-throttling>백엔드에서 마주치는 throttling<a class=headerlink href=#백엔드에서-마주치는-throttling title="Permanent link">&para;</a></h2> <p>QoS의 패킷 레벨 개념이 애플리케이션 레벨에서 그대로 반복된다. 이름만 rate limiting, throttling으로 바뀐다.</p> <h3 id=api-rate-limiting>API rate limiting<a class=headerlink href=#api-rate-limiting title="Permanent link">&para;</a></h3> <p>API 게이트웨이나 nginx의 rate limit이 사실상 Token Bucket이다. nginx 예시.</p> <div class="language-nginx highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># 평균 10req/s, zone 메모리 10MB</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=k>limit_req_zone</span><span class=w> </span><span class=nv>$binary_remote_addr</span><span class=w> </span><span class=s>zone=api:10m</span><span class=w> </span><span class=s>rate=10r/s</span><span class=p>;</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=k>server</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=w>    </span><span class=kn>location</span><span class=w> </span><span class=s>/api/</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=w>        </span><span class=kn>limit_req</span><span class=w> </span><span class=s>zone=api</span><span class=w> </span><span class=s>burst=20</span><span class=w> </span><span class=s>nodelay</span><span class=p>;</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=p>}</span>
-</span></code></pre></div> <p><code>rate=10r/s</code>가 토큰 보충 속도, <code>burst=20</code>이 버킷 크기다. 평소 10req/s를 넘지 않게 하되 순간적으로 20개까지 몰리는 건 받아준다. <code>nodelay</code>를 빼면 셰이핑처럼 동작해서 burst를 큐에 쌓아 천천히 처리하고, <code>nodelay</code>를 붙이면 burst를 즉시 통과시키되 그만큼 토큰을 미리 당겨 쓴다. 이 차이가 폴리싱 vs 셰이핑과 정확히 같은 구조다.</p> <h3 id=메시지-큐--외부-api-호출>메시지 큐 / 외부 API 호출<a class=headerlink href=#메시지-큐--외부-api-호출 title="Permanent link">&para;</a></h3> <p>외부 결제 API가 "초당 50건"으로 제한을 걸면 우리 쪽에서 호출 속도를 맞춰야 한다. 안 그러면 429를 맞고 재시도가 쌓여 상황이 더 나빠진다. 이때 애플리케이션 안에 Token Bucket을 두고 토큰이 있을 때만 호출한다. Guava의 <code>RateLimiter</code>, Resilience4j의 <code>RateLimiter</code>가 이 구현이다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1>// Guava RateLimiter: 초당 50건</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=n>RateLimiter</span><span class=w> </span><span class=n>limiter</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>RateLimiter</span><span class=p>.</span><span class=na>create</span><span class=p>(</span><span class=mf>50.0</span><span class=p>);</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=kd>public</span><span class=w> </span><span class=n>PaymentResult</span><span class=w> </span><span class=nf>call</span><span class=p>()</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>    </span><span class=n>limiter</span><span class=p>.</span><span class=na>acquire</span><span class=p>();</span><span class=w>  </span><span class=c1>// 토큰 없으면 블록</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>paymentApi</span><span class=p>.</span><span class=na>charge</span><span class=p>(...);</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=p>}</span>
-</span></code></pre></div> <p>여러 인스턴스가 같은 외부 API를 호출하면 인스턴스마다 로컬 RateLimiter를 두는 것으로는 부족하다. 전체 호출량의 합이 한도를 넘기 때문이다. 이 경우 Redis에 토큰 버킷을 두고 분산 rate limiter를 만들거나, 한도를 인스턴스 수로 나눠 배분한다.</p> <h3 id=커넥션-풀과-동시성-제한>커넥션 풀과 동시성 제한<a class=headerlink href=#커넥션-풀과-동시성-제한 title="Permanent link">&para;</a></h3> <p>DB 커넥션 풀의 max size, 스레드 풀의 크기, 세마포어로 거는 동시 처리 제한도 결국 같은 문제다. 자원은 유한하고, 초과 요청을 버릴지(폴리싱: 즉시 실패 반환) 대기시킬지(셰이핑: 큐에 넣고 기다림)를 정하는 것이다. HikariCP에서 커넥션을 못 받으면 <code>connectionTimeout</code> 후 예외를 던지는 게 폴리싱에 가깝고, 큐에 무한정 쌓아두면 셰이핑인데 메모리가 터진다. 어느 쪽이든 "초과분을 버릴지 대기시킬지, 대기시킨다면 얼마나"를 정해야 하는 건 라우터 QoS와 똑같다.</p> <hr> <h2 id=실무에서-헷갈리지-않으려면>실무에서 헷갈리지 않으려면<a class=headerlink href=#실무에서-헷갈리지-않으려면 title="Permanent link">&para;</a></h2> <p>마킹(DSCP)은 라벨일 뿐이고 실제 차별은 큐잉 정책이 한다. 마킹만 하고 큐잉 설정을 안 하면 아무 효과가 없다. burst 허용 여부로 Token Bucket과 Leaky Bucket이 갈리고, 초과분을 버리는지 대기시키는지로 폴리싱과 셰이핑이 갈린다. 이 두 축만 잡으면 라우터 QoS든 API rate limiter든 같은 틀로 이해된다. 리눅스에서 직접 실험할 때는 <code>tc</code>로 걸고 <code>tc -s class show</code>로 드롭을 확인하되, netem 같은 임시 설정은 끝나고 꼭 지운다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/ >AMQP vs MQTT 비교 분석</a></li> <li><a href=../../GateWay/API_Gateway/ >API Gateway 심화</a></li> <li><a href=../Network%20Layer/ARP/ >ARP — IP와 MAC을 잇는 끈</a></li> <li><a href=../Network%20Layer/BGP/ >BGP — 인터넷을 굴리는 라우팅 프로토콜</a></li> <li><a href=../../CDN/ >CDN 동작 원리와 실무 운영</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../OSI_7_Layer_Model/ class="md-footer__link md-footer__link--prev" aria-label="이전: OSI 7 계층 모델"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> OSI 7 계층 모델 </div> </div> </a> <a href=../Application%20Layer/ class="md-footer__link md-footer__link--next" aria-label="다음: Application Layer 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> Application Layer 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Qo_S_Traffic_Shaping/">
+      
+      
+        <link rel="prev" href="../OSI_7_Layer_Model/">
+      
+      
+        <link rel="next" href="../Application%20Layer/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>QoS와 트래픽 셰이핑 (Traffic Shaping) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#qos와-트래픽-셰이핑" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              QoS와 트래픽 셰이핑 (Traffic Shaping)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_7" id="__nav_7_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OSI 7계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DHCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GSLB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GSLB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Network%20Flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 플로우
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OSI_7_Layer_Model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7 계층 모델
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QoS와 트래픽 셰이핑
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QoS와 트래픽 셰이핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#qos가-건드리는-4가지-지표" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QoS가 건드리는 4가지 지표
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dscptos-마킹--패킷에-우선순위를-적는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DSCP/ToS 마킹 — 패킷에 우선순위를 적는다
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#큐잉-규율--패킷을-내보내는-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        큐잉 규율 — 패킷을 내보내는 순서
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="큐잉 규율 — 패킷을 내보내는 순서">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fifo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FIFO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wfq-weighted-fair-queuing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WFQ (Weighted Fair Queuing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cbq--htb-class-based-queuing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CBQ / HTB (Class-Based Queuing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#token-bucket-vs-leaky-bucket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Bucket vs Leaky Bucket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Token Bucket vs Leaky Bucket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#leaky-bucket-누수-버킷" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leaky Bucket (누수 버킷)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-bucket-토큰-버킷" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Bucket (토큰 버킷)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#폴리싱과-셰이핑의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        폴리싱과 셰이핑의 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linux-tc-실무-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux tc 실무 예제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Linux tc 실무 예제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#단순-대역폭-제한-tbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단순 대역폭 제한 (TBF)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#htb로-클래스-나누기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTB로 클래스 나누기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#인위적으로-지연손실-넣기-netem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인위적으로 지연/손실 넣기 (netem)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#설정-확인과-삭제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설정 확인과 삭제
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#우선순위-보장이-필요한-상황" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        우선순위 보장이 필요한 상황
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="우선순위 보장이 필요한 상황">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#voip--영상-통화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VoIP / 영상 통화
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실시간-스트리밍" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실시간 스트리밍
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#회선을-공유하는-사무실" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        회선을 공유하는 사무실
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#백엔드에서-마주치는-throttling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        백엔드에서 마주치는 throttling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="백엔드에서 마주치는 throttling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-rate-limiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API rate limiting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#메시지-큐--외부-api-호출" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메시지 큐 / 외부 API 호출
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#커넥션-풀과-동시성-제한" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커넥션 풀과 동시성 제한
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-헷갈리지-않으려면" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 헷갈리지 않으려면
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Application%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Data%20Link%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 링크 계층
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Network%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Transport%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#qos가-건드리는-4가지-지표" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QoS가 건드리는 4가지 지표
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dscptos-마킹--패킷에-우선순위를-적는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DSCP/ToS 마킹 — 패킷에 우선순위를 적는다
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#큐잉-규율--패킷을-내보내는-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        큐잉 규율 — 패킷을 내보내는 순서
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="큐잉 규율 — 패킷을 내보내는 순서">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fifo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FIFO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wfq-weighted-fair-queuing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WFQ (Weighted Fair Queuing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cbq--htb-class-based-queuing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CBQ / HTB (Class-Based Queuing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#token-bucket-vs-leaky-bucket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Bucket vs Leaky Bucket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Token Bucket vs Leaky Bucket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#leaky-bucket-누수-버킷" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leaky Bucket (누수 버킷)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-bucket-토큰-버킷" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Bucket (토큰 버킷)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#폴리싱과-셰이핑의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        폴리싱과 셰이핑의 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linux-tc-실무-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux tc 실무 예제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Linux tc 실무 예제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#단순-대역폭-제한-tbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단순 대역폭 제한 (TBF)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#htb로-클래스-나누기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTB로 클래스 나누기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#인위적으로-지연손실-넣기-netem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인위적으로 지연/손실 넣기 (netem)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#설정-확인과-삭제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설정 확인과 삭제
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#우선순위-보장이-필요한-상황" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        우선순위 보장이 필요한 상황
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="우선순위 보장이 필요한 상황">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#voip--영상-통화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VoIP / 영상 통화
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실시간-스트리밍" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실시간 스트리밍
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#회선을-공유하는-사무실" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        회선을 공유하는 사무실
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#백엔드에서-마주치는-throttling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        백엔드에서 마주치는 throttling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="백엔드에서 마주치는 throttling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-rate-limiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API rate limiting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#메시지-큐--외부-api-호출" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메시지 큐 / 외부 API 호출
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#커넥션-풀과-동시성-제한" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커넥션 풀과 동시성 제한
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-헷갈리지-않으려면" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 헷갈리지 않으려면
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="qos와-트래픽-셰이핑">QoS와 트래픽 셰이핑<a class="headerlink" href="#qos와-트래픽-셰이핑" title="Permanent link">&para;</a></h1>
+<p>대역폭은 유한한데 트래픽은 종류가 다양하다. VoIP 패킷은 200ms만 늦어도 통화가 끊긴 것처럼 들리고, 백업 트래픽은 30분 늦게 끝나도 아무도 모른다. 이 둘이 같은 회선을 쓸 때 누구를 먼저 보낼지 정하는 게 QoS(Quality of Service)다. 트래픽 셰이핑은 그 QoS를 구현하는 방법 중 하나로, 패킷이 나가는 속도 자체를 인위적으로 조절한다.</p>
+<p>백엔드 개발자가 라우터 QoS를 직접 설정할 일은 많지 않다. 그런데 컨테이너 네트워크 대역폭을 제한하거나, 사내 회선에서 특정 서비스가 대역폭을 다 먹는 문제를 추적하거나, API 게이트웨이에서 rate limit을 거는 순간 여기서 다루는 개념과 똑같은 문제를 만난다. Token Bucket이 왜 burst를 허용하는지 모르면 rate limiter 튜닝도 감으로 하게 된다.</p>
+<hr />
+<h2 id="qos가-건드리는-4가지-지표">QoS가 건드리는 4가지 지표<a class="headerlink" href="#qos가-건드리는-4가지-지표" title="Permanent link">&para;</a></h2>
+<p>QoS는 결국 네 가지 숫자를 조정하는 일이다.</p>
+<ul>
+<li><strong>대역폭(bandwidth)</strong>: 초당 보낼 수 있는 양. Mbps.</li>
+<li><strong>지연(latency)</strong>: 패킷이 출발해서 도착할 때까지 걸리는 시간. ms.</li>
+<li><strong>지터(jitter)</strong>: 지연이 들쭉날쭉한 정도. 패킷마다 도착 간격이 일정하지 않으면 지터가 크다.</li>
+<li><strong>패킷 손실(loss)</strong>: 큐가 꽉 차서 버려지는 비율.</li>
+</ul>
+<p>서비스마다 민감한 지표가 다르다. VoIP는 지연과 지터에 예민하지만 대역폭은 적게 쓴다(코덱에 따라 64kbps 수준). 대용량 파일 전송은 지연이 좀 길어도 상관없지만 대역폭을 많이 요구한다. QoS 설계의 출발점은 "어떤 트래픽이 어떤 지표에 민감한가"를 분류하는 것이다.</p>
+<hr />
+<h2 id="dscptos-마킹--패킷에-우선순위를-적는다">DSCP/ToS 마킹 — 패킷에 우선순위를 적는다<a class="headerlink" href="#dscptos-마킹--패킷에-우선순위를-적는다" title="Permanent link">&para;</a></h2>
+<p>라우터가 패킷을 차별하려면 어떤 패킷이 중요한지 알아야 한다. IP 헤더에는 이걸 적는 칸이 있다. 원래 IPv4의 ToS(Type of Service) 필드였는데, 지금은 DSCP(Differentiated Services Code Point)로 재정의됐다.</p>
+<p>IP 헤더 두 번째 바이트 8비트를 이렇게 쓴다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>원래 ToS:   [ Precedence(3) | ToS(4) | unused(1) ]
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>현재 DSCP:  [    DSCP(6)              | ECN(2)     ]
+</span></code></pre></div>
+<p>DSCP 6비트로 0~63 값을 표현한다. 자주 쓰는 값에는 이름이 붙어 있다.</p>
+<table>
+<thead>
+<tr>
+<th>DSCP 이름</th>
+<th>값(10진)</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EF (Expedited Forwarding)</td>
+<td>46</td>
+<td>VoIP 등 지연에 민감한 실시간 트래픽</td>
+</tr>
+<tr>
+<td>AF41</td>
+<td>34</td>
+<td>영상 회의</td>
+</tr>
+<tr>
+<td>AF21</td>
+<td>18</td>
+<td>우선순위 있는 데이터</td>
+</tr>
+<tr>
+<td>CS0 / Default</td>
+<td>0</td>
+<td>일반 트래픽(best effort)</td>
+</tr>
+</tbody>
+</table>
+<p>중요한 건, <strong>마킹 자체는 아무 일도 하지 않는다는 점이다</strong>. 패킷에 EF(46)라고 적어도 라우터가 그 값을 보고 우선 처리하도록 설정돼 있지 않으면 일반 패킷과 똑같이 취급된다. 마킹은 "이 패킷은 이런 등급이다"라는 라벨일 뿐이고, 실제 차별은 각 라우터의 큐잉 정책이 한다.</p>
+<p>또 하나 자주 빠지는 함정. DSCP는 라우터 경계를 넘으면 리셋되는 경우가 많다. 사내망에서 EF로 마킹해도 ISP 라우터에 들어가는 순간 0으로 덮어쓰여 나온다. 인터넷 구간 전체에 QoS를 기대하면 안 되고, 내가 제어하는 구간(사내망, 데이터센터 내부) 안에서만 의미가 있다.</p>
+<p>리눅스에서 소켓에 DSCP를 찍으려면 <code>IP_TOS</code> 옵션을 쓴다.</p>
+<div class="language-c highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">tos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">46</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w">  </span><span class="c1">// DSCP 46(EF). DSCP는 상위 6비트라 2비트 시프트</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">setsockopt</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="n">IPPROTO_IP</span><span class="p">,</span><span class="w"> </span><span class="n">IP_TOS</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">tos</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">tos</span><span class="p">));</span>
+</span></code></pre></div>
+<p>여기서 <code>&lt;&lt; 2</code>를 빼먹는 실수가 흔하다. <code>IP_TOS</code>는 8비트 전체를 받는데 DSCP는 상위 6비트라서 값을 2칸 왼쪽으로 밀어야 한다. 46을 그대로 넣으면 DSCP 11이 찍힌다.</p>
+<hr />
+<h2 id="큐잉-규율--패킷을-내보내는-순서">큐잉 규율 — 패킷을 내보내는 순서<a class="headerlink" href="#큐잉-규율--패킷을-내보내는-순서" title="Permanent link">&para;</a></h2>
+<p>라우터나 호스트의 네트워크 인터페이스에는 보낼 패킷을 잠깐 쌓아두는 큐가 있다. 회선이 보낼 수 있는 속도보다 패킷이 빨리 들어오면 큐에 쌓이고, 큐가 꽉 차면 버린다. 이 큐에서 어떤 순서로 꺼낼지 정하는 규칙이 큐잉 규율(queuing discipline)이다.</p>
+<h3 id="fifo">FIFO<a class="headerlink" href="#fifo" title="Permanent link">&para;</a></h3>
+<p>들어온 순서대로 내보낸다. 단순하고 빠르지만 차별이 없다. 큰 파일 다운로드 패킷이 큐를 가득 채우면 그 뒤에 도착한 VoIP 패킷은 앞 패킷들이 다 나갈 때까지 기다린다. QoS가 필요 없는 환경의 기본값이다.</p>
+<h3 id="wfq-weighted-fair-queuing">WFQ (Weighted Fair Queuing)<a class="headerlink" href="#wfq-weighted-fair-queuing" title="Permanent link">&para;</a></h3>
+<p>플로우(출발지/목적지 IP와 포트 조합)별로 큐를 나누고, 각 큐에서 번갈아 꺼낸다. 한 플로우가 대역폭을 독점하지 못한다. 가중치를 주면 특정 플로우에 더 많은 몫을 배분한다. 대용량 다운로드 한 개가 VoIP 한 개와 회선을 나눠 쓸 때, FIFO면 다운로드가 거의 다 먹지만 WFQ면 둘이 공평하게(또는 가중치대로) 나눈다.</p>
+<h3 id="cbq--htb-class-based-queuing">CBQ / HTB (Class-Based Queuing)<a class="headerlink" href="#cbq--htb-class-based-queuing" title="Permanent link">&para;</a></h3>
+<p>트래픽을 클래스로 나누고 각 클래스에 대역폭을 할당한다. "웹 트래픽 40%, VoIP 10%, 나머지 50%" 같은 식이다. 한 클래스가 자기 몫을 안 쓰면 다른 클래스가 빌려 쓸 수 있게(borrowing) 설정하는 게 보통이다. 리눅스 <code>tc</code>에서는 CBQ보다 HTB(Hierarchical Token Bucket)를 주로 쓴다. CBQ는 계산 방식이 복잡하고 부정확해서 사실상 HTB로 대체됐다.</p>
+<p>실무에서 계층 구조를 이렇게 짠다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>            전체 1Gbps
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>           /     |      \
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        VoIP   웹(API)   백업
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        100M    600M     300M
+</span></code></pre></div>
+<p>VoIP가 100M를 다 안 쓰면 웹과 백업이 그 여유분을 빌려 쓰고, VoIP 트래픽이 들어오면 다시 회수한다. 이 "빌려주되 필요하면 회수"가 HTB의 핵심이고, 고정 할당만 하는 단순 셰이핑과의 차이다.</p>
+<hr />
+<h2 id="token-bucket-vs-leaky-bucket">Token Bucket vs Leaky Bucket<a class="headerlink" href="#token-bucket-vs-leaky-bucket" title="Permanent link">&para;</a></h2>
+<p>속도를 제한하는 알고리즘은 크게 두 가지다. 이름이 비슷해서 헷갈리는데 동작이 다르다.</p>
+<h3 id="leaky-bucket-누수-버킷">Leaky Bucket (누수 버킷)<a class="headerlink" href="#leaky-bucket-누수-버킷" title="Permanent link">&para;</a></h3>
+<p>밑에 구멍 뚫린 양동이를 떠올린다. 패킷이 위에서 들어와 양동이에 고이고, 구멍으로 일정한 속도로만 빠져나간다. 양동이가 넘치면 들어온 패킷을 버린다.</p>
+<p>핵심은 <strong>출력 속도가 항상 일정하다는 것</strong>이다. 입력이 아무리 몰려도 나가는 건 초당 정해진 양뿐이다. burst를 흡수하지 않고 평탄하게 만든다. 출력이 일정해야 하는 곳, 예를 들어 일정한 비트레이트로 내보내야 하는 미디어 스트림에 맞는다.</p>
+<h3 id="token-bucket-토큰-버킷">Token Bucket (토큰 버킷)<a class="headerlink" href="#token-bucket-토큰-버킷" title="Permanent link">&para;</a></h3>
+<p>이쪽은 토큰을 담는 양동이다. 일정한 속도로 토큰이 양동이에 채워진다(초당 r개). 패킷을 보내려면 토큰을 하나 써야 한다. 토큰이 있으면 즉시 보내고, 없으면 기다리거나 버린다. 양동이 크기는 b로, 최대 b개까지 토큰이 쌓인다.</p>
+<p>차이는 여기다. 한동안 트래픽이 없었으면 토큰이 b개까지 차 있다가, 트래픽이 갑자기 몰리면 <strong>쌓인 토큰만큼 한꺼번에 보낼 수 있다</strong>. 즉 burst를 허용한다. 평균 속도는 r로 제한되지만 순간적으로는 b만큼 튀는 걸 봐준다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Leaky Bucket:  입력 [||||  ||||]  →  출력 [| | | | | | | |]   (항상 평탄)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Token Bucket:  입력 [||||  ||||]  →  출력 [|||| _ _ |||| ]    (burst 허용, 평균은 제한)
+</span></code></pre></div>
+<p>대부분의 rate limiter(API 게이트웨이, nginx <code>limit_req</code>의 burst 옵션, 클라우드 API 쿼터)는 Token Bucket이다. 사용자가 평소엔 조용하다가 가끔 몰아서 요청하는 패턴을 자연스럽게 받아주기 때문이다. 평균 RPS만 제한하고 짧은 burst는 허용하고 싶다면 Token Bucket을 쓰는 게 맞다.</p>
+<p>이걸 모르고 rate limit을 설계하면 "평균은 안 넘었는데 왜 막혔지" 또는 "burst를 막고 싶은데 왜 통과되지" 같은 혼란을 겪는다. burst 허용 여부가 두 알고리즘을 가르는 기준이다.</p>
+<hr />
+<h2 id="폴리싱과-셰이핑의-차이">폴리싱과 셰이핑의 차이<a class="headerlink" href="#폴리싱과-셰이핑의-차이" title="Permanent link">&para;</a></h2>
+<p>둘 다 속도를 제한하는데, 한도를 초과한 트래픽을 어떻게 처리하느냐가 다르다.</p>
+<ul>
+<li><strong>폴리싱(Policing)</strong>: 한도 초과분을 <strong>버린다</strong>(또는 DSCP를 낮춰서 재마킹). 큐에 쌓지 않으므로 지연이 늘지 않는다. 대신 손실이 생긴다.</li>
+<li><strong>셰이핑(Shaping)</strong>: 한도 초과분을 <strong>큐에 쌓았다가 천천히 내보낸다</strong>. 버리지 않으니 손실은 적지만, 큐에서 기다리는 만큼 지연이 늘고 버퍼 메모리를 쓴다.</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>원본 트래픽:  __/‾‾\__/‾‾\__   (튀는 burst)
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>폴리싱:       __/‾|__/‾|__     (한도 위는 잘라서 버림)
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>셰이핑:       __/‾‾‾‾‾‾‾\__    (큐에 담아 평탄하게, 시간 지연됨)
+</span></code></pre></div>
+<p>TCP 트래픽에는 셰이핑이 보통 낫다. 폴리싱으로 패킷을 버리면 TCP가 재전송하면서 혼잡 윈도우를 줄이고, 결과적으로 처리량이 톱니처럼 출렁인다. 셰이핑은 패킷을 버리지 않고 늦출 뿐이라 TCP가 자연스럽게 속도를 맞춘다.</p>
+<p>반대로 폴리싱은 입력단에서 빠르게 처리해야 하거나(셰이핑용 버퍼를 둘 수 없는 곳), 초과 트래픽을 확실히 끊어야 할 때 쓴다. ISP가 고객 회선 속도를 강제할 때 흔히 폴리싱을 쓴다.</p>
+<hr />
+<h2 id="linux-tc-실무-예제">Linux tc 실무 예제<a class="headerlink" href="#linux-tc-실무-예제" title="Permanent link">&para;</a></h2>
+<p>리눅스에서 트래픽 제어는 <code>tc</code>(traffic control) 명령으로 한다. 개념은 qdisc(큐잉 규율) → class(클래스) → filter(필터) 세 단계다. qdisc를 인터페이스에 붙이고, 그 안에 클래스로 대역폭을 나누고, 필터로 어떤 패킷을 어느 클래스에 넣을지 정한다.</p>
+<p>주의할 점부터. <code>tc</code>는 기본적으로 <strong>나가는(egress) 트래픽만</strong> 제어한다. 들어오는 트래픽은 이미 회선을 통과한 뒤라 셰이핑할 수 없고, 폴리싱(초과분 폐기)만 제한적으로 가능하다. 다운로드 속도를 제한하고 싶으면 송신 쪽 장비에서 걸거나 ifb(중간 가상 디바이스)로 우회해야 한다.</p>
+<h3 id="단순-대역폭-제한-tbf">단순 대역폭 제한 (TBF)<a class="headerlink" href="#단순-대역폭-제한-tbf" title="Permanent link">&para;</a></h3>
+<p>eth0의 송신 속도를 1Mbps로 제한한다. TBF는 Token Bucket Filter다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>tc<span class="w"> </span>qdisc<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>root<span class="w"> </span>tbf<span class="w"> </span>rate<span class="w"> </span>1mbit<span class="w"> </span>burst<span class="w"> </span>32kbit<span class="w"> </span>latency<span class="w"> </span>400ms
+</span></code></pre></div>
+<ul>
+<li><code>rate 1mbit</code>: 평균 속도 1Mbps</li>
+<li><code>burst 32kbit</code>: 토큰 버킷 크기. 한 번에 튈 수 있는 양</li>
+<li><code>latency 400ms</code>: 패킷이 큐에서 최대 기다리는 시간. 이걸 넘으면 버린다</li>
+</ul>
+<p><code>burst</code>를 너무 작게 잡으면 토큰 보충이 패킷 속도를 못 따라가 실제 throughput이 설정값보다 낮게 나온다. 고속 회선일수록 burst를 키워야 한다. 1Mbps에 burst를 1kbit로 잡으면 제대로 안 나온다.</p>
+<h3 id="htb로-클래스-나누기">HTB로 클래스 나누기<a class="headerlink" href="#htb로-클래스-나누기" title="Permanent link">&para;</a></h3>
+<p>위에서 본 계층 구조를 실제로 구성한다. 전체 1Gbps를 VoIP/API/백업으로 나눈다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 루트 qdisc를 HTB로</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>tc<span class="w"> </span>qdisc<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>root<span class="w"> </span>handle<span class="w"> </span><span class="m">1</span>:<span class="w"> </span>htb<span class="w"> </span>default<span class="w"> </span><span class="m">30</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># 부모 클래스: 전체 1Gbps</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>tc<span class="w"> </span>class<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>parent<span class="w"> </span><span class="m">1</span>:<span class="w"> </span>classid<span class="w"> </span><span class="m">1</span>:1<span class="w"> </span>htb<span class="w"> </span>rate<span class="w"> </span>1000mbit
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># 자식 클래스 3개. rate=보장값, ceil=빌려서 최대 쓸 수 있는 값</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>tc<span class="w"> </span>class<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>parent<span class="w"> </span><span class="m">1</span>:1<span class="w"> </span>classid<span class="w"> </span><span class="m">1</span>:10<span class="w"> </span>htb<span class="w"> </span>rate<span class="w"> </span>100mbit<span class="w"> </span>ceil<span class="w"> </span>1000mbit<span class="w">  </span><span class="c1"># VoIP</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>tc<span class="w"> </span>class<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>parent<span class="w"> </span><span class="m">1</span>:1<span class="w"> </span>classid<span class="w"> </span><span class="m">1</span>:20<span class="w"> </span>htb<span class="w"> </span>rate<span class="w"> </span>600mbit<span class="w"> </span>ceil<span class="w"> </span>1000mbit<span class="w">  </span><span class="c1"># API</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>tc<span class="w"> </span>class<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>parent<span class="w"> </span><span class="m">1</span>:1<span class="w"> </span>classid<span class="w"> </span><span class="m">1</span>:30<span class="w"> </span>htb<span class="w"> </span>rate<span class="w"> </span>300mbit<span class="w"> </span>ceil<span class="w"> </span>1000mbit<span class="w">  </span><span class="c1"># 백업(default)</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># 필터: DSCP EF(46)는 VoIP 클래스로</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>tc<span class="w"> </span>filter<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>parent<span class="w"> </span><span class="m">1</span>:<span class="w"> </span>protocol<span class="w"> </span>ip<span class="w"> </span>prio<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">    </span>u32<span class="w"> </span>match<span class="w"> </span>ip<span class="w"> </span>tos<span class="w"> </span>0xb8<span class="w"> </span>0xfc<span class="w"> </span>flowid<span class="w"> </span><span class="m">1</span>:10
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="c1"># 필터: TCP 8080 포트(API)는 API 클래스로</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>tc<span class="w"> </span>filter<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>parent<span class="w"> </span><span class="m">1</span>:<span class="w"> </span>protocol<span class="w"> </span>ip<span class="w"> </span>prio<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">    </span>u32<span class="w"> </span>match<span class="w"> </span>ip<span class="w"> </span>dport<span class="w"> </span><span class="m">8080</span><span class="w"> </span>0xffff<span class="w"> </span>flowid<span class="w"> </span><span class="m">1</span>:20
+</span></code></pre></div>
+<p><code>rate</code>와 <code>ceil</code>의 관계가 HTB의 전부다. <code>rate</code>는 그 클래스가 항상 보장받는 대역폭이고, <code>ceil</code>은 다른 클래스가 놀고 있을 때 빌려서 쓸 수 있는 상한이다. VoIP는 100M를 보장받지만 회선이 한가하면 1000M까지 끌어 쓴다. 모든 클래스의 <code>rate</code> 합은 부모의 <code>rate</code>를 넘으면 안 된다(넘으면 보장이 깨진다).</p>
+<p>DSCP 필터의 <code>match ip tos 0xb8 0xfc</code>가 헷갈리는데, EF(46)를 2비트 시프트하면 0xb8이고, 마스크 0xfc는 하위 2비트(ECN)를 무시하고 DSCP 6비트만 비교하라는 뜻이다.</p>
+<h3 id="인위적으로-지연손실-넣기-netem">인위적으로 지연/손실 넣기 (netem)<a class="headerlink" href="#인위적으로-지연손실-넣기-netem" title="Permanent link">&para;</a></h3>
+<p>QoS 설정 자체는 아니지만, 네트워크 장애 상황을 재현할 때 같은 <code>tc</code>로 한다. 백엔드 테스트에서 자주 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 100ms 지연 + 10ms 지터 + 0.1% 패킷 손실</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>tc<span class="w"> </span>qdisc<span class="w"> </span>add<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>root<span class="w"> </span>netem<span class="w"> </span>delay<span class="w"> </span>100ms<span class="w"> </span>10ms<span class="w"> </span>loss<span class="w"> </span><span class="m">0</span>.1%
+</span></code></pre></div>
+<p>해외 리전과 통신하는 서비스의 타임아웃 설정이 맞는지, 패킷 손실 상황에서 재시도 로직이 도는지 로컬에서 확인할 때 쓴다. 테스트 끝나면 반드시 <code>tc qdisc del dev eth0 root</code>로 지운다. 안 지우면 그 장비의 모든 트래픽이 계속 느려진다.</p>
+<h3 id="설정-확인과-삭제">설정 확인과 삭제<a class="headerlink" href="#설정-확인과-삭제" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>tc<span class="w"> </span>qdisc<span class="w"> </span>show<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w">        </span><span class="c1"># 적용된 qdisc 확인</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>tc<span class="w"> </span>class<span class="w"> </span>show<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w">        </span><span class="c1"># 클래스별 상태</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>tc<span class="w"> </span>-s<span class="w"> </span>class<span class="w"> </span>show<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w">     </span><span class="c1"># 통계 포함(전송량, 드롭 수)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>tc<span class="w"> </span>qdisc<span class="w"> </span>del<span class="w"> </span>dev<span class="w"> </span>eth0<span class="w"> </span>root<span class="w">    </span><span class="c1"># 전부 제거</span>
+</span></code></pre></div>
+<p><code>tc -s class show</code>의 드롭 카운터를 봐야 한다. 셰이핑이 의도대로 도는지, 어느 클래스에서 패킷이 버려지는지 여기서 드러난다.</p>
+<hr />
+<h2 id="우선순위-보장이-필요한-상황">우선순위 보장이 필요한 상황<a class="headerlink" href="#우선순위-보장이-필요한-상황" title="Permanent link">&para;</a></h2>
+<h3 id="voip--영상-통화">VoIP / 영상 통화<a class="headerlink" href="#voip--영상-통화" title="Permanent link">&para;</a></h3>
+<p>지연과 지터에 가장 민감하다. 음성 패킷이 150ms 안에 도착하지 못하면 통화 품질이 떨어지고, 도착 간격이 들쭉날쭉하면(지터) 끊긴 것처럼 들린다. 대역폭 자체는 적게 쓰니까(통화당 수십 kbps) EF로 마킹해서 큐 맨 앞으로 보내는 게 정석이다. 대용량 백업이 회선을 채워도 VoIP 패킷은 먼저 나가야 한다.</p>
+<h3 id="실시간-스트리밍">실시간 스트리밍<a class="headerlink" href="#실시간-스트리밍" title="Permanent link">&para;</a></h3>
+<p>라이브 방송 송출처럼 일정한 비트레이트를 유지해야 하는 경우, 출력을 평탄하게 만드는 셰이핑(또는 Leaky Bucket류)이 맞는다. VOD 다운로드는 버퍼가 있으니 지연에 관대하지만, 라이브는 버퍼를 짧게 가져가야 해서 안정적인 대역폭이 더 중요하다.</p>
+<h3 id="회선을-공유하는-사무실">회선을 공유하는 사무실<a class="headerlink" href="#회선을-공유하는-사무실" title="Permanent link">&para;</a></h3>
+<p>화상회의 중에 누군가 대용량 파일을 올리면 회의가 끊긴다. HTB로 회의 트래픽에 대역폭을 보장하고 백업/업로드를 나머지로 묶으면 해결된다. 사내 회선에서 가장 흔한 QoS 적용 사례다.</p>
+<hr />
+<h2 id="백엔드에서-마주치는-throttling">백엔드에서 마주치는 throttling<a class="headerlink" href="#백엔드에서-마주치는-throttling" title="Permanent link">&para;</a></h2>
+<p>QoS의 패킷 레벨 개념이 애플리케이션 레벨에서 그대로 반복된다. 이름만 rate limiting, throttling으로 바뀐다.</p>
+<h3 id="api-rate-limiting">API rate limiting<a class="headerlink" href="#api-rate-limiting" title="Permanent link">&para;</a></h3>
+<p>API 게이트웨이나 nginx의 rate limit이 사실상 Token Bucket이다. nginx 예시.</p>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 평균 10req/s, zone 메모리 10MB</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">limit_req_zone</span><span class="w"> </span><span class="nv">$binary_remote_addr</span><span class="w"> </span><span class="s">zone=api:10m</span><span class="w"> </span><span class="s">rate=10r/s</span><span class="p">;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">server</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="kn">location</span><span class="w"> </span><span class="s">/api/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">        </span><span class="kn">limit_req</span><span class="w"> </span><span class="s">zone=api</span><span class="w"> </span><span class="s">burst=20</span><span class="w"> </span><span class="s">nodelay</span><span class="p">;</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>rate=10r/s</code>가 토큰 보충 속도, <code>burst=20</code>이 버킷 크기다. 평소 10req/s를 넘지 않게 하되 순간적으로 20개까지 몰리는 건 받아준다. <code>nodelay</code>를 빼면 셰이핑처럼 동작해서 burst를 큐에 쌓아 천천히 처리하고, <code>nodelay</code>를 붙이면 burst를 즉시 통과시키되 그만큼 토큰을 미리 당겨 쓴다. 이 차이가 폴리싱 vs 셰이핑과 정확히 같은 구조다.</p>
+<h3 id="메시지-큐--외부-api-호출">메시지 큐 / 외부 API 호출<a class="headerlink" href="#메시지-큐--외부-api-호출" title="Permanent link">&para;</a></h3>
+<p>외부 결제 API가 "초당 50건"으로 제한을 걸면 우리 쪽에서 호출 속도를 맞춰야 한다. 안 그러면 429를 맞고 재시도가 쌓여 상황이 더 나빠진다. 이때 애플리케이션 안에 Token Bucket을 두고 토큰이 있을 때만 호출한다. Guava의 <code>RateLimiter</code>, Resilience4j의 <code>RateLimiter</code>가 이 구현이다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">// Guava RateLimiter: 초당 50건</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">RateLimiter</span><span class="w"> </span><span class="n">limiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RateLimiter</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="mf">50.0</span><span class="p">);</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kd">public</span><span class="w"> </span><span class="n">PaymentResult</span><span class="w"> </span><span class="nf">call</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="n">limiter</span><span class="p">.</span><span class="na">acquire</span><span class="p">();</span><span class="w">  </span><span class="c1">// 토큰 없으면 블록</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">paymentApi</span><span class="p">.</span><span class="na">charge</span><span class="p">(...);</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>여러 인스턴스가 같은 외부 API를 호출하면 인스턴스마다 로컬 RateLimiter를 두는 것으로는 부족하다. 전체 호출량의 합이 한도를 넘기 때문이다. 이 경우 Redis에 토큰 버킷을 두고 분산 rate limiter를 만들거나, 한도를 인스턴스 수로 나눠 배분한다.</p>
+<h3 id="커넥션-풀과-동시성-제한">커넥션 풀과 동시성 제한<a class="headerlink" href="#커넥션-풀과-동시성-제한" title="Permanent link">&para;</a></h3>
+<p>DB 커넥션 풀의 max size, 스레드 풀의 크기, 세마포어로 거는 동시 처리 제한도 결국 같은 문제다. 자원은 유한하고, 초과 요청을 버릴지(폴리싱: 즉시 실패 반환) 대기시킬지(셰이핑: 큐에 넣고 기다림)를 정하는 것이다. HikariCP에서 커넥션을 못 받으면 <code>connectionTimeout</code> 후 예외를 던지는 게 폴리싱에 가깝고, 큐에 무한정 쌓아두면 셰이핑인데 메모리가 터진다. 어느 쪽이든 "초과분을 버릴지 대기시킬지, 대기시킨다면 얼마나"를 정해야 하는 건 라우터 QoS와 똑같다.</p>
+<hr />
+<h2 id="실무에서-헷갈리지-않으려면">실무에서 헷갈리지 않으려면<a class="headerlink" href="#실무에서-헷갈리지-않으려면" title="Permanent link">&para;</a></h2>
+<p>마킹(DSCP)은 라벨일 뿐이고 실제 차별은 큐잉 정책이 한다. 마킹만 하고 큐잉 설정을 안 하면 아무 효과가 없다. burst 허용 여부로 Token Bucket과 Leaky Bucket이 갈리고, 초과분을 버리는지 대기시키는지로 폴리싱과 셰이핑이 갈린다. 이 두 축만 잡으면 라우터 QoS든 API rate limiter든 같은 틀로 이해된다. 리눅스에서 직접 실험할 때는 <code>tc</code>로 걸고 <code>tc -s class show</code>로 드롭을 확인하되, netem 같은 임시 설정은 끝나고 꼭 지운다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/">AMQP vs MQTT 비교 분석</a></li>
+<li><a href="../../GateWay/API_Gateway/">API Gateway 심화</a></li>
+<li><a href="../Network%20Layer/ARP/">ARP — IP와 MAC을 잇는 끈</a></li>
+<li><a href="../Network%20Layer/BGP/">BGP — 인터넷을 굴리는 라우팅 프로토콜</a></li>
+<li><a href="../../CDN/">CDN 동작 원리와 실무 운영</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../OSI_7_Layer_Model/" class="md-footer__link md-footer__link--prev" aria-label="이전: OSI 7 계층 모델">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                OSI 7 계층 모델
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Application%20Layer/" class="md-footer__link md-footer__link--next" aria-label="다음: Application Layer 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                Application Layer 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,109 +1,3068 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Backend/Messaging/EMQX_Load_Testing/ rel=canonical><link href=../EMQX/ rel=prev><link href=../ISBM/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>EMQX 부하 테스트 - 수백만 커넥션 검증 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#emqx-부하-테스트 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> EMQX 부하 테스트 - 수백만 커넥션 검증 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4 checked> <label class=md-nav__link for=__nav_4 id=__nav_4_label tabindex=0> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_4_label aria-expanded=true> <label class=md-nav__title for=__nav_4> <span class="md-nav__icon md-icon"></span> Backend </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Framework </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Backend </span> </a> <label class="md-nav__link " for=__nav_4_2 id=__nav_4_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_4_2_label aria-expanded=true> <label class=md-nav__title for=__nav_4_2> <span class="md-nav__icon md-icon"></span> Backend </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Authentication/ class=md-nav__link> <span class=md-ellipsis> Authentication </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../API/ class=md-nav__link> <span class=md-ellipsis> API Design </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_2_4 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Messaging </span> </a> <label class="md-nav__link " for=__nav_4_2_4 id=__nav_4_2_4_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_4_2_4_label aria-expanded=true> <label class=md-nav__title for=__nav_4_2_4> <span class="md-nav__icon md-icon"></span> Messaging </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Message_Queue/ class=md-nav__link> <span class=md-ellipsis> 메시지 큐 & 이벤트 기반 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../MQ_Delivery_Guarantee_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> Message Queue 심화 </span> </a> </li> <li class=md-nav__item> <a href=../DLQ_Reprocessing_Strategy/ class=md-nav__link> <span class=md-ellipsis> DLQ 재처리 자동화 </span> </a> </li> <li class=md-nav__item> <a href=../Kafka_Consumer_Group_Rebalancing/ class=md-nav__link> <span class=md-ellipsis> Consumer Group 재조정 </span> </a> </li> <li class=md-nav__item> <a href=../Kafka_Exactly_Once_Semantics/ class=md-nav__link> <span class=md-ellipsis> Kafka EOS </span> </a> </li> <li class=md-nav__item> <a href=../Rabbit_MQ/ class=md-nav__link> <span class=md-ellipsis> RabbitMQ 심화 </span> </a> </li> <li class=md-nav__item> <a href=../RabbitMQ_MQTT/ class=md-nav__link> <span class=md-ellipsis> RabbitMQ MQTT Plugin </span> </a> </li> <li class=md-nav__item> <a href=../EMQX/ class=md-nav__link> <span class=md-ellipsis> EMQX </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> EMQX 부하 테스트 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> EMQX 부하 테스트 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#emqtt_bench class=md-nav__link> <span class=md-ellipsis> emqtt_bench </span> </a> </li> <li class=md-nav__item> <a href=#동시-커넥션-부하 class=md-nav__link> <span class=md-ellipsis> 동시 커넥션 부하 </span> </a> </li> <li class=md-nav__item> <a href=#publish--subscribe-처리량 class=md-nav__link> <span class=md-ellipsis> publish / subscribe 처리량 </span> </a> </li> <li class=md-nav__item> <a href=#커넥션-폭주-재현 class=md-nav__link> <span class=md-ellipsis> 커넥션 폭주 재현 </span> </a> </li> <li class=md-nav__item> <a href=#클라이언트-쪽이-먼저-걸린다 class=md-nav__link> <span class=md-ellipsis> 클라이언트 쪽이 먼저 걸린다 </span> </a> <nav class=md-nav aria-label="클라이언트 쪽이 먼저 걸린다"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#소스-포트-고갈 class=md-nav__link> <span class=md-ellipsis> 소스 포트 고갈 </span> </a> </li> <li class=md-nav__item> <a href=#file-descriptor-한계 class=md-nav__link> <span class=md-ellipsis> file descriptor 한계 </span> </a> </li> <li class=md-nav__item> <a href=#time_wait-누적 class=md-nav__link> <span class=md-ellipsis> TIME_WAIT 누적 </span> </a> </li> <li class=md-nav__item> <a href=#somaxconn-브로커-쪽 class=md-nav__link> <span class=md-ellipsis> somaxconn (브로커 쪽) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#tls-핸드셰이크-영향 class=md-nav__link> <span class=md-ellipsis> TLS 핸드셰이크 영향 </span> </a> </li> <li class=md-nav__item> <a href=#측정-중-봐야-할-지표 class=md-nav__link> <span class=md-ellipsis> 측정 중 봐야 할 지표 </span> </a> </li> <li class=md-nav__item> <a href=#노드-한-대-용량-측정과-클러스터-산정 class=md-nav__link> <span class=md-ellipsis> 노드 한 대 용량 측정과 클러스터 산정 </span> </a> </li> <li class=md-nav__item> <a href=#정합성-검증-시점 class=md-nav__link> <span class=md-ellipsis> 정합성 검증 시점 </span> </a> <nav class=md-nav aria-label="정합성 검증 시점"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#발행-직후-ack-기반-검증 class=md-nav__link> <span class=md-ellipsis> 발행 직후 ACK 기반 검증 </span> </a> </li> <li class=md-nav__item> <a href=#소비-완료-후-집계-검증 class=md-nav__link> <span class=md-ellipsis> 소비 완료 후 집계 검증 </span> </a> </li> <li class=md-nav__item> <a href=#유실중복-감지-시점-설계 class=md-nav__link> <span class=md-ellipsis> 유실·중복 감지 시점 설계 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#테스트를-돌리는-순서 class=md-nav__link> <span class=md-ellipsis> 테스트를 돌리는 순서 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../ISBM/ class=md-nav__link> <span class=md-ellipsis> ISBM </span> </a> </li> <li class=md-nav__item> <a href=../FCM/ class=md-nav__link> <span class=md-ellipsis> FCM </span> </a> </li> <li class=md-nav__item> <a href=../APNS/ class=md-nav__link> <span class=md-ellipsis> APNs 직접 연동 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Caching/ class=md-nav__link> <span class=md-ellipsis> Caching </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Logging/ class=md-nav__link> <span class=md-ellipsis> Logging & Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Performance/ class=md-nav__link> <span class=md-ellipsis> Performance </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Resilience/ class=md-nav__link> <span class=md-ellipsis> Resilience </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Standards/ class=md-nav__link> <span class=md-ellipsis> Standards </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../i18n/ class=md-nav__link> <span class=md-ellipsis> i18n </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Scheduling/ class=md-nav__link> <span class=md-ellipsis> Scheduling </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Tools/ class=md-nav__link> <span class=md-ellipsis> Tools </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Architecture/Clean_Architecture/ class=md-nav__link> <span class=md-ellipsis> Architecture </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#emqtt_bench class=md-nav__link> <span class=md-ellipsis> emqtt_bench </span> </a> </li> <li class=md-nav__item> <a href=#동시-커넥션-부하 class=md-nav__link> <span class=md-ellipsis> 동시 커넥션 부하 </span> </a> </li> <li class=md-nav__item> <a href=#publish--subscribe-처리량 class=md-nav__link> <span class=md-ellipsis> publish / subscribe 처리량 </span> </a> </li> <li class=md-nav__item> <a href=#커넥션-폭주-재현 class=md-nav__link> <span class=md-ellipsis> 커넥션 폭주 재현 </span> </a> </li> <li class=md-nav__item> <a href=#클라이언트-쪽이-먼저-걸린다 class=md-nav__link> <span class=md-ellipsis> 클라이언트 쪽이 먼저 걸린다 </span> </a> <nav class=md-nav aria-label="클라이언트 쪽이 먼저 걸린다"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#소스-포트-고갈 class=md-nav__link> <span class=md-ellipsis> 소스 포트 고갈 </span> </a> </li> <li class=md-nav__item> <a href=#file-descriptor-한계 class=md-nav__link> <span class=md-ellipsis> file descriptor 한계 </span> </a> </li> <li class=md-nav__item> <a href=#time_wait-누적 class=md-nav__link> <span class=md-ellipsis> TIME_WAIT 누적 </span> </a> </li> <li class=md-nav__item> <a href=#somaxconn-브로커-쪽 class=md-nav__link> <span class=md-ellipsis> somaxconn (브로커 쪽) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#tls-핸드셰이크-영향 class=md-nav__link> <span class=md-ellipsis> TLS 핸드셰이크 영향 </span> </a> </li> <li class=md-nav__item> <a href=#측정-중-봐야-할-지표 class=md-nav__link> <span class=md-ellipsis> 측정 중 봐야 할 지표 </span> </a> </li> <li class=md-nav__item> <a href=#노드-한-대-용량-측정과-클러스터-산정 class=md-nav__link> <span class=md-ellipsis> 노드 한 대 용량 측정과 클러스터 산정 </span> </a> </li> <li class=md-nav__item> <a href=#정합성-검증-시점 class=md-nav__link> <span class=md-ellipsis> 정합성 검증 시점 </span> </a> <nav class=md-nav aria-label="정합성 검증 시점"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#발행-직후-ack-기반-검증 class=md-nav__link> <span class=md-ellipsis> 발행 직후 ACK 기반 검증 </span> </a> </li> <li class=md-nav__item> <a href=#소비-완료-후-집계-검증 class=md-nav__link> <span class=md-ellipsis> 소비 완료 후 집계 검증 </span> </a> </li> <li class=md-nav__item> <a href=#유실중복-감지-시점-설계 class=md-nav__link> <span class=md-ellipsis> 유실·중복 감지 시점 설계 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#테스트를-돌리는-순서 class=md-nav__link> <span class=md-ellipsis> 테스트를 돌리는 순서 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>backend</span> <span class=md-tag>messaging</span> <span class=md-tag>performance</span> </nav> <h1 id=emqx-부하-테스트>EMQX 부하 테스트<a class=headerlink href=#emqx-부하-테스트 title="Permanent link">&para;</a></h1> <p><a href=../EMQX/ >EMQX.md</a>에서 리스너 설정, 인증, 클러스터, Rule Engine을 다뤘다. 그 문서는 "어떻게 운영하느냐"고, 이 문서는 "정말 버티느냐를 어떻게 확인하느냐"다. max_connections를 1,024,000으로 박아놨다고 노드 한 대가 백만 커넥션을 받는 게 아니다. 그 숫자는 상한일 뿐이고, 실제로 몇 개까지 붙는지는 부하를 걸어보기 전엔 모른다.</p> <p>문제는 부하 테스트를 처음 돌려보면 EMQX가 아니라 테스트 클라이언트 쪽이 먼저 죽는다는 것이다. 커넥션 5만 개쯤에서 더 이상 안 붙길래 브로커 한계인 줄 알았는데 알고 보니 클라이언트 머신의 소스 포트가 동난 거였다. 이 문서는 그런 함정을 먼저 정리하고, 그다음 노드 한 대 용량을 측정해서 클러스터 노드 수를 산정하는 순서로 간다.</p> <h2 id=emqtt_bench>emqtt_bench<a class=headerlink href=#emqtt_bench title="Permanent link">&para;</a></h2> <p>EMQX 진영에서 공식으로 쓰는 부하 도구가 emqtt_bench다. Erlang으로 짜여 있어서 한 프로세스가 커넥션 수만 개를 들고도 가볍다. JMeter MQTT 플러그인이나 직접 짠 파이썬 스크립트로 동시 커넥션 수만 개를 만들려면 클라이언트 쪽이 먼저 터지는데, emqtt_bench는 그 부담이 작다.</p> <p>설치는 릴리스 바이너리를 받거나 소스를 빌드한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># 릴리스 바이너리 (Linux x86_64)</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>wget<span class=w> </span>https://github.com/emqx/emqtt-bench/releases/download/0.4.30/emqtt-bench-0.4.30-ubuntu22.04-amd64.tar.gz
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>tar<span class=w> </span>zxf<span class=w> </span>emqtt-bench-0.4.30-ubuntu22.04-amd64.tar.gz
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=nb>cd</span><span class=w> </span>emqtt-bench<span class=w> </span><span class=o>&amp;&amp;</span><span class=w> </span>./bin/emqtt_bench<span class=w> </span>--help
-</span></code></pre></div> <p>Erlang/OTP가 깔린 환경이면 소스에서 빌드해도 된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>git<span class=w> </span>clone<span class=w> </span>https://github.com/emqx/emqtt-bench
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=nb>cd</span><span class=w> </span>emqtt-bench<span class=w> </span><span class=o>&amp;&amp;</span><span class=w> </span>make
-</span></code></pre></div> <p>서브커맨드는 세 개를 주로 쓴다. <code>conn</code>은 커넥션만 맺고 유지한다(동시 접속 용량 측정용). <code>pub</code>은 메시지를 발행한다. <code>sub</code>은 구독한다. 처리량을 보려면 pub과 sub을 따로 띄워서 한쪽이 쏘고 한쪽이 받게 한다.</p> <h2 id=동시-커넥션-부하>동시 커넥션 부하<a class=headerlink href=#동시-커넥션-부하 title="Permanent link">&para;</a></h2> <p>가장 먼저 보는 건 노드 한 대가 커넥션을 몇 개까지 받느냐다. <code>conn</code>으로 커넥션만 쌓는다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>./bin/emqtt_bench<span class=w> </span>conn<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span>-p<span class=w> </span><span class=m>1883</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>  </span>-c<span class=w> </span><span class=m>100000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>  </span>-i<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>  </span>--prefix<span class=w> </span>bench
-</span></code></pre></div> <ul> <li><code>-c 100000</code>: 동시 커넥션 10만 개</li> <li><code>-i 1</code>: 커넥션을 1ms 간격으로 맺는다(establish 간격)</li> <li><code>--prefix bench</code>: clientid 접두사. 여러 클라이언트 머신을 쓸 때 충돌을 피한다</li> </ul> <p><code>-i</code>를 0으로 두면 10만 개를 최대한 빨리 한꺼번에 맺으려 든다. 이러면 establish rate가 클라이언트 머신 CPU에 막혀서 의미 없는 측정이 된다. 처음엔 1ms 정도로 두고 establish가 안정적으로 올라가는지 본다. 커넥션 establish 자체의 한계를 보려면 그때 <code>-i</code>를 줄인다.</p> <p>여러 머신에서 같은 브로커로 쏠 때는 clientid가 겹치면 안 된다. MQTT는 같은 clientid로 두 번째 접속이 오면 첫 번째를 끊는다(takeover). 부하 테스트 중에 커넥션 수가 올라가다 말고 진동하면 clientid 충돌로 서로 쫓아내는 중일 수 있다. <code>--prefix</code>를 머신마다 다르게 준다.</p> <p>커넥션을 유지한 채로 keepalive PINGREQ만 오가는 상태가 IoT 디바이스의 평상시 모습이다. 대부분의 디바이스는 1초에 한 번 데이터를 쏘지 않는다. 몇 분에 한 번 상태를 보내고 나머지 시간은 그냥 붙어만 있다. 그래서 "동시 커넥션 100만"과 "초당 메시지 100만"은 완전히 다른 부하고, 용량 산정도 따로 해야 한다.</p> <h2 id=publish--subscribe-처리량>publish / subscribe 처리량<a class=headerlink href=#publish--subscribe-처리량 title="Permanent link">&para;</a></h2> <p>커넥션이 붙는 것과 메시지가 흐르는 건 별개다. 처리량은 sub을 먼저 띄워 받을 쪽을 만들고, pub으로 쏜다.</p> <p>받는 쪽(구독자 1,000개가 같은 토픽 패턴 구독):</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>./bin/emqtt_bench<span class=w> </span>sub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span>-p<span class=w> </span><span class=m>1883</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span>-c<span class=w> </span><span class=m>1000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span>-t<span class=w> </span><span class=s2>&quot;bench/%i&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span>-q<span class=w> </span><span class=m>1</span>
-</span></code></pre></div> <p>쏘는 쪽(발행자 1,000개가 각자 토픽에 초당 메시지):</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>./bin/emqtt_bench<span class=w> </span>pub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=w>  </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>  </span>-p<span class=w> </span><span class=m>1883</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>  </span>-c<span class=w> </span><span class=m>1000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span>-t<span class=w> </span><span class=s2>&quot;bench/%i&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=w>  </span>-q<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=w>  </span>-I<span class=w> </span><span class=m>1000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a><span class=w>  </span>-s<span class=w> </span><span class=m>256</span>
-</span></code></pre></div> <ul> <li><code>-t "bench/%i"</code>: <code>%i</code>가 클라이언트 인덱스로 치환된다. pub의 <code>bench/0</code>을 sub의 <code>bench/0</code>이 받는다</li> <li><code>-I 1000</code>: 메시지 발행 간격 1,000ms(클라이언트당 초당 1건)</li> <li><code>-s 256</code>: 페이로드 256바이트</li> <li><code>-q 1</code>: QoS 1</li> </ul> <p>여기서 토픽 매칭을 맞추는 게 핵심이다. pub과 sub의 <code>-c</code>와 <code>-t %i</code>가 짝이 맞아야 발행한 메시지를 구독자가 실제로 받는다. sub 쪽 콘솔에 찍히는 수신 rate가 pub 쪽 발행 rate를 따라오는지 본다. 발행은 초당 10만인데 수신이 8만이면 어딘가에서 메시지가 밀리거나 버려지고 있다는 신호다. QoS 0이면 브로커가 부하 시 그냥 버리고, QoS 1이면 in-flight에 쌓이면서 지연이 늘어난다.</p> <p>QoS를 바꿔가며 측정하면 차이가 크게 난다. QoS 0은 fire-and-forget이라 처리량이 제일 높다. QoS 1은 PUBACK이 오가서 왕복이 늘고, QoS 2는 4-way 핸드셰이크라 같은 메시지 수에도 패킷이 네 배다. 실제 서비스에서 쓸 QoS로 테스트해야 의미가 있다. QoS 0으로 측정한 처리량을 보고 용량을 잡았다가 운영에서 QoS 1로 돌리면 숫자가 안 맞는다. QoS별 비용 차이는 <a href=../EMQX/#qos-2-메시지-적체>EMQX.md의 QoS 2 메시지 적체</a> 항목과 같은 맥락이다.</p> <h2 id=커넥션-폭주-재현>커넥션 폭주 재현<a class=headerlink href=#커넥션-폭주-재현 title="Permanent link">&para;</a></h2> <p>운영에서 제일 무서운 건 평상시 부하가 아니라 동시 재접속이다. 통신사 기지국이 잠깐 끊겼다 복구되면, 그 아래 붙어 있던 디바이스 수십만 대가 거의 동시에 재접속을 시도한다. 평상시엔 잘 돌던 브로커가 이 순간 accept 큐가 밀리고 인증 백엔드가 터진다. 이걸 테스트에서 재현해야 한다.</p> <p>방법은 establish 간격 <code>-i</code>를 극단적으로 줄여서 짧은 시간에 커넥션을 몰아넣는 것이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 평상시: 1ms 간격으로 천천히</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>./bin/emqtt_bench<span class=w> </span>conn<span class=w> </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span>-c<span class=w> </span><span class=m>200000</span><span class=w> </span>-i<span class=w> </span><span class=m>1</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=c1># 폭주: 간격 없이 최대 속도로 20만 개를 던진다</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>./bin/emqtt_bench<span class=w> </span>conn<span class=w> </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span>-c<span class=w> </span><span class=m>200000</span><span class=w> </span>-i<span class=w> </span><span class=m>0</span>
-</span></code></pre></div> <p>폭주 시나리오에서 봐야 할 건 두 가지다. 첫째, establish rate가 어디서 천장을 치는가. 리스너의 <code>acceptors</code> 수가 부족하면 여기서 막힌다(<a href=../EMQX/#리스너-설정>EMQX.md 리스너 설정</a>의 acceptors 항목). 둘째, 인증 백엔드가 버티는가. DB 인증을 쓰면 재접속 폭주 동안 인증 쿼리가 초당 수만 번 날아간다. 인덱스 안 걸린 쿼리 하나가 이 순간 DB를 멈춰 세운다.</p> <p>폭주 테스트는 한 클라이언트 머신으로는 부족한 경우가 많다. 클라이언트 쪽 establish 능력이 먼저 한계라서 브로커를 충분히 못 때린다. 여러 머신에서 동시에 <code>-i 0</code>으로 쏴야 진짜 폭주가 재현된다. 머신 5대를 같은 시각에 띄우려면 간단하게 SSH로 동시 실행하거나 <code>pdsh</code> 같은 걸 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># 5대 머신에 동시에 던지기 (각 머신 prefix 다르게)</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=k>for</span><span class=w> </span>i<span class=w> </span><span class=k>in</span><span class=w> </span><span class=m>1</span><span class=w> </span><span class=m>2</span><span class=w> </span><span class=m>3</span><span class=w> </span><span class=m>4</span><span class=w> </span><span class=m>5</span><span class=p>;</span><span class=w> </span><span class=k>do</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>  </span>ssh<span class=w> </span>bench<span class=nv>$i</span><span class=w> </span><span class=s2>&quot;cd emqtt-bench &amp;&amp; ./bin/emqtt_bench conn \</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=s2>    -h 10.0.0.10 -c 200000 -i 0 --prefix m</span><span class=nv>$i</span><span class=s2>&quot;</span><span class=w> </span><span class=p>&amp;</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=k>done</span>
-</span></code></pre></div> <p>JWT 인증으로 바꾸면 폭주 내성이 확 좋아진다. JWT는 서명만 검증하고 DB를 안 보니까 재접속 폭주 동안에도 외부 의존이 없다. DB 인증으로 폭주를 못 버티면 JWT 전환을 검토할 단계다.</p> <h2 id=클라이언트-쪽이-먼저-걸린다>클라이언트 쪽이 먼저 걸린다<a class=headerlink href=#클라이언트-쪽이-먼저-걸린다 title="Permanent link">&para;</a></h2> <p>여기가 부하 테스트에서 제일 시간 잡아먹는 부분이다. 브로커가 아니라 부하를 거는 쪽 OS 한계에 먼저 막힌다. 측정값이 이상하면 브로커보다 클라이언트를 먼저 의심한다.</p> <h3 id=소스-포트-고갈>소스 포트 고갈<a class=headerlink href=#소스-포트-고갈 title="Permanent link">&para;</a></h3> <p>이게 가장 먼저, 가장 자주 걸린다. 클라이언트 머신이 브로커로 TCP 커넥션을 하나 맺을 때마다 로컬 소스 포트를 하나 쓴다. 소스 포트 범위는 기본적으로 <code>net.ipv4.ip_local_port_range</code>로 정해지고 보통 32768~60999, 즉 약 2만8천 개다. 한 클라이언트 머신에서 한 브로커 IP로 맺을 수 있는 커넥션이 이 범위에 묶인다. 커넥션이 2만8천 개쯤에서 더 안 붙으면 거의 100% 이거다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 현재 범위 확인</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>cat<span class=w> </span>/proc/sys/net/ipv4/ip_local_port_range
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=c1># 32768   60999</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=c1># 범위를 넓힌다 (1025~65535, 약 6만4천 개)</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>sysctl<span class=w> </span>-w<span class=w> </span>net.ipv4.ip_local_port_range<span class=o>=</span><span class=s2>&quot;1025 65535&quot;</span>
-</span></code></pre></div> <p>범위를 최대로 넓혀도 한 머신에서 한 브로커 IP로는 6만 개가 천장이다. 출발지 IP 하나 + 목적지 IP/포트 하나 조합에서 구분 가능한 소스 포트가 그게 전부라서다. 그 이상을 한 머신에서 만들려면 클라이언트에 IP를 여러 개 붙이거나(<code>-S</code> 옵션으로 소스 IP 지정), 브로커 리스너 포트를 여러 개 두거나, 클라이언트 머신 자체를 여러 대로 늘려야 한다. 백만 커넥션 테스트를 하려면 클라이언트가 최소 20~30대는 있어야 하는 이유가 이거다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1># 클라이언트에 보조 IP를 여러 개 붙이고 라운드로빈으로 쓰기</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>./bin/emqtt_bench<span class=w> </span>conn<span class=w> </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span>-c<span class=w> </span><span class=m>100000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>  </span>--ifaddr<span class=w> </span><span class=m>192</span>.168.1.10,192.168.1.11,192.168.1.12
-</span></code></pre></div> <h3 id=file-descriptor-한계>file descriptor 한계<a class=headerlink href=#file-descriptor-한계 title="Permanent link">&para;</a></h3> <p>소켓 하나가 fd 하나다. 이건 브로커 쪽(<a href=../EMQX/#file-descriptor-한계>EMQX.md의 file descriptor 한계</a>)뿐 아니라 클라이언트 쪽에도 똑같이 적용된다. emqtt_bench를 돌리는 머신의 <code>ulimit -n</code>이 1024면 커넥션 1,000개 남짓에서 <code>Too many open files</code>가 뜬다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># 현재 한계</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=nb>ulimit</span><span class=w> </span>-n
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=c1># 셸 세션에서 올리기 (root거나 hard limit 안에서)</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=nb>ulimit</span><span class=w> </span>-n<span class=w> </span><span class=m>1048576</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=c1># 영구 설정: /etc/security/limits.conf</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=c1># *  soft  nofile  1048576</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=c1># *  hard  nofile  1048576</span>
-</span></code></pre></div> <p>systemd로 부하 도구를 띄우면 셸 ulimit이 안 먹으니 unit의 <code>LimitNOFILE</code>을 따로 올린다. 커널 전역 한계 <code>fs.file-max</code>도 충분히 큰지 본다.</p> <h3 id=time_wait-누적>TIME_WAIT 누적<a class=headerlink href=#time_wait-누적 title="Permanent link">&para;</a></h3> <p>커넥션을 맺고 끊기를 반복하는 테스트(폭주 시나리오를 여러 번 돌릴 때)는 닫힌 소켓이 TIME_WAIT 상태로 남는다. TIME_WAIT 소켓도 소스 포트를 잡고 있어서, 짧은 시간에 많이 쌓이면 포트가 또 동난다. 새 테스트를 돌리려는데 자꾸 connection 실패가 나면 <code>ss -s</code>로 TIME_WAIT 수를 본다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>ss<span class=w> </span>-s
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=c1># TCP:   58000 (estab 200, closed 57000, timewait 56800 ...)</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=c1># TIME_WAIT 소켓 재사용 허용 (클라이언트 쪽에서만 신중히)</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>sysctl<span class=w> </span>-w<span class=w> </span>net.ipv4.tcp_tw_reuse<span class=o>=</span><span class=m>1</span>
-</span></code></pre></div> <p><code>tcp_tw_reuse=1</code>은 부하 클라이언트 머신에서 켜는 건 괜찮지만, 실제 서비스 서버에서 NAT 뒤 클라이언트가 섞인 환경에 켜면 문제가 생길 수 있으니 테스트 머신에서만 쓴다.</p> <h3 id=somaxconn-브로커-쪽>somaxconn (브로커 쪽)<a class=headerlink href=#somaxconn-브로커-쪽 title="Permanent link">&para;</a></h3> <p>이건 브로커 쪽 커널 파라미터인데 폭주 테스트와 직결된다. <code>net.core.somaxconn</code>은 TCP accept 큐 길이다. establish가 한꺼번에 몰리면 아직 accept되지 않은 커넥션이 이 큐에 쌓이는데, 기본값 128~4096이면 폭주 시 넘쳐서 커넥션이 거부된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># 브로커 노드에서</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>sysctl<span class=w> </span>-w<span class=w> </span>net.core.somaxconn<span class=o>=</span><span class=m>65535</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>sysctl<span class=w> </span>-w<span class=w> </span>net.ipv4.tcp_max_syn_backlog<span class=o>=</span><span class=m>65535</span>
-</span></code></pre></div> <p>폭주 테스트에서 establish rate가 천장을 치는데 EMQX의 acceptors는 여유가 있다면 somaxconn을 의심한다. 커널 큐에서 막히면 EMQX는 아예 커넥션을 못 보고, dashboard에는 establish가 멈춘 것처럼 보인다.</p> <h2 id=tls-핸드셰이크-영향>TLS 핸드셰이크 영향<a class=headerlink href=#tls-핸드셰이크-영향 title="Permanent link">&para;</a></h2> <p>평문(1883)으로 측정한 처리량을 TLS(8883)에 그대로 적용하면 안 된다. TLS 핸드셰이크는 비대칭 암호 연산이 들어가서 establish 비용이 평문보다 한 자릿수 이상 비싸다. 평문은 establish가 초당 수만인데 TLS는 같은 노드에서 초당 수천으로 떨어지는 경우가 흔하다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># TLS 커넥션 부하</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>./bin/emqtt_bench<span class=w> </span>conn<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=w>  </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=w>  </span>-p<span class=w> </span><span class=m>8883</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=w>  </span>-c<span class=w> </span><span class=m>50000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=w>  </span>-i<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a><span class=w>  </span>--ssl
-</span></code></pre></div> <p>여기서 두 가지를 구분해야 한다. 핸드셰이크 비용(establish 시점에만 든다)과 유지 비용(붙어 있는 동안 든다)이다. 한 번 핸드셰이크가 끝나면 그 뒤 메시지 송수신은 대칭 암호라 평문 대비 오버헤드가 작다. 그래서 커넥션을 천천히 맺어 오래 유지하는 패턴이면 TLS가 동시 커넥션 총량에 주는 영향은 생각보다 작다. 반대로 디바이스가 자주 끊고 재접속하는 패턴이면 매번 핸드셰이크가 일어나서 establish CPU가 노드 용량을 결정한다.</p> <p>재접속 폭주 + TLS 조합이 최악이다. 수십만 디바이스가 동시에 TLS 핸드셰이크를 하면 CPU가 핸드셰이크 연산에 다 묶여서 establish rate가 바닥을 친다. 이 조합을 쓸 거면 반드시 그 시나리오 그대로 테스트한다. 평문 폭주는 잘 버티는데 TLS 폭주에서 무너지는 노드를 자주 본다.</p> <p>완화 방법으로 TLS 세션 재사용(session resumption)을 켜면 재접속 시 full handshake를 건너뛴다. 다만 디바이스 클라이언트가 세션 티켓을 저장하고 재사용하도록 구현돼 있어야 효과가 있다. 펌웨어가 매번 새 핸드셰이크를 하면 서버에서 재사용을 켜도 소용없다. 부하 테스트할 때 디바이스의 실제 재접속 동작을 흉내 내야 하는 이유다.</p> <h2 id=측정-중-봐야-할-지표>측정 중 봐야 할 지표<a class=headerlink href=#측정-중-봐야-할-지표 title="Permanent link">&para;</a></h2> <p>부하를 거는 동안 클라이언트 콘솔 숫자만 보면 안 된다. 브로커 쪽 dashboard와 Prometheus를 같이 띄워놓고 본다.</p> <p>dashboard(<code>http://브로커:18083</code>) Overview에서 실시간으로 보는 것:</p> <ul> <li>Connections: 현재 커넥션 수. 목표치까지 선형으로 오르다 어디서 꺾이는지 본다</li> <li>Connection establish rate: 초당 신규 커넥션. 폭주 테스트의 핵심 지표다. 여기가 천장을 치는 지점이 노드의 establish 한계다</li> <li>Messages in/out: 초당 수신/발행 메시지. pub 부하의 처리량 한계를 본다. in은 받는데 out이 안 따라오면 라우팅이나 구독자 쪽이 병목이다</li> <li>Dropped: 버려진 메시지. 0이 아니면 어딘가 과부하다</li> </ul> <p>Prometheus 엔드포인트를 켜서 Grafana로 보면 더 깊이 본다. EMQX.md에서 말한 <code>/api/v5/prometheus/stats</code>를 스크레이프한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>curl<span class=w> </span>http://10.0.0.10:18083/api/v5/prometheus/stats<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-E<span class=w> </span><span class=s1>&#39;emqx_connections_count|emqx_messages_received&#39;</span>
-</span></code></pre></div> <p>부하 중 특히 보는 지표:</p> <ul> <li><code>emqx_connections_count</code>: 노드별 커넥션 수. 클러스터면 노드 간 분배가 고른지 본다</li> <li><code>emqx_messages_received</code> / <code>emqx_messages_sent</code>: 메시지 in/out 누적. rate로 환산해서 처리량을 본다</li> <li>VM 메모리: Erlang VM 총 메모리. 커넥션 수에 비례해 오르다 갑자기 튀면 세션 큐나 in-flight가 쌓이는 거다(<a href=../EMQX/#메모리-사용량-모니터링>EMQX.md 메모리 사용량 모니터링</a>)</li> <li>GC / reductions: Erlang VM의 GC 빈도와 reduction 수. 부하가 커지면 GC가 잦아지고, GC가 CPU를 많이 먹기 시작하면 그 노드는 한계에 가깝다. 처리량은 아직 여유 있어 보이는데 응답 지연이 늘면 GC를 의심한다</li> <li>CPU per core: Erlang 스케줄러가 코어를 고르게 쓰는지. 특정 코어만 100%면 acceptor나 특정 프로세스에 부하가 쏠린 거다</li> </ul> <p>지표를 볼 때 한 가지 숫자가 아니라 같이 움직이는 패턴을 본다. 커넥션은 계속 느는데 establish rate가 떨어지고 메모리가 가파르게 오르면, 그 노드는 곧 한계다. 그 직전 커넥션 수가 노드 한 대의 실용 용량이다.</p> <h2 id=노드-한-대-용량-측정과-클러스터-산정>노드 한 대 용량 측정과 클러스터 산정<a class=headerlink href=#노드-한-대-용량-측정과-클러스터-산정 title="Permanent link">&para;</a></h2> <p>부하 테스트의 최종 목적은 "노드 몇 대가 필요한가"에 답하는 거다. 순서는 이렇다.</p> <p>먼저 노드 한 대에 커넥션을 천천히 쌓으면서 메모리/CPU/establish가 꺾이는 지점을 찾는다. 예를 들어 16코어 32GB 노드에서 커넥션 80만 개까지는 메모리가 선형으로 오르다가 그 근처에서 GC가 잦아지고 establish가 떨어진다고 하자. 그러면 이 노드의 실용 용량은 안전 마진을 빼고 60만 개쯤으로 잡는다. 천장이 80만이라고 80만으로 운영하면 재접속 폭주 한 번에 넘어간다. 평상시 용량은 천장의 70% 안쪽으로 잡는 게 안전하다.</p> <p>커넥션 용량과 메시지 처리량을 따로 측정해야 한다. 같은 노드가 "커넥션 60만 유지"는 되는데 "초당 메시지 30만 처리"는 안 될 수 있다. 둘은 다른 자원을 쓴다. 커넥션은 메모리와 fd, 메시지는 CPU와 네트워크다. 실제 디바이스의 메시지 빈도(몇 분에 한 번인지, 초당 몇 건인지)를 알아야 어느 쪽이 먼저 한계인지 안다. 디바이스 100만 대인데 각자 5분에 한 번 보내면 평균 초당 약 3,300건이라 처리량은 여유고 커넥션 유지가 관건이다. 반대로 디바이스 1만 대가 각자 초당 10건이면 커넥션은 적은데 처리량이 관건이다.</p> <p>용량이 나오면 디바이스 총수를 노드당 실용 용량으로 나눈다. 디바이스 300만 대, 노드당 60만이면 커넥션 노드 5대가 최소다. 여기에 노드 하나 죽어도 버티게 +1, 폭주 시 잠깐의 추가 부하를 위해 여유를 더한다. core-replicant 구조에서 이 커넥션 노드들은 replicant로 두고, core는 별도로 3~5대를 둔다(<a href=../EMQX/#core-replicant-아키텍처>EMQX.md core-replicant 아키텍처</a>). 커넥션 용량을 늘릴 땐 replicant만 추가하면 되니까, 위에서 잰 "노드 한 대 용량"이 곧 replicant 한 대 용량이고, 그걸로 replicant 수를 산정한다.</p> <p>마지막으로 산정한 노드 수로 클러스터를 실제로 띄워서 전체 부하를 다시 건다. 노드 한 대 측정값을 단순히 곱하면 안 되는 이유가 있다. 클러스터는 노드 간 라우팅 테이블 동기화 비용이 추가된다. 구독이 많고 토픽이 노드 간에 흩어져 있으면 메시지가 노드를 건너 라우팅되면서 단일 노드 측정값보다 처리량이 떨어진다. 그래서 산정한 구성 그대로 한 번은 전체 부하 테스트를 돌려서 실제로 목표 커넥션과 처리량이 나오는지 확인하고, 안 나오면 노드를 더하거나 토픽 설계를 손본다.</p> <h2 id=정합성-검증-시점>정합성 검증 시점<a class=headerlink href=#정합성-검증-시점 title="Permanent link">&para;</a></h2> <p>부하 테스트는 처리량과 커넥션 숫자만 보는 게 아니다. 그 숫자 뒤에서 메시지가 실제로 전달됐는지 확인하는 게 빠져 있으면 "브로커는 초당 10만을 처리했다"는 결론이 맞는지 알 수가 없다.</p> <p>정합성 검증 시점은 크게 두 가지다. 발행 직후 ACK를 보는 방법, 테스트가 끝난 뒤 발행·수신 총량을 맞추는 방법. 둘은 잡을 수 있는 문제가 다르다.</p> <h3 id=발행-직후-ack-기반-검증>발행 직후 ACK 기반 검증<a class=headerlink href=#발행-직후-ack-기반-검증 title="Permanent link">&para;</a></h3> <p>QoS 1에서 발행자가 PUBLISH를 보내면 브로커는 수신 즉시 PUBACK을 돌려준다. ACK는 "브로커가 받았다"는 보장이지 "구독자가 받았다"는 보장이 아니다. 이 차이를 흐릿하게 두면 나중에 혼난다.</p> <p>emqtt_bench pub 콘솔에 send rate 외에 in-flight 수가 찍힌다. 이게 계속 오르기만 하고 떨어지지 않으면 PUBACK이 제때 안 오고 있다는 신호다. 브로커 부하 시 PUBACK 지연은 두 곳에서 온다. 브로커 입력 큐가 밀리거나 네트워크 RTT가 늘어서다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>./bin/emqtt_bench<span class=w> </span>pub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=w>  </span>-h<span class=w> </span><span class=m>10</span>.0.0.10<span class=w> </span>-c<span class=w> </span><span class=m>1000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=w>  </span>-t<span class=w> </span><span class=s2>&quot;bench/%i&quot;</span><span class=w> </span>-q<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a><span class=w>  </span>-I<span class=w> </span><span class=m>100</span><span class=w> </span>-s<span class=w> </span><span class=m>256</span>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a><span class=c1># 콘솔에 찍히는 current in-flight 가 부하 내내 낮게 유지돼야 한다</span>
-</span></code></pre></div> <p>ACK 기반으로 잡을 수 있는 건 발행 실패와 브로커 측 수신 지연이다. 구독자가 메시지를 못 받는 건 이 단계에서 안 보인다. 발행이 모두 PUBACK을 받았는데 구독자가 절반밖에 못 받았다면, 브로커 내부 라우팅이나 구독자 쪽 소비 속도 문제다.</p> <p>QoS 0은 PUBACK이 없다. 브로커가 받았는지 발행자는 알 방법이 없다. QoS 0 테스트에서 "초당 10만 발행"은 "발행 시도 10만"이지 "브로커 수신 10만"이 아닐 수 있다.</p> <h3 id=소비-완료-후-집계-검증>소비 완료 후 집계 검증<a class=headerlink href=#소비-완료-후-집계-검증 title="Permanent link">&para;</a></h3> <p>부하 테스트가 끝난 뒤 발행 총수와 수신 총수를 맞추는 방식이다. 페이로드에 시퀀스 번호를 심어 두면 테스트 종료 후 갭과 중복을 찾을 수 있다. 갭은 유실이고, 같은 seq가 두 번 이상 오면 중복이다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=kn>import</span><span class=w> </span><span class=nn>json</span><span class=o>,</span><span class=w> </span><span class=nn>time</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=k>def</span><span class=w> </span><span class=nf>make_payload</span><span class=p>(</span><span class=n>seq</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>publisher_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bytes</span><span class=p>:</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>    <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>({</span>
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>        <span class=s2>&quot;seq&quot;</span><span class=p>:</span> <span class=n>seq</span><span class=p>,</span>
-</span><span id=__span-15-6><a id=__codelineno-15-6 name=__codelineno-15-6 href=#__codelineno-15-6></a>        <span class=s2>&quot;pub_id&quot;</span><span class=p>:</span> <span class=n>publisher_id</span><span class=p>,</span>
-</span><span id=__span-15-7><a id=__codelineno-15-7 name=__codelineno-15-7 href=#__codelineno-15-7></a>        <span class=s2>&quot;ts&quot;</span><span class=p>:</span> <span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span>
-</span><span id=__span-15-8><a id=__codelineno-15-8 name=__codelineno-15-8 href=#__codelineno-15-8></a>    <span class=p>})</span><span class=o>.</span><span class=n>encode</span><span class=p>()</span>
-</span></code></pre></div> <p>QoS 0은 유실이 날 수 있고 중복이 없다. QoS 1은 브로커→구독자 구간에서 재전송이 일어나면 중복이 나온다. QoS 2는 정상 운영에서 중복이 없어야 하는데 재접속이 겹치면 in-flight 메시지가 한 번 더 올 수 있다.</p> <p>이 방식에서 함정이 하나 있다. 부하를 멈춘 직후 바로 수신 총수를 세면 아직 전달 중인 메시지를 놓친다. 발행이 끝났어도 브로커에서 구독자로 가는 중인 메시지가 남아있다. drain time이라고 부르는 대기 구간인데, 부하 종료 후 30초~2분을 기다린 뒤 수신 집계를 마감한다. 이 대기 없이 집계하면 정상 브로커를 유실이 있는 것처럼 잘못 판단한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=n>DRAIN_SECONDS</span> <span class=o>=</span> <span class=mi>60</span>  <span class=c1># 부하 종료 후 1분 대기</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a><span class=n>received</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a><span class=n>duplicates</span> <span class=o>=</span> <span class=mi>0</span>
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a>
-</span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a><span class=k>def</span><span class=w> </span><span class=nf>on_message</span><span class=p>(</span><span class=n>seq</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
-</span><span id=__span-16-7><a id=__codelineno-16-7 name=__codelineno-16-7 href=#__codelineno-16-7></a>    <span class=k>global</span> <span class=n>duplicates</span>
-</span><span id=__span-16-8><a id=__codelineno-16-8 name=__codelineno-16-8 href=#__codelineno-16-8></a>    <span class=k>if</span> <span class=n>seq</span> <span class=ow>in</span> <span class=n>received</span><span class=p>:</span>
-</span><span id=__span-16-9><a id=__codelineno-16-9 name=__codelineno-16-9 href=#__codelineno-16-9></a>        <span class=n>duplicates</span> <span class=o>+=</span> <span class=mi>1</span>
-</span><span id=__span-16-10><a id=__codelineno-16-10 name=__codelineno-16-10 href=#__codelineno-16-10></a>    <span class=n>received</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>seq</span><span class=p>)</span>
-</span><span id=__span-16-11><a id=__codelineno-16-11 name=__codelineno-16-11 href=#__codelineno-16-11></a>
-</span><span id=__span-16-12><a id=__codelineno-16-12 name=__codelineno-16-12 href=#__codelineno-16-12></a><span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>DRAIN_SECONDS</span><span class=p>)</span>
-</span><span id=__span-16-13><a id=__codelineno-16-13 name=__codelineno-16-13 href=#__codelineno-16-13></a>
-</span><span id=__span-16-14><a id=__codelineno-16-14 name=__codelineno-16-14 href=#__codelineno-16-14></a><span class=n>published_seqs</span> <span class=o>=</span> <span class=nb>set</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>total_published</span><span class=p>))</span>
-</span><span id=__span-16-15><a id=__codelineno-16-15 name=__codelineno-16-15 href=#__codelineno-16-15></a><span class=n>lost</span> <span class=o>=</span> <span class=n>published_seqs</span> <span class=o>-</span> <span class=n>received</span>
-</span><span id=__span-16-16><a id=__codelineno-16-16 name=__codelineno-16-16 href=#__codelineno-16-16></a><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;유실: </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>lost</span><span class=p>)</span><span class=si>}</span><span class=s2>, 중복: </span><span class=si>{</span><span class=n>duplicates</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span></code></pre></div> <p>drain time을 얼마로 잡을지는 QoS와 구독자 소비 속도에 달려 있다. QoS 1에서 구독자가 느리면 브로커 session queue에 메시지가 쌓이고, 한꺼번에 소비되는 데 시간이 걸린다. drain time 동안에도 수신 총수가 계속 오르고 있으면 아직 끝나지 않은 거다.</p> <h3 id=유실중복-감지-시점-설계>유실·중복 감지 시점 설계<a class=headerlink href=#유실중복-감지-시점-설계 title="Permanent link">&para;</a></h3> <p>실시간으로 볼지 배치로 볼지는 목적에 따라 다르다.</p> <p>실시간 감지는 구독자가 seq를 받을 때마다 직전 seq와 연속인지 체크한다. 부하 중에 유실이 어느 시점에 집중되는지 보려면 실시간 감지가 필요하다. 처리량이 특정 임계점을 넘는 순간 유실이 터지면, 그 임계점이 노드의 실제 한계다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=n>expected_seq</span> <span class=o>=</span> <span class=p>{}</span>  <span class=c1># {publisher_id: expected_seq}</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a>
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=k>def</span><span class=w> </span><span class=nf>check_realtime</span><span class=p>(</span><span class=n>pub_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>seq</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a>    <span class=n>exp</span> <span class=o>=</span> <span class=n>expected_seq</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>pub_id</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
-</span><span id=__span-17-5><a id=__codelineno-17-5 name=__codelineno-17-5 href=#__codelineno-17-5></a>    <span class=k>if</span> <span class=n>seq</span> <span class=o>&gt;</span> <span class=n>exp</span><span class=p>:</span>
-</span><span id=__span-17-6><a id=__codelineno-17-6 name=__codelineno-17-6 href=#__codelineno-17-6></a>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;[</span><span class=si>{</span><span class=n>pub_id</span><span class=si>}</span><span class=s2>] 갭: </span><span class=si>{</span><span class=n>exp</span><span class=si>}</span><span class=s2>~</span><span class=si>{</span><span class=n>seq</span><span class=o>-</span><span class=mi>1</span><span class=si>}</span><span class=s2>, 유실 </span><span class=si>{</span><span class=n>seq</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>exp</span><span class=si>}</span><span class=s2>건&quot;</span><span class=p>)</span>
-</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a>    <span class=k>elif</span> <span class=n>seq</span> <span class=o>&lt;</span> <span class=n>exp</span><span class=p>:</span>
-</span><span id=__span-17-8><a id=__codelineno-17-8 name=__codelineno-17-8 href=#__codelineno-17-8></a>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;[</span><span class=si>{</span><span class=n>pub_id</span><span class=si>}</span><span class=s2>] 중복: seq=</span><span class=si>{</span><span class=n>seq</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span><span id=__span-17-9><a id=__codelineno-17-9 name=__codelineno-17-9 href=#__codelineno-17-9></a>    <span class=n>expected_seq</span><span class=p>[</span><span class=n>pub_id</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>exp</span><span class=p>,</span> <span class=n>seq</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
-</span></code></pre></div> <p>실시간 갭 감지는 순서가 뒤바뀐 메시지를 유실로 잘못 잡는 경우가 있다. 여러 발행자가 같은 토픽에 쓰거나 클러스터에서 노드 간 라우팅이 일어나면 순서가 섞인다. 실시간 감지는 "뭔가 이상하다"는 신호로만 쓰고, 정확한 유실 수는 배치 집계로 확인한다.</p> <p>배치 집계는 drain time 이후 전체 seq 집합을 비교한다. 정확하지만 테스트가 끝나야 결과가 나온다. 보통 실시간으로 유실 발생 시점을 잡고, 배치로 최종 유실율을 계산하는 식으로 함께 쓴다.</p> <p>구독자 수가 많으면 집계 자체도 고려해야 한다. 구독자 1,000개가 각자 수신 seq를 저장했다가 합치면 데이터 양이 크다. 구독자마다 자기 범위의 seq를 검증하게 하거나, 샘플링해서 전체 정합성을 추정하는 방법이 있다.</p> <h2 id=테스트를-돌리는-순서>테스트를 돌리는 순서<a class=headerlink href=#테스트를-돌리는-순서 title="Permanent link">&para;</a></h2> <p>정리하면 부하 테스트는 대체로 이 순서로 한다.</p> <p>클라이언트 머신부터 튜닝한다. ulimit, ip_local_port_range, tcp_tw_reuse를 올리지 않으면 브로커를 측정하기도 전에 클라이언트가 먼저 죽어서 시간만 버린다. 그다음 브로커 노드의 somaxconn, fd, acceptors를 올린다. 이게 안 돼 있으면 측정값이 커널 한계에 막힌 가짜 숫자다.</p> <p>준비가 되면 단일 노드에 커넥션을 천천히 쌓아 용량 천장을 찾고, 따로 처리량 천장을 찾는다. 그다음 establish 간격을 0으로 줄여 재접속 폭주를 재현하고, 실제 쓸 QoS와 TLS 설정 그대로 다시 측정한다. 마지막으로 산정한 노드 수로 클러스터를 띄워 전체 부하로 검증한다.</p> <p>이 과정에서 dashboard와 Grafana를 계속 띄워놓고 establish rate, 메시지 in/out, 메모리, GC를 같이 본다. 클라이언트 콘솔 숫자만 믿으면 클라이언트 병목을 브로커 한계로 오해한다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Authentication/API_Key_Auth/ >API Key 인증 구현</a></li> <li><a href=../../API/API_Abuse_Prevention/ >API 남용 방지 실무 패턴</a></li> <li><a href=../../API/API_Pagination_Patterns/ >API 페이지네이션 패턴</a></li> <li><a href=../APNS/ >APNs (Apple Push Notification service) 직접 연동</a></li> <li><a href=../DLQ_Reprocessing_Strategy/ >DLQ 재처리 자동화</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../EMQX/ class="md-footer__link md-footer__link--prev" aria-label="이전: EMQX"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> EMQX </div> </div> </a> <a href=../ISBM/ class="md-footer__link md-footer__link--next" aria-label="다음: ISBM"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> ISBM </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Backend/Messaging/EMQX_Load_Testing/">
+      
+      
+        <link rel="prev" href="../EMQX/">
+      
+      
+        <link rel="next" href="../ISBM/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>EMQX 부하 테스트 - 수백만 커넥션 검증 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#emqx-부하-테스트" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EMQX 부하 테스트 - 수백만 커넥션 검증
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Authentication/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../API/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Design
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Messaging
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2_4" id="__nav_4_2_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Messaging
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Message_Queue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    메시지 큐 & 이벤트 기반 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MQ_Delivery_Guarantee_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Queue 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DLQ_Reprocessing_Strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DLQ 재처리 자동화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Kafka_Consumer_Group_Rebalancing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consumer Group 재조정
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Kafka_Exactly_Once_Semantics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kafka EOS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Rabbit_MQ/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RabbitMQ 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RabbitMQ_MQTT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RabbitMQ MQTT Plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EMQX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EMQX
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EMQX 부하 테스트
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EMQX 부하 테스트
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#emqtt_bench" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        emqtt_bench
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#동시-커넥션-부하" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        동시 커넥션 부하
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#publish--subscribe-처리량" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        publish / subscribe 처리량
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#커넥션-폭주-재현" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커넥션 폭주 재현
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#클라이언트-쪽이-먼저-걸린다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라이언트 쪽이 먼저 걸린다
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="클라이언트 쪽이 먼저 걸린다">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#소스-포트-고갈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        소스 포트 고갈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-descriptor-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        file descriptor 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time_wait-누적" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TIME_WAIT 누적
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#somaxconn-브로커-쪽" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        somaxconn (브로커 쪽)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tls-핸드셰이크-영향" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS 핸드셰이크 영향
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#측정-중-봐야-할-지표" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        측정 중 봐야 할 지표
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#노드-한-대-용량-측정과-클러스터-산정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        노드 한 대 용량 측정과 클러스터 산정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정합성-검증-시점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정합성 검증 시점
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="정합성 검증 시점">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#발행-직후-ack-기반-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        발행 직후 ACK 기반 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#소비-완료-후-집계-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        소비 완료 후 집계 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#유실중복-감지-시점-설계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        유실·중복 감지 시점 설계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#테스트를-돌리는-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        테스트를 돌리는 순서
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ISBM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ISBM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../FCM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FCM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../APNS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    APNs 직접 연동
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Caching/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Logging/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging & Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Performance/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Resilience/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilience
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Standards/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standards
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../i18n/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    i18n
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Scheduling/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduling
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Tools/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Architecture/Clean_Architecture/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#emqtt_bench" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        emqtt_bench
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#동시-커넥션-부하" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        동시 커넥션 부하
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#publish--subscribe-처리량" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        publish / subscribe 처리량
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#커넥션-폭주-재현" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커넥션 폭주 재현
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#클라이언트-쪽이-먼저-걸린다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라이언트 쪽이 먼저 걸린다
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="클라이언트 쪽이 먼저 걸린다">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#소스-포트-고갈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        소스 포트 고갈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-descriptor-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        file descriptor 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time_wait-누적" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TIME_WAIT 누적
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#somaxconn-브로커-쪽" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        somaxconn (브로커 쪽)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tls-핸드셰이크-영향" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS 핸드셰이크 영향
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#측정-중-봐야-할-지표" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        측정 중 봐야 할 지표
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#노드-한-대-용량-측정과-클러스터-산정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        노드 한 대 용량 측정과 클러스터 산정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정합성-검증-시점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정합성 검증 시점
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="정합성 검증 시점">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#발행-직후-ack-기반-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        발행 직후 ACK 기반 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#소비-완료-후-집계-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        소비 완료 후 집계 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#유실중복-감지-시점-설계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        유실·중복 감지 시점 설계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#테스트를-돌리는-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        테스트를 돌리는 순서
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">backend</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">messaging</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">performance</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="emqx-부하-테스트">EMQX 부하 테스트<a class="headerlink" href="#emqx-부하-테스트" title="Permanent link">&para;</a></h1>
+<p><a href="../EMQX/">EMQX.md</a>에서 리스너 설정, 인증, 클러스터, Rule Engine을 다뤘다. 그 문서는 "어떻게 운영하느냐"고, 이 문서는 "정말 버티느냐를 어떻게 확인하느냐"다. max_connections를 1,024,000으로 박아놨다고 노드 한 대가 백만 커넥션을 받는 게 아니다. 그 숫자는 상한일 뿐이고, 실제로 몇 개까지 붙는지는 부하를 걸어보기 전엔 모른다.</p>
+<p>문제는 부하 테스트를 처음 돌려보면 EMQX가 아니라 테스트 클라이언트 쪽이 먼저 죽는다는 것이다. 커넥션 5만 개쯤에서 더 이상 안 붙길래 브로커 한계인 줄 알았는데 알고 보니 클라이언트 머신의 소스 포트가 동난 거였다. 이 문서는 그런 함정을 먼저 정리하고, 그다음 노드 한 대 용량을 측정해서 클러스터 노드 수를 산정하는 순서로 간다.</p>
+<h2 id="emqtt_bench">emqtt_bench<a class="headerlink" href="#emqtt_bench" title="Permanent link">&para;</a></h2>
+<p>EMQX 진영에서 공식으로 쓰는 부하 도구가 emqtt_bench다. Erlang으로 짜여 있어서 한 프로세스가 커넥션 수만 개를 들고도 가볍다. JMeter MQTT 플러그인이나 직접 짠 파이썬 스크립트로 동시 커넥션 수만 개를 만들려면 클라이언트 쪽이 먼저 터지는데, emqtt_bench는 그 부담이 작다.</p>
+<p>설치는 릴리스 바이너리를 받거나 소스를 빌드한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 릴리스 바이너리 (Linux x86_64)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>wget<span class="w"> </span>https://github.com/emqx/emqtt-bench/releases/download/0.4.30/emqtt-bench-0.4.30-ubuntu22.04-amd64.tar.gz
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>tar<span class="w"> </span>zxf<span class="w"> </span>emqtt-bench-0.4.30-ubuntu22.04-amd64.tar.gz
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">cd</span><span class="w"> </span>emqtt-bench<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./bin/emqtt_bench<span class="w"> </span>--help
+</span></code></pre></div>
+<p>Erlang/OTP가 깔린 환경이면 소스에서 빌드해도 된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/emqx/emqtt-bench
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>emqtt-bench<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make
+</span></code></pre></div>
+<p>서브커맨드는 세 개를 주로 쓴다. <code>conn</code>은 커넥션만 맺고 유지한다(동시 접속 용량 측정용). <code>pub</code>은 메시지를 발행한다. <code>sub</code>은 구독한다. 처리량을 보려면 pub과 sub을 따로 띄워서 한쪽이 쏘고 한쪽이 받게 한다.</p>
+<h2 id="동시-커넥션-부하">동시 커넥션 부하<a class="headerlink" href="#동시-커넥션-부하" title="Permanent link">&para;</a></h2>
+<p>가장 먼저 보는 건 노드 한 대가 커넥션을 몇 개까지 받느냐다. <code>conn</code>으로 커넥션만 쌓는다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./bin/emqtt_bench<span class="w"> </span>conn<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">1883</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>-c<span class="w"> </span><span class="m">100000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span>-i<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span>--prefix<span class="w"> </span>bench
+</span></code></pre></div>
+<ul>
+<li><code>-c 100000</code>: 동시 커넥션 10만 개</li>
+<li><code>-i 1</code>: 커넥션을 1ms 간격으로 맺는다(establish 간격)</li>
+<li><code>--prefix bench</code>: clientid 접두사. 여러 클라이언트 머신을 쓸 때 충돌을 피한다</li>
+</ul>
+<p><code>-i</code>를 0으로 두면 10만 개를 최대한 빨리 한꺼번에 맺으려 든다. 이러면 establish rate가 클라이언트 머신 CPU에 막혀서 의미 없는 측정이 된다. 처음엔 1ms 정도로 두고 establish가 안정적으로 올라가는지 본다. 커넥션 establish 자체의 한계를 보려면 그때 <code>-i</code>를 줄인다.</p>
+<p>여러 머신에서 같은 브로커로 쏠 때는 clientid가 겹치면 안 된다. MQTT는 같은 clientid로 두 번째 접속이 오면 첫 번째를 끊는다(takeover). 부하 테스트 중에 커넥션 수가 올라가다 말고 진동하면 clientid 충돌로 서로 쫓아내는 중일 수 있다. <code>--prefix</code>를 머신마다 다르게 준다.</p>
+<p>커넥션을 유지한 채로 keepalive PINGREQ만 오가는 상태가 IoT 디바이스의 평상시 모습이다. 대부분의 디바이스는 1초에 한 번 데이터를 쏘지 않는다. 몇 분에 한 번 상태를 보내고 나머지 시간은 그냥 붙어만 있다. 그래서 "동시 커넥션 100만"과 "초당 메시지 100만"은 완전히 다른 부하고, 용량 산정도 따로 해야 한다.</p>
+<h2 id="publish--subscribe-처리량">publish / subscribe 처리량<a class="headerlink" href="#publish--subscribe-처리량" title="Permanent link">&para;</a></h2>
+<p>커넥션이 붙는 것과 메시지가 흐르는 건 별개다. 처리량은 sub을 먼저 띄워 받을 쪽을 만들고, pub으로 쏜다.</p>
+<p>받는 쪽(구독자 1,000개가 같은 토픽 패턴 구독):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./bin/emqtt_bench<span class="w"> </span>sub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">1883</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>-c<span class="w"> </span><span class="m">1000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>-t<span class="w"> </span><span class="s2">&quot;bench/%i&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>-q<span class="w"> </span><span class="m">1</span>
+</span></code></pre></div>
+<p>쏘는 쪽(발행자 1,000개가 각자 토픽에 초당 메시지):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>./bin/emqtt_bench<span class="w"> </span>pub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">1883</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>-c<span class="w"> </span><span class="m">1000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>-t<span class="w"> </span><span class="s2">&quot;bench/%i&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span>-I<span class="w"> </span><span class="m">1000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span>-s<span class="w"> </span><span class="m">256</span>
+</span></code></pre></div>
+<ul>
+<li><code>-t "bench/%i"</code>: <code>%i</code>가 클라이언트 인덱스로 치환된다. pub의 <code>bench/0</code>을 sub의 <code>bench/0</code>이 받는다</li>
+<li><code>-I 1000</code>: 메시지 발행 간격 1,000ms(클라이언트당 초당 1건)</li>
+<li><code>-s 256</code>: 페이로드 256바이트</li>
+<li><code>-q 1</code>: QoS 1</li>
+</ul>
+<p>여기서 토픽 매칭을 맞추는 게 핵심이다. pub과 sub의 <code>-c</code>와 <code>-t %i</code>가 짝이 맞아야 발행한 메시지를 구독자가 실제로 받는다. sub 쪽 콘솔에 찍히는 수신 rate가 pub 쪽 발행 rate를 따라오는지 본다. 발행은 초당 10만인데 수신이 8만이면 어딘가에서 메시지가 밀리거나 버려지고 있다는 신호다. QoS 0이면 브로커가 부하 시 그냥 버리고, QoS 1이면 in-flight에 쌓이면서 지연이 늘어난다.</p>
+<p>QoS를 바꿔가며 측정하면 차이가 크게 난다. QoS 0은 fire-and-forget이라 처리량이 제일 높다. QoS 1은 PUBACK이 오가서 왕복이 늘고, QoS 2는 4-way 핸드셰이크라 같은 메시지 수에도 패킷이 네 배다. 실제 서비스에서 쓸 QoS로 테스트해야 의미가 있다. QoS 0으로 측정한 처리량을 보고 용량을 잡았다가 운영에서 QoS 1로 돌리면 숫자가 안 맞는다. QoS별 비용 차이는 <a href="../EMQX/#qos-2-메시지-적체">EMQX.md의 QoS 2 메시지 적체</a> 항목과 같은 맥락이다.</p>
+<h2 id="커넥션-폭주-재현">커넥션 폭주 재현<a class="headerlink" href="#커넥션-폭주-재현" title="Permanent link">&para;</a></h2>
+<p>운영에서 제일 무서운 건 평상시 부하가 아니라 동시 재접속이다. 통신사 기지국이 잠깐 끊겼다 복구되면, 그 아래 붙어 있던 디바이스 수십만 대가 거의 동시에 재접속을 시도한다. 평상시엔 잘 돌던 브로커가 이 순간 accept 큐가 밀리고 인증 백엔드가 터진다. 이걸 테스트에서 재현해야 한다.</p>
+<p>방법은 establish 간격 <code>-i</code>를 극단적으로 줄여서 짧은 시간에 커넥션을 몰아넣는 것이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 평상시: 1ms 간격으로 천천히</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>./bin/emqtt_bench<span class="w"> </span>conn<span class="w"> </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span>-c<span class="w"> </span><span class="m">200000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 폭주: 간격 없이 최대 속도로 20만 개를 던진다</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>./bin/emqtt_bench<span class="w"> </span>conn<span class="w"> </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span>-c<span class="w"> </span><span class="m">200000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">0</span>
+</span></code></pre></div>
+<p>폭주 시나리오에서 봐야 할 건 두 가지다. 첫째, establish rate가 어디서 천장을 치는가. 리스너의 <code>acceptors</code> 수가 부족하면 여기서 막힌다(<a href="../EMQX/#리스너-설정">EMQX.md 리스너 설정</a>의 acceptors 항목). 둘째, 인증 백엔드가 버티는가. DB 인증을 쓰면 재접속 폭주 동안 인증 쿼리가 초당 수만 번 날아간다. 인덱스 안 걸린 쿼리 하나가 이 순간 DB를 멈춰 세운다.</p>
+<p>폭주 테스트는 한 클라이언트 머신으로는 부족한 경우가 많다. 클라이언트 쪽 establish 능력이 먼저 한계라서 브로커를 충분히 못 때린다. 여러 머신에서 동시에 <code>-i 0</code>으로 쏴야 진짜 폭주가 재현된다. 머신 5대를 같은 시각에 띄우려면 간단하게 SSH로 동시 실행하거나 <code>pdsh</code> 같은 걸 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 5대 머신에 동시에 던지기 (각 머신 prefix 다르게)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="m">5</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>ssh<span class="w"> </span>bench<span class="nv">$i</span><span class="w"> </span><span class="s2">&quot;cd emqtt-bench &amp;&amp; ./bin/emqtt_bench conn \</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="s2">    -h 10.0.0.10 -c 200000 -i 0 --prefix m</span><span class="nv">$i</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">&amp;</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">done</span>
+</span></code></pre></div>
+<p>JWT 인증으로 바꾸면 폭주 내성이 확 좋아진다. JWT는 서명만 검증하고 DB를 안 보니까 재접속 폭주 동안에도 외부 의존이 없다. DB 인증으로 폭주를 못 버티면 JWT 전환을 검토할 단계다.</p>
+<h2 id="클라이언트-쪽이-먼저-걸린다">클라이언트 쪽이 먼저 걸린다<a class="headerlink" href="#클라이언트-쪽이-먼저-걸린다" title="Permanent link">&para;</a></h2>
+<p>여기가 부하 테스트에서 제일 시간 잡아먹는 부분이다. 브로커가 아니라 부하를 거는 쪽 OS 한계에 먼저 막힌다. 측정값이 이상하면 브로커보다 클라이언트를 먼저 의심한다.</p>
+<h3 id="소스-포트-고갈">소스 포트 고갈<a class="headerlink" href="#소스-포트-고갈" title="Permanent link">&para;</a></h3>
+<p>이게 가장 먼저, 가장 자주 걸린다. 클라이언트 머신이 브로커로 TCP 커넥션을 하나 맺을 때마다 로컬 소스 포트를 하나 쓴다. 소스 포트 범위는 기본적으로 <code>net.ipv4.ip_local_port_range</code>로 정해지고 보통 32768~60999, 즉 약 2만8천 개다. 한 클라이언트 머신에서 한 브로커 IP로 맺을 수 있는 커넥션이 이 범위에 묶인다. 커넥션이 2만8천 개쯤에서 더 안 붙으면 거의 100% 이거다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 현재 범위 확인</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>cat<span class="w"> </span>/proc/sys/net/ipv4/ip_local_port_range
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># 32768   60999</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># 범위를 넓힌다 (1025~65535, 약 6만4천 개)</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.ip_local_port_range<span class="o">=</span><span class="s2">&quot;1025 65535&quot;</span>
+</span></code></pre></div>
+<p>범위를 최대로 넓혀도 한 머신에서 한 브로커 IP로는 6만 개가 천장이다. 출발지 IP 하나 + 목적지 IP/포트 하나 조합에서 구분 가능한 소스 포트가 그게 전부라서다. 그 이상을 한 머신에서 만들려면 클라이언트에 IP를 여러 개 붙이거나(<code>-S</code> 옵션으로 소스 IP 지정), 브로커 리스너 포트를 여러 개 두거나, 클라이언트 머신 자체를 여러 대로 늘려야 한다. 백만 커넥션 테스트를 하려면 클라이언트가 최소 20~30대는 있어야 하는 이유가 이거다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># 클라이언트에 보조 IP를 여러 개 붙이고 라운드로빈으로 쓰기</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>./bin/emqtt_bench<span class="w"> </span>conn<span class="w"> </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span>-c<span class="w"> </span><span class="m">100000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--ifaddr<span class="w"> </span><span class="m">192</span>.168.1.10,192.168.1.11,192.168.1.12
+</span></code></pre></div>
+<h3 id="file-descriptor-한계">file descriptor 한계<a class="headerlink" href="#file-descriptor-한계" title="Permanent link">&para;</a></h3>
+<p>소켓 하나가 fd 하나다. 이건 브로커 쪽(<a href="../EMQX/#file-descriptor-한계">EMQX.md의 file descriptor 한계</a>)뿐 아니라 클라이언트 쪽에도 똑같이 적용된다. emqtt_bench를 돌리는 머신의 <code>ulimit -n</code>이 1024면 커넥션 1,000개 남짓에서 <code>Too many open files</code>가 뜬다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 현재 한계</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">ulimit</span><span class="w"> </span>-n
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># 셸 세션에서 올리기 (root거나 hard limit 안에서)</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="nb">ulimit</span><span class="w"> </span>-n<span class="w"> </span><span class="m">1048576</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># 영구 설정: /etc/security/limits.conf</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># *  soft  nofile  1048576</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># *  hard  nofile  1048576</span>
+</span></code></pre></div>
+<p>systemd로 부하 도구를 띄우면 셸 ulimit이 안 먹으니 unit의 <code>LimitNOFILE</code>을 따로 올린다. 커널 전역 한계 <code>fs.file-max</code>도 충분히 큰지 본다.</p>
+<h3 id="time_wait-누적">TIME_WAIT 누적<a class="headerlink" href="#time_wait-누적" title="Permanent link">&para;</a></h3>
+<p>커넥션을 맺고 끊기를 반복하는 테스트(폭주 시나리오를 여러 번 돌릴 때)는 닫힌 소켓이 TIME_WAIT 상태로 남는다. TIME_WAIT 소켓도 소스 포트를 잡고 있어서, 짧은 시간에 많이 쌓이면 포트가 또 동난다. 새 테스트를 돌리려는데 자꾸 connection 실패가 나면 <code>ss -s</code>로 TIME_WAIT 수를 본다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ss<span class="w"> </span>-s
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># TCP:   58000 (estab 200, closed 57000, timewait 56800 ...)</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># TIME_WAIT 소켓 재사용 허용 (클라이언트 쪽에서만 신중히)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.tcp_tw_reuse<span class="o">=</span><span class="m">1</span>
+</span></code></pre></div>
+<p><code>tcp_tw_reuse=1</code>은 부하 클라이언트 머신에서 켜는 건 괜찮지만, 실제 서비스 서버에서 NAT 뒤 클라이언트가 섞인 환경에 켜면 문제가 생길 수 있으니 테스트 머신에서만 쓴다.</p>
+<h3 id="somaxconn-브로커-쪽">somaxconn (브로커 쪽)<a class="headerlink" href="#somaxconn-브로커-쪽" title="Permanent link">&para;</a></h3>
+<p>이건 브로커 쪽 커널 파라미터인데 폭주 테스트와 직결된다. <code>net.core.somaxconn</code>은 TCP accept 큐 길이다. establish가 한꺼번에 몰리면 아직 accept되지 않은 커넥션이 이 큐에 쌓이는데, 기본값 128~4096이면 폭주 시 넘쳐서 커넥션이 거부된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 브로커 노드에서</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>sysctl<span class="w"> </span>-w<span class="w"> </span>net.core.somaxconn<span class="o">=</span><span class="m">65535</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.tcp_max_syn_backlog<span class="o">=</span><span class="m">65535</span>
+</span></code></pre></div>
+<p>폭주 테스트에서 establish rate가 천장을 치는데 EMQX의 acceptors는 여유가 있다면 somaxconn을 의심한다. 커널 큐에서 막히면 EMQX는 아예 커넥션을 못 보고, dashboard에는 establish가 멈춘 것처럼 보인다.</p>
+<h2 id="tls-핸드셰이크-영향">TLS 핸드셰이크 영향<a class="headerlink" href="#tls-핸드셰이크-영향" title="Permanent link">&para;</a></h2>
+<p>평문(1883)으로 측정한 처리량을 TLS(8883)에 그대로 적용하면 안 된다. TLS 핸드셰이크는 비대칭 암호 연산이 들어가서 establish 비용이 평문보다 한 자릿수 이상 비싸다. 평문은 establish가 초당 수만인데 TLS는 같은 노드에서 초당 수천으로 떨어지는 경우가 흔하다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># TLS 커넥션 부하</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>./bin/emqtt_bench<span class="w"> </span>conn<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">8883</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span>-c<span class="w"> </span><span class="m">50000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span>-i<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span>--ssl
+</span></code></pre></div>
+<p>여기서 두 가지를 구분해야 한다. 핸드셰이크 비용(establish 시점에만 든다)과 유지 비용(붙어 있는 동안 든다)이다. 한 번 핸드셰이크가 끝나면 그 뒤 메시지 송수신은 대칭 암호라 평문 대비 오버헤드가 작다. 그래서 커넥션을 천천히 맺어 오래 유지하는 패턴이면 TLS가 동시 커넥션 총량에 주는 영향은 생각보다 작다. 반대로 디바이스가 자주 끊고 재접속하는 패턴이면 매번 핸드셰이크가 일어나서 establish CPU가 노드 용량을 결정한다.</p>
+<p>재접속 폭주 + TLS 조합이 최악이다. 수십만 디바이스가 동시에 TLS 핸드셰이크를 하면 CPU가 핸드셰이크 연산에 다 묶여서 establish rate가 바닥을 친다. 이 조합을 쓸 거면 반드시 그 시나리오 그대로 테스트한다. 평문 폭주는 잘 버티는데 TLS 폭주에서 무너지는 노드를 자주 본다.</p>
+<p>완화 방법으로 TLS 세션 재사용(session resumption)을 켜면 재접속 시 full handshake를 건너뛴다. 다만 디바이스 클라이언트가 세션 티켓을 저장하고 재사용하도록 구현돼 있어야 효과가 있다. 펌웨어가 매번 새 핸드셰이크를 하면 서버에서 재사용을 켜도 소용없다. 부하 테스트할 때 디바이스의 실제 재접속 동작을 흉내 내야 하는 이유다.</p>
+<h2 id="측정-중-봐야-할-지표">측정 중 봐야 할 지표<a class="headerlink" href="#측정-중-봐야-할-지표" title="Permanent link">&para;</a></h2>
+<p>부하를 거는 동안 클라이언트 콘솔 숫자만 보면 안 된다. 브로커 쪽 dashboard와 Prometheus를 같이 띄워놓고 본다.</p>
+<p>dashboard(<code>http://브로커:18083</code>) Overview에서 실시간으로 보는 것:</p>
+<ul>
+<li>Connections: 현재 커넥션 수. 목표치까지 선형으로 오르다 어디서 꺾이는지 본다</li>
+<li>Connection establish rate: 초당 신규 커넥션. 폭주 테스트의 핵심 지표다. 여기가 천장을 치는 지점이 노드의 establish 한계다</li>
+<li>Messages in/out: 초당 수신/발행 메시지. pub 부하의 처리량 한계를 본다. in은 받는데 out이 안 따라오면 라우팅이나 구독자 쪽이 병목이다</li>
+<li>Dropped: 버려진 메시지. 0이 아니면 어딘가 과부하다</li>
+</ul>
+<p>Prometheus 엔드포인트를 켜서 Grafana로 보면 더 깊이 본다. EMQX.md에서 말한 <code>/api/v5/prometheus/stats</code>를 스크레이프한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>curl<span class="w"> </span>http://10.0.0.10:18083/api/v5/prometheus/stats<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;emqx_connections_count|emqx_messages_received&#39;</span>
+</span></code></pre></div>
+<p>부하 중 특히 보는 지표:</p>
+<ul>
+<li><code>emqx_connections_count</code>: 노드별 커넥션 수. 클러스터면 노드 간 분배가 고른지 본다</li>
+<li><code>emqx_messages_received</code> / <code>emqx_messages_sent</code>: 메시지 in/out 누적. rate로 환산해서 처리량을 본다</li>
+<li>VM 메모리: Erlang VM 총 메모리. 커넥션 수에 비례해 오르다 갑자기 튀면 세션 큐나 in-flight가 쌓이는 거다(<a href="../EMQX/#메모리-사용량-모니터링">EMQX.md 메모리 사용량 모니터링</a>)</li>
+<li>GC / reductions: Erlang VM의 GC 빈도와 reduction 수. 부하가 커지면 GC가 잦아지고, GC가 CPU를 많이 먹기 시작하면 그 노드는 한계에 가깝다. 처리량은 아직 여유 있어 보이는데 응답 지연이 늘면 GC를 의심한다</li>
+<li>CPU per core: Erlang 스케줄러가 코어를 고르게 쓰는지. 특정 코어만 100%면 acceptor나 특정 프로세스에 부하가 쏠린 거다</li>
+</ul>
+<p>지표를 볼 때 한 가지 숫자가 아니라 같이 움직이는 패턴을 본다. 커넥션은 계속 느는데 establish rate가 떨어지고 메모리가 가파르게 오르면, 그 노드는 곧 한계다. 그 직전 커넥션 수가 노드 한 대의 실용 용량이다.</p>
+<h2 id="노드-한-대-용량-측정과-클러스터-산정">노드 한 대 용량 측정과 클러스터 산정<a class="headerlink" href="#노드-한-대-용량-측정과-클러스터-산정" title="Permanent link">&para;</a></h2>
+<p>부하 테스트의 최종 목적은 "노드 몇 대가 필요한가"에 답하는 거다. 순서는 이렇다.</p>
+<p>먼저 노드 한 대에 커넥션을 천천히 쌓으면서 메모리/CPU/establish가 꺾이는 지점을 찾는다. 예를 들어 16코어 32GB 노드에서 커넥션 80만 개까지는 메모리가 선형으로 오르다가 그 근처에서 GC가 잦아지고 establish가 떨어진다고 하자. 그러면 이 노드의 실용 용량은 안전 마진을 빼고 60만 개쯤으로 잡는다. 천장이 80만이라고 80만으로 운영하면 재접속 폭주 한 번에 넘어간다. 평상시 용량은 천장의 70% 안쪽으로 잡는 게 안전하다.</p>
+<p>커넥션 용량과 메시지 처리량을 따로 측정해야 한다. 같은 노드가 "커넥션 60만 유지"는 되는데 "초당 메시지 30만 처리"는 안 될 수 있다. 둘은 다른 자원을 쓴다. 커넥션은 메모리와 fd, 메시지는 CPU와 네트워크다. 실제 디바이스의 메시지 빈도(몇 분에 한 번인지, 초당 몇 건인지)를 알아야 어느 쪽이 먼저 한계인지 안다. 디바이스 100만 대인데 각자 5분에 한 번 보내면 평균 초당 약 3,300건이라 처리량은 여유고 커넥션 유지가 관건이다. 반대로 디바이스 1만 대가 각자 초당 10건이면 커넥션은 적은데 처리량이 관건이다.</p>
+<p>용량이 나오면 디바이스 총수를 노드당 실용 용량으로 나눈다. 디바이스 300만 대, 노드당 60만이면 커넥션 노드 5대가 최소다. 여기에 노드 하나 죽어도 버티게 +1, 폭주 시 잠깐의 추가 부하를 위해 여유를 더한다. core-replicant 구조에서 이 커넥션 노드들은 replicant로 두고, core는 별도로 3~5대를 둔다(<a href="../EMQX/#core-replicant-아키텍처">EMQX.md core-replicant 아키텍처</a>). 커넥션 용량을 늘릴 땐 replicant만 추가하면 되니까, 위에서 잰 "노드 한 대 용량"이 곧 replicant 한 대 용량이고, 그걸로 replicant 수를 산정한다.</p>
+<p>마지막으로 산정한 노드 수로 클러스터를 실제로 띄워서 전체 부하를 다시 건다. 노드 한 대 측정값을 단순히 곱하면 안 되는 이유가 있다. 클러스터는 노드 간 라우팅 테이블 동기화 비용이 추가된다. 구독이 많고 토픽이 노드 간에 흩어져 있으면 메시지가 노드를 건너 라우팅되면서 단일 노드 측정값보다 처리량이 떨어진다. 그래서 산정한 구성 그대로 한 번은 전체 부하 테스트를 돌려서 실제로 목표 커넥션과 처리량이 나오는지 확인하고, 안 나오면 노드를 더하거나 토픽 설계를 손본다.</p>
+<h2 id="정합성-검증-시점">정합성 검증 시점<a class="headerlink" href="#정합성-검증-시점" title="Permanent link">&para;</a></h2>
+<p>부하 테스트는 처리량과 커넥션 숫자만 보는 게 아니다. 그 숫자 뒤에서 메시지가 실제로 전달됐는지 확인하는 게 빠져 있으면 "브로커는 초당 10만을 처리했다"는 결론이 맞는지 알 수가 없다.</p>
+<p>정합성 검증 시점은 크게 두 가지다. 발행 직후 ACK를 보는 방법, 테스트가 끝난 뒤 발행·수신 총량을 맞추는 방법. 둘은 잡을 수 있는 문제가 다르다.</p>
+<h3 id="발행-직후-ack-기반-검증">발행 직후 ACK 기반 검증<a class="headerlink" href="#발행-직후-ack-기반-검증" title="Permanent link">&para;</a></h3>
+<p>QoS 1에서 발행자가 PUBLISH를 보내면 브로커는 수신 즉시 PUBACK을 돌려준다. ACK는 "브로커가 받았다"는 보장이지 "구독자가 받았다"는 보장이 아니다. 이 차이를 흐릿하게 두면 나중에 혼난다.</p>
+<p>emqtt_bench pub 콘솔에 send rate 외에 in-flight 수가 찍힌다. 이게 계속 오르기만 하고 떨어지지 않으면 PUBACK이 제때 안 오고 있다는 신호다. 브로커 부하 시 PUBACK 지연은 두 곳에서 온다. 브로커 입력 큐가 밀리거나 네트워크 RTT가 늘어서다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>./bin/emqtt_bench<span class="w"> </span>pub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>-h<span class="w"> </span><span class="m">10</span>.0.0.10<span class="w"> </span>-c<span class="w"> </span><span class="m">1000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span>-t<span class="w"> </span><span class="s2">&quot;bench/%i&quot;</span><span class="w"> </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span>-I<span class="w"> </span><span class="m">100</span><span class="w"> </span>-s<span class="w"> </span><span class="m">256</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># 콘솔에 찍히는 current in-flight 가 부하 내내 낮게 유지돼야 한다</span>
+</span></code></pre></div>
+<p>ACK 기반으로 잡을 수 있는 건 발행 실패와 브로커 측 수신 지연이다. 구독자가 메시지를 못 받는 건 이 단계에서 안 보인다. 발행이 모두 PUBACK을 받았는데 구독자가 절반밖에 못 받았다면, 브로커 내부 라우팅이나 구독자 쪽 소비 속도 문제다.</p>
+<p>QoS 0은 PUBACK이 없다. 브로커가 받았는지 발행자는 알 방법이 없다. QoS 0 테스트에서 "초당 10만 발행"은 "발행 시도 10만"이지 "브로커 수신 10만"이 아닐 수 있다.</p>
+<h3 id="소비-완료-후-집계-검증">소비 완료 후 집계 검증<a class="headerlink" href="#소비-완료-후-집계-검증" title="Permanent link">&para;</a></h3>
+<p>부하 테스트가 끝난 뒤 발행 총수와 수신 총수를 맞추는 방식이다. 페이로드에 시퀀스 번호를 심어 두면 테스트 종료 후 갭과 중복을 찾을 수 있다. 갭은 유실이고, 같은 seq가 두 번 이상 오면 중복이다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">make_payload</span><span class="p">(</span><span class="n">seq</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">publisher_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        <span class="s2">&quot;seq&quot;</span><span class="p">:</span> <span class="n">seq</span><span class="p">,</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>        <span class="s2">&quot;pub_id&quot;</span><span class="p">:</span> <span class="n">publisher_id</span><span class="p">,</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>        <span class="s2">&quot;ts&quot;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+</span></code></pre></div>
+<p>QoS 0은 유실이 날 수 있고 중복이 없다. QoS 1은 브로커→구독자 구간에서 재전송이 일어나면 중복이 나온다. QoS 2는 정상 운영에서 중복이 없어야 하는데 재접속이 겹치면 in-flight 메시지가 한 번 더 올 수 있다.</p>
+<p>이 방식에서 함정이 하나 있다. 부하를 멈춘 직후 바로 수신 총수를 세면 아직 전달 중인 메시지를 놓친다. 발행이 끝났어도 브로커에서 구독자로 가는 중인 메시지가 남아있다. drain time이라고 부르는 대기 구간인데, 부하 종료 후 30초~2분을 기다린 뒤 수신 집계를 마감한다. 이 대기 없이 집계하면 정상 브로커를 유실이 있는 것처럼 잘못 판단한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">DRAIN_SECONDS</span> <span class="o">=</span> <span class="mi">60</span>  <span class="c1"># 부하 종료 후 1분 대기</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">received</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">duplicates</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_message</span><span class="p">(</span><span class="n">seq</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="k">global</span> <span class="n">duplicates</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="k">if</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">received</span><span class="p">:</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>        <span class="n">duplicates</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="n">received</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">DRAIN_SECONDS</span><span class="p">)</span>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="n">published_seqs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">total_published</span><span class="p">))</span>
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="n">lost</span> <span class="o">=</span> <span class="n">published_seqs</span> <span class="o">-</span> <span class="n">received</span>
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;유실: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lost</span><span class="p">)</span><span class="si">}</span><span class="s2">, 중복: </span><span class="si">{</span><span class="n">duplicates</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>drain time을 얼마로 잡을지는 QoS와 구독자 소비 속도에 달려 있다. QoS 1에서 구독자가 느리면 브로커 session queue에 메시지가 쌓이고, 한꺼번에 소비되는 데 시간이 걸린다. drain time 동안에도 수신 총수가 계속 오르고 있으면 아직 끝나지 않은 거다.</p>
+<h3 id="유실중복-감지-시점-설계">유실·중복 감지 시점 설계<a class="headerlink" href="#유실중복-감지-시점-설계" title="Permanent link">&para;</a></h3>
+<p>실시간으로 볼지 배치로 볼지는 목적에 따라 다르다.</p>
+<p>실시간 감지는 구독자가 seq를 받을 때마다 직전 seq와 연속인지 체크한다. 부하 중에 유실이 어느 시점에 집중되는지 보려면 실시간 감지가 필요하다. 처리량이 특정 임계점을 넘는 순간 유실이 터지면, 그 임계점이 노드의 실제 한계다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">expected_seq</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># {publisher_id: expected_seq}</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">check_realtime</span><span class="p">(</span><span class="n">pub_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">exp</span> <span class="o">=</span> <span class="n">expected_seq</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pub_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="k">if</span> <span class="n">seq</span> <span class="o">&gt;</span> <span class="n">exp</span><span class="p">:</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">pub_id</span><span class="si">}</span><span class="s2">] 갭: </span><span class="si">{</span><span class="n">exp</span><span class="si">}</span><span class="s2">~</span><span class="si">{</span><span class="n">seq</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">, 유실 </span><span class="si">{</span><span class="n">seq</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">exp</span><span class="si">}</span><span class="s2">건&quot;</span><span class="p">)</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="k">elif</span> <span class="n">seq</span> <span class="o">&lt;</span> <span class="n">exp</span><span class="p">:</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">pub_id</span><span class="si">}</span><span class="s2">] 중복: seq=</span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="n">expected_seq</span><span class="p">[</span><span class="n">pub_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">seq</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<p>실시간 갭 감지는 순서가 뒤바뀐 메시지를 유실로 잘못 잡는 경우가 있다. 여러 발행자가 같은 토픽에 쓰거나 클러스터에서 노드 간 라우팅이 일어나면 순서가 섞인다. 실시간 감지는 "뭔가 이상하다"는 신호로만 쓰고, 정확한 유실 수는 배치 집계로 확인한다.</p>
+<p>배치 집계는 drain time 이후 전체 seq 집합을 비교한다. 정확하지만 테스트가 끝나야 결과가 나온다. 보통 실시간으로 유실 발생 시점을 잡고, 배치로 최종 유실율을 계산하는 식으로 함께 쓴다.</p>
+<p>구독자 수가 많으면 집계 자체도 고려해야 한다. 구독자 1,000개가 각자 수신 seq를 저장했다가 합치면 데이터 양이 크다. 구독자마다 자기 범위의 seq를 검증하게 하거나, 샘플링해서 전체 정합성을 추정하는 방법이 있다.</p>
+<h2 id="테스트를-돌리는-순서">테스트를 돌리는 순서<a class="headerlink" href="#테스트를-돌리는-순서" title="Permanent link">&para;</a></h2>
+<p>정리하면 부하 테스트는 대체로 이 순서로 한다.</p>
+<p>클라이언트 머신부터 튜닝한다. ulimit, ip_local_port_range, tcp_tw_reuse를 올리지 않으면 브로커를 측정하기도 전에 클라이언트가 먼저 죽어서 시간만 버린다. 그다음 브로커 노드의 somaxconn, fd, acceptors를 올린다. 이게 안 돼 있으면 측정값이 커널 한계에 막힌 가짜 숫자다.</p>
+<p>준비가 되면 단일 노드에 커넥션을 천천히 쌓아 용량 천장을 찾고, 따로 처리량 천장을 찾는다. 그다음 establish 간격을 0으로 줄여 재접속 폭주를 재현하고, 실제 쓸 QoS와 TLS 설정 그대로 다시 측정한다. 마지막으로 산정한 노드 수로 클러스터를 띄워 전체 부하로 검증한다.</p>
+<p>이 과정에서 dashboard와 Grafana를 계속 띄워놓고 establish rate, 메시지 in/out, 메모리, GC를 같이 본다. 클라이언트 콘솔 숫자만 믿으면 클라이언트 병목을 브로커 한계로 오해한다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Authentication/API_Key_Auth/">API Key 인증 구현</a></li>
+<li><a href="../../API/API_Abuse_Prevention/">API 남용 방지 실무 패턴</a></li>
+<li><a href="../../API/API_Pagination_Patterns/">API 페이지네이션 패턴</a></li>
+<li><a href="../APNS/">APNs (Apple Push Notification service) 직접 연동</a></li>
+<li><a href="../DLQ_Reprocessing_Strategy/">DLQ 재처리 자동화</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../EMQX/" class="md-footer__link md-footer__link--prev" aria-label="이전: EMQX">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                EMQX
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../ISBM/" class="md-footer__link md-footer__link--next" aria-label="다음: ISBM">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                ISBM
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

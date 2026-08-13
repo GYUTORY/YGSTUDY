@@ -1,116 +1,2535 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Language/Java/Java%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/%EC%9E%90%EB%B0%94%20%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EA%B5%AC%EC%A1%B0/ rel=canonical><link href=../super__vs__this/ rel=prev><link href=../%EC%A7%80%EC%97%AD%20%EB%B3%80%EC%88%98%EC%99%80%20%EC%BA%A1%EC%B3%90/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>자바 메모리 구조 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#자바-메모리-구조 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 자바 메모리 구조 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Language </span> </a> <label class="md-nav__link " for=__nav_3 id=__nav_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=true> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Language </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Java </span> </a> <label class="md-nav__link " for=__nav_3_2 id=__nav_3_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_3_2_label aria-expanded=true> <label class=md-nav__title for=__nav_3_2> <span class="md-nav__icon md-icon"></span> Java </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../JVM%20%EA%B4%80%EB%A0%A8/ class=md-nav__link> <span class=md-ellipsis> JVM </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_2_3 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Java 기본 </span> </a> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_3_2_3_label aria-expanded=true> <label class=md-nav__title for=__nav_3_2_3> <span class="md-nav__icon md-icon"></span> Java 기본 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EA%B0%9D%EC%B2%B4%EC%A7%80%ED%96%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D%20%28OOP%29/ class=md-nav__link> <span class=md-ellipsis> OOP </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EA%B4%80%EC%A0%90%EC%A7%80%ED%96%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D%28AOP%29/ class=md-nav__link> <span class=md-ellipsis> AOP </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%A9%80%ED%8B%B0%EC%8A%A4%EB%A0%88%EB%94%A9%20%EB%B0%8F%20%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 멀티스레딩 & 동시성 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98%20%EC%84%9C%EB%B2%84/ class=md-nav__link> <span class=md-ellipsis> 애플리케이션 서버 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%9E%90%EB%B0%94%20%EB%94%94%EC%9E%90%EC%9D%B8%20%ED%8C%A8%ED%84%B4%20%EB%B0%8F%20%EC%9B%90%EC%B9%99/ class=md-nav__link> <span class=md-ellipsis> 디자인 패턴 & 원칙 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%BB%AC%EB%A0%89%EC%85%98%20%EB%B0%8F%20%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%B2%98%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 컬렉션 & 데이터 처리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%95%A8%EC%88%98%ED%98%95%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D/ class=md-nav__link> <span class=md-ellipsis> 함수형 프로그래밍 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Kotlin/ class=md-nav__link> <span class=md-ellipsis> Kotlin </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../JavaScript/ class=md-nav__link> <span class=md-ellipsis> JavaScript </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../TypeScript/ class=md-nav__link> <span class=md-ellipsis> TypeScript </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Rust/ class=md-nav__link> <span class=md-ellipsis> Rust </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Go/ class=md-nav__link> <span class=md-ellipsis> Go </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Comparison/ class=md-nav__link> <span class=md-ellipsis> Comparison </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Python/ class=md-nav__link> <span class=md-ellipsis> Python </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#jvm-메모리-영역-개요 class=md-nav__link> <span class=md-ellipsis> JVM 메모리 영역 개요 </span> </a> </li> <li class=md-nav__item> <a href=#메서드-영역-method-area class=md-nav__link> <span class=md-ellipsis> 메서드 영역 (Method Area) </span> </a> <nav class=md-nav aria-label="메서드 영역 (Method Area)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#metaspace-java-8-이후 class=md-nav__link> <span class=md-ellipsis> Metaspace (Java 8 이후) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#스택-영역-stack-area class=md-nav__link> <span class=md-ellipsis> 스택 영역 (Stack Area) </span> </a> <nav class=md-nav aria-label="스택 영역 (Stack Area)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#스택-프레임의-동작 class=md-nav__link> <span class=md-ellipsis> 스택 프레임의 동작 </span> </a> </li> <li class=md-nav__item> <a href=#stackoverflowerror class=md-nav__link> <span class=md-ellipsis> StackOverflowError </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#힙-영역-heap-area class=md-nav__link> <span class=md-ellipsis> 힙 영역 (Heap Area) </span> </a> <nav class=md-nav aria-label="힙 영역 (Heap Area)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#힙의-내부-구조 class=md-nav__link> <span class=md-ellipsis> 힙의 내부 구조 </span> </a> </li> <li class=md-nav__item> <a href=#힙-크기-설정 class=md-nav__link> <span class=md-ellipsis> 힙 크기 설정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#객체-참조-흐름 class=md-nav__link> <span class=md-ellipsis> 객체 참조 흐름 </span> </a> </li> <li class=md-nav__item> <a href=#string-pool class=md-nav__link> <span class=md-ellipsis> String Pool </span> </a> </li> <li class=md-nav__item> <a href=#메모리-할당-과정 class=md-nav__link> <span class=md-ellipsis> 메모리 할당 과정 </span> </a> </li> <li class=md-nav__item> <a href=#메모리-누수-패턴과-진단 class=md-nav__link> <span class=md-ellipsis> 메모리 누수 패턴과 진단 </span> </a> <nav class=md-nav aria-label="메모리 누수 패턴과 진단"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#static-컬렉션에-계속-추가하는-경우 class=md-nav__link> <span class=md-ellipsis> static 컬렉션에 계속 추가하는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#진단-도구 class=md-nav__link> <span class=md-ellipsis> 진단 도구 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#gc-알고리즘-선택 class=md-nav__link> <span class=md-ellipsis> GC 알고리즘 선택 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>java</span> <span class=md-tag>language</span> <span class=md-tag>os</span> </nav> <h1 id=자바-메모리-구조>자바 메모리 구조<a class=headerlink href=#자바-메모리-구조 title="Permanent link">&para;</a></h1> <h2 id=jvm-메모리-영역-개요>JVM 메모리 영역 개요<a class=headerlink href=#jvm-메모리-영역-개요 title="Permanent link">&para;</a></h2> <p>JVM이 프로그램을 실행하면 OS로부터 메모리를 할당받고, 이를 용도에 따라 여러 영역으로 나눠서 관리한다. 크게 <strong>메서드 영역</strong>, <strong>스택 영역</strong>, <strong>힙 영역</strong> 세 가지로 구분한다.</p> <div align=center> <img src=../../../etc/image/Language/Java/자바_메모리_구조.webp alt="자바 메모리 구조" width=50%> </div> <hr> <h2 id=메서드-영역-method-area>메서드 영역 (Method Area)<a class=headerlink href=#메서드-영역-method-area title="Permanent link">&para;</a></h2> <p>프로그램 실행에 필요한 <strong>클래스 수준의 데이터</strong>를 저장하는 공간이다. JVM이 시작될 때 생성되고, 모든 스레드가 공유한다.</p> <div align=center> <img src=../../../etc/image/Language/Java/메서드_영역.webp alt="메서드 영역" width=50%> </div> <p>메서드 영역에 저장되는 것들:</p> <ul> <li><strong>클래스 정보</strong>: 클래스의 바이트코드, 필드 정보, 메서드 코드, 생성자 코드</li> <li><strong>static 변수</strong>: <code>static</code>으로 선언된 변수들이 여기에 올라간다</li> <li><strong>런타임 상수 풀(Runtime Constant Pool)</strong>: 리터럴 상수와 심볼릭 레퍼런스를 저장한다</li> </ul> <p>인스턴스 메서드를 호출하면 실제로는 메서드 영역에 있는 코드를 실행한다. 객체마다 메서드 코드를 복사해서 갖고 있는 게 아니다. 필드 데이터만 각 인스턴스별로 힙에 따로 저장된다.</p> <h3 id=metaspace-java-8-이후>Metaspace (Java 8 이후)<a class=headerlink href=#metaspace-java-8-이후 title="Permanent link">&para;</a></h3> <p>Java 7까지는 메서드 영역이 힙 안의 <strong>Permanent Generation(PermGen)</strong>에 있었다. PermGen은 고정 크기라서 클래스를 많이 로드하면 <code>java.lang.OutOfMemoryError: PermGen space</code>가 발생했다. Spring처럼 프록시 클래스를 동적으로 생성하는 프레임워크를 쓰면 이 에러를 자주 만났다.</p> <p>Java 8부터 PermGen이 사라지고 <strong>Metaspace</strong>로 대체됐다. Metaspace는 힙이 아니라 네이티브 메모리를 사용하고, 기본적으로 크기 제한이 없다. 그래도 운영 환경에서는 <code>MaxMetaspaceSize</code>를 설정해두는 게 좋다. 메모리 누수가 있을 때 서버 전체 메모리를 잡아먹는 걸 방지할 수 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># Metaspace 크기 제한 설정</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>java<span class=w> </span>-XX:MetaspaceSize<span class=o>=</span>128m<span class=w> </span>-XX:MaxMetaspaceSize<span class=o>=</span>256m<span class=w> </span>-jar<span class=w> </span>app.jar
-</span></code></pre></div> <hr> <h2 id=스택-영역-stack-area>스택 영역 (Stack Area)<a class=headerlink href=#스택-영역-stack-area title="Permanent link">&para;</a></h2> <p>메서드 호출 정보를 저장하는 공간이다. <strong>스레드마다 하나씩</strong> 독립적으로 생성된다. 다른 스레드의 스택에는 접근할 수 없다.</p> <p>메서드를 호출하면 <strong>스택 프레임(Stack Frame)</strong>이 하나 생기고, 메서드가 끝나면 해당 프레임이 제거된다. 스택 프레임에는 다음이 들어간다:</p> <ul> <li><strong>지역 변수(Local Variables)</strong>: 메서드 내 선언된 변수와 매개변수</li> <li><strong>오퍼랜드 스택(Operand Stack)</strong>: 연산 중간 결과를 임시 저장</li> <li><strong>프레임 데이터</strong>: 메서드의 반환 주소, 예외 처리 정보 등</li> </ul> <h3 id=스택-프레임의-동작>스택 프레임의 동작<a class=headerlink href=#스택-프레임의-동작 title="Permanent link">&para;</a></h3> <div align=center> <img src=../../../etc/image/Language/Java/스택_구조.webp alt="스택 구조" width=50%> </div> <p>스택은 <strong>후입선출(LIFO)</strong> 구조다. 가장 나중에 호출된 메서드가 가장 먼저 종료된다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>StackExample</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>  </span><span class=c1>// 스택 프레임 1 생성</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>        </span><span class=kt>int</span><span class=w> </span><span class=n>result</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>add</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=mi>5</span><span class=p>);</span><span class=w>                </span><span class=c1>// 스택 프레임 2 생성</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>result</span><span class=p>);</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=w>    </span><span class=p>}</span><span class=w>  </span><span class=c1>// 스택 프레임 1 제거</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>    </span><span class=kd>static</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=nf>add</span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>a</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>b</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=w>        </span><span class=kt>int</span><span class=w> </span><span class=n>sum</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>a</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>b</span><span class=p>;</span><span class=w>  </span><span class=c1>// 지역 변수 a, b, sum 모두 이 프레임에 저장</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=n>sum</span><span class=p>;</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=w>    </span><span class=p>}</span><span class=w>  </span><span class=c1>// 스택 프레임 2 제거 → main으로 돌아감</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a><span class=p>}</span>
-</span></code></pre></div> <p><code>main()</code>이 먼저 스택에 쌓이고, <code>add()</code>가 그 위에 쌓인다. <code>add()</code>가 반환되면 해당 프레임이 제거되고 <code>main()</code>으로 복귀한다.</p> <h3 id=stackoverflowerror>StackOverflowError<a class=headerlink href=#stackoverflowerror title="Permanent link">&para;</a></h3> <p>재귀 호출이 너무 깊어지면 스택 공간이 부족해져서 <code>StackOverflowError</code>가 발생한다. 실무에서는 재귀 깊이가 예측 불가능한 경우 반복문으로 변환하는 게 안전하다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>// StackOverflowError 발생 예시</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>recursive</span><span class=p>()</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>    </span><span class=n>recursive</span><span class=p>();</span><span class=w>  </span><span class=c1>// 종료 조건 없는 재귀 → 스택 프레임이 무한히 쌓임</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=p>}</span>
-</span></code></pre></div> <p>스택 크기는 <code>-Xss</code> 옵션으로 조절할 수 있다. 기본값은 보통 512KB~1MB다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>java<span class=w> </span>-Xss1m<span class=w> </span>-jar<span class=w> </span>app.jar
-</span></code></pre></div> <hr> <h2 id=힙-영역-heap-area>힙 영역 (Heap Area)<a class=headerlink href=#힙-영역-heap-area title="Permanent link">&para;</a></h2> <p><code>new</code> 키워드로 생성한 <strong>객체와 배열</strong>이 저장되는 공간이다. 모든 스레드가 공유한다. GC(Garbage Collection)가 더 이상 참조되지 않는 객체를 정리한다.</p> <h3 id=힙의-내부-구조>힙의 내부 구조<a class=headerlink href=#힙의-내부-구조 title="Permanent link">&para;</a></h3> <p>힙은 GC 성능을 위해 세대별로 나뉜다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>┌──────────────────────────────────────────────┐
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>│                  Heap                         │
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>│                                               │
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>│  ┌────────────────────────────────────┐      │
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>│  │         Young Generation           │      │
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>│  │  ┌────────┬─────────┬─────────┐   │      │
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>│  │  │  Eden  │   S0    │   S1    │   │      │
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>│  │  └────────┴─────────┴─────────┘   │      │
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>│  └────────────────────────────────────┘      │
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>│                                               │
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>│  ┌────────────────────────────────────┐      │
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a>│  │         Old Generation             │      │
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a>│  │    (오래 살아남은 객체가 이동)       │      │
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a>│  └────────────────────────────────────┘      │
-</span><span id=__span-4-15><a id=__codelineno-4-15 name=__codelineno-4-15 href=#__codelineno-4-15></a>└──────────────────────────────────────────────┘
-</span></code></pre></div> <ul> <li><strong>Eden</strong>: 새로 생성된 객체가 처음 할당되는 곳</li> <li><strong>Survivor (S0, S1)</strong>: Minor GC에서 살아남은 객체가 이동하는 곳. 두 영역을 번갈아 사용한다</li> <li><strong>Old Generation</strong>: Survivor에서 여러 번 살아남은 객체가 승격(Promotion)되는 곳</li> </ul> <p>객체가 Eden에 생성되고, Minor GC가 발생하면 살아있는 객체가 Survivor로 이동한다. Survivor에서 일정 횟수(기본 15번) 이상 GC를 견디면 Old Generation으로 넘어간다. Old Generation이 가득 차면 Major GC(Full GC)가 발생하는데, 이때 애플리케이션이 멈추는 Stop-The-World 시간이 길어질 수 있다.</p> <h3 id=힙-크기-설정>힙 크기 설정<a class=headerlink href=#힙-크기-설정 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 초기 힙 512MB, 최대 힙 2GB</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>java<span class=w> </span>-Xms512m<span class=w> </span>-Xmx2g<span class=w> </span>-jar<span class=w> </span>app.jar
-</span></code></pre></div> <p>운영 환경에서는 <code>-Xms</code>와 <code>-Xmx</code>를 같은 값으로 설정하는 경우가 많다. 힙 크기가 동적으로 변할 때 OS에 메모리를 요청하고 반환하는 오버헤드가 생기기 때문이다.</p> <hr> <h2 id=객체-참조-흐름>객체 참조 흐름<a class=headerlink href=#객체-참조-흐름 title="Permanent link">&para;</a></h2> <p>자바에서 변수에 객체를 대입하면, 변수에는 객체 자체가 아니라 <strong>힙에 있는 객체의 참조값(메모리 주소)</strong>이 저장된다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>ReferenceExample</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>        </span><span class=c1>// 1. Person 객체가 힙에 생성된다</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>        </span><span class=c1>// 2. p1에는 힙 주소(참조값)가 저장된다 (스택에 위치)</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>        </span><span class=n>Person</span><span class=w> </span><span class=n>p1</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Person</span><span class=p>(</span><span class=s>&quot;김철수&quot;</span><span class=p>,</span><span class=w> </span><span class=mi>30</span><span class=p>);</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>        </span><span class=c1>// 3. p2에 p1의 참조값을 복사한다</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a><span class=w>        </span><span class=c1>//    p1과 p2는 같은 객체를 가리킨다</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=w>        </span><span class=n>Person</span><span class=w> </span><span class=n>p2</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>p1</span><span class=p>;</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a><span class=w>        </span><span class=n>p2</span><span class=p>.</span><span class=na>setName</span><span class=p>(</span><span class=s>&quot;이영희&quot;</span><span class=p>);</span>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a>
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a><span class=w>        </span><span class=c1>// &quot;이영희&quot; 출력 — p1과 p2가 같은 객체를 참조하고 있기 때문</span>
-</span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>p1</span><span class=p>.</span><span class=na>getName</span><span class=p>());</span>
-</span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-6-16><a id=__codelineno-6-16 name=__codelineno-6-16 href=#__codelineno-6-16></a><span class=p>}</span>
-</span></code></pre></div> <p>이걸 그림으로 보면:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>스택                          힙
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>┌──────────────┐         ┌──────────────────┐
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>│ p1 [0x100]───┼────────▶│ Person           │
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>├──────────────┤    ┌───▶│ name = &quot;이영희&quot;  │
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>│ p2 [0x100]───┼────┘    │ age  = 30        │
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>└──────────────┘         └──────────────────┘
-</span></code></pre></div> <p>기본형(primitive) 변수는 스택에 값 자체가 저장되지만, 참조형(reference) 변수는 스택에 주소만 저장되고 실제 데이터는 힙에 있다. 메서드 매개변수로 객체를 넘기면 참조값이 복사되는 것이지 객체가 복사되는 게 아니다. 이 차이를 모르면 의도치 않게 원본 객체가 변경되는 버그를 만들 수 있다.</p> <hr> <h2 id=string-pool>String Pool<a class=headerlink href=#string-pool title="Permanent link">&para;</a></h2> <p>자바에서 문자열 리터럴은 힙 내의 <strong>String Pool</strong>이라는 특별한 영역에 저장된다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>StringPoolExample</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>main</span><span class=p>(</span><span class=n>String</span><span class=o>[]</span><span class=w> </span><span class=n>args</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>        </span><span class=c1>// 리터럴로 생성 → String Pool에 저장</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>s1</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&quot;hello&quot;</span><span class=p>;</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>s2</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&quot;hello&quot;</span><span class=p>;</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=w>        </span><span class=c1>// 같은 리터럴이므로 Pool에서 같은 객체를 참조</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>s1</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>s2</span><span class=p>);</span><span class=w>  </span><span class=c1>// true</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a>
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a><span class=w>        </span><span class=c1>// new로 생성 → 힙에 새 객체 생성 (Pool과 별개)</span>
-</span><span id=__span-8-11><a id=__codelineno-8-11 name=__codelineno-8-11 href=#__codelineno-8-11></a><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>s3</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>String</span><span class=p>(</span><span class=s>&quot;hello&quot;</span><span class=p>);</span>
-</span><span id=__span-8-12><a id=__codelineno-8-12 name=__codelineno-8-12 href=#__codelineno-8-12></a><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>s1</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>s3</span><span class=p>);</span><span class=w>  </span><span class=c1>// false</span>
-</span><span id=__span-8-13><a id=__codelineno-8-13 name=__codelineno-8-13 href=#__codelineno-8-13></a>
-</span><span id=__span-8-14><a id=__codelineno-8-14 name=__codelineno-8-14 href=#__codelineno-8-14></a><span class=w>        </span><span class=c1>// intern()으로 Pool의 문자열과 매칭</span>
-</span><span id=__span-8-15><a id=__codelineno-8-15 name=__codelineno-8-15 href=#__codelineno-8-15></a><span class=w>        </span><span class=n>String</span><span class=w> </span><span class=n>s4</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s3</span><span class=p>.</span><span class=na>intern</span><span class=p>();</span>
-</span><span id=__span-8-16><a id=__codelineno-8-16 name=__codelineno-8-16 href=#__codelineno-8-16></a><span class=w>        </span><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>s1</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>s4</span><span class=p>);</span><span class=w>  </span><span class=c1>// true</span>
-</span><span id=__span-8-17><a id=__codelineno-8-17 name=__codelineno-8-17 href=#__codelineno-8-17></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-8-18><a id=__codelineno-8-18 name=__codelineno-8-18 href=#__codelineno-8-18></a><span class=p>}</span>
-</span></code></pre></div> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>힙 메모리
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>┌───────────────────────────────────┐
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>│  String Pool                      │
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>│  ┌───────────┐                    │
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>│  │  &quot;hello&quot;  │ ◀── s1, s2, s4    │
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>│  └───────────┘                    │
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>│                                    │
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a>│  ┌───────────┐                    │
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a>│  │  &quot;hello&quot;  │ ◀── s3 (별도 객체) │
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a>│  └───────────┘                    │
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a>└───────────────────────────────────┘
-</span></code></pre></div> <p>Java 6까지는 String Pool이 PermGen에 있어서 크기가 제한적이었다. Java 7부터 힙으로 이동했기 때문에 GC 대상이 되고, 메모리 관리가 나아졌다.</p> <p>실무에서 주의할 점: <code>==</code>로 문자열을 비교하면 참조값을 비교하기 때문에 의도와 다른 결과가 나올 수 있다. 문자열 비교는 항상 <code>equals()</code>를 써야 한다. <code>==</code>가 <code>true</code>를 반환하는 건 String Pool 덕분이지, 보장되는 동작이 아니다.</p> <hr> <h2 id=메모리-할당-과정>메모리 할당 과정<a class=headerlink href=#메모리-할당-과정 title="Permanent link">&para;</a></h2> <p><code>new Person("김철수", 30)</code> 을 실행하면 내부적으로 다음 순서로 메모리가 할당된다:</p> <ol> <li><strong>클래스 로딩 확인</strong>: <code>Person</code> 클래스가 메서드 영역에 로딩됐는지 확인한다. 안 됐으면 클래스 로더가 바이트코드를 읽어서 메서드 영역에 올린다</li> <li><strong>힙에 메모리 할당</strong>: Eden 영역에서 객체 크기만큼 메모리를 확보한다. 이때 두 가지 방식이 있다:<ul> <li><strong>Bump-the-pointer</strong>: 힙이 연속적으로 정리되어 있으면, 마지막 할당 위치에서 포인터만 이동</li> <li><strong>Free List</strong>: 메모리가 단편화되어 있으면, 빈 공간 목록에서 적절한 크기를 찾음</li> </ul> </li> <li><strong>메모리 초기화</strong>: 할당된 메모리를 0/null로 초기화한다 (int는 0, boolean은 false, 참조는 null)</li> <li><strong>객체 헤더 설정</strong>: 어떤 클래스의 인스턴스인지, 해시코드, GC 나이 등의 메타 정보를 기록한다</li> <li><strong>생성자 실행</strong>: <code>&lt;init&gt;</code> 메서드가 실행되어 필드에 실제 값을 대입한다</li> </ol> <p>멀티스레드 환경에서는 여러 스레드가 동시에 Eden에 객체를 할당하면 충돌이 발생할 수 있다. 이를 피하기 위해 각 스레드에 <strong>TLAB(Thread Local Allocation Buffer)</strong>라는 작은 영역을 미리 할당해두고, 각 스레드는 자기 TLAB 안에서만 객체를 생성한다. TLAB이 가득 차면 새 TLAB을 할당받는다.</p> <hr> <h2 id=메모리-누수-패턴과-진단>메모리 누수 패턴과 진단<a class=headerlink href=#메모리-누수-패턴과-진단 title="Permanent link">&para;</a></h2> <p>자바는 GC가 메모리를 관리하지만, 참조를 놓치지 않으면 GC가 수거하지 못한다. 아래는 실무에서 자주 만나는 누수 패턴이다.</p> <h3 id=static-컬렉션에-계속-추가하는-경우>static 컬렉션에 계속 추가하는 경우<a class=headerlink href=#static-컬렉션에-계속-추가하는-경우 title="Permanent link">&para;</a></h3> <div class="language-java highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=kd>public</span><span class=w> </span><span class=kd>class</span> <span class=nc>CacheService</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=w>    </span><span class=c1>// 애플리케이션이 살아있는 동안 이 Map은 절대 GC되지 않는다</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>    </span><span class=kd>private</span><span class=w> </span><span class=kd>static</span><span class=w> </span><span class=kd>final</span><span class=w> </span><span class=n>Map</span><span class=o>&lt;</span><span class=n>String</span><span class=p>,</span><span class=w> </span><span class=n>Object</span><span class=o>&gt;</span><span class=w> </span><span class=n>cache</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HashMap</span><span class=o>&lt;&gt;</span><span class=p>();</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>    </span><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>put</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>Object</span><span class=w> </span><span class=n>value</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>        </span><span class=n>cache</span><span class=p>.</span><span class=na>put</span><span class=p>(</span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>value</span><span class=p>);</span><span class=w>  </span><span class=c1>// 넣기만 하고 빼지 않으면 메모리가 계속 증가</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a><span class=p>}</span>
-</span></code></pre></div> <p>크기 제한이 없는 캐시를 직접 구현하면 이런 문제가 생긴다. <code>LinkedHashMap</code>을 상속해서 <code>removeEldestEntry()</code>를 오버라이드하거나, Caffeine 같은 라이브러리를 쓰는 게 낫다.</p> <h3 id=진단-도구>진단 도구<a class=headerlink href=#진단-도구 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># 힙 사용량 요약</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>jmap<span class=w> </span>-heap<span class=w> </span>&lt;PID&gt;
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=c1># 힙 덤프 생성</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a>jmap<span class=w> </span>-dump:format<span class=o>=</span>b,file<span class=o>=</span>heap.hprof<span class=w> </span>&lt;PID&gt;
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=c1># OOM 발생 시 자동으로 덤프 생성하도록 설정</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>java<span class=w> </span>-XX:+HeapDumpOnOutOfMemoryError<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=w>     </span>-XX:HeapDumpPath<span class=o>=</span>/tmp/oom-dump.hprof<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=w>     </span>-jar<span class=w> </span>app.jar
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a><span class=c1># 실시간 GC 모니터링 (1초 간격)</span>
-</span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a>jstat<span class=w> </span>-gcutil<span class=w> </span>&lt;PID&gt;<span class=w> </span><span class=m>1000</span>
-</span></code></pre></div> <p>생성된 <code>.hprof</code> 파일은 Eclipse MAT이나 VisualVM으로 분석한다. MAT의 Leak Suspects 리포트가 누수 원인을 자동으로 찾아주니까, 덤프 파일을 열면 이걸 먼저 확인하면 된다.</p> <hr> <h2 id=gc-알고리즘-선택>GC 알고리즘 선택<a class=headerlink href=#gc-알고리즘-선택 title="Permanent link">&para;</a></h2> <p>운영 환경에서 어떤 GC를 쓸지는 애플리케이션 특성에 따라 다르다.</p> <table> <thead> <tr> <th>GC</th> <th>Java 버전</th> <th>특징</th> <th>적합한 상황</th> </tr> </thead> <tbody> <tr> <td>G1GC</td> <td>9+ 기본값</td> <td>힙을 리전 단위로 관리, STW 시간 예측 가능</td> <td>대부분의 서버 애플리케이션</td> </tr> <tr> <td>ZGC</td> <td>15+</td> <td>STW 10ms 이하, 대용량 힙 지원</td> <td>지연 시간에 민감한 서비스</td> </tr> <tr> <td>Parallel GC</td> <td></td> <td>처리량(throughput) 우선</td> <td>배치 처리, 대량 데이터 연산</td> </tr> <tr> <td>Shenandoah</td> <td></td> <td>ZGC와 유사, Red Hat 계열에서 지원</td> <td>OpenJDK 기반 환경</td> </tr> </tbody> </table> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># G1GC (별도 설정 없으면 Java 9+에서 기본)</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>java<span class=w> </span>-XX:+UseG1GC<span class=w> </span>-jar<span class=w> </span>app.jar
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=c1># ZGC</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>java<span class=w> </span>-XX:+UseZGC<span class=w> </span>-jar<span class=w> </span>app.jar
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a><span class=c1># GC 로그 남기기 (Java 9+)</span>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>java<span class=w> </span>-Xlog:gc*:file<span class=o>=</span>gc.log:time,level,tags<span class=w> </span>-jar<span class=w> </span>app.jar
-</span></code></pre></div> <p>GC 로그에서 Full GC가 자주 발생하면 힙 크기가 부족하거나 Old Generation으로 넘어가는 객체가 많다는 뜻이다. <code>-Xmx</code>를 늘리거나, 객체 생존 시간을 줄이는 방향으로 코드를 수정해야 한다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../JVM%20%EA%B4%80%EB%A0%A8/GC_Deep_Dive/ >JVM Garbage Collection 심화</a></li> <li><a href=../../JVM%20%EA%B4%80%EB%A0%A8/JVM%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EA%B4%80%EB%A6%AC/ >JVM 구조 및 메모리 관리</a></li> <li><a href=../../JVM%20%EA%B4%80%EB%A0%A8/JVM_Options_and_Memory_Management/ >JVM 옵션 및 메모리 관리</a></li> <li><a href=../../%EB%A9%80%ED%8B%B0%EC%8A%A4%EB%A0%88%EB%94%A9%20%EB%B0%8F%20%EB%8F%99%EC%8B%9C%EC%84%B1/Java_Virtual_Threads/ >Java 가상 스레드 (Virtual Threads)</a></li> <li><a href=../../%EB%A9%80%ED%8B%B0%EC%8A%A4%EB%A0%88%EB%94%A9%20%EB%B0%8F%20%EB%8F%99%EC%8B%9C%EC%84%B1/Java_Concurrency/ >Java 동시성 심화</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../super__vs__this/ class="md-footer__link md-footer__link--prev" aria-label="이전: Java this와 super 키워드"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Java this와 super 키워드 </div> </div> </a> <a href=../%EC%A7%80%EC%97%AD%20%EB%B3%80%EC%88%98%EC%99%80%20%EC%BA%A1%EC%B3%90/ class="md-footer__link md-footer__link--next" aria-label="다음: 지역 변수와 캡쳐"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 지역 변수와 캡쳐 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Language/Java/Java%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/%EC%9E%90%EB%B0%94%20%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EA%B5%AC%EC%A1%B0/">
+      
+      
+        <link rel="prev" href="../super__vs__this/">
+      
+      
+        <link rel="next" href="../%EC%A7%80%EC%97%AD%20%EB%B3%80%EC%88%98%EC%99%80%20%EC%BA%A1%EC%B3%90/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>자바 메모리 구조 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#자바-메모리-구조" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              자바 메모리 구조
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Java
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../JVM%20%EA%B4%80%EB%A0%A8/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JVM
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java 기본
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Java 기본
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EA%B0%9D%EC%B2%B4%EC%A7%80%ED%96%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D%20%28OOP%29/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OOP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EA%B4%80%EC%A0%90%EC%A7%80%ED%96%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D%28AOP%29/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AOP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%A9%80%ED%8B%B0%EC%8A%A4%EB%A0%88%EB%94%A9%20%EB%B0%8F%20%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    멀티스레딩 & 동시성
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98%20%EC%84%9C%EB%B2%84/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    애플리케이션 서버
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%9E%90%EB%B0%94%20%EB%94%94%EC%9E%90%EC%9D%B8%20%ED%8C%A8%ED%84%B4%20%EB%B0%8F%20%EC%9B%90%EC%B9%99/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    디자인 패턴 & 원칙
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%BB%AC%EB%A0%89%EC%85%98%20%EB%B0%8F%20%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%B2%98%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    컬렉션 & 데이터 처리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%95%A8%EC%88%98%ED%98%95%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    함수형 프로그래밍
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Kotlin/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../JavaScript/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JavaScript
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../TypeScript/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TypeScript
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Rust/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Go/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Go
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Comparison/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparison
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Python/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#jvm-메모리-영역-개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JVM 메모리 영역 개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메서드-영역-method-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메서드 영역 (Method Area)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="메서드 영역 (Method Area)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metaspace-java-8-이후" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metaspace (Java 8 이후)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#스택-영역-stack-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스택 영역 (Stack Area)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="스택 영역 (Stack Area)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#스택-프레임의-동작" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스택 프레임의 동작
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stackoverflowerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StackOverflowError
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#힙-영역-heap-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        힙 영역 (Heap Area)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="힙 영역 (Heap Area)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#힙의-내부-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        힙의 내부 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#힙-크기-설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        힙 크기 설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#객체-참조-흐름" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        객체 참조 흐름
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#string-pool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Pool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메모리-할당-과정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메모리 할당 과정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메모리-누수-패턴과-진단" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메모리 누수 패턴과 진단
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="메모리 누수 패턴과 진단">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#static-컬렉션에-계속-추가하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        static 컬렉션에 계속 추가하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#진단-도구" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        진단 도구
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gc-알고리즘-선택" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GC 알고리즘 선택
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">java</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">language</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">os</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="자바-메모리-구조">자바 메모리 구조<a class="headerlink" href="#자바-메모리-구조" title="Permanent link">&para;</a></h1>
+<h2 id="jvm-메모리-영역-개요">JVM 메모리 영역 개요<a class="headerlink" href="#jvm-메모리-영역-개요" title="Permanent link">&para;</a></h2>
+<p>JVM이 프로그램을 실행하면 OS로부터 메모리를 할당받고, 이를 용도에 따라 여러 영역으로 나눠서 관리한다. 크게 <strong>메서드 영역</strong>, <strong>스택 영역</strong>, <strong>힙 영역</strong> 세 가지로 구분한다.</p>
+<div align="center">
+    <img src="../../../etc/image/Language/Java/자바_메모리_구조.webp" alt="자바 메모리 구조" width="50%">
+</div>
+
+<hr />
+<h2 id="메서드-영역-method-area">메서드 영역 (Method Area)<a class="headerlink" href="#메서드-영역-method-area" title="Permanent link">&para;</a></h2>
+<p>프로그램 실행에 필요한 <strong>클래스 수준의 데이터</strong>를 저장하는 공간이다. JVM이 시작될 때 생성되고, 모든 스레드가 공유한다.</p>
+<div align="center">
+    <img src="../../../etc/image/Language/Java/메서드_영역.webp" alt="메서드 영역" width="50%">
+</div>
+
+<p>메서드 영역에 저장되는 것들:</p>
+<ul>
+<li><strong>클래스 정보</strong>: 클래스의 바이트코드, 필드 정보, 메서드 코드, 생성자 코드</li>
+<li><strong>static 변수</strong>: <code>static</code>으로 선언된 변수들이 여기에 올라간다</li>
+<li><strong>런타임 상수 풀(Runtime Constant Pool)</strong>: 리터럴 상수와 심볼릭 레퍼런스를 저장한다</li>
+</ul>
+<p>인스턴스 메서드를 호출하면 실제로는 메서드 영역에 있는 코드를 실행한다. 객체마다 메서드 코드를 복사해서 갖고 있는 게 아니다. 필드 데이터만 각 인스턴스별로 힙에 따로 저장된다.</p>
+<h3 id="metaspace-java-8-이후">Metaspace (Java 8 이후)<a class="headerlink" href="#metaspace-java-8-이후" title="Permanent link">&para;</a></h3>
+<p>Java 7까지는 메서드 영역이 힙 안의 <strong>Permanent Generation(PermGen)</strong>에 있었다. PermGen은 고정 크기라서 클래스를 많이 로드하면 <code>java.lang.OutOfMemoryError: PermGen space</code>가 발생했다. Spring처럼 프록시 클래스를 동적으로 생성하는 프레임워크를 쓰면 이 에러를 자주 만났다.</p>
+<p>Java 8부터 PermGen이 사라지고 <strong>Metaspace</strong>로 대체됐다. Metaspace는 힙이 아니라 네이티브 메모리를 사용하고, 기본적으로 크기 제한이 없다. 그래도 운영 환경에서는 <code>MaxMetaspaceSize</code>를 설정해두는 게 좋다. 메모리 누수가 있을 때 서버 전체 메모리를 잡아먹는 걸 방지할 수 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Metaspace 크기 제한 설정</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>java<span class="w"> </span>-XX:MetaspaceSize<span class="o">=</span>128m<span class="w"> </span>-XX:MaxMetaspaceSize<span class="o">=</span>256m<span class="w"> </span>-jar<span class="w"> </span>app.jar
+</span></code></pre></div>
+<hr />
+<h2 id="스택-영역-stack-area">스택 영역 (Stack Area)<a class="headerlink" href="#스택-영역-stack-area" title="Permanent link">&para;</a></h2>
+<p>메서드 호출 정보를 저장하는 공간이다. <strong>스레드마다 하나씩</strong> 독립적으로 생성된다. 다른 스레드의 스택에는 접근할 수 없다.</p>
+<p>메서드를 호출하면 <strong>스택 프레임(Stack Frame)</strong>이 하나 생기고, 메서드가 끝나면 해당 프레임이 제거된다. 스택 프레임에는 다음이 들어간다:</p>
+<ul>
+<li><strong>지역 변수(Local Variables)</strong>: 메서드 내 선언된 변수와 매개변수</li>
+<li><strong>오퍼랜드 스택(Operand Stack)</strong>: 연산 중간 결과를 임시 저장</li>
+<li><strong>프레임 데이터</strong>: 메서드의 반환 주소, 예외 처리 정보 등</li>
+</ul>
+<h3 id="스택-프레임의-동작">스택 프레임의 동작<a class="headerlink" href="#스택-프레임의-동작" title="Permanent link">&para;</a></h3>
+<div align="center">
+    <img src="../../../etc/image/Language/Java/스택_구조.webp" alt="스택 구조" width="50%">
+</div>
+
+<p>스택은 <strong>후입선출(LIFO)</strong> 구조다. 가장 나중에 호출된 메서드가 가장 먼저 종료된다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">StackExample</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// 스택 프레임 1 생성</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">add</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">);</span><span class="w">                </span><span class="c1">// 스택 프레임 2 생성</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="p">}</span><span class="w">  </span><span class="c1">// 스택 프레임 1 제거</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="kd">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w">  </span><span class="c1">// 지역 변수 a, b, sum 모두 이 프레임에 저장</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">sum</span><span class="p">;</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="p">}</span><span class="w">  </span><span class="c1">// 스택 프레임 2 제거 → main으로 돌아감</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>main()</code>이 먼저 스택에 쌓이고, <code>add()</code>가 그 위에 쌓인다. <code>add()</code>가 반환되면 해당 프레임이 제거되고 <code>main()</code>으로 복귀한다.</p>
+<h3 id="stackoverflowerror">StackOverflowError<a class="headerlink" href="#stackoverflowerror" title="Permanent link">&para;</a></h3>
+<p>재귀 호출이 너무 깊어지면 스택 공간이 부족해져서 <code>StackOverflowError</code>가 발생한다. 실무에서는 재귀 깊이가 예측 불가능한 경우 반복문으로 변환하는 게 안전하다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// StackOverflowError 발생 예시</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">recursive</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="n">recursive</span><span class="p">();</span><span class="w">  </span><span class="c1">// 종료 조건 없는 재귀 → 스택 프레임이 무한히 쌓임</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>스택 크기는 <code>-Xss</code> 옵션으로 조절할 수 있다. 기본값은 보통 512KB~1MB다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>java<span class="w"> </span>-Xss1m<span class="w"> </span>-jar<span class="w"> </span>app.jar
+</span></code></pre></div>
+<hr />
+<h2 id="힙-영역-heap-area">힙 영역 (Heap Area)<a class="headerlink" href="#힙-영역-heap-area" title="Permanent link">&para;</a></h2>
+<p><code>new</code> 키워드로 생성한 <strong>객체와 배열</strong>이 저장되는 공간이다. 모든 스레드가 공유한다. GC(Garbage Collection)가 더 이상 참조되지 않는 객체를 정리한다.</p>
+<h3 id="힙의-내부-구조">힙의 내부 구조<a class="headerlink" href="#힙의-내부-구조" title="Permanent link">&para;</a></h3>
+<p>힙은 GC 성능을 위해 세대별로 나뉜다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>┌──────────────────────────────────────────────┐
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>│                  Heap                         │
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>│                                               │
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>│  ┌────────────────────────────────────┐      │
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>│  │         Young Generation           │      │
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>│  │  ┌────────┬─────────┬─────────┐   │      │
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>│  │  │  Eden  │   S0    │   S1    │   │      │
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>│  │  └────────┴─────────┴─────────┘   │      │
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>│  └────────────────────────────────────┘      │
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>│                                               │
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>│  ┌────────────────────────────────────┐      │
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>│  │         Old Generation             │      │
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>│  │    (오래 살아남은 객체가 이동)       │      │
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>│  └────────────────────────────────────┘      │
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>└──────────────────────────────────────────────┘
+</span></code></pre></div>
+<ul>
+<li><strong>Eden</strong>: 새로 생성된 객체가 처음 할당되는 곳</li>
+<li><strong>Survivor (S0, S1)</strong>: Minor GC에서 살아남은 객체가 이동하는 곳. 두 영역을 번갈아 사용한다</li>
+<li><strong>Old Generation</strong>: Survivor에서 여러 번 살아남은 객체가 승격(Promotion)되는 곳</li>
+</ul>
+<p>객체가 Eden에 생성되고, Minor GC가 발생하면 살아있는 객체가 Survivor로 이동한다. Survivor에서 일정 횟수(기본 15번) 이상 GC를 견디면 Old Generation으로 넘어간다. Old Generation이 가득 차면 Major GC(Full GC)가 발생하는데, 이때 애플리케이션이 멈추는 Stop-The-World 시간이 길어질 수 있다.</p>
+<h3 id="힙-크기-설정">힙 크기 설정<a class="headerlink" href="#힙-크기-설정" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 초기 힙 512MB, 최대 힙 2GB</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>java<span class="w"> </span>-Xms512m<span class="w"> </span>-Xmx2g<span class="w"> </span>-jar<span class="w"> </span>app.jar
+</span></code></pre></div>
+<p>운영 환경에서는 <code>-Xms</code>와 <code>-Xmx</code>를 같은 값으로 설정하는 경우가 많다. 힙 크기가 동적으로 변할 때 OS에 메모리를 요청하고 반환하는 오버헤드가 생기기 때문이다.</p>
+<hr />
+<h2 id="객체-참조-흐름">객체 참조 흐름<a class="headerlink" href="#객체-참조-흐름" title="Permanent link">&para;</a></h2>
+<p>자바에서 변수에 객체를 대입하면, 변수에는 객체 자체가 아니라 <strong>힙에 있는 객체의 참조값(메모리 주소)</strong>이 저장된다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ReferenceExample</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">        </span><span class="c1">// 1. Person 객체가 힙에 생성된다</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">        </span><span class="c1">// 2. p1에는 힙 주소(참조값)가 저장된다 (스택에 위치)</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">        </span><span class="n">Person</span><span class="w"> </span><span class="n">p1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&quot;김철수&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">);</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">        </span><span class="c1">// 3. p2에 p1의 참조값을 복사한다</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">        </span><span class="c1">//    p1과 p2는 같은 객체를 가리킨다</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">        </span><span class="n">Person</span><span class="w"> </span><span class="n">p2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p1</span><span class="p">;</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">        </span><span class="n">p2</span><span class="p">.</span><span class="na">setName</span><span class="p">(</span><span class="s">&quot;이영희&quot;</span><span class="p">);</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">        </span><span class="c1">// &quot;이영희&quot; 출력 — p1과 p2가 같은 객체를 참조하고 있기 때문</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">p1</span><span class="p">.</span><span class="na">getName</span><span class="p">());</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>이걸 그림으로 보면:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>스택                          힙
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>┌──────────────┐         ┌──────────────────┐
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>│ p1 [0x100]───┼────────▶│ Person           │
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>├──────────────┤    ┌───▶│ name = &quot;이영희&quot;  │
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>│ p2 [0x100]───┼────┘    │ age  = 30        │
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>└──────────────┘         └──────────────────┘
+</span></code></pre></div>
+<p>기본형(primitive) 변수는 스택에 값 자체가 저장되지만, 참조형(reference) 변수는 스택에 주소만 저장되고 실제 데이터는 힙에 있다. 메서드 매개변수로 객체를 넘기면 참조값이 복사되는 것이지 객체가 복사되는 게 아니다. 이 차이를 모르면 의도치 않게 원본 객체가 변경되는 버그를 만들 수 있다.</p>
+<hr />
+<h2 id="string-pool">String Pool<a class="headerlink" href="#string-pool" title="Permanent link">&para;</a></h2>
+<p>자바에서 문자열 리터럴은 힙 내의 <strong>String Pool</strong>이라는 특별한 영역에 저장된다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">StringPoolExample</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">        </span><span class="c1">// 리터럴로 생성 → String Pool에 저장</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">s1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;hello&quot;</span><span class="p">;</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">s2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;hello&quot;</span><span class="p">;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">        </span><span class="c1">// 같은 리터럴이므로 Pool에서 같은 객체를 참조</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">s1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s2</span><span class="p">);</span><span class="w">  </span><span class="c1">// true</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">        </span><span class="c1">// new로 생성 → 힙에 새 객체 생성 (Pool과 별개)</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">s3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">);</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">s1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s3</span><span class="p">);</span><span class="w">  </span><span class="c1">// false</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">        </span><span class="c1">// intern()으로 Pool의 문자열과 매칭</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">s4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s3</span><span class="p">.</span><span class="na">intern</span><span class="p">();</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">s1</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s4</span><span class="p">);</span><span class="w">  </span><span class="c1">// true</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>힙 메모리
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>┌───────────────────────────────────┐
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>│  String Pool                      │
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>│  ┌───────────┐                    │
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>│  │  &quot;hello&quot;  │ ◀── s1, s2, s4    │
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>│  └───────────┘                    │
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>│                                    │
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>│  ┌───────────┐                    │
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>│  │  &quot;hello&quot;  │ ◀── s3 (별도 객체) │
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>│  └───────────┘                    │
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>└───────────────────────────────────┘
+</span></code></pre></div>
+<p>Java 6까지는 String Pool이 PermGen에 있어서 크기가 제한적이었다. Java 7부터 힙으로 이동했기 때문에 GC 대상이 되고, 메모리 관리가 나아졌다.</p>
+<p>실무에서 주의할 점: <code>==</code>로 문자열을 비교하면 참조값을 비교하기 때문에 의도와 다른 결과가 나올 수 있다. 문자열 비교는 항상 <code>equals()</code>를 써야 한다. <code>==</code>가 <code>true</code>를 반환하는 건 String Pool 덕분이지, 보장되는 동작이 아니다.</p>
+<hr />
+<h2 id="메모리-할당-과정">메모리 할당 과정<a class="headerlink" href="#메모리-할당-과정" title="Permanent link">&para;</a></h2>
+<p><code>new Person("김철수", 30)</code> 을 실행하면 내부적으로 다음 순서로 메모리가 할당된다:</p>
+<ol>
+<li><strong>클래스 로딩 확인</strong>: <code>Person</code> 클래스가 메서드 영역에 로딩됐는지 확인한다. 안 됐으면 클래스 로더가 바이트코드를 읽어서 메서드 영역에 올린다</li>
+<li><strong>힙에 메모리 할당</strong>: Eden 영역에서 객체 크기만큼 메모리를 확보한다. 이때 두 가지 방식이 있다:<ul>
+<li><strong>Bump-the-pointer</strong>: 힙이 연속적으로 정리되어 있으면, 마지막 할당 위치에서 포인터만 이동</li>
+<li><strong>Free List</strong>: 메모리가 단편화되어 있으면, 빈 공간 목록에서 적절한 크기를 찾음</li>
+</ul>
+</li>
+<li><strong>메모리 초기화</strong>: 할당된 메모리를 0/null로 초기화한다 (int는 0, boolean은 false, 참조는 null)</li>
+<li><strong>객체 헤더 설정</strong>: 어떤 클래스의 인스턴스인지, 해시코드, GC 나이 등의 메타 정보를 기록한다</li>
+<li><strong>생성자 실행</strong>: <code>&lt;init&gt;</code> 메서드가 실행되어 필드에 실제 값을 대입한다</li>
+</ol>
+<p>멀티스레드 환경에서는 여러 스레드가 동시에 Eden에 객체를 할당하면 충돌이 발생할 수 있다. 이를 피하기 위해 각 스레드에 <strong>TLAB(Thread Local Allocation Buffer)</strong>라는 작은 영역을 미리 할당해두고, 각 스레드는 자기 TLAB 안에서만 객체를 생성한다. TLAB이 가득 차면 새 TLAB을 할당받는다.</p>
+<hr />
+<h2 id="메모리-누수-패턴과-진단">메모리 누수 패턴과 진단<a class="headerlink" href="#메모리-누수-패턴과-진단" title="Permanent link">&para;</a></h2>
+<p>자바는 GC가 메모리를 관리하지만, 참조를 놓치지 않으면 GC가 수거하지 못한다. 아래는 실무에서 자주 만나는 누수 패턴이다.</p>
+<h3 id="static-컬렉션에-계속-추가하는-경우">static 컬렉션에 계속 추가하는 경우<a class="headerlink" href="#static-컬렉션에-계속-추가하는-경우" title="Permanent link">&para;</a></h3>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">CacheService</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="c1">// 애플리케이션이 살아있는 동안 이 Map은 절대 GC되지 않는다</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cache</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">        </span><span class="n">cache</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">);</span><span class="w">  </span><span class="c1">// 넣기만 하고 빼지 않으면 메모리가 계속 증가</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>크기 제한이 없는 캐시를 직접 구현하면 이런 문제가 생긴다. <code>LinkedHashMap</code>을 상속해서 <code>removeEldestEntry()</code>를 오버라이드하거나, Caffeine 같은 라이브러리를 쓰는 게 낫다.</p>
+<h3 id="진단-도구">진단 도구<a class="headerlink" href="#진단-도구" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 힙 사용량 요약</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>jmap<span class="w"> </span>-heap<span class="w"> </span>&lt;PID&gt;
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># 힙 덤프 생성</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>jmap<span class="w"> </span>-dump:format<span class="o">=</span>b,file<span class="o">=</span>heap.hprof<span class="w"> </span>&lt;PID&gt;
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># OOM 발생 시 자동으로 덤프 생성하도록 설정</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>java<span class="w"> </span>-XX:+HeapDumpOnOutOfMemoryError<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">     </span>-XX:HeapDumpPath<span class="o">=</span>/tmp/oom-dump.hprof<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">     </span>-jar<span class="w"> </span>app.jar
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="c1"># 실시간 GC 모니터링 (1초 간격)</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>jstat<span class="w"> </span>-gcutil<span class="w"> </span>&lt;PID&gt;<span class="w"> </span><span class="m">1000</span>
+</span></code></pre></div>
+<p>생성된 <code>.hprof</code> 파일은 Eclipse MAT이나 VisualVM으로 분석한다. MAT의 Leak Suspects 리포트가 누수 원인을 자동으로 찾아주니까, 덤프 파일을 열면 이걸 먼저 확인하면 된다.</p>
+<hr />
+<h2 id="gc-알고리즘-선택">GC 알고리즘 선택<a class="headerlink" href="#gc-알고리즘-선택" title="Permanent link">&para;</a></h2>
+<p>운영 환경에서 어떤 GC를 쓸지는 애플리케이션 특성에 따라 다르다.</p>
+<table>
+<thead>
+<tr>
+<th>GC</th>
+<th>Java 버전</th>
+<th>특징</th>
+<th>적합한 상황</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1GC</td>
+<td>9+ 기본값</td>
+<td>힙을 리전 단위로 관리, STW 시간 예측 가능</td>
+<td>대부분의 서버 애플리케이션</td>
+</tr>
+<tr>
+<td>ZGC</td>
+<td>15+</td>
+<td>STW 10ms 이하, 대용량 힙 지원</td>
+<td>지연 시간에 민감한 서비스</td>
+</tr>
+<tr>
+<td>Parallel GC</td>
+<td></td>
+<td>처리량(throughput) 우선</td>
+<td>배치 처리, 대량 데이터 연산</td>
+</tr>
+<tr>
+<td>Shenandoah</td>
+<td></td>
+<td>ZGC와 유사, Red Hat 계열에서 지원</td>
+<td>OpenJDK 기반 환경</td>
+</tr>
+</tbody>
+</table>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># G1GC (별도 설정 없으면 Java 9+에서 기본)</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>java<span class="w"> </span>-XX:+UseG1GC<span class="w"> </span>-jar<span class="w"> </span>app.jar
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># ZGC</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>java<span class="w"> </span>-XX:+UseZGC<span class="w"> </span>-jar<span class="w"> </span>app.jar
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="c1"># GC 로그 남기기 (Java 9+)</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>java<span class="w"> </span>-Xlog:gc*:file<span class="o">=</span>gc.log:time,level,tags<span class="w"> </span>-jar<span class="w"> </span>app.jar
+</span></code></pre></div>
+<p>GC 로그에서 Full GC가 자주 발생하면 힙 크기가 부족하거나 Old Generation으로 넘어가는 객체가 많다는 뜻이다. <code>-Xmx</code>를 늘리거나, 객체 생존 시간을 줄이는 방향으로 코드를 수정해야 한다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../JVM%20%EA%B4%80%EB%A0%A8/GC_Deep_Dive/">JVM Garbage Collection 심화</a></li>
+<li><a href="../../JVM%20%EA%B4%80%EB%A0%A8/JVM%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EB%A9%94%EB%AA%A8%EB%A6%AC%20%EA%B4%80%EB%A6%AC/">JVM 구조 및 메모리 관리</a></li>
+<li><a href="../../JVM%20%EA%B4%80%EB%A0%A8/JVM_Options_and_Memory_Management/">JVM 옵션 및 메모리 관리</a></li>
+<li><a href="../../%EB%A9%80%ED%8B%B0%EC%8A%A4%EB%A0%88%EB%94%A9%20%EB%B0%8F%20%EB%8F%99%EC%8B%9C%EC%84%B1/Java_Virtual_Threads/">Java 가상 스레드 (Virtual Threads)</a></li>
+<li><a href="../../%EB%A9%80%ED%8B%B0%EC%8A%A4%EB%A0%88%EB%94%A9%20%EB%B0%8F%20%EB%8F%99%EC%8B%9C%EC%84%B1/Java_Concurrency/">Java 동시성 심화</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../super__vs__this/" class="md-footer__link md-footer__link--prev" aria-label="이전: Java this와 super 키워드">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Java this와 super 키워드
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../%EC%A7%80%EC%97%AD%20%EB%B3%80%EC%88%98%EC%99%80%20%EC%BA%A1%EC%B3%90/" class="md-footer__link md-footer__link--next" aria-label="다음: 지역 변수와 캡쳐">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                지역 변수와 캡쳐
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

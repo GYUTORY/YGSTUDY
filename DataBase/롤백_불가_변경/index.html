@@ -1,150 +1,2111 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/DataBase/%EB%A1%A4%EB%B0%B1_%EB%B6%88%EA%B0%80_%EB%B3%80%EA%B2%BD/ rel=canonical><link href=../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ rel=prev><link href=../DataRepresentation/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../feed_rss_updated.xml><link rel=icon href=../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>롤백 불가 변경 - YGSTUDY</title><link rel=stylesheet href=../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../stylesheets/extra.css><script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#롤백-불가-변경 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 롤백 불가 변경 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Database </span> </a> <label class="md-nav__link " for=__nav_5 id=__nav_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_5_label aria-expanded=true> <label class=md-nav__title for=__nav_5> <span class="md-nav__icon md-icon"></span> Database </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Connection_Pool/ class=md-nav__link> <span class=md-ellipsis> DB Connection Pool 종합 </span> </a> </li> <li class=md-nav__item> <a href=../Database_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 심화 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98_%EC%A0%84%EB%9E%B5/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 마이그레이션 전략 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%B0%B1%ED%95%84/ class=md-nav__link> <span class=md-ellipsis> 백필 (Backfill) </span> </a> </li> <li class=md-nav__item> <a href=../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 옵티마이저 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 롤백 불가 변경 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 롤백 불가 변경 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#유형-분류 class=md-nav__link> <span class=md-ellipsis> 유형 분류 </span> </a> <nav class=md-nav aria-label="유형 분류"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#drop-table--drop-column--drop-index class=md-nav__link> <span class=md-ellipsis> DROP TABLE / DROP COLUMN / DROP INDEX </span> </a> </li> <li class=md-nav__item> <a href=#truncate class=md-nav__link> <span class=md-ellipsis> TRUNCATE </span> </a> </li> <li class=md-nav__item> <a href=#컬럼-타입-축소 class=md-nav__link> <span class=md-ellipsis> 컬럼 타입 축소 </span> </a> </li> <li class=md-nav__item> <a href=#enum-값-삭제 class=md-nav__link> <span class=md-ellipsis> ENUM 값 삭제 </span> </a> </li> <li class=md-nav__item> <a href=#character-set-변환 class=md-nav__link> <span class=md-ellipsis> CHARACTER SET 변환 </span> </a> </li> <li class=md-nav__item> <a href=#파티션-구조-변경 class=md-nav__link> <span class=md-ellipsis> 파티션 구조 변경 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#변경-전-검증 class=md-nav__link> <span class=md-ellipsis> 변경 전 검증 </span> </a> </li> <li class=md-nav__item> <a href=#스냅샷-타이밍-전략 class=md-nav__link> <span class=md-ellipsis> 스냅샷 타이밍 전략 </span> </a> </li> <li class=md-nav__item> <a href=#binlog-기반-복구-절차 class=md-nav__link> <span class=md-ellipsis> binlog 기반 복구 절차 </span> </a> </li> <li class=md-nav__item> <a href=#데이터-손실-없이-동등한-변경을-달성하는-우회-패턴 class=md-nav__link> <span class=md-ellipsis> 데이터 손실 없이 동등한 변경을 달성하는 우회 패턴 </span> </a> <nav class=md-nav aria-label="데이터 손실 없이 동등한 변경을 달성하는 우회 패턴"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#shadow-table-패턴-테이블-삭제-대신 class=md-nav__link> <span class=md-ellipsis> shadow table 패턴 (테이블 삭제 대신) </span> </a> </li> <li class=md-nav__item> <a href=#단계적-contract-컬럼-삭제-시 class=md-nav__link> <span class=md-ellipsis> 단계적 Contract (컬럼 삭제 시) </span> </a> </li> <li class=md-nav__item> <a href=#enum-값-삭제-우회 class=md-nav__link> <span class=md-ellipsis> ENUM 값 삭제 우회 </span> </a> </li> <li class=md-nav__item> <a href=#파티션-삭제-우회-아카이빙 class=md-nav__link> <span class=md-ellipsis> 파티션 삭제 우회 (아카이빙) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실행-후-문제-발생-시-dba-협업-절차 class=md-nav__link> <span class=md-ellipsis> 실행 후 문제 발생 시 DBA 협업 절차 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../DataRepresentation/ class=md-nav__link> <span class=md-ellipsis> Data Representation </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../NoSQL/ class=md-nav__link> <span class=md-ellipsis> NoSQL </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../RDBMS/%EB%B6%80%EB%B6%84_%EC%9D%B8%EB%8D%B1%EC%8A%A4/ class=md-nav__link> <span class=md-ellipsis> RDBMS </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#유형-분류 class=md-nav__link> <span class=md-ellipsis> 유형 분류 </span> </a> <nav class=md-nav aria-label="유형 분류"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#drop-table--drop-column--drop-index class=md-nav__link> <span class=md-ellipsis> DROP TABLE / DROP COLUMN / DROP INDEX </span> </a> </li> <li class=md-nav__item> <a href=#truncate class=md-nav__link> <span class=md-ellipsis> TRUNCATE </span> </a> </li> <li class=md-nav__item> <a href=#컬럼-타입-축소 class=md-nav__link> <span class=md-ellipsis> 컬럼 타입 축소 </span> </a> </li> <li class=md-nav__item> <a href=#enum-값-삭제 class=md-nav__link> <span class=md-ellipsis> ENUM 값 삭제 </span> </a> </li> <li class=md-nav__item> <a href=#character-set-변환 class=md-nav__link> <span class=md-ellipsis> CHARACTER SET 변환 </span> </a> </li> <li class=md-nav__item> <a href=#파티션-구조-변경 class=md-nav__link> <span class=md-ellipsis> 파티션 구조 변경 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#변경-전-검증 class=md-nav__link> <span class=md-ellipsis> 변경 전 검증 </span> </a> </li> <li class=md-nav__item> <a href=#스냅샷-타이밍-전략 class=md-nav__link> <span class=md-ellipsis> 스냅샷 타이밍 전략 </span> </a> </li> <li class=md-nav__item> <a href=#binlog-기반-복구-절차 class=md-nav__link> <span class=md-ellipsis> binlog 기반 복구 절차 </span> </a> </li> <li class=md-nav__item> <a href=#데이터-손실-없이-동등한-변경을-달성하는-우회-패턴 class=md-nav__link> <span class=md-ellipsis> 데이터 손실 없이 동등한 변경을 달성하는 우회 패턴 </span> </a> <nav class=md-nav aria-label="데이터 손실 없이 동등한 변경을 달성하는 우회 패턴"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#shadow-table-패턴-테이블-삭제-대신 class=md-nav__link> <span class=md-ellipsis> shadow table 패턴 (테이블 삭제 대신) </span> </a> </li> <li class=md-nav__item> <a href=#단계적-contract-컬럼-삭제-시 class=md-nav__link> <span class=md-ellipsis> 단계적 Contract (컬럼 삭제 시) </span> </a> </li> <li class=md-nav__item> <a href=#enum-값-삭제-우회 class=md-nav__link> <span class=md-ellipsis> ENUM 값 삭제 우회 </span> </a> </li> <li class=md-nav__item> <a href=#파티션-삭제-우회-아카이빙 class=md-nav__link> <span class=md-ellipsis> 파티션 삭제 우회 (아카이빙) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실행-후-문제-발생-시-dba-협업-절차 class=md-nav__link> <span class=md-ellipsis> 실행 후 문제 발생 시 DBA 협업 절차 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>database</span> <span class=md-tag>mysql</span> </nav> <h1 id=롤백-불가-변경>롤백 불가 변경<a class=headerlink href=#롤백-불가-변경 title="Permanent link">&para;</a></h1> <p>스키마 변경 중 일부는 실행 즉시 데이터가 사라지거나 구조가 파괴된다. 트랜잭션 롤백도, 마이그레이션 도구의 undo도 작동하지 않는다. 프로덕션에서 이 유형의 변경이 잘못되면 binlog 복구나 스냅샷 복원 외에 선택지가 없다.</p> <hr> <h2 id=유형-분류>유형 분류<a class=headerlink href=#유형-분류 title="Permanent link">&para;</a></h2> <h3 id=drop-table--drop-column--drop-index>DROP TABLE / DROP COLUMN / DROP INDEX<a class=headerlink href=#drop-table--drop-column--drop-index title="Permanent link">&para;</a></h3> <p>테이블을 DROP하면 데이터 파일(<code>.ibd</code>)과 딕셔너리 정보가 즉시 삭제된다. MySQL 8.0의 Atomic DDL 덕분에 DDL 자체는 원자적으로 처리되지만, 커밋 이후에는 되돌릴 수 없다. DROP INDEX는 데이터 손실은 없지만 인덱스 재생성에 걸리는 시간을 감수해야 한다.</p> <p>DROP COLUMN은 더 위험하다. 컬럼을 지우면 해당 컬럼의 데이터가 전부 날아가고, 원본 값을 알 방법이 없다. 심지어 binlog에도 컬럼 제거 이후의 DML부터만 기록된다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1>-- 이 두 줄 중 하나라도 프로덕션에서 잘못 실행하면 복구 불가</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=k>DROP</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=p>;</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>DROP</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>ssn</span><span class=p>;</span>
-</span></code></pre></div> <h3 id=truncate>TRUNCATE<a class=headerlink href=#truncate title="Permanent link">&para;</a></h3> <p>DELETE와 달리 TRUNCATE는 DDL이다. 행 단위 로그를 남기지 않고 데이터 파일을 통째로 초기화한다. MySQL InnoDB에서 TRUNCATE는 트랜잭션 내에 있어도 자동 커밋된다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=k>BEGIN</span><span class=p>;</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=k>TRUNCATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>sessions</span><span class=p>;</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=k>ROLLBACK</span><span class=p>;</span><span class=w> </span><span class=c1>-- 아무 효과 없음. sessions는 이미 비워짐</span>
-</span></code></pre></div> <p>TRUNCATE 직후 <code>SHOW ENGINE INNODB STATUS</code>를 봐도 롤백 세그먼트에 아무것도 없다.</p> <h3 id=컬럼-타입-축소>컬럼 타입 축소<a class=headerlink href=#컬럼-타입-축소 title="Permanent link">&para;</a></h3> <p>VARCHAR(255)를 VARCHAR(50)으로 줄이거나, BIGINT를 INT로 바꾸는 변경이다. 기존 데이터가 새 타입 범위를 벗어나면 MySQL은 변경 자체를 거부하거나(strict 모드), 데이터를 잘라버린다(non-strict 모드).</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>-- strict 모드: 에러 발생</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=k>MODIFY</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>description</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>10</span><span class=p>);</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=c1>-- ERROR 1406 (22001): Data too long for column &#39;description&#39;</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=c1>-- non-strict 모드(sql_mode에 STRICT_TRANS_TABLES 없음)</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=c1>-- 에러 없이 실행되고 데이터가 조용히 잘린다</span>
-</span></code></pre></div> <p>non-strict 환경은 <code>SELECT @@sql_mode</code>로 확인한다. STRICT_TRANS_TABLES 없으면 데이터 손실이 에러 없이 일어난다.</p> <h3 id=enum-값-삭제>ENUM 값 삭제<a class=headerlink href=#enum-값-삭제 title="Permanent link">&para;</a></h3> <p>ENUM 타입에서 값을 제거하면 해당 값이 들어있는 행이 빈 문자열로 변환되거나 에러가 난다. 추가는 Online DDL로 무중단 처리가 가능하지만, 제거는 테이블 리빌드가 강제된다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1>-- 기존: ENUM(&#39;active&#39;, &#39;inactive&#39;, &#39;suspended&#39;)</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=c1>-- suspended를 제거하려는 경우</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>MODIFY</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=n>ENUM</span><span class=p>(</span><span class=s1>&#39;active&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;inactive&#39;</span><span class=p>);</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=c1>-- status = &#39;suspended&#39;인 행 수천 건이 &#39;&#39; 또는 에러로 변환됨</span>
-</span></code></pre></div> <p>ENUM 값을 지우기 전에 반드시 해당 값이 실제로 사용 중인지 확인해야 한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=k>SELECT</span><span class=w> </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;suspended&#39;</span><span class=p>;</span>
-</span></code></pre></div> <h3 id=character-set-변환>CHARACTER SET 변환<a class=headerlink href=#character-set-변환 title="Permanent link">&para;</a></h3> <p><code>latin1</code>에서 <code>utf8mb4</code>로 변환하는 경우가 많다. 기존 latin1 데이터에 한글이나 이모지가 없으면 변환이 깔끔하게 된다. 문제는 latin1로 저장된 문자열 중 실제로는 utf8 바이트가 섞여있는 경우다.</p> <p>이 상태에서 CHARACTER SET 변환을 하면 이중 인코딩이 발생한다. 변환 후 데이터가 깨지고, 원복도 어렵다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1>-- 변환 전 데이터 확인</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=k>SELECT</span><span class=w> </span><span class=n>HEX</span><span class=p>(</span><span class=k>column_name</span><span class=p>),</span><span class=w> </span><span class=k>column_name</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=c1>-- latin1 컬럼에 0xEAB080 같은 3바이트 한글 바이트가 있으면 이중인코딩 위험</span>
-</span></code></pre></div> <p>변환 후 문제가 생기면 <code>CONVERT(column USING binary)</code> 우회를 써야 하는데, 이미 커밋된 상태에서는 binlog 기반으로 복구해야 한다.</p> <h3 id=파티션-구조-변경>파티션 구조 변경<a class=headerlink href=#파티션-구조-변경 title="Permanent link">&para;</a></h3> <p>파티션을 삭제하면 해당 파티션의 데이터가 전부 날아간다. <code>ALTER TABLE ... DROP PARTITION</code>은 DDL이므로 롤백 불가다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1>-- 2022년 데이터 파티션 삭제</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs</span><span class=w> </span><span class=k>DROP</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=n>p2022</span><span class=p>;</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=c1>-- p2022에 속한 수억 건의 로그가 즉시 삭제됨</span>
-</span></code></pre></div> <p>파티션 교체(EXCHANGE PARTITION)는 데이터 손실 없이 파티션과 일반 테이블을 교환하지만, 교환 후 원본 파티션을 DROP하면 동일한 상황이 된다.</p> <hr> <h2 id=변경-전-검증>변경 전 검증<a class=headerlink href=#변경-전-검증 title="Permanent link">&para;</a></h2> <p>실행 전에 세 가지를 확인한다.</p> <p><strong>1. 실제 참조 여부 확인</strong></p> <p>DROP COLUMN 전에 애플리케이션 코드, 뷰, 저장 프로시저, 트리거가 해당 컬럼을 참조하는지 검색한다. 코드 검색뿐 아니라 DB 내부 오브젝트도 확인해야 한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1>-- 컬럼을 참조하는 뷰 확인</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=k>SELECT</span><span class=w> </span><span class=k>TABLE_NAME</span><span class=p>,</span><span class=w> </span><span class=n>VIEW_DEFINITION</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=k>FROM</span><span class=w> </span><span class=n>INFORMATION_SCHEMA</span><span class=p>.</span><span class=n>VIEWS</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=k>WHERE</span><span class=w> </span><span class=n>VIEW_DEFINITION</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;%column_name%&#39;</span><span class=p>;</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=c1>-- 저장 프로시저/트리거 확인</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=k>SELECT</span><span class=w> </span><span class=k>ROUTINE_NAME</span><span class=p>,</span><span class=w> </span><span class=n>ROUTINE_DEFINITION</span>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=k>FROM</span><span class=w> </span><span class=n>INFORMATION_SCHEMA</span><span class=p>.</span><span class=n>ROUTINES</span>
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=k>WHERE</span><span class=w> </span><span class=n>ROUTINE_DEFINITION</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;%column_name%&#39;</span><span class=p>;</span>
-</span></code></pre></div> <p><strong>2. 데이터 분포 확인</strong></p> <p>삭제하려는 컬럼이나 파티션에 실제로 데이터가 있는지, 있다면 얼마나 있는지 확인한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1>-- 컬럼에 NULL이 아닌 값이 있는 행 수</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=k>SELECT</span><span class=w> </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=k>column_name</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=c1>-- 파티션별 행 수</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=k>SELECT</span><span class=w> </span><span class=n>PARTITION_NAME</span><span class=p>,</span><span class=w> </span><span class=n>TABLE_ROWS</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=k>FROM</span><span class=w> </span><span class=n>INFORMATION_SCHEMA</span><span class=p>.</span><span class=n>PARTITIONS</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=k>WHERE</span><span class=w> </span><span class=n>TABLE_SCHEMA</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;db_name&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>TABLE_NAME</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;table_name&#39;</span><span class=p>;</span>
-</span></code></pre></div> <p><strong>3. 의존 서비스 파악</strong></p> <p>다른 서비스가 해당 테이블을 직접 조회하는지 확인한다. MSA 환경에서는 공유 DB를 여러 서비스가 읽는 경우가 있다. 슬로우 쿼리 로그나 general log로 최근 쿼리를 분석하면 참조 여부를 파악할 수 있다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1>-- general log 임시 활성화 후 해당 테이블 참조 쿼리 확인</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=k>SET</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>general_log</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;ON&#39;</span><span class=p>;</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=k>SET</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>general_log_file</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;/tmp/mysql-general.log&#39;</span><span class=p>;</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=c1>-- 일정 시간 후 로그 분석</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=k>SET</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>general_log</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;OFF&#39;</span><span class=p>;</span>
-</span></code></pre></div> <hr> <h2 id=스냅샷-타이밍-전략>스냅샷 타이밍 전략<a class=headerlink href=#스냅샷-타이밍-전략 title="Permanent link">&para;</a></h2> <p>롤백 불가 변경을 실행하기 전에 스냅샷을 찍어두는 것이 기본이지만, 타이밍이 중요하다.</p> <p><strong>RDS / Aurora의 경우</strong></p> <p>변경 직전에 수동 스냅샷을 생성한다. 자동 스냅샷은 일 단위로 찍히기 때문에, 자동 스냅샷만 믿고 있다가 당일 변경이 실패하면 최대 하루치 데이터를 잃을 수 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># AWS CLI로 수동 스냅샷 생성</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>aws<span class=w> </span>rds<span class=w> </span>create-db-snapshot<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>  </span>--db-instance-identifier<span class=w> </span>prod-mysql<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>  </span>--db-snapshot-identifier<span class=w> </span>pre-drop-column-users-ssn-20260806
-</span></code></pre></div> <p>스냅샷 생성에는 시간이 걸린다. 변경 작업 30분 전에 시작해서 완료 확인 후 변경하는 것이 안전하다.</p> <p><strong>온프레미스의 경우</strong></p> <p>mysqldump로 해당 테이블만 덤프를 뜨거나, xtrabackup으로 전체 물리 백업을 찍는다. 테이블 단위 덤프가 훨씬 빠르다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># 특정 테이블만 덤프</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>mysqldump<span class=w> </span>-h<span class=w> </span>host<span class=w> </span>-u<span class=w> </span>user<span class=w> </span>-p<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a><span class=w>  </span>--single-transaction<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=w>  </span>--set-gtid-purged<span class=o>=</span>OFF<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=w>  </span>db_name<span class=w> </span>table_name<span class=w> </span>&gt;<span class=w> </span>/backup/table_name_20260806.sql
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=c1># 덤프 파일 크기와 row count 교차 확인</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>wc<span class=w> </span>-l<span class=w> </span>/backup/table_name_20260806.sql
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a>mysql<span class=w> </span>-u<span class=w> </span>user<span class=w> </span>-p<span class=w> </span>-e<span class=w> </span><span class=s2>&quot;SELECT COUNT(*) FROM db_name.table_name&quot;</span>
-</span></code></pre></div> <p><strong>shadow table 방식 (변경 전 데이터 보존)</strong></p> <p>변경 전에 대상 테이블을 복사해두는 방법이다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1>-- 변경 전 테이블 전체 복사 (스냅샷 역할)</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users_backup_20260806</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=p>;</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=c1>-- 인덱스도 복사하려면</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users_backup_20260806</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=n>users</span><span class=p>;</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>users_backup_20260806</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=p>;</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a><span class=c1>-- 변경 성공 후 일정 기간(보통 2주~1달) 유지 후 삭제</span>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a><span class=k>DROP</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users_backup_20260806</span><span class=p>;</span>
-</span></code></pre></div> <p>대용량 테이블은 이 방식이 디스크를 많이 쓴다. 삭제 대상 컬럼만 따로 보존하는 방법이 현실적이다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1>-- ssn 컬럼만 id와 함께 보존</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users_ssn_backup_20260806</span><span class=w> </span><span class=k>AS</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=w>  </span><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>ssn</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>ssn</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span>
-</span></code></pre></div> <hr> <h2 id=binlog-기반-복구-절차>binlog 기반 복구 절차<a class=headerlink href=#binlog-기반-복구-절차 title="Permanent link">&para;</a></h2> <p>스냅샷이 없거나 오래된 경우, binlog를 사용해 특정 시점까지 복구할 수 있다. binlog_format=ROW일 때 가장 정확하다.</p> <p><strong>binlog 위치 확인</strong></p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a><span class=c1>-- 현재 binlog 파일과 포지션</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=k>SHOW</span><span class=w> </span><span class=n>MASTER</span><span class=w> </span><span class=n>STATUS</span><span class=p>;</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a><span class=c1>-- binlog 파일 목록</span>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a><span class=k>SHOW</span><span class=w> </span><span class=nb>BINARY</span><span class=w> </span><span class=n>LOGS</span><span class=p>;</span>
-</span></code></pre></div> <p><strong>특정 시점 이전으로 복구</strong></p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=c1># binlog에서 특정 시간대 이벤트 확인</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>mysqlbinlog<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=w>  </span>--start-datetime<span class=o>=</span><span class=s2>&quot;2026-08-06 14:00:00&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a><span class=w>  </span>--stop-datetime<span class=o>=</span><span class=s2>&quot;2026-08-06 14:30:00&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a><span class=w>  </span>/var/lib/mysql/binlog.000123<span class=w> </span><span class=p>|</span><span class=w> </span>head<span class=w> </span>-200
-</span><span id=__span-15-6><a id=__codelineno-15-6 name=__codelineno-15-6 href=#__codelineno-15-6></a>
-</span><span id=__span-15-7><a id=__codelineno-15-7 name=__codelineno-15-7 href=#__codelineno-15-7></a><span class=c1># 특정 테이블에 대한 이벤트만 필터링</span>
-</span><span id=__span-15-8><a id=__codelineno-15-8 name=__codelineno-15-8 href=#__codelineno-15-8></a>mysqlbinlog<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-9><a id=__codelineno-15-9 name=__codelineno-15-9 href=#__codelineno-15-9></a><span class=w>  </span>--database<span class=o>=</span>mydb<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-10><a id=__codelineno-15-10 name=__codelineno-15-10 href=#__codelineno-15-10></a><span class=w>  </span>--start-datetime<span class=o>=</span><span class=s2>&quot;2026-08-06 14:00:00&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-11><a id=__codelineno-15-11 name=__codelineno-15-11 href=#__codelineno-15-11></a><span class=w>  </span>--stop-datetime<span class=o>=</span><span class=s2>&quot;2026-08-06 14:29:00&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-12><a id=__codelineno-15-12 name=__codelineno-15-12 href=#__codelineno-15-12></a><span class=w>  </span>/var/lib/mysql/binlog.000123<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-A5<span class=w> </span><span class=s2>&quot;users&quot;</span>
-</span></code></pre></div> <p><strong>Point-in-Time Recovery (PITR) 절차</strong></p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=c1># 1. 마지막 전체 백업에서 복원 (스테이징 환경 권장)</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>mysql<span class=w> </span>-u<span class=w> </span>root<span class=w> </span>-p<span class=w> </span>&lt;<span class=w> </span>full_backup.sql
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a><span class=c1># 2. 장애 발생 직전 시각까지 binlog 적용</span>
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a>mysqlbinlog<span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a><span class=w>  </span>--start-datetime<span class=o>=</span><span class=s2>&quot;2026-08-05 00:00:00&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-7><a id=__codelineno-16-7 name=__codelineno-16-7 href=#__codelineno-16-7></a><span class=w>  </span>--stop-datetime<span class=o>=</span><span class=s2>&quot;2026-08-06 14:28:00&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-8><a id=__codelineno-16-8 name=__codelineno-16-8 href=#__codelineno-16-8></a><span class=w>  </span>binlog.000100<span class=w> </span>binlog.000101<span class=w> </span>binlog.000123<span class=w> </span><span class=p>|</span><span class=w> </span>mysql<span class=w> </span>-u<span class=w> </span>root<span class=w> </span>-p
-</span><span id=__span-16-9><a id=__codelineno-16-9 name=__codelineno-16-9 href=#__codelineno-16-9></a>
-</span><span id=__span-16-10><a id=__codelineno-16-10 name=__codelineno-16-10 href=#__codelineno-16-10></a><span class=c1># 3. 복구된 환경에서 필요한 데이터 추출</span>
-</span><span id=__span-16-11><a id=__codelineno-16-11 name=__codelineno-16-11 href=#__codelineno-16-11></a>mysqldump<span class=w> </span>-u<span class=w> </span>root<span class=w> </span>-p<span class=w> </span>mydb<span class=w> </span>users<span class=w> </span>&gt;<span class=w> </span>recovered_users.sql
-</span><span id=__span-16-12><a id=__codelineno-16-12 name=__codelineno-16-12 href=#__codelineno-16-12></a>
-</span><span id=__span-16-13><a id=__codelineno-16-13 name=__codelineno-16-13 href=#__codelineno-16-13></a><span class=c1># 4. 프로덕션에서 손실된 컬럼 데이터만 복원</span>
-</span><span id=__span-16-14><a id=__codelineno-16-14 name=__codelineno-16-14 href=#__codelineno-16-14></a>mysql<span class=w> </span>-u<span class=w> </span>root<span class=w> </span>-p<span class=w> </span>mydb<span class=w> </span><span class=s>&lt;&lt; &#39;EOF&#39;</span>
-</span><span id=__span-16-15><a id=__codelineno-16-15 name=__codelineno-16-15 href=#__codelineno-16-15></a><span class=s>UPDATE users u</span>
-</span><span id=__span-16-16><a id=__codelineno-16-16 name=__codelineno-16-16 href=#__codelineno-16-16></a><span class=s>JOIN recovered_users_tmp r ON u.id = r.id</span>
-</span><span id=__span-16-17><a id=__codelineno-16-17 name=__codelineno-16-17 href=#__codelineno-16-17></a><span class=s>SET u.ssn = r.ssn</span>
-</span><span id=__span-16-18><a id=__codelineno-16-18 name=__codelineno-16-18 href=#__codelineno-16-18></a><span class=s>WHERE u.ssn IS NULL AND r.ssn IS NOT NULL;</span>
-</span><span id=__span-16-19><a id=__codelineno-16-19 name=__codelineno-16-19 href=#__codelineno-16-19></a><span class=s>EOF</span>
-</span></code></pre></div> <p>RDS/Aurora는 콘솔에서 특정 시각으로 인스턴스를 복원하는 기능을 제공한다. 백업 보존 기간 내라면 분 단위 복원이 가능하다.</p> <hr> <h2 id=데이터-손실-없이-동등한-변경을-달성하는-우회-패턴>데이터 손실 없이 동등한 변경을 달성하는 우회 패턴<a class=headerlink href=#데이터-손실-없이-동등한-변경을-달성하는-우회-패턴 title="Permanent link">&para;</a></h2> <h3 id=shadow-table-패턴-테이블-삭제-대신>shadow table 패턴 (테이블 삭제 대신)<a class=headerlink href=#shadow-table-패턴-테이블-삭제-대신 title="Permanent link">&para;</a></h3> <p>테이블을 바로 DROP하지 않고, 먼저 이름을 바꿔서 격리한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=c1>-- 1단계: 테이블 이름 변경 (데이터 보존)</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=k>RENAME</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>orders_deprecated_20260806</span><span class=p>;</span>
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=c1>-- 2단계: 애플리케이션이 새 테이블을 사용하도록 배포</span>
-</span><span id=__span-17-5><a id=__codelineno-17-5 name=__codelineno-17-5 href=#__codelineno-17-5></a>
-</span><span id=__span-17-6><a id=__codelineno-17-6 name=__codelineno-17-6 href=#__codelineno-17-6></a><span class=c1>-- 3단계: 일정 기간 경과 후 참조 없음 확인 후 삭제</span>
-</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a><span class=c1>-- (general log, 슬로우 쿼리 등으로 참조 여부 확인)</span>
-</span><span id=__span-17-8><a id=__codelineno-17-8 name=__codelineno-17-8 href=#__codelineno-17-8></a><span class=k>DROP</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders_deprecated_20260806</span><span class=p>;</span>
-</span></code></pre></div> <p>테이블 이름 변경은 메타데이터 변경이라 거의 즉각적이고 데이터를 건드리지 않는다.</p> <h3 id=단계적-contract-컬럼-삭제-시>단계적 Contract (컬럼 삭제 시)<a class=headerlink href=#단계적-contract-컬럼-삭제-시 title="Permanent link">&para;</a></h3> <p>컬럼을 바로 DROP하면 위험하다. 애플리케이션 배포와 스키마 변경을 분리해서 단계를 나누어야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a>[배포 1단계] 애플리케이션이 해당 컬럼을 읽지 않도록 코드 변경 배포
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a>  - SELECT * 쿼리를 컬럼 명시 쿼리로 교체
-</span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a>  - 해당 컬럼 참조 코드 모두 제거
-</span><span id=__span-18-4><a id=__codelineno-18-4 name=__codelineno-18-4 href=#__codelineno-18-4></a>
-</span><span id=__span-18-5><a id=__codelineno-18-5 name=__codelineno-18-5 href=#__codelineno-18-5></a>[대기] 1~2주간 문제 없음을 확인
-</span><span id=__span-18-6><a id=__codelineno-18-6 name=__codelineno-18-6 href=#__codelineno-18-6></a>
-</span><span id=__span-18-7><a id=__codelineno-18-7 name=__codelineno-18-7 href=#__codelineno-18-7></a>[배포 2단계] 컬럼 DROP
-</span><span id=__span-18-8><a id=__codelineno-18-8 name=__codelineno-18-8 href=#__codelineno-18-8></a>  ALTER TABLE users DROP COLUMN ssn;
-</span></code></pre></div> <p>이 절차를 지키지 않으면, 컬럼을 DROP한 직후 이전 버전 배포가 살아있는 인스턴스가 해당 컬럼을 SELECT하다가 에러가 난다.</p> <h3 id=enum-값-삭제-우회>ENUM 값 삭제 우회<a class=headerlink href=#enum-값-삭제-우회 title="Permanent link">&para;</a></h3> <p>ENUM 값을 바로 제거하는 대신, VARCHAR 또는 별도 상태 테이블로 마이그레이션한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a><span class=c1>-- 1단계: ENUM → VARCHAR로 타입 변경</span>
-</span><span id=__span-19-2><a id=__codelineno-19-2 name=__codelineno-19-2 href=#__codelineno-19-2></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>MODIFY</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=s1>&#39;active&#39;</span><span class=p>;</span>
-</span><span id=__span-19-3><a id=__codelineno-19-3 name=__codelineno-19-3 href=#__codelineno-19-3></a>
-</span><span id=__span-19-4><a id=__codelineno-19-4 name=__codelineno-19-4 href=#__codelineno-19-4></a><span class=c1>-- 2단계: 제거하려는 값을 가진 행을 다른 값으로 업데이트</span>
-</span><span id=__span-19-5><a id=__codelineno-19-5 name=__codelineno-19-5 href=#__codelineno-19-5></a><span class=k>UPDATE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;inactive&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;suspended&#39;</span><span class=p>;</span>
-</span><span id=__span-19-6><a id=__codelineno-19-6 name=__codelineno-19-6 href=#__codelineno-19-6></a>
-</span><span id=__span-19-7><a id=__codelineno-19-7 name=__codelineno-19-7 href=#__codelineno-19-7></a><span class=c1>-- 3단계: 애플리케이션에서 &#39;suspended&#39; 값을 더 이상 사용하지 않음을 확인</span>
-</span><span id=__span-19-8><a id=__codelineno-19-8 name=__codelineno-19-8 href=#__codelineno-19-8></a><span class=c1>-- 4단계: 필요하면 CHECK constraint로 허용 값 제한</span>
-</span><span id=__span-19-9><a id=__codelineno-19-9 name=__codelineno-19-9 href=#__codelineno-19-9></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>CONSTRAINT</span><span class=w> </span><span class=n>chk_status</span>
-</span><span id=__span-19-10><a id=__codelineno-19-10 name=__codelineno-19-10 href=#__codelineno-19-10></a><span class=w>  </span><span class=k>CHECK</span><span class=w> </span><span class=p>(</span><span class=n>status</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;active&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;inactive&#39;</span><span class=p>));</span>
-</span></code></pre></div> <h3 id=파티션-삭제-우회-아카이빙>파티션 삭제 우회 (아카이빙)<a class=headerlink href=#파티션-삭제-우회-아카이빙 title="Permanent link">&para;</a></h3> <p>파티션을 DROP하기 전에 EXCHANGE PARTITION으로 일반 테이블로 꺼낸다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-20-1><a id=__codelineno-20-1 name=__codelineno-20-1 href=#__codelineno-20-1></a><span class=c1>-- 1단계: 빈 아카이브 테이블 생성 (파티션 테이블과 동일 구조)</span>
-</span><span id=__span-20-2><a id=__codelineno-20-2 name=__codelineno-20-2 href=#__codelineno-20-2></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs_archive_2022</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=n>logs</span><span class=p>;</span>
-</span><span id=__span-20-3><a id=__codelineno-20-3 name=__codelineno-20-3 href=#__codelineno-20-3></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs_archive_2022</span><span class=w> </span><span class=n>REMOVE</span><span class=w> </span><span class=n>PARTITIONING</span><span class=p>;</span>
-</span><span id=__span-20-4><a id=__codelineno-20-4 name=__codelineno-20-4 href=#__codelineno-20-4></a>
-</span><span id=__span-20-5><a id=__codelineno-20-5 name=__codelineno-20-5 href=#__codelineno-20-5></a><span class=c1>-- 2단계: 파티션 데이터를 아카이브 테이블로 교환</span>
-</span><span id=__span-20-6><a id=__codelineno-20-6 name=__codelineno-20-6 href=#__codelineno-20-6></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs</span><span class=w> </span><span class=n>EXCHANGE</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=n>p2022</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs_archive_2022</span><span class=p>;</span>
-</span><span id=__span-20-7><a id=__codelineno-20-7 name=__codelineno-20-7 href=#__codelineno-20-7></a>
-</span><span id=__span-20-8><a id=__codelineno-20-8 name=__codelineno-20-8 href=#__codelineno-20-8></a><span class=c1>-- 3단계: 파티션 삭제 (이제 p2022는 비어있으므로 데이터 손실 없음)</span>
-</span><span id=__span-20-9><a id=__codelineno-20-9 name=__codelineno-20-9 href=#__codelineno-20-9></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs</span><span class=w> </span><span class=k>DROP</span><span class=w> </span><span class=n>PARTITION</span><span class=w> </span><span class=n>p2022</span><span class=p>;</span>
-</span><span id=__span-20-10><a id=__codelineno-20-10 name=__codelineno-20-10 href=#__codelineno-20-10></a>
-</span><span id=__span-20-11><a id=__codelineno-20-11 name=__codelineno-20-11 href=#__codelineno-20-11></a><span class=c1>-- 4단계: 아카이브 테이블은 저비용 스토리지로 이전하거나 덤프 후 삭제</span>
-</span></code></pre></div> <hr> <h2 id=실행-후-문제-발생-시-dba-협업-절차>실행 후 문제 발생 시 DBA 협업 절차<a class=headerlink href=#실행-후-문제-발생-시-dba-협업-절차 title="Permanent link">&para;</a></h2> <p>변경 직후 문제가 발견됐을 때 DBA와 협업해서 복구를 진행하는 순서다.</p> <p><strong>즉시 해야 할 일</strong></p> <p>변경을 실행한 사람이 혼자 복구를 시도하기 전에 DBA에게 상황을 알린다. DBA는 binlog 위치, 현재 복제 지연 상태, 백업 타이밍을 즉시 파악할 수 있다. 잘못된 복구 시도가 상황을 더 악화시키는 경우가 많다.</p> <p>DBA에게 전달해야 하는 정보:</p> <ul> <li>실행한 SQL 구문 정확히</li> <li>실행 시각 (가능하면 초 단위)</li> <li>영향받은 테이블명과 데이터베이스명</li> <li>마지막으로 정상 확인된 시각</li> </ul> <p><strong>DBA가 수행하는 초기 진단</strong></p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a><span class=c1>-- binlog에서 문제의 DDL이 기록된 위치 확인</span>
-</span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a><span class=n>mysqlbinlog</span><span class=w> </span><span class=c1>--base64-output=decode-rows -v binlog.000123 | \</span>
-</span><span id=__span-21-3><a id=__codelineno-21-3 name=__codelineno-21-3 href=#__codelineno-21-3></a><span class=w>  </span><span class=n>grep</span><span class=w> </span><span class=o>-</span><span class=n>B5</span><span class=w> </span><span class=o>-</span><span class=n>A10</span><span class=w> </span><span class=ss>&quot;DROP TABLE\|ALTER TABLE.*DROP&quot;</span>
-</span><span id=__span-21-4><a id=__codelineno-21-4 name=__codelineno-21-4 href=#__codelineno-21-4></a>
-</span><span id=__span-21-5><a id=__codelineno-21-5 name=__codelineno-21-5 href=#__codelineno-21-5></a><span class=c1>-- GTID 환경에서 특정 트랜잭션 식별</span>
-</span><span id=__span-21-6><a id=__codelineno-21-6 name=__codelineno-21-6 href=#__codelineno-21-6></a><span class=n>mysqlbinlog</span><span class=w> </span><span class=c1>--base64-output=decode-rows -v binlog.000123 | \</span>
-</span><span id=__span-21-7><a id=__codelineno-21-7 name=__codelineno-21-7 href=#__codelineno-21-7></a><span class=w>  </span><span class=n>grep</span><span class=w> </span><span class=ss>&quot;SET @@SESSION.GTID&quot;</span>
-</span></code></pre></div> <p><strong>복구 환경 분리</strong></p> <p>프로덕션에서 직접 복구를 시도하지 않는다. 별도 인스턴스(스테이징, 복제 슬레이브, 스냅샷 복원 인스턴스)에서 복구를 먼저 수행하고, 데이터가 정상임을 확인한 후 프로덕션에 반영한다.</p> <p>복구된 데이터를 프로덕션에 반영할 때는, 복구 중 프로덕션에서 발생한 새 트랜잭션과의 충돌을 확인해야 한다. 복구 대상 테이블에 대한 쓰기를 일시적으로 막거나, 복구 데이터와 신규 트랜잭션 데이터를 신중하게 병합해야 한다.</p> <p><strong>서비스 영향 최소화</strong></p> <p>복구 중 해당 기능의 쓰기를 차단하거나, 기능 플래그로 비활성화하는 것을 먼저 처리한다. 불완전한 데이터 상태에서 계속 쓰기가 발생하면 복구 후 데이터 정합성이 더 복잡해진다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../RDBMS/Auto_Increment/ >AUTO_INCREMENT</a></li> <li><a href=../RDBMS/B_Tree_Page_Split/ >B-Tree 페이지 분할</a></li> <li><a href=../DataRepresentation/Encoding/Collation/ >Collation</a></li> <li><a href=../RDBMS/Cross_Schema/ >Cross-Schema 쿼리</a></li> <li><a href=../RDBMS/My_SQL_Inno_DB_Locking_Deep_Dive/ >MySQL InnoDB 락 심화</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 6일 03:44:59 UTC">2026년 8월 6일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ class="md-footer__link md-footer__link--prev" aria-label="이전: 데이터베이스 옵티마이저"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 데이터베이스 옵티마이저 </div> </div> </a> <a href=../DataRepresentation/ class="md-footer__link md-footer__link--next" aria-label="다음: DataRepresentation 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> DataRepresentation 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../javascripts/extra.js></script> <script src=../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/DataBase/%EB%A1%A4%EB%B0%B1_%EB%B6%88%EA%B0%80_%EB%B3%80%EA%B2%BD/">
+      
+      
+        <link rel="prev" href="../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/">
+      
+      
+        <link rel="next" href="../DataRepresentation/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>롤백 불가 변경 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#롤백-불가-변경" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              롤백 불가 변경
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Database
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Connection_Pool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DB Connection Pool 종합
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Database_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98_%EC%A0%84%EB%9E%B5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 마이그레이션 전략
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%B0%B1%ED%95%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    백필 (Backfill)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 옵티마이저
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    롤백 불가 변경
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    롤백 불가 변경
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#유형-분류" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        유형 분류
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="유형 분류">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#drop-table--drop-column--drop-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DROP TABLE / DROP COLUMN / DROP INDEX
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truncate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TRUNCATE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#컬럼-타입-축소" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컬럼 타입 축소
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enum-값-삭제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENUM 값 삭제
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#character-set-변환" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CHARACTER SET 변환
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파티션-구조-변경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파티션 구조 변경
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#변경-전-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        변경 전 검증
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#스냅샷-타이밍-전략" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스냅샷 타이밍 전략
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binlog-기반-복구-절차" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        binlog 기반 복구 절차
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#데이터-손실-없이-동등한-변경을-달성하는-우회-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데이터 손실 없이 동등한 변경을 달성하는 우회 패턴
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="데이터 손실 없이 동등한 변경을 달성하는 우회 패턴">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shadow-table-패턴-테이블-삭제-대신" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shadow table 패턴 (테이블 삭제 대신)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#단계적-contract-컬럼-삭제-시" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단계적 Contract (컬럼 삭제 시)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enum-값-삭제-우회" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENUM 값 삭제 우회
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파티션-삭제-우회-아카이빙" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파티션 삭제 우회 (아카이빙)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실행-후-문제-발생-시-dba-협업-절차" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실행 후 문제 발생 시 DBA 협업 절차
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../DataRepresentation/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Representation
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../NoSQL/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NoSQL
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../RDBMS/%EB%B6%80%EB%B6%84_%EC%9D%B8%EB%8D%B1%EC%8A%A4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RDBMS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#유형-분류" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        유형 분류
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="유형 분류">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#drop-table--drop-column--drop-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DROP TABLE / DROP COLUMN / DROP INDEX
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truncate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TRUNCATE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#컬럼-타입-축소" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컬럼 타입 축소
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enum-값-삭제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENUM 값 삭제
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#character-set-변환" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CHARACTER SET 변환
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파티션-구조-변경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파티션 구조 변경
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#변경-전-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        변경 전 검증
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#스냅샷-타이밍-전략" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스냅샷 타이밍 전략
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binlog-기반-복구-절차" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        binlog 기반 복구 절차
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#데이터-손실-없이-동등한-변경을-달성하는-우회-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데이터 손실 없이 동등한 변경을 달성하는 우회 패턴
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="데이터 손실 없이 동등한 변경을 달성하는 우회 패턴">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shadow-table-패턴-테이블-삭제-대신" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shadow table 패턴 (테이블 삭제 대신)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#단계적-contract-컬럼-삭제-시" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단계적 Contract (컬럼 삭제 시)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enum-값-삭제-우회" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENUM 값 삭제 우회
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파티션-삭제-우회-아카이빙" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파티션 삭제 우회 (아카이빙)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실행-후-문제-발생-시-dba-협업-절차" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실행 후 문제 발생 시 DBA 협업 절차
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">database</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">mysql</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="롤백-불가-변경">롤백 불가 변경<a class="headerlink" href="#롤백-불가-변경" title="Permanent link">&para;</a></h1>
+<p>스키마 변경 중 일부는 실행 즉시 데이터가 사라지거나 구조가 파괴된다. 트랜잭션 롤백도, 마이그레이션 도구의 undo도 작동하지 않는다. 프로덕션에서 이 유형의 변경이 잘못되면 binlog 복구나 스냅샷 복원 외에 선택지가 없다.</p>
+<hr />
+<h2 id="유형-분류">유형 분류<a class="headerlink" href="#유형-분류" title="Permanent link">&para;</a></h2>
+<h3 id="drop-table--drop-column--drop-index">DROP TABLE / DROP COLUMN / DROP INDEX<a class="headerlink" href="#drop-table--drop-column--drop-index" title="Permanent link">&para;</a></h3>
+<p>테이블을 DROP하면 데이터 파일(<code>.ibd</code>)과 딕셔너리 정보가 즉시 삭제된다. MySQL 8.0의 Atomic DDL 덕분에 DDL 자체는 원자적으로 처리되지만, 커밋 이후에는 되돌릴 수 없다. DROP INDEX는 데이터 손실은 없지만 인덱스 재생성에 걸리는 시간을 감수해야 한다.</p>
+<p>DROP COLUMN은 더 위험하다. 컬럼을 지우면 해당 컬럼의 데이터가 전부 날아가고, 원본 값을 알 방법이 없다. 심지어 binlog에도 컬럼 제거 이후의 DML부터만 기록된다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">-- 이 두 줄 중 하나라도 프로덕션에서 잘못 실행하면 복구 불가</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="p">;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">DROP</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">ssn</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="truncate">TRUNCATE<a class="headerlink" href="#truncate" title="Permanent link">&para;</a></h3>
+<p>DELETE와 달리 TRUNCATE는 DDL이다. 행 단위 로그를 남기지 않고 데이터 파일을 통째로 초기화한다. MySQL InnoDB에서 TRUNCATE는 트랜잭션 내에 있어도 자동 커밋된다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">BEGIN</span><span class="p">;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">TRUNCATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">sessions</span><span class="p">;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">ROLLBACK</span><span class="p">;</span><span class="w"> </span><span class="c1">-- 아무 효과 없음. sessions는 이미 비워짐</span>
+</span></code></pre></div>
+<p>TRUNCATE 직후 <code>SHOW ENGINE INNODB STATUS</code>를 봐도 롤백 세그먼트에 아무것도 없다.</p>
+<h3 id="컬럼-타입-축소">컬럼 타입 축소<a class="headerlink" href="#컬럼-타입-축소" title="Permanent link">&para;</a></h3>
+<p>VARCHAR(255)를 VARCHAR(50)으로 줄이거나, BIGINT를 INT로 바꾸는 변경이다. 기존 데이터가 새 타입 범위를 벗어나면 MySQL은 변경 자체를 거부하거나(strict 모드), 데이터를 잘라버린다(non-strict 모드).</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- strict 모드: 에러 발생</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">products</span><span class="w"> </span><span class="k">MODIFY</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">description</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">-- ERROR 1406 (22001): Data too long for column &#39;description&#39;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1">-- non-strict 모드(sql_mode에 STRICT_TRANS_TABLES 없음)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">-- 에러 없이 실행되고 데이터가 조용히 잘린다</span>
+</span></code></pre></div>
+<p>non-strict 환경은 <code>SELECT @@sql_mode</code>로 확인한다. STRICT_TRANS_TABLES 없으면 데이터 손실이 에러 없이 일어난다.</p>
+<h3 id="enum-값-삭제">ENUM 값 삭제<a class="headerlink" href="#enum-값-삭제" title="Permanent link">&para;</a></h3>
+<p>ENUM 타입에서 값을 제거하면 해당 값이 들어있는 행이 빈 문자열로 변환되거나 에러가 난다. 추가는 Online DDL로 무중단 처리가 가능하지만, 제거는 테이블 리빌드가 강제된다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- 기존: ENUM(&#39;active&#39;, &#39;inactive&#39;, &#39;suspended&#39;)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1">-- suspended를 제거하려는 경우</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">MODIFY</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="n">ENUM</span><span class="p">(</span><span class="s1">&#39;active&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;inactive&#39;</span><span class="p">);</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">-- status = &#39;suspended&#39;인 행 수천 건이 &#39;&#39; 또는 에러로 변환됨</span>
+</span></code></pre></div>
+<p>ENUM 값을 지우기 전에 반드시 해당 값이 실제로 사용 중인지 확인해야 한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;suspended&#39;</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="character-set-변환">CHARACTER SET 변환<a class="headerlink" href="#character-set-변환" title="Permanent link">&para;</a></h3>
+<p><code>latin1</code>에서 <code>utf8mb4</code>로 변환하는 경우가 많다. 기존 latin1 데이터에 한글이나 이모지가 없으면 변환이 깔끔하게 된다. 문제는 latin1로 저장된 문자열 중 실제로는 utf8 바이트가 섞여있는 경우다.</p>
+<p>이 상태에서 CHARACTER SET 변환을 하면 이중 인코딩이 발생한다. 변환 후 데이터가 깨지고, 원복도 어렵다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">-- 변환 전 데이터 확인</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">HEX</span><span class="p">(</span><span class="k">column_name</span><span class="p">),</span><span class="w"> </span><span class="k">column_name</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1">-- latin1 컬럼에 0xEAB080 같은 3바이트 한글 바이트가 있으면 이중인코딩 위험</span>
+</span></code></pre></div>
+<p>변환 후 문제가 생기면 <code>CONVERT(column USING binary)</code> 우회를 써야 하는데, 이미 커밋된 상태에서는 binlog 기반으로 복구해야 한다.</p>
+<h3 id="파티션-구조-변경">파티션 구조 변경<a class="headerlink" href="#파티션-구조-변경" title="Permanent link">&para;</a></h3>
+<p>파티션을 삭제하면 해당 파티션의 데이터가 전부 날아간다. <code>ALTER TABLE ... DROP PARTITION</code>은 DDL이므로 롤백 불가다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">-- 2022년 데이터 파티션 삭제</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">logs</span><span class="w"> </span><span class="k">DROP</span><span class="w"> </span><span class="n">PARTITION</span><span class="w"> </span><span class="n">p2022</span><span class="p">;</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1">-- p2022에 속한 수억 건의 로그가 즉시 삭제됨</span>
+</span></code></pre></div>
+<p>파티션 교체(EXCHANGE PARTITION)는 데이터 손실 없이 파티션과 일반 테이블을 교환하지만, 교환 후 원본 파티션을 DROP하면 동일한 상황이 된다.</p>
+<hr />
+<h2 id="변경-전-검증">변경 전 검증<a class="headerlink" href="#변경-전-검증" title="Permanent link">&para;</a></h2>
+<p>실행 전에 세 가지를 확인한다.</p>
+<p><strong>1. 실제 참조 여부 확인</strong></p>
+<p>DROP COLUMN 전에 애플리케이션 코드, 뷰, 저장 프로시저, 트리거가 해당 컬럼을 참조하는지 검색한다. 코드 검색뿐 아니라 DB 내부 오브젝트도 확인해야 한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">-- 컬럼을 참조하는 뷰 확인</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="p">,</span><span class="w"> </span><span class="n">VIEW_DEFINITION</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">VIEWS</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">VIEW_DEFINITION</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%column_name%&#39;</span><span class="p">;</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1">-- 저장 프로시저/트리거 확인</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">ROUTINE_NAME</span><span class="p">,</span><span class="w"> </span><span class="n">ROUTINE_DEFINITION</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">ROUTINES</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">ROUTINE_DEFINITION</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%column_name%&#39;</span><span class="p">;</span>
+</span></code></pre></div>
+<p><strong>2. 데이터 분포 확인</strong></p>
+<p>삭제하려는 컬럼이나 파티션에 실제로 데이터가 있는지, 있다면 얼마나 있는지 확인한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">-- 컬럼에 NULL이 아닌 값이 있는 행 수</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">column_name</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1">-- 파티션별 행 수</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">PARTITION_NAME</span><span class="p">,</span><span class="w"> </span><span class="n">TABLE_ROWS</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">FROM</span><span class="w"> </span><span class="n">INFORMATION_SCHEMA</span><span class="p">.</span><span class="n">PARTITIONS</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">TABLE_SCHEMA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;db_name&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">TABLE_NAME</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;table_name&#39;</span><span class="p">;</span>
+</span></code></pre></div>
+<p><strong>3. 의존 서비스 파악</strong></p>
+<p>다른 서비스가 해당 테이블을 직접 조회하는지 확인한다. MSA 환경에서는 공유 DB를 여러 서비스가 읽는 경우가 있다. 슬로우 쿼리 로그나 general log로 최근 쿼리를 분석하면 참조 여부를 파악할 수 있다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">-- general log 임시 활성화 후 해당 테이블 참조 쿼리 확인</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">SET</span><span class="w"> </span><span class="k">GLOBAL</span><span class="w"> </span><span class="n">general_log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;ON&#39;</span><span class="p">;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">SET</span><span class="w"> </span><span class="k">GLOBAL</span><span class="w"> </span><span class="n">general_log_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;/tmp/mysql-general.log&#39;</span><span class="p">;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1">-- 일정 시간 후 로그 분석</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="k">SET</span><span class="w"> </span><span class="k">GLOBAL</span><span class="w"> </span><span class="n">general_log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;OFF&#39;</span><span class="p">;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="스냅샷-타이밍-전략">스냅샷 타이밍 전략<a class="headerlink" href="#스냅샷-타이밍-전략" title="Permanent link">&para;</a></h2>
+<p>롤백 불가 변경을 실행하기 전에 스냅샷을 찍어두는 것이 기본이지만, 타이밍이 중요하다.</p>
+<p><strong>RDS / Aurora의 경우</strong></p>
+<p>변경 직전에 수동 스냅샷을 생성한다. 자동 스냅샷은 일 단위로 찍히기 때문에, 자동 스냅샷만 믿고 있다가 당일 변경이 실패하면 최대 하루치 데이터를 잃을 수 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># AWS CLI로 수동 스냅샷 생성</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>aws<span class="w"> </span>rds<span class="w"> </span>create-db-snapshot<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>--db-instance-identifier<span class="w"> </span>prod-mysql<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>--db-snapshot-identifier<span class="w"> </span>pre-drop-column-users-ssn-20260806
+</span></code></pre></div>
+<p>스냅샷 생성에는 시간이 걸린다. 변경 작업 30분 전에 시작해서 완료 확인 후 변경하는 것이 안전하다.</p>
+<p><strong>온프레미스의 경우</strong></p>
+<p>mysqldump로 해당 테이블만 덤프를 뜨거나, xtrabackup으로 전체 물리 백업을 찍는다. 테이블 단위 덤프가 훨씬 빠르다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 특정 테이블만 덤프</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>mysqldump<span class="w"> </span>-h<span class="w"> </span>host<span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--single-transaction<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span>--set-gtid-purged<span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span>db_name<span class="w"> </span>table_name<span class="w"> </span>&gt;<span class="w"> </span>/backup/table_name_20260806.sql
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># 덤프 파일 크기와 row count 교차 확인</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>wc<span class="w"> </span>-l<span class="w"> </span>/backup/table_name_20260806.sql
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>mysql<span class="w"> </span>-u<span class="w"> </span>user<span class="w"> </span>-p<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;SELECT COUNT(*) FROM db_name.table_name&quot;</span>
+</span></code></pre></div>
+<p><strong>shadow table 방식 (변경 전 데이터 보존)</strong></p>
+<p>변경 전에 대상 테이블을 복사해두는 방법이다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">-- 변경 전 테이블 전체 복사 (스냅샷 역할)</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users_backup_20260806</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1">-- 인덱스도 복사하려면</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users_backup_20260806</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">users_backup_20260806</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="c1">-- 변경 성공 후 일정 기간(보통 2주~1달) 유지 후 삭제</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users_backup_20260806</span><span class="p">;</span>
+</span></code></pre></div>
+<p>대용량 테이블은 이 방식이 디스크를 많이 쓴다. 삭제 대상 컬럼만 따로 보존하는 방법이 현실적이다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1">-- ssn 컬럼만 id와 함께 보존</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users_ssn_backup_20260806</span><span class="w"> </span><span class="k">AS</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">ssn</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">ssn</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="binlog-기반-복구-절차">binlog 기반 복구 절차<a class="headerlink" href="#binlog-기반-복구-절차" title="Permanent link">&para;</a></h2>
+<p>스냅샷이 없거나 오래된 경우, binlog를 사용해 특정 시점까지 복구할 수 있다. binlog_format=ROW일 때 가장 정확하다.</p>
+<p><strong>binlog 위치 확인</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1">-- 현재 binlog 파일과 포지션</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">MASTER</span><span class="w"> </span><span class="n">STATUS</span><span class="p">;</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1">-- binlog 파일 목록</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="k">SHOW</span><span class="w"> </span><span class="nb">BINARY</span><span class="w"> </span><span class="n">LOGS</span><span class="p">;</span>
+</span></code></pre></div>
+<p><strong>특정 시점 이전으로 복구</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># binlog에서 특정 시간대 이벤트 확인</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>mysqlbinlog<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>--start-datetime<span class="o">=</span><span class="s2">&quot;2026-08-06 14:00:00&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span>--stop-datetime<span class="o">=</span><span class="s2">&quot;2026-08-06 14:30:00&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span>/var/lib/mysql/binlog.000123<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-200
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># 특정 테이블에 대한 이벤트만 필터링</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>mysqlbinlog<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">  </span>--database<span class="o">=</span>mydb<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span>--start-datetime<span class="o">=</span><span class="s2">&quot;2026-08-06 14:00:00&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">  </span>--stop-datetime<span class="o">=</span><span class="s2">&quot;2026-08-06 14:29:00&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">  </span>/var/lib/mysql/binlog.000123<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-A5<span class="w"> </span><span class="s2">&quot;users&quot;</span>
+</span></code></pre></div>
+<p><strong>Point-in-Time Recovery (PITR) 절차</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># 1. 마지막 전체 백업에서 복원 (스테이징 환경 권장)</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p<span class="w"> </span>&lt;<span class="w"> </span>full_backup.sql
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># 2. 장애 발생 직전 시각까지 binlog 적용</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>mysqlbinlog<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">  </span>--start-datetime<span class="o">=</span><span class="s2">&quot;2026-08-05 00:00:00&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">  </span>--stop-datetime<span class="o">=</span><span class="s2">&quot;2026-08-06 14:28:00&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">  </span>binlog.000100<span class="w"> </span>binlog.000101<span class="w"> </span>binlog.000123<span class="w"> </span><span class="p">|</span><span class="w"> </span>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># 3. 복구된 환경에서 필요한 데이터 추출</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>mysqldump<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p<span class="w"> </span>mydb<span class="w"> </span>users<span class="w"> </span>&gt;<span class="w"> </span>recovered_users.sql
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="c1"># 4. 프로덕션에서 손실된 컬럼 데이터만 복원</span>
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p<span class="w"> </span>mydb<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="s">UPDATE users u</span>
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="s">JOIN recovered_users_tmp r ON u.id = r.id</span>
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="s">SET u.ssn = r.ssn</span>
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="s">WHERE u.ssn IS NULL AND r.ssn IS NOT NULL;</span>
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a><span class="s">EOF</span>
+</span></code></pre></div>
+<p>RDS/Aurora는 콘솔에서 특정 시각으로 인스턴스를 복원하는 기능을 제공한다. 백업 보존 기간 내라면 분 단위 복원이 가능하다.</p>
+<hr />
+<h2 id="데이터-손실-없이-동등한-변경을-달성하는-우회-패턴">데이터 손실 없이 동등한 변경을 달성하는 우회 패턴<a class="headerlink" href="#데이터-손실-없이-동등한-변경을-달성하는-우회-패턴" title="Permanent link">&para;</a></h2>
+<h3 id="shadow-table-패턴-테이블-삭제-대신">shadow table 패턴 (테이블 삭제 대신)<a class="headerlink" href="#shadow-table-패턴-테이블-삭제-대신" title="Permanent link">&para;</a></h3>
+<p>테이블을 바로 DROP하지 않고, 먼저 이름을 바꿔서 격리한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1">-- 1단계: 테이블 이름 변경 (데이터 보존)</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">RENAME</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">orders_deprecated_20260806</span><span class="p">;</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1">-- 2단계: 애플리케이션이 새 테이블을 사용하도록 배포</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="c1">-- 3단계: 일정 기간 경과 후 참조 없음 확인 후 삭제</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c1">-- (general log, 슬로우 쿼리 등으로 참조 여부 확인)</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders_deprecated_20260806</span><span class="p">;</span>
+</span></code></pre></div>
+<p>테이블 이름 변경은 메타데이터 변경이라 거의 즉각적이고 데이터를 건드리지 않는다.</p>
+<h3 id="단계적-contract-컬럼-삭제-시">단계적 Contract (컬럼 삭제 시)<a class="headerlink" href="#단계적-contract-컬럼-삭제-시" title="Permanent link">&para;</a></h3>
+<p>컬럼을 바로 DROP하면 위험하다. 애플리케이션 배포와 스키마 변경을 분리해서 단계를 나누어야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>[배포 1단계] 애플리케이션이 해당 컬럼을 읽지 않도록 코드 변경 배포
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  - SELECT * 쿼리를 컬럼 명시 쿼리로 교체
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  - 해당 컬럼 참조 코드 모두 제거
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>[대기] 1~2주간 문제 없음을 확인
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>[배포 2단계] 컬럼 DROP
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>  ALTER TABLE users DROP COLUMN ssn;
+</span></code></pre></div>
+<p>이 절차를 지키지 않으면, 컬럼을 DROP한 직후 이전 버전 배포가 살아있는 인스턴스가 해당 컬럼을 SELECT하다가 에러가 난다.</p>
+<h3 id="enum-값-삭제-우회">ENUM 값 삭제 우회<a class="headerlink" href="#enum-값-삭제-우회" title="Permanent link">&para;</a></h3>
+<p>ENUM 값을 바로 제거하는 대신, VARCHAR 또는 별도 상태 테이블로 마이그레이션한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1">-- 1단계: ENUM → VARCHAR로 타입 변경</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">MODIFY</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="s1">&#39;active&#39;</span><span class="p">;</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1">-- 2단계: 제거하려는 값을 가진 행을 다른 값으로 업데이트</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;inactive&#39;</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;suspended&#39;</span><span class="p">;</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="c1">-- 3단계: 애플리케이션에서 &#39;suspended&#39; 값을 더 이상 사용하지 않음을 확인</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="c1">-- 4단계: 필요하면 CHECK constraint로 허용 값 제한</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">CONSTRAINT</span><span class="w"> </span><span class="n">chk_status</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="w">  </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;active&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;inactive&#39;</span><span class="p">));</span>
+</span></code></pre></div>
+<h3 id="파티션-삭제-우회-아카이빙">파티션 삭제 우회 (아카이빙)<a class="headerlink" href="#파티션-삭제-우회-아카이빙" title="Permanent link">&para;</a></h3>
+<p>파티션을 DROP하기 전에 EXCHANGE PARTITION으로 일반 테이블로 꺼낸다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1">-- 1단계: 빈 아카이브 테이블 생성 (파티션 테이블과 동일 구조)</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">logs_archive_2022</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="n">logs</span><span class="p">;</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">logs_archive_2022</span><span class="w"> </span><span class="n">REMOVE</span><span class="w"> </span><span class="n">PARTITIONING</span><span class="p">;</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="c1">-- 2단계: 파티션 데이터를 아카이브 테이블로 교환</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">logs</span><span class="w"> </span><span class="n">EXCHANGE</span><span class="w"> </span><span class="n">PARTITION</span><span class="w"> </span><span class="n">p2022</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">logs_archive_2022</span><span class="p">;</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="c1">-- 3단계: 파티션 삭제 (이제 p2022는 비어있으므로 데이터 손실 없음)</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">logs</span><span class="w"> </span><span class="k">DROP</span><span class="w"> </span><span class="n">PARTITION</span><span class="w"> </span><span class="n">p2022</span><span class="p">;</span>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="c1">-- 4단계: 아카이브 테이블은 저비용 스토리지로 이전하거나 덤프 후 삭제</span>
+</span></code></pre></div>
+<hr />
+<h2 id="실행-후-문제-발생-시-dba-협업-절차">실행 후 문제 발생 시 DBA 협업 절차<a class="headerlink" href="#실행-후-문제-발생-시-dba-협업-절차" title="Permanent link">&para;</a></h2>
+<p>변경 직후 문제가 발견됐을 때 DBA와 협업해서 복구를 진행하는 순서다.</p>
+<p><strong>즉시 해야 할 일</strong></p>
+<p>변경을 실행한 사람이 혼자 복구를 시도하기 전에 DBA에게 상황을 알린다. DBA는 binlog 위치, 현재 복제 지연 상태, 백업 타이밍을 즉시 파악할 수 있다. 잘못된 복구 시도가 상황을 더 악화시키는 경우가 많다.</p>
+<p>DBA에게 전달해야 하는 정보:</p>
+<ul>
+<li>실행한 SQL 구문 정확히</li>
+<li>실행 시각 (가능하면 초 단위)</li>
+<li>영향받은 테이블명과 데이터베이스명</li>
+<li>마지막으로 정상 확인된 시각</li>
+</ul>
+<p><strong>DBA가 수행하는 초기 진단</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1">-- binlog에서 문제의 DDL이 기록된 위치 확인</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">mysqlbinlog</span><span class="w"> </span><span class="c1">--base64-output=decode-rows -v binlog.000123 | \</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">  </span><span class="n">grep</span><span class="w"> </span><span class="o">-</span><span class="n">B5</span><span class="w"> </span><span class="o">-</span><span class="n">A10</span><span class="w"> </span><span class="ss">&quot;DROP TABLE\|ALTER TABLE.*DROP&quot;</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="c1">-- GTID 환경에서 특정 트랜잭션 식별</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="n">mysqlbinlog</span><span class="w"> </span><span class="c1">--base64-output=decode-rows -v binlog.000123 | \</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">  </span><span class="n">grep</span><span class="w"> </span><span class="ss">&quot;SET @@SESSION.GTID&quot;</span>
+</span></code></pre></div>
+<p><strong>복구 환경 분리</strong></p>
+<p>프로덕션에서 직접 복구를 시도하지 않는다. 별도 인스턴스(스테이징, 복제 슬레이브, 스냅샷 복원 인스턴스)에서 복구를 먼저 수행하고, 데이터가 정상임을 확인한 후 프로덕션에 반영한다.</p>
+<p>복구된 데이터를 프로덕션에 반영할 때는, 복구 중 프로덕션에서 발생한 새 트랜잭션과의 충돌을 확인해야 한다. 복구 대상 테이블에 대한 쓰기를 일시적으로 막거나, 복구 데이터와 신규 트랜잭션 데이터를 신중하게 병합해야 한다.</p>
+<p><strong>서비스 영향 최소화</strong></p>
+<p>복구 중 해당 기능의 쓰기를 차단하거나, 기능 플래그로 비활성화하는 것을 먼저 처리한다. 불완전한 데이터 상태에서 계속 쓰기가 발생하면 복구 후 데이터 정합성이 더 복잡해진다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../RDBMS/Auto_Increment/">AUTO_INCREMENT</a></li>
+<li><a href="../RDBMS/B_Tree_Page_Split/">B-Tree 페이지 분할</a></li>
+<li><a href="../DataRepresentation/Encoding/Collation/">Collation</a></li>
+<li><a href="../RDBMS/Cross_Schema/">Cross-Schema 쿼리</a></li>
+<li><a href="../RDBMS/My_SQL_Inno_DB_Locking_Deep_Dive/">MySQL InnoDB 락 심화</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/" class="md-footer__link md-footer__link--prev" aria-label="이전: 데이터베이스 옵티마이저">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                데이터베이스 옵티마이저
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../DataRepresentation/" class="md-footer__link md-footer__link--next" aria-label="다음: DataRepresentation 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                DataRepresentation 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

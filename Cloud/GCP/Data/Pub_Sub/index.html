@@ -1,188 +1,2102 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/GCP/Data/Pub_Sub/ rel=canonical><link href=../GCS_Object_Versioning/ rel=prev><link href=../../Network/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Cloud Pub/Sub - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#cloud-pubsub class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Cloud Pub/Sub </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AWS/ class=md-nav__link> <span class=md-ellipsis> AWS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> GCP </span> </a> <label class="md-nav__link " for=__nav_6_1_3 id=__nav_6_1_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_3> <span class="md-nav__icon md-icon"></span> GCP </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_3_3 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Data </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_3_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_3_3> <span class="md-nav__icon md-icon"></span> Data </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#토픽과-구독-모델 class=md-nav__link> <span class=md-ellipsis> 토픽과 구독 모델 </span> </a> </li> <li class=md-nav__item> <a href=#푸시-vs-풀-구독 class=md-nav__link> <span class=md-ellipsis> 푸시 vs 풀 구독 </span> </a> </li> <li class=md-nav__item> <a href=#메시지-순서-보장-ordering-key class=md-nav__link> <span class=md-ellipsis> 메시지 순서 보장 (ordering key) </span> </a> </li> <li class=md-nav__item> <a href=#중복-전달-at-least-once class=md-nav__link> <span class=md-ellipsis> 중복 전달 (at-least-once) </span> </a> </li> <li class=md-nav__item> <a href=#데드레터-토픽 class=md-nav__link> <span class=md-ellipsis> 데드레터 토픽 </span> </a> </li> <li class=md-nav__item> <a href=#ack-deadline-관리 class=md-nav__link> <span class=md-ellipsis> ack deadline 관리 </span> </a> </li> <li class=md-nav__item> <a href=#처리-지연-시-재전송-폭주 class=md-nav__link> <span class=md-ellipsis> 처리 지연 시 재전송 폭주 </span> </a> </li> <li class=md-nav__item> <a href=#메시지-필터링 class=md-nav__link> <span class=md-ellipsis> 메시지 필터링 </span> </a> </li> <li class=md-nav__item> <a href=#snapshot--seek class=md-nav__link> <span class=md-ellipsis> Snapshot &amp; Seek </span> </a> <nav class=md-nav aria-label="Snapshot & Seek"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#스냅샷-방식 class=md-nav__link> <span class=md-ellipsis> 스냅샷 방식 </span> </a> </li> <li class=md-nav__item> <a href=#타임스탬프-방식 class=md-nav__link> <span class=md-ellipsis> 타임스탬프 방식 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#pubsub-schema-registry class=md-nav__link> <span class=md-ellipsis> Pub/Sub Schema Registry </span> </a> <nav class=md-nav aria-label="Pub/Sub Schema Registry"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#avro-스키마 class=md-nav__link> <span class=md-ellipsis> Avro 스키마 </span> </a> </li> <li class=md-nav__item> <a href=#protobuf-스키마 class=md-nav__link> <span class=md-ellipsis> Protobuf 스키마 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>cloud</span> <span class=md-tag>gcp</span> <span class=md-tag>messaging</span> </nav> <h1 id=cloud-pubsub>Cloud Pub/Sub<a class=headerlink href=#cloud-pubsub title="Permanent link">&para;</a></h1> <p>GCP의 메시지 브로커다. 발행자(publisher)가 토픽에 메시지를 던지면, 그 토픽을 구독한 여러 구독(subscription)이 각자 사본을 받아간다. Kafka를 먼저 써봤다면 개념이 겹치는데, 파티션이라는 게 표면에 드러나지 않고 오프셋을 직접 관리하지 않는다는 점이 다르다. 스케일링과 저장은 GCP가 알아서 하고, 우리는 토픽과 구독만 만든다.</p> <p>처음 쓸 때 가장 헷갈리는 게 토픽과 구독의 관계다. 메시지는 토픽에 저장되는 게 아니라 <strong>구독마다 따로 쌓인다</strong>. 토픽 하나에 구독 세 개가 붙어 있으면, 발행된 메시지 한 건이 세 개의 구독에 각각 복제되어 들어간다. 구독 A가 메시지를 ack해서 지워도 구독 B, C에는 그대로 남아 있다. 그래서 같은 이벤트를 서로 다른 서비스가 독립적으로 소비하게 만들려면 서비스마다 구독을 따로 파는 게 기본이다.</p> <pre class=mermaid-diagram><code>flowchart LR
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/GCP/Data/Pub_Sub/">
+      
+      
+        <link rel="prev" href="../GCS_Object_Versioning/">
+      
+      
+        <link rel="next" href="../../Network/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Cloud Pub/Sub - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cloud-pubsub" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cloud Pub/Sub
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AWS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_3" id="__nav_6_1_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    GCP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_3_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_3_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#토픽과-구독-모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        토픽과 구독 모델
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#푸시-vs-풀-구독" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        푸시 vs 풀 구독
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메시지-순서-보장-ordering-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메시지 순서 보장 (ordering key)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#중복-전달-at-least-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        중복 전달 (at-least-once)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#데드레터-토픽" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데드레터 토픽
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ack-deadline-관리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ack deadline 관리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#처리-지연-시-재전송-폭주" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        처리 지연 시 재전송 폭주
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메시지-필터링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메시지 필터링
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#snapshot--seek" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snapshot &amp; Seek
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshot &amp; Seek">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#스냅샷-방식" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스냅샷 방식
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#타임스탬프-방식" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        타임스탬프 방식
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pubsub-schema-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pub/Sub Schema Registry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pub/Sub Schema Registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avro-스키마" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avro 스키마
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protobuf-스키마" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protobuf 스키마
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">gcp</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">messaging</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="cloud-pubsub">Cloud Pub/Sub<a class="headerlink" href="#cloud-pubsub" title="Permanent link">&para;</a></h1>
+<p>GCP의 메시지 브로커다. 발행자(publisher)가 토픽에 메시지를 던지면, 그 토픽을 구독한 여러 구독(subscription)이 각자 사본을 받아간다. Kafka를 먼저 써봤다면 개념이 겹치는데, 파티션이라는 게 표면에 드러나지 않고 오프셋을 직접 관리하지 않는다는 점이 다르다. 스케일링과 저장은 GCP가 알아서 하고, 우리는 토픽과 구독만 만든다.</p>
+<p>처음 쓸 때 가장 헷갈리는 게 토픽과 구독의 관계다. 메시지는 토픽에 저장되는 게 아니라 <strong>구독마다 따로 쌓인다</strong>. 토픽 하나에 구독 세 개가 붙어 있으면, 발행된 메시지 한 건이 세 개의 구독에 각각 복제되어 들어간다. 구독 A가 메시지를 ack해서 지워도 구독 B, C에는 그대로 남아 있다. 그래서 같은 이벤트를 서로 다른 서비스가 독립적으로 소비하게 만들려면 서비스마다 구독을 따로 파는 게 기본이다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     P[Publisher] --&gt;|publish| T[Topic]
     T --&gt; S1[Subscription A]
     T --&gt; S2[Subscription B]
     T --&gt; S3[Subscription C]
     S1 --&gt; C1[주문 서비스]
     S2 --&gt; C2[정산 서비스]
-    S3 --&gt; C3[알림 서비스]</code></pre> <h2 id=토픽과-구독-모델>토픽과 구독 모델<a class=headerlink href=#토픽과-구독-모델 title="Permanent link">&para;</a></h2> <p>토픽은 메시지가 들어오는 입구고, 구독은 그 메시지를 빼가는 출구다. 하나의 토픽에 구독이 없으면 발행한 메시지는 그냥 버려진다. 구독이 생기기 전에 발행한 메시지는 그 구독에서 볼 수 없다. 이 순서 때문에 초기 세팅에서 "메시지를 보냈는데 구독자가 못 받는다"는 상황이 종종 나온다. 구독을 먼저 만들고 발행을 시작해야 한다.</p> <p>구독에는 메시지 보관 기간이 있다. 기본 7일이고 최대 31일까지 늘릴 수 있다. 구독자가 이 기간 안에 ack하지 못한 메시지는 사라진다. 장애로 컨슈머가 며칠 죽어 있어도 이 기간 안에만 복구하면 밀린 메시지를 그대로 받는다. 반대로 보관 기간을 넘겨 죽어 있었다면 그 사이 메시지는 유실이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># 토픽 생성</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>gcloud<span class=w> </span>pubsub<span class=w> </span>topics<span class=w> </span>create<span class=w> </span>order-events
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=c1># 풀 구독 생성 (ack deadline 30초, 보관 7일)</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>create<span class=w> </span>order-worker<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=w>  </span>--topic<span class=o>=</span>order-events<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=w>  </span>--ack-deadline<span class=o>=</span><span class=m>30</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=w>  </span>--message-retention-duration<span class=o>=</span>7d
-</span></code></pre></div> <h2 id=푸시-vs-풀-구독>푸시 vs 풀 구독<a class=headerlink href=#푸시-vs-풀-구독 title="Permanent link">&para;</a></h2> <p>구독은 메시지를 가져가는 방식에 따라 풀(pull)과 푸시(push)로 나뉜다. 이 선택이 나중에 운영 난이도를 크게 가른다.</p> <p>풀 구독은 구독자가 능동적으로 Pub/Sub에 "메시지 있냐"고 요청해서 받아온다. 컨슈머 애플리케이션이 클라이언트 라이브러리로 스트리밍 풀 연결을 열고 계속 당겨오는 구조다. 처리 속도를 컨슈머가 제어하고, 동시에 몇 개까지 붙들지도 조절할 수 있다. 백엔드 워커를 직접 돌린다면 대부분 풀이 맞다.</p> <p>푸시 구독은 Pub/Sub가 지정한 HTTPS 엔드포인트로 메시지를 POST로 밀어 넣는다. 컨슈머는 그냥 웹 서버로 요청을 받고 200 OK를 돌려주면 그게 ack다. Cloud Run이나 Cloud Functions처럼 요청 기반으로 뜨는 서버리스와 궁합이 좋다. 상시 떠 있는 워커 없이 이벤트 올 때만 인스턴스가 뜨는 구조를 만들 수 있다.</p> <table> <thead> <tr> <th>구분</th> <th>풀(Pull)</th> <th>푸시(Push)</th> </tr> </thead> <tbody> <tr> <td>흐름 제어</td> <td>구독자가 당겨오는 만큼</td> <td>Pub/Sub가 미는 대로</td> </tr> <tr> <td>처리량 조절</td> <td>동시 처리 수를 직접 제어</td> <td>엔드포인트 응답 속도에 따라 자동 조절</td> </tr> <tr> <td>인프라</td> <td>상시 워커 필요</td> <td>서버리스 엔드포인트로 충분</td> </tr> <tr> <td>재시도</td> <td>ack 안 하면 재전송</td> <td>non-200 응답 시 재전송</td> </tr> <tr> <td>적합</td> <td>대량 배치, 처리량 큰 워커</td> <td>저빈도 이벤트, 서버리스</td> </tr> </tbody> </table> <p>푸시에서 자주 당하는 건 엔드포인트가 느려질 때다. 푸시는 응답이 200으로 돌아와야 ack로 처리하는데, 엔드포인트 처리가 느리면 Pub/Sub가 동시 푸시 개수를 자동으로 줄인다(slow-start 비슷하게 흐름을 조인다). 반대로 엔드포인트가 빠르게 200을 돌려주면 밀어 넣는 속도를 올린다. 그래서 푸시 엔드포인트에서 무거운 동기 처리를 그대로 하면 처리량이 안 올라간다. 받자마자 큐에 적재하고 200을 먼저 돌려주는 식으로 짜야 하는 경우가 있는데, 그러면 처리 실패 시 재전송 보장이 깨지므로 그 트레이드오프를 알고 써야 한다.</p> <h2 id=메시지-순서-보장-ordering-key>메시지 순서 보장 (ordering key)<a class=headerlink href=#메시지-순서-보장-ordering-key title="Permanent link">&para;</a></h2> <p>기본적으로 Pub/Sub는 순서를 보장하지 않는다. A를 먼저 보내고 B를 나중에 보내도 구독자가 B를 먼저 받을 수 있다. 여러 서버에 분산되어 처리되기 때문에 이건 결함이 아니라 설계다.</p> <p>순서가 필요하면 발행할 때 ordering key를 지정하고, 구독에서 message ordering을 켠다. 같은 ordering key를 가진 메시지들끼리는 발행 순서대로 전달된다. 키가 다르면 서로 순서 보장이 없다. 보통 이 키를 엔티티 ID로 잡는다. 주문 ID를 키로 쓰면 같은 주문에 대한 이벤트는 순서대로 오고, 다른 주문끼리는 병렬로 처리된다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=kn>from</span><span class=w> </span><span class=nn>google.cloud</span><span class=w> </span><span class=kn>import</span> <span class=n>pubsub_v1</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=c1># 순서 보장을 켜려면 publisher 옵션에 enable_message_ordering 필요</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=n>publisher</span> <span class=o>=</span> <span class=n>pubsub_v1</span><span class=o>.</span><span class=n>PublisherClient</span><span class=p>(</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>    <span class=n>publisher_options</span><span class=o>=</span><span class=n>pubsub_v1</span><span class=o>.</span><span class=n>types</span><span class=o>.</span><span class=n>PublisherOptions</span><span class=p>(</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>        <span class=n>enable_message_ordering</span><span class=o>=</span><span class=kc>True</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>    <span class=p>)</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=p>)</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=n>topic_path</span> <span class=o>=</span> <span class=n>publisher</span><span class=o>.</span><span class=n>topic_path</span><span class=p>(</span><span class=s2>&quot;my-project&quot;</span><span class=p>,</span> <span class=s2>&quot;order-events&quot;</span><span class=p>)</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a><span class=c1># 같은 ordering_key끼리 순서 보장</span>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=n>future</span> <span class=o>=</span> <span class=n>publisher</span><span class=o>.</span><span class=n>publish</span><span class=p>(</span>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a>    <span class=n>topic_path</span><span class=p>,</span>
-</span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a>    <span class=sa>b</span><span class=s1>&#39;{&quot;event&quot;: &quot;created&quot;}&#39;</span><span class=p>,</span>
-</span><span id=__span-1-15><a id=__codelineno-1-15 name=__codelineno-1-15 href=#__codelineno-1-15></a>    <span class=n>ordering_key</span><span class=o>=</span><span class=s2>&quot;order-12345&quot;</span><span class=p>,</span>
-</span><span id=__span-1-16><a id=__codelineno-1-16 name=__codelineno-1-16 href=#__codelineno-1-16></a><span class=p>)</span>
-</span><span id=__span-1-17><a id=__codelineno-1-17 name=__codelineno-1-17 href=#__codelineno-1-17></a><span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>()</span>
-</span></code></pre></div> <p>구독 쪽은 생성할 때 <code>--enable-message-ordering</code>을 줘야 한다. 발행만 키를 붙이고 구독에서 안 켜면 순서는 보장되지 않는다.</p> <p>순서 보장을 켜면 대가가 있다. 같은 키의 메시지 하나가 처리에 실패해서 계속 재전송되면, 그 키의 뒤 메시지들이 앞의 것이 성공할 때까지 막힌다. 순서를 지키려니 앞의 것을 건너뛸 수 없어서다. 그래서 순서 보장 구독에서는 독성 메시지(poison message) 하나가 특정 키의 전체 흐름을 정지시키는 상황이 생긴다. 데드레터 토픽을 반드시 같이 걸어서, 몇 번 실패한 메시지는 옆으로 빼내야 흐름이 다시 흐른다. 그리고 순서 보장은 처리량을 떨어뜨리는 방향으로 작동하므로, 정말 순서가 필요한 토픽에만 켜는 게 맞다. 전 구간에 다 켜면 처리량이 이유 없이 깎인다.</p> <h2 id=중복-전달-at-least-once>중복 전달 (at-least-once)<a class=headerlink href=#중복-전달-at-least-once title="Permanent link">&para;</a></h2> <p>Pub/Sub는 최소 1회 전달(at-least-once)을 보장한다. 정확히 1회가 아니다. 같은 메시지가 두 번 이상 올 수 있다는 뜻이고, 이건 예외 상황이 아니라 정상 동작 범위다. 네트워크 지연으로 ack가 제때 안 닿거나, ack deadline을 넘겨서 Pub/Sub가 "구독자가 못 받았나 보다" 판단하고 다시 보내는 경우가 대표적이다.</p> <p>그래서 구독자는 <strong>멱등하게(idempotent)</strong> 짜야 한다. 같은 메시지를 두 번 처리해도 결과가 같아야 한다. 결제 승인처럼 두 번 실행되면 안 되는 작업이라면, 메시지에 붙는 <code>message_id</code>나 애플리케이션이 부여한 고유 키로 중복을 걸러낸다. 처리 이력 테이블에 키를 유니크 제약으로 걸고, 이미 있으면 스킵하는 방식이 흔하다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=k>def</span><span class=w> </span><span class=nf>callback</span><span class=p>(</span><span class=n>message</span><span class=p>):</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>    <span class=n>msg_id</span> <span class=o>=</span> <span class=n>message</span><span class=o>.</span><span class=n>message_id</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>    <span class=c1># 이미 처리한 메시지면 그냥 ack하고 넘어감</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>    <span class=k>if</span> <span class=n>already_processed</span><span class=p>(</span><span class=n>msg_id</span><span class=p>):</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>        <span class=n>message</span><span class=o>.</span><span class=n>ack</span><span class=p>()</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>        <span class=k>return</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>    <span class=k>try</span><span class=p>:</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>        <span class=n>handle</span><span class=p>(</span><span class=n>message</span><span class=o>.</span><span class=n>data</span><span class=p>)</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a>        <span class=n>mark_processed</span><span class=p>(</span><span class=n>msg_id</span><span class=p>)</span>  <span class=c1># 처리 이력에 기록</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a>        <span class=n>message</span><span class=o>.</span><span class=n>ack</span><span class=p>()</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a>    <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a>        <span class=n>message</span><span class=o>.</span><span class=n>nack</span><span class=p>()</span>  <span class=c1># 재전송 유도</span>
-</span></code></pre></div> <p>정확히 1회에 가깝게 하고 싶으면 구독에 exactly-once delivery 옵션이 있다. 이걸 켜면 Pub/Sub가 ack된 메시지의 재전송을 억제한다. 다만 이건 단일 구독 안에서의 중복을 줄이는 것이지, 애플리케이션 레벨의 멱등성을 대체하지는 않는다. 여전히 멱등 처리를 기본으로 깔아두는 게 안전하다. exactly-once를 켜면 ack 처리 방식이 달라져서(ack가 성공했는지 응답을 받아야 함) 지연이 조금 늘고, 처리량도 영향을 받는다.</p> <h2 id=데드레터-토픽>데드레터 토픽<a class=headerlink href=#데드레터-토픽 title="Permanent link">&para;</a></h2> <p>몇 번을 재전송해도 계속 실패하는 메시지가 있다. 형식이 깨졌거나, 파싱이 안 되거나, 참조하는 데이터가 없어서 영원히 실패하는 것들이다. 이걸 그냥 두면 같은 메시지가 무한히 재전송되면서 워커 리소스를 계속 갉아먹고, 순서 보장 구독이라면 뒤 메시지까지 막는다.</p> <p>데드레터 토픽(dead letter topic)은 일정 횟수 이상 전달 실패한 메시지를 별도 토픽으로 빼내는 장치다. 구독에 max delivery attempts를 설정하면, 그 횟수를 넘긴 메시지는 원래 구독에서 지워지고 지정한 데드레터 토픽으로 넘어간다. 거기에 다시 구독을 붙여서 실패 메시지를 따로 조사하거나, 수동으로 재처리한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># 데드레터용 토픽과 구독을 먼저 만들어 둠</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>gcloud<span class=w> </span>pubsub<span class=w> </span>topics<span class=w> </span>create<span class=w> </span>order-events-dlq
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>create<span class=w> </span>order-events-dlq-sub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span>--topic<span class=o>=</span>order-events-dlq
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=c1># 원래 구독에 데드레터 정책 연결 (5회 실패 시 DLQ로)</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>update<span class=w> </span>order-worker<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=w>  </span>--dead-letter-topic<span class=o>=</span>order-events-dlq<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a><span class=w>  </span>--max-delivery-attempts<span class=o>=</span><span class=m>5</span>
-</span></code></pre></div> <p>여기서 놓치기 쉬운 게 권한이다. 데드레터로 메시지를 옮기는 주체는 우리 서비스가 아니라 Pub/Sub 서비스 계정이다. 이 서비스 계정에 원본 구독의 <code>subscriber</code> 권한과 데드레터 토픽의 <code>publisher</code> 권한을 둘 다 줘야 한다. 이 권한이 없으면 데드레터 정책을 걸어놨는데도 메시지가 DLQ로 안 넘어가고 계속 원래 구독에서 재전송된다. 설정은 됐는데 동작을 안 하는 것처럼 보이는 대부분의 경우가 이 권한 누락이다.</p> <p>max delivery attempts 카운트는 정확한 값이 아니라 근사치라는 점도 알아둬야 한다. 5로 걸었다고 딱 5번 만에 넘어가는 게 아니라, 6~7번 시도된 뒤 넘어가기도 한다. DLQ로 넘어가는 시점을 카운트에 정밀하게 의존하는 로직은 짜지 않는 게 좋다.</p> <h2 id=ack-deadline-관리>ack deadline 관리<a class=headerlink href=#ack-deadline-관리 title="Permanent link">&para;</a></h2> <p>구독자가 메시지를 받으면, 정해진 시간(ack deadline) 안에 ack를 보내야 한다. 이 시간을 넘기면 Pub/Sub는 그 메시지가 처리 안 됐다고 보고 다른(또는 같은) 구독자에게 다시 보낸다. 기본값은 10초, 최대 600초(10분)까지 설정할 수 있다.</p> <p>이 값을 처리 시간에 맞게 잡는 게 중요하다. 메시지 하나 처리에 평균 20초 걸리는데 ack deadline을 10초로 두면, 아직 처리 중인 메시지를 Pub/Sub가 미처리로 판단해서 중복 전달한다. 워커는 멀쩡히 처리하고 있는데 같은 메시지가 계속 새로 들어오는 상황이 벌어진다. 처리 시간보다 넉넉하게 잡아야 한다.</p> <p>처리 시간이 들쭉날쭉하면 고정 deadline으로는 맞추기 어렵다. 이럴 때 클라이언트 라이브러리의 ack deadline 자동 연장 기능을 쓴다. 라이브러리가 메시지를 붙들고 있는 동안 주기적으로 <code>modifyAckDeadline</code>을 호출해서 만료 시각을 미룬다. 파이썬/자바 공식 클라이언트는 이걸 기본으로 해주는데, 그래도 상한이 있다. 무한정 연장되는 게 아니라 max lease duration까지만 미룬다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=kn>from</span><span class=w> </span><span class=nn>google.cloud</span><span class=w> </span><span class=kn>import</span> <span class=n>pubsub_v1</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=n>subscriber</span> <span class=o>=</span> <span class=n>pubsub_v1</span><span class=o>.</span><span class=n>SubscriberClient</span><span class=p>()</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=n>sub_path</span> <span class=o>=</span> <span class=n>subscriber</span><span class=o>.</span><span class=n>subscription_path</span><span class=p>(</span><span class=s2>&quot;my-project&quot;</span><span class=p>,</span> <span class=s2>&quot;order-worker&quot;</span><span class=p>)</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=c1># flow control로 동시에 붙드는 메시지 수 제한</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=n>flow_control</span> <span class=o>=</span> <span class=n>pubsub_v1</span><span class=o>.</span><span class=n>types</span><span class=o>.</span><span class=n>FlowControl</span><span class=p>(</span><span class=n>max_messages</span><span class=o>=</span><span class=mi>100</span><span class=p>)</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=n>streaming_pull</span> <span class=o>=</span> <span class=n>subscriber</span><span class=o>.</span><span class=n>subscribe</span><span class=p>(</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>    <span class=n>sub_path</span><span class=p>,</span> <span class=n>callback</span><span class=o>=</span><span class=n>callback</span><span class=p>,</span> <span class=n>flow_control</span><span class=o>=</span><span class=n>flow_control</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=p>)</span>
-</span></code></pre></div> <p>deadline을 너무 길게 잡는 것도 문제다. 600초로 잡아뒀는데 워커가 그 메시지를 잡은 채로 죽으면, Pub/Sub는 600초가 지나야 죽은 걸 알고 다른 워커에 재전송한다. 그 사이 그 메시지는 10분 동안 아무도 처리 못 하는 상태로 붙들려 있다. deadline은 처리 시간보다는 넉넉하되 지나치게 길지 않게, 실제 처리 시간에 여유분을 더한 값으로 잡는 게 낫다.</p> <h2 id=처리-지연-시-재전송-폭주>처리 지연 시 재전송 폭주<a class=headerlink href=#처리-지연-시-재전송-폭주 title="Permanent link">&para;</a></h2> <p>운영에서 제일 아프게 겪는 문제다. 구독자 처리가 느려지거나 일부 워커가 죽으면, ack deadline을 넘기는 메시지가 늘고, Pub/Sub는 미처리 판단한 메시지를 재전송한다. 그런데 이미 워커는 밀린 상태다. 재전송으로 들어온 메시지가 처리 큐에 더 쌓이고, 그것들도 deadline을 넘겨 또 재전송되면서 부하가 눈덩이처럼 불어난다. 처리가 느려서 재전송이 늘고, 재전송이 늘어서 더 느려지는 악순환이다.</p> <p>이게 시작되면 백로그(미처리 메시지 수)가 급증하는데, 실제 유입량은 그대로인데도 재전송분 때문에 처리해야 할 양이 몇 배로 부풀어 보인다. 모니터링에서 <code>num_undelivered_messages</code>가 유입 대비 이상하게 크면 이 상황을 의심한다.</p> <p>대응은 몇 갈래다.</p> <p>첫째, flow control로 워커가 한 번에 붙드는 메시지 수를 제한한다. 위 예제의 <code>max_messages</code>가 그것이다. 워커가 감당할 만큼만 당겨오면, 붙들었다가 deadline 넘겨 재전송되는 메시지가 줄어든다. 소화도 못 할 만큼 당겨놓고 deadline을 넘기는 게 폭주의 흔한 시작점이다.</p> <p>둘째, ack deadline과 실제 처리 시간의 간격을 다시 본다. 처리가 느려진 원인이 일시적이라면 deadline을 처리 시간보다 확실히 크게 잡아 불필요한 재전송을 막는다. 자동 연장이 켜져 있는지도 확인한다.</p> <p>셋째, 처리 자체를 스케일아웃한다. 풀 구독이면 워커 인스턴스를 늘려서 백로그를 빼낸다. Pub/Sub는 컨슈머 수에 맞춰 분산해주므로 워커를 늘리면 처리량이 대체로 선형에 가깝게 오른다. 다만 순서 보장 구독이라면 같은 키는 한 번에 한 곳에서만 처리되므로 무작정 늘려도 그 키의 처리 속도는 안 오른다.</p> <p>넷째, 실패가 특정 메시지 때문이라면 데드레터 토픽으로 그 메시지를 빼낸다. 독성 메시지 하나가 재전송을 반복하며 부하를 만드는 경우, DLQ로 격리하면 흐름이 정상으로 돌아온다.</p> <p>마지막으로, 유입 자체가 순간적으로 폭증한 거라면 워커를 늘리는 것과 별개로 다운스트림(DB 등)이 병목인지 본다. Pub/Sub는 메시지를 잘 밀어주는데 워커 뒤의 DB가 못 받아내서 처리가 느려지는 경우가 많다. 이때 Pub/Sub만 튜닝해봐야 소용이 없고, DB 커넥션 풀이나 배치 처리를 손봐야 한다.</p> <h2 id=메시지-필터링>메시지 필터링<a class=headerlink href=#메시지-필터링 title="Permanent link">&para;</a></h2> <p>구독 레벨에서 CEL(Common Expression Language) 필터를 걸면, 토픽으로 들어온 메시지 중 조건에 맞는 것만 해당 구독에 전달된다. 필터는 메시지 attributes에만 적용되고, 데이터(body)에는 적용되지 않는다.</p> <p><code>order-events</code> 토픽에 주문 생성·결제·취소 이벤트가 섞여 들어올 때, 서비스마다 필요한 이벤트만 받고 싶은 상황이 대표적이다. 발행할 때 attributes에 분류 키를 붙이고, 구독 생성 시 필터를 건다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 발행 - attributes에 이벤트 타입과 리전 붙이기</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>gcloud<span class=w> </span>pubsub<span class=w> </span>topics<span class=w> </span>publish<span class=w> </span>order-events<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>  </span>--message<span class=o>=</span><span class=s1>&#39;{&quot;order_id&quot;:&quot;123&quot;}&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>  </span>--attribute<span class=o>=</span><span class=nv>event_type</span><span class=o>=</span>order_created,region<span class=o>=</span>KR
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=c1># order_created만 받는 구독</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>create<span class=w> </span>order-created-sub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>  </span>--topic<span class=o>=</span>order-events<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>  </span>--message-filter<span class=o>=</span><span class=s1>&#39;attributes.event_type = &quot;order_created&quot;&#39;</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a><span class=c1># AND 조건 - KR 리전의 결제 이벤트만</span>
-</span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>create<span class=w> </span>payment-kr-sub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-13><a id=__codelineno-5-13 name=__codelineno-5-13 href=#__codelineno-5-13></a><span class=w>  </span>--topic<span class=o>=</span>order-events<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-14><a id=__codelineno-5-14 name=__codelineno-5-14 href=#__codelineno-5-14></a><span class=w>  </span>--message-filter<span class=o>=</span><span class=s1>&#39;attributes.event_type = &quot;payment_completed&quot; AND attributes.region = &quot;KR&quot;&#39;</span>
-</span></code></pre></div> <div class="language-python highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=kn>from</span><span class=w> </span><span class=nn>google.cloud</span><span class=w> </span><span class=kn>import</span> <span class=n>pubsub_v1</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=n>publisher</span> <span class=o>=</span> <span class=n>pubsub_v1</span><span class=o>.</span><span class=n>PublisherClient</span><span class=p>()</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=n>topic_path</span> <span class=o>=</span> <span class=n>publisher</span><span class=o>.</span><span class=n>topic_path</span><span class=p>(</span><span class=s2>&quot;my-project&quot;</span><span class=p>,</span> <span class=s2>&quot;order-events&quot;</span><span class=p>)</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=n>future</span> <span class=o>=</span> <span class=n>publisher</span><span class=o>.</span><span class=n>publish</span><span class=p>(</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>    <span class=n>topic_path</span><span class=p>,</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>    <span class=sa>b</span><span class=s1>&#39;{&quot;order_id&quot;: &quot;123&quot;, &quot;amount&quot;: 50000}&#39;</span><span class=p>,</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>    <span class=n>event_type</span><span class=o>=</span><span class=s2>&quot;payment_completed&quot;</span><span class=p>,</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>    <span class=n>region</span><span class=o>=</span><span class=s2>&quot;KR&quot;</span><span class=p>,</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a><span class=p>)</span>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a><span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>()</span>
-</span></code></pre></div> <p>필터는 구독 생성 시점에만 설정할 수 있다. 이후 수정이 안 되므로 필터 조건을 바꾸려면 구독을 지우고 새로 만들어야 한다. attributes 키 이름을 처음부터 잘 정해야 하는 이유다.</p> <p>필터로 걸러진 메시지는 해당 구독에 전달되지 않는데, Pub/Sub가 그 메시지의 ack를 자동으로 처리한다. 구독자가 따로 신경 쓸 필요 없다. 토픽에는 모든 메시지가 들어오고 구독 단에서 잘리는 구조다.</p> <p>비용 측면에서 한 가지 알아둘 게 있다. 필터에 걸려서 전달되지 않은 메시지에 대해서도 구독 처리 비용이 발생한다. 이벤트 종류가 매우 많고 구독마다 걸러지는 비율이 높다면, 토픽 자체를 이벤트 종류별로 나누는 게 비용 면에서 나을 수도 있다. 필터는 관리 편의성을 주지만, 발행 트래픽이 대용량이면 비용 구조를 한 번 확인해봐야 한다.</p> <h2 id=snapshot--seek>Snapshot &amp; Seek<a class=headerlink href=#snapshot--seek title="Permanent link">&para;</a></h2> <p>Seek는 구독의 커서를 특정 시점으로 되돌리거나 앞으로 건너뛰는 기능이다. Kafka의 오프셋 리셋과 개념이 비슷한데, 파티션 오프셋 대신 타임스탬프나 스냅샷 기반으로 동작한다.</p> <p>실무에서 이게 필요한 상황은 배포 버그로 잘못 처리한 메시지를 특정 시점부터 다시 처리해야 할 때, 또는 새로 짠 처리 로직을 과거 메시지로 검증하고 싶을 때다.</p> <h3 id=스냅샷-방식>스냅샷 방식<a class=headerlink href=#스냅샷-방식 title="Permanent link">&para;</a></h3> <p>스냅샷은 그 순간의 구독 ack 상태를 저장해둔다. 배포 전에 찍어두고, 문제가 생기면 그 시점으로 되돌린다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 배포 전 스냅샷 저장</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>gcloud<span class=w> </span>pubsub<span class=w> </span>snapshots<span class=w> </span>create<span class=w> </span>pre-deploy-snapshot<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>  </span>--subscription<span class=o>=</span>order-worker
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=c1># 배포 후 문제 발생 시 스냅샷으로 롤백</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>seek<span class=w> </span>order-worker<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=w>  </span>--snapshot<span class=o>=</span>pre-deploy-snapshot
-</span></code></pre></div> <p>스냅샷 보관 기간은 구독의 메시지 보관 기간과 같다. 구독 보관 기간이 7일이면 스냅샷도 7일이 지나면 사라진다.</p> <h3 id=타임스탬프-방식>타임스탬프 방식<a class=headerlink href=#타임스탬프-방식 title="Permanent link">&para;</a></h3> <p>스냅샷 없이 특정 시각으로 직접 Seek할 수도 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1># 2026-07-19 09:00 KST 이후 메시지부터 재처리</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>gcloud<span class=w> </span>pubsub<span class=w> </span>subscriptions<span class=w> </span>seek<span class=w> </span>order-worker<span class=w> </span><span class=se>\</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>  </span>--time<span class=o>=</span><span class=s2>&quot;2026-07-19T00:00:00Z&quot;</span>
-</span></code></pre></div> <div class="language-python highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=kn>from</span><span class=w> </span><span class=nn>google.cloud</span><span class=w> </span><span class=kn>import</span> <span class=n>pubsub_v1</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=kn>from</span><span class=w> </span><span class=nn>google.protobuf</span><span class=w> </span><span class=kn>import</span> <span class=n>timestamp_pb2</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=kn>import</span><span class=w> </span><span class=nn>datetime</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=n>subscriber</span> <span class=o>=</span> <span class=n>pubsub_v1</span><span class=o>.</span><span class=n>SubscriberClient</span><span class=p>()</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=n>sub_path</span> <span class=o>=</span> <span class=n>subscriber</span><span class=o>.</span><span class=n>subscription_path</span><span class=p>(</span><span class=s2>&quot;my-project&quot;</span><span class=p>,</span> <span class=s2>&quot;order-worker&quot;</span><span class=p>)</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=n>seek_time</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=p>(</span><span class=mi>2026</span><span class=p>,</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>19</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>tzinfo</span><span class=o>=</span><span class=n>datetime</span><span class=o>.</span><span class=n>timezone</span><span class=o>.</span><span class=n>utc</span><span class=p>)</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=n>ts</span> <span class=o>=</span> <span class=n>timestamp_pb2</span><span class=o>.</span><span class=n>Timestamp</span><span class=p>()</span>
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=n>ts</span><span class=o>.</span><span class=n>FromDatetime</span><span class=p>(</span><span class=n>seek_time</span><span class=p>)</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a>
-</span><span id=__span-9-12><a id=__codelineno-9-12 name=__codelineno-9-12 href=#__codelineno-9-12></a><span class=n>subscriber</span><span class=o>.</span><span class=n>seek</span><span class=p>(</span><span class=n>request</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;subscription&quot;</span><span class=p>:</span> <span class=n>sub_path</span><span class=p>,</span> <span class=s2>&quot;time&quot;</span><span class=p>:</span> <span class=n>ts</span><span class=p>})</span>
-</span></code></pre></div> <p>Seek 후에는 이미 ack된 메시지가 다시 전달된다. 멱등 처리가 갖춰져 있지 않으면 중복 처리가 그대로 발생하므로, Seek 전에 반드시 확인해야 한다.</p> <p>Seek는 메시지 자체를 복원하는 게 아니라 구독 커서를 움직이는 것이다. 되돌리려는 시점의 메시지가 구독 보관 기간 안에 있어야 받을 수 있다. 보관 기간이 7일인데 2주 전으로 Seek하면 그 사이 메시지는 이미 사라져서 받을 수 없다.</p> <p>순서 보장 구독에서 Seek를 쓰면 특정 ordering key의 순서가 꼬일 수 있다. Seek 후에는 해당 키들의 처리 상태를 직접 확인하는 게 안전하다.</p> <p>Seek와 동시에 워커를 재시작하지 않으면 메시지가 쌓이기만 하고 처리가 안 되는 상황이 생긴다. Seek 명령과 워커 재시작을 묶어서 진행해야 한다.</p> <h2 id=pubsub-schema-registry>Pub/Sub Schema Registry<a class=headerlink href=#pubsub-schema-registry title="Permanent link">&para;</a></h2> <p>토픽에 스키마를 연결하면, 스키마에 맞지 않는 메시지는 발행 단계에서 거부된다. Avro와 Protocol Buffers(proto3) 두 형식을 지원한다.</p> <p>스키마 없이 쓰다가 발행 측이 필드명을 오타 내거나 타입을 바꾼 경우, 구독자가 파싱 오류를 낸 뒤에야 문제를 알게 된다. 스키마가 있으면 발행 시점에 잡힌다.</p> <h3 id=avro-스키마>Avro 스키마<a class=headerlink href=#avro-스키마 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># 스키마 정의 파일 작성</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>cat<span class=w> </span>&gt;<span class=w> </span>order_schema.json<span class=w> </span><span class=s>&lt;&lt; &#39;EOF&#39;</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=s>{</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=s>  &quot;type&quot;: &quot;record&quot;,</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=s>  &quot;name&quot;: &quot;OrderEvent&quot;,</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=s>  &quot;fields&quot;: [</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=s>    {&quot;name&quot;: &quot;order_id&quot;, &quot;type&quot;: &quot;string&quot;},</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a><span class=s>    {&quot;name&quot;: &quot;amount&quot;,   &quot;type&quot;: &quot;int&quot;},</span>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a><span class=s>    {&quot;name&quot;: &quot;event_type&quot;, &quot;type&quot;: &quot;string&quot;},</span>
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a><span class=s>    {&quot;name&quot;: &quot;created_at&quot;, &quot;type&quot;: &quot;long&quot;}</span>
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a><span class=s>  ]</span>
-</span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a><span class=s>}</span>
-</span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a><span class=s>EOF</span>
-</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a>
-</span><span id=__span-10-15><a id=__codelineno-10-15 name=__codelineno-10-15 href=#__codelineno-10-15></a><span class=c1># 스키마 등록</span>
-</span><span id=__span-10-16><a id=__codelineno-10-16 name=__codelineno-10-16 href=#__codelineno-10-16></a>gcloud<span class=w> </span>pubsub<span class=w> </span>schemas<span class=w> </span>create<span class=w> </span>order-event-schema<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-17><a id=__codelineno-10-17 name=__codelineno-10-17 href=#__codelineno-10-17></a><span class=w>  </span>--type<span class=o>=</span>avro<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-18><a id=__codelineno-10-18 name=__codelineno-10-18 href=#__codelineno-10-18></a><span class=w>  </span>--definition-file<span class=o>=</span>order_schema.json
-</span><span id=__span-10-19><a id=__codelineno-10-19 name=__codelineno-10-19 href=#__codelineno-10-19></a>
-</span><span id=__span-10-20><a id=__codelineno-10-20 name=__codelineno-10-20 href=#__codelineno-10-20></a><span class=c1># 토픽에 스키마 연결 (JSON 인코딩)</span>
-</span><span id=__span-10-21><a id=__codelineno-10-21 name=__codelineno-10-21 href=#__codelineno-10-21></a>gcloud<span class=w> </span>pubsub<span class=w> </span>topics<span class=w> </span>create<span class=w> </span>order-events<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-22><a id=__codelineno-10-22 name=__codelineno-10-22 href=#__codelineno-10-22></a><span class=w>  </span>--schema<span class=o>=</span>order-event-schema<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-23><a id=__codelineno-10-23 name=__codelineno-10-23 href=#__codelineno-10-23></a><span class=w>  </span>--message-encoding<span class=o>=</span>json
-</span></code></pre></div> <h3 id=protobuf-스키마>Protobuf 스키마<a class=headerlink href=#protobuf-스키마 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>cat<span class=w> </span>&gt;<span class=w> </span>order_event.proto<span class=w> </span><span class=s>&lt;&lt; &#39;EOF&#39;</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=s>syntax = &quot;proto3&quot;;</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=s>message OrderEvent {</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=s>  string order_id   = 1;</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=s>  int32  amount     = 2;</span>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=s>  string event_type = 3;</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a><span class=s>  int64  created_at = 4;</span>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=s>}</span>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=s>EOF</span>
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a>gcloud<span class=w> </span>pubsub<span class=w> </span>schemas<span class=w> </span>create<span class=w> </span>order-event-proto<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a><span class=w>  </span>--type<span class=o>=</span>protocol-buffer<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-14><a id=__codelineno-11-14 name=__codelineno-11-14 href=#__codelineno-11-14></a><span class=w>  </span>--definition-file<span class=o>=</span>order_event.proto
-</span><span id=__span-11-15><a id=__codelineno-11-15 name=__codelineno-11-15 href=#__codelineno-11-15></a>
-</span><span id=__span-11-16><a id=__codelineno-11-16 name=__codelineno-11-16 href=#__codelineno-11-16></a>gcloud<span class=w> </span>pubsub<span class=w> </span>topics<span class=w> </span>create<span class=w> </span>order-events-proto<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-17><a id=__codelineno-11-17 name=__codelineno-11-17 href=#__codelineno-11-17></a><span class=w>  </span>--schema<span class=o>=</span>order-event-proto<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-18><a id=__codelineno-11-18 name=__codelineno-11-18 href=#__codelineno-11-18></a><span class=w>  </span>--message-encoding<span class=o>=</span>binary
-</span></code></pre></div> <p>인코딩을 json으로 쓸지 binary로 쓸지는 트레이드오프가 있다. json은 GCP 콘솔에서 메시지를 직접 읽을 수 있어서 디버깅이 훨씬 편하다. binary는 메시지 크기가 작지만 콘솔에서는 깨진 문자로 보인다. 운영 초기나 디버깅이 잦은 환경이면 json이 낫고, 메시지 처리량이 매우 많아서 크기 절약이 중요하면 binary를 쓴다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=kn>import</span><span class=w> </span><span class=nn>io</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=kn>import</span><span class=w> </span><span class=nn>avro.schema</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=kn>import</span><span class=w> </span><span class=nn>avro.io</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=kn>from</span><span class=w> </span><span class=nn>google.cloud</span><span class=w> </span><span class=kn>import</span> <span class=n>pubsub_v1</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=n>publisher</span> <span class=o>=</span> <span class=n>pubsub_v1</span><span class=o>.</span><span class=n>PublisherClient</span><span class=p>()</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a><span class=n>topic_path</span> <span class=o>=</span> <span class=n>publisher</span><span class=o>.</span><span class=n>topic_path</span><span class=p>(</span><span class=s2>&quot;my-project&quot;</span><span class=p>,</span> <span class=s2>&quot;order-events&quot;</span><span class=p>)</span>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a><span class=n>schema_str</span> <span class=o>=</span> <span class=s1>&#39;&#39;&#39;</span>
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a><span class=s1>{</span>
-</span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a><span class=s1>  &quot;type&quot;: &quot;record&quot;,</span>
-</span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a><span class=s1>  &quot;name&quot;: &quot;OrderEvent&quot;,</span>
-</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a><span class=s1>  &quot;fields&quot;: [</span>
-</span><span id=__span-12-14><a id=__codelineno-12-14 name=__codelineno-12-14 href=#__codelineno-12-14></a><span class=s1>    {&quot;name&quot;: &quot;order_id&quot;,   &quot;type&quot;: &quot;string&quot;},</span>
-</span><span id=__span-12-15><a id=__codelineno-12-15 name=__codelineno-12-15 href=#__codelineno-12-15></a><span class=s1>    {&quot;name&quot;: &quot;amount&quot;,     &quot;type&quot;: &quot;int&quot;},</span>
-</span><span id=__span-12-16><a id=__codelineno-12-16 name=__codelineno-12-16 href=#__codelineno-12-16></a><span class=s1>    {&quot;name&quot;: &quot;event_type&quot;, &quot;type&quot;: &quot;string&quot;},</span>
-</span><span id=__span-12-17><a id=__codelineno-12-17 name=__codelineno-12-17 href=#__codelineno-12-17></a><span class=s1>    {&quot;name&quot;: &quot;created_at&quot;, &quot;type&quot;: &quot;long&quot;}</span>
-</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a><span class=s1>  ]</span>
-</span><span id=__span-12-19><a id=__codelineno-12-19 name=__codelineno-12-19 href=#__codelineno-12-19></a><span class=s1>}</span>
-</span><span id=__span-12-20><a id=__codelineno-12-20 name=__codelineno-12-20 href=#__codelineno-12-20></a><span class=s1>&#39;&#39;&#39;</span>
-</span><span id=__span-12-21><a id=__codelineno-12-21 name=__codelineno-12-21 href=#__codelineno-12-21></a><span class=n>schema</span> <span class=o>=</span> <span class=n>avro</span><span class=o>.</span><span class=n>schema</span><span class=o>.</span><span class=n>parse</span><span class=p>(</span><span class=n>schema_str</span><span class=p>)</span>
-</span><span id=__span-12-22><a id=__codelineno-12-22 name=__codelineno-12-22 href=#__codelineno-12-22></a><span class=n>writer</span> <span class=o>=</span> <span class=n>avro</span><span class=o>.</span><span class=n>io</span><span class=o>.</span><span class=n>DatumWriter</span><span class=p>(</span><span class=n>schema</span><span class=p>)</span>
-</span><span id=__span-12-23><a id=__codelineno-12-23 name=__codelineno-12-23 href=#__codelineno-12-23></a><span class=n>buf</span> <span class=o>=</span> <span class=n>io</span><span class=o>.</span><span class=n>BytesIO</span><span class=p>()</span>
-</span><span id=__span-12-24><a id=__codelineno-12-24 name=__codelineno-12-24 href=#__codelineno-12-24></a><span class=n>encoder</span> <span class=o>=</span> <span class=n>avro</span><span class=o>.</span><span class=n>io</span><span class=o>.</span><span class=n>BinaryEncoder</span><span class=p>(</span><span class=n>buf</span><span class=p>)</span>
-</span><span id=__span-12-25><a id=__codelineno-12-25 name=__codelineno-12-25 href=#__codelineno-12-25></a>
-</span><span id=__span-12-26><a id=__codelineno-12-26 name=__codelineno-12-26 href=#__codelineno-12-26></a><span class=n>writer</span><span class=o>.</span><span class=n>write</span><span class=p>({</span>
-</span><span id=__span-12-27><a id=__codelineno-12-27 name=__codelineno-12-27 href=#__codelineno-12-27></a>    <span class=s2>&quot;order_id&quot;</span><span class=p>:</span>   <span class=s2>&quot;order-123&quot;</span><span class=p>,</span>
-</span><span id=__span-12-28><a id=__codelineno-12-28 name=__codelineno-12-28 href=#__codelineno-12-28></a>    <span class=s2>&quot;amount&quot;</span><span class=p>:</span>     <span class=mi>50000</span><span class=p>,</span>
-</span><span id=__span-12-29><a id=__codelineno-12-29 name=__codelineno-12-29 href=#__codelineno-12-29></a>    <span class=s2>&quot;event_type&quot;</span><span class=p>:</span> <span class=s2>&quot;order_created&quot;</span><span class=p>,</span>
-</span><span id=__span-12-30><a id=__codelineno-12-30 name=__codelineno-12-30 href=#__codelineno-12-30></a>    <span class=s2>&quot;created_at&quot;</span><span class=p>:</span> <span class=mi>1721347200000</span><span class=p>,</span>
-</span><span id=__span-12-31><a id=__codelineno-12-31 name=__codelineno-12-31 href=#__codelineno-12-31></a><span class=p>},</span> <span class=n>encoder</span><span class=p>)</span>
-</span><span id=__span-12-32><a id=__codelineno-12-32 name=__codelineno-12-32 href=#__codelineno-12-32></a>
-</span><span id=__span-12-33><a id=__codelineno-12-33 name=__codelineno-12-33 href=#__codelineno-12-33></a><span class=n>future</span> <span class=o>=</span> <span class=n>publisher</span><span class=o>.</span><span class=n>publish</span><span class=p>(</span><span class=n>topic_path</span><span class=p>,</span> <span class=n>buf</span><span class=o>.</span><span class=n>getvalue</span><span class=p>())</span>
-</span><span id=__span-12-34><a id=__codelineno-12-34 name=__codelineno-12-34 href=#__codelineno-12-34></a><span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>()</span>
-</span></code></pre></div> <p>스키마 변경은 조심해야 한다. 토픽에 연결된 스키마를 수정하려면 새 스키마 버전을 등록해야 한다. Avro는 스키마 진화(schema evolution)를 지원해서 optional 필드 추가는 하위 호환이 되지만, 필드 제거나 타입 변경은 기존 구독자 파싱을 깨뜨린다. 스키마를 바꿀 때는 발행자와 구독자 중 어느 쪽을 먼저 배포할지 순서를 정해야 한다. 필드를 추가하는 경우라면 구독자 먼저 배포해서 새 필드를 받을 준비를 하고, 그다음에 발행자를 바꾸는 게 안전하다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../AWS/Monitoring/CloudWatch_Alarms/ >AWS CloudWatch Alarms</a></li> <li><a href=../../../AWS/Application_Integration/Kinesis/ >AWS Kinesis</a></li> <li><a href=../../../AWS/Application_Integration/SES/ >AWS SES (Simple Email Service)</a></li> <li><a href=../../../AWS/Application_Integration/SNS/ >AWS SNS (Simple Notification Service)</a></li> <li><a href=../../../AWS/Application_Integration/SQS/ >AWS SQS와 SNS 연동</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../GCS_Object_Versioning/ class="md-footer__link md-footer__link--prev" aria-label="이전: GCS 객체 버전 관리"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> GCS 객체 버전 관리 </div> </div> </a> <a href=../../Network/ class="md-footer__link md-footer__link--next" aria-label="다음: Network 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> Network 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    S3 --&gt; C3[알림 서비스]</code></pre>
+<h2 id="토픽과-구독-모델">토픽과 구독 모델<a class="headerlink" href="#토픽과-구독-모델" title="Permanent link">&para;</a></h2>
+<p>토픽은 메시지가 들어오는 입구고, 구독은 그 메시지를 빼가는 출구다. 하나의 토픽에 구독이 없으면 발행한 메시지는 그냥 버려진다. 구독이 생기기 전에 발행한 메시지는 그 구독에서 볼 수 없다. 이 순서 때문에 초기 세팅에서 "메시지를 보냈는데 구독자가 못 받는다"는 상황이 종종 나온다. 구독을 먼저 만들고 발행을 시작해야 한다.</p>
+<p>구독에는 메시지 보관 기간이 있다. 기본 7일이고 최대 31일까지 늘릴 수 있다. 구독자가 이 기간 안에 ack하지 못한 메시지는 사라진다. 장애로 컨슈머가 며칠 죽어 있어도 이 기간 안에만 복구하면 밀린 메시지를 그대로 받는다. 반대로 보관 기간을 넘겨 죽어 있었다면 그 사이 메시지는 유실이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 토픽 생성</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>topics<span class="w"> </span>create<span class="w"> </span>order-events
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 풀 구독 생성 (ack deadline 30초, 보관 7일)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>create<span class="w"> </span>order-worker<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--topic<span class="o">=</span>order-events<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>--ack-deadline<span class="o">=</span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>--message-retention-duration<span class="o">=</span>7d
+</span></code></pre></div>
+<h2 id="푸시-vs-풀-구독">푸시 vs 풀 구독<a class="headerlink" href="#푸시-vs-풀-구독" title="Permanent link">&para;</a></h2>
+<p>구독은 메시지를 가져가는 방식에 따라 풀(pull)과 푸시(push)로 나뉜다. 이 선택이 나중에 운영 난이도를 크게 가른다.</p>
+<p>풀 구독은 구독자가 능동적으로 Pub/Sub에 "메시지 있냐"고 요청해서 받아온다. 컨슈머 애플리케이션이 클라이언트 라이브러리로 스트리밍 풀 연결을 열고 계속 당겨오는 구조다. 처리 속도를 컨슈머가 제어하고, 동시에 몇 개까지 붙들지도 조절할 수 있다. 백엔드 워커를 직접 돌린다면 대부분 풀이 맞다.</p>
+<p>푸시 구독은 Pub/Sub가 지정한 HTTPS 엔드포인트로 메시지를 POST로 밀어 넣는다. 컨슈머는 그냥 웹 서버로 요청을 받고 200 OK를 돌려주면 그게 ack다. Cloud Run이나 Cloud Functions처럼 요청 기반으로 뜨는 서버리스와 궁합이 좋다. 상시 떠 있는 워커 없이 이벤트 올 때만 인스턴스가 뜨는 구조를 만들 수 있다.</p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>풀(Pull)</th>
+<th>푸시(Push)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>흐름 제어</td>
+<td>구독자가 당겨오는 만큼</td>
+<td>Pub/Sub가 미는 대로</td>
+</tr>
+<tr>
+<td>처리량 조절</td>
+<td>동시 처리 수를 직접 제어</td>
+<td>엔드포인트 응답 속도에 따라 자동 조절</td>
+</tr>
+<tr>
+<td>인프라</td>
+<td>상시 워커 필요</td>
+<td>서버리스 엔드포인트로 충분</td>
+</tr>
+<tr>
+<td>재시도</td>
+<td>ack 안 하면 재전송</td>
+<td>non-200 응답 시 재전송</td>
+</tr>
+<tr>
+<td>적합</td>
+<td>대량 배치, 처리량 큰 워커</td>
+<td>저빈도 이벤트, 서버리스</td>
+</tr>
+</tbody>
+</table>
+<p>푸시에서 자주 당하는 건 엔드포인트가 느려질 때다. 푸시는 응답이 200으로 돌아와야 ack로 처리하는데, 엔드포인트 처리가 느리면 Pub/Sub가 동시 푸시 개수를 자동으로 줄인다(slow-start 비슷하게 흐름을 조인다). 반대로 엔드포인트가 빠르게 200을 돌려주면 밀어 넣는 속도를 올린다. 그래서 푸시 엔드포인트에서 무거운 동기 처리를 그대로 하면 처리량이 안 올라간다. 받자마자 큐에 적재하고 200을 먼저 돌려주는 식으로 짜야 하는 경우가 있는데, 그러면 처리 실패 시 재전송 보장이 깨지므로 그 트레이드오프를 알고 써야 한다.</p>
+<h2 id="메시지-순서-보장-ordering-key">메시지 순서 보장 (ordering key)<a class="headerlink" href="#메시지-순서-보장-ordering-key" title="Permanent link">&para;</a></h2>
+<p>기본적으로 Pub/Sub는 순서를 보장하지 않는다. A를 먼저 보내고 B를 나중에 보내도 구독자가 B를 먼저 받을 수 있다. 여러 서버에 분산되어 처리되기 때문에 이건 결함이 아니라 설계다.</p>
+<p>순서가 필요하면 발행할 때 ordering key를 지정하고, 구독에서 message ordering을 켠다. 같은 ordering key를 가진 메시지들끼리는 발행 순서대로 전달된다. 키가 다르면 서로 순서 보장이 없다. 보통 이 키를 엔티티 ID로 잡는다. 주문 ID를 키로 쓰면 같은 주문에 대한 이벤트는 순서대로 오고, 다른 주문끼리는 병렬로 처리된다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">pubsub_v1</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># 순서 보장을 켜려면 publisher 옵션에 enable_message_ordering 필요</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">publisher</span> <span class="o">=</span> <span class="n">pubsub_v1</span><span class="o">.</span><span class="n">PublisherClient</span><span class="p">(</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">publisher_options</span><span class="o">=</span><span class="n">pubsub_v1</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">PublisherOptions</span><span class="p">(</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">enable_message_ordering</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">topic_path</span> <span class="o">=</span> <span class="n">publisher</span><span class="o">.</span><span class="n">topic_path</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span> <span class="s2">&quot;order-events&quot;</span><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># 같은 ordering_key끼리 순서 보장</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">future</span> <span class="o">=</span> <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">topic_path</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="sa">b</span><span class="s1">&#39;{&quot;event&quot;: &quot;created&quot;}&#39;</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="n">ordering_key</span><span class="o">=</span><span class="s2">&quot;order-12345&quot;</span><span class="p">,</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="p">)</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</span></code></pre></div>
+<p>구독 쪽은 생성할 때 <code>--enable-message-ordering</code>을 줘야 한다. 발행만 키를 붙이고 구독에서 안 켜면 순서는 보장되지 않는다.</p>
+<p>순서 보장을 켜면 대가가 있다. 같은 키의 메시지 하나가 처리에 실패해서 계속 재전송되면, 그 키의 뒤 메시지들이 앞의 것이 성공할 때까지 막힌다. 순서를 지키려니 앞의 것을 건너뛸 수 없어서다. 그래서 순서 보장 구독에서는 독성 메시지(poison message) 하나가 특정 키의 전체 흐름을 정지시키는 상황이 생긴다. 데드레터 토픽을 반드시 같이 걸어서, 몇 번 실패한 메시지는 옆으로 빼내야 흐름이 다시 흐른다. 그리고 순서 보장은 처리량을 떨어뜨리는 방향으로 작동하므로, 정말 순서가 필요한 토픽에만 켜는 게 맞다. 전 구간에 다 켜면 처리량이 이유 없이 깎인다.</p>
+<h2 id="중복-전달-at-least-once">중복 전달 (at-least-once)<a class="headerlink" href="#중복-전달-at-least-once" title="Permanent link">&para;</a></h2>
+<p>Pub/Sub는 최소 1회 전달(at-least-once)을 보장한다. 정확히 1회가 아니다. 같은 메시지가 두 번 이상 올 수 있다는 뜻이고, 이건 예외 상황이 아니라 정상 동작 범위다. 네트워크 지연으로 ack가 제때 안 닿거나, ack deadline을 넘겨서 Pub/Sub가 "구독자가 못 받았나 보다" 판단하고 다시 보내는 경우가 대표적이다.</p>
+<p>그래서 구독자는 <strong>멱등하게(idempotent)</strong> 짜야 한다. 같은 메시지를 두 번 처리해도 결과가 같아야 한다. 결제 승인처럼 두 번 실행되면 안 되는 작업이라면, 메시지에 붙는 <code>message_id</code>나 애플리케이션이 부여한 고유 키로 중복을 걸러낸다. 처리 이력 테이블에 키를 유니크 제약으로 걸고, 이미 있으면 스킵하는 방식이 흔하다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">msg_id</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">message_id</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="c1"># 이미 처리한 메시지면 그냥 ack하고 넘어감</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">if</span> <span class="n">already_processed</span><span class="p">(</span><span class="n">msg_id</span><span class="p">):</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="n">message</span><span class="o">.</span><span class="n">ack</span><span class="p">()</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="k">return</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">handle</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="n">mark_processed</span><span class="p">(</span><span class="n">msg_id</span><span class="p">)</span>  <span class="c1"># 처리 이력에 기록</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="n">message</span><span class="o">.</span><span class="n">ack</span><span class="p">()</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">message</span><span class="o">.</span><span class="n">nack</span><span class="p">()</span>  <span class="c1"># 재전송 유도</span>
+</span></code></pre></div>
+<p>정확히 1회에 가깝게 하고 싶으면 구독에 exactly-once delivery 옵션이 있다. 이걸 켜면 Pub/Sub가 ack된 메시지의 재전송을 억제한다. 다만 이건 단일 구독 안에서의 중복을 줄이는 것이지, 애플리케이션 레벨의 멱등성을 대체하지는 않는다. 여전히 멱등 처리를 기본으로 깔아두는 게 안전하다. exactly-once를 켜면 ack 처리 방식이 달라져서(ack가 성공했는지 응답을 받아야 함) 지연이 조금 늘고, 처리량도 영향을 받는다.</p>
+<h2 id="데드레터-토픽">데드레터 토픽<a class="headerlink" href="#데드레터-토픽" title="Permanent link">&para;</a></h2>
+<p>몇 번을 재전송해도 계속 실패하는 메시지가 있다. 형식이 깨졌거나, 파싱이 안 되거나, 참조하는 데이터가 없어서 영원히 실패하는 것들이다. 이걸 그냥 두면 같은 메시지가 무한히 재전송되면서 워커 리소스를 계속 갉아먹고, 순서 보장 구독이라면 뒤 메시지까지 막는다.</p>
+<p>데드레터 토픽(dead letter topic)은 일정 횟수 이상 전달 실패한 메시지를 별도 토픽으로 빼내는 장치다. 구독에 max delivery attempts를 설정하면, 그 횟수를 넘긴 메시지는 원래 구독에서 지워지고 지정한 데드레터 토픽으로 넘어간다. 거기에 다시 구독을 붙여서 실패 메시지를 따로 조사하거나, 수동으로 재처리한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 데드레터용 토픽과 구독을 먼저 만들어 둠</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>topics<span class="w"> </span>create<span class="w"> </span>order-events-dlq
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>create<span class="w"> </span>order-events-dlq-sub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--topic<span class="o">=</span>order-events-dlq
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># 원래 구독에 데드레터 정책 연결 (5회 실패 시 DLQ로)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>update<span class="w"> </span>order-worker<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span>--dead-letter-topic<span class="o">=</span>order-events-dlq<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span>--max-delivery-attempts<span class="o">=</span><span class="m">5</span>
+</span></code></pre></div>
+<p>여기서 놓치기 쉬운 게 권한이다. 데드레터로 메시지를 옮기는 주체는 우리 서비스가 아니라 Pub/Sub 서비스 계정이다. 이 서비스 계정에 원본 구독의 <code>subscriber</code> 권한과 데드레터 토픽의 <code>publisher</code> 권한을 둘 다 줘야 한다. 이 권한이 없으면 데드레터 정책을 걸어놨는데도 메시지가 DLQ로 안 넘어가고 계속 원래 구독에서 재전송된다. 설정은 됐는데 동작을 안 하는 것처럼 보이는 대부분의 경우가 이 권한 누락이다.</p>
+<p>max delivery attempts 카운트는 정확한 값이 아니라 근사치라는 점도 알아둬야 한다. 5로 걸었다고 딱 5번 만에 넘어가는 게 아니라, 6~7번 시도된 뒤 넘어가기도 한다. DLQ로 넘어가는 시점을 카운트에 정밀하게 의존하는 로직은 짜지 않는 게 좋다.</p>
+<h2 id="ack-deadline-관리">ack deadline 관리<a class="headerlink" href="#ack-deadline-관리" title="Permanent link">&para;</a></h2>
+<p>구독자가 메시지를 받으면, 정해진 시간(ack deadline) 안에 ack를 보내야 한다. 이 시간을 넘기면 Pub/Sub는 그 메시지가 처리 안 됐다고 보고 다른(또는 같은) 구독자에게 다시 보낸다. 기본값은 10초, 최대 600초(10분)까지 설정할 수 있다.</p>
+<p>이 값을 처리 시간에 맞게 잡는 게 중요하다. 메시지 하나 처리에 평균 20초 걸리는데 ack deadline을 10초로 두면, 아직 처리 중인 메시지를 Pub/Sub가 미처리로 판단해서 중복 전달한다. 워커는 멀쩡히 처리하고 있는데 같은 메시지가 계속 새로 들어오는 상황이 벌어진다. 처리 시간보다 넉넉하게 잡아야 한다.</p>
+<p>처리 시간이 들쭉날쭉하면 고정 deadline으로는 맞추기 어렵다. 이럴 때 클라이언트 라이브러리의 ack deadline 자동 연장 기능을 쓴다. 라이브러리가 메시지를 붙들고 있는 동안 주기적으로 <code>modifyAckDeadline</code>을 호출해서 만료 시각을 미룬다. 파이썬/자바 공식 클라이언트는 이걸 기본으로 해주는데, 그래도 상한이 있다. 무한정 연장되는 게 아니라 max lease duration까지만 미룬다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">pubsub_v1</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">subscriber</span> <span class="o">=</span> <span class="n">pubsub_v1</span><span class="o">.</span><span class="n">SubscriberClient</span><span class="p">()</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">sub_path</span> <span class="o">=</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">subscription_path</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span> <span class="s2">&quot;order-worker&quot;</span><span class="p">)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># flow control로 동시에 붙드는 메시지 수 제한</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">flow_control</span> <span class="o">=</span> <span class="n">pubsub_v1</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">FlowControl</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">streaming_pull</span> <span class="o">=</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">sub_path</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span> <span class="n">flow_control</span><span class="o">=</span><span class="n">flow_control</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>deadline을 너무 길게 잡는 것도 문제다. 600초로 잡아뒀는데 워커가 그 메시지를 잡은 채로 죽으면, Pub/Sub는 600초가 지나야 죽은 걸 알고 다른 워커에 재전송한다. 그 사이 그 메시지는 10분 동안 아무도 처리 못 하는 상태로 붙들려 있다. deadline은 처리 시간보다는 넉넉하되 지나치게 길지 않게, 실제 처리 시간에 여유분을 더한 값으로 잡는 게 낫다.</p>
+<h2 id="처리-지연-시-재전송-폭주">처리 지연 시 재전송 폭주<a class="headerlink" href="#처리-지연-시-재전송-폭주" title="Permanent link">&para;</a></h2>
+<p>운영에서 제일 아프게 겪는 문제다. 구독자 처리가 느려지거나 일부 워커가 죽으면, ack deadline을 넘기는 메시지가 늘고, Pub/Sub는 미처리 판단한 메시지를 재전송한다. 그런데 이미 워커는 밀린 상태다. 재전송으로 들어온 메시지가 처리 큐에 더 쌓이고, 그것들도 deadline을 넘겨 또 재전송되면서 부하가 눈덩이처럼 불어난다. 처리가 느려서 재전송이 늘고, 재전송이 늘어서 더 느려지는 악순환이다.</p>
+<p>이게 시작되면 백로그(미처리 메시지 수)가 급증하는데, 실제 유입량은 그대로인데도 재전송분 때문에 처리해야 할 양이 몇 배로 부풀어 보인다. 모니터링에서 <code>num_undelivered_messages</code>가 유입 대비 이상하게 크면 이 상황을 의심한다.</p>
+<p>대응은 몇 갈래다.</p>
+<p>첫째, flow control로 워커가 한 번에 붙드는 메시지 수를 제한한다. 위 예제의 <code>max_messages</code>가 그것이다. 워커가 감당할 만큼만 당겨오면, 붙들었다가 deadline 넘겨 재전송되는 메시지가 줄어든다. 소화도 못 할 만큼 당겨놓고 deadline을 넘기는 게 폭주의 흔한 시작점이다.</p>
+<p>둘째, ack deadline과 실제 처리 시간의 간격을 다시 본다. 처리가 느려진 원인이 일시적이라면 deadline을 처리 시간보다 확실히 크게 잡아 불필요한 재전송을 막는다. 자동 연장이 켜져 있는지도 확인한다.</p>
+<p>셋째, 처리 자체를 스케일아웃한다. 풀 구독이면 워커 인스턴스를 늘려서 백로그를 빼낸다. Pub/Sub는 컨슈머 수에 맞춰 분산해주므로 워커를 늘리면 처리량이 대체로 선형에 가깝게 오른다. 다만 순서 보장 구독이라면 같은 키는 한 번에 한 곳에서만 처리되므로 무작정 늘려도 그 키의 처리 속도는 안 오른다.</p>
+<p>넷째, 실패가 특정 메시지 때문이라면 데드레터 토픽으로 그 메시지를 빼낸다. 독성 메시지 하나가 재전송을 반복하며 부하를 만드는 경우, DLQ로 격리하면 흐름이 정상으로 돌아온다.</p>
+<p>마지막으로, 유입 자체가 순간적으로 폭증한 거라면 워커를 늘리는 것과 별개로 다운스트림(DB 등)이 병목인지 본다. Pub/Sub는 메시지를 잘 밀어주는데 워커 뒤의 DB가 못 받아내서 처리가 느려지는 경우가 많다. 이때 Pub/Sub만 튜닝해봐야 소용이 없고, DB 커넥션 풀이나 배치 처리를 손봐야 한다.</p>
+<h2 id="메시지-필터링">메시지 필터링<a class="headerlink" href="#메시지-필터링" title="Permanent link">&para;</a></h2>
+<p>구독 레벨에서 CEL(Common Expression Language) 필터를 걸면, 토픽으로 들어온 메시지 중 조건에 맞는 것만 해당 구독에 전달된다. 필터는 메시지 attributes에만 적용되고, 데이터(body)에는 적용되지 않는다.</p>
+<p><code>order-events</code> 토픽에 주문 생성·결제·취소 이벤트가 섞여 들어올 때, 서비스마다 필요한 이벤트만 받고 싶은 상황이 대표적이다. 발행할 때 attributes에 분류 키를 붙이고, 구독 생성 시 필터를 건다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 발행 - attributes에 이벤트 타입과 리전 붙이기</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>topics<span class="w"> </span>publish<span class="w"> </span>order-events<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--message<span class="o">=</span><span class="s1">&#39;{&quot;order_id&quot;:&quot;123&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>--attribute<span class="o">=</span><span class="nv">event_type</span><span class="o">=</span>order_created,region<span class="o">=</span>KR
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># order_created만 받는 구독</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>create<span class="w"> </span>order-created-sub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span>--topic<span class="o">=</span>order-events<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span>--message-filter<span class="o">=</span><span class="s1">&#39;attributes.event_type = &quot;order_created&quot;&#39;</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># AND 조건 - KR 리전의 결제 이벤트만</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>create<span class="w"> </span>payment-kr-sub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span>--topic<span class="o">=</span>order-events<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">  </span>--message-filter<span class="o">=</span><span class="s1">&#39;attributes.event_type = &quot;payment_completed&quot; AND attributes.region = &quot;KR&quot;&#39;</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">pubsub_v1</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">publisher</span> <span class="o">=</span> <span class="n">pubsub_v1</span><span class="o">.</span><span class="n">PublisherClient</span><span class="p">()</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">topic_path</span> <span class="o">=</span> <span class="n">publisher</span><span class="o">.</span><span class="n">topic_path</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span> <span class="s2">&quot;order-events&quot;</span><span class="p">)</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">future</span> <span class="o">=</span> <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">topic_path</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="sa">b</span><span class="s1">&#39;{&quot;order_id&quot;: &quot;123&quot;, &quot;amount&quot;: 50000}&#39;</span><span class="p">,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">event_type</span><span class="o">=</span><span class="s2">&quot;payment_completed&quot;</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">region</span><span class="o">=</span><span class="s2">&quot;KR&quot;</span><span class="p">,</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">)</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</span></code></pre></div>
+<p>필터는 구독 생성 시점에만 설정할 수 있다. 이후 수정이 안 되므로 필터 조건을 바꾸려면 구독을 지우고 새로 만들어야 한다. attributes 키 이름을 처음부터 잘 정해야 하는 이유다.</p>
+<p>필터로 걸러진 메시지는 해당 구독에 전달되지 않는데, Pub/Sub가 그 메시지의 ack를 자동으로 처리한다. 구독자가 따로 신경 쓸 필요 없다. 토픽에는 모든 메시지가 들어오고 구독 단에서 잘리는 구조다.</p>
+<p>비용 측면에서 한 가지 알아둘 게 있다. 필터에 걸려서 전달되지 않은 메시지에 대해서도 구독 처리 비용이 발생한다. 이벤트 종류가 매우 많고 구독마다 걸러지는 비율이 높다면, 토픽 자체를 이벤트 종류별로 나누는 게 비용 면에서 나을 수도 있다. 필터는 관리 편의성을 주지만, 발행 트래픽이 대용량이면 비용 구조를 한 번 확인해봐야 한다.</p>
+<h2 id="snapshot--seek">Snapshot &amp; Seek<a class="headerlink" href="#snapshot--seek" title="Permanent link">&para;</a></h2>
+<p>Seek는 구독의 커서를 특정 시점으로 되돌리거나 앞으로 건너뛰는 기능이다. Kafka의 오프셋 리셋과 개념이 비슷한데, 파티션 오프셋 대신 타임스탬프나 스냅샷 기반으로 동작한다.</p>
+<p>실무에서 이게 필요한 상황은 배포 버그로 잘못 처리한 메시지를 특정 시점부터 다시 처리해야 할 때, 또는 새로 짠 처리 로직을 과거 메시지로 검증하고 싶을 때다.</p>
+<h3 id="스냅샷-방식">스냅샷 방식<a class="headerlink" href="#스냅샷-방식" title="Permanent link">&para;</a></h3>
+<p>스냅샷은 그 순간의 구독 ack 상태를 저장해둔다. 배포 전에 찍어두고, 문제가 생기면 그 시점으로 되돌린다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 배포 전 스냅샷 저장</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>snapshots<span class="w"> </span>create<span class="w"> </span>pre-deploy-snapshot<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--subscription<span class="o">=</span>order-worker
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># 배포 후 문제 발생 시 스냅샷으로 롤백</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>seek<span class="w"> </span>order-worker<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>--snapshot<span class="o">=</span>pre-deploy-snapshot
+</span></code></pre></div>
+<p>스냅샷 보관 기간은 구독의 메시지 보관 기간과 같다. 구독 보관 기간이 7일이면 스냅샷도 7일이 지나면 사라진다.</p>
+<h3 id="타임스탬프-방식">타임스탬프 방식<a class="headerlink" href="#타임스탬프-방식" title="Permanent link">&para;</a></h3>
+<p>스냅샷 없이 특정 시각으로 직접 Seek할 수도 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># 2026-07-19 09:00 KST 이후 메시지부터 재처리</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>subscriptions<span class="w"> </span>seek<span class="w"> </span>order-worker<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--time<span class="o">=</span><span class="s2">&quot;2026-07-19T00:00:00Z&quot;</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">pubsub_v1</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.protobuf</span><span class="w"> </span><span class="kn">import</span> <span class="n">timestamp_pb2</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">subscriber</span> <span class="o">=</span> <span class="n">pubsub_v1</span><span class="o">.</span><span class="n">SubscriberClient</span><span class="p">()</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">sub_path</span> <span class="o">=</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">subscription_path</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span> <span class="s2">&quot;order-worker&quot;</span><span class="p">)</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">seek_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">ts</span> <span class="o">=</span> <span class="n">timestamp_pb2</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">()</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">ts</span><span class="o">.</span><span class="n">FromDatetime</span><span class="p">(</span><span class="n">seek_time</span><span class="p">)</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="n">subscriber</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">request</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;subscription&quot;</span><span class="p">:</span> <span class="n">sub_path</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">ts</span><span class="p">})</span>
+</span></code></pre></div>
+<p>Seek 후에는 이미 ack된 메시지가 다시 전달된다. 멱등 처리가 갖춰져 있지 않으면 중복 처리가 그대로 발생하므로, Seek 전에 반드시 확인해야 한다.</p>
+<p>Seek는 메시지 자체를 복원하는 게 아니라 구독 커서를 움직이는 것이다. 되돌리려는 시점의 메시지가 구독 보관 기간 안에 있어야 받을 수 있다. 보관 기간이 7일인데 2주 전으로 Seek하면 그 사이 메시지는 이미 사라져서 받을 수 없다.</p>
+<p>순서 보장 구독에서 Seek를 쓰면 특정 ordering key의 순서가 꼬일 수 있다. Seek 후에는 해당 키들의 처리 상태를 직접 확인하는 게 안전하다.</p>
+<p>Seek와 동시에 워커를 재시작하지 않으면 메시지가 쌓이기만 하고 처리가 안 되는 상황이 생긴다. Seek 명령과 워커 재시작을 묶어서 진행해야 한다.</p>
+<h2 id="pubsub-schema-registry">Pub/Sub Schema Registry<a class="headerlink" href="#pubsub-schema-registry" title="Permanent link">&para;</a></h2>
+<p>토픽에 스키마를 연결하면, 스키마에 맞지 않는 메시지는 발행 단계에서 거부된다. Avro와 Protocol Buffers(proto3) 두 형식을 지원한다.</p>
+<p>스키마 없이 쓰다가 발행 측이 필드명을 오타 내거나 타입을 바꾼 경우, 구독자가 파싱 오류를 낸 뒤에야 문제를 알게 된다. 스키마가 있으면 발행 시점에 잡힌다.</p>
+<h3 id="avro-스키마">Avro 스키마<a class="headerlink" href="#avro-스키마" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 스키마 정의 파일 작성</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>order_schema.json<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="s">{</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="s">  &quot;type&quot;: &quot;record&quot;,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="s">  &quot;name&quot;: &quot;OrderEvent&quot;,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="s">  &quot;fields&quot;: [</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="s">    {&quot;name&quot;: &quot;order_id&quot;, &quot;type&quot;: &quot;string&quot;},</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="s">    {&quot;name&quot;: &quot;amount&quot;,   &quot;type&quot;: &quot;int&quot;},</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="s">    {&quot;name&quot;: &quot;event_type&quot;, &quot;type&quot;: &quot;string&quot;},</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="s">    {&quot;name&quot;: &quot;created_at&quot;, &quot;type&quot;: &quot;long&quot;}</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="s">  ]</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="s">}</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="s">EOF</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="c1"># 스키마 등록</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>schemas<span class="w"> </span>create<span class="w"> </span>order-event-schema<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">  </span>--type<span class="o">=</span>avro<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="w">  </span>--definition-file<span class="o">=</span>order_schema.json
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="c1"># 토픽에 스키마 연결 (JSON 인코딩)</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>topics<span class="w"> </span>create<span class="w"> </span>order-events<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="w">  </span>--schema<span class="o">=</span>order-event-schema<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="w">  </span>--message-encoding<span class="o">=</span>json
+</span></code></pre></div>
+<h3 id="protobuf-스키마">Protobuf 스키마<a class="headerlink" href="#protobuf-스키마" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>order_event.proto<span class="w"> </span><span class="s">&lt;&lt; &#39;EOF&#39;</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="s">syntax = &quot;proto3&quot;;</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="s">message OrderEvent {</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="s">  string order_id   = 1;</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="s">  int32  amount     = 2;</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="s">  string event_type = 3;</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="s">  int64  created_at = 4;</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="s">}</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="s">EOF</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>schemas<span class="w"> </span>create<span class="w"> </span>order-event-proto<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span>--type<span class="o">=</span>protocol-buffer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">  </span>--definition-file<span class="o">=</span>order_event.proto
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>gcloud<span class="w"> </span>pubsub<span class="w"> </span>topics<span class="w"> </span>create<span class="w"> </span>order-events-proto<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">  </span>--schema<span class="o">=</span>order-event-proto<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">  </span>--message-encoding<span class="o">=</span>binary
+</span></code></pre></div>
+<p>인코딩을 json으로 쓸지 binary로 쓸지는 트레이드오프가 있다. json은 GCP 콘솔에서 메시지를 직접 읽을 수 있어서 디버깅이 훨씬 편하다. binary는 메시지 크기가 작지만 콘솔에서는 깨진 문자로 보인다. 운영 초기나 디버깅이 잦은 환경이면 json이 낫고, 메시지 처리량이 매우 많아서 크기 절약이 중요하면 binary를 쓴다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">avro.schema</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">avro.io</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">pubsub_v1</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">publisher</span> <span class="o">=</span> <span class="n">pubsub_v1</span><span class="o">.</span><span class="n">PublisherClient</span><span class="p">()</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="n">topic_path</span> <span class="o">=</span> <span class="n">publisher</span><span class="o">.</span><span class="n">topic_path</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span> <span class="s2">&quot;order-events&quot;</span><span class="p">)</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="n">schema_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="s1">{</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="s1">  &quot;type&quot;: &quot;record&quot;,</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="s1">  &quot;name&quot;: &quot;OrderEvent&quot;,</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="s1">  &quot;fields&quot;: [</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="s1">    {&quot;name&quot;: &quot;order_id&quot;,   &quot;type&quot;: &quot;string&quot;},</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="s1">    {&quot;name&quot;: &quot;amount&quot;,     &quot;type&quot;: &quot;int&quot;},</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="s1">    {&quot;name&quot;: &quot;event_type&quot;, &quot;type&quot;: &quot;string&quot;},</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="s1">    {&quot;name&quot;: &quot;created_at&quot;, &quot;type&quot;: &quot;long&quot;}</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="s1">  ]</span>
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="s1">}</span>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="s1">&#39;&#39;&#39;</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="n">schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">schema_str</span><span class="p">)</span>
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="n">writer</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">DatumWriter</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="n">buf</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="n">encoder</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">BinaryEncoder</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">({</span>
+</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>    <span class="s2">&quot;order_id&quot;</span><span class="p">:</span>   <span class="s2">&quot;order-123&quot;</span><span class="p">,</span>
+</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">:</span>     <span class="mi">50000</span><span class="p">,</span>
+</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>    <span class="s2">&quot;event_type&quot;</span><span class="p">:</span> <span class="s2">&quot;order_created&quot;</span><span class="p">,</span>
+</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>    <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="mi">1721347200000</span><span class="p">,</span>
+</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a><span class="p">},</span> <span class="n">encoder</span><span class="p">)</span>
+</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>
+</span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a><span class="n">future</span> <span class="o">=</span> <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">topic_path</span><span class="p">,</span> <span class="n">buf</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+</span><span id="__span-12-34"><a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</span></code></pre></div>
+<p>스키마 변경은 조심해야 한다. 토픽에 연결된 스키마를 수정하려면 새 스키마 버전을 등록해야 한다. Avro는 스키마 진화(schema evolution)를 지원해서 optional 필드 추가는 하위 호환이 되지만, 필드 제거나 타입 변경은 기존 구독자 파싱을 깨뜨린다. 스키마를 바꿀 때는 발행자와 구독자 중 어느 쪽을 먼저 배포할지 순서를 정해야 한다. 필드를 추가하는 경우라면 구독자 먼저 배포해서 새 필드를 받을 준비를 하고, 그다음에 발행자를 바꾸는 게 안전하다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../AWS/Monitoring/CloudWatch_Alarms/">AWS CloudWatch Alarms</a></li>
+<li><a href="../../../AWS/Application_Integration/Kinesis/">AWS Kinesis</a></li>
+<li><a href="../../../AWS/Application_Integration/SES/">AWS SES (Simple Email Service)</a></li>
+<li><a href="../../../AWS/Application_Integration/SNS/">AWS SNS (Simple Notification Service)</a></li>
+<li><a href="../../../AWS/Application_Integration/SQS/">AWS SQS와 SNS 연동</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../GCS_Object_Versioning/" class="md-footer__link md-footer__link--prev" aria-label="이전: GCS 객체 버전 관리">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                GCS 객체 버전 관리
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../Network/" class="md-footer__link md-footer__link--next" aria-label="다음: Network 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                Network 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

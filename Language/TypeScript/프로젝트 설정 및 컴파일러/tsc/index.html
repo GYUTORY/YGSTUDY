@@ -1,116 +1,2331 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EC%84%A4%EC%A0%95%20%EB%B0%8F%20%EC%BB%B4%ED%8C%8C%EC%9D%BC%EB%9F%AC/tsc/ rel=canonical><link href=../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/ rel=prev><link href=../tsconfig/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>TypeScript 컴파일러 (tsc) - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#typescript-컴파일러-tsc class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> TypeScript 컴파일러 (tsc) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Language </span> </a> <label class="md-nav__link " for=__nav_3 id=__nav_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=true> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Language </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Java/ class=md-nav__link> <span class=md-ellipsis> Java </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Kotlin/ class=md-nav__link> <span class=md-ellipsis> Kotlin </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../JavaScript/ class=md-nav__link> <span class=md-ellipsis> JavaScript </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_5 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> TypeScript </span> </a> <label class="md-nav__link " for=__nav_3_5 id=__nav_3_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_3_5_label aria-expanded=true> <label class=md-nav__title for=__nav_3_5> <span class="md-nav__icon md-icon"></span> TypeScript </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/ class=md-nav__link> <span class=md-ellipsis> TypeScript 기본 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/ class=md-nav__link> <span class=md-ellipsis> 타입 정의 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%83%80%EC%9E%85%20%EC%9C%A0%ED%8B%B8%EB%A6%AC%ED%8B%B0/ class=md-nav__link> <span class=md-ellipsis> 타입 유틸리티 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_5_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 프로젝트 설정 </span> </a> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_3_5_5_label aria-expanded=true> <label class=md-nav__title for=__nav_3_5_5> <span class="md-nav__icon md-icon"></span> 프로젝트 설정 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Rust/ class=md-nav__link> <span class=md-ellipsis> Rust </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Go/ class=md-nav__link> <span class=md-ellipsis> Go </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Comparison/ class=md-nav__link> <span class=md-ellipsis> Comparison </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Python/ class=md-nav__link> <span class=md-ellipsis> Python </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#tsc가-실제로-하는-일 class=md-nav__link> <span class=md-ellipsis> tsc가 실제로 하는 일 </span> </a> </li> <li class=md-nav__item> <a href=#tsconfigjson-핵심-옵션 class=md-nav__link> <span class=md-ellipsis> tsconfig.json 핵심 옵션 </span> </a> <nav class=md-nav aria-label="tsconfig.json 핵심 옵션"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#target과-module의-관계 class=md-nav__link> <span class=md-ellipsis> target과 module의 관계 </span> </a> </li> <li class=md-nav__item> <a href=#strict-계열을-다-켜는-이유 class=md-nav__link> <span class=md-ellipsis> strict 계열을 다 켜는 이유 </span> </a> </li> <li class=md-nav__item> <a href=#isolatedmodules와-verbatimmodulesyntax class=md-nav__link> <span class=md-ellipsis> isolatedModules와 verbatimModuleSyntax </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#컴파일-파이프라인-디버깅 class=md-nav__link> <span class=md-ellipsis> 컴파일 파이프라인 디버깅 </span> </a> <nav class=md-nav aria-label="컴파일 파이프라인 디버깅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#--diagnostics와---extendeddiagnostics class=md-nav__link> <span class=md-ellipsis> --diagnostics와 --extendedDiagnostics </span> </a> </li> <li class=md-nav__item> <a href=#--listfiles와---traceresolution class=md-nav__link> <span class=md-ellipsis> --listFiles와 --traceResolution </span> </a> </li> <li class=md-nav__item> <a href=#tsc-단독으로는-못-보는-것 class=md-nav__link> <span class=md-ellipsis> tsc 단독으로는 못 보는 것 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#빌드-최적화-실전 class=md-nav__link> <span class=md-ellipsis> 빌드 최적화 실전 </span> </a> <nav class=md-nav aria-label="빌드 최적화 실전"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#isolatedmodules-vs-transpileonly의-진짜-차이 class=md-nav__link> <span class=md-ellipsis> isolatedModules vs transpileOnly의 진짜 차이 </span> </a> </li> <li class=md-nav__item> <a href=#swc--esbuild-대비-tsc-성능 class=md-nav__link> <span class=md-ellipsis> swc / esbuild 대비 tsc 성능 </span> </a> </li> <li class=md-nav__item> <a href=#project-references와-빌드-그래프 class=md-nav__link> <span class=md-ellipsis> Project References와 빌드 그래프 </span> </a> </li> <li class=md-nav__item> <a href=#--build-모드 class=md-nav__link> <span class=md-ellipsis> --build 모드 </span> </a> </li> <li class=md-nav__item> <a href=#tsbuildinfo-캐시-무효화 class=md-nav__link> <span class=md-ellipsis> .tsbuildinfo 캐시 무효화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#watch-모드-내부 class=md-nav__link> <span class=md-ellipsis> Watch 모드 내부 </span> </a> </li> <li class=md-nav__item> <a href=#tsc-단독의-한계 class=md-nav__link> <span class=md-ellipsis> tsc 단독의 한계 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 </span> </a> <nav class=md-nav aria-label=트러블슈팅> <ul class=md-nav__list> <li class=md-nav__item> <a href=#메모리-초과 class=md-nav__link> <span class=md-ellipsis> 메모리 초과 </span> </a> </li> <li class=md-nav__item> <a href=#빌드가-느릴-때-원인-분석-순서 class=md-nav__link> <span class=md-ellipsis> 빌드가 느릴 때 원인 분석 순서 </span> </a> </li> <li class=md-nav__item> <a href=#모듈을-못-찾을-때 class=md-nav__link> <span class=md-ellipsis> 모듈을 못 찾을 때 </span> </a> </li> <li class=md-nav__item> <a href=#타입-검사-통과한-코드가-런타임에-깨질-때 class=md-nav__link> <span class=md-ellipsis> 타입 검사 통과한 코드가 런타임에 깨질 때 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>language</span> <span class=md-tag>typescript</span> </nav> <h1 id=typescript-컴파일러-tsc>TypeScript 컴파일러 (tsc)<a class=headerlink href=#typescript-컴파일러-tsc title="Permanent link">&para;</a></h1> <h2 id=tsc가-실제로-하는-일>tsc가 실제로 하는 일<a class=headerlink href=#tsc가-실제로-하는-일 title="Permanent link">&para;</a></h2> <p><code>tsc</code>는 단순히 <code>.ts</code>를 <code>.js</code>로 바꾸는 도구가 아니다. 내부적으로는 다섯 단계를 거치는 풀 컴파일러다. 이 단계를 이해하고 있어야 빌드가 느려지거나 타입 에러가 이상하게 잡힐 때 원인을 찾을 수 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>스캐너(Scanner) → 파서(Parser) → 바인더(Binder) → 체커(Checker) → 이미터(Emitter)
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>                                                                    └─ 트랜스폼(Transformers)
-</span></code></pre></div> <p>각 단계의 역할은 다음과 같다.</p> <ul> <li><strong>스캐너</strong>: 소스 텍스트를 토큰 스트림으로 쪼갠다. <code>const x = 1;</code>이 <code>const</code>, <code>x</code>, <code>=</code>, <code>1</code>, <code>;</code> 다섯 토큰이 된다. 이 단계에서는 의미를 따지지 않는다.</li> <li><strong>파서</strong>: 토큰 스트림을 AST(Abstract Syntax Tree)로 만든다. 이 단계에서 문법 오류(<code>SyntaxError</code>)가 잡힌다. JSX 파싱 여부, target에 따른 문법 허용 범위가 여기서 갈린다.</li> <li><strong>바인더</strong>: AST를 돌면서 심볼 테이블을 만든다. 같은 스코프에 같은 이름이 두 번 선언됐는지, 어느 식별자가 어느 선언을 가리키는지를 연결한다. <strong>타입은 아직 없다.</strong> 단순히 "이 변수가 어디 선언됐는가"를 추적한다.</li> <li><strong>체커</strong>: 실제 타입 추론과 검증이 일어나는 단계다. 컴파일 시간의 대부분이 여기서 소비된다. 제네릭 인스턴스화, 컨디셔널 타입 풀이, 함수 시그니처 매칭 같은 무거운 연산이 모두 여기서 돈다.</li> <li><strong>이미터</strong>: 체커가 끝난 AST를 받아서 JavaScript와 <code>.d.ts</code>를 생성한다. 도중에 트랜스폼 파이프라인이 끼어들어 데코레이터를 풀거나 JSX를 변환하거나 import elision을 수행한다.</li> </ul> <p>이 구조에서 <strong>체커가 병목</strong>이다. 빌드가 느리다고 느껴지면 거의 항상 체커 단계에서 시간을 쓰고 있다. <code>--diagnostics</code>로 단계별 시간을 찍어보면 바로 보인다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>$<span class=w> </span>npx<span class=w> </span>tsc<span class=w> </span>--diagnostics
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>Files:<span class=w>                  </span><span class=m>1234</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>Lines:<span class=w>                </span><span class=m>190423</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>Identifiers:<span class=w>          </span><span class=m>156782</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>Symbols:<span class=w>              </span><span class=m>289103</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>Types:<span class=w>                </span><span class=m>124538</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>Memory<span class=w> </span>used:<span class=w>        </span>892456K
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>I/O<span class=w> </span>Read<span class=w> </span>time:<span class=w>        </span><span class=m>0</span>.32s
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>Parse<span class=w> </span>time:<span class=w>           </span><span class=m>1</span>.84s
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>Bind<span class=w> </span>time:<span class=w>            </span><span class=m>0</span>.71s
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>Check<span class=w> </span>time:<span class=w>           </span><span class=m>7</span>.63s<span class=w>   </span>←<span class=w> </span>대부분<span class=w> </span>여기
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a>Emit<span class=w> </span>time:<span class=w>            </span><span class=m>1</span>.12s
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a>Total<span class=w> </span>time:<span class=w>          </span><span class=m>11</span>.62s
-</span></code></pre></div> <p><code>Check time</code>이 다른 항목 합보다 크게 나오면 타입 단순화 작업을 하거나, <code>skipLibCheck: true</code>로 라이브러리 타입 검증을 건너뛰는 방향이 답이다.</p> <h2 id=tsconfigjson-핵심-옵션>tsconfig.json 핵심 옵션<a class=headerlink href=#tsconfigjson-핵심-옵션 title="Permanent link">&para;</a></h2> <p><code>tsc --init</code>이 만들어주는 기본 파일은 보수적이라 실무에는 거의 쓰지 않는다. Node 백엔드 기준으로 실제로 손대는 옵션은 정해져 있다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=p>{</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>    </span><span class=nt>&quot;target&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;ES2022&quot;</span><span class=p>,</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>    </span><span class=nt>&quot;module&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;NodeNext&quot;</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>    </span><span class=nt>&quot;moduleResolution&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;NodeNext&quot;</span><span class=p>,</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>    </span><span class=nt>&quot;strict&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=w>    </span><span class=nt>&quot;noUncheckedIndexedAccess&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=w>    </span><span class=nt>&quot;exactOptionalPropertyTypes&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a><span class=w>    </span><span class=nt>&quot;outDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;dist&quot;</span><span class=p>,</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a><span class=w>    </span><span class=nt>&quot;rootDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;src&quot;</span><span class=p>,</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a>
-</span><span id=__span-2-14><a id=__codelineno-2-14 name=__codelineno-2-14 href=#__codelineno-2-14></a><span class=w>    </span><span class=nt>&quot;esModuleInterop&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-15><a id=__codelineno-2-15 name=__codelineno-2-15 href=#__codelineno-2-15></a><span class=w>    </span><span class=nt>&quot;skipLibCheck&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-16><a id=__codelineno-2-16 name=__codelineno-2-16 href=#__codelineno-2-16></a><span class=w>    </span><span class=nt>&quot;forceConsistentCasingInFileNames&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-17><a id=__codelineno-2-17 name=__codelineno-2-17 href=#__codelineno-2-17></a>
-</span><span id=__span-2-18><a id=__codelineno-2-18 name=__codelineno-2-18 href=#__codelineno-2-18></a><span class=w>    </span><span class=nt>&quot;incremental&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-19><a id=__codelineno-2-19 name=__codelineno-2-19 href=#__codelineno-2-19></a><span class=w>    </span><span class=nt>&quot;tsBuildInfoFile&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;.tsbuildinfo&quot;</span><span class=p>,</span>
-</span><span id=__span-2-20><a id=__codelineno-2-20 name=__codelineno-2-20 href=#__codelineno-2-20></a>
-</span><span id=__span-2-21><a id=__codelineno-2-21 name=__codelineno-2-21 href=#__codelineno-2-21></a><span class=w>    </span><span class=nt>&quot;isolatedModules&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-22><a id=__codelineno-2-22 name=__codelineno-2-22 href=#__codelineno-2-22></a><span class=w>    </span><span class=nt>&quot;verbatimModuleSyntax&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-23><a id=__codelineno-2-23 name=__codelineno-2-23 href=#__codelineno-2-23></a>
-</span><span id=__span-2-24><a id=__codelineno-2-24 name=__codelineno-2-24 href=#__codelineno-2-24></a><span class=w>    </span><span class=nt>&quot;sourceMap&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-25><a id=__codelineno-2-25 name=__codelineno-2-25 href=#__codelineno-2-25></a><span class=w>    </span><span class=nt>&quot;declaration&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-26><a id=__codelineno-2-26 name=__codelineno-2-26 href=#__codelineno-2-26></a><span class=w>    </span><span class=nt>&quot;declarationMap&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span>
-</span><span id=__span-2-27><a id=__codelineno-2-27 name=__codelineno-2-27 href=#__codelineno-2-27></a><span class=w>  </span><span class=p>},</span>
-</span><span id=__span-2-28><a id=__codelineno-2-28 name=__codelineno-2-28 href=#__codelineno-2-28></a><span class=w>  </span><span class=nt>&quot;include&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;src/**/*&quot;</span><span class=p>],</span>
-</span><span id=__span-2-29><a id=__codelineno-2-29 name=__codelineno-2-29 href=#__codelineno-2-29></a><span class=w>  </span><span class=nt>&quot;exclude&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;node_modules&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;dist&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;**/*.test.ts&quot;</span><span class=p>]</span>
-</span><span id=__span-2-30><a id=__codelineno-2-30 name=__codelineno-2-30 href=#__codelineno-2-30></a><span class=p>}</span>
-</span></code></pre></div> <h3 id=target과-module의-관계>target과 module의 관계<a class=headerlink href=#target과-module의-관계 title="Permanent link">&para;</a></h3> <p><code>target</code>은 <strong>언어 문법</strong>(arrow function, class field, optional chaining 같은 ES 신문법)이 다운레벨링되는지를 결정한다. <code>module</code>은 <strong>모듈 시스템</strong>(import/export가 어떻게 변환되는지)을 결정한다. 둘은 별개로 움직인다.</p> <p>자주 헷갈리는 부분: <code>target: ES2015</code>이어도 <code>module: CommonJS</code>면 <code>import</code>는 <code>require</code>로 바뀐다. 반대로 <code>target: ES2022</code>인데 <code>module: ES2020</code>이면 <code>require</code>로 바뀌지 않고 <code>import</code>가 그대로 남는다. Node 환경에서 이걸 잘못 잡으면 런타임에 <code>Cannot use import statement outside a module</code>을 만난다.</p> <p><code>NodeNext</code>는 비교적 최근에 추가된 값으로, 패키지의 <code>package.json</code> <code>type</code> 필드와 <code>.cts/.mts</code> 확장자를 함께 본다. ESM/CommonJS 혼용 환경에서는 <code>NodeNext</code>가 사실상 정답이다.</p> <h3 id=strict-계열을-다-켜는-이유>strict 계열을 다 켜는 이유<a class=headerlink href=#strict-계열을-다-켜는-이유 title="Permanent link">&para;</a></h3> <p>5년차쯤 되면 <code>strict: true</code>만으로는 부족하다는 걸 안다. 실제로 버그를 잡아주는 추가 옵션은 다음 두 가지다.</p> <ul> <li><code>noUncheckedIndexedAccess</code>: <code>arr[0]</code>, <code>obj[key]</code>의 결과 타입이 <code>T</code>가 아니라 <code>T | undefined</code>가 된다. 처음 켜면 코드가 빨갛게 변하지만, 인덱스 접근으로 인한 런타임 <code>undefined</code>를 컴파일 타임에 거의 다 잡는다.</li> <li><code>exactOptionalPropertyTypes</code>: <code>{ name?: string }</code>에 명시적으로 <code>undefined</code>를 넣는 걸 막는다. <code>optional</code>과 <code>undefined</code>를 구분해서 쓰는 코드베이스에서 도움이 된다.</li> </ul> <p><code>noImplicitAny</code>, <code>strictNullChecks</code>, <code>strictFunctionTypes</code>는 <code>strict: true</code>에 이미 포함된다.</p> <h3 id=isolatedmodules와-verbatimmodulesyntax>isolatedModules와 verbatimModuleSyntax<a class=headerlink href=#isolatedmodules와-verbatimmodulesyntax title="Permanent link">&para;</a></h3> <p><code>isolatedModules: true</code>는 <strong>각 파일이 독립적으로 트랜스파일 가능한지</strong>를 검증하는 옵션이다. swc, esbuild, Babel 같은 단일 파일 트랜스파일러는 다른 파일의 타입 정보를 보지 않고 한 파일씩 변환한다. 이 모드에서 깨지는 문법(예: <code>export const enum</code>, 타입과 값이 섞인 re-export)을 tsc가 미리 걸러준다.</p> <p><code>verbatimModuleSyntax: true</code>는 그 강화판이다. <code>import</code> 구문에서 타입만 쓰는 import는 반드시 <code>import type</code>으로 명시해야 한다. tsc의 import elision 동작을 단순화해서, 트랜스파일러가 어떤 import를 지워야 할지 헷갈릴 여지를 없앤다. 번들러나 swc로 빌드하는 프로젝트라면 켜두는 게 안전하다.</p> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1>// verbatimModuleSyntax: true에서는 컴파일 에러</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>User</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;./types&#39;</span><span class=p>;</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=kd>function</span><span class=w> </span><span class=nx>f</span><span class=p>(</span><span class=nx>u</span><span class=o>:</span><span class=w> </span><span class=kt>User</span><span class=p>)</span><span class=w> </span><span class=p>{}</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=c1>// 정상</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=k>import</span><span class=w> </span><span class=kr>type</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>User</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;./types&#39;</span><span class=p>;</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=kd>function</span><span class=w> </span><span class=nx>f</span><span class=p>(</span><span class=nx>u</span><span class=o>:</span><span class=w> </span><span class=kt>User</span><span class=p>)</span><span class=w> </span><span class=p>{}</span>
-</span></code></pre></div> <h2 id=컴파일-파이프라인-디버깅>컴파일 파이프라인 디버깅<a class=headerlink href=#컴파일-파이프라인-디버깅 title="Permanent link">&para;</a></h2> <p>빌드가 느리거나 모듈 해석이 이상할 때 쓰는 진단 플래그가 있다. 이걸 모르면 무작정 옵션만 갈아끼우면서 시간을 버린다.</p> <h3 id=--diagnostics와---extendeddiagnostics>--diagnostics와 --extendedDiagnostics<a class=headerlink href=#--diagnostics와---extendeddiagnostics title="Permanent link">&para;</a></h3> <p><code>--diagnostics</code>는 앞에서 본 단계별 시간 요약을 출력한다. <code>--extendedDiagnostics</code>는 더 상세한 정보, 특히 어떤 트랜스폼이 시간을 썼는지까지 찍어준다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>npx<span class=w> </span>tsc<span class=w> </span>--noEmit<span class=w> </span>--extendedDiagnostics
-</span></code></pre></div> <p>체커 시간이 길게 찍히면 다음 순서로 의심한다.</p> <ol> <li><code>skipLibCheck</code>가 꺼져 있는가. 큰 의존성(특히 <code>@types/node</code>, <code>aws-sdk</code>)을 매번 검증하면 수 초가 그냥 사라진다.</li> <li>복잡한 컨디셔널 타입이나 재귀 제네릭이 있는가. <code>Type instantiation is excessively deep</code> 경고가 한 번이라도 보인다면 그 타입을 단순화해야 한다.</li> <li>같은 타입을 여러 파일에서 다르게 추론하고 있지 않은가. <code>tsc --generateTrace ./trace</code>로 타입 추론 트레이스를 뽑으면 <code>chrome://tracing</code>에서 시각화할 수 있다.</li> </ol> <h3 id=--listfiles와---traceresolution>--listFiles와 --traceResolution<a class=headerlink href=#--listfiles와---traceresolution title="Permanent link">&para;</a></h3> <p>"이 파일이 왜 컴파일에 포함되지" 또는 "왜 이 모듈을 못 찾지"를 디버깅할 때 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 컴파일에 포함된 모든 파일 목록 출력</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>npx<span class=w> </span>tsc<span class=w> </span>--listFiles<span class=w> </span>--noEmit<span class=w> </span><span class=p>|</span><span class=w> </span>head<span class=w> </span>-50
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=c1># 모듈 해석 과정을 단계별로 출력</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>npx<span class=w> </span>tsc<span class=w> </span>--traceResolution<span class=w> </span>--noEmit<span class=w> </span><span class=m>2</span>&gt;<span class=p>&amp;</span><span class=m>1</span><span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span><span class=s2>&quot;lodash&quot;</span>
-</span></code></pre></div> <p><code>--traceResolution</code>은 출력이 어마어마하게 많아서 보통 grep으로 특정 패키지만 골라본다. <code>paths</code> 설정이 안 먹거나, <code>node_modules</code> 안에서 다른 버전을 끌어가고 있을 때 결정적 단서를 준다.</p> <h3 id=tsc-단독으로는-못-보는-것>tsc 단독으로는 못 보는 것<a class=headerlink href=#tsc-단독으로는-못-보는-것 title="Permanent link">&para;</a></h3> <p>JS 런타임 에러, 의존성 사이클 검출, dead code 분석은 tsc의 책임 범위 밖이다. 컴파일이 통과했다고 코드가 동작한다는 보장은 없다. tsc는 <strong>타입과 문법</strong>까지만 검증한다.</p> <h2 id=빌드-최적화-실전>빌드 최적화 실전<a class=headerlink href=#빌드-최적화-실전 title="Permanent link">&para;</a></h2> <h3 id=isolatedmodules-vs-transpileonly의-진짜-차이>isolatedModules vs transpileOnly의 진짜 차이<a class=headerlink href=#isolatedmodules-vs-transpileonly의-진짜-차이 title="Permanent link">&para;</a></h3> <p>둘 다 "타입 검사를 건너뛰는" 옵션처럼 보이지만 동작이 다르다.</p> <ul> <li><code>isolatedModules</code>는 <strong>tsc가 컴파일하면서</strong> 단일 파일 트랜스파일에서 깨질 코드를 검출하는 것이다. 타입 검사는 정상적으로 한다.</li> <li><code>transpileOnly</code>는 <code>ts-node</code>나 <code>ts-loader</code>의 옵션으로, <strong>타입 검사를 아예 끄고</strong> 변환만 한다. 빌드는 빨라지지만 <code>any</code> 같은 게 무방비로 흘러간다.</li> </ul> <p>실무 패턴은 보통 이렇다. 빠른 빌드용 트랜스파일은 swc/esbuild가 담당하고(<code>transpileOnly</code>에 해당), 타입 검사는 tsc <code>--noEmit</code>로 별도 잡(job)으로 돌린다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=p>{</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span><span class=nt>&quot;scripts&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span><span class=nt>&quot;build&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;swc src -d dist&quot;</span><span class=p>,</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>    </span><span class=nt>&quot;type-check&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;tsc --noEmit&quot;</span><span class=p>,</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span><span class=nt>&quot;ci&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;npm run type-check &amp;&amp; npm run build&quot;</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=p>}</span>
-</span></code></pre></div> <p>이렇게 분리하면 dev 빌드는 1초 안에 끝나고, 타입 검증은 CI나 pre-push에서만 돈다.</p> <h3 id=swc--esbuild-대비-tsc-성능>swc / esbuild 대비 tsc 성능<a class=headerlink href=#swc--esbuild-대비-tsc-성능 title="Permanent link">&para;</a></h3> <p>대략적인 체감으로, 같은 코드베이스를 변환만 한다고 했을 때 esbuild는 tsc보다 50~100배, swc는 20~50배 빠르다. 이유는 두 가지다.</p> <ol> <li>esbuild는 Go, swc는 Rust로 짜여 있어서 네이티브 속도다.</li> <li>둘 다 타입 검사를 안 한다. 단일 파일 트랜스파일러일 뿐이다.</li> </ol> <p>즉, 비교 자체가 공정하지 않다. tsc는 타입 검사가 본업이고, 트랜스파일은 부산물에 가깝다. <strong>타입 검사가 필요 없는 변환</strong>은 swc/esbuild에 맡기고 <strong>타입 검사</strong>만 tsc에 맡기는 게 5년차 현실이다.</p> <h3 id=project-references와-빌드-그래프>Project References와 빌드 그래프<a class=headerlink href=#project-references와-빌드-그래프 title="Permanent link">&para;</a></h3> <p>모노레포나 큰 프로젝트에서 tsc가 진가를 발휘하는 부분이 Project References다. <code>references</code> 필드로 다른 프로젝트를 참조하면, 그 프로젝트의 <code>.d.ts</code>만 읽고 본문은 다시 컴파일하지 않는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>repo/
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>├── tsconfig.json          (root)
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>├── packages/
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>│   ├── core/
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>│   │   └── tsconfig.json  (composite: true)
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>│   ├── api/
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>│   │   └── tsconfig.json  (references: core)
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>│   └── worker/
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a>│       └── tsconfig.json  (references: core)
-</span></code></pre></div> <div class="language-json highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1>// packages/api/tsconfig.json</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=p>{</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>    </span><span class=nt>&quot;composite&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>    </span><span class=nt>&quot;outDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;dist&quot;</span><span class=p>,</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=w>    </span><span class=nt>&quot;rootDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;src&quot;</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=w>  </span><span class=p>},</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=w>  </span><span class=nt>&quot;references&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;path&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;../core&quot;</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a><span class=w>  </span><span class=p>],</span>
-</span><span id=__span-8-11><a id=__codelineno-8-11 name=__codelineno-8-11 href=#__codelineno-8-11></a><span class=w>  </span><span class=nt>&quot;include&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;src/**/*&quot;</span><span class=p>]</span>
-</span><span id=__span-8-12><a id=__codelineno-8-12 name=__codelineno-8-12 href=#__codelineno-8-12></a><span class=p>}</span>
-</span></code></pre></div> <p><code>composite: true</code>는 이 프로젝트가 다른 곳에서 참조될 수 있다는 의미다. 강제되는 옵션이 몇 가지 있다(<code>declaration: true</code>, <code>tsBuildInfoFile</code> 자동 설정 등).</p> <h3 id=--build-모드>--build 모드<a class=headerlink href=#--build-모드 title="Permanent link">&para;</a></h3> <p>Project References가 있는 프로젝트는 일반 <code>tsc</code> 대신 <code>tsc --build</code>(또는 <code>tsc -b</code>)로 빌드한다. 이 모드는 의존 그래프를 따라가면서 변경된 프로젝트만 다시 빌드한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># 변경된 것만 빌드</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>npx<span class=w> </span>tsc<span class=w> </span>-b
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=c1># 강제로 전체 다시 빌드</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>npx<span class=w> </span>tsc<span class=w> </span>-b<span class=w> </span>--force
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=c1># 빌드 산출물과 .tsbuildinfo 모두 삭제</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a>npx<span class=w> </span>tsc<span class=w> </span>-b<span class=w> </span>--clean
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a>
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=c1># watch 모드로 그래프 추적</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a>npx<span class=w> </span>tsc<span class=w> </span>-b<span class=w> </span>--watch
-</span></code></pre></div> <p><code>--clean</code>은 명시적으로 산출물을 지운다. <code>rm -rf dist</code>보다 안전하다. 다른 디렉토리를 건드리지 않고 tsc가 만든 것만 정확히 지우기 때문이다.</p> <p><code>--force</code>는 변경 검출을 무시하고 전부 다시 빌드한다. 캐시가 꼬였다고 의심될 때 쓴다.</p> <h3 id=tsbuildinfo-캐시-무효화>.tsbuildinfo 캐시 무효화<a class=headerlink href=#tsbuildinfo-캐시-무효화 title="Permanent link">&para;</a></h3> <p><code>incremental: true</code> 또는 <code>composite: true</code>일 때 tsc는 <code>.tsbuildinfo</code> 파일에 이전 빌드의 시그니처를 저장한다. 다음 빌드에서 변경된 파일만 다시 처리하기 위해서다.</p> <p>이 캐시가 무효화되는 케이스는 다음과 같다.</p> <ul> <li>TypeScript 버전이 바뀐 경우. 메이저는 물론 마이너 버전 차이에서도 캐시 포맷이 바뀌면 무효화된다.</li> <li><code>tsconfig.json</code>의 <code>compilerOptions</code>가 변경된 경우.</li> <li>참조하는 프로젝트(<code>references</code>)의 <code>.d.ts</code> 시그니처가 바뀐 경우. 본문 변경이 아니라 <strong>공개 API 변경</strong>이 트리거다. 함수 본문만 고치면 의존 프로젝트는 재빌드되지 않는다.</li> <li><code>paths</code>나 <code>baseUrl</code> 같은 모듈 해석 옵션이 바뀐 경우.</li> </ul> <p>캐시가 깨졌는데 정리가 안 됐을 때 보이는 증상은 "타입 에러가 안 잡힌다"거나 "지운 파일이 여전히 컴파일된 듯이 보인다"는 것이다. 이때는 <code>tsc -b --clean</code> 후 <code>--force</code>로 재빌드한다.</p> <p><code>.tsbuildinfo</code> 위치는 <code>tsBuildInfoFile</code>로 지정한다. 기본값은 <code>outDir</code> 옆이지만, 빌드 산출물과 분리하고 싶으면 <code>node_modules/.cache</code> 아래로 옮긴다. 도커 빌드 캐시 레이어를 활용할 때 위치 분리가 중요해진다.</p> <h2 id=watch-모드-내부>Watch 모드 내부<a class=headerlink href=#watch-모드-내부 title="Permanent link">&para;</a></h2> <p><code>tsc --watch</code>는 단순히 파일을 모니터링하는 게 아니다. OS의 파일 시스템 이벤트(macOS의 FSEvents, Linux의 inotify, Windows의 ReadDirectoryChangesW)를 사용한다. 그런데 이 이벤트가 신뢰할 수 없는 환경이 있다.</p> <ul> <li>도커 컨테이너 안에서 호스트 볼륨을 마운트한 경우. inotify 이벤트가 안 올 수 있다.</li> <li>네트워크 파일 시스템(NFS, SMB)을 쓰는 경우. 이벤트가 누락되거나 지연된다.</li> <li>WSL1 환경. WSL2는 괜찮다.</li> </ul> <p>이런 환경에서는 폴링(polling)으로 폴백해야 한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=p>{</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=w>  </span><span class=nt>&quot;watchOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>    </span><span class=nt>&quot;watchFile&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;useFsEvents&quot;</span><span class=p>,</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>    </span><span class=nt>&quot;watchDirectory&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;useFsEvents&quot;</span><span class=p>,</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>    </span><span class=nt>&quot;fallbackPolling&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;dynamicPriority&quot;</span><span class=p>,</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>    </span><span class=nt>&quot;synchronousWatchDirectory&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=p>,</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=w>    </span><span class=nt>&quot;excludeDirectories&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;node_modules&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;dist&quot;</span><span class=p>]</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a><span class=p>}</span>
-</span></code></pre></div> <p><code>watchFile</code> 값으로 자주 쓰는 것은 다음과 같다.</p> <ul> <li><code>useFsEvents</code>: OS 네이티브 이벤트. 가장 빠르지만 환경에 따라 깨진다.</li> <li><code>priorityPollingInterval</code>: 우선순위 기반 폴링. CPU를 일정 부분 쓴다.</li> <li><code>dynamicPriorityPolling</code>: 변경 빈도에 따라 폴링 주기를 조정한다.</li> </ul> <p>도커에서 hot reload가 안 먹으면 <code>watchFile: "priorityPollingInterval"</code>로 강제하면 거의 해결된다. 다만 폴링은 CPU를 계속 쓰니 컨테이너 리소스 한계를 보고 정한다.</p> <p><code>excludeDirectories</code>로 <code>node_modules</code>를 빼는 건 필수다. 안 빼면 와처가 수만 개 파일을 감시하면서 메모리를 잡아먹는다.</p> <h2 id=tsc-단독의-한계>tsc 단독의 한계<a class=headerlink href=#tsc-단독의-한계 title="Permanent link">&para;</a></h2> <p>tsc만으로는 부족한 영역이 있다. 5년 정도 굴리다 보면 다음 한계에 부딪힌다.</p> <ul> <li><strong>번들링이 없다</strong>: tsc는 파일 단위 변환만 한다. 트리 셰이킹, 코드 스플리팅, 정적 자산(이미지, CSS) 처리는 esbuild/rollup/webpack/vite의 영역이다. 백엔드라도 단일 파일 배포를 원하면 esbuild 같은 번들러를 얹어야 한다.</li> <li><strong>트랜스폼 플러그인이 없다</strong>: <code>transformers</code> API가 있긴 하지만 설정이 까다롭고, 실무에서는 babel/swc 플러그인 생태계가 훨씬 풍부하다. 데코레이터 메타데이터 같은 표준에서 벗어난 변환은 swc 쪽이 편하다.</li> <li><strong>다중 출력 포맷이 없다</strong>: ESM과 CommonJS를 동시에 빌드해서 듀얼 패키지를 만들고 싶으면 tsc를 두 번 돌리거나 다른 도구를 써야 한다. tsup, unbuild 같은 래퍼가 이 문제를 해결한다.</li> </ul> <p>전형적인 분리 패턴은 이렇다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>[변환]   swc / esbuild       → 빠른 JS 출력
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>[타입]   tsc --noEmit        → 타입 검증만
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>[번들]   esbuild / rollup    → 단일 파일 배포 (필요 시)
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>[.d.ts]  tsc --emitDeclarationOnly → 타입 정의 파일만
-</span></code></pre></div> <p>라이브러리 패키지를 만들 때 자주 보이는 구성이다. 변환은 빠른 도구에 맡기고, tsc는 타입 검증과 <code>.d.ts</code> 생성에만 사용한다.</p> <h2 id=트러블슈팅>트러블슈팅<a class=headerlink href=#트러블슈팅 title="Permanent link">&para;</a></h2> <h3 id=메모리-초과>메모리 초과<a class=headerlink href=#메모리-초과 title="Permanent link">&para;</a></h3> <p>큰 프로젝트에서 다음 에러를 보는 일이 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>&lt;--- Last few GCs ---&gt;
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>[12345:0x108008000] FATAL ERROR: Reached heap limit
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>Allocation failed - JavaScript heap out of memory
-</span></code></pre></div> <p>Node 기본 힙 한계가 4GB 정도라 큰 모노레포에서 한계에 닿는다. 임시 처방은 환경 변수로 한계를 올리는 것이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=nv>NODE_OPTIONS</span><span class=o>=</span><span class=s2>&quot;--max-old-space-size=8192&quot;</span><span class=w> </span>npx<span class=w> </span>tsc<span class=w> </span>-b
-</span></code></pre></div> <p>다만 메모리가 부족하다는 건 거의 항상 <strong>체커가 비효율적인 타입을 처리하고 있다</strong>는 신호다. 진짜 해법은 다음을 확인하는 것이다.</p> <ol> <li><code>tsc --generateTrace ./trace</code> 후 trace 파일을 분석해서 어느 타입이 메모리를 잡는지 본다.</li> <li>깊이 중첩된 컨디셔널 타입이나 재귀 제네릭을 단순화한다.</li> <li>Project References로 그래프를 쪼개서 한 번에 처리하는 파일 수를 줄인다.</li> <li><code>skipLibCheck: true</code>를 켠다. 의외로 안 켜져 있는 경우가 많다.</li> </ol> <p>힙 사이즈를 키우는 건 응급 처치다. 근본 원인을 안 잡으면 6개월 뒤에 또 같은 에러를 본다.</p> <h3 id=빌드가-느릴-때-원인-분석-순서>빌드가 느릴 때 원인 분석 순서<a class=headerlink href=#빌드가-느릴-때-원인-분석-순서 title="Permanent link">&para;</a></h3> <ol> <li><code>tsc --diagnostics</code>로 단계별 시간을 본다. Check time이 70% 이상이면 타입 문제, Parse/Bind time이 크면 파일 수 문제다.</li> <li><code>tsc --listFiles</code>로 컴파일에 들어가는 파일 수를 센다. 의도하지 않은 파일이 들어오면 <code>exclude</code>나 <code>include</code> 패턴이 잘못된 것이다.</li> <li><code>tsc --traceResolution | grep "Resolving module"</code> 출력이 비정상적으로 길면 모듈 해석에 시간을 쓰는 것이다. <code>paths</code> 설정과 심볼릭 링크를 의심한다.</li> <li><code>--generateTrace</code>로 trace 파일을 뽑고 <code>chrome://tracing</code>에서 본다. 가장 오래 걸리는 타입 인스턴스화를 찾는다.</li> </ol> <h3 id=모듈을-못-찾을-때>모듈을 못 찾을 때<a class=headerlink href=#모듈을-못-찾을-때 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>error TS2307: Cannot find module &#39;./foo&#39; or its corresponding type declarations.
-</span></code></pre></div> <p>순서대로 의심한다.</p> <ol> <li><code>moduleResolution</code>이 <code>NodeNext</code>인데 import 경로에 확장자(<code>.js</code>)를 안 붙였는가. ESM 모드에서는 확장자가 필수다.</li> <li><code>paths</code>를 설정했지만 <code>baseUrl</code>이 없는가. tsc 5.0부터는 <code>baseUrl</code> 없이도 paths가 동작하지만, 번들러는 여전히 <code>baseUrl</code>을 요구할 수 있다.</li> <li>심볼릭 링크(<code>pnpm</code>, <code>yarn workspace</code>)가 걸려 있는데 <code>preserveSymlinks</code> 설정이 어긋났는가.</li> <li><code>node_modules</code>에 같은 패키지가 두 버전 깔려 있어서 다른 경로로 해석되는가. <code>npm ls &lt;패키지&gt;</code>로 확인한다.</li> </ol> <h3 id=타입-검사-통과한-코드가-런타임에-깨질-때>타입 검사 통과한 코드가 런타임에 깨질 때<a class=headerlink href=#타입-검사-통과한-코드가-런타임에-깨질-때 title="Permanent link">&para;</a></h3> <p>거의 다음 셋 중 하나다.</p> <ul> <li>외부에서 받은 데이터(JSON, 환경 변수, DB 결과)를 타입 단언(<code>as</code>)으로 강제 캐스팅했다. 런타임 검증을 안 했으니 타입과 실제가 어긋날 수 있다. zod 같은 검증 라이브러리를 써야 한다.</li> <li><code>any</code> 또는 <code>unknown</code>이 어딘가에서 흘러들어왔다. <code>noImplicitAny</code>를 켜도 명시적 <code>any</code>는 막지 못한다.</li> <li>의존성의 <code>.d.ts</code>가 실제 구현과 다르다. <code>@types/*</code> 패키지가 본 코드보다 늦게 업데이트되는 일이 흔하다.</li> </ul> <p>타입 시스템은 약속이지 보증이 아니다. 외부 경계에서는 항상 런타임 검증을 한 번 더 한다고 생각하는 게 안전하다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../Go/Go_Generics/ >Go 제네릭</a></li> <li><a href=../../../Java/%EC%9E%90%EB%B0%94%20%EB%94%94%EC%9E%90%EC%9D%B8%20%ED%8C%A8%ED%84%B4%20%EB%B0%8F%20%EC%9B%90%EC%B9%99/Generics/ >Java Generics</a></li> <li><a href=../../../Java/Java%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/Type_Casting/ >Java 형변환 (Type Casting)</a></li> <li><a href=../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/TypeScript/ >TypeScript</a></li> <li><a href=../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Class/ >TypeScript Class</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/ class="md-footer__link md-footer__link--prev" aria-label="이전: TypeScript tsc-alias와 workspace 통합 사용법"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> TypeScript tsc-alias와 workspace 통합 사용법 </div> </div> </a> <a href=../tsconfig/ class="md-footer__link md-footer__link--next" aria-label="다음: tsconfig 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> tsconfig 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EC%84%A4%EC%A0%95%20%EB%B0%8F%20%EC%BB%B4%ED%8C%8C%EC%9D%BC%EB%9F%AC/tsc/">
+      
+      
+        <link rel="prev" href="../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/">
+      
+      
+        <link rel="next" href="../tsconfig/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>TypeScript 컴파일러 (tsc) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#typescript-컴파일러-tsc" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TypeScript 컴파일러 (tsc)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Java/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Kotlin/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../JavaScript/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JavaScript
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TypeScript
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    TypeScript
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TypeScript 기본
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    타입 정의
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%83%80%EC%9E%85%20%EC%9C%A0%ED%8B%B8%EB%A6%AC%ED%8B%B0/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    타입 유틸리티
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 설정
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_5_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    프로젝트 설정
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Rust/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Go/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Go
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Comparison/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparison
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Python/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tsc가-실제로-하는-일" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tsc가 실제로 하는 일
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tsconfigjson-핵심-옵션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tsconfig.json 핵심 옵션
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="tsconfig.json 핵심 옵션">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#target과-module의-관계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        target과 module의 관계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strict-계열을-다-켜는-이유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        strict 계열을 다 켜는 이유
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isolatedmodules와-verbatimmodulesyntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isolatedModules와 verbatimModuleSyntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#컴파일-파이프라인-디버깅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컴파일 파이프라인 디버깅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="컴파일 파이프라인 디버깅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#--diagnostics와---extendeddiagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        --diagnostics와 --extendedDiagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#--listfiles와---traceresolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        --listFiles와 --traceResolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tsc-단독으로는-못-보는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tsc 단독으로는 못 보는 것
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#빌드-최적화-실전" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        빌드 최적화 실전
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="빌드 최적화 실전">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#isolatedmodules-vs-transpileonly의-진짜-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        isolatedModules vs transpileOnly의 진짜 차이
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#swc--esbuild-대비-tsc-성능" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        swc / esbuild 대비 tsc 성능
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project-references와-빌드-그래프" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project References와 빌드 그래프
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#--build-모드" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        --build 모드
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tsbuildinfo-캐시-무효화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        .tsbuildinfo 캐시 무효화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#watch-모드-내부" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watch 모드 내부
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tsc-단독의-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tsc 단독의 한계
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#메모리-초과" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메모리 초과
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#빌드가-느릴-때-원인-분석-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        빌드가 느릴 때 원인 분석 순서
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#모듈을-못-찾을-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        모듈을 못 찾을 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#타입-검사-통과한-코드가-런타임에-깨질-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        타입 검사 통과한 코드가 런타임에 깨질 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">language</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">typescript</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="typescript-컴파일러-tsc">TypeScript 컴파일러 (tsc)<a class="headerlink" href="#typescript-컴파일러-tsc" title="Permanent link">&para;</a></h1>
+<h2 id="tsc가-실제로-하는-일">tsc가 실제로 하는 일<a class="headerlink" href="#tsc가-실제로-하는-일" title="Permanent link">&para;</a></h2>
+<p><code>tsc</code>는 단순히 <code>.ts</code>를 <code>.js</code>로 바꾸는 도구가 아니다. 내부적으로는 다섯 단계를 거치는 풀 컴파일러다. 이 단계를 이해하고 있어야 빌드가 느려지거나 타입 에러가 이상하게 잡힐 때 원인을 찾을 수 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>스캐너(Scanner) → 파서(Parser) → 바인더(Binder) → 체커(Checker) → 이미터(Emitter)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                                                                    └─ 트랜스폼(Transformers)
+</span></code></pre></div>
+<p>각 단계의 역할은 다음과 같다.</p>
+<ul>
+<li><strong>스캐너</strong>: 소스 텍스트를 토큰 스트림으로 쪼갠다. <code>const x = 1;</code>이 <code>const</code>, <code>x</code>, <code>=</code>, <code>1</code>, <code>;</code> 다섯 토큰이 된다. 이 단계에서는 의미를 따지지 않는다.</li>
+<li><strong>파서</strong>: 토큰 스트림을 AST(Abstract Syntax Tree)로 만든다. 이 단계에서 문법 오류(<code>SyntaxError</code>)가 잡힌다. JSX 파싱 여부, target에 따른 문법 허용 범위가 여기서 갈린다.</li>
+<li><strong>바인더</strong>: AST를 돌면서 심볼 테이블을 만든다. 같은 스코프에 같은 이름이 두 번 선언됐는지, 어느 식별자가 어느 선언을 가리키는지를 연결한다. <strong>타입은 아직 없다.</strong> 단순히 "이 변수가 어디 선언됐는가"를 추적한다.</li>
+<li><strong>체커</strong>: 실제 타입 추론과 검증이 일어나는 단계다. 컴파일 시간의 대부분이 여기서 소비된다. 제네릭 인스턴스화, 컨디셔널 타입 풀이, 함수 시그니처 매칭 같은 무거운 연산이 모두 여기서 돈다.</li>
+<li><strong>이미터</strong>: 체커가 끝난 AST를 받아서 JavaScript와 <code>.d.ts</code>를 생성한다. 도중에 트랜스폼 파이프라인이 끼어들어 데코레이터를 풀거나 JSX를 변환하거나 import elision을 수행한다.</li>
+</ul>
+<p>이 구조에서 <strong>체커가 병목</strong>이다. 빌드가 느리다고 느껴지면 거의 항상 체커 단계에서 시간을 쓰고 있다. <code>--diagnostics</code>로 단계별 시간을 찍어보면 바로 보인다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>npx<span class="w"> </span>tsc<span class="w"> </span>--diagnostics
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Files:<span class="w">                  </span><span class="m">1234</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Lines:<span class="w">                </span><span class="m">190423</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Identifiers:<span class="w">          </span><span class="m">156782</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Symbols:<span class="w">              </span><span class="m">289103</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>Types:<span class="w">                </span><span class="m">124538</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>Memory<span class="w"> </span>used:<span class="w">        </span>892456K
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>I/O<span class="w"> </span>Read<span class="w"> </span>time:<span class="w">        </span><span class="m">0</span>.32s
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>Parse<span class="w"> </span>time:<span class="w">           </span><span class="m">1</span>.84s
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>Bind<span class="w"> </span>time:<span class="w">            </span><span class="m">0</span>.71s
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>Check<span class="w"> </span>time:<span class="w">           </span><span class="m">7</span>.63s<span class="w">   </span>←<span class="w"> </span>대부분<span class="w"> </span>여기
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>Emit<span class="w"> </span>time:<span class="w">            </span><span class="m">1</span>.12s
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>Total<span class="w"> </span>time:<span class="w">          </span><span class="m">11</span>.62s
+</span></code></pre></div>
+<p><code>Check time</code>이 다른 항목 합보다 크게 나오면 타입 단순화 작업을 하거나, <code>skipLibCheck: true</code>로 라이브러리 타입 검증을 건너뛰는 방향이 답이다.</p>
+<h2 id="tsconfigjson-핵심-옵션">tsconfig.json 핵심 옵션<a class="headerlink" href="#tsconfigjson-핵심-옵션" title="Permanent link">&para;</a></h2>
+<p><code>tsc --init</code>이 만들어주는 기본 파일은 보수적이라 실무에는 거의 쓰지 않는다. Node 백엔드 기준으로 실제로 손대는 옵션은 정해져 있다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ES2022&quot;</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">&quot;module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;NodeNext&quot;</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">&quot;moduleResolution&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;NodeNext&quot;</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">&quot;strict&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">&quot;noUncheckedIndexedAccess&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">&quot;exactOptionalPropertyTypes&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dist&quot;</span><span class="p">,</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nt">&quot;rootDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;src&quot;</span><span class="p">,</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nt">&quot;esModuleInterop&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">&quot;skipLibCheck&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="nt">&quot;forceConsistentCasingInFileNames&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="nt">&quot;incremental&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="nt">&quot;tsBuildInfoFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;.tsbuildinfo&quot;</span><span class="p">,</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">    </span><span class="nt">&quot;isolatedModules&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="nt">&quot;verbatimModuleSyntax&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">&quot;sourceMap&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">    </span><span class="nt">&quot;declaration&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">    </span><span class="nt">&quot;declarationMap&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">  </span><span class="nt">&quot;include&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/**/*&quot;</span><span class="p">],</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">  </span><span class="nt">&quot;exclude&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;node_modules&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;dist&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;**/*.test.ts&quot;</span><span class="p">]</span>
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="target과-module의-관계">target과 module의 관계<a class="headerlink" href="#target과-module의-관계" title="Permanent link">&para;</a></h3>
+<p><code>target</code>은 <strong>언어 문법</strong>(arrow function, class field, optional chaining 같은 ES 신문법)이 다운레벨링되는지를 결정한다. <code>module</code>은 <strong>모듈 시스템</strong>(import/export가 어떻게 변환되는지)을 결정한다. 둘은 별개로 움직인다.</p>
+<p>자주 헷갈리는 부분: <code>target: ES2015</code>이어도 <code>module: CommonJS</code>면 <code>import</code>는 <code>require</code>로 바뀐다. 반대로 <code>target: ES2022</code>인데 <code>module: ES2020</code>이면 <code>require</code>로 바뀌지 않고 <code>import</code>가 그대로 남는다. Node 환경에서 이걸 잘못 잡으면 런타임에 <code>Cannot use import statement outside a module</code>을 만난다.</p>
+<p><code>NodeNext</code>는 비교적 최근에 추가된 값으로, 패키지의 <code>package.json</code> <code>type</code> 필드와 <code>.cts/.mts</code> 확장자를 함께 본다. ESM/CommonJS 혼용 환경에서는 <code>NodeNext</code>가 사실상 정답이다.</p>
+<h3 id="strict-계열을-다-켜는-이유">strict 계열을 다 켜는 이유<a class="headerlink" href="#strict-계열을-다-켜는-이유" title="Permanent link">&para;</a></h3>
+<p>5년차쯤 되면 <code>strict: true</code>만으로는 부족하다는 걸 안다. 실제로 버그를 잡아주는 추가 옵션은 다음 두 가지다.</p>
+<ul>
+<li><code>noUncheckedIndexedAccess</code>: <code>arr[0]</code>, <code>obj[key]</code>의 결과 타입이 <code>T</code>가 아니라 <code>T | undefined</code>가 된다. 처음 켜면 코드가 빨갛게 변하지만, 인덱스 접근으로 인한 런타임 <code>undefined</code>를 컴파일 타임에 거의 다 잡는다.</li>
+<li><code>exactOptionalPropertyTypes</code>: <code>{ name?: string }</code>에 명시적으로 <code>undefined</code>를 넣는 걸 막는다. <code>optional</code>과 <code>undefined</code>를 구분해서 쓰는 코드베이스에서 도움이 된다.</li>
+</ul>
+<p><code>noImplicitAny</code>, <code>strictNullChecks</code>, <code>strictFunctionTypes</code>는 <code>strict: true</code>에 이미 포함된다.</p>
+<h3 id="isolatedmodules와-verbatimmodulesyntax">isolatedModules와 verbatimModuleSyntax<a class="headerlink" href="#isolatedmodules와-verbatimmodulesyntax" title="Permanent link">&para;</a></h3>
+<p><code>isolatedModules: true</code>는 <strong>각 파일이 독립적으로 트랜스파일 가능한지</strong>를 검증하는 옵션이다. swc, esbuild, Babel 같은 단일 파일 트랜스파일러는 다른 파일의 타입 정보를 보지 않고 한 파일씩 변환한다. 이 모드에서 깨지는 문법(예: <code>export const enum</code>, 타입과 값이 섞인 re-export)을 tsc가 미리 걸러준다.</p>
+<p><code>verbatimModuleSyntax: true</code>는 그 강화판이다. <code>import</code> 구문에서 타입만 쓰는 import는 반드시 <code>import type</code>으로 명시해야 한다. tsc의 import elision 동작을 단순화해서, 트랜스파일러가 어떤 import를 지워야 할지 헷갈릴 여지를 없앤다. 번들러나 swc로 빌드하는 프로젝트라면 켜두는 게 안전하다.</p>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// verbatimModuleSyntax: true에서는 컴파일 에러</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;./types&#39;</span><span class="p">;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kd">function</span><span class="w"> </span><span class="nx">f</span><span class="p">(</span><span class="nx">u</span><span class="o">:</span><span class="w"> </span><span class="kt">User</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1">// 정상</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">import</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;./types&#39;</span><span class="p">;</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="kd">function</span><span class="w"> </span><span class="nx">f</span><span class="p">(</span><span class="nx">u</span><span class="o">:</span><span class="w"> </span><span class="kt">User</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+</span></code></pre></div>
+<h2 id="컴파일-파이프라인-디버깅">컴파일 파이프라인 디버깅<a class="headerlink" href="#컴파일-파이프라인-디버깅" title="Permanent link">&para;</a></h2>
+<p>빌드가 느리거나 모듈 해석이 이상할 때 쓰는 진단 플래그가 있다. 이걸 모르면 무작정 옵션만 갈아끼우면서 시간을 버린다.</p>
+<h3 id="--diagnostics와---extendeddiagnostics">--diagnostics와 --extendedDiagnostics<a class="headerlink" href="#--diagnostics와---extendeddiagnostics" title="Permanent link">&para;</a></h3>
+<p><code>--diagnostics</code>는 앞에서 본 단계별 시간 요약을 출력한다. <code>--extendedDiagnostics</code>는 더 상세한 정보, 특히 어떤 트랜스폼이 시간을 썼는지까지 찍어준다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>npx<span class="w"> </span>tsc<span class="w"> </span>--noEmit<span class="w"> </span>--extendedDiagnostics
+</span></code></pre></div>
+<p>체커 시간이 길게 찍히면 다음 순서로 의심한다.</p>
+<ol>
+<li><code>skipLibCheck</code>가 꺼져 있는가. 큰 의존성(특히 <code>@types/node</code>, <code>aws-sdk</code>)을 매번 검증하면 수 초가 그냥 사라진다.</li>
+<li>복잡한 컨디셔널 타입이나 재귀 제네릭이 있는가. <code>Type instantiation is excessively deep</code> 경고가 한 번이라도 보인다면 그 타입을 단순화해야 한다.</li>
+<li>같은 타입을 여러 파일에서 다르게 추론하고 있지 않은가. <code>tsc --generateTrace ./trace</code>로 타입 추론 트레이스를 뽑으면 <code>chrome://tracing</code>에서 시각화할 수 있다.</li>
+</ol>
+<h3 id="--listfiles와---traceresolution">--listFiles와 --traceResolution<a class="headerlink" href="#--listfiles와---traceresolution" title="Permanent link">&para;</a></h3>
+<p>"이 파일이 왜 컴파일에 포함되지" 또는 "왜 이 모듈을 못 찾지"를 디버깅할 때 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 컴파일에 포함된 모든 파일 목록 출력</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>npx<span class="w"> </span>tsc<span class="w"> </span>--listFiles<span class="w"> </span>--noEmit<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-50
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 모듈 해석 과정을 단계별로 출력</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>npx<span class="w"> </span>tsc<span class="w"> </span>--traceResolution<span class="w"> </span>--noEmit<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;lodash&quot;</span>
+</span></code></pre></div>
+<p><code>--traceResolution</code>은 출력이 어마어마하게 많아서 보통 grep으로 특정 패키지만 골라본다. <code>paths</code> 설정이 안 먹거나, <code>node_modules</code> 안에서 다른 버전을 끌어가고 있을 때 결정적 단서를 준다.</p>
+<h3 id="tsc-단독으로는-못-보는-것">tsc 단독으로는 못 보는 것<a class="headerlink" href="#tsc-단독으로는-못-보는-것" title="Permanent link">&para;</a></h3>
+<p>JS 런타임 에러, 의존성 사이클 검출, dead code 분석은 tsc의 책임 범위 밖이다. 컴파일이 통과했다고 코드가 동작한다는 보장은 없다. tsc는 <strong>타입과 문법</strong>까지만 검증한다.</p>
+<h2 id="빌드-최적화-실전">빌드 최적화 실전<a class="headerlink" href="#빌드-최적화-실전" title="Permanent link">&para;</a></h2>
+<h3 id="isolatedmodules-vs-transpileonly의-진짜-차이">isolatedModules vs transpileOnly의 진짜 차이<a class="headerlink" href="#isolatedmodules-vs-transpileonly의-진짜-차이" title="Permanent link">&para;</a></h3>
+<p>둘 다 "타입 검사를 건너뛰는" 옵션처럼 보이지만 동작이 다르다.</p>
+<ul>
+<li><code>isolatedModules</code>는 <strong>tsc가 컴파일하면서</strong> 단일 파일 트랜스파일에서 깨질 코드를 검출하는 것이다. 타입 검사는 정상적으로 한다.</li>
+<li><code>transpileOnly</code>는 <code>ts-node</code>나 <code>ts-loader</code>의 옵션으로, <strong>타입 검사를 아예 끄고</strong> 변환만 한다. 빌드는 빨라지지만 <code>any</code> 같은 게 무방비로 흘러간다.</li>
+</ul>
+<p>실무 패턴은 보통 이렇다. 빠른 빌드용 트랜스파일은 swc/esbuild가 담당하고(<code>transpileOnly</code>에 해당), 타입 검사는 tsc <code>--noEmit</code>로 별도 잡(job)으로 돌린다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;scripts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">&quot;build&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;swc src -d dist&quot;</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">&quot;type-check&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tsc --noEmit&quot;</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="nt">&quot;ci&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;npm run type-check &amp;&amp; npm run build&quot;</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>이렇게 분리하면 dev 빌드는 1초 안에 끝나고, 타입 검증은 CI나 pre-push에서만 돈다.</p>
+<h3 id="swc--esbuild-대비-tsc-성능">swc / esbuild 대비 tsc 성능<a class="headerlink" href="#swc--esbuild-대비-tsc-성능" title="Permanent link">&para;</a></h3>
+<p>대략적인 체감으로, 같은 코드베이스를 변환만 한다고 했을 때 esbuild는 tsc보다 50~100배, swc는 20~50배 빠르다. 이유는 두 가지다.</p>
+<ol>
+<li>esbuild는 Go, swc는 Rust로 짜여 있어서 네이티브 속도다.</li>
+<li>둘 다 타입 검사를 안 한다. 단일 파일 트랜스파일러일 뿐이다.</li>
+</ol>
+<p>즉, 비교 자체가 공정하지 않다. tsc는 타입 검사가 본업이고, 트랜스파일은 부산물에 가깝다. <strong>타입 검사가 필요 없는 변환</strong>은 swc/esbuild에 맡기고 <strong>타입 검사</strong>만 tsc에 맡기는 게 5년차 현실이다.</p>
+<h3 id="project-references와-빌드-그래프">Project References와 빌드 그래프<a class="headerlink" href="#project-references와-빌드-그래프" title="Permanent link">&para;</a></h3>
+<p>모노레포나 큰 프로젝트에서 tsc가 진가를 발휘하는 부분이 Project References다. <code>references</code> 필드로 다른 프로젝트를 참조하면, 그 프로젝트의 <code>.d.ts</code>만 읽고 본문은 다시 컴파일하지 않는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>repo/
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>├── tsconfig.json          (root)
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>├── packages/
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>│   ├── core/
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>│   │   └── tsconfig.json  (composite: true)
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>│   ├── api/
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>│   │   └── tsconfig.json  (references: core)
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>│   └── worker/
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>│       └── tsconfig.json  (references: core)
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">// packages/api/tsconfig.json</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">&quot;composite&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dist&quot;</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">&quot;rootDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;src&quot;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span><span class="nt">&quot;references&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;../core&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span><span class="nt">&quot;include&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/**/*&quot;</span><span class="p">]</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>composite: true</code>는 이 프로젝트가 다른 곳에서 참조될 수 있다는 의미다. 강제되는 옵션이 몇 가지 있다(<code>declaration: true</code>, <code>tsBuildInfoFile</code> 자동 설정 등).</p>
+<h3 id="--build-모드">--build 모드<a class="headerlink" href="#--build-모드" title="Permanent link">&para;</a></h3>
+<p>Project References가 있는 프로젝트는 일반 <code>tsc</code> 대신 <code>tsc --build</code>(또는 <code>tsc -b</code>)로 빌드한다. 이 모드는 의존 그래프를 따라가면서 변경된 프로젝트만 다시 빌드한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 변경된 것만 빌드</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>npx<span class="w"> </span>tsc<span class="w"> </span>-b
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># 강제로 전체 다시 빌드</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>npx<span class="w"> </span>tsc<span class="w"> </span>-b<span class="w"> </span>--force
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># 빌드 산출물과 .tsbuildinfo 모두 삭제</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>npx<span class="w"> </span>tsc<span class="w"> </span>-b<span class="w"> </span>--clean
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># watch 모드로 그래프 추적</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>npx<span class="w"> </span>tsc<span class="w"> </span>-b<span class="w"> </span>--watch
+</span></code></pre></div>
+<p><code>--clean</code>은 명시적으로 산출물을 지운다. <code>rm -rf dist</code>보다 안전하다. 다른 디렉토리를 건드리지 않고 tsc가 만든 것만 정확히 지우기 때문이다.</p>
+<p><code>--force</code>는 변경 검출을 무시하고 전부 다시 빌드한다. 캐시가 꼬였다고 의심될 때 쓴다.</p>
+<h3 id="tsbuildinfo-캐시-무효화">.tsbuildinfo 캐시 무효화<a class="headerlink" href="#tsbuildinfo-캐시-무효화" title="Permanent link">&para;</a></h3>
+<p><code>incremental: true</code> 또는 <code>composite: true</code>일 때 tsc는 <code>.tsbuildinfo</code> 파일에 이전 빌드의 시그니처를 저장한다. 다음 빌드에서 변경된 파일만 다시 처리하기 위해서다.</p>
+<p>이 캐시가 무효화되는 케이스는 다음과 같다.</p>
+<ul>
+<li>TypeScript 버전이 바뀐 경우. 메이저는 물론 마이너 버전 차이에서도 캐시 포맷이 바뀌면 무효화된다.</li>
+<li><code>tsconfig.json</code>의 <code>compilerOptions</code>가 변경된 경우.</li>
+<li>참조하는 프로젝트(<code>references</code>)의 <code>.d.ts</code> 시그니처가 바뀐 경우. 본문 변경이 아니라 <strong>공개 API 변경</strong>이 트리거다. 함수 본문만 고치면 의존 프로젝트는 재빌드되지 않는다.</li>
+<li><code>paths</code>나 <code>baseUrl</code> 같은 모듈 해석 옵션이 바뀐 경우.</li>
+</ul>
+<p>캐시가 깨졌는데 정리가 안 됐을 때 보이는 증상은 "타입 에러가 안 잡힌다"거나 "지운 파일이 여전히 컴파일된 듯이 보인다"는 것이다. 이때는 <code>tsc -b --clean</code> 후 <code>--force</code>로 재빌드한다.</p>
+<p><code>.tsbuildinfo</code> 위치는 <code>tsBuildInfoFile</code>로 지정한다. 기본값은 <code>outDir</code> 옆이지만, 빌드 산출물과 분리하고 싶으면 <code>node_modules/.cache</code> 아래로 옮긴다. 도커 빌드 캐시 레이어를 활용할 때 위치 분리가 중요해진다.</p>
+<h2 id="watch-모드-내부">Watch 모드 내부<a class="headerlink" href="#watch-모드-내부" title="Permanent link">&para;</a></h2>
+<p><code>tsc --watch</code>는 단순히 파일을 모니터링하는 게 아니다. OS의 파일 시스템 이벤트(macOS의 FSEvents, Linux의 inotify, Windows의 ReadDirectoryChangesW)를 사용한다. 그런데 이 이벤트가 신뢰할 수 없는 환경이 있다.</p>
+<ul>
+<li>도커 컨테이너 안에서 호스트 볼륨을 마운트한 경우. inotify 이벤트가 안 올 수 있다.</li>
+<li>네트워크 파일 시스템(NFS, SMB)을 쓰는 경우. 이벤트가 누락되거나 지연된다.</li>
+<li>WSL1 환경. WSL2는 괜찮다.</li>
+</ul>
+<p>이런 환경에서는 폴링(polling)으로 폴백해야 한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;watchOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">&quot;watchFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;useFsEvents&quot;</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">&quot;watchDirectory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;useFsEvents&quot;</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">&quot;fallbackPolling&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dynamicPriority&quot;</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="nt">&quot;synchronousWatchDirectory&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="nt">&quot;excludeDirectories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;node_modules&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;dist&quot;</span><span class="p">]</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>watchFile</code> 값으로 자주 쓰는 것은 다음과 같다.</p>
+<ul>
+<li><code>useFsEvents</code>: OS 네이티브 이벤트. 가장 빠르지만 환경에 따라 깨진다.</li>
+<li><code>priorityPollingInterval</code>: 우선순위 기반 폴링. CPU를 일정 부분 쓴다.</li>
+<li><code>dynamicPriorityPolling</code>: 변경 빈도에 따라 폴링 주기를 조정한다.</li>
+</ul>
+<p>도커에서 hot reload가 안 먹으면 <code>watchFile: "priorityPollingInterval"</code>로 강제하면 거의 해결된다. 다만 폴링은 CPU를 계속 쓰니 컨테이너 리소스 한계를 보고 정한다.</p>
+<p><code>excludeDirectories</code>로 <code>node_modules</code>를 빼는 건 필수다. 안 빼면 와처가 수만 개 파일을 감시하면서 메모리를 잡아먹는다.</p>
+<h2 id="tsc-단독의-한계">tsc 단독의 한계<a class="headerlink" href="#tsc-단독의-한계" title="Permanent link">&para;</a></h2>
+<p>tsc만으로는 부족한 영역이 있다. 5년 정도 굴리다 보면 다음 한계에 부딪힌다.</p>
+<ul>
+<li><strong>번들링이 없다</strong>: tsc는 파일 단위 변환만 한다. 트리 셰이킹, 코드 스플리팅, 정적 자산(이미지, CSS) 처리는 esbuild/rollup/webpack/vite의 영역이다. 백엔드라도 단일 파일 배포를 원하면 esbuild 같은 번들러를 얹어야 한다.</li>
+<li><strong>트랜스폼 플러그인이 없다</strong>: <code>transformers</code> API가 있긴 하지만 설정이 까다롭고, 실무에서는 babel/swc 플러그인 생태계가 훨씬 풍부하다. 데코레이터 메타데이터 같은 표준에서 벗어난 변환은 swc 쪽이 편하다.</li>
+<li><strong>다중 출력 포맷이 없다</strong>: ESM과 CommonJS를 동시에 빌드해서 듀얼 패키지를 만들고 싶으면 tsc를 두 번 돌리거나 다른 도구를 써야 한다. tsup, unbuild 같은 래퍼가 이 문제를 해결한다.</li>
+</ul>
+<p>전형적인 분리 패턴은 이렇다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>[변환]   swc / esbuild       → 빠른 JS 출력
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>[타입]   tsc --noEmit        → 타입 검증만
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>[번들]   esbuild / rollup    → 단일 파일 배포 (필요 시)
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>[.d.ts]  tsc --emitDeclarationOnly → 타입 정의 파일만
+</span></code></pre></div>
+<p>라이브러리 패키지를 만들 때 자주 보이는 구성이다. 변환은 빠른 도구에 맡기고, tsc는 타입 검증과 <code>.d.ts</code> 생성에만 사용한다.</p>
+<h2 id="트러블슈팅">트러블슈팅<a class="headerlink" href="#트러블슈팅" title="Permanent link">&para;</a></h2>
+<h3 id="메모리-초과">메모리 초과<a class="headerlink" href="#메모리-초과" title="Permanent link">&para;</a></h3>
+<p>큰 프로젝트에서 다음 에러를 보는 일이 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>&lt;--- Last few GCs ---&gt;
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>[12345:0x108008000] FATAL ERROR: Reached heap limit
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>Allocation failed - JavaScript heap out of memory
+</span></code></pre></div>
+<p>Node 기본 힙 한계가 4GB 정도라 큰 모노레포에서 한계에 닿는다. 임시 처방은 환경 변수로 한계를 올리는 것이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nv">NODE_OPTIONS</span><span class="o">=</span><span class="s2">&quot;--max-old-space-size=8192&quot;</span><span class="w"> </span>npx<span class="w"> </span>tsc<span class="w"> </span>-b
+</span></code></pre></div>
+<p>다만 메모리가 부족하다는 건 거의 항상 <strong>체커가 비효율적인 타입을 처리하고 있다</strong>는 신호다. 진짜 해법은 다음을 확인하는 것이다.</p>
+<ol>
+<li><code>tsc --generateTrace ./trace</code> 후 trace 파일을 분석해서 어느 타입이 메모리를 잡는지 본다.</li>
+<li>깊이 중첩된 컨디셔널 타입이나 재귀 제네릭을 단순화한다.</li>
+<li>Project References로 그래프를 쪼개서 한 번에 처리하는 파일 수를 줄인다.</li>
+<li><code>skipLibCheck: true</code>를 켠다. 의외로 안 켜져 있는 경우가 많다.</li>
+</ol>
+<p>힙 사이즈를 키우는 건 응급 처치다. 근본 원인을 안 잡으면 6개월 뒤에 또 같은 에러를 본다.</p>
+<h3 id="빌드가-느릴-때-원인-분석-순서">빌드가 느릴 때 원인 분석 순서<a class="headerlink" href="#빌드가-느릴-때-원인-분석-순서" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>tsc --diagnostics</code>로 단계별 시간을 본다. Check time이 70% 이상이면 타입 문제, Parse/Bind time이 크면 파일 수 문제다.</li>
+<li><code>tsc --listFiles</code>로 컴파일에 들어가는 파일 수를 센다. 의도하지 않은 파일이 들어오면 <code>exclude</code>나 <code>include</code> 패턴이 잘못된 것이다.</li>
+<li><code>tsc --traceResolution | grep "Resolving module"</code> 출력이 비정상적으로 길면 모듈 해석에 시간을 쓰는 것이다. <code>paths</code> 설정과 심볼릭 링크를 의심한다.</li>
+<li><code>--generateTrace</code>로 trace 파일을 뽑고 <code>chrome://tracing</code>에서 본다. 가장 오래 걸리는 타입 인스턴스화를 찾는다.</li>
+</ol>
+<h3 id="모듈을-못-찾을-때">모듈을 못 찾을 때<a class="headerlink" href="#모듈을-못-찾을-때" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>error TS2307: Cannot find module &#39;./foo&#39; or its corresponding type declarations.
+</span></code></pre></div>
+<p>순서대로 의심한다.</p>
+<ol>
+<li><code>moduleResolution</code>이 <code>NodeNext</code>인데 import 경로에 확장자(<code>.js</code>)를 안 붙였는가. ESM 모드에서는 확장자가 필수다.</li>
+<li><code>paths</code>를 설정했지만 <code>baseUrl</code>이 없는가. tsc 5.0부터는 <code>baseUrl</code> 없이도 paths가 동작하지만, 번들러는 여전히 <code>baseUrl</code>을 요구할 수 있다.</li>
+<li>심볼릭 링크(<code>pnpm</code>, <code>yarn workspace</code>)가 걸려 있는데 <code>preserveSymlinks</code> 설정이 어긋났는가.</li>
+<li><code>node_modules</code>에 같은 패키지가 두 버전 깔려 있어서 다른 경로로 해석되는가. <code>npm ls &lt;패키지&gt;</code>로 확인한다.</li>
+</ol>
+<h3 id="타입-검사-통과한-코드가-런타임에-깨질-때">타입 검사 통과한 코드가 런타임에 깨질 때<a class="headerlink" href="#타입-검사-통과한-코드가-런타임에-깨질-때" title="Permanent link">&para;</a></h3>
+<p>거의 다음 셋 중 하나다.</p>
+<ul>
+<li>외부에서 받은 데이터(JSON, 환경 변수, DB 결과)를 타입 단언(<code>as</code>)으로 강제 캐스팅했다. 런타임 검증을 안 했으니 타입과 실제가 어긋날 수 있다. zod 같은 검증 라이브러리를 써야 한다.</li>
+<li><code>any</code> 또는 <code>unknown</code>이 어딘가에서 흘러들어왔다. <code>noImplicitAny</code>를 켜도 명시적 <code>any</code>는 막지 못한다.</li>
+<li>의존성의 <code>.d.ts</code>가 실제 구현과 다르다. <code>@types/*</code> 패키지가 본 코드보다 늦게 업데이트되는 일이 흔하다.</li>
+</ul>
+<p>타입 시스템은 약속이지 보증이 아니다. 외부 경계에서는 항상 런타임 검증을 한 번 더 한다고 생각하는 게 안전하다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../Go/Go_Generics/">Go 제네릭</a></li>
+<li><a href="../../../Java/%EC%9E%90%EB%B0%94%20%EB%94%94%EC%9E%90%EC%9D%B8%20%ED%8C%A8%ED%84%B4%20%EB%B0%8F%20%EC%9B%90%EC%B9%99/Generics/">Java Generics</a></li>
+<li><a href="../../../Java/Java%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/Type_Casting/">Java 형변환 (Type Casting)</a></li>
+<li><a href="../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/TypeScript/">TypeScript</a></li>
+<li><a href="../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Class/">TypeScript Class</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/" class="md-footer__link md-footer__link--prev" aria-label="이전: TypeScript tsc-alias와 workspace 통합 사용법">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                TypeScript tsc-alias와 workspace 통합 사용법
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../tsconfig/" class="md-footer__link md-footer__link--next" aria-label="다음: tsconfig 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                tsconfig 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

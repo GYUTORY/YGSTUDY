@@ -1,12 +1,2413 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Compute/EC2_Instance_Metadata_Service/ rel=canonical><link href=../EC2_Fleet/ rel=prev><link href=../EC2_Nitro_System/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>EC2 Instance Metadata Service (IMDS) 심화 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#ec2-instance-metadata-service-imds-심화 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> EC2 Instance Metadata Service (IMDS) 심화 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_4 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Compute </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_4_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_4> <span class="md-nav__icon md-icon"></span> Compute </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Containers/ class=md-nav__link> <span class=md-ellipsis> Containers </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Database/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Analytics/ class=md-nav__link> <span class=md-ellipsis> Analytics </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#imdsv1과-imdsv2의-차이 class=md-nav__link> <span class=md-ellipsis> IMDSv1과 IMDSv2의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#imdsv2가-ssrf를-막는-세-가지-장치 class=md-nav__link> <span class=md-ellipsis> IMDSv2가 SSRF를 막는 세 가지 장치 </span> </a> <nav class=md-nav aria-label="IMDSv2가 SSRF를 막는 세 가지 장치"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#put-메서드-요구 class=md-nav__link> <span class=md-ellipsis> PUT 메서드 요구 </span> </a> </li> <li class=md-nav__item> <a href=#hop-limit class=md-nav__link> <span class=md-ellipsis> hop limit </span> </a> </li> <li class=md-nav__item> <a href=#x-forwarded-for-차단 class=md-nav__link> <span class=md-ellipsis> X-Forwarded-For 차단 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#ssrf로-iam-자격-증명-탈취-시나리오 class=md-nav__link> <span class=md-ellipsis> SSRF로 IAM 자격 증명 탈취 시나리오 </span> </a> </li> <li class=md-nav__item> <a href=#메타데이터-경로별-조회 class=md-nav__link> <span class=md-ellipsis> 메타데이터 경로별 조회 </span> </a> <nav class=md-nav aria-label="메타데이터 경로별 조회"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#iam-자격-증명 class=md-nav__link> <span class=md-ellipsis> IAM 자격 증명 </span> </a> </li> <li class=md-nav__item> <a href=#user-data class=md-nav__link> <span class=md-ellipsis> User Data </span> </a> </li> <li class=md-nav__item> <a href=#인스턴스-아이덴티티-문서 class=md-nav__link> <span class=md-ellipsis> 인스턴스 아이덴티티 문서 </span> </a> </li> <li class=md-nav__item> <a href=#기타-자주-쓰는-경로 class=md-nav__link> <span class=md-ellipsis> 기타 자주 쓰는 경로 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#컨테이너eks에서의-hop-limit-문제 class=md-nav__link> <span class=md-ellipsis> 컨테이너/EKS에서의 hop limit 문제 </span> </a> <nav class=md-nav aria-label="컨테이너/EKS에서의 hop limit 문제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#hop-limit을-2로-올리기 class=md-nav__link> <span class=md-ellipsis> hop limit을 2로 올리기 </span> </a> </li> <li class=md-nav__item> <a href=#irsa로-전환-eks-권장 class=md-nav__link> <span class=md-ellipsis> IRSA로 전환 (EKS 권장) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#asg--launch-template에서-메타데이터-옵션-강제 class=md-nav__link> <span class=md-ellipsis> ASG / Launch Template에서 메타데이터 옵션 강제 </span> </a> </li> <li class=md-nav__item> <a href=#sdk가-imds를-호출하는-방식과-타임아웃-트러블슈팅 class=md-nav__link> <span class=md-ellipsis> SDK가 IMDS를 호출하는 방식과 타임아웃 트러블슈팅 </span> </a> <nav class=md-nav aria-label="SDK가 IMDS를 호출하는 방식과 타임아웃 트러블슈팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#로컬온프레미스에서-imds-폴백-지연 class=md-nav__link> <span class=md-ellipsis> 로컬/온프레미스에서 IMDS 폴백 지연 </span> </a> </li> <li class=md-nav__item> <a href=#컨테이너에서-자격-증명-타임아웃 class=md-nav__link> <span class=md-ellipsis> 컨테이너에서 자격 증명 타임아웃 </span> </a> </li> <li class=md-nav__item> <a href=#타임아웃재시도-값-조정 class=md-nav__link> <span class=md-ellipsis> 타임아웃/재시도 값 조정 </span> </a> </li> <li class=md-nav__item> <a href=#자격-증명-캐싱과-갱신 class=md-nav__link> <span class=md-ellipsis> 자격 증명 캐싱과 갱신 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#정리해서-손에-익혀둘-것 class=md-nav__link> <span class=md-ellipsis> 정리해서 손에 익혀둘 것 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>cloud</span> <span class=md-tag>iam</span> <span class=md-tag>security</span> </nav> <h1 id=ec2-instance-metadata-service-imds-심화>EC2 Instance Metadata Service (IMDS) 심화<a class=headerlink href=#ec2-instance-metadata-service-imds-심화 title="Permanent link">&para;</a></h1> <p>EC2 인스턴스 안에서 <code>http://169.254.169.254/</code>로 접근하는 메타데이터 서비스다. 인스턴스 ID, 리전, AZ 같은 정보뿐 아니라 인스턴스에 붙은 IAM 역할의 임시 자격 증명까지 여기서 나온다. 마지막 부분이 보안의 핵심이다. 이 주소만 때릴 수 있으면 인스턴스가 가진 IAM 권한을 그대로 쓸 수 있는 액세스 키/시크릿/세션 토큰이 평문으로 떨어진다.</p> <p>EC2.md에도 IMDS 항목이 있지만 거기는 "메타데이터를 어떻게 읽느냐" 수준이다. 이 문서는 IMDSv2가 왜 그렇게 동작하는지, SSRF로 자격 증명이 어떻게 새는지, 컨테이너에서 hop limit 때문에 뭐가 깨지는지, ASG에서 옵션을 어떻게 강제하는지를 운영/보안 관점에서 다룬다.</p> <hr> <h2 id=imdsv1과-imdsv2의-차이>IMDSv1과 IMDSv2의 차이<a class=headerlink href=#imdsv1과-imdsv2의-차이 title="Permanent link">&para;</a></h2> <p>IMDSv1은 그냥 GET 한 번이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>curl<span class=w> </span>http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role
-</span></code></pre></div> <p>인증이 없다. 요청을 보낼 수만 있으면 응답이 온다. 이게 문제의 출발점이다. 애플리케이션이 외부 입력으로 임의 URL을 호출하는 SSRF 취약점이 있으면, 공격자가 그 URL로 <code>169.254.169.254</code>를 넣어서 자격 증명을 뽑아낸다. 2019년 Capital One 사고가 이 경로였다. WAF가 SSRF에 당했고, WAF에 붙은 IAM 역할 자격 증명이 IMDSv1으로 유출됐고, 그 권한으로 S3 버킷이 통째로 털렸다.</p> <p>IMDSv2는 토큰을 먼저 받는 구조로 바꿨다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1># 1단계: PUT으로 토큰 발급 (TTL 헤더 필수)</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=nv>TOKEN</span><span class=o>=</span><span class=k>$(</span>curl<span class=w> </span>-s<span class=w> </span>-X<span class=w> </span>PUT<span class=w> </span><span class=s2>&quot;http://169.254.169.254/latest/api/token&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>  </span>-H<span class=w> </span><span class=s2>&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span><span class=k>)</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=c1># 2단계: 토큰을 헤더에 넣어 조회</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>curl<span class=w> </span>-s<span class=w> </span>-H<span class=w> </span><span class=s2>&quot;X-aws-ec2-metadata-token: </span><span class=nv>$TOKEN</span><span class=s2>&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>  </span>http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role
-</span></code></pre></div> <p>둘의 차이를 표로 정리하면 이렇다.</p> <table> <thead> <tr> <th>항목</th> <th>IMDSv1</th> <th>IMDSv2</th> </tr> </thead> <tbody> <tr> <td>인증</td> <td>없음</td> <td>PUT 토큰 필수</td> </tr> <tr> <td>요청 메서드</td> <td>GET만</td> <td>PUT(토큰) + GET/PUT(조회)</td> </tr> <tr> <td>토큰 TTL</td> <td>없음</td> <td>1~21600초</td> </tr> <tr> <td>SSRF 방어</td> <td>안 됨</td> <td>PUT 차단 + hop limit + 헤더 검증</td> </tr> </tbody> </table> <p>여기서 중요한 건 IMDSv1을 "끄는" 게 보안 조치라는 점이다. IMDSv2를 켜는 것만으로는 부족하다. 기본값(<code>optional</code>)은 v1과 v2를 둘 다 받는다. v1을 완전히 막으려면 <code>HttpTokens=required</code>로 바꿔야 한다. 이걸 안 하면 v2 토큰 로직을 다 구현해놓고도 공격자는 여전히 v1 GET으로 자격 증명을 가져간다.</p> <hr> <h2 id=imdsv2가-ssrf를-막는-세-가지-장치>IMDSv2가 SSRF를 막는 세 가지 장치<a class=headerlink href=#imdsv2가-ssrf를-막는-세-가지-장치 title="Permanent link">&para;</a></h2> <p>IMDSv2가 토큰 하나 추가했다고 해서 마법처럼 안전해지는 게 아니다. 세 가지 장치가 겹쳐서 SSRF를 어렵게 만든다.</p> <h3 id=put-메서드-요구>PUT 메서드 요구<a class=headerlink href=#put-메서드-요구 title="Permanent link">&para;</a></h3> <p>토큰 발급은 PUT이다. 대부분의 SSRF 취약점은 서버가 GET으로 외부 리소스를 가져오는 패턴이다. 이미지 프록시, 웹훅 검증, URL 미리보기 같은 기능이 그렇다. 공격자가 <code>url=http://169.254.169.254/...</code>를 넣어도 서버는 GET을 보낸다. IMDSv2는 토큰 없는 GET을 401로 거절한다. 토큰을 받으려면 PUT을 보내야 하는데, GET 기반 SSRF로는 PUT을 만들기 어렵다.</p> <h3 id=hop-limit>hop limit<a class=headerlink href=#hop-limit title="Permanent link">&para;</a></h3> <p>응답 패킷의 IP TTL을 제한하는 장치다. 기본값은 1이다. 메타데이터 응답이 인스턴스 자신을 넘어 한 번이라도 라우팅되면(TTL이 0이 되면) 패킷이 버려진다.</p> <p>이게 왜 중요하냐면, 인스턴스 안에서 reverse proxy나 컨테이너 네트워크를 거쳐 메타데이터를 끌어내려는 시도를 막는다. 토큰 발급 PUT 요청을 SSRF로 어찌어찌 흉내 냈다 쳐도, 응답이 프록시를 한 번 더 거치는 순간 hop이 늘어 패킷이 죽는다. 컨테이너에서 문제가 되는 게 바로 이 부분인데 뒤에서 따로 다룬다.</p> <h3 id=x-forwarded-for-차단>X-Forwarded-For 차단<a class=headerlink href=#x-forwarded-for-차단 title="Permanent link">&para;</a></h3> <p>IMDSv2는 <code>X-Forwarded-For</code> 헤더가 붙은 요청을 거절한다. 이 헤더는 프록시/로드밸런서를 거친 요청에 붙는다. 즉 메타데이터 요청이 어떤 중계 계층을 통과했다는 신호다. SSRF가 애플리케이션 프록시를 경유하면 이 헤더가 붙기 쉬운데, IMDSv2는 그런 요청을 통째로 막는다.</p> <p>세 장치를 정리하면, IMDSv2의 핵심은 "메타데이터 요청은 인스턴스 자신이 직접, 중계 없이 보낸 것이어야 한다"를 강제하는 거다. SSRF는 본질적으로 서버를 중계자로 악용하는 공격이라 이 조건과 정면으로 충돌한다.</p> <hr> <h2 id=ssrf로-iam-자격-증명-탈취-시나리오>SSRF로 IAM 자격 증명 탈취 시나리오<a class=headerlink href=#ssrf로-iam-자격-증명-탈취-시나리오 title="Permanent link">&para;</a></h2> <p>실제 공격이 어떻게 흘러가는지 보면 방어가 왜 그 모양인지 이해된다. IMDSv1이 켜져 있는 환경을 가정한다.</p> <pre class=mermaid-diagram><code>sequenceDiagram
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Compute/EC2_Instance_Metadata_Service/">
+      
+      
+        <link rel="prev" href="../EC2_Fleet/">
+      
+      
+        <link rel="next" href="../EC2_Nitro_System/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>EC2 Instance Metadata Service (IMDS) 심화 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ec2-instance-metadata-service-imds-심화" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EC2 Instance Metadata Service (IMDS) 심화
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Compute
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Containers/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Database/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Analytics/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#imdsv1과-imdsv2의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMDSv1과 IMDSv2의 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imdsv2가-ssrf를-막는-세-가지-장치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMDSv2가 SSRF를 막는 세 가지 장치
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="IMDSv2가 SSRF를 막는 세 가지 장치">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#put-메서드-요구" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PUT 메서드 요구
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hop-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hop limit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#x-forwarded-for-차단" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        X-Forwarded-For 차단
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssrf로-iam-자격-증명-탈취-시나리오" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSRF로 IAM 자격 증명 탈취 시나리오
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메타데이터-경로별-조회" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메타데이터 경로별 조회
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="메타데이터 경로별 조회">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-자격-증명" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM 자격 증명
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#인스턴스-아이덴티티-문서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인스턴스 아이덴티티 문서
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#기타-자주-쓰는-경로" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        기타 자주 쓰는 경로
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#컨테이너eks에서의-hop-limit-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컨테이너/EKS에서의 hop limit 문제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="컨테이너/EKS에서의 hop limit 문제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hop-limit을-2로-올리기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hop limit을 2로 올리기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#irsa로-전환-eks-권장" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IRSA로 전환 (EKS 권장)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asg--launch-template에서-메타데이터-옵션-강제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ASG / Launch Template에서 메타데이터 옵션 강제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdk가-imds를-호출하는-방식과-타임아웃-트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDK가 IMDS를 호출하는 방식과 타임아웃 트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SDK가 IMDS를 호출하는 방식과 타임아웃 트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#로컬온프레미스에서-imds-폴백-지연" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로컬/온프레미스에서 IMDS 폴백 지연
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#컨테이너에서-자격-증명-타임아웃" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컨테이너에서 자격 증명 타임아웃
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#타임아웃재시도-값-조정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        타임아웃/재시도 값 조정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#자격-증명-캐싱과-갱신" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자격 증명 캐싱과 갱신
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리해서-손에-익혀둘-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리해서 손에 익혀둘 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">iam</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">security</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="ec2-instance-metadata-service-imds-심화">EC2 Instance Metadata Service (IMDS) 심화<a class="headerlink" href="#ec2-instance-metadata-service-imds-심화" title="Permanent link">&para;</a></h1>
+<p>EC2 인스턴스 안에서 <code>http://169.254.169.254/</code>로 접근하는 메타데이터 서비스다. 인스턴스 ID, 리전, AZ 같은 정보뿐 아니라 인스턴스에 붙은 IAM 역할의 임시 자격 증명까지 여기서 나온다. 마지막 부분이 보안의 핵심이다. 이 주소만 때릴 수 있으면 인스턴스가 가진 IAM 권한을 그대로 쓸 수 있는 액세스 키/시크릿/세션 토큰이 평문으로 떨어진다.</p>
+<p>EC2.md에도 IMDS 항목이 있지만 거기는 "메타데이터를 어떻게 읽느냐" 수준이다. 이 문서는 IMDSv2가 왜 그렇게 동작하는지, SSRF로 자격 증명이 어떻게 새는지, 컨테이너에서 hop limit 때문에 뭐가 깨지는지, ASG에서 옵션을 어떻게 강제하는지를 운영/보안 관점에서 다룬다.</p>
+<hr />
+<h2 id="imdsv1과-imdsv2의-차이">IMDSv1과 IMDSv2의 차이<a class="headerlink" href="#imdsv1과-imdsv2의-차이" title="Permanent link">&para;</a></h2>
+<p>IMDSv1은 그냥 GET 한 번이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role
+</span></code></pre></div>
+<p>인증이 없다. 요청을 보낼 수만 있으면 응답이 온다. 이게 문제의 출발점이다. 애플리케이션이 외부 입력으로 임의 URL을 호출하는 SSRF 취약점이 있으면, 공격자가 그 URL로 <code>169.254.169.254</code>를 넣어서 자격 증명을 뽑아낸다. 2019년 Capital One 사고가 이 경로였다. WAF가 SSRF에 당했고, WAF에 붙은 IAM 역할 자격 증명이 IMDSv1으로 유출됐고, 그 권한으로 S3 버킷이 통째로 털렸다.</p>
+<p>IMDSv2는 토큰을 먼저 받는 구조로 바꿨다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 1단계: PUT으로 토큰 발급 (TTL 헤더 필수)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>PUT<span class="w"> </span><span class="s2">&quot;http://169.254.169.254/latest/api/token&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span><span class="k">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># 2단계: 토큰을 헤더에 넣어 조회</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-aws-ec2-metadata-token: </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role
+</span></code></pre></div>
+<p>둘의 차이를 표로 정리하면 이렇다.</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>IMDSv1</th>
+<th>IMDSv2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>인증</td>
+<td>없음</td>
+<td>PUT 토큰 필수</td>
+</tr>
+<tr>
+<td>요청 메서드</td>
+<td>GET만</td>
+<td>PUT(토큰) + GET/PUT(조회)</td>
+</tr>
+<tr>
+<td>토큰 TTL</td>
+<td>없음</td>
+<td>1~21600초</td>
+</tr>
+<tr>
+<td>SSRF 방어</td>
+<td>안 됨</td>
+<td>PUT 차단 + hop limit + 헤더 검증</td>
+</tr>
+</tbody>
+</table>
+<p>여기서 중요한 건 IMDSv1을 "끄는" 게 보안 조치라는 점이다. IMDSv2를 켜는 것만으로는 부족하다. 기본값(<code>optional</code>)은 v1과 v2를 둘 다 받는다. v1을 완전히 막으려면 <code>HttpTokens=required</code>로 바꿔야 한다. 이걸 안 하면 v2 토큰 로직을 다 구현해놓고도 공격자는 여전히 v1 GET으로 자격 증명을 가져간다.</p>
+<hr />
+<h2 id="imdsv2가-ssrf를-막는-세-가지-장치">IMDSv2가 SSRF를 막는 세 가지 장치<a class="headerlink" href="#imdsv2가-ssrf를-막는-세-가지-장치" title="Permanent link">&para;</a></h2>
+<p>IMDSv2가 토큰 하나 추가했다고 해서 마법처럼 안전해지는 게 아니다. 세 가지 장치가 겹쳐서 SSRF를 어렵게 만든다.</p>
+<h3 id="put-메서드-요구">PUT 메서드 요구<a class="headerlink" href="#put-메서드-요구" title="Permanent link">&para;</a></h3>
+<p>토큰 발급은 PUT이다. 대부분의 SSRF 취약점은 서버가 GET으로 외부 리소스를 가져오는 패턴이다. 이미지 프록시, 웹훅 검증, URL 미리보기 같은 기능이 그렇다. 공격자가 <code>url=http://169.254.169.254/...</code>를 넣어도 서버는 GET을 보낸다. IMDSv2는 토큰 없는 GET을 401로 거절한다. 토큰을 받으려면 PUT을 보내야 하는데, GET 기반 SSRF로는 PUT을 만들기 어렵다.</p>
+<h3 id="hop-limit">hop limit<a class="headerlink" href="#hop-limit" title="Permanent link">&para;</a></h3>
+<p>응답 패킷의 IP TTL을 제한하는 장치다. 기본값은 1이다. 메타데이터 응답이 인스턴스 자신을 넘어 한 번이라도 라우팅되면(TTL이 0이 되면) 패킷이 버려진다.</p>
+<p>이게 왜 중요하냐면, 인스턴스 안에서 reverse proxy나 컨테이너 네트워크를 거쳐 메타데이터를 끌어내려는 시도를 막는다. 토큰 발급 PUT 요청을 SSRF로 어찌어찌 흉내 냈다 쳐도, 응답이 프록시를 한 번 더 거치는 순간 hop이 늘어 패킷이 죽는다. 컨테이너에서 문제가 되는 게 바로 이 부분인데 뒤에서 따로 다룬다.</p>
+<h3 id="x-forwarded-for-차단">X-Forwarded-For 차단<a class="headerlink" href="#x-forwarded-for-차단" title="Permanent link">&para;</a></h3>
+<p>IMDSv2는 <code>X-Forwarded-For</code> 헤더가 붙은 요청을 거절한다. 이 헤더는 프록시/로드밸런서를 거친 요청에 붙는다. 즉 메타데이터 요청이 어떤 중계 계층을 통과했다는 신호다. SSRF가 애플리케이션 프록시를 경유하면 이 헤더가 붙기 쉬운데, IMDSv2는 그런 요청을 통째로 막는다.</p>
+<p>세 장치를 정리하면, IMDSv2의 핵심은 "메타데이터 요청은 인스턴스 자신이 직접, 중계 없이 보낸 것이어야 한다"를 강제하는 거다. SSRF는 본질적으로 서버를 중계자로 악용하는 공격이라 이 조건과 정면으로 충돌한다.</p>
+<hr />
+<h2 id="ssrf로-iam-자격-증명-탈취-시나리오">SSRF로 IAM 자격 증명 탈취 시나리오<a class="headerlink" href="#ssrf로-iam-자격-증명-탈취-시나리오" title="Permanent link">&para;</a></h2>
+<p>실제 공격이 어떻게 흘러가는지 보면 방어가 왜 그 모양인지 이해된다. IMDSv1이 켜져 있는 환경을 가정한다.</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant A as 공격자
     participant W as 취약 웹앱&lt;br/&gt;(SSRF)
     participant I as IMDS&lt;br/&gt;169.254.169.254
@@ -21,80 +2422,305 @@
     I--&gt;&gt;W: AccessKeyId, SecretAccessKey, Token
     W--&gt;&gt;A: 자격 증명 평문 노출
     A-&gt;&gt;S: 탈취한 키로 직접 API 호출
-    S--&gt;&gt;A: S3 객체 다운로드</code></pre> <ol> <li>취약한 웹앱에 SSRF가 있다. 외부 URL을 받아 서버가 대신 호출하는 기능이다.</li> <li>공격자가 그 URL에 <code>http://169.254.169.254/latest/meta-data/iam/security-credentials/</code>를 넣는다. 응답으로 역할 이름이 온다.</li> <li>역할 이름을 경로에 붙여 한 번 더 호출하면 자격 증명 JSON이 통째로 온다.</li> </ol> <div class="language-json highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=p>{</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span><span class=nt>&quot;Code&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;Success&quot;</span><span class=p>,</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span><span class=nt>&quot;AccessKeyId&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;ASIA...&quot;</span><span class=p>,</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>  </span><span class=nt>&quot;SecretAccessKey&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;...&quot;</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>  </span><span class=nt>&quot;Token&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;...&quot;</span><span class=p>,</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>  </span><span class=nt>&quot;Expiration&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;2026-06-17T18:00:00Z&quot;</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=p>}</span>
-</span></code></pre></div> <ol> <li>공격자는 이 키를 자기 로컬에 <code>AWS_ACCESS_KEY_ID</code> 등으로 박고 <code>aws s3 ls</code>를 친다. 인스턴스 역할이 가진 권한 그대로 움직인다.</li> </ol> <p>여기서 핵심은 자격 증명에 만료(<code>Expiration</code>)가 있긴 하지만 기본 6시간이고, 그 안에 충분히 데이터를 빼간다는 점이다. 그리고 탈취한 키로 한 호출은 CloudTrail에 인스턴스 역할이 한 것처럼 찍혀서, 정상 활동과 구분이 안 된다.</p> <p>방어는 두 가지다. 애플리케이션의 SSRF를 고치는 게 근본이고, IMDSv2 강제가 두 번째 방어선이다. SSRF는 코드 리뷰에서 놓치기 쉬워서, IMDSv2 강제를 깔아두면 SSRF가 남아 있어도 자격 증명 탈취 단계에서 막힌다. GET 기반 SSRF로는 PUT 토큰을 못 받으니까.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># 기존 인스턴스에 IMDSv2 강제 (v1 차단)</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>aws<span class=w> </span>ec2<span class=w> </span>modify-instance-metadata-options<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span>--instance-id<span class=w> </span>i-0abc123<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span>--http-tokens<span class=w> </span>required<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span>--http-endpoint<span class=w> </span>enabled<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span>--http-put-response-hop-limit<span class=w> </span><span class=m>1</span>
-</span></code></pre></div> <p><code>--http-tokens required</code>가 핵심이다. 이게 <code>optional</code>이면 v1이 여전히 살아 있어서 위 시나리오가 그대로 성립한다.</p> <hr> <h2 id=메타데이터-경로별-조회>메타데이터 경로별 조회<a class=headerlink href=#메타데이터-경로별-조회 title="Permanent link">&para;</a></h2> <p>자주 쓰는 경로들을 정리한다. 전부 IMDSv2 토큰을 받은 다음 조회한다고 가정한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=nv>TOKEN</span><span class=o>=</span><span class=k>$(</span>curl<span class=w> </span>-s<span class=w> </span>-X<span class=w> </span>PUT<span class=w> </span><span class=s2>&quot;http://169.254.169.254/latest/api/token&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=w>  </span>-H<span class=w> </span><span class=s2>&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span><span class=k>)</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>GET<span class=o>()</span><span class=w> </span><span class=o>{</span><span class=w> </span>curl<span class=w> </span>-s<span class=w> </span>-H<span class=w> </span><span class=s2>&quot;X-aws-ec2-metadata-token: </span><span class=nv>$TOKEN</span><span class=s2>&quot;</span><span class=w> </span><span class=s2>&quot;http://169.254.169.254/</span><span class=nv>$1</span><span class=s2>&quot;</span><span class=p>;</span><span class=w> </span><span class=o>}</span>
-</span></code></pre></div> <h3 id=iam-자격-증명>IAM 자격 증명<a class=headerlink href=#iam-자격-증명 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 붙어 있는 역할 이름</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>GET<span class=w> </span>latest/meta-data/iam/security-credentials/
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=c1># 자격 증명 JSON (위에서 나온 역할 이름을 붙임)</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>GET<span class=w> </span>latest/meta-data/iam/security-credentials/my-app-role
-</span></code></pre></div> <p>애플리케이션 코드에서 이 경로를 직접 파싱하는 일은 거의 없다. SDK가 알아서 한다. 다만 디버깅할 때 "지금 이 인스턴스가 어떤 역할을 들고 있나", "자격 증명이 만료됐나"를 확인하려고 손으로 칠 때가 있다.</p> <h3 id=user-data>User Data<a class=headerlink href=#user-data title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>GET<span class=w> </span>latest/user-data
-</span></code></pre></div> <p>인스턴스 부팅 시 실행한 스크립트(cloud-init)가 그대로 나온다. 여기에 절대 비밀번호나 API 키를 넣으면 안 된다. IMDS를 읽을 수 있는 누구나, SSRF 공격자까지 다 볼 수 있다. 비밀은 Secrets Manager나 Parameter Store에서 런타임에 가져와야 한다. User Data에 DB 비밀번호를 박아둔 레거시를 종종 보는데, 그 인스턴스에 SSRF 하나만 터지면 DB까지 같이 넘어간다.</p> <h3 id=인스턴스-아이덴티티-문서>인스턴스 아이덴티티 문서<a class=headerlink href=#인스턴스-아이덴티티-문서 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 인스턴스 메타 (인스턴스 ID, 타입, 리전, AZ, account ID 등)</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>GET<span class=w> </span>latest/dynamic/instance-identity/document
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=c1># 서명 (AWS가 서명한 값 — 인스턴스 신원 증명에 사용)</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>GET<span class=w> </span>latest/dynamic/instance-identity/signature
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>GET<span class=w> </span>latest/dynamic/instance-identity/pkcs7
-</span></code></pre></div> <p><code>document</code>는 account ID, 인스턴스 ID, 리전, 타입 같은 정보를 담은 JSON이다. <code>pkcs7</code>/<code>signature</code>는 AWS 개인키로 서명한 값이라, 외부 시스템이 "이 요청이 정말 우리 계정의 특정 EC2에서 왔는지"를 검증하는 데 쓴다. 온프레미스 인증 서버에 EC2를 등록할 때 이 서명을 검증하는 패턴이 있다.</p> <h3 id=기타-자주-쓰는-경로>기타 자주 쓰는 경로<a class=headerlink href=#기타-자주-쓰는-경로 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>GET<span class=w> </span>latest/meta-data/instance-id
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>GET<span class=w> </span>latest/meta-data/local-ipv4
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>GET<span class=w> </span>latest/meta-data/public-ipv4
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>GET<span class=w> </span>latest/meta-data/placement/availability-zone
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>GET<span class=w> </span>latest/meta-data/network/interfaces/macs/<span class=w>      </span><span class=c1># ENI MAC 목록</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>GET<span class=w> </span>latest/meta-data/spot/instance-action<span class=w>          </span><span class=c1># 스팟 중단 예고 (없으면 404)</span>
-</span></code></pre></div> <p>스팟 인스턴스를 쓴다면 <code>spot/instance-action</code>을 폴링해서 중단 2분 전 예고를 잡는 코드를 넣어두는 경우가 많다. 평소엔 404가 나다가 중단이 예정되면 시각이 담긴 JSON이 나온다.</p> <hr> <h2 id=컨테이너eks에서의-hop-limit-문제>컨테이너/EKS에서의 hop limit 문제<a class=headerlink href=#컨테이너eks에서의-hop-limit-문제 title="Permanent link">&para;</a></h2> <p>여기가 운영에서 제일 자주 깨지는 부분이다. hop limit 기본값이 1인데, 컨테이너 네트워크는 hop을 하나 더 먹는다.</p> <p>EC2 위에 도커나 EKS Pod를 띄우면, 컨테이너 안에서 <code>169.254.169.254</code>로 보낸 요청이 호스트의 네트워크 브리지/오버레이를 한 번 더 거친다. 응답 패킷 입장에서 hop이 1 늘어난다. hop limit이 1이면 컨테이너로 돌아가는 응답이 TTL 0에서 죽는다. 그래서 컨테이너 안에서 SDK가 IMDS를 못 읽고 자격 증명 조회가 타임아웃 난다.</p> <p>증상은 보통 이렇게 나온다. EC2에 직접 SSH로 들어가서 <code>curl</code>로 IMDS를 때리면 잘 되는데, 같은 인스턴스의 컨테이너 안에서는 안 된다. SDK 로그에 "credentials not found" 또는 IMDS 타임아웃이 찍힌다.</p> <p>해결책 두 가지다.</p> <h3 id=hop-limit을-2로-올리기>hop limit을 2로 올리기<a class=headerlink href=#hop-limit을-2로-올리기 title="Permanent link">&para;</a></h3> <p>컨테이너가 IMDS를 써야 한다면 hop limit을 2로 올린다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>aws<span class=w> </span>ec2<span class=w> </span>modify-instance-metadata-options<span class=w> </span><span class=se>\</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=w>  </span>--instance-id<span class=w> </span>i-0abc123<span class=w> </span><span class=se>\</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=w>  </span>--http-tokens<span class=w> </span>required<span class=w> </span><span class=se>\</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=w>  </span>--http-put-response-hop-limit<span class=w> </span><span class=m>2</span>
-</span></code></pre></div> <p>EKS 노드그룹이라면 Launch Template에서 이 값을 박아야 한다. 노드가 ASG로 새로 뜰 때마다 자동 적용되도록.</p> <p>문제는 hop limit 2가 보안적으로 약간 후퇴라는 점이다. hop이 하나 더 허용되면, 그 인스턴스에 SSRF가 있을 때 컨테이너 계층을 한 번 경유한 메타데이터 추출 시도가 통과할 여지가 생긴다. 그래서 hop limit 2는 IMDSv2 강제(<code>HttpTokens=required</code>)와 반드시 같이 가야 한다. v2 토큰 요구가 있으면 hop이 2여도 GET 기반 SSRF는 여전히 막힌다.</p> <h3 id=irsa로-전환-eks-권장>IRSA로 전환 (EKS 권장)<a class=headerlink href=#irsa로-전환-eks-권장 title="Permanent link">&para;</a></h3> <p>EKS라면 더 나은 답은 Pod가 노드 IMDS를 안 쓰게 만드는 거다. IRSA(IAM Roles for Service Accounts)를 쓰면 Pod가 노드의 인스턴스 역할이 아니라 자기 ServiceAccount에 매핑된 IAM 역할을 OIDC로 받아간다. IMDS를 거치지 않는다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=nt>metadata</span><span class=p>:</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">my-app-sa</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>  </span><span class=nt>annotations</span><span class=p>:</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>    </span><span class=nt>eks.amazonaws.com/role-arn</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:role/my-app-irsa-role</span>
-</span></code></pre></div> <p>이렇게 하면 Pod 안의 SDK는 IMDS 대신 <code>/var/run/secrets/eks.amazonaws.com/serviceaccount/token</code>에 마운트된 OIDC 토큰으로 <code>sts:AssumeRoleWithWebIdentity</code>를 호출해 자격 증명을 받는다. 환경 변수 <code>AWS_WEB_IDENTITY_TOKEN_FILE</code>과 <code>AWS_ROLE_ARN</code>이 Pod에 자동 주입된다.</p> <p>IRSA를 쓰면 두 가지가 좋아진다. 첫째, Pod별로 최소 권한 IAM 역할을 줄 수 있다. 노드 인스턴스 역할은 그 노드의 모든 Pod가 공유하니까 권한이 뭉툭해진다. IRSA는 Pod 단위로 쪼갠다. 둘째, hop limit 문제에서 자유로워진다. IMDS를 안 거치니까.</p> <p>그래서 EKS 권장 구성은 이렇다. 노드 인스턴스 역할은 노드 운영에 꼭 필요한 최소 권한(ECR pull, CNI 등)만 주고, 애플리케이션 권한은 전부 IRSA로 Pod에 붙인다. 그리고 노드의 hop limit을 1로 유지하면서 IMDSv2 강제를 걸면, Pod가 노드 IMDS를 통해 노드 역할 권한을 훔쳐가는 것도 막힌다. EKS는 이걸 막으려고 hop limit을 1로 두고 IMDS 접근을 차단하는 구성을 권장하기도 한다.</p> <p>후속 단계인 EKS Pod Identity는 IRSA보다 설정이 단순한 대안인데, OIDC provider 설정 없이 EKS 애드온으로 역할을 매핑한다. 신규 클러스터라면 이쪽도 검토할 만하다.</p> <hr> <h2 id=asg--launch-template에서-메타데이터-옵션-강제>ASG / Launch Template에서 메타데이터 옵션 강제<a class=headerlink href=#asg--launch-template에서-메타데이터-옵션-강제 title="Permanent link">&para;</a></h2> <p>인스턴스를 하나하나 <code>modify-instance-metadata-options</code>로 고치는 건 그때뿐이다. ASG가 새 인스턴스를 띄우면 다시 기본값(<code>optional</code>, v1 허용)으로 돌아간다. 그래서 Launch Template에 메타데이터 옵션을 박아야 한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=p>{</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=w>  </span><span class=nt>&quot;LaunchTemplateData&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a><span class=w>    </span><span class=nt>&quot;MetadataOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=w>      </span><span class=nt>&quot;HttpTokens&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;required&quot;</span><span class=p>,</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=w>      </span><span class=nt>&quot;HttpEndpoint&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;enabled&quot;</span><span class=p>,</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=w>      </span><span class=nt>&quot;HttpPutResponseHopLimit&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>2</span><span class=p>,</span>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=w>      </span><span class=nt>&quot;InstanceMetadataTags&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;enabled&quot;</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=p>}</span>
-</span></code></pre></div> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>aws<span class=w> </span>ec2<span class=w> </span>create-launch-template-version<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=w>  </span>--launch-template-id<span class=w> </span>lt-0abc123<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=w>  </span>--source-version<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=w>  </span>--launch-template-data<span class=w> </span>file://metadata-options.json
-</span></code></pre></div> <p><code>HttpEndpoint</code>를 <code>disabled</code>로 하면 IMDS 자체를 꺼버린다. 인스턴스가 IMDS를 전혀 안 쓴다면(자격 증명을 다른 방식으로 받는다면) 이게 제일 안전하다. 다만 SDK가 IMDS 폴백을 시도하면 부팅 초기에 불필요한 타임아웃이 생길 수 있으니, 끌 거면 SDK 쪽 설정도 같이 맞춰야 한다.</p> <p><code>InstanceMetadataTags=enabled</code>는 인스턴스 태그를 메타데이터로 노출하는 옵션이다. <code>GET latest/meta-data/tags/instance/</code>로 태그를 읽게 해준다. 부팅 스크립트에서 태그 값으로 분기할 때 편하다. 다만 태그에 민감 정보가 있으면 같이 노출되니 주의한다.</p> <p>Launch Template을 새 버전으로 만든 뒤에는 ASG가 그 버전을 쓰도록 지정하고, 기존 인스턴스는 인스턴스 리프레시로 교체해야 실제로 적용된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>aws<span class=w> </span>autoscaling<span class=w> </span>update-auto-scaling-group<span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=w>  </span>--auto-scaling-group-name<span class=w> </span>my-asg<span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=w>  </span>--launch-template<span class=w> </span><span class=s2>&quot;LaunchTemplateId=lt-0abc123,Version=&#39;\$Latest&#39;&quot;</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>aws<span class=w> </span>autoscaling<span class=w> </span>start-instance-refresh<span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=w>  </span>--auto-scaling-group-name<span class=w> </span>my-asg
-</span></code></pre></div> <p>계정 전체에 기본값을 강제하고 싶으면 리전별 기본값을 바꾼다. 새로 만드는 모든 인스턴스가 IMDSv2 강제로 뜬다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>aws<span class=w> </span>ec2<span class=w> </span>modify-instance-metadata-defaults<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=w>  </span>--http-tokens<span class=w> </span>required<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=w>  </span>--http-put-response-hop-limit<span class=w> </span><span class=m>2</span>
-</span></code></pre></div> <p>조직 단위로는 SCP(Service Control Policy)로 <code>ec2:RunInstances</code> 시 <code>HttpTokens=required</code>가 아니면 거부하는 방식도 쓴다. 이렇게 하면 누가 콘솔에서 실수로 v1 인스턴스를 띄우는 걸 원천 차단한다.</p> <hr> <h2 id=sdk가-imds를-호출하는-방식과-타임아웃-트러블슈팅>SDK가 IMDS를 호출하는 방식과 타임아웃 트러블슈팅<a class=headerlink href=#sdk가-imds를-호출하는-방식과-타임아웃-트러블슈팅 title="Permanent link">&para;</a></h2> <p>aws-sdk(JS, Python boto3, Go 등)는 자격 증명을 찾을 때 정해진 순서로 공급자(provider chain)를 훑는다. 대략 환경 변수 → 공유 크레덴셜 파일 → ECS/EKS 컨테이너 자격 증명 → IMDS 순이다. IMDS는 보통 마지막이다.</p> <p>EC2에서 환경 변수나 크레덴셜 파일이 없으면 결국 IMDS까지 내려온다. 이때 SDK가 IMDSv2 토큰을 PUT으로 받고, 그 토큰으로 자격 증명을 GET한다. 최신 SDK는 전부 IMDSv2를 먼저 시도하고, 안 되면 v1으로 폴백한다.</p> <p>문제가 되는 상황 몇 가지를 보자.</p> <h3 id=로컬온프레미스에서-imds-폴백-지연>로컬/온프레미스에서 IMDS 폴백 지연<a class=headerlink href=#로컬온프레미스에서-imds-폴백-지연 title="Permanent link">&para;</a></h3> <p>로컬 PC나 온프레미스 서버에서 SDK를 돌리면, 자격 증명 체인이 IMDS까지 내려가서 <code>169.254.169.254</code>를 때린다. 그런 환경엔 IMDS가 없으니 연결이 안 되고, SDK가 재시도하면서 몇 초씩 멈춘다. 첫 API 호출이 느려지는 원인이 이거다.</p> <p>해결은 IMDS 조회를 아예 끄는 거다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=c1># 환경 변수로 IMDS 비활성화</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a><span class=nb>export</span><span class=w> </span><span class=nv>AWS_EC2_METADATA_DISABLED</span><span class=o>=</span><span class=nb>true</span>
-</span></code></pre></div> <p>로컬 개발 환경이나 IMDS를 쓸 일 없는 컨테이너에 이걸 박아두면 불필요한 폴백 지연이 사라진다.</p> <h3 id=컨테이너에서-자격-증명-타임아웃>컨테이너에서 자격 증명 타임아웃<a class=headerlink href=#컨테이너에서-자격-증명-타임아웃 title="Permanent link">&para;</a></h3> <p>앞에서 본 hop limit 문제와 연결된다. 컨테이너 안 SDK가 IMDS를 못 읽으면 토큰 PUT부터 타임아웃 난다. 로그에 이렇게 찍힌다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a>Unable to load credentials from any of the providers in the chain
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>EC2MetadataError: Failed to connect to instance metadata service
-</span></code></pre></div> <p>또는 boto3에서:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a>botocore.exceptions.NoCredentialsError: Unable to locate credentials
-</span></code></pre></div> <p>이게 뜨면 먼저 노드/호스트의 hop limit을 확인한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a>aws<span class=w> </span>ec2<span class=w> </span>describe-instances<span class=w> </span>--instance-id<span class=w> </span>i-0abc123<span class=w> </span><span class=se>\</span>
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;Reservations[].Instances[].MetadataOptions&#39;</span>
-</span></code></pre></div> <p><code>HttpPutResponseHopLimit</code>이 1인데 컨테이너에서 IMDS를 쓰고 있으면 그게 원인이다. 2로 올리거나 IRSA로 전환한다.</p> <h3 id=타임아웃재시도-값-조정>타임아웃/재시도 값 조정<a class=headerlink href=#타임아웃재시도-값-조정 title="Permanent link">&para;</a></h3> <p>SDK의 IMDS 호출 타임아웃과 재시도 횟수를 조정할 수 있다. 자격 증명 조회가 느린 환경에서 의미가 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a><span class=nb>export</span><span class=w> </span><span class=nv>AWS_METADATA_SERVICE_TIMEOUT</span><span class=o>=</span><span class=m>2</span><span class=w>     </span><span class=c1># 한 번 호출 타임아웃(초)</span>
-</span><span id=__span-19-2><a id=__codelineno-19-2 name=__codelineno-19-2 href=#__codelineno-19-2></a><span class=nb>export</span><span class=w> </span><span class=nv>AWS_METADATA_SERVICE_NUM_ATTEMPTS</span><span class=o>=</span><span class=m>3</span><span class=w> </span><span class=c1># 재시도 횟수</span>
-</span></code></pre></div> <p>다만 이 값을 키우는 건 근본 해결이 아니다. IMDS가 정상이면 토큰 PUT과 자격 증명 GET은 수 ms 안에 끝난다. 타임아웃이 난다는 건 hop limit이나 네트워크(보안 그룹은 IMDS와 무관하지만, iptables로 <code>169.254.169.254</code>를 막아둔 경우 등) 쪽에 진짜 원인이 있다는 신호다. 타임아웃 값만 키워서 덮으면 자격 증명 갱신이 느려지는 형태로 나중에 또 터진다.</p> <h3 id=자격-증명-캐싱과-갱신>자격 증명 캐싱과 갱신<a class=headerlink href=#자격-증명-캐싱과-갱신 title="Permanent link">&para;</a></h3> <p>SDK는 IMDS에서 받은 자격 증명을 메모리에 캐싱하고, 만료(<code>Expiration</code>) 전에 백그라운드로 갱신한다. 그래서 매 API 호출마다 IMDS를 때리지 않는다. IMDS가 잠깐 불안정해도 캐시된 자격 증명이 살아 있으면 호출은 계속 된다. 반대로 캐시가 만료될 시점에 IMDS가 막혀 있으면, 멀쩡히 돌던 애플리케이션이 갑자기 <code>ExpiredToken</code> 에러를 뱉으며 죽는다. hop limit을 1에서 2로 잘못 되돌렸거나 IMDS 옵션을 바꾼 직후에 한참 뒤에야 장애가 터지는 게 이 캐싱 때문이다. 바로 안 깨지니 원인 추적이 더 헷갈린다.</p> <hr> <h2 id=정리해서-손에-익혀둘-것>정리해서 손에 익혀둘 것<a class=headerlink href=#정리해서-손에-익혀둘-것 title="Permanent link">&para;</a></h2> <p>운영하면서 반복적으로 손이 가는 지점은 이 정도다.</p> <ul> <li>IMDSv2를 켜는 것과 v1을 막는 것은 다르다. <code>HttpTokens=required</code>까지 가야 v1이 차단된다.</li> <li>ASG 환경에선 Launch Template에 메타데이터 옵션을 박아야 새 인스턴스에 적용된다. 인스턴스 직접 수정은 일회성이다.</li> <li>컨테이너에서 IMDS 타임아웃이 나면 hop limit부터 본다. 기본 1이면 컨테이너에서 못 읽는다.</li> <li>EKS는 가능하면 IRSA(또는 Pod Identity)로 가서 IMDS 의존을 끊는다. 권한도 Pod 단위로 쪼개진다.</li> <li>User Data에 비밀을 넣지 않는다. IMDS로 그대로 새어 나간다.</li> <li>로컬/온프레미스에서 첫 호출이 느리면 <code>AWS_EC2_METADATA_DISABLED=true</code>로 IMDS 폴백을 끈다.</li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Security/IAM/ >AWS IAM</a></li> <li><a href=../../Security/IAM_Permission_Management_Deep_Dive/ >AWS IAM 권한 관리 심화</a></li> <li><a href=../../Monitoring/CloudTrail/ >AWS CloudTrail</a></li> <li><a href=../../Monitoring/AWS_Config/ >AWS Config</a></li> <li><a href=../../Security/Guard_Duty/ >AWS GuardDuty</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../EC2_Fleet/ class="md-footer__link md-footer__link--prev" aria-label="이전: EC2 Fleet과 Spot Fleet"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> EC2 Fleet과 Spot Fleet </div> </div> </a> <a href=../EC2_Nitro_System/ class="md-footer__link md-footer__link--next" aria-label="다음: EC2 Nitro System"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> EC2 Nitro System </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    S--&gt;&gt;A: S3 객체 다운로드</code></pre>
+<ol>
+<li>취약한 웹앱에 SSRF가 있다. 외부 URL을 받아 서버가 대신 호출하는 기능이다.</li>
+<li>공격자가 그 URL에 <code>http://169.254.169.254/latest/meta-data/iam/security-credentials/</code>를 넣는다. 응답으로 역할 이름이 온다.</li>
+<li>역할 이름을 경로에 붙여 한 번 더 호출하면 자격 증명 JSON이 통째로 온다.</li>
+</ol>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;Code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Success&quot;</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;AccessKeyId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ASIA...&quot;</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;SecretAccessKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;Token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;Expiration&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-06-17T18:00:00Z&quot;</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li>공격자는 이 키를 자기 로컬에 <code>AWS_ACCESS_KEY_ID</code> 등으로 박고 <code>aws s3 ls</code>를 친다. 인스턴스 역할이 가진 권한 그대로 움직인다.</li>
+</ol>
+<p>여기서 핵심은 자격 증명에 만료(<code>Expiration</code>)가 있긴 하지만 기본 6시간이고, 그 안에 충분히 데이터를 빼간다는 점이다. 그리고 탈취한 키로 한 호출은 CloudTrail에 인스턴스 역할이 한 것처럼 찍혀서, 정상 활동과 구분이 안 된다.</p>
+<p>방어는 두 가지다. 애플리케이션의 SSRF를 고치는 게 근본이고, IMDSv2 강제가 두 번째 방어선이다. SSRF는 코드 리뷰에서 놓치기 쉬워서, IMDSv2 강제를 깔아두면 SSRF가 남아 있어도 자격 증명 탈취 단계에서 막힌다. GET 기반 SSRF로는 PUT 토큰을 못 받으니까.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 기존 인스턴스에 IMDSv2 강제 (v1 차단)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>aws<span class="w"> </span>ec2<span class="w"> </span>modify-instance-metadata-options<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--instance-id<span class="w"> </span>i-0abc123<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--http-tokens<span class="w"> </span>required<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>--http-endpoint<span class="w"> </span>enabled<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>--http-put-response-hop-limit<span class="w"> </span><span class="m">1</span>
+</span></code></pre></div>
+<p><code>--http-tokens required</code>가 핵심이다. 이게 <code>optional</code>이면 v1이 여전히 살아 있어서 위 시나리오가 그대로 성립한다.</p>
+<hr />
+<h2 id="메타데이터-경로별-조회">메타데이터 경로별 조회<a class="headerlink" href="#메타데이터-경로별-조회" title="Permanent link">&para;</a></h2>
+<p>자주 쓰는 경로들을 정리한다. 전부 IMDSv2 토큰을 받은 다음 조회한다고 가정한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>PUT<span class="w"> </span><span class="s2">&quot;http://169.254.169.254/latest/api/token&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span><span class="k">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>GET<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-aws-ec2-metadata-token: </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;http://169.254.169.254/</span><span class="nv">$1</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+</span></code></pre></div>
+<h3 id="iam-자격-증명">IAM 자격 증명<a class="headerlink" href="#iam-자격-증명" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 붙어 있는 역할 이름</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>GET<span class="w"> </span>latest/meta-data/iam/security-credentials/
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 자격 증명 JSON (위에서 나온 역할 이름을 붙임)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>GET<span class="w"> </span>latest/meta-data/iam/security-credentials/my-app-role
+</span></code></pre></div>
+<p>애플리케이션 코드에서 이 경로를 직접 파싱하는 일은 거의 없다. SDK가 알아서 한다. 다만 디버깅할 때 "지금 이 인스턴스가 어떤 역할을 들고 있나", "자격 증명이 만료됐나"를 확인하려고 손으로 칠 때가 있다.</p>
+<h3 id="user-data">User Data<a class="headerlink" href="#user-data" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>GET<span class="w"> </span>latest/user-data
+</span></code></pre></div>
+<p>인스턴스 부팅 시 실행한 스크립트(cloud-init)가 그대로 나온다. 여기에 절대 비밀번호나 API 키를 넣으면 안 된다. IMDS를 읽을 수 있는 누구나, SSRF 공격자까지 다 볼 수 있다. 비밀은 Secrets Manager나 Parameter Store에서 런타임에 가져와야 한다. User Data에 DB 비밀번호를 박아둔 레거시를 종종 보는데, 그 인스턴스에 SSRF 하나만 터지면 DB까지 같이 넘어간다.</p>
+<h3 id="인스턴스-아이덴티티-문서">인스턴스 아이덴티티 문서<a class="headerlink" href="#인스턴스-아이덴티티-문서" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 인스턴스 메타 (인스턴스 ID, 타입, 리전, AZ, account ID 등)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>GET<span class="w"> </span>latest/dynamic/instance-identity/document
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># 서명 (AWS가 서명한 값 — 인스턴스 신원 증명에 사용)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>GET<span class="w"> </span>latest/dynamic/instance-identity/signature
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>GET<span class="w"> </span>latest/dynamic/instance-identity/pkcs7
+</span></code></pre></div>
+<p><code>document</code>는 account ID, 인스턴스 ID, 리전, 타입 같은 정보를 담은 JSON이다. <code>pkcs7</code>/<code>signature</code>는 AWS 개인키로 서명한 값이라, 외부 시스템이 "이 요청이 정말 우리 계정의 특정 EC2에서 왔는지"를 검증하는 데 쓴다. 온프레미스 인증 서버에 EC2를 등록할 때 이 서명을 검증하는 패턴이 있다.</p>
+<h3 id="기타-자주-쓰는-경로">기타 자주 쓰는 경로<a class="headerlink" href="#기타-자주-쓰는-경로" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>GET<span class="w"> </span>latest/meta-data/instance-id
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>GET<span class="w"> </span>latest/meta-data/local-ipv4
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>GET<span class="w"> </span>latest/meta-data/public-ipv4
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>GET<span class="w"> </span>latest/meta-data/placement/availability-zone
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>GET<span class="w"> </span>latest/meta-data/network/interfaces/macs/<span class="w">      </span><span class="c1"># ENI MAC 목록</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>GET<span class="w"> </span>latest/meta-data/spot/instance-action<span class="w">          </span><span class="c1"># 스팟 중단 예고 (없으면 404)</span>
+</span></code></pre></div>
+<p>스팟 인스턴스를 쓴다면 <code>spot/instance-action</code>을 폴링해서 중단 2분 전 예고를 잡는 코드를 넣어두는 경우가 많다. 평소엔 404가 나다가 중단이 예정되면 시각이 담긴 JSON이 나온다.</p>
+<hr />
+<h2 id="컨테이너eks에서의-hop-limit-문제">컨테이너/EKS에서의 hop limit 문제<a class="headerlink" href="#컨테이너eks에서의-hop-limit-문제" title="Permanent link">&para;</a></h2>
+<p>여기가 운영에서 제일 자주 깨지는 부분이다. hop limit 기본값이 1인데, 컨테이너 네트워크는 hop을 하나 더 먹는다.</p>
+<p>EC2 위에 도커나 EKS Pod를 띄우면, 컨테이너 안에서 <code>169.254.169.254</code>로 보낸 요청이 호스트의 네트워크 브리지/오버레이를 한 번 더 거친다. 응답 패킷 입장에서 hop이 1 늘어난다. hop limit이 1이면 컨테이너로 돌아가는 응답이 TTL 0에서 죽는다. 그래서 컨테이너 안에서 SDK가 IMDS를 못 읽고 자격 증명 조회가 타임아웃 난다.</p>
+<p>증상은 보통 이렇게 나온다. EC2에 직접 SSH로 들어가서 <code>curl</code>로 IMDS를 때리면 잘 되는데, 같은 인스턴스의 컨테이너 안에서는 안 된다. SDK 로그에 "credentials not found" 또는 IMDS 타임아웃이 찍힌다.</p>
+<p>해결책 두 가지다.</p>
+<h3 id="hop-limit을-2로-올리기">hop limit을 2로 올리기<a class="headerlink" href="#hop-limit을-2로-올리기" title="Permanent link">&para;</a></h3>
+<p>컨테이너가 IMDS를 써야 한다면 hop limit을 2로 올린다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>modify-instance-metadata-options<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span>--instance-id<span class="w"> </span>i-0abc123<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>--http-tokens<span class="w"> </span>required<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span>--http-put-response-hop-limit<span class="w"> </span><span class="m">2</span>
+</span></code></pre></div>
+<p>EKS 노드그룹이라면 Launch Template에서 이 값을 박아야 한다. 노드가 ASG로 새로 뜰 때마다 자동 적용되도록.</p>
+<p>문제는 hop limit 2가 보안적으로 약간 후퇴라는 점이다. hop이 하나 더 허용되면, 그 인스턴스에 SSRF가 있을 때 컨테이너 계층을 한 번 경유한 메타데이터 추출 시도가 통과할 여지가 생긴다. 그래서 hop limit 2는 IMDSv2 강제(<code>HttpTokens=required</code>)와 반드시 같이 가야 한다. v2 토큰 요구가 있으면 hop이 2여도 GET 기반 SSRF는 여전히 막힌다.</p>
+<h3 id="irsa로-전환-eks-권장">IRSA로 전환 (EKS 권장)<a class="headerlink" href="#irsa로-전환-eks-권장" title="Permanent link">&para;</a></h3>
+<p>EKS라면 더 나은 답은 Pod가 노드 IMDS를 안 쓰게 만드는 거다. IRSA(IAM Roles for Service Accounts)를 쓰면 Pod가 노드의 인스턴스 역할이 아니라 자기 ServiceAccount에 매핑된 IAM 역할을 OIDC로 받아간다. IMDS를 거치지 않는다.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nt">metadata</span><span class="p">:</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-sa</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="nt">eks.amazonaws.com/role-arn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:role/my-app-irsa-role</span>
+</span></code></pre></div>
+<p>이렇게 하면 Pod 안의 SDK는 IMDS 대신 <code>/var/run/secrets/eks.amazonaws.com/serviceaccount/token</code>에 마운트된 OIDC 토큰으로 <code>sts:AssumeRoleWithWebIdentity</code>를 호출해 자격 증명을 받는다. 환경 변수 <code>AWS_WEB_IDENTITY_TOKEN_FILE</code>과 <code>AWS_ROLE_ARN</code>이 Pod에 자동 주입된다.</p>
+<p>IRSA를 쓰면 두 가지가 좋아진다. 첫째, Pod별로 최소 권한 IAM 역할을 줄 수 있다. 노드 인스턴스 역할은 그 노드의 모든 Pod가 공유하니까 권한이 뭉툭해진다. IRSA는 Pod 단위로 쪼갠다. 둘째, hop limit 문제에서 자유로워진다. IMDS를 안 거치니까.</p>
+<p>그래서 EKS 권장 구성은 이렇다. 노드 인스턴스 역할은 노드 운영에 꼭 필요한 최소 권한(ECR pull, CNI 등)만 주고, 애플리케이션 권한은 전부 IRSA로 Pod에 붙인다. 그리고 노드의 hop limit을 1로 유지하면서 IMDSv2 강제를 걸면, Pod가 노드 IMDS를 통해 노드 역할 권한을 훔쳐가는 것도 막힌다. EKS는 이걸 막으려고 hop limit을 1로 두고 IMDS 접근을 차단하는 구성을 권장하기도 한다.</p>
+<p>후속 단계인 EKS Pod Identity는 IRSA보다 설정이 단순한 대안인데, OIDC provider 설정 없이 EKS 애드온으로 역할을 매핑한다. 신규 클러스터라면 이쪽도 검토할 만하다.</p>
+<hr />
+<h2 id="asg--launch-template에서-메타데이터-옵션-강제">ASG / Launch Template에서 메타데이터 옵션 강제<a class="headerlink" href="#asg--launch-template에서-메타데이터-옵션-강제" title="Permanent link">&para;</a></h2>
+<p>인스턴스를 하나하나 <code>modify-instance-metadata-options</code>로 고치는 건 그때뿐이다. ASG가 새 인스턴스를 띄우면 다시 기본값(<code>optional</code>, v1 허용)으로 돌아간다. 그래서 Launch Template에 메타데이터 옵션을 박아야 한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">&quot;LaunchTemplateData&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">&quot;MetadataOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">      </span><span class="nt">&quot;HttpTokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;required&quot;</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">      </span><span class="nt">&quot;HttpEndpoint&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;enabled&quot;</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">      </span><span class="nt">&quot;HttpPutResponseHopLimit&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">      </span><span class="nt">&quot;InstanceMetadataTags&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;enabled&quot;</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>create-launch-template-version<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>--launch-template-id<span class="w"> </span>lt-0abc123<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>--source-version<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>--launch-template-data<span class="w"> </span>file://metadata-options.json
+</span></code></pre></div>
+<p><code>HttpEndpoint</code>를 <code>disabled</code>로 하면 IMDS 자체를 꺼버린다. 인스턴스가 IMDS를 전혀 안 쓴다면(자격 증명을 다른 방식으로 받는다면) 이게 제일 안전하다. 다만 SDK가 IMDS 폴백을 시도하면 부팅 초기에 불필요한 타임아웃이 생길 수 있으니, 끌 거면 SDK 쪽 설정도 같이 맞춰야 한다.</p>
+<p><code>InstanceMetadataTags=enabled</code>는 인스턴스 태그를 메타데이터로 노출하는 옵션이다. <code>GET latest/meta-data/tags/instance/</code>로 태그를 읽게 해준다. 부팅 스크립트에서 태그 값으로 분기할 때 편하다. 다만 태그에 민감 정보가 있으면 같이 노출되니 주의한다.</p>
+<p>Launch Template을 새 버전으로 만든 뒤에는 ASG가 그 버전을 쓰도록 지정하고, 기존 인스턴스는 인스턴스 리프레시로 교체해야 실제로 적용된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>aws<span class="w"> </span>autoscaling<span class="w"> </span>update-auto-scaling-group<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>--auto-scaling-group-name<span class="w"> </span>my-asg<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>--launch-template<span class="w"> </span><span class="s2">&quot;LaunchTemplateId=lt-0abc123,Version=&#39;\$Latest&#39;&quot;</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>aws<span class="w"> </span>autoscaling<span class="w"> </span>start-instance-refresh<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span>--auto-scaling-group-name<span class="w"> </span>my-asg
+</span></code></pre></div>
+<p>계정 전체에 기본값을 강제하고 싶으면 리전별 기본값을 바꾼다. 새로 만드는 모든 인스턴스가 IMDSv2 강제로 뜬다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>modify-instance-metadata-defaults<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>--http-tokens<span class="w"> </span>required<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span>--http-put-response-hop-limit<span class="w"> </span><span class="m">2</span>
+</span></code></pre></div>
+<p>조직 단위로는 SCP(Service Control Policy)로 <code>ec2:RunInstances</code> 시 <code>HttpTokens=required</code>가 아니면 거부하는 방식도 쓴다. 이렇게 하면 누가 콘솔에서 실수로 v1 인스턴스를 띄우는 걸 원천 차단한다.</p>
+<hr />
+<h2 id="sdk가-imds를-호출하는-방식과-타임아웃-트러블슈팅">SDK가 IMDS를 호출하는 방식과 타임아웃 트러블슈팅<a class="headerlink" href="#sdk가-imds를-호출하는-방식과-타임아웃-트러블슈팅" title="Permanent link">&para;</a></h2>
+<p>aws-sdk(JS, Python boto3, Go 등)는 자격 증명을 찾을 때 정해진 순서로 공급자(provider chain)를 훑는다. 대략 환경 변수 → 공유 크레덴셜 파일 → ECS/EKS 컨테이너 자격 증명 → IMDS 순이다. IMDS는 보통 마지막이다.</p>
+<p>EC2에서 환경 변수나 크레덴셜 파일이 없으면 결국 IMDS까지 내려온다. 이때 SDK가 IMDSv2 토큰을 PUT으로 받고, 그 토큰으로 자격 증명을 GET한다. 최신 SDK는 전부 IMDSv2를 먼저 시도하고, 안 되면 v1으로 폴백한다.</p>
+<p>문제가 되는 상황 몇 가지를 보자.</p>
+<h3 id="로컬온프레미스에서-imds-폴백-지연">로컬/온프레미스에서 IMDS 폴백 지연<a class="headerlink" href="#로컬온프레미스에서-imds-폴백-지연" title="Permanent link">&para;</a></h3>
+<p>로컬 PC나 온프레미스 서버에서 SDK를 돌리면, 자격 증명 체인이 IMDS까지 내려가서 <code>169.254.169.254</code>를 때린다. 그런 환경엔 IMDS가 없으니 연결이 안 되고, SDK가 재시도하면서 몇 초씩 멈춘다. 첫 API 호출이 느려지는 원인이 이거다.</p>
+<p>해결은 IMDS 조회를 아예 끄는 거다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># 환경 변수로 IMDS 비활성화</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_EC2_METADATA_DISABLED</span><span class="o">=</span><span class="nb">true</span>
+</span></code></pre></div>
+<p>로컬 개발 환경이나 IMDS를 쓸 일 없는 컨테이너에 이걸 박아두면 불필요한 폴백 지연이 사라진다.</p>
+<h3 id="컨테이너에서-자격-증명-타임아웃">컨테이너에서 자격 증명 타임아웃<a class="headerlink" href="#컨테이너에서-자격-증명-타임아웃" title="Permanent link">&para;</a></h3>
+<p>앞에서 본 hop limit 문제와 연결된다. 컨테이너 안 SDK가 IMDS를 못 읽으면 토큰 PUT부터 타임아웃 난다. 로그에 이렇게 찍힌다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Unable to load credentials from any of the providers in the chain
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>EC2MetadataError: Failed to connect to instance metadata service
+</span></code></pre></div>
+<p>또는 boto3에서:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>botocore.exceptions.NoCredentialsError: Unable to locate credentials
+</span></code></pre></div>
+<p>이게 뜨면 먼저 노드/호스트의 hop limit을 확인한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-instances<span class="w"> </span>--instance-id<span class="w"> </span>i-0abc123<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;Reservations[].Instances[].MetadataOptions&#39;</span>
+</span></code></pre></div>
+<p><code>HttpPutResponseHopLimit</code>이 1인데 컨테이너에서 IMDS를 쓰고 있으면 그게 원인이다. 2로 올리거나 IRSA로 전환한다.</p>
+<h3 id="타임아웃재시도-값-조정">타임아웃/재시도 값 조정<a class="headerlink" href="#타임아웃재시도-값-조정" title="Permanent link">&para;</a></h3>
+<p>SDK의 IMDS 호출 타임아웃과 재시도 횟수를 조정할 수 있다. 자격 증명 조회가 느린 환경에서 의미가 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_METADATA_SERVICE_TIMEOUT</span><span class="o">=</span><span class="m">2</span><span class="w">     </span><span class="c1"># 한 번 호출 타임아웃(초)</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_METADATA_SERVICE_NUM_ATTEMPTS</span><span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="c1"># 재시도 횟수</span>
+</span></code></pre></div>
+<p>다만 이 값을 키우는 건 근본 해결이 아니다. IMDS가 정상이면 토큰 PUT과 자격 증명 GET은 수 ms 안에 끝난다. 타임아웃이 난다는 건 hop limit이나 네트워크(보안 그룹은 IMDS와 무관하지만, iptables로 <code>169.254.169.254</code>를 막아둔 경우 등) 쪽에 진짜 원인이 있다는 신호다. 타임아웃 값만 키워서 덮으면 자격 증명 갱신이 느려지는 형태로 나중에 또 터진다.</p>
+<h3 id="자격-증명-캐싱과-갱신">자격 증명 캐싱과 갱신<a class="headerlink" href="#자격-증명-캐싱과-갱신" title="Permanent link">&para;</a></h3>
+<p>SDK는 IMDS에서 받은 자격 증명을 메모리에 캐싱하고, 만료(<code>Expiration</code>) 전에 백그라운드로 갱신한다. 그래서 매 API 호출마다 IMDS를 때리지 않는다. IMDS가 잠깐 불안정해도 캐시된 자격 증명이 살아 있으면 호출은 계속 된다. 반대로 캐시가 만료될 시점에 IMDS가 막혀 있으면, 멀쩡히 돌던 애플리케이션이 갑자기 <code>ExpiredToken</code> 에러를 뱉으며 죽는다. hop limit을 1에서 2로 잘못 되돌렸거나 IMDS 옵션을 바꾼 직후에 한참 뒤에야 장애가 터지는 게 이 캐싱 때문이다. 바로 안 깨지니 원인 추적이 더 헷갈린다.</p>
+<hr />
+<h2 id="정리해서-손에-익혀둘-것">정리해서 손에 익혀둘 것<a class="headerlink" href="#정리해서-손에-익혀둘-것" title="Permanent link">&para;</a></h2>
+<p>운영하면서 반복적으로 손이 가는 지점은 이 정도다.</p>
+<ul>
+<li>IMDSv2를 켜는 것과 v1을 막는 것은 다르다. <code>HttpTokens=required</code>까지 가야 v1이 차단된다.</li>
+<li>ASG 환경에선 Launch Template에 메타데이터 옵션을 박아야 새 인스턴스에 적용된다. 인스턴스 직접 수정은 일회성이다.</li>
+<li>컨테이너에서 IMDS 타임아웃이 나면 hop limit부터 본다. 기본 1이면 컨테이너에서 못 읽는다.</li>
+<li>EKS는 가능하면 IRSA(또는 Pod Identity)로 가서 IMDS 의존을 끊는다. 권한도 Pod 단위로 쪼개진다.</li>
+<li>User Data에 비밀을 넣지 않는다. IMDS로 그대로 새어 나간다.</li>
+<li>로컬/온프레미스에서 첫 호출이 느리면 <code>AWS_EC2_METADATA_DISABLED=true</code>로 IMDS 폴백을 끈다.</li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Security/IAM/">AWS IAM</a></li>
+<li><a href="../../Security/IAM_Permission_Management_Deep_Dive/">AWS IAM 권한 관리 심화</a></li>
+<li><a href="../../Monitoring/CloudTrail/">AWS CloudTrail</a></li>
+<li><a href="../../Monitoring/AWS_Config/">AWS Config</a></li>
+<li><a href="../../Security/Guard_Duty/">AWS GuardDuty</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../EC2_Fleet/" class="md-footer__link md-footer__link--prev" aria-label="이전: EC2 Fleet과 Spot Fleet">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                EC2 Fleet과 Spot Fleet
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../EC2_Nitro_System/" class="md-footer__link md-footer__link--next" aria-label="다음: EC2 Nitro System">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                EC2 Nitro System
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

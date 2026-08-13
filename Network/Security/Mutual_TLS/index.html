@@ -1,4 +1,2620 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/Security/Mutual_TLS/ rel=canonical><link href=../TLS_HTTPS/ rel=prev><link href=../VPN/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>mTLS - 상호 TLS 인증과 서비스 간 신뢰 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#mtls---상호-tls-인증과-서비스-간-신뢰 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> mTLS - 상호 TLS 인증과 서비스 간 신뢰 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../7%20Layer/ class=md-nav__link> <span class=md-ellipsis> OSI 7계층 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_12 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Security </span> </a> <label class="md-nav__link " for=__nav_7_1_12 id=__nav_7_1_12_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_12_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_12> <span class="md-nav__icon md-icon"></span> Security </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../TLS_HTTPS/ class=md-nav__link> <span class=md-ellipsis> TLS와 HTTPS </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> mTLS </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> mTLS </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#단방향-tls와-무엇이-다른가 class=md-nav__link> <span class=md-ellipsis> 단방향 TLS와 무엇이 다른가 </span> </a> </li> <li class=md-nav__item> <a href=#ca-체인과-신뢰-구조 class=md-nav__link> <span class=md-ellipsis> CA 체인과 신뢰 구조 </span> </a> </li> <li class=md-nav__item> <a href=#클라이언트-인증서-발급과-로테이션 class=md-nav__link> <span class=md-ellipsis> 클라이언트 인증서 발급과 로테이션 </span> </a> </li> <li class=md-nav__item> <a href=#spiffe와-svid class=md-nav__link> <span class=md-ellipsis> SPIFFE와 SVID </span> </a> </li> <li class=md-nav__item> <a href=#서비스-메시에서의-mtls class=md-nav__link> <span class=md-ellipsis> 서비스 메시에서의 mTLS </span> </a> </li> <li class=md-nav__item> <a href=#제로트러스트에서의-위치 class=md-nav__link> <span class=md-ellipsis> 제로트러스트에서의 위치 </span> </a> </li> <li class=md-nav__item> <a href=#nginx-설정-예제 class=md-nav__link> <span class=md-ellipsis> Nginx 설정 예제 </span> </a> </li> <li class=md-nav__item> <a href=#envoy-설정-예제 class=md-nav__link> <span class=md-ellipsis> Envoy 설정 예제 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 </span> </a> <nav class=md-nav aria-label=트러블슈팅> <ul class=md-nav__list> <li class=md-nav__item> <a href=#인증서-만료 class=md-nav__link> <span class=md-ellipsis> 인증서 만료 </span> </a> </li> <li class=md-nav__item> <a href=#cnsan-불일치 class=md-nav__link> <span class=md-ellipsis> CN/SAN 불일치 </span> </a> </li> <li class=md-nav__item> <a href=#클라이언트-인증서를-안-보냄 class=md-nav__link> <span class=md-ellipsis> 클라이언트 인증서를 안 보냄 </span> </a> </li> <li class=md-nav__item> <a href=#체인-검증-실패 class=md-nav__link> <span class=md-ellipsis> 체인 검증 실패 </span> </a> </li> <li class=md-nav__item> <a href=#암호-스위트프로토콜-불일치 class=md-nav__link> <span class=md-ellipsis> 암호 스위트/프로토콜 불일치 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../VPN/ class=md-nav__link> <span class=md-ellipsis> VPN </span> </a> </li> <li class=md-nav__item> <a href=../Firewall/ class=md-nav__link> <span class=md-ellipsis> 호스트 방화벽 </span> </a> </li> <li class=md-nav__item> <a href=../Network_Firewall_Architecture/ class=md-nav__link> <span class=md-ellipsis> 네트워크 경계 방화벽 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../Zero_Trust_Network/ class=md-nav__link> <span class=md-ellipsis> Zero Trust 네트워크 </span> </a> </li> <li class=md-nav__item> <a href=../Zero_Trust_CICD_Pipeline/ class=md-nav__link> <span class=md-ellipsis> CI/CD Zero Trust </span> </a> </li> <li class=md-nav__item> <a href=../Network_Segmentation/ class=md-nav__link> <span class=md-ellipsis> 망분리와 네트워크 세그멘테이션 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#단방향-tls와-무엇이-다른가 class=md-nav__link> <span class=md-ellipsis> 단방향 TLS와 무엇이 다른가 </span> </a> </li> <li class=md-nav__item> <a href=#ca-체인과-신뢰-구조 class=md-nav__link> <span class=md-ellipsis> CA 체인과 신뢰 구조 </span> </a> </li> <li class=md-nav__item> <a href=#클라이언트-인증서-발급과-로테이션 class=md-nav__link> <span class=md-ellipsis> 클라이언트 인증서 발급과 로테이션 </span> </a> </li> <li class=md-nav__item> <a href=#spiffe와-svid class=md-nav__link> <span class=md-ellipsis> SPIFFE와 SVID </span> </a> </li> <li class=md-nav__item> <a href=#서비스-메시에서의-mtls class=md-nav__link> <span class=md-ellipsis> 서비스 메시에서의 mTLS </span> </a> </li> <li class=md-nav__item> <a href=#제로트러스트에서의-위치 class=md-nav__link> <span class=md-ellipsis> 제로트러스트에서의 위치 </span> </a> </li> <li class=md-nav__item> <a href=#nginx-설정-예제 class=md-nav__link> <span class=md-ellipsis> Nginx 설정 예제 </span> </a> </li> <li class=md-nav__item> <a href=#envoy-설정-예제 class=md-nav__link> <span class=md-ellipsis> Envoy 설정 예제 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 </span> </a> <nav class=md-nav aria-label=트러블슈팅> <ul class=md-nav__list> <li class=md-nav__item> <a href=#인증서-만료 class=md-nav__link> <span class=md-ellipsis> 인증서 만료 </span> </a> </li> <li class=md-nav__item> <a href=#cnsan-불일치 class=md-nav__link> <span class=md-ellipsis> CN/SAN 불일치 </span> </a> </li> <li class=md-nav__item> <a href=#클라이언트-인증서를-안-보냄 class=md-nav__link> <span class=md-ellipsis> 클라이언트 인증서를 안 보냄 </span> </a> </li> <li class=md-nav__item> <a href=#체인-검증-실패 class=md-nav__link> <span class=md-ellipsis> 체인 검증 실패 </span> </a> </li> <li class=md-nav__item> <a href=#암호-스위트프로토콜-불일치 class=md-nav__link> <span class=md-ellipsis> 암호 스위트/프로토콜 불일치 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>encryption</span> <span class=md-tag>network</span> <span class=md-tag>proxy</span> <span class=md-tag>security</span> </nav> <h1 id=mtls---상호-tls-인증과-서비스-간-신뢰>mTLS - 상호 TLS 인증과 서비스 간 신뢰<a class=headerlink href=#mtls---상호-tls-인증과-서비스-간-신뢰 title="Permanent link">&para;</a></h1> <p>일반 HTTPS는 서버만 인증서를 보여준다. 클라이언트는 "이 서버가 진짜 example.com이 맞나"를 검증하지만, 서버 입장에서 "지금 접속한 클라이언트가 누구인가"는 TLS 계층에서 알 수 없다. 그건 보통 그 위 애플리케이션 계층에서 토큰이나 세션으로 처리한다.</p> <p>mTLS(mutual TLS)는 이 검증을 양방향으로 만든다. 서버도 인증서를 내고, 클라이언트도 인증서를 낸다. 핸드셰이크가 끝나는 순간 서로가 서로의 신원을 인증서로 증명한 상태가 된다. 처음엔 "그냥 API 키 쓰면 되지 왜 인증서까지"라고 생각했는데, 서비스 수가 수십 개로 늘고 내부 트래픽도 평문으로 두면 안 되는 상황이 되니까 mTLS 말고는 답이 없었다. 토큰은 탈취되면 끝이지만, 사설키는 디스크 밖으로 나가지 않게 운영할 수 있다.</p> <p>이 문서는 mTLS의 핸드셰이크 흐름, 서비스 메시와 제로트러스트에서 mTLS를 어떻게 쓰는지, SPIFFE라는 신원 체계, 그리고 운영하면서 가장 자주 깨지는 인증서 만료·SAN 불일치 문제를 다룬다. 단방향 TLS 핸드셰이크 자체나 ACME 자동 갱신은 <a href=../TLS_HTTPS/ >TLS와 HTTPS</a> 문서에 정리해 두었으니 그쪽을 먼저 보는 게 좋다.</p> <h2 id=단방향-tls와-무엇이-다른가>단방향 TLS와 무엇이 다른가<a class=headerlink href=#단방향-tls와-무엇이-다른가 title="Permanent link">&para;</a></h2> <p>핵심 차이는 핸드셰이크 중간에 서버가 클라이언트 인증서를 요구하느냐다. TLS 1.2 기준으로 서버가 <code>CertificateRequest</code> 메시지를 보내면 그때부터 양방향이 된다. 클라이언트는 자기 인증서를 보내고, 그 인증서로 핸드셰이크 해시에 서명한 <code>CertificateVerify</code>까지 보낸다. 서버는 이 서명을 검증해서 "클라이언트가 정말 그 사설키를 들고 있다"는 걸 확인한다.</p> <pre class=mermaid-diagram><code>sequenceDiagram
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/Security/Mutual_TLS/">
+      
+      
+        <link rel="prev" href="../TLS_HTTPS/">
+      
+      
+        <link rel="next" href="../VPN/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>mTLS - 상호 TLS 인증과 서비스 간 신뢰 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#mtls---상호-tls-인증과-서비스-간-신뢰" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              mTLS - 상호 TLS 인증과 서비스 간 신뢰
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../7%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_12" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_12" id="__nav_7_1_12_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TLS_HTTPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TLS와 HTTPS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#단방향-tls와-무엇이-다른가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단방향 TLS와 무엇이 다른가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ca-체인과-신뢰-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CA 체인과 신뢰 구조
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#클라이언트-인증서-발급과-로테이션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라이언트 인증서 발급과 로테이션
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spiffe와-svid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SPIFFE와 SVID
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#서비스-메시에서의-mtls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스 메시에서의 mTLS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#제로트러스트에서의-위치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        제로트러스트에서의 위치
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nginx-설정-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nginx 설정 예제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#envoy-설정-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Envoy 설정 예제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#인증서-만료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증서 만료
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cnsan-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CN/SAN 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#클라이언트-인증서를-안-보냄" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라이언트 인증서를 안 보냄
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#체인-검증-실패" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        체인 검증 실패
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#암호-스위트프로토콜-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        암호 스위트/프로토콜 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VPN/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPN
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Firewall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    호스트 방화벽
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Network_Firewall_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 경계 방화벽 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Zero_Trust_Network/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero Trust 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Zero_Trust_CICD_Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD Zero Trust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Network_Segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    망분리와 네트워크 세그멘테이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#단방향-tls와-무엇이-다른가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단방향 TLS와 무엇이 다른가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ca-체인과-신뢰-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CA 체인과 신뢰 구조
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#클라이언트-인증서-발급과-로테이션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라이언트 인증서 발급과 로테이션
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spiffe와-svid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SPIFFE와 SVID
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#서비스-메시에서의-mtls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스 메시에서의 mTLS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#제로트러스트에서의-위치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        제로트러스트에서의 위치
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nginx-설정-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nginx 설정 예제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#envoy-설정-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Envoy 설정 예제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#인증서-만료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증서 만료
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cnsan-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CN/SAN 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#클라이언트-인증서를-안-보냄" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라이언트 인증서를 안 보냄
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#체인-검증-실패" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        체인 검증 실패
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#암호-스위트프로토콜-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        암호 스위트/프로토콜 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">encryption</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">proxy</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">security</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="mtls---상호-tls-인증과-서비스-간-신뢰">mTLS - 상호 TLS 인증과 서비스 간 신뢰<a class="headerlink" href="#mtls---상호-tls-인증과-서비스-간-신뢰" title="Permanent link">&para;</a></h1>
+<p>일반 HTTPS는 서버만 인증서를 보여준다. 클라이언트는 "이 서버가 진짜 example.com이 맞나"를 검증하지만, 서버 입장에서 "지금 접속한 클라이언트가 누구인가"는 TLS 계층에서 알 수 없다. 그건 보통 그 위 애플리케이션 계층에서 토큰이나 세션으로 처리한다.</p>
+<p>mTLS(mutual TLS)는 이 검증을 양방향으로 만든다. 서버도 인증서를 내고, 클라이언트도 인증서를 낸다. 핸드셰이크가 끝나는 순간 서로가 서로의 신원을 인증서로 증명한 상태가 된다. 처음엔 "그냥 API 키 쓰면 되지 왜 인증서까지"라고 생각했는데, 서비스 수가 수십 개로 늘고 내부 트래픽도 평문으로 두면 안 되는 상황이 되니까 mTLS 말고는 답이 없었다. 토큰은 탈취되면 끝이지만, 사설키는 디스크 밖으로 나가지 않게 운영할 수 있다.</p>
+<p>이 문서는 mTLS의 핸드셰이크 흐름, 서비스 메시와 제로트러스트에서 mTLS를 어떻게 쓰는지, SPIFFE라는 신원 체계, 그리고 운영하면서 가장 자주 깨지는 인증서 만료·SAN 불일치 문제를 다룬다. 단방향 TLS 핸드셰이크 자체나 ACME 자동 갱신은 <a href="../TLS_HTTPS/">TLS와 HTTPS</a> 문서에 정리해 두었으니 그쪽을 먼저 보는 게 좋다.</p>
+<h2 id="단방향-tls와-무엇이-다른가">단방향 TLS와 무엇이 다른가<a class="headerlink" href="#단방향-tls와-무엇이-다른가" title="Permanent link">&para;</a></h2>
+<p>핵심 차이는 핸드셰이크 중간에 서버가 클라이언트 인증서를 요구하느냐다. TLS 1.2 기준으로 서버가 <code>CertificateRequest</code> 메시지를 보내면 그때부터 양방향이 된다. 클라이언트는 자기 인증서를 보내고, 그 인증서로 핸드셰이크 해시에 서명한 <code>CertificateVerify</code>까지 보낸다. 서버는 이 서명을 검증해서 "클라이언트가 정말 그 사설키를 들고 있다"는 걸 확인한다.</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant C as Client
     participant S as Server
 
@@ -14,114 +2630,324 @@
     C-&gt;&gt;S: ChangeCipherSpec / Finished
 
     S--&gt;&gt;C: ChangeCipherSpec / Finished
-    C-&gt;&gt;S: Application Data</code></pre> <p>여기서 <code>CertificateRequest</code>와 <code>CertificateVerify</code> 두 메시지가 단방향 TLS에는 없는 부분이다. 나머지는 동일하다. TLS 1.3에서는 메시지 순서가 좀 다르고 <code>CertificateRequest</code>가 암호화된 구간에서 오가지만, "서버가 요구하면 클라이언트가 인증서와 서명을 낸다"는 본질은 같다.</p> <p>서버가 클라이언트 인증서를 검증할 때 보는 건 두 가지다. 첫째, 클라이언트 인증서가 서버가 신뢰하는 CA로 서명됐는가(체인 검증). 둘째, 그 인증서에 박힌 신원(CN 또는 SAN)이 허용된 대상인가. 첫 번째는 TLS 라이브러리가 자동으로 해주지만, 두 번째는 애플리케이션이나 프록시 설정에서 별도로 걸어줘야 하는 경우가 많다. 이걸 빼먹으면 "우리 CA가 발급한 인증서면 누구든 통과"가 되어서 mTLS를 하는 의미가 절반으로 준다.</p> <h2 id=ca-체인과-신뢰-구조>CA 체인과 신뢰 구조<a class=headerlink href=#ca-체인과-신뢰-구조 title="Permanent link">&para;</a></h2> <p>mTLS에서 양쪽이 인증서를 검증하려면 공통의 신뢰 기준이 있어야 한다. 그게 CA(Certificate Authority)다. 외부 공개 서비스는 Let's Encrypt 같은 공인 CA를 쓰지만, 내부 서비스 간 mTLS는 거의 사설 CA(internal CA)를 직접 운영한다. 공인 CA는 클라이언트 인증서를 수백 개씩 발급해 주지도 않고, 내부 서비스 이름으로 인증서를 받을 수도 없기 때문이다.</p> <p>사설 CA 구조는 보통 루트 CA 하나에 중간 CA를 두고, 실제 서비스 인증서는 중간 CA로 발급한다. 루트 CA의 사설키는 평소에 오프라인으로 격리하고 중간 CA만 온라인에 두는 식이다. 루트가 털리면 전체 신뢰가 무너지지만 중간 CA는 폐기하고 재발급하면 되니까 위험을 분리하는 구조다.</p> <p>체인 검증은 잎(서비스 인증서)에서 시작해서 루트까지 거슬러 올라간다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>서비스 인증서 (leaf)
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>  └─ 발급자: 중간 CA
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>       └─ 발급자: 루트 CA  ← 양쪽이 미리 신뢰 목록에 가지고 있어야 함
-</span></code></pre></div> <p>여기서 자주 터지는 게 중간 CA 인증서 누락이다. 서버가 leaf 인증서만 보내고 중간 CA를 빼먹으면, 클라이언트는 leaf의 발급자를 찾지 못해 체인을 못 잇는다. 브라우저는 AIA(Authority Information Access) 필드를 보고 중간 인증서를 알아서 받아오는 경우가 있어서 브라우저에선 되는데 curl이나 다른 서비스에선 깨지는 일이 생긴다. 그래서 서버는 항상 leaf + 중간 CA를 묶은 풀체인(fullchain)을 내보내야 한다.</p> <p>검증해 보려면 openssl로 직접 체인을 확인하는 게 빠르다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1># 서버가 실제로 내보내는 인증서 체인 확인</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>openssl<span class=w> </span>s_client<span class=w> </span>-connect<span class=w> </span>api.internal:443<span class=w> </span>-showcerts<span class=w> </span>&lt;/dev/null<span class=w> </span><span class=m>2</span>&gt;/dev/null
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=c1># 클라이언트 인증서를 들고 mTLS 연결 시도</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>openssl<span class=w> </span>s_client<span class=w> </span>-connect<span class=w> </span>api.internal:443<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=w>  </span>-cert<span class=w> </span>client.crt<span class=w> </span>-key<span class=w> </span>client.key<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>  </span>-CAfile<span class=w> </span>ca-chain.crt<span class=w> </span>&lt;/dev/null
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=c1># 인증서 하나를 CA 체인으로 검증</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>openssl<span class=w> </span>verify<span class=w> </span>-CAfile<span class=w> </span>ca-chain.crt<span class=w> </span>client.crt
-</span></code></pre></div> <p><code>openssl verify</code>가 <code>OK</code>를 내면 체인이 정상이다. <code>unable to get local issuer certificate</code>가 나오면 중간 CA가 빠진 것이고, <code>certificate has expired</code>면 만료다.</p> <h2 id=클라이언트-인증서-발급과-로테이션>클라이언트 인증서 발급과 로테이션<a class=headerlink href=#클라이언트-인증서-발급과-로테이션 title="Permanent link">&para;</a></h2> <p>서버 인증서는 만료 관리만 잘하면 되지만, 클라이언트 인증서는 발급 대상이 서비스/워크로드 단위로 늘어나기 때문에 운영 부담이 다르다. 서비스가 50개면 클라이언트 인증서도 50종이고, 오토스케일로 인스턴스가 뜨고 죽을 때마다 인증서가 필요하다. 이걸 손으로 발급하는 건 불가능하다.</p> <p>처음엔 인증서 유효기간을 1년쯤 길게 잡고 싶은 유혹이 있는데, 길게 잡으면 그만큼 탈취됐을 때 노출 시간이 길어진다. 그래서 요즘은 오히려 유효기간을 짧게(몇 시간~며칠) 가져가고 자동으로 재발급하는 쪽으로 간다. 짧게 가면 폐기 목록(CRL/OCSP)을 관리할 필요도 줄어든다. 어차피 곧 만료되니까.</p> <p>로테이션에서 제일 중요한 건 무중단이다. 인증서를 교체하는 순간 기존 연결이 끊기거나 새 연결이 거부되면 안 된다. 핵심은 겹침 구간을 두는 것이다.</p> <ul> <li>새 인증서를 발급할 때 기존 인증서가 만료되기 한참 전에 미리 발급한다.</li> <li>서버의 CA 신뢰 목록에는 구 CA와 신 CA를 동시에 올려둔다(CA를 교체하는 경우).</li> <li>클라이언트가 새 인증서로 갈아탄 뒤에야 구 인증서를 폐기한다.</li> </ul> <p>CA 자체를 교체(rotation)할 때 이 겹침을 안 두면 대형 장애가 난다. 신 CA로 발급한 클라이언트가 접속했는데 서버가 아직 구 CA만 신뢰하고 있으면 전부 거부된다. 그래서 CA 교체는 "신 CA를 신뢰 목록에 추가 → 모든 워크로드를 신 CA 인증서로 전환 → 구 CA 제거" 순서를 반드시 지킨다. 중간 단계에서 둘 다 신뢰하는 구간이 있어야 한다.</p> <p>파일 기반으로 인증서를 마운트해 쓰는 서비스라면, 인증서 파일이 교체됐을 때 프로세스가 다시 읽도록 해야 한다. Nginx는 reload 신호를 줘야 새 인증서를 읽고, Envoy는 SDS(Secret Discovery Service)로 받으면 재시작 없이 갱신된다. 파일만 바꿔놓고 reload를 안 해서 만료된 인증서를 계속 쓰다가 터지는 사고가 흔하다.</p> <h2 id=spiffe와-svid>SPIFFE와 SVID<a class=headerlink href=#spiffe와-svid title="Permanent link">&para;</a></h2> <p>서비스가 많아지면 "이 인증서가 어느 서비스 것인가"를 사람이 정한 CN 문자열로 관리하는 게 한계에 부딪힌다. SPIFFE(Secure Production Identity Framework For Everyone)는 이 신원을 표준화한 규격이다.</p> <p>SPIFFE의 핵심은 SPIFFE ID라는 신원 식별자다. URI 형태로 생긴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>spiffe://example.org/ns/payment/sa/checkout-service
-</span></code></pre></div> <p>이 ID가 워크로드의 신원이다. 도메인(trust domain) <code>example.org</code> 아래에 네임스페이스 <code>payment</code>, 서비스 계정 <code>checkout-service</code>라는 식으로 계층 구조를 표현한다. 이 SPIFFE ID를 X.509 인증서의 SAN(URI 타입)에 박은 게 SVID(SPIFFE Verifiable Identity Document)다. 즉 SVID는 그냥 "SPIFFE ID가 SAN에 들어간 X.509 인증서"다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>X.509 SVID
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>  Subject Alternative Name:
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>    URI: spiffe://example.org/ns/payment/sa/checkout-service
-</span></code></pre></div> <p>이렇게 하면 서버가 클라이언트 인증서를 검증할 때 SAN의 URI를 보고 "아, 이건 payment 네임스페이스의 checkout 서비스구나"를 명확히 안다. CN에 호스트명을 적던 방식보다 신원이 분명하고, 권한 정책도 이 SPIFFE ID 기준으로 짤 수 있다.</p> <p>SPIFFE를 구현한 대표적인 게 SPIRE다. SPIRE는 워크로드를 증명(attestation)해서 SVID를 자동 발급하고, 짧은 주기로 로테이션까지 처리한다. 워크로드는 사설키를 직접 들고 다닐 필요 없이 SPIRE 에이전트한테서 SVID를 받아 쓴다. 서비스 메시 중에는 내부적으로 이 SPIFFE 신원 체계를 그대로 쓰는 것들이 있다.</p> <h2 id=서비스-메시에서의-mtls>서비스 메시에서의 mTLS<a class=headerlink href=#서비스-메시에서의-mtls title="Permanent link">&para;</a></h2> <p>내부 서비스가 수십 개일 때 각 서비스 코드에 mTLS 핸드셰이크와 인증서 로딩을 직접 넣는 건 현실적이지 않다. 서비스 메시는 이걸 사이드카 프록시로 빼낸다. 애플리케이션은 평문으로 통신한다고 생각하고, 옆에 붙은 프록시(Envoy 등)가 나가고 들어오는 트래픽을 가로채서 mTLS로 감싼다.</p> <pre class=mermaid-diagram><code>flowchart LR
+    C-&gt;&gt;S: Application Data</code></pre>
+<p>여기서 <code>CertificateRequest</code>와 <code>CertificateVerify</code> 두 메시지가 단방향 TLS에는 없는 부분이다. 나머지는 동일하다. TLS 1.3에서는 메시지 순서가 좀 다르고 <code>CertificateRequest</code>가 암호화된 구간에서 오가지만, "서버가 요구하면 클라이언트가 인증서와 서명을 낸다"는 본질은 같다.</p>
+<p>서버가 클라이언트 인증서를 검증할 때 보는 건 두 가지다. 첫째, 클라이언트 인증서가 서버가 신뢰하는 CA로 서명됐는가(체인 검증). 둘째, 그 인증서에 박힌 신원(CN 또는 SAN)이 허용된 대상인가. 첫 번째는 TLS 라이브러리가 자동으로 해주지만, 두 번째는 애플리케이션이나 프록시 설정에서 별도로 걸어줘야 하는 경우가 많다. 이걸 빼먹으면 "우리 CA가 발급한 인증서면 누구든 통과"가 되어서 mTLS를 하는 의미가 절반으로 준다.</p>
+<h2 id="ca-체인과-신뢰-구조">CA 체인과 신뢰 구조<a class="headerlink" href="#ca-체인과-신뢰-구조" title="Permanent link">&para;</a></h2>
+<p>mTLS에서 양쪽이 인증서를 검증하려면 공통의 신뢰 기준이 있어야 한다. 그게 CA(Certificate Authority)다. 외부 공개 서비스는 Let's Encrypt 같은 공인 CA를 쓰지만, 내부 서비스 간 mTLS는 거의 사설 CA(internal CA)를 직접 운영한다. 공인 CA는 클라이언트 인증서를 수백 개씩 발급해 주지도 않고, 내부 서비스 이름으로 인증서를 받을 수도 없기 때문이다.</p>
+<p>사설 CA 구조는 보통 루트 CA 하나에 중간 CA를 두고, 실제 서비스 인증서는 중간 CA로 발급한다. 루트 CA의 사설키는 평소에 오프라인으로 격리하고 중간 CA만 온라인에 두는 식이다. 루트가 털리면 전체 신뢰가 무너지지만 중간 CA는 폐기하고 재발급하면 되니까 위험을 분리하는 구조다.</p>
+<p>체인 검증은 잎(서비스 인증서)에서 시작해서 루트까지 거슬러 올라간다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>서비스 인증서 (leaf)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └─ 발급자: 중간 CA
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>       └─ 발급자: 루트 CA  ← 양쪽이 미리 신뢰 목록에 가지고 있어야 함
+</span></code></pre></div>
+<p>여기서 자주 터지는 게 중간 CA 인증서 누락이다. 서버가 leaf 인증서만 보내고 중간 CA를 빼먹으면, 클라이언트는 leaf의 발급자를 찾지 못해 체인을 못 잇는다. 브라우저는 AIA(Authority Information Access) 필드를 보고 중간 인증서를 알아서 받아오는 경우가 있어서 브라우저에선 되는데 curl이나 다른 서비스에선 깨지는 일이 생긴다. 그래서 서버는 항상 leaf + 중간 CA를 묶은 풀체인(fullchain)을 내보내야 한다.</p>
+<p>검증해 보려면 openssl로 직접 체인을 확인하는 게 빠르다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 서버가 실제로 내보내는 인증서 체인 확인</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>openssl<span class="w"> </span>s_client<span class="w"> </span>-connect<span class="w"> </span>api.internal:443<span class="w"> </span>-showcerts<span class="w"> </span>&lt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 클라이언트 인증서를 들고 mTLS 연결 시도</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>openssl<span class="w"> </span>s_client<span class="w"> </span>-connect<span class="w"> </span>api.internal:443<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span>-cert<span class="w"> </span>client.crt<span class="w"> </span>-key<span class="w"> </span>client.key<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span>-CAfile<span class="w"> </span>ca-chain.crt<span class="w"> </span>&lt;/dev/null
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># 인증서 하나를 CA 체인으로 검증</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>openssl<span class="w"> </span>verify<span class="w"> </span>-CAfile<span class="w"> </span>ca-chain.crt<span class="w"> </span>client.crt
+</span></code></pre></div>
+<p><code>openssl verify</code>가 <code>OK</code>를 내면 체인이 정상이다. <code>unable to get local issuer certificate</code>가 나오면 중간 CA가 빠진 것이고, <code>certificate has expired</code>면 만료다.</p>
+<h2 id="클라이언트-인증서-발급과-로테이션">클라이언트 인증서 발급과 로테이션<a class="headerlink" href="#클라이언트-인증서-발급과-로테이션" title="Permanent link">&para;</a></h2>
+<p>서버 인증서는 만료 관리만 잘하면 되지만, 클라이언트 인증서는 발급 대상이 서비스/워크로드 단위로 늘어나기 때문에 운영 부담이 다르다. 서비스가 50개면 클라이언트 인증서도 50종이고, 오토스케일로 인스턴스가 뜨고 죽을 때마다 인증서가 필요하다. 이걸 손으로 발급하는 건 불가능하다.</p>
+<p>처음엔 인증서 유효기간을 1년쯤 길게 잡고 싶은 유혹이 있는데, 길게 잡으면 그만큼 탈취됐을 때 노출 시간이 길어진다. 그래서 요즘은 오히려 유효기간을 짧게(몇 시간~며칠) 가져가고 자동으로 재발급하는 쪽으로 간다. 짧게 가면 폐기 목록(CRL/OCSP)을 관리할 필요도 줄어든다. 어차피 곧 만료되니까.</p>
+<p>로테이션에서 제일 중요한 건 무중단이다. 인증서를 교체하는 순간 기존 연결이 끊기거나 새 연결이 거부되면 안 된다. 핵심은 겹침 구간을 두는 것이다.</p>
+<ul>
+<li>새 인증서를 발급할 때 기존 인증서가 만료되기 한참 전에 미리 발급한다.</li>
+<li>서버의 CA 신뢰 목록에는 구 CA와 신 CA를 동시에 올려둔다(CA를 교체하는 경우).</li>
+<li>클라이언트가 새 인증서로 갈아탄 뒤에야 구 인증서를 폐기한다.</li>
+</ul>
+<p>CA 자체를 교체(rotation)할 때 이 겹침을 안 두면 대형 장애가 난다. 신 CA로 발급한 클라이언트가 접속했는데 서버가 아직 구 CA만 신뢰하고 있으면 전부 거부된다. 그래서 CA 교체는 "신 CA를 신뢰 목록에 추가 → 모든 워크로드를 신 CA 인증서로 전환 → 구 CA 제거" 순서를 반드시 지킨다. 중간 단계에서 둘 다 신뢰하는 구간이 있어야 한다.</p>
+<p>파일 기반으로 인증서를 마운트해 쓰는 서비스라면, 인증서 파일이 교체됐을 때 프로세스가 다시 읽도록 해야 한다. Nginx는 reload 신호를 줘야 새 인증서를 읽고, Envoy는 SDS(Secret Discovery Service)로 받으면 재시작 없이 갱신된다. 파일만 바꿔놓고 reload를 안 해서 만료된 인증서를 계속 쓰다가 터지는 사고가 흔하다.</p>
+<h2 id="spiffe와-svid">SPIFFE와 SVID<a class="headerlink" href="#spiffe와-svid" title="Permanent link">&para;</a></h2>
+<p>서비스가 많아지면 "이 인증서가 어느 서비스 것인가"를 사람이 정한 CN 문자열로 관리하는 게 한계에 부딪힌다. SPIFFE(Secure Production Identity Framework For Everyone)는 이 신원을 표준화한 규격이다.</p>
+<p>SPIFFE의 핵심은 SPIFFE ID라는 신원 식별자다. URI 형태로 생긴다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>spiffe://example.org/ns/payment/sa/checkout-service
+</span></code></pre></div>
+<p>이 ID가 워크로드의 신원이다. 도메인(trust domain) <code>example.org</code> 아래에 네임스페이스 <code>payment</code>, 서비스 계정 <code>checkout-service</code>라는 식으로 계층 구조를 표현한다. 이 SPIFFE ID를 X.509 인증서의 SAN(URI 타입)에 박은 게 SVID(SPIFFE Verifiable Identity Document)다. 즉 SVID는 그냥 "SPIFFE ID가 SAN에 들어간 X.509 인증서"다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>X.509 SVID
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  Subject Alternative Name:
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    URI: spiffe://example.org/ns/payment/sa/checkout-service
+</span></code></pre></div>
+<p>이렇게 하면 서버가 클라이언트 인증서를 검증할 때 SAN의 URI를 보고 "아, 이건 payment 네임스페이스의 checkout 서비스구나"를 명확히 안다. CN에 호스트명을 적던 방식보다 신원이 분명하고, 권한 정책도 이 SPIFFE ID 기준으로 짤 수 있다.</p>
+<p>SPIFFE를 구현한 대표적인 게 SPIRE다. SPIRE는 워크로드를 증명(attestation)해서 SVID를 자동 발급하고, 짧은 주기로 로테이션까지 처리한다. 워크로드는 사설키를 직접 들고 다닐 필요 없이 SPIRE 에이전트한테서 SVID를 받아 쓴다. 서비스 메시 중에는 내부적으로 이 SPIFFE 신원 체계를 그대로 쓰는 것들이 있다.</p>
+<h2 id="서비스-메시에서의-mtls">서비스 메시에서의 mTLS<a class="headerlink" href="#서비스-메시에서의-mtls" title="Permanent link">&para;</a></h2>
+<p>내부 서비스가 수십 개일 때 각 서비스 코드에 mTLS 핸드셰이크와 인증서 로딩을 직접 넣는 건 현실적이지 않다. 서비스 메시는 이걸 사이드카 프록시로 빼낸다. 애플리케이션은 평문으로 통신한다고 생각하고, 옆에 붙은 프록시(Envoy 등)가 나가고 들어오는 트래픽을 가로채서 mTLS로 감싼다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     A[서비스 A] --&gt;|평문| PA[사이드카 프록시 A]
     PA --&gt;|mTLS| PB[사이드카 프록시 B]
-    PB --&gt;|평문| B[서비스 B]</code></pre> <p>서비스 코드는 mTLS를 전혀 몰라도 된다. 프록시 사이 구간만 암호화·상호인증된다. 애플리케이션과 사이드카는 같은 파드/호스트 안 localhost로 붙으니까 그 구간은 외부에 노출되지 않는다.</p> <p>Istio는 이걸 기본으로 제공한다. PeerAuthentication 정책으로 mTLS 모드를 정한다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">security.istio.io/v1</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">PeerAuthentication</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=nt>metadata</span><span class=p>:</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span><span class=nt>namespace</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">payment</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=nt>spec</span><span class=p>:</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=w>  </span><span class=nt>mtls</span><span class=p>:</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a><span class=w>    </span><span class=nt>mode</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">STRICT</span>
-</span></code></pre></div> <p><code>STRICT</code>는 mTLS가 아닌 평문 연결을 전부 거부한다. <code>PERMISSIVE</code>는 평문과 mTLS를 둘 다 받는데, 이건 마이그레이션 중에만 쓰는 모드다. 기존 서비스를 메시에 점진적으로 넣을 때 일단 PERMISSIVE로 평문도 받다가, 전부 들어온 걸 확인하고 STRICT로 조인다. 처음부터 STRICT로 켜면 아직 사이드카가 안 붙은 서비스가 통신을 못 해서 장애가 난다.</p> <p>Istio는 인증서 발급·로테이션을 istiod(컨트롤 플레인)가 자동으로 처리한다. 각 워크로드의 SPIFFE ID는 서비스 계정 기준으로 자동 생성된다. 그래서 운영자가 인증서를 직접 만들 일이 거의 없다. 권한 정책(AuthorizationPolicy)도 이 SPIFFE ID(principal)로 "payment 네임스페이스의 checkout만 order 서비스를 호출 가능" 같은 규칙을 건다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">security.istio.io/v1</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">AuthorizationPolicy</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=nt>metadata</span><span class=p>:</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">order-allow-checkout</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>  </span><span class=nt>namespace</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">order</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=nt>spec</span><span class=p>:</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>  </span><span class=nt>rules</span><span class=p>:</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>from</span><span class=p>:</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>    </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>source</span><span class=p>:</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=w>        </span><span class=nt>principals</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>&quot;cluster.local/ns/payment/sa/checkout-service&quot;</span><span class="p p-Indicator">]</span>
-</span></code></pre></div> <p>Linkerd도 비슷하게 동작하는데, mTLS가 기본으로 켜져 있고 설정이 더 단순한 편이다. Linkerd는 메시 안에 들어온 TCP 트래픽을 자동으로 mTLS로 감싸고, 인증서 로테이션(기본 24시간 주기)도 알아서 한다. Istio가 설정 표면이 넓고 세밀한 제어가 되는 대신 복잡하다면, Linkerd는 "켜면 그냥 된다"는 쪽이다. 다만 Linkerd는 트러스트 앵커(루트 CA)를 직접 갈아끼울 때 수동 단계가 있어서, CA 만료 전에 미리 교체하는 작업을 까먹으면 메시 전체가 죽는 사고가 난다. 트러스트 앵커 만료일은 캘린더에 박아두는 게 안전하다.</p> <h2 id=제로트러스트에서의-위치>제로트러스트에서의 위치<a class=headerlink href=#제로트러스트에서의-위치 title="Permanent link">&para;</a></h2> <p>제로트러스트는 "내부망이니까 믿는다"를 버리는 모델이다. 네트워크 경계 안에 있다는 사실만으로는 아무것도 신뢰하지 않고, 모든 요청을 그 요청자의 신원으로 검증한다. 전통적인 모델은 방화벽 안쪽을 신뢰 구역으로 봤지만, 한 번 내부로 침투당하면 측면 이동(lateral movement)을 막을 수 없다는 게 문제였다.</p> <p>mTLS는 제로트러스트에서 서비스 간(workload-to-workload) 인증을 담당한다. 사람의 인증은 OIDC 토큰 같은 걸로 하지만, 서비스끼리는 사람이 없으니까 인증서가 신원이 된다. 모든 서비스 호출이 양방향 인증서 검증을 거치면, 침투한 공격자가 다른 서비스로 옮겨가려 해도 유효한 클라이언트 인증서가 없으면 막힌다. 평문 트래픽 자체를 거부하므로 내부망 스니핑도 무력화된다.</p> <p>여기서 mTLS는 신원 증명(authentication)까지만 한다. "이 서비스가 누구다"는 확인하지만, "이 서비스가 저 API를 호출할 권한이 있나"는 인가(authorization) 정책의 몫이다. 그래서 mTLS만 켜고 인가 정책을 안 짜면, 메시 안의 모든 서비스가 서로를 자유롭게 호출할 수 있는 상태가 된다. 신원은 분명한데 권한 통제가 없는 셈이다. SPIFFE ID나 인증서 신원을 기준으로 최소 권한 정책을 같이 걸어야 제로트러스트가 완성된다.</p> <h2 id=nginx-설정-예제>Nginx 설정 예제<a class=headerlink href=#nginx-설정-예제 title="Permanent link">&para;</a></h2> <p>Nginx로 mTLS를 거는 건 지시어 몇 개면 된다. 클라이언트 인증서를 검증할 CA를 지정하고, 검증을 강제하면 된다.</p> <div class="language-nginx highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=k>server</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>    </span><span class=kn>listen</span><span class=w> </span><span class=mi>443</span><span class=w> </span><span class=s>ssl</span><span class=p>;</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span><span class=kn>server_name</span><span class=w> </span><span class=s>api.internal</span><span class=p>;</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span><span class=c1># 서버 인증서 (단방향 TLS와 동일)</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>    </span><span class=kn>ssl_certificate</span><span class=w>     </span><span class=s>/etc/nginx/certs/server-fullchain.crt</span><span class=p>;</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>    </span><span class=kn>ssl_certificate_key</span><span class=w> </span><span class=s>/etc/nginx/certs/server.key</span><span class=p>;</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=w>    </span><span class=c1># 클라이언트 인증서를 검증할 CA 체인</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a><span class=w>    </span><span class=kn>ssl_client_certificate</span><span class=w> </span><span class=s>/etc/nginx/certs/client-ca-chain.crt</span><span class=p>;</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a><span class=w>    </span><span class=c1># on: 반드시 유효한 클라이언트 인증서 요구</span>
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a><span class=w>    </span><span class=c1># optional: 있으면 검증, 없어도 통과 (애플리케이션에서 분기)</span>
-</span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a><span class=w>    </span><span class=kn>ssl_verify_client</span><span class=w> </span><span class=no>on</span><span class=p>;</span>
-</span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a>
-</span><span id=__span-6-16><a id=__codelineno-6-16 name=__codelineno-6-16 href=#__codelineno-6-16></a><span class=w>    </span><span class=c1># 체인 깊이 (중간 CA가 있으면 2 이상으로)</span>
-</span><span id=__span-6-17><a id=__codelineno-6-17 name=__codelineno-6-17 href=#__codelineno-6-17></a><span class=w>    </span><span class=kn>ssl_verify_depth</span><span class=w> </span><span class=mi>2</span><span class=p>;</span>
-</span><span id=__span-6-18><a id=__codelineno-6-18 name=__codelineno-6-18 href=#__codelineno-6-18></a>
-</span><span id=__span-6-19><a id=__codelineno-6-19 name=__codelineno-6-19 href=#__codelineno-6-19></a><span class=w>    </span><span class=kn>location</span><span class=w> </span><span class=s>/</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-20><a id=__codelineno-6-20 name=__codelineno-6-20 href=#__codelineno-6-20></a><span class=w>        </span><span class=c1># 검증 결과와 클라이언트 신원을 백엔드로 전달</span>
-</span><span id=__span-6-21><a id=__codelineno-6-21 name=__codelineno-6-21 href=#__codelineno-6-21></a><span class=w>        </span><span class=kn>proxy_set_header</span><span class=w> </span><span class=s>X-Client-Verify</span><span class=w>  </span><span class=nv>$ssl_client_verify</span><span class=p>;</span>
-</span><span id=__span-6-22><a id=__codelineno-6-22 name=__codelineno-6-22 href=#__codelineno-6-22></a><span class=w>        </span><span class=kn>proxy_set_header</span><span class=w> </span><span class=s>X-Client-Subject</span><span class=w> </span><span class=nv>$ssl_client_s_dn</span><span class=p>;</span>
-</span><span id=__span-6-23><a id=__codelineno-6-23 name=__codelineno-6-23 href=#__codelineno-6-23></a><span class=w>        </span><span class=kn>proxy_pass</span><span class=w> </span><span class=s>http://backend</span><span class=p>;</span>
-</span><span id=__span-6-24><a id=__codelineno-6-24 name=__codelineno-6-24 href=#__codelineno-6-24></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-6-25><a id=__codelineno-6-25 name=__codelineno-6-25 href=#__codelineno-6-25></a><span class=p>}</span>
-</span></code></pre></div> <p><code>ssl_verify_client on</code>이면 유효한 클라이언트 인증서 없이는 핸드셰이크가 거부된다. <code>$ssl_client_verify</code>는 검증 결과(<code>SUCCESS</code>, <code>FAILED</code>, <code>NONE</code>)를 담고, <code>$ssl_client_s_dn</code>은 클라이언트 인증서의 Subject DN을 담는다. 이걸 헤더로 백엔드에 넘기면 애플리케이션이 "어느 클라이언트가 들어왔는지"를 알 수 있다.</p> <p>주의할 점이 있다. <code>ssl_verify_client on</code>은 CA 체인이 맞는지까지만 본다. 즉 그 CA로 발급된 인증서면 누구든 통과한다. 특정 클라이언트만 허용하려면 <code>$ssl_client_s_dn</code>이나 SAN을 보고 추가로 걸러야 한다. <code>optional</code>로 두고 애플리케이션에서 신원별로 분기하거나, Nginx map 지시어로 허용 목록을 만드는 식이다.</p> <div class="language-nginx highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 허용된 클라이언트 DN만 통과</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=k>map</span><span class=w> </span><span class=nv>$ssl_client_s_dn</span><span class=w> </span><span class=nv>$allowed</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>    </span><span class=kn>default</span><span class=w>                              </span><span class=mi>0</span><span class=p>;</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>    </span><span class=kn>&quot;CN=checkout,O=payment&quot;</span><span class=w>             </span><span class=mi>1</span><span class=p>;</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=w>    </span><span class=kn>&quot;CN=order,O=fulfillment&quot;</span><span class=w>            </span><span class=mi>1</span><span class=p>;</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=p>}</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=k>server</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=w>    </span><span class=c1># ...</span>
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a><span class=w>    </span><span class=kn>location</span><span class=w> </span><span class=s>/</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-11><a id=__codelineno-7-11 name=__codelineno-7-11 href=#__codelineno-7-11></a><span class=w>        </span><span class=kn>if</span><span class=w> </span><span class=s>(</span><span class=nv>$allowed</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=mi>0</span><span class=s>)</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=kn>return</span><span class=w> </span><span class=mi>403</span><span class=p>;</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-7-12><a id=__codelineno-7-12 name=__codelineno-7-12 href=#__codelineno-7-12></a><span class=w>        </span><span class=kn>proxy_pass</span><span class=w> </span><span class=s>http://backend</span><span class=p>;</span>
-</span><span id=__span-7-13><a id=__codelineno-7-13 name=__codelineno-7-13 href=#__codelineno-7-13></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-7-14><a id=__codelineno-7-14 name=__codelineno-7-14 href=#__codelineno-7-14></a><span class=p>}</span>
-</span></code></pre></div> <h2 id=envoy-설정-예제>Envoy 설정 예제<a class=headerlink href=#envoy-설정-예제 title="Permanent link">&para;</a></h2> <p>Envoy는 서비스 메시에서 쓰지만 단독으로도 mTLS를 건다. 리스너의 transport_socket에 양방향 검증을 설정한다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=nt>transport_socket</span><span class=p>:</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">envoy.transport_sockets.tls</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>  </span><span class=nt>typed_config</span><span class=p>:</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>    </span><span class=s>&quot;@type&quot;</span><span class="p p-Indicator">:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>    </span><span class=nt>require_client_certificate</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=w>    </span><span class=nt>common_tls_context</span><span class=p>:</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=w>      </span><span class=nt>tls_certificates</span><span class=p>:</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=w>        </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>certificate_chain</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">{</span><span class=nt> filename</span><span class=p>:</span><span class=w> </span><span class=s>&quot;/certs/server-fullchain.crt&quot;</span><span class=w> </span><span class="p p-Indicator">}</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=w>          </span><span class=nt>private_key</span><span class=p>:</span><span class=w>       </span><span class="p p-Indicator">{</span><span class=nt> filename</span><span class=p>:</span><span class=w> </span><span class=s>&quot;/certs/server.key&quot;</span><span class=w> </span><span class="p p-Indicator">}</span>
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a><span class=w>      </span><span class=nt>validation_context</span><span class=p>:</span>
-</span><span id=__span-8-11><a id=__codelineno-8-11 name=__codelineno-8-11 href=#__codelineno-8-11></a><span class=w>        </span><span class=nt>trusted_ca</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">{</span><span class=nt> filename</span><span class=p>:</span><span class=w> </span><span class=s>&quot;/certs/client-ca-chain.crt&quot;</span><span class=w> </span><span class="p p-Indicator">}</span>
-</span><span id=__span-8-12><a id=__codelineno-8-12 name=__codelineno-8-12 href=#__codelineno-8-12></a><span class=w>        </span><span class=c1># SAN으로 허용 클라이언트 신원 제한</span>
-</span><span id=__span-8-13><a id=__codelineno-8-13 name=__codelineno-8-13 href=#__codelineno-8-13></a><span class=w>        </span><span class=nt>match_typed_subject_alt_names</span><span class=p>:</span>
-</span><span id=__span-8-14><a id=__codelineno-8-14 name=__codelineno-8-14 href=#__codelineno-8-14></a><span class=w>          </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>san_type</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">URI</span>
-</span><span id=__span-8-15><a id=__codelineno-8-15 name=__codelineno-8-15 href=#__codelineno-8-15></a><span class=w>            </span><span class=nt>matcher</span><span class=p>:</span>
-</span><span id=__span-8-16><a id=__codelineno-8-16 name=__codelineno-8-16 href=#__codelineno-8-16></a><span class=w>              </span><span class=nt>prefix</span><span class=p>:</span><span class=w> </span><span class=s>&quot;spiffe://example.org/ns/payment/&quot;</span>
-</span></code></pre></div> <p><code>require_client_certificate: true</code>가 mTLS를 켜는 부분이고, <code>trusted_ca</code>로 클라이언트 인증서를 검증할 CA를 준다. <code>match_typed_subject_alt_names</code>가 Nginx에 없던 강점인데, SAN의 URI(SPIFFE ID)를 prefix로 매칭해서 "payment 네임스페이스 워크로드만 허용" 같은 신원 제한을 TLS 계층에서 바로 건다. 애플리케이션까지 안 가고 프록시가 거른다.</p> <p>운영 환경에서는 인증서를 파일로 박지 않고 SDS로 받는다. 그래야 인증서가 로테이션될 때 Envoy 재시작 없이 갱신된다. 파일 기반은 로테이션마다 reload가 필요해서, 짧은 주기 로테이션과 안 맞는다.</p> <h2 id=트러블슈팅>트러블슈팅<a class=headerlink href=#트러블슈팅 title="Permanent link">&para;</a></h2> <p>mTLS에서 핸드셰이크가 깨지는 원인은 거의 정해져 있다. 증상별로 정리한다.</p> <h3 id=인증서-만료>인증서 만료<a class=headerlink href=#인증서-만료 title="Permanent link">&para;</a></h3> <p>가장 흔하다. <code>certificate has expired</code> 또는 <code>certificate is not yet valid</code>가 로그에 찍힌다. 후자는 인증서 시작 시각이 미래인 경우인데, 보통 서버 간 시계가 안 맞아서(NTP 미동기화) 생긴다. 인증서는 유효 기간(notBefore ~ notAfter)을 절대 시각으로 박기 때문에, 검증하는 쪽 시계가 틀어지면 멀쩡한 인증서도 거부된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># 인증서 유효기간 확인</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>openssl<span class=w> </span>x509<span class=w> </span>-in<span class=w> </span>client.crt<span class=w> </span>-noout<span class=w> </span>-dates
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=c1># 남은 일수만 빠르게 보기</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>openssl<span class=w> </span>x509<span class=w> </span>-in<span class=w> </span>client.crt<span class=w> </span>-noout<span class=w> </span>-enddate
-</span></code></pre></div> <p>짧은 주기 로테이션을 쓰는데 갱신 파이프라인이 멈추면, 며칠 안에 전 서비스가 동시에 만료되는 사고로 번진다. 만료 임박 인증서를 모니터링으로 사전에 알람 거는 게 필수다.</p> <h3 id=cnsan-불일치>CN/SAN 불일치<a class=headerlink href=#cnsan-불일치 title="Permanent link">&para;</a></h3> <p>서버 인증서 검증에서 나는 문제다. 클라이언트가 <code>api.internal</code>로 접속했는데 서버 인증서의 SAN에 <code>api.internal</code>이 없으면 거부된다. 에러는 보통 이렇게 찍힌다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>x509: certificate is valid for api-internal, not api.internal
-</span></code></pre></div> <p>요즘 라이브러리(Go 1.15+, 최신 브라우저)는 CN을 아예 안 보고 SAN만 본다. 그래서 인증서에 CN만 넣고 SAN을 빼면, openssl로는 통과해도 실제 서비스에서는 깨진다. "예전엔 됐는데 라이브러리 업데이트하니까 안 된다"는 거의 이 케이스다. 인증서 발급할 때 SAN을 반드시 채워야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># 인증서에 박힌 SAN 확인</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>openssl<span class=w> </span>x509<span class=w> </span>-in<span class=w> </span>server.crt<span class=w> </span>-noout<span class=w> </span>-ext<span class=w> </span>subjectAltName
-</span></code></pre></div> <p>mTLS에서는 반대 방향도 같다. 서버가 클라이언트 인증서의 SAN(SPIFFE ID 등)으로 신원을 거는데, 클라이언트 인증서 SAN이 정책과 안 맞으면 서버가 핸드셰이크를 끊는다. 이때 클라이언트는 "연결이 그냥 리셋됐다"고만 보이고 이유를 모를 수 있으니, 서버 쪽 로그를 봐야 원인이 나온다.</p> <h3 id=클라이언트-인증서를-안-보냄>클라이언트 인증서를 안 보냄<a class=headerlink href=#클라이언트-인증서를-안-보냄 title="Permanent link">&para;</a></h3> <p>서버는 <code>require_client_certificate</code>로 인증서를 요구하는데 클라이언트가 안 보내면, 서버가 핸드셰이크를 끊는다. 클라이언트 쪽에선 <code>tls: certificate required</code> 또는 그냥 연결 종료로 보인다. curl이면 <code>--cert</code>, <code>--key</code> 옵션을 빠뜨린 경우다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># 클라이언트 인증서를 들고 호출</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>curl<span class=w> </span>https://api.internal/health<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=w>  </span>--cert<span class=w> </span>client.crt<span class=w> </span>--key<span class=w> </span>client.key<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=w>  </span>--cacert<span class=w> </span>ca-chain.crt
-</span></code></pre></div> <p><code>--cacert</code>까지 줘야 서버 인증서를 검증할 수 있다. 사설 CA라서 시스템 신뢰 저장소에 없기 때문이다. 이걸 빼면 <code>unable to verify the first certificate</code>가 난다.</p> <h3 id=체인-검증-실패>체인 검증 실패<a class=headerlink href=#체인-검증-실패 title="Permanent link">&para;</a></h3> <p><code>unable to get local issuer certificate</code>는 중간 CA가 빠진 것이다. 앞서 말한 풀체인 문제다. 서버가 leaf만 보내거나, 검증하는 쪽 <code>trusted_ca</code>/<code>ssl_client_certificate</code>에 중간 CA가 없으면 난다. 한쪽 끝(leaf)에서 루트까지 연결이 끊기지 않게 체인을 다 갖춰야 한다.</p> <p>체인을 확인하려면 <code>openssl s_client</code>의 출력에서 인증서가 몇 개 오는지 본다. leaf 하나만 오면 중간 CA가 빠진 것이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>openssl<span class=w> </span>s_client<span class=w> </span>-connect<span class=w> </span>api.internal:443<span class=w> </span>-showcerts<span class=w> </span>&lt;/dev/null<span class=w> </span><span class=m>2</span>&gt;/dev/null<span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=w>  </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-c<span class=w> </span><span class=s2>&quot;BEGIN CERTIFICATE&quot;</span>
-</span></code></pre></div> <h3 id=암호-스위트프로토콜-불일치>암호 스위트/프로토콜 불일치<a class=headerlink href=#암호-스위트프로토콜-불일치 title="Permanent link">&para;</a></h3> <p><code>no shared cipher</code>나 <code>handshake failure</code>가 나면 클라이언트와 서버가 합의할 수 있는 암호 스위트나 TLS 버전이 없는 경우다. 한쪽이 TLS 1.3만 받게 설정됐는데 다른 쪽이 1.2까지만 지원하면 난다. 보안 강화한다고 서버 쪽 허용 버전을 좁혔다가 구형 클라이언트를 끊어먹는 일이 있다. 어느 버전·스위트로 연결되는지 확인하려면 다음으로 본다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>openssl<span class=w> </span>s_client<span class=w> </span>-connect<span class=w> </span>api.internal:443<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=w>  </span>-cert<span class=w> </span>client.crt<span class=w> </span>-key<span class=w> </span>client.key<span class=w> </span>&lt;/dev/null<span class=w> </span><span class=m>2</span>&gt;/dev/null<span class=w> </span><span class=se>\</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=w>  </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-E<span class=w> </span><span class=s2>&quot;Protocol|Cipher&quot;</span>
-</span></code></pre></div> <p>핸드셰이크 문제는 양쪽 로그를 같이 봐야 한다. 클라이언트 로그만 보면 "연결이 끊겼다"는 것밖에 안 나오고, 진짜 거부 이유는 서버 쪽에 찍히는 경우가 대부분이다. mTLS 디버깅의 절반은 "어느 쪽이 끊었는가"를 먼저 가리는 일이다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../TLS_HTTPS/ >TLS와 HTTPS - 핸드셰이크 원리와 인증서 운영 실무</a></li> <li><a href=../Zero_Trust_Network/ >Zero Trust 네트워크</a></li> <li><a href=../../../WebServer/Nginx/Web_Socket_Proxy/ >Nginx WebSocket 프록시</a></li> <li><a href=../../GateWay/API_Gateway/ >API Gateway 심화</a></li> <li><a href=../../CORS/ >CORS - Origin, Preflight, 인증 쿠키, 인프라 설정</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../TLS_HTTPS/ class="md-footer__link md-footer__link--prev" aria-label="이전: TLS와 HTTPS"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> TLS와 HTTPS </div> </div> </a> <a href=../VPN/ class="md-footer__link md-footer__link--next" aria-label="다음: VPN"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> VPN </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+    PB --&gt;|평문| B[서비스 B]</code></pre>
+<p>서비스 코드는 mTLS를 전혀 몰라도 된다. 프록시 사이 구간만 암호화·상호인증된다. 애플리케이션과 사이드카는 같은 파드/호스트 안 localhost로 붙으니까 그 구간은 외부에 노출되지 않는다.</p>
+<p>Istio는 이걸 기본으로 제공한다. PeerAuthentication 정책으로 mTLS 모드를 정한다.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">security.istio.io/v1</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PeerAuthentication</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nt">metadata</span><span class="p">:</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">payment</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nt">spec</span><span class="p">:</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">mtls</span><span class="p">:</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STRICT</span>
+</span></code></pre></div>
+<p><code>STRICT</code>는 mTLS가 아닌 평문 연결을 전부 거부한다. <code>PERMISSIVE</code>는 평문과 mTLS를 둘 다 받는데, 이건 마이그레이션 중에만 쓰는 모드다. 기존 서비스를 메시에 점진적으로 넣을 때 일단 PERMISSIVE로 평문도 받다가, 전부 들어온 걸 확인하고 STRICT로 조인다. 처음부터 STRICT로 켜면 아직 사이드카가 안 붙은 서비스가 통신을 못 해서 장애가 난다.</p>
+<p>Istio는 인증서 발급·로테이션을 istiod(컨트롤 플레인)가 자동으로 처리한다. 각 워크로드의 SPIFFE ID는 서비스 계정 기준으로 자동 생성된다. 그래서 운영자가 인증서를 직접 만들 일이 거의 없다. 권한 정책(AuthorizationPolicy)도 이 SPIFFE ID(principal)로 "payment 네임스페이스의 checkout만 order 서비스를 호출 가능" 같은 규칙을 건다.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">security.istio.io/v1</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AuthorizationPolicy</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nt">metadata</span><span class="p">:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">order-allow-checkout</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">order</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nt">spec</span><span class="p">:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">from</span><span class="p">:</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">        </span><span class="nt">principals</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;cluster.local/ns/payment/sa/checkout-service&quot;</span><span class="p p-Indicator">]</span>
+</span></code></pre></div>
+<p>Linkerd도 비슷하게 동작하는데, mTLS가 기본으로 켜져 있고 설정이 더 단순한 편이다. Linkerd는 메시 안에 들어온 TCP 트래픽을 자동으로 mTLS로 감싸고, 인증서 로테이션(기본 24시간 주기)도 알아서 한다. Istio가 설정 표면이 넓고 세밀한 제어가 되는 대신 복잡하다면, Linkerd는 "켜면 그냥 된다"는 쪽이다. 다만 Linkerd는 트러스트 앵커(루트 CA)를 직접 갈아끼울 때 수동 단계가 있어서, CA 만료 전에 미리 교체하는 작업을 까먹으면 메시 전체가 죽는 사고가 난다. 트러스트 앵커 만료일은 캘린더에 박아두는 게 안전하다.</p>
+<h2 id="제로트러스트에서의-위치">제로트러스트에서의 위치<a class="headerlink" href="#제로트러스트에서의-위치" title="Permanent link">&para;</a></h2>
+<p>제로트러스트는 "내부망이니까 믿는다"를 버리는 모델이다. 네트워크 경계 안에 있다는 사실만으로는 아무것도 신뢰하지 않고, 모든 요청을 그 요청자의 신원으로 검증한다. 전통적인 모델은 방화벽 안쪽을 신뢰 구역으로 봤지만, 한 번 내부로 침투당하면 측면 이동(lateral movement)을 막을 수 없다는 게 문제였다.</p>
+<p>mTLS는 제로트러스트에서 서비스 간(workload-to-workload) 인증을 담당한다. 사람의 인증은 OIDC 토큰 같은 걸로 하지만, 서비스끼리는 사람이 없으니까 인증서가 신원이 된다. 모든 서비스 호출이 양방향 인증서 검증을 거치면, 침투한 공격자가 다른 서비스로 옮겨가려 해도 유효한 클라이언트 인증서가 없으면 막힌다. 평문 트래픽 자체를 거부하므로 내부망 스니핑도 무력화된다.</p>
+<p>여기서 mTLS는 신원 증명(authentication)까지만 한다. "이 서비스가 누구다"는 확인하지만, "이 서비스가 저 API를 호출할 권한이 있나"는 인가(authorization) 정책의 몫이다. 그래서 mTLS만 켜고 인가 정책을 안 짜면, 메시 안의 모든 서비스가 서로를 자유롭게 호출할 수 있는 상태가 된다. 신원은 분명한데 권한 통제가 없는 셈이다. SPIFFE ID나 인증서 신원을 기준으로 최소 권한 정책을 같이 걸어야 제로트러스트가 완성된다.</p>
+<h2 id="nginx-설정-예제">Nginx 설정 예제<a class="headerlink" href="#nginx-설정-예제" title="Permanent link">&para;</a></h2>
+<p>Nginx로 mTLS를 거는 건 지시어 몇 개면 된다. 클라이언트 인증서를 검증할 CA를 지정하고, 검증을 강제하면 된다.</p>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">server</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">443</span><span class="w"> </span><span class="s">ssl</span><span class="p">;</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="kn">server_name</span><span class="w"> </span><span class="s">api.internal</span><span class="p">;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="c1"># 서버 인증서 (단방향 TLS와 동일)</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="kn">ssl_certificate</span><span class="w">     </span><span class="s">/etc/nginx/certs/server-fullchain.crt</span><span class="p">;</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="kn">ssl_certificate_key</span><span class="w"> </span><span class="s">/etc/nginx/certs/server.key</span><span class="p">;</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="c1"># 클라이언트 인증서를 검증할 CA 체인</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="kn">ssl_client_certificate</span><span class="w"> </span><span class="s">/etc/nginx/certs/client-ca-chain.crt</span><span class="p">;</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">    </span><span class="c1"># on: 반드시 유효한 클라이언트 인증서 요구</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">    </span><span class="c1"># optional: 있으면 검증, 없어도 통과 (애플리케이션에서 분기)</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">    </span><span class="kn">ssl_verify_client</span><span class="w"> </span><span class="no">on</span><span class="p">;</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">    </span><span class="c1"># 체인 깊이 (중간 CA가 있으면 2 이상으로)</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">    </span><span class="kn">ssl_verify_depth</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">    </span><span class="kn">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">        </span><span class="c1"># 검증 결과와 클라이언트 신원을 백엔드로 전달</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="w">        </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Client-Verify</span><span class="w">  </span><span class="nv">$ssl_client_verify</span><span class="p">;</span>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="w">        </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Client-Subject</span><span class="w"> </span><span class="nv">$ssl_client_s_dn</span><span class="p">;</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="w">        </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://backend</span><span class="p">;</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>ssl_verify_client on</code>이면 유효한 클라이언트 인증서 없이는 핸드셰이크가 거부된다. <code>$ssl_client_verify</code>는 검증 결과(<code>SUCCESS</code>, <code>FAILED</code>, <code>NONE</code>)를 담고, <code>$ssl_client_s_dn</code>은 클라이언트 인증서의 Subject DN을 담는다. 이걸 헤더로 백엔드에 넘기면 애플리케이션이 "어느 클라이언트가 들어왔는지"를 알 수 있다.</p>
+<p>주의할 점이 있다. <code>ssl_verify_client on</code>은 CA 체인이 맞는지까지만 본다. 즉 그 CA로 발급된 인증서면 누구든 통과한다. 특정 클라이언트만 허용하려면 <code>$ssl_client_s_dn</code>이나 SAN을 보고 추가로 걸러야 한다. <code>optional</code>로 두고 애플리케이션에서 신원별로 분기하거나, Nginx map 지시어로 허용 목록을 만드는 식이다.</p>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 허용된 클라이언트 DN만 통과</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">map</span><span class="w"> </span><span class="nv">$ssl_client_s_dn</span><span class="w"> </span><span class="nv">$allowed</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="kn">default</span><span class="w">                              </span><span class="mi">0</span><span class="p">;</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="kn">&quot;CN=checkout,O=payment&quot;</span><span class="w">             </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="kn">&quot;CN=order,O=fulfillment&quot;</span><span class="w">            </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">}</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">server</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="c1"># ...</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="kn">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">        </span><span class="kn">if</span><span class="w"> </span><span class="s">(</span><span class="nv">$allowed</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="s">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kn">return</span><span class="w"> </span><span class="mi">403</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">        </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://backend</span><span class="p">;</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<h2 id="envoy-설정-예제">Envoy 설정 예제<a class="headerlink" href="#envoy-설정-예제" title="Permanent link">&para;</a></h2>
+<p>Envoy는 서비스 메시에서 쓰지만 단독으로도 mTLS를 건다. 리스너의 transport_socket에 양방향 검증을 설정한다.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">transport_socket</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">envoy.transport_sockets.tls</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">typed_config</span><span class="p">:</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="s">&quot;@type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">require_client_certificate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">common_tls_context</span><span class="p">:</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">      </span><span class="nt">tls_certificates</span><span class="p">:</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">certificate_chain</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> filename</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/certs/server-fullchain.crt&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">          </span><span class="nt">private_key</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">{</span><span class="nt"> filename</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/certs/server.key&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">      </span><span class="nt">validation_context</span><span class="p">:</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">        </span><span class="nt">trusted_ca</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> filename</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/certs/client-ca-chain.crt&quot;</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">        </span><span class="c1"># SAN으로 허용 클라이언트 신원 제한</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">        </span><span class="nt">match_typed_subject_alt_names</span><span class="p">:</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">san_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">URI</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">            </span><span class="nt">matcher</span><span class="p">:</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">              </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;spiffe://example.org/ns/payment/&quot;</span>
+</span></code></pre></div>
+<p><code>require_client_certificate: true</code>가 mTLS를 켜는 부분이고, <code>trusted_ca</code>로 클라이언트 인증서를 검증할 CA를 준다. <code>match_typed_subject_alt_names</code>가 Nginx에 없던 강점인데, SAN의 URI(SPIFFE ID)를 prefix로 매칭해서 "payment 네임스페이스 워크로드만 허용" 같은 신원 제한을 TLS 계층에서 바로 건다. 애플리케이션까지 안 가고 프록시가 거른다.</p>
+<p>운영 환경에서는 인증서를 파일로 박지 않고 SDS로 받는다. 그래야 인증서가 로테이션될 때 Envoy 재시작 없이 갱신된다. 파일 기반은 로테이션마다 reload가 필요해서, 짧은 주기 로테이션과 안 맞는다.</p>
+<h2 id="트러블슈팅">트러블슈팅<a class="headerlink" href="#트러블슈팅" title="Permanent link">&para;</a></h2>
+<p>mTLS에서 핸드셰이크가 깨지는 원인은 거의 정해져 있다. 증상별로 정리한다.</p>
+<h3 id="인증서-만료">인증서 만료<a class="headerlink" href="#인증서-만료" title="Permanent link">&para;</a></h3>
+<p>가장 흔하다. <code>certificate has expired</code> 또는 <code>certificate is not yet valid</code>가 로그에 찍힌다. 후자는 인증서 시작 시각이 미래인 경우인데, 보통 서버 간 시계가 안 맞아서(NTP 미동기화) 생긴다. 인증서는 유효 기간(notBefore ~ notAfter)을 절대 시각으로 박기 때문에, 검증하는 쪽 시계가 틀어지면 멀쩡한 인증서도 거부된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 인증서 유효기간 확인</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>openssl<span class="w"> </span>x509<span class="w"> </span>-in<span class="w"> </span>client.crt<span class="w"> </span>-noout<span class="w"> </span>-dates
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># 남은 일수만 빠르게 보기</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>openssl<span class="w"> </span>x509<span class="w"> </span>-in<span class="w"> </span>client.crt<span class="w"> </span>-noout<span class="w"> </span>-enddate
+</span></code></pre></div>
+<p>짧은 주기 로테이션을 쓰는데 갱신 파이프라인이 멈추면, 며칠 안에 전 서비스가 동시에 만료되는 사고로 번진다. 만료 임박 인증서를 모니터링으로 사전에 알람 거는 게 필수다.</p>
+<h3 id="cnsan-불일치">CN/SAN 불일치<a class="headerlink" href="#cnsan-불일치" title="Permanent link">&para;</a></h3>
+<p>서버 인증서 검증에서 나는 문제다. 클라이언트가 <code>api.internal</code>로 접속했는데 서버 인증서의 SAN에 <code>api.internal</code>이 없으면 거부된다. 에러는 보통 이렇게 찍힌다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>x509: certificate is valid for api-internal, not api.internal
+</span></code></pre></div>
+<p>요즘 라이브러리(Go 1.15+, 최신 브라우저)는 CN을 아예 안 보고 SAN만 본다. 그래서 인증서에 CN만 넣고 SAN을 빼면, openssl로는 통과해도 실제 서비스에서는 깨진다. "예전엔 됐는데 라이브러리 업데이트하니까 안 된다"는 거의 이 케이스다. 인증서 발급할 때 SAN을 반드시 채워야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 인증서에 박힌 SAN 확인</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>openssl<span class="w"> </span>x509<span class="w"> </span>-in<span class="w"> </span>server.crt<span class="w"> </span>-noout<span class="w"> </span>-ext<span class="w"> </span>subjectAltName
+</span></code></pre></div>
+<p>mTLS에서는 반대 방향도 같다. 서버가 클라이언트 인증서의 SAN(SPIFFE ID 등)으로 신원을 거는데, 클라이언트 인증서 SAN이 정책과 안 맞으면 서버가 핸드셰이크를 끊는다. 이때 클라이언트는 "연결이 그냥 리셋됐다"고만 보이고 이유를 모를 수 있으니, 서버 쪽 로그를 봐야 원인이 나온다.</p>
+<h3 id="클라이언트-인증서를-안-보냄">클라이언트 인증서를 안 보냄<a class="headerlink" href="#클라이언트-인증서를-안-보냄" title="Permanent link">&para;</a></h3>
+<p>서버는 <code>require_client_certificate</code>로 인증서를 요구하는데 클라이언트가 안 보내면, 서버가 핸드셰이크를 끊는다. 클라이언트 쪽에선 <code>tls: certificate required</code> 또는 그냥 연결 종료로 보인다. curl이면 <code>--cert</code>, <code>--key</code> 옵션을 빠뜨린 경우다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># 클라이언트 인증서를 들고 호출</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>curl<span class="w"> </span>https://api.internal/health<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>--cert<span class="w"> </span>client.crt<span class="w"> </span>--key<span class="w"> </span>client.key<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>--cacert<span class="w"> </span>ca-chain.crt
+</span></code></pre></div>
+<p><code>--cacert</code>까지 줘야 서버 인증서를 검증할 수 있다. 사설 CA라서 시스템 신뢰 저장소에 없기 때문이다. 이걸 빼면 <code>unable to verify the first certificate</code>가 난다.</p>
+<h3 id="체인-검증-실패">체인 검증 실패<a class="headerlink" href="#체인-검증-실패" title="Permanent link">&para;</a></h3>
+<p><code>unable to get local issuer certificate</code>는 중간 CA가 빠진 것이다. 앞서 말한 풀체인 문제다. 서버가 leaf만 보내거나, 검증하는 쪽 <code>trusted_ca</code>/<code>ssl_client_certificate</code>에 중간 CA가 없으면 난다. 한쪽 끝(leaf)에서 루트까지 연결이 끊기지 않게 체인을 다 갖춰야 한다.</p>
+<p>체인을 확인하려면 <code>openssl s_client</code>의 출력에서 인증서가 몇 개 오는지 본다. leaf 하나만 오면 중간 CA가 빠진 것이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>openssl<span class="w"> </span>s_client<span class="w"> </span>-connect<span class="w"> </span>api.internal:443<span class="w"> </span>-showcerts<span class="w"> </span>&lt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;BEGIN CERTIFICATE&quot;</span>
+</span></code></pre></div>
+<h3 id="암호-스위트프로토콜-불일치">암호 스위트/프로토콜 불일치<a class="headerlink" href="#암호-스위트프로토콜-불일치" title="Permanent link">&para;</a></h3>
+<p><code>no shared cipher</code>나 <code>handshake failure</code>가 나면 클라이언트와 서버가 합의할 수 있는 암호 스위트나 TLS 버전이 없는 경우다. 한쪽이 TLS 1.3만 받게 설정됐는데 다른 쪽이 1.2까지만 지원하면 난다. 보안 강화한다고 서버 쪽 허용 버전을 좁혔다가 구형 클라이언트를 끊어먹는 일이 있다. 어느 버전·스위트로 연결되는지 확인하려면 다음으로 본다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>openssl<span class="w"> </span>s_client<span class="w"> </span>-connect<span class="w"> </span>api.internal:443<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span>-cert<span class="w"> </span>client.crt<span class="w"> </span>-key<span class="w"> </span>client.key<span class="w"> </span>&lt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;Protocol|Cipher&quot;</span>
+</span></code></pre></div>
+<p>핸드셰이크 문제는 양쪽 로그를 같이 봐야 한다. 클라이언트 로그만 보면 "연결이 끊겼다"는 것밖에 안 나오고, 진짜 거부 이유는 서버 쪽에 찍히는 경우가 대부분이다. mTLS 디버깅의 절반은 "어느 쪽이 끊었는가"를 먼저 가리는 일이다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../TLS_HTTPS/">TLS와 HTTPS - 핸드셰이크 원리와 인증서 운영 실무</a></li>
+<li><a href="../Zero_Trust_Network/">Zero Trust 네트워크</a></li>
+<li><a href="../../../WebServer/Nginx/Web_Socket_Proxy/">Nginx WebSocket 프록시</a></li>
+<li><a href="../../GateWay/API_Gateway/">API Gateway 심화</a></li>
+<li><a href="../../CORS/">CORS - Origin, Preflight, 인증 쿠키, 인프라 설정</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../TLS_HTTPS/" class="md-footer__link md-footer__link--prev" aria-label="이전: TLS와 HTTPS">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                TLS와 HTTPS
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../VPN/" class="md-footer__link md-footer__link--next" aria-label="다음: VPN">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                VPN
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

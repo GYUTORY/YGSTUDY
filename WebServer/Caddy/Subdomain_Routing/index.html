@@ -1,217 +1,2585 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/WebServer/Caddy/Subdomain_Routing/ rel=canonical><link href=../Reverse_Proxy/ rel=prev><link href=../Headers_CORS/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Caddy 서브도메인 라우팅과 와일드카드 인증서 실무 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#caddy-서브도메인-라우팅과-와일드카드-인증서-실무 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Caddy 서브도메인 라우팅과 와일드카드 인증서 실무 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Cloud </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Web Server </span> </a> <label class="md-nav__link " for=__nav_6_3 id=__nav_6_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_3> <span class="md-nav__icon md-icon"></span> Web Server </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Nginx_vs_Caddy/ class=md-nav__link> <span class=md-ellipsis> Nginx vs Caddy </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Nginx/ class=md-nav__link> <span class=md-ellipsis> Nginx </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Apache/ class=md-nav__link> <span class=md-ellipsis> Apache </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_3_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Caddy </span> </a> <label class="md-nav__link " for=__nav_6_3_5 id=__nav_6_3_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_3_5_label aria-expanded=true> <label class=md-nav__title for=__nav_6_3_5> <span class="md-nav__icon md-icon"></span> Caddy </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Caddy/ class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Caddyfile_Syntax/ class=md-nav__link> <span class=md-ellipsis> 설정 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_3_5_4 checked> <label class=md-nav__link for=__nav_6_3_5_4 id=__nav_6_3_5_4_label tabindex=0> <span class=md-ellipsis> 프록시와 라우팅 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_3_5_4_label aria-expanded=true> <label class=md-nav__title for=__nav_6_3_5_4> <span class="md-nav__icon md-icon"></span> 프록시와 라우팅 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Reverse_Proxy/ class=md-nav__link> <span class=md-ellipsis> reverse_proxy 디렉티브 심화 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 서브도메인 라우팅과 와일드카드 인증서 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 서브도메인 라우팅과 와일드카드 인증서 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#왜-caddy에서-서브도메인이-까다로운가 class=md-nav__link> <span class=md-ellipsis> 왜 Caddy에서 서브도메인이 까다로운가 </span> </a> </li> <li class=md-nav__item> <a href=#사이트-블록-분리와-호스트-매처 class=md-nav__link> <span class=md-ellipsis> 사이트 블록 분리와 호스트 매처 </span> </a> </li> <li class=md-nav__item> <a href=#한-블록에서-여러-호스트-동시-처리 class=md-nav__link> <span class=md-ellipsis> 한 블록에서 여러 호스트 동시 처리 </span> </a> </li> <li class=md-nav__item> <a href=#와일드카드-호스트-매처와-placeholder class=md-nav__link> <span class=md-ellipsis> 와일드카드 호스트 매처와 placeholder </span> </a> </li> <li class=md-nav__item> <a href=#dns-01-챌린지와-와일드카드-인증서 class=md-nav__link> <span class=md-ellipsis> DNS-01 챌린지와 와일드카드 인증서 </span> </a> </li> <li class=md-nav__item> <a href=#와일드카드-san을-여러-사이트-블록에서-공유 class=md-nav__link> <span class=md-ellipsis> 와일드카드 SAN을 여러 사이트 블록에서 공유 </span> </a> </li> <li class=md-nav__item> <a href=#on-demand-tls--고객-커스텀-도메인 class=md-nav__link> <span class=md-ellipsis> On-Demand TLS — 고객 커스텀 도메인 </span> </a> </li> <li class=md-nav__item> <a href=#ask-엔드포인트가-죽으면-어떻게-되는가 class=md-nav__link> <span class=md-ellipsis> ask 엔드포인트가 죽으면 어떻게 되는가 </span> </a> </li> <li class=md-nav__item> <a href=#on-demand-무한-발급-사고-사례 class=md-nav__link> <span class=md-ellipsis> On-Demand 무한 발급 사고 사례 </span> </a> </li> <li class=md-nav__item> <a href=#멀티테넌트-라우팅과-x-tenant-헤더 class=md-nav__link> <span class=md-ellipsis> 멀티테넌트 라우팅과 X-Tenant 헤더 </span> </a> </li> <li class=md-nav__item> <a href=#apex와-서브도메인-동시-처리 class=md-nav__link> <span class=md-ellipsis> Apex와 서브도메인 동시 처리 </span> </a> </li> <li class=md-nav__item> <a href=#로컬-개발에서-와일드카드-자체-서명-인증서 class=md-nav__link> <span class=md-ellipsis> 로컬 개발에서 와일드카드 자체 서명 인증서 </span> </a> </li> <li class=md-nav__item> <a href=#www--apex-리다이렉트 class=md-nav__link> <span class=md-ellipsis> www ↔ apex 리다이렉트 </span> </a> </li> <li class=md-nav__item> <a href=#cloudflare-프록시-모드와-챌린지-충돌 class=md-nav__link> <span class=md-ellipsis> Cloudflare 프록시 모드와 챌린지 충돌 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅--발급-실패-진단 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 — 발급 실패 진단 </span> </a> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../Headers_CORS/ class=md-nav__link> <span class=md-ellipsis> 헤더 처리와 CORS </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../SSL_TLS/ class=md-nav__link> <span class=md-ellipsis> 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Logging_Monitoring/ class=md-nav__link> <span class=md-ellipsis> 운영 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Docker_Caddy/ class=md-nav__link> <span class=md-ellipsis> Docker </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#왜-caddy에서-서브도메인이-까다로운가 class=md-nav__link> <span class=md-ellipsis> 왜 Caddy에서 서브도메인이 까다로운가 </span> </a> </li> <li class=md-nav__item> <a href=#사이트-블록-분리와-호스트-매처 class=md-nav__link> <span class=md-ellipsis> 사이트 블록 분리와 호스트 매처 </span> </a> </li> <li class=md-nav__item> <a href=#한-블록에서-여러-호스트-동시-처리 class=md-nav__link> <span class=md-ellipsis> 한 블록에서 여러 호스트 동시 처리 </span> </a> </li> <li class=md-nav__item> <a href=#와일드카드-호스트-매처와-placeholder class=md-nav__link> <span class=md-ellipsis> 와일드카드 호스트 매처와 placeholder </span> </a> </li> <li class=md-nav__item> <a href=#dns-01-챌린지와-와일드카드-인증서 class=md-nav__link> <span class=md-ellipsis> DNS-01 챌린지와 와일드카드 인증서 </span> </a> </li> <li class=md-nav__item> <a href=#와일드카드-san을-여러-사이트-블록에서-공유 class=md-nav__link> <span class=md-ellipsis> 와일드카드 SAN을 여러 사이트 블록에서 공유 </span> </a> </li> <li class=md-nav__item> <a href=#on-demand-tls--고객-커스텀-도메인 class=md-nav__link> <span class=md-ellipsis> On-Demand TLS — 고객 커스텀 도메인 </span> </a> </li> <li class=md-nav__item> <a href=#ask-엔드포인트가-죽으면-어떻게-되는가 class=md-nav__link> <span class=md-ellipsis> ask 엔드포인트가 죽으면 어떻게 되는가 </span> </a> </li> <li class=md-nav__item> <a href=#on-demand-무한-발급-사고-사례 class=md-nav__link> <span class=md-ellipsis> On-Demand 무한 발급 사고 사례 </span> </a> </li> <li class=md-nav__item> <a href=#멀티테넌트-라우팅과-x-tenant-헤더 class=md-nav__link> <span class=md-ellipsis> 멀티테넌트 라우팅과 X-Tenant 헤더 </span> </a> </li> <li class=md-nav__item> <a href=#apex와-서브도메인-동시-처리 class=md-nav__link> <span class=md-ellipsis> Apex와 서브도메인 동시 처리 </span> </a> </li> <li class=md-nav__item> <a href=#로컬-개발에서-와일드카드-자체-서명-인증서 class=md-nav__link> <span class=md-ellipsis> 로컬 개발에서 와일드카드 자체 서명 인증서 </span> </a> </li> <li class=md-nav__item> <a href=#www--apex-리다이렉트 class=md-nav__link> <span class=md-ellipsis> www ↔ apex 리다이렉트 </span> </a> </li> <li class=md-nav__item> <a href=#cloudflare-프록시-모드와-챌린지-충돌 class=md-nav__link> <span class=md-ellipsis> Cloudflare 프록시 모드와 챌린지 충돌 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅--발급-실패-진단 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 — 발급 실패 진단 </span> </a> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>encryption</span> <span class=md-tag>web-server</span> </nav> <h1 id=caddy-서브도메인-라우팅과-와일드카드-인증서-실무>Caddy 서브도메인 라우팅과 와일드카드 인증서 실무<a class=headerlink href=#caddy-서브도메인-라우팅과-와일드카드-인증서-실무 title="Permanent link">&para;</a></h1> <h2 id=왜-caddy에서-서브도메인이-까다로운가>왜 Caddy에서 서브도메인이 까다로운가<a class=headerlink href=#왜-caddy에서-서브도메인이-까다로운가 title="Permanent link">&para;</a></h2> <p>Nginx에서 서브도메인은 그냥 <code>server_name</code>만 바꿔주면 끝나는 작업이다. Caddy는 HTTPS가 자동이라는 점이 오히려 서브도메인 운영에서 발목을 잡는다. 사이트 블록 하나당 인증서 한 장이 자동으로 붙는데, 와일드카드를 쓰려는 순간 갑자기 DNS 프로바이더 모듈을 직접 빌드해야 하고, 멀티테넌트 SaaS에서 고객이 자기 도메인을 붙여오면 그건 또 다른 메커니즘(On-Demand TLS)을 써야 한다. 이 세 갈래(서브도메인 정적 분기 / 와일드카드 / On-Demand)를 헷갈리면 인증서 발급이 무한 루프를 돌거나 Let's Encrypt rate limit에 걸려서 한참을 기다려야 한다.</p> <p>이 문서에서는 Caddyfile에서 서브도메인을 다루는 패턴을 정적인 것부터 동적 SaaS 호스팅까지 순서대로 정리한다.</p> <h2 id=사이트-블록-분리와-호스트-매처>사이트 블록 분리와 호스트 매처<a class=headerlink href=#사이트-블록-분리와-호스트-매처 title="Permanent link">&para;</a></h2> <p>가장 단순한 패턴은 서브도메인마다 사이트 블록을 따로 만드는 것이다. 각 블록의 첫 줄에 호스트명을 적으면 그게 곧 매처가 되고, Caddy가 그 호스트로 들어온 요청만 해당 블록에서 처리한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>api.example.com {
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    reverse_proxy localhost:3000
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>}
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>admin.example.com {
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>    basicauth {
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>        admin $2a$14$...해시값
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>    }
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>    reverse_proxy localhost:8080
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>}
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a>
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a>static.example.com {
-</span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a>    root * /var/www/static
-</span><span id=__span-0-14><a id=__codelineno-0-14 name=__codelineno-0-14 href=#__codelineno-0-14></a>    file_server
-</span><span id=__span-0-15><a id=__codelineno-0-15 name=__codelineno-0-15 href=#__codelineno-0-15></a>    encode gzip
-</span><span id=__span-0-16><a id=__codelineno-0-16 name=__codelineno-0-16 href=#__codelineno-0-16></a>}
-</span></code></pre></div> <p>이 방식의 장점은 사이트별로 인증서가 자동 발급되고, 설정이 깔끔하게 분리된다는 점이다. 단점은 서브도메인이 10개, 20개 늘어나면 Caddyfile이 길어지고, 새 서브도메인을 추가할 때마다 reload가 필요하다는 것이다.</p> <p>서브도메인 개수가 5~10개 수준이고 자주 바뀌지 않으면 이 패턴이 가장 안전하다. 인증서도 도메인별로 따로 관리되므로 한 도메인 발급이 실패해도 다른 도메인은 영향을 받지 않는다.</p> <h2 id=한-블록에서-여러-호스트-동시-처리>한 블록에서 여러 호스트 동시 처리<a class=headerlink href=#한-블록에서-여러-호스트-동시-처리 title="Permanent link">&para;</a></h2> <p>같은 백엔드를 가리키는 서브도메인이 여러 개라면 콤마로 묶어서 한 블록에 넣을 수 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>api.example.com, api-v2.example.com, internal-api.example.com {
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>    reverse_proxy localhost:3000
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>}
-</span></code></pre></div> <p>이렇게 쓰면 Caddy는 세 도메인 각각의 인증서를 발급한다. 와일드카드 한 장을 발급해서 공유하는 게 아니라 SAN에 세 도메인이 모두 들어간 인증서 또는 도메인별 개별 인증서를 받는다(버전과 설정에 따라 다름). Let's Encrypt는 하루 발급량 제한이 있으니 도메인이 많을수록 와일드카드로 가는 게 낫다.</p> <p>apex 도메인과 와일드카드를 동시에 받고 싶으면 다음처럼 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>example.com, *.example.com {
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>    @api host api.example.com
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>    handle @api {
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>        reverse_proxy localhost:3000
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>    }
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>    @admin host admin.example.com
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>    handle @admin {
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a>        reverse_proxy localhost:8080
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a>    }
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a>    handle {
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a>        root * /var/www/landing
-</span><span id=__span-2-14><a id=__codelineno-2-14 name=__codelineno-2-14 href=#__codelineno-2-14></a>        file_server
-</span><span id=__span-2-15><a id=__codelineno-2-15 name=__codelineno-2-15 href=#__codelineno-2-15></a>    }
-</span><span id=__span-2-16><a id=__codelineno-2-16 name=__codelineno-2-16 href=#__codelineno-2-16></a>}
-</span></code></pre></div> <p>이렇게 쓰면 와일드카드 인증서 한 장(apex 포함하려면 SAN에 두 항목)이 발급되고, 블록 내부에서 host 매처로 분기한다. handle은 첫 매치만 실행되므로 위에서 아래로 우선순위가 정해진다. 기본 handle은 매처가 없는 마지막에 두면 모든 미매치 요청을 처리한다.</p> <h2 id=와일드카드-호스트-매처와-placeholder>와일드카드 호스트 매처와 placeholder<a class=headerlink href=#와일드카드-호스트-매처와-placeholder title="Permanent link">&para;</a></h2> <p>서브도메인 슬러그를 동적으로 추출해서 백엔드에 넘기고 싶을 때 placeholder를 쓴다. Caddy는 호스트의 각 라벨을 <code>{labels.N}</code>으로 노출하는데, 인덱스는 오른쪽부터 0이다. <code>tenant1.example.com</code>이라면 <code>{labels.0}</code>은 <code>com</code>, <code>{labels.1}</code>은 <code>example</code>, <code>{labels.2}</code>는 <code>tenant1</code>이 된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>*.example.com {
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>    @tenant host_regexp tenant ^([a-z0-9-]+)\.example\.com$
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>    handle @tenant {
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>        header_up X-Tenant {labels.2}
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>        reverse_proxy localhost:3000
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a>    }
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a>    respond &quot;Invalid tenant&quot; 400
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a>}
-</span></code></pre></div> <p>처음 이걸 쓸 때 인덱스 방향을 거꾸로 알고 <code>{labels.0}</code>을 썼다가 한참 디버깅한 경험이 있다. <code>*.api.example.com</code>이라면 라벨이 4개니까 와일드카드 위치가 <code>{labels.3}</code>이 된다는 점도 주의해야 한다. 헷갈리면 다음처럼 일단 응답으로 찍어보고 확인하는 게 빠르다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>*.example.com {
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>    respond &quot;labels.0={labels.0} labels.1={labels.1} labels.2={labels.2}&quot;
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>}
-</span></code></pre></div> <p><code>host_regexp</code> 매처는 정규식으로 호스트를 잡으면서 캡처 그룹을 <code>{re.tenant.1}</code> 식으로 꺼낼 수 있다. labels로 추출이 애매하거나 슬러그 형식을 검증하고 싶으면 정규식이 더 편하다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>*.example.com {
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>    @valid host_regexp slug ^(?P&lt;slug&gt;[a-z][a-z0-9-]{2,30})\.example\.com$
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>    handle @valid {
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>        header_up X-Tenant {re.slug.slug}
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>        reverse_proxy localhost:3000
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>    }
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>    handle {
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>        respond &quot;Invalid subdomain&quot; 400
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>    }
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>}
-</span></code></pre></div> <h2 id=dns-01-챌린지와-와일드카드-인증서>DNS-01 챌린지와 와일드카드 인증서<a class=headerlink href=#dns-01-챌린지와-와일드카드-인증서 title="Permanent link">&para;</a></h2> <p><code>*.example.com</code> 같은 와일드카드는 Let's Encrypt에서 HTTP-01 챌린지로 받을 수 없다. 와일드카드는 무조건 DNS-01이다. DNS-01은 Caddy가 ACME 서버 요청을 받아서 <code>_acme-challenge.example.com</code> TXT 레코드를 만들고, ACME 서버가 그걸 조회해서 도메인 소유권을 확인하는 방식이다.</p> <p>문제는 Caddy 기본 빌드에 DNS 프로바이더 모듈이 없다는 점이다. xcaddy로 직접 빌드해야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># Cloudflare 사용 시</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>xcaddy<span class=w> </span>build<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span>--with<span class=w> </span>github.com/caddy-dns/cloudflare
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=c1># Route53</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>xcaddy<span class=w> </span>build<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>    </span>--with<span class=w> </span>github.com/caddy-dns/route53
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=c1># 여러 개 동시에</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>xcaddy<span class=w> </span>build<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a><span class=w>    </span>--with<span class=w> </span>github.com/caddy-dns/cloudflare<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a><span class=w>    </span>--with<span class=w> </span>github.com/caddy-dns/route53
-</span></code></pre></div> <p>빌드한 바이너리로 교체한 뒤 Caddyfile에 DNS 프로바이더 설정을 넣는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>*.example.com {
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>    tls {
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>        propagation_timeout 2m
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>        propagation_delay 30s
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>    }
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>    reverse_proxy localhost:3000
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>}
-</span></code></pre></div> <p><code>propagation_delay</code>는 TXT 레코드를 만든 뒤 ACME 서버가 조회하기 전에 기다리는 시간이다. 0으로 두면 DNS 캐시 때문에 발급이 실패하는 경우가 있다. Cloudflare는 보통 빠르게 전파되지만 30초 정도는 줘야 안정적이다. Route53은 더 짧아도 된다. 사내 DNS나 느린 프로바이더는 60~120초까지 늘려야 할 수도 있다.</p> <p><code>propagation_timeout</code>은 전파 대기를 포기하는 시점이다. 너무 짧으면 정상 발급도 실패로 처리되고, 너무 길면 장애 시 복구가 늦어진다. 2분이 보통 무난하다.</p> <p>API 토큰 권한 설정도 까다롭다. Cloudflare의 경우 <code>Zone:Read</code>와 <code>DNS:Edit</code> 두 권한이 필요한데, 이걸 빼먹으면 발급은 시도하는데 TXT 레코드를 못 만들어서 무한히 재시도한다. 로그에 <code>403 Forbidden</code>이 찍히면 토큰 권한부터 확인해야 한다.</p> <h2 id=와일드카드-san을-여러-사이트-블록에서-공유>와일드카드 SAN을 여러 사이트 블록에서 공유<a class=headerlink href=#와일드카드-san을-여러-사이트-블록에서-공유 title="Permanent link">&para;</a></h2> <p>이게 처음에는 헷갈리는데, Caddy는 사이트 블록마다 따로 인증서를 받는 게 기본이다. 와일드카드 한 장을 발급해서 여러 블록에서 쓰고 싶으면 명시적으로 호스트 목록에 와일드카드를 포함시켜야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>*.example.com {
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>    tls {
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>    }
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>    @api host api.example.com
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>    handle @api {
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a>        reverse_proxy localhost:3000
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a>    }
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a>
-</span><span id=__span-8-11><a id=__codelineno-8-11 name=__codelineno-8-11 href=#__codelineno-8-11></a>    @admin host admin.example.com
-</span><span id=__span-8-12><a id=__codelineno-8-12 name=__codelineno-8-12 href=#__codelineno-8-12></a>    handle @admin {
-</span><span id=__span-8-13><a id=__codelineno-8-13 name=__codelineno-8-13 href=#__codelineno-8-13></a>        reverse_proxy localhost:8080
-</span><span id=__span-8-14><a id=__codelineno-8-14 name=__codelineno-8-14 href=#__codelineno-8-14></a>    }
-</span><span id=__span-8-15><a id=__codelineno-8-15 name=__codelineno-8-15 href=#__codelineno-8-15></a>
-</span><span id=__span-8-16><a id=__codelineno-8-16 name=__codelineno-8-16 href=#__codelineno-8-16></a>    handle {
-</span><span id=__span-8-17><a id=__codelineno-8-17 name=__codelineno-8-17 href=#__codelineno-8-17></a>        respond &quot;Unknown subdomain&quot; 404
-</span><span id=__span-8-18><a id=__codelineno-8-18 name=__codelineno-8-18 href=#__codelineno-8-18></a>    }
-</span><span id=__span-8-19><a id=__codelineno-8-19 name=__codelineno-8-19 href=#__codelineno-8-19></a>}
-</span></code></pre></div> <p>이렇게 한 블록 안에서 와일드카드로 받은 인증서를 모든 서브도메인이 공유한다. 발급 횟수가 1회로 끝나고 Let's Encrypt rate limit에서 자유롭다. 단점은 블록 하나가 거대해지고, 한 서브도메인에만 특수한 설정(별도 미들웨어, 다른 timeout 등)을 넣기 어렵다는 점이다.</p> <p>서브도메인별로 블록을 분리하면서도 와일드카드 인증서를 공유하고 싶으면 글로벌 옵션 블록에서 자동 HTTPS 정책을 잡거나, 각 블록에 동일한 <code>tls</code> 지시어를 반복해서 넣는다. 같은 와일드카드 호스트를 가진 여러 블록은 Caddy가 인증서를 공유하도록 동작한다.</p> <h2 id=on-demand-tls--고객-커스텀-도메인>On-Demand TLS — 고객 커스텀 도메인<a class=headerlink href=#on-demand-tls--고객-커스텀-도메인 title="Permanent link">&para;</a></h2> <p>SaaS를 운영하다 보면 고객이 자기 도메인(<code>shop.customer.com</code>)을 우리 서비스에 연결하고 싶다는 요구가 들어온다. 우리는 그 도메인이 뭐가 들어올지 미리 모르고, Caddyfile에 박아둘 수도 없다. 이때 쓰는 게 On-Demand TLS다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>{
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>    on_demand_tls {
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>        ask http://localhost:9000/check-domain
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>        interval 2m
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>        burst 5
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>    }
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>}
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a>https:// {
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a>    tls {
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a>        on_demand
-</span><span id=__span-9-12><a id=__codelineno-9-12 name=__codelineno-9-12 href=#__codelineno-9-12></a>    }
-</span><span id=__span-9-13><a id=__codelineno-9-13 name=__codelineno-9-13 href=#__codelineno-9-13></a>    reverse_proxy localhost:3000
-</span><span id=__span-9-14><a id=__codelineno-9-14 name=__codelineno-9-14 href=#__codelineno-9-14></a>}
-</span></code></pre></div> <p>동작 흐름은 이렇다. 어떤 도메인으로 TLS 핸드셰이크가 들어오면 Caddy는 먼저 <code>ask</code> 엔드포인트에 <code>GET /check-domain?domain=shop.customer.com</code>을 보낸다. 200을 받으면 그 도메인으로 Let's Encrypt 발급을 시도하고, 200이 아니면 발급을 거부한다. <code>interval</code>과 <code>burst</code>는 발급 시도 간격과 동시 발급 한도다.</p> <p><code>ask</code> 엔드포인트는 우리 백엔드에서 직접 구현해야 한다. 보통은 DB에 등록된 고객 도메인 목록을 조회해서 매치되면 200, 아니면 404를 반환한다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1>// Express 예시</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=nx>app</span><span class=p>.</span><span class=nx>get</span><span class=p>(</span><span class=s1>&#39;/check-domain&#39;</span><span class=p>,</span><span class=w> </span><span class=k>async</span><span class=w> </span><span class=p>(</span><span class=nx>req</span><span class=p>,</span><span class=w> </span><span class=nx>res</span><span class=p>)</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=nx>domain</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>req</span><span class=p>.</span><span class=nx>query</span><span class=p>.</span><span class=nx>domain</span><span class=p>;</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=nx>domain</span><span class=p>)</span><span class=w> </span><span class=k>return</span><span class=w> </span><span class=nx>res</span><span class=p>.</span><span class=nx>status</span><span class=p>(</span><span class=mf>400</span><span class=p>).</span><span class=nx>send</span><span class=p>(</span><span class=s1>&#39;missing domain&#39;</span><span class=p>);</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=nx>exists</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>db</span><span class=p>.</span><span class=nx>customerDomains</span><span class=p>.</span><span class=nx>exists</span><span class=p>({</span><span class=w> </span><span class=nx>domain</span><span class=w> </span><span class=p>});</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=nx>exists</span><span class=p>)</span><span class=w> </span><span class=k>return</span><span class=w> </span><span class=nx>res</span><span class=p>.</span><span class=nx>status</span><span class=p>(</span><span class=mf>404</span><span class=p>).</span><span class=nx>send</span><span class=p>(</span><span class=s1>&#39;not registered&#39;</span><span class=p>);</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a><span class=w>    </span><span class=nx>res</span><span class=p>.</span><span class=nx>status</span><span class=p>(</span><span class=mf>200</span><span class=p>).</span><span class=nx>send</span><span class=p>(</span><span class=s1>&#39;ok&#39;</span><span class=p>);</span>
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a><span class=p>});</span>
-</span></code></pre></div> <p><code>ask</code>를 절대 빼면 안 된다. 빼면 누구나 임의의 도메인으로 핸드셰이크를 시도해서 우리 Caddy가 그 도메인으로 발급을 시도하게 만들 수 있다. Let's Encrypt는 IP당, 계정당 발급 한도가 있어서 공격자가 무작위 도메인 수천 개로 핸드셰이크를 던지면 우리 계정이 rate limit에 걸려 정상 고객 도메인도 발급이 막힌다. 한번 막히면 일주일 가까이 풀리지 않는다.</p> <p>첫 핸드셰이크는 발급 대기 때문에 5~30초 지연된다. 이게 사용자 입장에서는 "사이트가 멈췄다"로 느껴진다. 운영에서는 고객이 도메인을 등록하는 시점에 백엔드에서 먼저 핸드셰이크를 시뮬레이션해서 인증서를 미리 받아두는 워밍업 작업을 하는 게 좋다. <code>curl https://shop.customer.com -k</code>만 백엔드에서 한 번 쳐도 Caddy가 발급을 시작한다.</p> <h2 id=ask-엔드포인트가-죽으면-어떻게-되는가>ask 엔드포인트가 죽으면 어떻게 되는가<a class=headerlink href=#ask-엔드포인트가-죽으면-어떻게-되는가 title="Permanent link">&para;</a></h2> <p>운영하다가 한 번씩 마주치는 상황인데, <code>ask</code> 엔드포인트가 5xx를 뱉거나 응답이 없으면 Caddy는 기본적으로 발급을 거부한다. 즉 새 도메인의 첫 핸드셰이크가 모두 실패한다. 이미 발급받은 인증서로 들어오는 기존 트래픽은 영향이 없다.</p> <p>이게 무서운 이유는 <code>ask</code> 백엔드가 단일 장애점이 된다는 것이다. 백엔드 하나가 죽으면 신규 고객 온보딩이 막힌다. 그래서 <code>ask</code> 엔드포인트는 보통 별도의 가벼운 서비스로 빼거나, 메인 백엔드와 분리된 readonly DB 복제본을 보게 만든다. 캐시도 적극적으로 쓴다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=kd>const</span><span class=w> </span><span class=nx>NodeCache</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;node-cache&#39;</span><span class=p>);</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=kd>const</span><span class=w> </span><span class=nx>cache</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=ow>new</span><span class=w> </span><span class=nx>NodeCache</span><span class=p>({</span><span class=w> </span><span class=nx>stdTTL</span><span class=o>:</span><span class=w> </span><span class=mf>300</span><span class=w> </span><span class=p>});</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=nx>app</span><span class=p>.</span><span class=nx>get</span><span class=p>(</span><span class=s1>&#39;/check-domain&#39;</span><span class=p>,</span><span class=w> </span><span class=k>async</span><span class=w> </span><span class=p>(</span><span class=nx>req</span><span class=p>,</span><span class=w> </span><span class=nx>res</span><span class=p>)</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=nx>domain</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>req</span><span class=p>.</span><span class=nx>query</span><span class=p>.</span><span class=nx>domain</span><span class=p>;</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=nx>cached</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>cache</span><span class=p>.</span><span class=nx>get</span><span class=p>(</span><span class=nx>domain</span><span class=p>);</span>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=nx>cached</span><span class=w> </span><span class=o>!==</span><span class=w> </span><span class=kc>undefined</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=nx>res</span><span class=p>.</span><span class=nx>status</span><span class=p>(</span><span class=nx>cached</span><span class=w> </span><span class=o>?</span><span class=w> </span><span class=mf>200</span><span class=w> </span><span class=o>:</span><span class=w> </span><span class=mf>404</span><span class=p>).</span><span class=nx>send</span><span class=p>();</span>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a>
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=nx>exists</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>db</span><span class=p>.</span><span class=nx>customerDomains</span><span class=p>.</span><span class=nx>exists</span><span class=p>({</span><span class=w> </span><span class=nx>domain</span><span class=w> </span><span class=p>});</span>
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a><span class=w>    </span><span class=nx>cache</span><span class=p>.</span><span class=nx>set</span><span class=p>(</span><span class=nx>domain</span><span class=p>,</span><span class=w> </span><span class=nx>exists</span><span class=p>);</span>
-</span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a><span class=w>    </span><span class=nx>res</span><span class=p>.</span><span class=nx>status</span><span class=p>(</span><span class=nx>exists</span><span class=w> </span><span class=o>?</span><span class=w> </span><span class=mf>200</span><span class=w> </span><span class=o>:</span><span class=w> </span><span class=mf>404</span><span class=p>).</span><span class=nx>send</span><span class=p>();</span>
-</span><span id=__span-11-14><a id=__codelineno-11-14 name=__codelineno-11-14 href=#__codelineno-11-14></a><span class=p>});</span>
-</span></code></pre></div> <p>5분 캐시면 발급 시도 빈도와 DB 부하가 적당히 균형이 맞는다. 고객 도메인 등록/해제 시 캐시 무효화 처리만 잘 해두면 된다.</p> <h2 id=on-demand-무한-발급-사고-사례>On-Demand 무한 발급 사고 사례<a class=headerlink href=#on-demand-무한-발급-사고-사례 title="Permanent link">&para;</a></h2> <p>한 번은 <code>ask</code> 엔드포인트의 검증 로직이 잘못 짜여서 모든 도메인에 200을 돌려주게 한 적이 있다. 그 사이에 봇이 임의 도메인으로 핸드셰이크를 던지기 시작했고, Caddy가 1시간 동안 수백 건의 발급 시도를 했다. 결과는 Let's Encrypt 계정 rate limit. 정상 고객이 새로 도메인을 등록해도 발급이 안 됐다.</p> <p>이걸 방지하려면 <code>ask</code> 엔드포인트에서 화이트리스트 검증을 엄격하게 해야 하고, On-Demand 사용 시 글로벌 옵션의 <code>interval</code>과 <code>burst</code>를 보수적으로 잡아야 한다. <code>burst 5</code>는 동시 발급 5개라는 뜻인데, 정상 SaaS라면 분당 5개도 많은 편이다. 본인 트래픽 패턴을 보고 조정하면 된다.</p> <p>추가로 ZeroSSL을 fallback으로 묶어두면 한 CA가 막혀도 다른 CA로 발급을 시도한다. Caddy 기본 설정이 이미 Let's Encrypt → ZeroSSL 순으로 fallback 한다.</p> <h2 id=멀티테넌트-라우팅과-x-tenant-헤더>멀티테넌트 라우팅과 X-Tenant 헤더<a class=headerlink href=#멀티테넌트-라우팅과-x-tenant-헤더 title="Permanent link">&para;</a></h2> <p>서브도메인으로 테넌트를 식별하는 SaaS 패턴에서는 보통 백엔드가 같고, 호스트만 보고 어느 테넌트의 데이터를 가져올지 정한다. Caddy에서 placeholder로 슬러그를 뽑아 헤더에 넣어주면 백엔드는 단순히 <code>X-Tenant</code> 헤더만 읽으면 된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>*.app.example.com {
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>    tls {
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a>    }
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>    @valid host_regexp tenant ^(?P&lt;slug&gt;[a-z][a-z0-9-]{2,30})\.app\.example\.com$
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>    handle @valid {
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a>        reverse_proxy localhost:3000 {
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a>            header_up X-Tenant {re.tenant.slug}
-</span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a>            header_up X-Original-Host {host}
-</span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a>        }
-</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a>    }
-</span><span id=__span-12-14><a id=__codelineno-12-14 name=__codelineno-12-14 href=#__codelineno-12-14></a>
-</span><span id=__span-12-15><a id=__codelineno-12-15 name=__codelineno-12-15 href=#__codelineno-12-15></a>    handle {
-</span><span id=__span-12-16><a id=__codelineno-12-16 name=__codelineno-12-16 href=#__codelineno-12-16></a>        respond &quot;Invalid tenant slug&quot; 400
-</span><span id=__span-12-17><a id=__codelineno-12-17 name=__codelineno-12-17 href=#__codelineno-12-17></a>    }
-</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a>}
-</span></code></pre></div> <p><code>header_up</code>은 Caddy가 백엔드로 요청을 보낼 때 추가하는 헤더다. 클라이언트가 보낸 헤더는 그대로 통과하므로, 클라이언트가 <code>X-Tenant: admin</code>을 직접 보내서 권한 우회를 노릴 수도 있다. <code>header_up X-Tenant</code>는 클라이언트가 보낸 같은 이름의 헤더를 덮어쓴다. 그래도 백엔드 코드에서는 항상 <code>X-Tenant</code>를 신뢰할 수 있는 출처(Caddy)에서만 받는다고 가정해야 한다. 외부 노출된 다른 경로로도 백엔드에 도달할 수 있다면 위험하다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>handle @valid {
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>    request_header -X-Tenant
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>    reverse_proxy localhost:3000 {
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>        header_up X-Tenant {re.tenant.slug}
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>    }
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a>}
-</span></code></pre></div> <p><code>request_header -X-Tenant</code>로 클라이언트가 보낸 헤더를 먼저 제거한 뒤 우리가 다시 추가하면 더 안전하다.</p> <h2 id=apex와-서브도메인-동시-처리>Apex와 서브도메인 동시 처리<a class=headerlink href=#apex와-서브도메인-동시-처리 title="Permanent link">&para;</a></h2> <p>apex 도메인(<code>example.com</code>)은 와일드카드 <code>*.example.com</code>에 매칭되지 않는다. 와일드카드는 정확히 한 라벨만 매치한다. 따라서 두 패턴을 모두 다루려면 명시적으로 둘 다 적어야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>example.com {
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>    redir https://www.example.com{uri} permanent
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>}
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>www.example.com, *.example.com {
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a>    tls {
-</span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-</span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a>    }
-</span><span id=__span-14-9><a id=__codelineno-14-9 name=__codelineno-14-9 href=#__codelineno-14-9></a>
-</span><span id=__span-14-10><a id=__codelineno-14-10 name=__codelineno-14-10 href=#__codelineno-14-10></a>    @www host www.example.com
-</span><span id=__span-14-11><a id=__codelineno-14-11 name=__codelineno-14-11 href=#__codelineno-14-11></a>    handle @www {
-</span><span id=__span-14-12><a id=__codelineno-14-12 name=__codelineno-14-12 href=#__codelineno-14-12></a>        root * /var/www/landing
-</span><span id=__span-14-13><a id=__codelineno-14-13 name=__codelineno-14-13 href=#__codelineno-14-13></a>        file_server
-</span><span id=__span-14-14><a id=__codelineno-14-14 name=__codelineno-14-14 href=#__codelineno-14-14></a>    }
-</span><span id=__span-14-15><a id=__codelineno-14-15 name=__codelineno-14-15 href=#__codelineno-14-15></a>
-</span><span id=__span-14-16><a id=__codelineno-14-16 name=__codelineno-14-16 href=#__codelineno-14-16></a>    @app host_regexp tenant ^(?P&lt;slug&gt;[a-z][a-z0-9-]+)\.example\.com$
-</span><span id=__span-14-17><a id=__codelineno-14-17 name=__codelineno-14-17 href=#__codelineno-14-17></a>    handle @app {
-</span><span id=__span-14-18><a id=__codelineno-14-18 name=__codelineno-14-18 href=#__codelineno-14-18></a>        reverse_proxy localhost:3000 {
-</span><span id=__span-14-19><a id=__codelineno-14-19 name=__codelineno-14-19 href=#__codelineno-14-19></a>            header_up X-Tenant {re.tenant.slug}
-</span><span id=__span-14-20><a id=__codelineno-14-20 name=__codelineno-14-20 href=#__codelineno-14-20></a>        }
-</span><span id=__span-14-21><a id=__codelineno-14-21 name=__codelineno-14-21 href=#__codelineno-14-21></a>    }
-</span><span id=__span-14-22><a id=__codelineno-14-22 name=__codelineno-14-22 href=#__codelineno-14-22></a>}
-</span></code></pre></div> <p>apex는 따로 처리해서 www로 리다이렉트하고, www와 와일드카드를 한 블록에 묶어서 와일드카드 인증서 한 장을 받는다. 이 패턴이 SaaS에서 가장 흔하다.</p> <p>반대로 www를 apex로 합치고 싶으면 방향만 바꾸면 된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a>www.example.com {
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>    redir https://example.com{uri} permanent
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>}
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>example.com, *.example.com {
-</span><span id=__span-15-6><a id=__codelineno-15-6 name=__codelineno-15-6 href=#__codelineno-15-6></a>    # ...
-</span><span id=__span-15-7><a id=__codelineno-15-7 name=__codelineno-15-7 href=#__codelineno-15-7></a>}
-</span></code></pre></div> <p>이때 한 가지 함정이 있다. apex와 와일드카드가 동시에 들어가면 SAN 두 개짜리 인증서가 필요한데, DNS-01 챌린지가 두 도메인 모두에 대해 통과해야 한다. Cloudflare 같은 프로바이더는 보통 문제가 없지만, apex만 다른 DNS 운영사에 맡기고 서브도메인은 자체 운영하는 식으로 분리되어 있으면 한쪽만 발급에 실패해서 전체가 안 된다. 발급 로그를 보면 어느 도메인에서 막혔는지 나온다.</p> <h2 id=로컬-개발에서-와일드카드-자체-서명-인증서>로컬 개발에서 와일드카드 자체 서명 인증서<a class=headerlink href=#로컬-개발에서-와일드카드-자체-서명-인증서 title="Permanent link">&para;</a></h2> <p>운영에서 <code>*.example.com</code>을 쓰면 로컬에서 테스트할 때도 비슷한 환경을 만들고 싶다. <code>*.localhost</code>는 모든 OS에서 자동으로 127.0.0.1로 해석되므로 hosts 파일 수정 없이 와일드카드 도메인을 흉내낼 수 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a>*.localhost {
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>    tls internal
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a>    @tenant host_regexp slug ^(?P&lt;slug&gt;[a-z0-9-]+)\.localhost$
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a>    handle @tenant {
-</span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a>        header_up X-Tenant {re.slug.slug}
-</span><span id=__span-16-7><a id=__codelineno-16-7 name=__codelineno-16-7 href=#__codelineno-16-7></a>        reverse_proxy localhost:3000
-</span><span id=__span-16-8><a id=__codelineno-16-8 name=__codelineno-16-8 href=#__codelineno-16-8></a>    }
-</span><span id=__span-16-9><a id=__codelineno-16-9 name=__codelineno-16-9 href=#__codelineno-16-9></a>}
-</span></code></pre></div> <p><code>tls internal</code>은 Caddy가 자체 CA를 만들어서 사인한다는 뜻이다. 첫 실행 시 운영체제 신뢰 저장소에 Caddy CA를 등록하라고 sudo 권한을 요청한다. 한 번 등록해두면 브라우저에서 <code>https://tenant1.localhost</code>로 접속해도 인증서 경고가 안 뜬다.</p> <p>curl이나 다른 클라이언트는 시스템 신뢰 저장소를 안 보는 경우가 있어서 별도로 CA를 신뢰시키거나 <code>-k</code> 옵션으로 검증을 끄고 써야 한다. Caddy CA 위치는 <code>caddy environ</code> 명령으로 확인할 수 있다.</p> <p>이 패턴으로 로컬에서 멀티테넌트 라우팅을 그대로 테스트할 수 있다. 운영 Caddyfile에서 호스트 부분만 <code>*.example.com</code> → <code>*.localhost</code>로 바꾸면 동일한 라우팅 로직이 동작한다.</p> <h2 id=www--apex-리다이렉트>www ↔ apex 리다이렉트<a class=headerlink href=#www--apex-리다이렉트 title="Permanent link">&para;</a></h2> <p>검색엔진 SEO 관점이나 일관성 측면에서 한쪽으로 정리하는 게 일반적이다. Caddy는 <code>redir</code>로 간단히 처리한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a># www → apex
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a>www.example.com {
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a>    redir https://example.com{uri} permanent
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a>}
-</span><span id=__span-17-5><a id=__codelineno-17-5 name=__codelineno-17-5 href=#__codelineno-17-5></a>
-</span><span id=__span-17-6><a id=__codelineno-17-6 name=__codelineno-17-6 href=#__codelineno-17-6></a>example.com {
-</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a>    reverse_proxy localhost:3000
-</span><span id=__span-17-8><a id=__codelineno-17-8 name=__codelineno-17-8 href=#__codelineno-17-8></a>}
-</span></code></pre></div> <p><code>{uri}</code>는 path와 query string을 모두 포함한다. <code>permanent</code>는 301로 응답하라는 뜻이고, 임시 리다이렉트는 <code>temporary</code>(302)다. 처음에는 무조건 <code>temporary</code>로 시작해서 동작 확인 후 <code>permanent</code>로 바꾸는 게 안전하다. 301은 브라우저가 캐시해서 잘못 설정하면 한참 동안 안 풀린다.</p> <p>서브도메인 통째로 다른 도메인으로 옮길 때도 같은 패턴이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a>old-api.example.com {
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a>    redir https://api.example.com{uri} permanent
-</span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a>}
-</span></code></pre></div> <h2 id=cloudflare-프록시-모드와-챌린지-충돌>Cloudflare 프록시 모드와 챌린지 충돌<a class=headerlink href=#cloudflare-프록시-모드와-챌린지-충돌 title="Permanent link">&para;</a></h2> <p>Cloudflare를 DNS 프로바이더로 쓰면서 동시에 프록시 모드(주황색 구름)를 켜둔 도메인에서 자주 막힌다. 상황별로 정리하면 이렇다.</p> <p><strong>HTTP-01 챌린지의 경우</strong>: Cloudflare 프록시가 켜져 있으면 ACME 챌린지 요청이 Cloudflare를 거쳐서 오는데, Cloudflare가 자기 인증서로 응답하므로 Caddy가 받기 전에 끝난다. 이 경우 발급은 되지만 Caddy가 받은 인증서는 Cloudflare ↔ origin 구간에서 안 쓰이고, 외부에서 보이는 건 Cloudflare 인증서다. 운영상 문제는 없지만 직관적이지 않다.</p> <p><strong>DNS-01 챌린지의 경우</strong>: 프록시 모드와 무관하게 동작한다. Caddy가 Cloudflare API로 TXT 레코드를 만들고 ACME 서버가 그걸 조회하는 방식이라 트래픽 경로와 상관없다. 그래서 Cloudflare를 쓰면 DNS-01이 가장 안전하다.</p> <p><strong>On-Demand TLS와 프록시 모드 충돌</strong>: 고객 커스텀 도메인을 받는 SaaS에서, 고객이 자기 도메인을 Cloudflare 프록시 모드로 우리 origin에 연결하면 Caddy가 받는 SNI는 고객 도메인이지만 인증서는 Cloudflare가 처리한다. 이 경우 우리 Caddy는 인증서를 발급할 필요가 없고, On-Demand가 동작하면 안 된다. 고객에게는 "DNS only"(회색 구름)로 우리 origin을 가리키도록 안내해야 한다. 안 그러면 발급 시도가 계속 일어나서 rate limit 위험이 있다.</p> <h2 id=트러블슈팅--발급-실패-진단>트러블슈팅 — 발급 실패 진단<a class=headerlink href=#트러블슈팅--발급-실패-진단 title="Permanent link">&para;</a></h2> <p>DNS-01 발급 실패는 보통 다음 패턴이다.</p> <p><strong>ACME 서버가 TXT 레코드를 못 봄</strong>: <code>propagation_delay</code>가 너무 짧다. 30초에서 시작해서 60초, 120초로 늘려본다. Cloudflare는 30초로 충분한 경우가 많지만 최근에 zone 변경이 있었으면 더 걸린다.</p> <p><strong>API 토큰 권한 부족</strong>: 로그에 <code>403 Forbidden</code> 또는 <code>Authentication error</code>가 찍힌다. Cloudflare는 <code>Zone:Read</code>와 <code>DNS:Edit</code> 두 권한이 zone 단위로 필요하다. "All zones"에 부여하든 특정 zone에만 부여하든 둘 다 있어야 한다.</p> <p><strong>Rate limit</strong>: <code>too many certificates already issued</code>. Let's Encrypt는 같은 도메인 세트로 주당 5회 발급, 같은 등록 도메인에 대해 주당 50개 인증서 한도가 있다. On-Demand에서 ask 검증이 느슨해서 무한 발급이 일어났거나, 설정 변경으로 인증서를 자주 재발급했을 때 걸린다. 일단 걸리면 일주일 가까이 풀리지 않는다. 테스트 중이라면 staging endpoint를 써야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a>{
-</span><span id=__span-19-2><a id=__codelineno-19-2 name=__codelineno-19-2 href=#__codelineno-19-2></a>    acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
-</span><span id=__span-19-3><a id=__codelineno-19-3 name=__codelineno-19-3 href=#__codelineno-19-3></a>}
-</span></code></pre></div> <p>staging은 발급량 제한이 훨씬 느슨하다. 인증서 자체는 브라우저가 신뢰하지 않아서 경고가 뜨지만, 발급 흐름이 동작하는지 확인하는 용도로는 충분하다. 운영 전환 시 옵션을 빼면 된다.</p> <p><strong>On-Demand 발급이 즉시 실패</strong>: ask 엔드포인트가 5xx나 timeout인지 확인한다. ask 자체에 짧은 timeout(2~3초)을 걸어두면 백엔드가 느려도 발급 흐름이 멈추지 않는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-20-1><a id=__codelineno-20-1 name=__codelineno-20-1 href=#__codelineno-20-1></a>{
-</span><span id=__span-20-2><a id=__codelineno-20-2 name=__codelineno-20-2 href=#__codelineno-20-2></a>    on_demand_tls {
-</span><span id=__span-20-3><a id=__codelineno-20-3 name=__codelineno-20-3 href=#__codelineno-20-3></a>        ask http://localhost:9000/check-domain
-</span><span id=__span-20-4><a id=__codelineno-20-4 name=__codelineno-20-4 href=#__codelineno-20-4></a>    }
-</span><span id=__span-20-5><a id=__codelineno-20-5 name=__codelineno-20-5 href=#__codelineno-20-5></a>}
-</span></code></pre></div> <p>ask URL은 반드시 HTTP로 두는 게 좋다. HTTPS로 두면 자기 자신의 인증서 발급을 ask가 가로막는 닭과 달걀 문제가 생긴다.</p> <h2 id=정리>정리<a class=headerlink href=#정리 title="Permanent link">&para;</a></h2> <p>서브도메인 처리 방식은 결국 세 가지로 나뉜다.</p> <p>미리 알고 있는 고정 서브도메인이 적으면 사이트 블록 분리가 가장 안전하고 단순하다. 서브도메인이 많거나 동적으로 추가되지만 도메인은 우리 거면 와일드카드 + DNS-01이다. 고객이 자기 도메인을 들고 오는 SaaS면 On-Demand TLS이고 ask 엔드포인트 설계가 핵심이다.</p> <p>이 세 패턴을 섞어 쓸 수도 있다. 예를 들어 메인 SaaS 도메인은 와일드카드 + DNS-01로 처리하고, 고객 커스텀 도메인은 별도 사이트 블록에서 On-Demand로 처리하는 식이다. 핵심은 인증서가 어디서 발급되고 누가 책임지는지 명확하게 구분하는 것이다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../SSL_TLS/ >Caddy SSL/TLS 심화</a></li> <li><a href=../Docker_Caddy_Local_Dev/ >Docker Caddy 로컬 개발 환경 구성</a></li> <li><a href=../../Nginx/SSL_TLS_%EC%84%A4%EC%A0%95/ >Nginx SSL/TLS 설정</a></li> <li><a href=../../Nginx/Web_Socket_Proxy/ >Nginx WebSocket 프록시</a></li> <li><a href=../../Nginx/Reverse_Proxy_and_Load_Balancing/ >Nginx 리버스 프록시 &amp; 로드밸런싱</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Reverse_Proxy/ class="md-footer__link md-footer__link--prev" aria-label="이전: reverse_proxy 디렉티브 심화"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> reverse_proxy 디렉티브 심화 </div> </div> </a> <a href=../Headers_CORS/ class="md-footer__link md-footer__link--next" aria-label="다음: 헤더 처리와 CORS"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 헤더 처리와 CORS </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/WebServer/Caddy/Subdomain_Routing/">
+      
+      
+        <link rel="prev" href="../Reverse_Proxy/">
+      
+      
+        <link rel="next" href="../Headers_CORS/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Caddy 서브도메인 라우팅과 와일드카드 인증서 실무 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#caddy-서브도메인-라우팅과-와일드카드-인증서-실무" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Caddy 서브도메인 라우팅과 와일드카드 인증서 실무
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web Server
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Nginx_vs_Caddy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nginx vs Caddy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Nginx/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nginx
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Apache/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caddy
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_3_5" id="__nav_6_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Caddy
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Caddy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Caddyfile_Syntax/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설정
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_5_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6_3_5_4" id="__nav_6_3_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프록시와 라우팅
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_3_5_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    프록시와 라우팅
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Reverse_Proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    reverse_proxy 디렉티브 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서브도메인 라우팅과 와일드카드 인증서
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서브도메인 라우팅과 와일드카드 인증서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#왜-caddy에서-서브도메인이-까다로운가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 Caddy에서 서브도메인이 까다로운가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#사이트-블록-분리와-호스트-매처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        사이트 블록 분리와 호스트 매처
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#한-블록에서-여러-호스트-동시-처리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        한 블록에서 여러 호스트 동시 처리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#와일드카드-호스트-매처와-placeholder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        와일드카드 호스트 매처와 placeholder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-01-챌린지와-와일드카드-인증서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS-01 챌린지와 와일드카드 인증서
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#와일드카드-san을-여러-사이트-블록에서-공유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        와일드카드 SAN을 여러 사이트 블록에서 공유
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-demand-tls--고객-커스텀-도메인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On-Demand TLS — 고객 커스텀 도메인
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ask-엔드포인트가-죽으면-어떻게-되는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ask 엔드포인트가 죽으면 어떻게 되는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-demand-무한-발급-사고-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On-Demand 무한 발급 사고 사례
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#멀티테넌트-라우팅과-x-tenant-헤더" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        멀티테넌트 라우팅과 X-Tenant 헤더
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apex와-서브도메인-동시-처리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apex와 서브도메인 동시 처리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#로컬-개발에서-와일드카드-자체-서명-인증서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로컬 개발에서 와일드카드 자체 서명 인증서
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#www--apex-리다이렉트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        www ↔ apex 리다이렉트
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloudflare-프록시-모드와-챌린지-충돌" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloudflare 프록시 모드와 챌린지 충돌
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅--발급-실패-진단" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅 — 발급 실패 진단
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Headers_CORS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    헤더 처리와 CORS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../SSL_TLS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Logging_Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Docker_Caddy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#왜-caddy에서-서브도메인이-까다로운가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 Caddy에서 서브도메인이 까다로운가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#사이트-블록-분리와-호스트-매처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        사이트 블록 분리와 호스트 매처
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#한-블록에서-여러-호스트-동시-처리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        한 블록에서 여러 호스트 동시 처리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#와일드카드-호스트-매처와-placeholder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        와일드카드 호스트 매처와 placeholder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-01-챌린지와-와일드카드-인증서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS-01 챌린지와 와일드카드 인증서
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#와일드카드-san을-여러-사이트-블록에서-공유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        와일드카드 SAN을 여러 사이트 블록에서 공유
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-demand-tls--고객-커스텀-도메인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On-Demand TLS — 고객 커스텀 도메인
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ask-엔드포인트가-죽으면-어떻게-되는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ask 엔드포인트가 죽으면 어떻게 되는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-demand-무한-발급-사고-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On-Demand 무한 발급 사고 사례
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#멀티테넌트-라우팅과-x-tenant-헤더" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        멀티테넌트 라우팅과 X-Tenant 헤더
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apex와-서브도메인-동시-처리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Apex와 서브도메인 동시 처리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#로컬-개발에서-와일드카드-자체-서명-인증서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로컬 개발에서 와일드카드 자체 서명 인증서
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#www--apex-리다이렉트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        www ↔ apex 리다이렉트
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloudflare-프록시-모드와-챌린지-충돌" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloudflare 프록시 모드와 챌린지 충돌
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅--발급-실패-진단" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅 — 발급 실패 진단
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">encryption</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">web-server</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="caddy-서브도메인-라우팅과-와일드카드-인증서-실무">Caddy 서브도메인 라우팅과 와일드카드 인증서 실무<a class="headerlink" href="#caddy-서브도메인-라우팅과-와일드카드-인증서-실무" title="Permanent link">&para;</a></h1>
+<h2 id="왜-caddy에서-서브도메인이-까다로운가">왜 Caddy에서 서브도메인이 까다로운가<a class="headerlink" href="#왜-caddy에서-서브도메인이-까다로운가" title="Permanent link">&para;</a></h2>
+<p>Nginx에서 서브도메인은 그냥 <code>server_name</code>만 바꿔주면 끝나는 작업이다. Caddy는 HTTPS가 자동이라는 점이 오히려 서브도메인 운영에서 발목을 잡는다. 사이트 블록 하나당 인증서 한 장이 자동으로 붙는데, 와일드카드를 쓰려는 순간 갑자기 DNS 프로바이더 모듈을 직접 빌드해야 하고, 멀티테넌트 SaaS에서 고객이 자기 도메인을 붙여오면 그건 또 다른 메커니즘(On-Demand TLS)을 써야 한다. 이 세 갈래(서브도메인 정적 분기 / 와일드카드 / On-Demand)를 헷갈리면 인증서 발급이 무한 루프를 돌거나 Let's Encrypt rate limit에 걸려서 한참을 기다려야 한다.</p>
+<p>이 문서에서는 Caddyfile에서 서브도메인을 다루는 패턴을 정적인 것부터 동적 SaaS 호스팅까지 순서대로 정리한다.</p>
+<h2 id="사이트-블록-분리와-호스트-매처">사이트 블록 분리와 호스트 매처<a class="headerlink" href="#사이트-블록-분리와-호스트-매처" title="Permanent link">&para;</a></h2>
+<p>가장 단순한 패턴은 서브도메인마다 사이트 블록을 따로 만드는 것이다. 각 블록의 첫 줄에 호스트명을 적으면 그게 곧 매처가 되고, Caddy가 그 호스트로 들어온 요청만 해당 블록에서 처리한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>api.example.com {
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    reverse_proxy localhost:3000
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>}
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>admin.example.com {
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    basicauth {
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        admin $2a$14$...해시값
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    }
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    reverse_proxy localhost:8080
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>}
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>static.example.com {
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    root * /var/www/static
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    file_server
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    encode gzip
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>}
+</span></code></pre></div>
+<p>이 방식의 장점은 사이트별로 인증서가 자동 발급되고, 설정이 깔끔하게 분리된다는 점이다. 단점은 서브도메인이 10개, 20개 늘어나면 Caddyfile이 길어지고, 새 서브도메인을 추가할 때마다 reload가 필요하다는 것이다.</p>
+<p>서브도메인 개수가 5~10개 수준이고 자주 바뀌지 않으면 이 패턴이 가장 안전하다. 인증서도 도메인별로 따로 관리되므로 한 도메인 발급이 실패해도 다른 도메인은 영향을 받지 않는다.</p>
+<h2 id="한-블록에서-여러-호스트-동시-처리">한 블록에서 여러 호스트 동시 처리<a class="headerlink" href="#한-블록에서-여러-호스트-동시-처리" title="Permanent link">&para;</a></h2>
+<p>같은 백엔드를 가리키는 서브도메인이 여러 개라면 콤마로 묶어서 한 블록에 넣을 수 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>api.example.com, api-v2.example.com, internal-api.example.com {
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    reverse_proxy localhost:3000
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>}
+</span></code></pre></div>
+<p>이렇게 쓰면 Caddy는 세 도메인 각각의 인증서를 발급한다. 와일드카드 한 장을 발급해서 공유하는 게 아니라 SAN에 세 도메인이 모두 들어간 인증서 또는 도메인별 개별 인증서를 받는다(버전과 설정에 따라 다름). Let's Encrypt는 하루 발급량 제한이 있으니 도메인이 많을수록 와일드카드로 가는 게 낫다.</p>
+<p>apex 도메인과 와일드카드를 동시에 받고 싶으면 다음처럼 쓴다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>example.com, *.example.com {
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    @api host api.example.com
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    handle @api {
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        reverse_proxy localhost:3000
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    }
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    @admin host admin.example.com
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    handle @admin {
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        reverse_proxy localhost:8080
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    }
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    handle {
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        root * /var/www/landing
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        file_server
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    }
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>}
+</span></code></pre></div>
+<p>이렇게 쓰면 와일드카드 인증서 한 장(apex 포함하려면 SAN에 두 항목)이 발급되고, 블록 내부에서 host 매처로 분기한다. handle은 첫 매치만 실행되므로 위에서 아래로 우선순위가 정해진다. 기본 handle은 매처가 없는 마지막에 두면 모든 미매치 요청을 처리한다.</p>
+<h2 id="와일드카드-호스트-매처와-placeholder">와일드카드 호스트 매처와 placeholder<a class="headerlink" href="#와일드카드-호스트-매처와-placeholder" title="Permanent link">&para;</a></h2>
+<p>서브도메인 슬러그를 동적으로 추출해서 백엔드에 넘기고 싶을 때 placeholder를 쓴다. Caddy는 호스트의 각 라벨을 <code>{labels.N}</code>으로 노출하는데, 인덱스는 오른쪽부터 0이다. <code>tenant1.example.com</code>이라면 <code>{labels.0}</code>은 <code>com</code>, <code>{labels.1}</code>은 <code>example</code>, <code>{labels.2}</code>는 <code>tenant1</code>이 된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>*.example.com {
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    @tenant host_regexp tenant ^([a-z0-9-]+)\.example\.com$
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    handle @tenant {
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        header_up X-Tenant {labels.2}
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        reverse_proxy localhost:3000
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    }
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    respond &quot;Invalid tenant&quot; 400
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>}
+</span></code></pre></div>
+<p>처음 이걸 쓸 때 인덱스 방향을 거꾸로 알고 <code>{labels.0}</code>을 썼다가 한참 디버깅한 경험이 있다. <code>*.api.example.com</code>이라면 라벨이 4개니까 와일드카드 위치가 <code>{labels.3}</code>이 된다는 점도 주의해야 한다. 헷갈리면 다음처럼 일단 응답으로 찍어보고 확인하는 게 빠르다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>*.example.com {
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    respond &quot;labels.0={labels.0} labels.1={labels.1} labels.2={labels.2}&quot;
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>}
+</span></code></pre></div>
+<p><code>host_regexp</code> 매처는 정규식으로 호스트를 잡으면서 캡처 그룹을 <code>{re.tenant.1}</code> 식으로 꺼낼 수 있다. labels로 추출이 애매하거나 슬러그 형식을 검증하고 싶으면 정규식이 더 편하다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>*.example.com {
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    @valid host_regexp slug ^(?P&lt;slug&gt;[a-z][a-z0-9-]{2,30})\.example\.com$
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    handle @valid {
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        header_up X-Tenant {re.slug.slug}
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        reverse_proxy localhost:3000
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    }
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    handle {
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        respond &quot;Invalid subdomain&quot; 400
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    }
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>}
+</span></code></pre></div>
+<h2 id="dns-01-챌린지와-와일드카드-인증서">DNS-01 챌린지와 와일드카드 인증서<a class="headerlink" href="#dns-01-챌린지와-와일드카드-인증서" title="Permanent link">&para;</a></h2>
+<p><code>*.example.com</code> 같은 와일드카드는 Let's Encrypt에서 HTTP-01 챌린지로 받을 수 없다. 와일드카드는 무조건 DNS-01이다. DNS-01은 Caddy가 ACME 서버 요청을 받아서 <code>_acme-challenge.example.com</code> TXT 레코드를 만들고, ACME 서버가 그걸 조회해서 도메인 소유권을 확인하는 방식이다.</p>
+<p>문제는 Caddy 기본 빌드에 DNS 프로바이더 모듈이 없다는 점이다. xcaddy로 직접 빌드해야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Cloudflare 사용 시</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>xcaddy<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>--with<span class="w"> </span>github.com/caddy-dns/cloudflare
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Route53</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>xcaddy<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span>--with<span class="w"> </span>github.com/caddy-dns/route53
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># 여러 개 동시에</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>xcaddy<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span>--with<span class="w"> </span>github.com/caddy-dns/cloudflare<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">    </span>--with<span class="w"> </span>github.com/caddy-dns/route53
+</span></code></pre></div>
+<p>빌드한 바이너리로 교체한 뒤 Caddyfile에 DNS 프로바이더 설정을 넣는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>*.example.com {
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    tls {
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        propagation_timeout 2m
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        propagation_delay 30s
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    }
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    reverse_proxy localhost:3000
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>}
+</span></code></pre></div>
+<p><code>propagation_delay</code>는 TXT 레코드를 만든 뒤 ACME 서버가 조회하기 전에 기다리는 시간이다. 0으로 두면 DNS 캐시 때문에 발급이 실패하는 경우가 있다. Cloudflare는 보통 빠르게 전파되지만 30초 정도는 줘야 안정적이다. Route53은 더 짧아도 된다. 사내 DNS나 느린 프로바이더는 60~120초까지 늘려야 할 수도 있다.</p>
+<p><code>propagation_timeout</code>은 전파 대기를 포기하는 시점이다. 너무 짧으면 정상 발급도 실패로 처리되고, 너무 길면 장애 시 복구가 늦어진다. 2분이 보통 무난하다.</p>
+<p>API 토큰 권한 설정도 까다롭다. Cloudflare의 경우 <code>Zone:Read</code>와 <code>DNS:Edit</code> 두 권한이 필요한데, 이걸 빼먹으면 발급은 시도하는데 TXT 레코드를 못 만들어서 무한히 재시도한다. 로그에 <code>403 Forbidden</code>이 찍히면 토큰 권한부터 확인해야 한다.</p>
+<h2 id="와일드카드-san을-여러-사이트-블록에서-공유">와일드카드 SAN을 여러 사이트 블록에서 공유<a class="headerlink" href="#와일드카드-san을-여러-사이트-블록에서-공유" title="Permanent link">&para;</a></h2>
+<p>이게 처음에는 헷갈리는데, Caddy는 사이트 블록마다 따로 인증서를 받는 게 기본이다. 와일드카드 한 장을 발급해서 여러 블록에서 쓰고 싶으면 명시적으로 호스트 목록에 와일드카드를 포함시켜야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>*.example.com {
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    tls {
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    }
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    @api host api.example.com
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    handle @api {
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        reverse_proxy localhost:3000
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    }
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    @admin host admin.example.com
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    handle @admin {
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>        reverse_proxy localhost:8080
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    }
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>    handle {
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>        respond &quot;Unknown subdomain&quot; 404
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>    }
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>}
+</span></code></pre></div>
+<p>이렇게 한 블록 안에서 와일드카드로 받은 인증서를 모든 서브도메인이 공유한다. 발급 횟수가 1회로 끝나고 Let's Encrypt rate limit에서 자유롭다. 단점은 블록 하나가 거대해지고, 한 서브도메인에만 특수한 설정(별도 미들웨어, 다른 timeout 등)을 넣기 어렵다는 점이다.</p>
+<p>서브도메인별로 블록을 분리하면서도 와일드카드 인증서를 공유하고 싶으면 글로벌 옵션 블록에서 자동 HTTPS 정책을 잡거나, 각 블록에 동일한 <code>tls</code> 지시어를 반복해서 넣는다. 같은 와일드카드 호스트를 가진 여러 블록은 Caddy가 인증서를 공유하도록 동작한다.</p>
+<h2 id="on-demand-tls--고객-커스텀-도메인">On-Demand TLS — 고객 커스텀 도메인<a class="headerlink" href="#on-demand-tls--고객-커스텀-도메인" title="Permanent link">&para;</a></h2>
+<p>SaaS를 운영하다 보면 고객이 자기 도메인(<code>shop.customer.com</code>)을 우리 서비스에 연결하고 싶다는 요구가 들어온다. 우리는 그 도메인이 뭐가 들어올지 미리 모르고, Caddyfile에 박아둘 수도 없다. 이때 쓰는 게 On-Demand TLS다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>{
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    on_demand_tls {
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        ask http://localhost:9000/check-domain
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>        interval 2m
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        burst 5
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    }
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>}
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>https:// {
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    tls {
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        on_demand
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    }
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    reverse_proxy localhost:3000
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>}
+</span></code></pre></div>
+<p>동작 흐름은 이렇다. 어떤 도메인으로 TLS 핸드셰이크가 들어오면 Caddy는 먼저 <code>ask</code> 엔드포인트에 <code>GET /check-domain?domain=shop.customer.com</code>을 보낸다. 200을 받으면 그 도메인으로 Let's Encrypt 발급을 시도하고, 200이 아니면 발급을 거부한다. <code>interval</code>과 <code>burst</code>는 발급 시도 간격과 동시 발급 한도다.</p>
+<p><code>ask</code> 엔드포인트는 우리 백엔드에서 직접 구현해야 한다. 보통은 DB에 등록된 고객 도메인 목록을 조회해서 매치되면 200, 아니면 404를 반환한다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">// Express 예시</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/check-domain&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">domain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">req</span><span class="p">.</span><span class="nx">query</span><span class="p">.</span><span class="nx">domain</span><span class="p">;</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">domain</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mf">400</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;missing domain&#39;</span><span class="p">);</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">db</span><span class="p">.</span><span class="nx">customerDomains</span><span class="p">.</span><span class="nx">exists</span><span class="p">({</span><span class="w"> </span><span class="nx">domain</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">exists</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mf">404</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;not registered&#39;</span><span class="p">);</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mf">200</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;ok&#39;</span><span class="p">);</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">});</span>
+</span></code></pre></div>
+<p><code>ask</code>를 절대 빼면 안 된다. 빼면 누구나 임의의 도메인으로 핸드셰이크를 시도해서 우리 Caddy가 그 도메인으로 발급을 시도하게 만들 수 있다. Let's Encrypt는 IP당, 계정당 발급 한도가 있어서 공격자가 무작위 도메인 수천 개로 핸드셰이크를 던지면 우리 계정이 rate limit에 걸려 정상 고객 도메인도 발급이 막힌다. 한번 막히면 일주일 가까이 풀리지 않는다.</p>
+<p>첫 핸드셰이크는 발급 대기 때문에 5~30초 지연된다. 이게 사용자 입장에서는 "사이트가 멈췄다"로 느껴진다. 운영에서는 고객이 도메인을 등록하는 시점에 백엔드에서 먼저 핸드셰이크를 시뮬레이션해서 인증서를 미리 받아두는 워밍업 작업을 하는 게 좋다. <code>curl https://shop.customer.com -k</code>만 백엔드에서 한 번 쳐도 Caddy가 발급을 시작한다.</p>
+<h2 id="ask-엔드포인트가-죽으면-어떻게-되는가">ask 엔드포인트가 죽으면 어떻게 되는가<a class="headerlink" href="#ask-엔드포인트가-죽으면-어떻게-되는가" title="Permanent link">&para;</a></h2>
+<p>운영하다가 한 번씩 마주치는 상황인데, <code>ask</code> 엔드포인트가 5xx를 뱉거나 응답이 없으면 Caddy는 기본적으로 발급을 거부한다. 즉 새 도메인의 첫 핸드셰이크가 모두 실패한다. 이미 발급받은 인증서로 들어오는 기존 트래픽은 영향이 없다.</p>
+<p>이게 무서운 이유는 <code>ask</code> 백엔드가 단일 장애점이 된다는 것이다. 백엔드 하나가 죽으면 신규 고객 온보딩이 막힌다. 그래서 <code>ask</code> 엔드포인트는 보통 별도의 가벼운 서비스로 빼거나, 메인 백엔드와 분리된 readonly DB 복제본을 보게 만든다. 캐시도 적극적으로 쓴다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">NodeCache</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;node-cache&#39;</span><span class="p">);</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">cache</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">NodeCache</span><span class="p">({</span><span class="w"> </span><span class="nx">stdTTL</span><span class="o">:</span><span class="w"> </span><span class="mf">300</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/check-domain&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">domain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">req</span><span class="p">.</span><span class="nx">query</span><span class="p">.</span><span class="nx">domain</span><span class="p">;</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">cached</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">cache</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">domain</span><span class="p">);</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">cached</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="kc">undefined</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="nx">cached</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mf">200</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">404</span><span class="p">).</span><span class="nx">send</span><span class="p">();</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">db</span><span class="p">.</span><span class="nx">customerDomains</span><span class="p">.</span><span class="nx">exists</span><span class="p">({</span><span class="w"> </span><span class="nx">domain</span><span class="w"> </span><span class="p">});</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">    </span><span class="nx">cache</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="nx">domain</span><span class="p">,</span><span class="w"> </span><span class="nx">exists</span><span class="p">);</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="nx">exists</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mf">200</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">404</span><span class="p">).</span><span class="nx">send</span><span class="p">();</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="p">});</span>
+</span></code></pre></div>
+<p>5분 캐시면 발급 시도 빈도와 DB 부하가 적당히 균형이 맞는다. 고객 도메인 등록/해제 시 캐시 무효화 처리만 잘 해두면 된다.</p>
+<h2 id="on-demand-무한-발급-사고-사례">On-Demand 무한 발급 사고 사례<a class="headerlink" href="#on-demand-무한-발급-사고-사례" title="Permanent link">&para;</a></h2>
+<p>한 번은 <code>ask</code> 엔드포인트의 검증 로직이 잘못 짜여서 모든 도메인에 200을 돌려주게 한 적이 있다. 그 사이에 봇이 임의 도메인으로 핸드셰이크를 던지기 시작했고, Caddy가 1시간 동안 수백 건의 발급 시도를 했다. 결과는 Let's Encrypt 계정 rate limit. 정상 고객이 새로 도메인을 등록해도 발급이 안 됐다.</p>
+<p>이걸 방지하려면 <code>ask</code> 엔드포인트에서 화이트리스트 검증을 엄격하게 해야 하고, On-Demand 사용 시 글로벌 옵션의 <code>interval</code>과 <code>burst</code>를 보수적으로 잡아야 한다. <code>burst 5</code>는 동시 발급 5개라는 뜻인데, 정상 SaaS라면 분당 5개도 많은 편이다. 본인 트래픽 패턴을 보고 조정하면 된다.</p>
+<p>추가로 ZeroSSL을 fallback으로 묶어두면 한 CA가 막혀도 다른 CA로 발급을 시도한다. Caddy 기본 설정이 이미 Let's Encrypt → ZeroSSL 순으로 fallback 한다.</p>
+<h2 id="멀티테넌트-라우팅과-x-tenant-헤더">멀티테넌트 라우팅과 X-Tenant 헤더<a class="headerlink" href="#멀티테넌트-라우팅과-x-tenant-헤더" title="Permanent link">&para;</a></h2>
+<p>서브도메인으로 테넌트를 식별하는 SaaS 패턴에서는 보통 백엔드가 같고, 호스트만 보고 어느 테넌트의 데이터를 가져올지 정한다. Caddy에서 placeholder로 슬러그를 뽑아 헤더에 넣어주면 백엔드는 단순히 <code>X-Tenant</code> 헤더만 읽으면 된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>*.app.example.com {
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    tls {
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    }
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    @valid host_regexp tenant ^(?P&lt;slug&gt;[a-z][a-z0-9-]{2,30})\.app\.example\.com$
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    handle @valid {
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        reverse_proxy localhost:3000 {
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>            header_up X-Tenant {re.tenant.slug}
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>            header_up X-Original-Host {host}
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        }
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    }
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    handle {
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>        respond &quot;Invalid tenant slug&quot; 400
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    }
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>}
+</span></code></pre></div>
+<p><code>header_up</code>은 Caddy가 백엔드로 요청을 보낼 때 추가하는 헤더다. 클라이언트가 보낸 헤더는 그대로 통과하므로, 클라이언트가 <code>X-Tenant: admin</code>을 직접 보내서 권한 우회를 노릴 수도 있다. <code>header_up X-Tenant</code>는 클라이언트가 보낸 같은 이름의 헤더를 덮어쓴다. 그래도 백엔드 코드에서는 항상 <code>X-Tenant</code>를 신뢰할 수 있는 출처(Caddy)에서만 받는다고 가정해야 한다. 외부 노출된 다른 경로로도 백엔드에 도달할 수 있다면 위험하다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>handle @valid {
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    request_header -X-Tenant
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    reverse_proxy localhost:3000 {
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>        header_up X-Tenant {re.tenant.slug}
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    }
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>}
+</span></code></pre></div>
+<p><code>request_header -X-Tenant</code>로 클라이언트가 보낸 헤더를 먼저 제거한 뒤 우리가 다시 추가하면 더 안전하다.</p>
+<h2 id="apex와-서브도메인-동시-처리">Apex와 서브도메인 동시 처리<a class="headerlink" href="#apex와-서브도메인-동시-처리" title="Permanent link">&para;</a></h2>
+<p>apex 도메인(<code>example.com</code>)은 와일드카드 <code>*.example.com</code>에 매칭되지 않는다. 와일드카드는 정확히 한 라벨만 매치한다. 따라서 두 패턴을 모두 다루려면 명시적으로 둘 다 적어야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>example.com {
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    redir https://www.example.com{uri} permanent
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>}
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>www.example.com, *.example.com {
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    tls {
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    }
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    @www host www.example.com
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>    handle @www {
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>        root * /var/www/landing
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>        file_server
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    }
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    @app host_regexp tenant ^(?P&lt;slug&gt;[a-z][a-z0-9-]+)\.example\.com$
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>    handle @app {
+</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>        reverse_proxy localhost:3000 {
+</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>            header_up X-Tenant {re.tenant.slug}
+</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>        }
+</span><span id="__span-14-21"><a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>    }
+</span><span id="__span-14-22"><a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>}
+</span></code></pre></div>
+<p>apex는 따로 처리해서 www로 리다이렉트하고, www와 와일드카드를 한 블록에 묶어서 와일드카드 인증서 한 장을 받는다. 이 패턴이 SaaS에서 가장 흔하다.</p>
+<p>반대로 www를 apex로 합치고 싶으면 방향만 바꾸면 된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>www.example.com {
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    redir https://example.com{uri} permanent
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>}
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>example.com, *.example.com {
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    # ...
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>}
+</span></code></pre></div>
+<p>이때 한 가지 함정이 있다. apex와 와일드카드가 동시에 들어가면 SAN 두 개짜리 인증서가 필요한데, DNS-01 챌린지가 두 도메인 모두에 대해 통과해야 한다. Cloudflare 같은 프로바이더는 보통 문제가 없지만, apex만 다른 DNS 운영사에 맡기고 서브도메인은 자체 운영하는 식으로 분리되어 있으면 한쪽만 발급에 실패해서 전체가 안 된다. 발급 로그를 보면 어느 도메인에서 막혔는지 나온다.</p>
+<h2 id="로컬-개발에서-와일드카드-자체-서명-인증서">로컬 개발에서 와일드카드 자체 서명 인증서<a class="headerlink" href="#로컬-개발에서-와일드카드-자체-서명-인증서" title="Permanent link">&para;</a></h2>
+<p>운영에서 <code>*.example.com</code>을 쓰면 로컬에서 테스트할 때도 비슷한 환경을 만들고 싶다. <code>*.localhost</code>는 모든 OS에서 자동으로 127.0.0.1로 해석되므로 hosts 파일 수정 없이 와일드카드 도메인을 흉내낼 수 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>*.localhost {
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    tls internal
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    @tenant host_regexp slug ^(?P&lt;slug&gt;[a-z0-9-]+)\.localhost$
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    handle @tenant {
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>        header_up X-Tenant {re.slug.slug}
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>        reverse_proxy localhost:3000
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    }
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>}
+</span></code></pre></div>
+<p><code>tls internal</code>은 Caddy가 자체 CA를 만들어서 사인한다는 뜻이다. 첫 실행 시 운영체제 신뢰 저장소에 Caddy CA를 등록하라고 sudo 권한을 요청한다. 한 번 등록해두면 브라우저에서 <code>https://tenant1.localhost</code>로 접속해도 인증서 경고가 안 뜬다.</p>
+<p>curl이나 다른 클라이언트는 시스템 신뢰 저장소를 안 보는 경우가 있어서 별도로 CA를 신뢰시키거나 <code>-k</code> 옵션으로 검증을 끄고 써야 한다. Caddy CA 위치는 <code>caddy environ</code> 명령으로 확인할 수 있다.</p>
+<p>이 패턴으로 로컬에서 멀티테넌트 라우팅을 그대로 테스트할 수 있다. 운영 Caddyfile에서 호스트 부분만 <code>*.example.com</code> → <code>*.localhost</code>로 바꾸면 동일한 라우팅 로직이 동작한다.</p>
+<h2 id="www--apex-리다이렉트">www ↔ apex 리다이렉트<a class="headerlink" href="#www--apex-리다이렉트" title="Permanent link">&para;</a></h2>
+<p>검색엔진 SEO 관점이나 일관성 측면에서 한쪽으로 정리하는 게 일반적이다. Caddy는 <code>redir</code>로 간단히 처리한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a># www → apex
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>www.example.com {
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    redir https://example.com{uri} permanent
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>}
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>example.com {
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    reverse_proxy localhost:3000
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>}
+</span></code></pre></div>
+<p><code>{uri}</code>는 path와 query string을 모두 포함한다. <code>permanent</code>는 301로 응답하라는 뜻이고, 임시 리다이렉트는 <code>temporary</code>(302)다. 처음에는 무조건 <code>temporary</code>로 시작해서 동작 확인 후 <code>permanent</code>로 바꾸는 게 안전하다. 301은 브라우저가 캐시해서 잘못 설정하면 한참 동안 안 풀린다.</p>
+<p>서브도메인 통째로 다른 도메인으로 옮길 때도 같은 패턴이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>old-api.example.com {
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    redir https://api.example.com{uri} permanent
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>}
+</span></code></pre></div>
+<h2 id="cloudflare-프록시-모드와-챌린지-충돌">Cloudflare 프록시 모드와 챌린지 충돌<a class="headerlink" href="#cloudflare-프록시-모드와-챌린지-충돌" title="Permanent link">&para;</a></h2>
+<p>Cloudflare를 DNS 프로바이더로 쓰면서 동시에 프록시 모드(주황색 구름)를 켜둔 도메인에서 자주 막힌다. 상황별로 정리하면 이렇다.</p>
+<p><strong>HTTP-01 챌린지의 경우</strong>: Cloudflare 프록시가 켜져 있으면 ACME 챌린지 요청이 Cloudflare를 거쳐서 오는데, Cloudflare가 자기 인증서로 응답하므로 Caddy가 받기 전에 끝난다. 이 경우 발급은 되지만 Caddy가 받은 인증서는 Cloudflare ↔ origin 구간에서 안 쓰이고, 외부에서 보이는 건 Cloudflare 인증서다. 운영상 문제는 없지만 직관적이지 않다.</p>
+<p><strong>DNS-01 챌린지의 경우</strong>: 프록시 모드와 무관하게 동작한다. Caddy가 Cloudflare API로 TXT 레코드를 만들고 ACME 서버가 그걸 조회하는 방식이라 트래픽 경로와 상관없다. 그래서 Cloudflare를 쓰면 DNS-01이 가장 안전하다.</p>
+<p><strong>On-Demand TLS와 프록시 모드 충돌</strong>: 고객 커스텀 도메인을 받는 SaaS에서, 고객이 자기 도메인을 Cloudflare 프록시 모드로 우리 origin에 연결하면 Caddy가 받는 SNI는 고객 도메인이지만 인증서는 Cloudflare가 처리한다. 이 경우 우리 Caddy는 인증서를 발급할 필요가 없고, On-Demand가 동작하면 안 된다. 고객에게는 "DNS only"(회색 구름)로 우리 origin을 가리키도록 안내해야 한다. 안 그러면 발급 시도가 계속 일어나서 rate limit 위험이 있다.</p>
+<h2 id="트러블슈팅--발급-실패-진단">트러블슈팅 — 발급 실패 진단<a class="headerlink" href="#트러블슈팅--발급-실패-진단" title="Permanent link">&para;</a></h2>
+<p>DNS-01 발급 실패는 보통 다음 패턴이다.</p>
+<p><strong>ACME 서버가 TXT 레코드를 못 봄</strong>: <code>propagation_delay</code>가 너무 짧다. 30초에서 시작해서 60초, 120초로 늘려본다. Cloudflare는 30초로 충분한 경우가 많지만 최근에 zone 변경이 있었으면 더 걸린다.</p>
+<p><strong>API 토큰 권한 부족</strong>: 로그에 <code>403 Forbidden</code> 또는 <code>Authentication error</code>가 찍힌다. Cloudflare는 <code>Zone:Read</code>와 <code>DNS:Edit</code> 두 권한이 zone 단위로 필요하다. "All zones"에 부여하든 특정 zone에만 부여하든 둘 다 있어야 한다.</p>
+<p><strong>Rate limit</strong>: <code>too many certificates already issued</code>. Let's Encrypt는 같은 도메인 세트로 주당 5회 발급, 같은 등록 도메인에 대해 주당 50개 인증서 한도가 있다. On-Demand에서 ask 검증이 느슨해서 무한 발급이 일어났거나, 설정 변경으로 인증서를 자주 재발급했을 때 걸린다. 일단 걸리면 일주일 가까이 풀리지 않는다. 테스트 중이라면 staging endpoint를 써야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>{
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>}
+</span></code></pre></div>
+<p>staging은 발급량 제한이 훨씬 느슨하다. 인증서 자체는 브라우저가 신뢰하지 않아서 경고가 뜨지만, 발급 흐름이 동작하는지 확인하는 용도로는 충분하다. 운영 전환 시 옵션을 빼면 된다.</p>
+<p><strong>On-Demand 발급이 즉시 실패</strong>: ask 엔드포인트가 5xx나 timeout인지 확인한다. ask 자체에 짧은 timeout(2~3초)을 걸어두면 백엔드가 느려도 발급 흐름이 멈추지 않는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>{
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>    on_demand_tls {
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>        ask http://localhost:9000/check-domain
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    }
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>}
+</span></code></pre></div>
+<p>ask URL은 반드시 HTTP로 두는 게 좋다. HTTPS로 두면 자기 자신의 인증서 발급을 ask가 가로막는 닭과 달걀 문제가 생긴다.</p>
+<h2 id="정리">정리<a class="headerlink" href="#정리" title="Permanent link">&para;</a></h2>
+<p>서브도메인 처리 방식은 결국 세 가지로 나뉜다.</p>
+<p>미리 알고 있는 고정 서브도메인이 적으면 사이트 블록 분리가 가장 안전하고 단순하다. 서브도메인이 많거나 동적으로 추가되지만 도메인은 우리 거면 와일드카드 + DNS-01이다. 고객이 자기 도메인을 들고 오는 SaaS면 On-Demand TLS이고 ask 엔드포인트 설계가 핵심이다.</p>
+<p>이 세 패턴을 섞어 쓸 수도 있다. 예를 들어 메인 SaaS 도메인은 와일드카드 + DNS-01로 처리하고, 고객 커스텀 도메인은 별도 사이트 블록에서 On-Demand로 처리하는 식이다. 핵심은 인증서가 어디서 발급되고 누가 책임지는지 명확하게 구분하는 것이다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../SSL_TLS/">Caddy SSL/TLS 심화</a></li>
+<li><a href="../Docker_Caddy_Local_Dev/">Docker Caddy 로컬 개발 환경 구성</a></li>
+<li><a href="../../Nginx/SSL_TLS_%EC%84%A4%EC%A0%95/">Nginx SSL/TLS 설정</a></li>
+<li><a href="../../Nginx/Web_Socket_Proxy/">Nginx WebSocket 프록시</a></li>
+<li><a href="../../Nginx/Reverse_Proxy_and_Load_Balancing/">Nginx 리버스 프록시 &amp; 로드밸런싱</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Reverse_Proxy/" class="md-footer__link md-footer__link--prev" aria-label="이전: reverse_proxy 디렉티브 심화">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                reverse_proxy 디렉티브 심화
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Headers_CORS/" class="md-footer__link md-footer__link--next" aria-label="다음: 헤더 처리와 CORS">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                헤더 처리와 CORS
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

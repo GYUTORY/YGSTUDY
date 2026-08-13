@@ -1,140 +1,4625 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/DevOps/Linux/Linux_%EB%B0%B0%ED%8F%AC%ED%8C%90_%EA%B3%84%EC%97%B4/ rel=canonical><link href=../ rel=prev><link href=../SA__PSACCT/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Linux 배포판 계열 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#linux-배포판-계열 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Linux 배포판 계열 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Cloud </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> DevOps </span> </a> <label class="md-nav__link " for=__nav_6_2 id=__nav_6_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_2> <span class="md-nav__icon md-icon"></span> DevOps </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CI_CD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../GitOps/ class=md-nav__link> <span class=md-ellipsis> GitOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Infrastructure_as_Code/ class=md-nav__link> <span class=md-ellipsis> Infrastructure as Code </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Kubernetes/ class=md-nav__link> <span class=md-ellipsis> Kubernetes </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Service_Mesh/ class=md-nav__link> <span class=md-ellipsis> Service Mesh </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Service_Discovery/ class=md-nav__link> <span class=md-ellipsis> Service Discovery </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Coordination/ class=md-nav__link> <span class=md-ellipsis> Coordination </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Principles/ class=md-nav__link> <span class=md-ellipsis> Principles </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Git/ class=md-nav__link> <span class=md-ellipsis> Git </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_2_13 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Linux </span> </a> <label class="md-nav__link " for=__nav_6_2_13 id=__nav_6_2_13_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_2_13_label aria-expanded=true> <label class=md-nav__title for=__nav_6_2_13> <span class="md-nav__icon md-icon"></span> Linux </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 배포판 계열 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 배포판 계열 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=#주요-계열-비교 class=md-nav__link> <span class=md-ellipsis> 주요 계열 비교 </span> </a> <nav class=md-nav aria-label="주요 계열 비교"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#red-hat-vs-debian-계열 class=md-nav__link> <span class=md-ellipsis> Red Hat vs Debian 계열 </span> </a> </li> <li class=md-nav__item> <a href=#패키지-관리자-명령어-비교 class=md-nav__link> <span class=md-ellipsis> 패키지 관리자 명령어 비교 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#red-hat-계열 class=md-nav__link> <span class=md-ellipsis> Red Hat 계열 </span> </a> <nav class=md-nav aria-label="Red Hat 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#rhel-red-hat-enterprise-linux class=md-nav__link> <span class=md-ellipsis> RHEL (Red Hat Enterprise Linux) </span> </a> </li> <li class=md-nav__item> <a href=#centos class=md-nav__link> <span class=md-ellipsis> CentOS </span> </a> </li> <li class=md-nav__item> <a href=#rocky-linux-vs-almalinux class=md-nav__link> <span class=md-ellipsis> Rocky Linux vs AlmaLinux </span> </a> </li> <li class=md-nav__item> <a href=#fedora class=md-nav__link> <span class=md-ellipsis> Fedora </span> </a> </li> <li class=md-nav__item> <a href=#red-hat-계열-내-차이점 class=md-nav__link> <span class=md-ellipsis> Red Hat 계열 내 차이점 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#debian-계열 class=md-nav__link> <span class=md-ellipsis> Debian 계열 </span> </a> <nav class=md-nav aria-label="Debian 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#debian-vs-ubuntu class=md-nav__link> <span class=md-ellipsis> Debian vs Ubuntu </span> </a> </li> <li class=md-nav__item> <a href=#debian class=md-nav__link> <span class=md-ellipsis> Debian </span> </a> </li> <li class=md-nav__item> <a href=#ubuntu class=md-nav__link> <span class=md-ellipsis> Ubuntu </span> </a> </li> <li class=md-nav__item> <a href=#debian-계열-내-차이점 class=md-nav__link> <span class=md-ellipsis> Debian 계열 내 차이점 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#suse-계열 class=md-nav__link> <span class=md-ellipsis> SUSE 계열 </span> </a> <nav class=md-nav aria-label="SUSE 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#opensuse-vs-suse-linux-enterprise class=md-nav__link> <span class=md-ellipsis> openSUSE vs SUSE Linux Enterprise </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#arch-계열 class=md-nav__link> <span class=md-ellipsis> Arch 계열 </span> </a> <nav class=md-nav aria-label="Arch 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#arch-linux-vs-manjaro class=md-nav__link> <span class=md-ellipsis> Arch Linux vs Manjaro </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무-차이점 class=md-nav__link> <span class=md-ellipsis> 실무 차이점 </span> </a> <nav class=md-nav aria-label="실무 차이점"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#방화벽-관리 class=md-nav__link> <span class=md-ellipsis> 방화벽 관리 </span> </a> </li> <li class=md-nav__item> <a href=#로그-위치-차이 class=md-nav__link> <span class=md-ellipsis> 로그 위치 차이 </span> </a> </li> <li class=md-nav__item> <a href=#패키지-검색-방법 class=md-nav__link> <span class=md-ellipsis> 패키지 검색 방법 </span> </a> </li> <li class=md-nav__item> <a href=#서비스-관리 class=md-nav__link> <span class=md-ellipsis> 서비스 관리 </span> </a> </li> <li class=md-nav__item> <a href=#보안-업데이트 class=md-nav__link> <span class=md-ellipsis> 보안 업데이트 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#배포판-선택-기준 class=md-nav__link> <span class=md-ellipsis> 배포판 선택 기준 </span> </a> <nav class=md-nav aria-label="배포판 선택 기준"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#서버-환경 class=md-nav__link> <span class=md-ellipsis> 서버 환경 </span> </a> </li> <li class=md-nav__item> <a href=#개발-환경 class=md-nav__link> <span class=md-ellipsis> 개발 환경 </span> </a> </li> <li class=md-nav__item> <a href=#데스크톱 class=md-nav__link> <span class=md-ellipsis> 데스크톱 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#마이그레이션 class=md-nav__link> <span class=md-ellipsis> 마이그레이션 </span> </a> <nav class=md-nav aria-label=마이그레이션> <ul class=md-nav__list> <li class=md-nav__item> <a href=#centos--rockyalmalinux class=md-nav__link> <span class=md-ellipsis> CentOS → Rocky/AlmaLinux </span> </a> </li> <li class=md-nav__item> <a href=#배포판-간-마이그레이션 class=md-nav__link> <span class=md-ellipsis> 배포판 간 마이그레이션 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#클라우드-이미지 class=md-nav__link> <span class=md-ellipsis> 클라우드 이미지 </span> </a> <nav class=md-nav aria-label="클라우드 이미지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#aws class=md-nav__link> <span class=md-ellipsis> AWS </span> </a> </li> <li class=md-nav__item> <a href=#azure class=md-nav__link> <span class=md-ellipsis> Azure </span> </a> </li> <li class=md-nav__item> <a href=#gcp class=md-nav__link> <span class=md-ellipsis> GCP </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#컨테이너-베이스-이미지 class=md-nav__link> <span class=md-ellipsis> 컨테이너 베이스 이미지 </span> </a> <nav class=md-nav aria-label="컨테이너 베이스 이미지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#alpine-linux class=md-nav__link> <span class=md-ellipsis> Alpine Linux </span> </a> </li> <li class=md-nav__item> <a href=#ubuntudebian class=md-nav__link> <span class=md-ellipsis> Ubuntu/Debian </span> </a> </li> <li class=md-nav__item> <a href=#red-hat-ubi class=md-nav__link> <span class=md-ellipsis> Red Hat UBI </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#성능-차이 class=md-nav__link> <span class=md-ellipsis> 성능 차이 </span> </a> </li> <li class=md-nav__item> <a href=#문서-및-커뮤니티 class=md-nav__link> <span class=md-ellipsis> 문서 및 커뮤니티 </span> </a> </li> <li class=md-nav__item> <a href=#결론 class=md-nav__link> <span class=md-ellipsis> 결론 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../SA__PSACCT/ class=md-nav__link> <span class=md-ellipsis> SA와 PSACCT 모니터링 도구 </span> </a> </li> <li class=md-nav__item> <a href=../WSL/ class=md-nav__link> <span class=md-ellipsis> WSL2 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/ class=md-nav__link> <span class=md-ellipsis> 기본 명령어 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/ class=md-nav__link> <span class=md-ellipsis> 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EB%B3%B4%EC%95%88/ class=md-nav__link> <span class=md-ellipsis> 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EC%89%98/ class=md-nav__link> <span class=md-ellipsis> 셸 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 시스템 관리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%ED%8C%8C%EC%9D%BC_%EC%8B%9C%EC%8A%A4%ED%85%9C/ class=md-nav__link> <span class=md-ellipsis> 파일 시스템 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%ED%8C%A8%ED%82%A4%EC%A7%80/ class=md-nav__link> <span class=md-ellipsis> 패키지 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4/ class=md-nav__link> <span class=md-ellipsis> 프로세스 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EC%82%AC%EC%9A%A9%EC%9E%90_%EA%B4%80%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 사용자 관리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%ED%85%8D%EC%8A%A4%ED%8A%B8_%EC%B2%98%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 텍스트 처리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Container_Registry/ class=md-nav__link> <span class=md-ellipsis> Container Registry </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Secrets/ class=md-nav__link> <span class=md-ellipsis> Secrets </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Testing/ class=md-nav__link> <span class=md-ellipsis> Testing </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=#주요-계열-비교 class=md-nav__link> <span class=md-ellipsis> 주요 계열 비교 </span> </a> <nav class=md-nav aria-label="주요 계열 비교"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#red-hat-vs-debian-계열 class=md-nav__link> <span class=md-ellipsis> Red Hat vs Debian 계열 </span> </a> </li> <li class=md-nav__item> <a href=#패키지-관리자-명령어-비교 class=md-nav__link> <span class=md-ellipsis> 패키지 관리자 명령어 비교 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#red-hat-계열 class=md-nav__link> <span class=md-ellipsis> Red Hat 계열 </span> </a> <nav class=md-nav aria-label="Red Hat 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#rhel-red-hat-enterprise-linux class=md-nav__link> <span class=md-ellipsis> RHEL (Red Hat Enterprise Linux) </span> </a> </li> <li class=md-nav__item> <a href=#centos class=md-nav__link> <span class=md-ellipsis> CentOS </span> </a> </li> <li class=md-nav__item> <a href=#rocky-linux-vs-almalinux class=md-nav__link> <span class=md-ellipsis> Rocky Linux vs AlmaLinux </span> </a> </li> <li class=md-nav__item> <a href=#fedora class=md-nav__link> <span class=md-ellipsis> Fedora </span> </a> </li> <li class=md-nav__item> <a href=#red-hat-계열-내-차이점 class=md-nav__link> <span class=md-ellipsis> Red Hat 계열 내 차이점 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#debian-계열 class=md-nav__link> <span class=md-ellipsis> Debian 계열 </span> </a> <nav class=md-nav aria-label="Debian 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#debian-vs-ubuntu class=md-nav__link> <span class=md-ellipsis> Debian vs Ubuntu </span> </a> </li> <li class=md-nav__item> <a href=#debian class=md-nav__link> <span class=md-ellipsis> Debian </span> </a> </li> <li class=md-nav__item> <a href=#ubuntu class=md-nav__link> <span class=md-ellipsis> Ubuntu </span> </a> </li> <li class=md-nav__item> <a href=#debian-계열-내-차이점 class=md-nav__link> <span class=md-ellipsis> Debian 계열 내 차이점 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#suse-계열 class=md-nav__link> <span class=md-ellipsis> SUSE 계열 </span> </a> <nav class=md-nav aria-label="SUSE 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#opensuse-vs-suse-linux-enterprise class=md-nav__link> <span class=md-ellipsis> openSUSE vs SUSE Linux Enterprise </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#arch-계열 class=md-nav__link> <span class=md-ellipsis> Arch 계열 </span> </a> <nav class=md-nav aria-label="Arch 계열"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#arch-linux-vs-manjaro class=md-nav__link> <span class=md-ellipsis> Arch Linux vs Manjaro </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무-차이점 class=md-nav__link> <span class=md-ellipsis> 실무 차이점 </span> </a> <nav class=md-nav aria-label="실무 차이점"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#방화벽-관리 class=md-nav__link> <span class=md-ellipsis> 방화벽 관리 </span> </a> </li> <li class=md-nav__item> <a href=#로그-위치-차이 class=md-nav__link> <span class=md-ellipsis> 로그 위치 차이 </span> </a> </li> <li class=md-nav__item> <a href=#패키지-검색-방법 class=md-nav__link> <span class=md-ellipsis> 패키지 검색 방법 </span> </a> </li> <li class=md-nav__item> <a href=#서비스-관리 class=md-nav__link> <span class=md-ellipsis> 서비스 관리 </span> </a> </li> <li class=md-nav__item> <a href=#보안-업데이트 class=md-nav__link> <span class=md-ellipsis> 보안 업데이트 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#배포판-선택-기준 class=md-nav__link> <span class=md-ellipsis> 배포판 선택 기준 </span> </a> <nav class=md-nav aria-label="배포판 선택 기준"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#서버-환경 class=md-nav__link> <span class=md-ellipsis> 서버 환경 </span> </a> </li> <li class=md-nav__item> <a href=#개발-환경 class=md-nav__link> <span class=md-ellipsis> 개발 환경 </span> </a> </li> <li class=md-nav__item> <a href=#데스크톱 class=md-nav__link> <span class=md-ellipsis> 데스크톱 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#마이그레이션 class=md-nav__link> <span class=md-ellipsis> 마이그레이션 </span> </a> <nav class=md-nav aria-label=마이그레이션> <ul class=md-nav__list> <li class=md-nav__item> <a href=#centos--rockyalmalinux class=md-nav__link> <span class=md-ellipsis> CentOS → Rocky/AlmaLinux </span> </a> </li> <li class=md-nav__item> <a href=#배포판-간-마이그레이션 class=md-nav__link> <span class=md-ellipsis> 배포판 간 마이그레이션 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#클라우드-이미지 class=md-nav__link> <span class=md-ellipsis> 클라우드 이미지 </span> </a> <nav class=md-nav aria-label="클라우드 이미지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#aws class=md-nav__link> <span class=md-ellipsis> AWS </span> </a> </li> <li class=md-nav__item> <a href=#azure class=md-nav__link> <span class=md-ellipsis> Azure </span> </a> </li> <li class=md-nav__item> <a href=#gcp class=md-nav__link> <span class=md-ellipsis> GCP </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#컨테이너-베이스-이미지 class=md-nav__link> <span class=md-ellipsis> 컨테이너 베이스 이미지 </span> </a> <nav class=md-nav aria-label="컨테이너 베이스 이미지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#alpine-linux class=md-nav__link> <span class=md-ellipsis> Alpine Linux </span> </a> </li> <li class=md-nav__item> <a href=#ubuntudebian class=md-nav__link> <span class=md-ellipsis> Ubuntu/Debian </span> </a> </li> <li class=md-nav__item> <a href=#red-hat-ubi class=md-nav__link> <span class=md-ellipsis> Red Hat UBI </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#성능-차이 class=md-nav__link> <span class=md-ellipsis> 성능 차이 </span> </a> </li> <li class=md-nav__item> <a href=#문서-및-커뮤니티 class=md-nav__link> <span class=md-ellipsis> 문서 및 커뮤니티 </span> </a> </li> <li class=md-nav__item> <a href=#결론 class=md-nav__link> <span class=md-ellipsis> 결론 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>devops</span> <span class=md-tag>linux</span> </nav> <h1 id=linux-배포판-계열>Linux 배포판 계열<a class=headerlink href=#linux-배포판-계열 title="Permanent link">&para;</a></h1> <h2 id=개요>개요<a class=headerlink href=#개요 title="Permanent link">&para;</a></h2> <p>Linux 배포판은 패키지 관리자, 설정 파일 위치, 릴리스 주기에서 차이가 있다. 서버 환경에서는 Red Hat 계열과 Debian 계열을 주로 사용한다.</p> <h2 id=주요-계열-비교>주요 계열 비교<a class=headerlink href=#주요-계열-비교 title="Permanent link">&para;</a></h2> <h3 id=red-hat-vs-debian-계열>Red Hat vs Debian 계열<a class=headerlink href=#red-hat-vs-debian-계열 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>Red Hat 계열</th> <th>Debian 계열</th> </tr> </thead> <tbody> <tr> <td>패키지 관리자</td> <td><code>yum</code>/<code>dnf</code>, <code>rpm</code></td> <td><code>apt</code>/<code>apt-get</code>, <code>dpkg</code></td> </tr> <tr> <td>패키지 포맷</td> <td><code>.rpm</code></td> <td><code>.deb</code></td> </tr> <tr> <td>네트워크 설정 (7/8+)</td> <td><code>/etc/sysconfig/network-scripts/</code>, NetworkManager</td> <td><code>/etc/netplan/</code> (Ubuntu), <code>/etc/network/</code> (Debian)</td> </tr> <tr> <td>방화벽</td> <td><code>firewalld</code></td> <td><code>ufw</code></td> </tr> <tr> <td>로그 파일</td> <td><code>/var/log/messages</code></td> <td><code>/var/log/syslog</code></td> </tr> <tr> <td>리포지토리 설정</td> <td><code>/etc/yum.repos.d/</code></td> <td><code>/etc/apt/sources.list</code>, <code>/etc/apt/sources.list.d/</code></td> </tr> <tr> <td>서비스 관리</td> <td><code>systemd</code> (공통)</td> <td><code>systemd</code> (공통)</td> </tr> <tr> <td>SELinux</td> <td>기본 활성화</td> <td>기본 비활성화 (AppArmor 사용)</td> </tr> <tr> <td>지원 주기</td> <td>10년 (RHEL)</td> <td>5년 (Ubuntu LTS), 3년 (Debian)</td> </tr> </tbody> </table> <h3 id=패키지-관리자-명령어-비교>패키지 관리자 명령어 비교<a class=headerlink href=#패키지-관리자-명령어-비교 title="Permanent link">&para;</a></h3> <p><strong>Red Hat 계열:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># 설치</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>yum<span class=w> </span>install<span class=w> </span>package<span class=w>      </span><span class=c1># RHEL/CentOS 7</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>dnf<span class=w> </span>install<span class=w> </span>package<span class=w>      </span><span class=c1># RHEL/CentOS 8+, Rocky, AlmaLinux</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a><span class=c1># 업데이트</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>yum<span class=w> </span>update
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>dnf<span class=w> </span>update
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a><span class=c1># 검색</span>
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>yum<span class=w> </span>search<span class=w> </span>package
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a>dnf<span class=w> </span>search<span class=w> </span>package
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a>
-</span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a><span class=c1># 파일 제공 패키지 찾기</span>
-</span><span id=__span-0-14><a id=__codelineno-0-14 name=__codelineno-0-14 href=#__codelineno-0-14></a>yum<span class=w> </span>provides<span class=w> </span>/usr/bin/command
-</span><span id=__span-0-15><a id=__codelineno-0-15 name=__codelineno-0-15 href=#__codelineno-0-15></a>dnf<span class=w> </span>provides<span class=w> </span>/usr/bin/command
-</span></code></pre></div></p> <p><strong>Debian 계열:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1># 설치</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>apt<span class=w> </span>install<span class=w> </span>package
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>apt-get<span class=w> </span>install<span class=w> </span>package
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=c1># 업데이트</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>apt<span class=w> </span>update<span class=w> </span><span class=o>&amp;&amp;</span><span class=w> </span>apt<span class=w> </span>upgrade
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>apt-get<span class=w> </span>update<span class=w> </span><span class=o>&amp;&amp;</span><span class=w> </span>apt-get<span class=w> </span>upgrade
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=c1># 검색</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>apt<span class=w> </span>search<span class=w> </span>package
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>apt-cache<span class=w> </span>search<span class=w> </span>package
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a><span class=c1># 파일 제공 패키지 찾기</span>
-</span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a>apt-file<span class=w> </span>search<span class=w> </span>/usr/bin/command
-</span><span id=__span-1-15><a id=__codelineno-1-15 name=__codelineno-1-15 href=#__codelineno-1-15></a>dpkg<span class=w> </span>-S<span class=w> </span>/usr/bin/command
-</span></code></pre></div></p> <h2 id=red-hat-계열>Red Hat 계열<a class=headerlink href=#red-hat-계열 title="Permanent link">&para;</a></h2> <h3 id=rhel-red-hat-enterprise-linux>RHEL (Red Hat Enterprise Linux)<a class=headerlink href=#rhel-red-hat-enterprise-linux title="Permanent link">&para;</a></h3> <p>상용 엔터프라이즈 배포판.</p> <p><strong>특징:</strong> - 10년 지원 (EUS 포함 시 13년) - 상용 라이선스 필요 (개발/테스트 무료) - 패키지 관리자: <code>yum</code> (7), <code>dnf</code> (8+) - 설정 파일: <code>/etc/sysconfig/</code>, <code>/etc/systemd/</code></p> <p><strong>실무:</strong> - <code>subscription-manager register</code>로 라이선스 등록 - <code>yum-config-manager --enable rhel-*-optional-rpms</code>로 옵션 리포지토리 활성화 - RHEL 7과 8+는 네트워크 설정 방식이 다름</p> <h3 id=centos>CentOS<a class=headerlink href=#centos title="Permanent link">&para;</a></h3> <p>RHEL 소스 재컴파일 무료 배포판.</p> <p><strong>CentOS 7:</strong> - RHEL 7과 100% 호환 - 2024년 6월 30일 EOL - <code>yum</code> 사용</p> <p><strong>CentOS Stream:</strong> - RHEL 업스트림 버전 - 롤링 릴리스 - 프로덕션 부적합 - <code>dnf</code> 사용</p> <p><strong>실무:</strong> - CentOS 7은 마이그레이션 필요 - Rocky Linux나 AlmaLinux로 이전 권장</p> <h3 id=rocky-linux-vs-almalinux>Rocky Linux vs AlmaLinux<a class=headerlink href=#rocky-linux-vs-almalinux title="Permanent link">&para;</a></h3> <p>둘 다 RHEL 호환 무료 배포판.</p> <p><strong>공통점:</strong> - RHEL과 바이너리 호환 - <code>dnf</code> 패키지 관리자 - RHEL 8/9 지원</p> <p><strong>차이점:</strong></p> <table> <thead> <tr> <th>항목</th> <th>Rocky Linux</th> <th>AlmaLinux</th> </tr> </thead> <tbody> <tr> <td>주체</td> <td>커뮤니티</td> <td>CloudLinux (기업)</td> </tr> <tr> <td>지원</td> <td>커뮤니티</td> <td>기업 지원 가능</td> </tr> <tr> <td>마이그레이션</td> <td><code>migrate2rocky</code></td> <td><code>almalinux-deploy</code></td> </tr> </tbody> </table> <p><strong>실무:</strong> - 둘 다 CentOS 대체로 적합 - 기업 지원 필요 시 AlmaLinux, 커뮤니티 선호 시 Rocky Linux</p> <h3 id=fedora>Fedora<a class=headerlink href=#fedora title="Permanent link">&para;</a></h3> <p>Red Hat 후원 커뮤니티 배포판. 최신 기술 도입.</p> <p><strong>특징:</strong> - 6개월 릴리스 주기 - 최신 패키지 - <code>dnf</code> 사용 - RHEL 테스트베드 역할</p> <p><strong>실무:</strong> - 프로덕션 부적합 - 개발 환경이나 최신 기능 테스트용</p> <h3 id=red-hat-계열-내-차이점>Red Hat 계열 내 차이점<a class=headerlink href=#red-hat-계열-내-차이점 title="Permanent link">&para;</a></h3> <p><strong>RHEL 7 vs 8+:</strong></p> <table> <thead> <tr> <th>항목</th> <th>RHEL 7</th> <th>RHEL 8+</th> </tr> </thead> <tbody> <tr> <td>패키지 관리자</td> <td><code>yum</code></td> <td><code>dnf</code></td> </tr> <tr> <td>네트워크</td> <td><code>network-scripts</code></td> <td>NetworkManager</td> </tr> <tr> <td>Python</td> <td>2.7 기본</td> <td>3.6+ 기본</td> </tr> <tr> <td>OpenSSL</td> <td>1.0.2</td> <td>1.1.1</td> </tr> <tr> <td>네트워크 설정 파일</td> <td><code>/etc/sysconfig/network-scripts/ifcfg-*</code></td> <td>NetworkManager 설정</td> </tr> </tbody> </table> <p><strong>네트워크 설정 예시:</strong></p> <p>RHEL 7: <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1># /etc/sysconfig/network-scripts/ifcfg-eth0</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=nv>DEVICE</span><span class=o>=</span>eth0
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=nv>BOOTPROTO</span><span class=o>=</span>static
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=nv>IPADDR</span><span class=o>=</span><span class=m>192</span>.168.1.100
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=nv>NETMASK</span><span class=o>=</span><span class=m>255</span>.255.255.0
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=nv>GATEWAY</span><span class=o>=</span><span class=m>192</span>.168.1.1
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=nv>ONBOOT</span><span class=o>=</span>yes
-</span></code></pre></div></p> <p>RHEL 8+: <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># NetworkManager 사용</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>nmcli<span class=w> </span>connection<span class=w> </span>modify<span class=w> </span>eth0<span class=w> </span>ipv4.addresses<span class=w> </span><span class=m>192</span>.168.1.100/24
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>nmcli<span class=w> </span>connection<span class=w> </span>modify<span class=w> </span>eth0<span class=w> </span>ipv4.gateway<span class=w> </span><span class=m>192</span>.168.1.1
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>nmcli<span class=w> </span>connection<span class=w> </span>modify<span class=w> </span>eth0<span class=w> </span>ipv4.method<span class=w> </span>manual
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>nmcli<span class=w> </span>connection<span class=w> </span>up<span class=w> </span>eth0
-</span></code></pre></div></p> <h2 id=debian-계열>Debian 계열<a class=headerlink href=#debian-계열 title="Permanent link">&para;</a></h2> <h3 id=debian-vs-ubuntu>Debian vs Ubuntu<a class=headerlink href=#debian-vs-ubuntu title="Permanent link">&para;</a></h3> <p><strong>차이점:</strong></p> <table> <thead> <tr> <th>항목</th> <th>Debian</th> <th>Ubuntu</th> </tr> </thead> <tbody> <tr> <td>릴리스 주기</td> <td>2~3년</td> <td>6개월 (LTS 2년)</td> </tr> <tr> <td>지원 기간</td> <td>3년</td> <td>5년 (LTS)</td> </tr> <tr> <td>패키지 버전</td> <td>보수적 (안정성)</td> <td>최신 (기능)</td> </tr> <tr> <td>snap</td> <td>미사용</td> <td>기본 포함</td> </tr> <tr> <td>네트워크 설정</td> <td><code>/etc/network/interfaces</code></td> <td><code>/etc/netplan/</code> (18+)</td> </tr> <tr> <td>초기화</td> <td><code>systemd</code> (8+)</td> <td><code>systemd</code></td> </tr> </tbody> </table> <p><strong>Debian 특징:</strong> - 완전 오픈소스 철학 - 안정성 우선 - 패키지 검증 엄격</p> <p><strong>Ubuntu 특징:</strong> - 사용자 친화적 - 클라우드 환경에서 널리 사용 - <code>snap</code> 패키지 시스템</p> <p><strong>실무:</strong> - Debian: 안정성 중시, 오픈소스 철학 - Ubuntu: 최신 기능 필요, 클라우드 환경</p> <h3 id=debian>Debian<a class=headerlink href=#debian title="Permanent link">&para;</a></h3> <p>커뮤니티 주도 배포판.</p> <p><strong>특징:</strong> - 2~3년 릴리스 주기 - 완전 오픈소스 - 패키지 관리자: <code>apt</code>, <code>apt-get</code>, <code>dpkg</code> - 설정 파일: <code>/etc/apt/</code>, <code>/etc/default/</code></p> <p><strong>릴리스:</strong> - Debian 12: Bookworm - Debian 11: Bullseye - Debian 10: Buster</p> <p><strong>실무:</strong> - <code>/etc/apt/sources.list</code>로 리포지토리 관리 - <code>apt update &amp;&amp; apt upgrade</code>로 업데이트 - <code>apt</code>는 <code>apt-get</code>의 사용자 친화적 래퍼</p> <h3 id=ubuntu>Ubuntu<a class=headerlink href=#ubuntu title="Permanent link">&para;</a></h3> <p>Debian 기반, Canonical 개발.</p> <p><strong>특징:</strong> - 6개월 정기 릴리스, 2년마다 LTS - LTS 5년 지원 - 패키지 관리자: <code>apt</code>, <code>apt-get</code>, <code>dpkg</code> - <code>snap</code> 패키지 시스템</p> <p><strong>버전:</strong> - Ubuntu 22.04 LTS: Jammy Jellyfish - Ubuntu 20.04 LTS: Focal Fossa - Ubuntu 18.04 LTS: Bionic Beaver</p> <p><strong>Ubuntu Server vs Desktop:</strong> - Server: GUI 없음, 서버 패키지 중심 - Desktop: GNOME 포함, 데스크톱 앱 포함</p> <p><strong>실무:</strong> - <code>ubuntu-minimal</code> 이미지로 최소 설치 - <code>unattended-upgrades</code>로 자동 보안 업데이트 - <code>do-release-upgrade</code>로 LTS 간 업그레이드 - <code>snap</code>은 별도 관리 필요</p> <h3 id=debian-계열-내-차이점>Debian 계열 내 차이점<a class=headerlink href=#debian-계열-내-차이점 title="Permanent link">&para;</a></h3> <p><strong>네트워크 설정:</strong></p> <p>Debian: <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1># /etc/network/interfaces</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>auto<span class=w> </span>eth0
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>iface<span class=w> </span>eth0<span class=w> </span>inet<span class=w> </span>static
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>    </span>address<span class=w> </span><span class=m>192</span>.168.1.100
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>    </span>netmask<span class=w> </span><span class=m>255</span>.255.255.0
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=w>    </span>gateway<span class=w> </span><span class=m>192</span>.168.1.1
-</span></code></pre></div></p> <p>Ubuntu 18+: <div class="language-yaml highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># /etc/netplan/01-netcfg.yaml</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=nt>network</span><span class=p>:</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>  </span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>  </span><span class=nt>ethernets</span><span class=p>:</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>    </span><span class=nt>eth0</span><span class=p>:</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=w>      </span><span class=nt>addresses</span><span class=p>:</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>        </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">192.168.1.100/24</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>      </span><span class=nt>gateway4</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">192.168.1.1</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>      </span><span class=nt>nameservers</span><span class=p>:</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=w>        </span><span class=nt>addresses</span><span class=p>:</span>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a><span class=w>          </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">8.8.8.8</span>
-</span></code></pre></div></p> <p><strong>패키지 관리:</strong></p> <p>Debian은 전통적 패키지만, Ubuntu는 <code>snap</code>도 사용: <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># Ubuntu에서 snap 확인</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>snap<span class=w> </span>list
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>snap<span class=w> </span>install<span class=w> </span>package
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=c1># Debian은 snap 미지원 (수동 설치 가능하나 권장 안 함)</span>
-</span></code></pre></div></p> <h2 id=suse-계열>SUSE 계열<a class=headerlink href=#suse-계열 title="Permanent link">&para;</a></h2> <h3 id=opensuse-vs-suse-linux-enterprise>openSUSE vs SUSE Linux Enterprise<a class=headerlink href=#opensuse-vs-suse-linux-enterprise title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>openSUSE</th> <th>SUSE Linux Enterprise</th> </tr> </thead> <tbody> <tr> <td>라이선스</td> <td>무료</td> <td>상용</td> </tr> <tr> <td>지원</td> <td>커뮤니티</td> <td>기업 지원</td> </tr> <tr> <td>릴리스</td> <td>Leap (정기), Tumbleweed (롤링)</td> <td>장기 지원</td> </tr> <tr> <td>패키지 관리자</td> <td><code>zypper</code></td> <td><code>zypper</code></td> </tr> <tr> <td>설정 도구</td> <td>YaST</td> <td>YaST</td> </tr> </tbody> </table> <p><strong>특징:</strong> - <code>zypper</code>는 <code>yum</code>/<code>apt</code>와 다른 명령어 구조 - YaST는 GUI/CLI 설정 도구 - 유럽에서 주로 사용</p> <p><strong>실무:</strong> - <code>zypper refresh</code>로 리포지토리 갱신 - <code>zypper install package</code>로 패키지 설치 - <code>yast</code> 명령어로 설정 도구 실행</p> <h2 id=arch-계열>Arch 계열<a class=headerlink href=#arch-계열 title="Permanent link">&para;</a></h2> <h3 id=arch-linux-vs-manjaro>Arch Linux vs Manjaro<a class=headerlink href=#arch-linux-vs-manjaro title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>Arch Linux</th> <th>Manjaro</th> </tr> </thead> <tbody> <tr> <td>설치</td> <td>최소 설치, 수동 구성</td> <td>GUI 설치 프로그램</td> </tr> <tr> <td>안정성</td> <td>롤링 릴리스</td> <td>Arch보다 안정성 중시</td> </tr> <tr> <td>패키지 관리자</td> <td><code>pacman</code></td> <td><code>pacman</code></td> </tr> <tr> <td>AUR</td> <td>지원</td> <td>지원</td> </tr> </tbody> </table> <p><strong>특징:</strong> - 롤링 릴리스 - <code>pacman -Syu</code>로 전체 시스템 업데이트 - AUR 패키지는 수동 빌드 필요</p> <p><strong>실무:</strong> - 서버 환경 부적합 - 개발 환경이나 학습 목적</p> <h2 id=실무-차이점>실무 차이점<a class=headerlink href=#실무-차이점 title="Permanent link">&para;</a></h2> <h3 id=방화벽-관리>방화벽 관리<a class=headerlink href=#방화벽-관리 title="Permanent link">&para;</a></h3> <p><strong>Red Hat 계열 (firewalld):</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 서비스 추가</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>firewall-cmd<span class=w> </span>--permanent<span class=w> </span>--add-service<span class=o>=</span>http
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>firewall-cmd<span class=w> </span>--permanent<span class=w> </span>--add-service<span class=o>=</span>https
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>firewall-cmd<span class=w> </span>--reload
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=c1># 포트 추가</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>firewall-cmd<span class=w> </span>--permanent<span class=w> </span>--add-port<span class=o>=</span><span class=m>8080</span>/tcp
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>firewall-cmd<span class=w> </span>--reload
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a>
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a><span class=c1># 상태 확인</span>
-</span><span id=__span-7-11><a id=__codelineno-7-11 name=__codelineno-7-11 href=#__codelineno-7-11></a>firewall-cmd<span class=w> </span>--list-all
-</span></code></pre></div></p> <p><strong>Debian/Ubuntu (ufw):</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1># 서비스 허용</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>ufw<span class=w> </span>allow<span class=w> </span>http
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>ufw<span class=w> </span>allow<span class=w> </span>https
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=c1># 포트 허용</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>ufw<span class=w> </span>allow<span class=w> </span><span class=m>8080</span>/tcp
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=c1># 활성화</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a>ufw<span class=w> </span><span class=nb>enable</span>
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a>ufw<span class=w> </span>status
-</span></code></pre></div></p> <h3 id=로그-위치-차이>로그 위치 차이<a class=headerlink href=#로그-위치-차이 title="Permanent link">&para;</a></h3> <p><strong>Red Hat 계열:</strong> - <code>/var/log/messages</code>: 시스템 메시지 - <code>/var/log/secure</code>: 보안 관련 - <code>journalctl</code>: systemd 로그</p> <p><strong>Debian/Ubuntu:</strong> - <code>/var/log/syslog</code>: 시스템 로그 - <code>/var/log/auth.log</code>: 인증 로그 - <code>journalctl</code>: systemd 로그</p> <p><strong>공통:</strong> - <code>/var/log/</code>: 애플리케이션 로그 - <code>journalctl -u service</code>: 서비스별 로그</p> <h3 id=패키지-검색-방법>패키지 검색 방법<a class=headerlink href=#패키지-검색-방법 title="Permanent link">&para;</a></h3> <p><strong>Red Hat:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># 파일 제공 패키지 찾기</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>dnf<span class=w> </span>provides<span class=w> </span>/usr/bin/python3
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>yum<span class=w> </span>provides<span class=w> </span>/usr/bin/python3
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=c1># 패키지 정보</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>dnf<span class=w> </span>info<span class=w> </span>package
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>rpm<span class=w> </span>-qi<span class=w> </span>package
-</span></code></pre></div></p> <p><strong>Debian:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># 파일 제공 패키지 찾기 (apt-file 설치 필요)</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>apt<span class=w> </span>install<span class=w> </span>apt-file
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>apt-file<span class=w> </span>update
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>apt-file<span class=w> </span>search<span class=w> </span>/usr/bin/python3
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=c1># 또는 dpkg로</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>dpkg<span class=w> </span>-S<span class=w> </span>/usr/bin/python3
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a><span class=c1># 패키지 정보</span>
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a>apt<span class=w> </span>show<span class=w> </span>package
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a>dpkg<span class=w> </span>-s<span class=w> </span>package
-</span></code></pre></div></p> <h3 id=서비스-관리>서비스 관리<a class=headerlink href=#서비스-관리 title="Permanent link">&para;</a></h3> <p>모든 주요 배포판이 <code>systemd</code> 사용: <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># 공통 명령어</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>systemctl<span class=w> </span>start<span class=w> </span>service
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>systemctl<span class=w> </span>stop<span class=w> </span>service
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>systemctl<span class=w> </span>restart<span class=w> </span>service
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a>systemctl<span class=w> </span>reload<span class=w> </span>service
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>systemctl<span class=w> </span><span class=nb>enable</span><span class=w> </span>service
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a>systemctl<span class=w> </span>disable<span class=w> </span>service
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>systemctl<span class=w> </span>status<span class=w> </span>service
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a>systemctl<span class=w> </span>is-active<span class=w> </span>service
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a>systemctl<span class=w> </span>is-enabled<span class=w> </span>service
-</span></code></pre></div></p> <p><strong>차이점:</strong> - Red Hat: <code>/etc/systemd/system/</code>에 커스텀 서비스 파일 - Debian/Ubuntu: 동일하나 일부 기본 서비스 위치가 다를 수 있음</p> <h3 id=보안-업데이트>보안 업데이트<a class=headerlink href=#보안-업데이트 title="Permanent link">&para;</a></h3> <p><strong>Red Hat 계열:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># 보안 업데이트만</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>dnf<span class=w> </span>update<span class=w> </span>--security
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>yum<span class=w> </span>update<span class=w> </span>--security
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=c1># 자동 업데이트 설정</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>dnf<span class=w> </span>install<span class=w> </span>dnf-automatic
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>systemctl<span class=w> </span><span class=nb>enable</span><span class=w> </span>--now<span class=w> </span>dnf-automatic.timer
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a><span class=c1># 설정 파일</span>
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a>/etc/dnf/automatic.conf
-</span></code></pre></div></p> <p><strong>Debian/Ubuntu:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1># 보안 업데이트 확인</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>apt<span class=w> </span>upgrade<span class=w> </span>-s<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>security
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=c1># 자동 업데이트 설정</span>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>apt<span class=w> </span>install<span class=w> </span>unattended-upgrades
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a>dpkg-reconfigure<span class=w> </span>-plow<span class=w> </span>unattended-upgrades
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a>
-</span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a><span class=c1># 설정 파일</span>
-</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a>/etc/apt/apt.conf.d/50unattended-upgrades
-</span><span id=__span-13-10><a id=__codelineno-13-10 name=__codelineno-13-10 href=#__codelineno-13-10></a>/etc/apt/apt.conf.d/20auto-upgrades
-</span></code></pre></div></p> <p><strong>실무:</strong> - 프로덕션은 자동 업데이트보다 수동 검토 후 적용 - 스테이징에서 먼저 테스트 - 롤백 계획 수립</p> <h2 id=배포판-선택-기준>배포판 선택 기준<a class=headerlink href=#배포판-선택-기준 title="Permanent link">&para;</a></h2> <h3 id=서버-환경>서버 환경<a class=headerlink href=#서버-환경 title="Permanent link">&para;</a></h3> <p><strong>엔터프라이즈 서버:</strong> - RHEL: 상용 지원 필요 - Rocky/AlmaLinux: RHEL 호환 무료 - Ubuntu LTS: 클라우드, 최신 기능 - Debian: 안정성 우선</p> <p><strong>클라우드:</strong> - AWS: Amazon Linux 2023, Ubuntu, RHEL - Azure: Ubuntu, RHEL, SUSE - GCP: Ubuntu, Debian, RHEL</p> <p><strong>컨테이너:</strong> - Alpine: 최소 크기 (5MB) - Ubuntu: 범용 (100MB+) - Debian: 안정성 - Red Hat UBI: RHEL 호환</p> <h3 id=개발-환경>개발 환경<a class=headerlink href=#개발-환경 title="Permanent link">&para;</a></h3> <ul> <li>Ubuntu: 널리 사용, 문서 풍부</li> <li>Fedora: 최신 기술</li> <li>Arch: 커스터마이징</li> </ul> <h3 id=데스크톱>데스크톱<a class=headerlink href=#데스크톱 title="Permanent link">&para;</a></h3> <ul> <li>Ubuntu: 사용자 친화적</li> <li>Linux Mint: Ubuntu 대체</li> <li>Fedora: 최신 데스크톱</li> </ul> <h2 id=마이그레이션>마이그레이션<a class=headerlink href=#마이그레이션 title="Permanent link">&para;</a></h2> <h3 id=centos--rockyalmalinux>CentOS → Rocky/AlmaLinux<a class=headerlink href=#centos--rockyalmalinux title="Permanent link">&para;</a></h3> <p><strong>Rocky Linux:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>curl<span class=w> </span>-O<span class=w> </span>https://raw.githubusercontent.com/rocky-linux/rocky-tools/main/migrate2rocky/migrate2rocky.sh
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>chmod<span class=w> </span>+x<span class=w> </span>migrate2rocky.sh
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>./migrate2rocky.sh<span class=w> </span>-r
-</span></code></pre></div></p> <p><strong>AlmaLinux:</strong> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a>curl<span class=w> </span>-O<span class=w> </span>https://raw.githubusercontent.com/AlmaLinux/almalinux-deploy/master/almalinux-deploy.sh
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>chmod<span class=w> </span>+x<span class=w> </span>almalinux-deploy.sh
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>./almalinux-deploy.sh
-</span></code></pre></div></p> <p><strong>주의사항:</strong> - 백업 필수 - 테스트 환경에서 먼저 검증 - 커스텀 패키지 확인 - 설정 파일 차이점 확인</p> <h3 id=배포판-간-마이그레이션>배포판 간 마이그레이션<a class=headerlink href=#배포판-간-마이그레이션 title="Permanent link">&para;</a></h3> <p><strong>가능:</strong> - 동일 계열 내 (CentOS → Rocky) - Ubuntu LTS 간 업그레이드</p> <p><strong>불가능:</strong> - Red Hat → Debian (재설치 필요) - Debian → Arch (재설치 필요)</p> <p>이유: 패키지 구조, 설정 파일 위치, 초기화 시스템이 다름.</p> <h2 id=클라우드-이미지>클라우드 이미지<a class=headerlink href=#클라우드-이미지 title="Permanent link">&para;</a></h2> <h3 id=aws>AWS<a class=headerlink href=#aws title="Permanent link">&para;</a></h3> <ul> <li>Amazon Linux 2023: AWS 최적화</li> <li>Ubuntu: 가장 널리 사용</li> <li>RHEL: 엔터프라이즈</li> </ul> <h3 id=azure>Azure<a class=headerlink href=#azure title="Permanent link">&para;</a></h3> <ul> <li>Ubuntu Server</li> <li>RHEL</li> <li>SUSE Linux Enterprise</li> </ul> <h3 id=gcp>GCP<a class=headerlink href=#gcp title="Permanent link">&para;</a></h3> <ul> <li>Ubuntu</li> <li>Debian</li> <li>Container-Optimized OS</li> </ul> <p><strong>실무:</strong> - 클라우드 제공 이미지 사용 권장 - 커스텀 이미지는 보안 업데이트 관리 필요 - 이미지 ID는 리전별로 다름</p> <h2 id=컨테이너-베이스-이미지>컨테이너 베이스 이미지<a class=headerlink href=#컨테이너-베이스-이미지 title="Permanent link">&para;</a></h2> <h3 id=alpine-linux>Alpine Linux<a class=headerlink href=#alpine-linux title="Permanent link">&para;</a></h3> <ul> <li>크기: 5MB</li> <li>libc: musl</li> <li>패키지: <code>apk</code></li> <li>사용: 프로덕션 컨테이너, 크기 최소화</li> </ul> <h3 id=ubuntudebian>Ubuntu/Debian<a class=headerlink href=#ubuntudebian title="Permanent link">&para;</a></h3> <ul> <li>크기: 100MB+</li> <li>libc: glibc</li> <li>패키지: <code>apt</code></li> <li>사용: 개발 환경, 복잡한 의존성</li> </ul> <h3 id=red-hat-ubi>Red Hat UBI<a class=headerlink href=#red-hat-ubi title="Permanent link">&para;</a></h3> <ul> <li>기반: RHEL</li> <li>라이선스: 무료 사용 가능</li> <li>사용: RHEL 환경 호환</li> </ul> <p><strong>실무:</strong> - 프로덕션: Alpine (크기 최소화) - 개발: Ubuntu (패키지 풍부) - RHEL 환경: UBI (호환성)</p> <h2 id=성능-차이>성능 차이<a class=headerlink href=#성능-차이 title="Permanent link">&para;</a></h2> <p>배포판 간 성능 차이는 미미하다. 커널 버전과 설정이 더 중요하다.</p> <p><strong>차이가 나는 경우:</strong> - 컴파일 최적화: Gentoo, Alpine - 기본 스케줄러 설정 - I/O 스케줄러 설정</p> <p><strong>실무:</strong> - 배포판보다 애플리케이션 최적화가 중요 - 벤치마크로 실제 환경 측정</p> <h2 id=문서-및-커뮤니티>문서 및 커뮤니티<a class=headerlink href=#문서-및-커뮤니티 title="Permanent link">&para;</a></h2> <p><strong>문서:</strong> - RHEL: 공식 문서 우수 - Ubuntu: 커뮤니티 문서 풍부 - Debian: 공식 문서 상세 - Arch: Wiki 매우 상세</p> <p><strong>커뮤니티:</strong> - Ubuntu: 가장 큰 커뮤니티 - Red Hat: 엔터프라이즈 지원 - Debian: 개발자 중심 - Arch: 기술적 지원 우수</p> <h2 id=결론>결론<a class=headerlink href=#결론 title="Permanent link">&para;</a></h2> <p>서버 환경에서는 Red Hat 계열(RHEL, Rocky, AlmaLinux)과 Debian 계열(Ubuntu, Debian)을 주로 사용한다.</p> <p><strong>권장:</strong> - 엔터프라이즈: RHEL 또는 Rocky/AlmaLinux - 클라우드: Ubuntu LTS - 컨테이너: Alpine (프로덕션), Ubuntu (개발) - 학습: Ubuntu 또는 Fedora</p> <p>선택 기준: 지원 정책, 패키지 관리자 선호도, 클라우드 환경, 기존 인프라 호환성.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Infrastructure_as_Code/Ansible/ >Ansible</a></li> <li><a href=../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/ >Linux 기본 명령어</a></li> <li><a href=../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/Network_Management_Deep_Dive/ >Linux 네트워크 관리 심화</a></li> <li><a href=../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC_%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85/ >Linux 네트워크 트러블슈팅</a></li> <li><a href=../%EB%B3%B4%EC%95%88/Security_Hardening/ >Linux 보안 하드닝</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ class="md-footer__link md-footer__link--prev" aria-label="이전: Linux 전체 보기"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Linux 전체 보기 </div> </div> </a> <a href=../SA__PSACCT/ class="md-footer__link md-footer__link--next" aria-label="다음: SA와 PSACCT 모니터링 도구"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> SA와 PSACCT 모니터링 도구 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/DevOps/Linux/Linux_%EB%B0%B0%ED%8F%AC%ED%8C%90_%EA%B3%84%EC%97%B4/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../SA__PSACCT/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Linux 배포판 계열 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#linux-배포판-계열" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Linux 배포판 계열
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    DevOps
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CI_CD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../GitOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Infrastructure_as_Code/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infrastructure as Code
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Kubernetes/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Service_Mesh/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Mesh
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Service_Discovery/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Discovery
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Coordination/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coordination
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Principles/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Principles
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Git/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_13" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_2_13" id="__nav_6_2_13_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_13_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Linux
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    배포판 계열
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    배포판 계열
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#주요-계열-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        주요 계열 비교
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="주요 계열 비교">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#red-hat-vs-debian-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat vs Debian 계열
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#패키지-관리자-명령어-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        패키지 관리자 명령어 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#red-hat-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Red Hat 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rhel-red-hat-enterprise-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RHEL (Red Hat Enterprise Linux)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#centos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CentOS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rocky-linux-vs-almalinux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rocky Linux vs AlmaLinux
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fedora" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fedora
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#red-hat-계열-내-차이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat 계열 내 차이점
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debian-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Debian 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#debian-vs-ubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian vs Ubuntu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ubuntu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debian-계열-내-차이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian 계열 내 차이점
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suse-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SUSE 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SUSE 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opensuse-vs-suse-linux-enterprise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        openSUSE vs SUSE Linux Enterprise
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arch-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arch 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Arch 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#arch-linux-vs-manjaro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arch Linux vs Manjaro
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무-차이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무 차이점
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="실무 차이점">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#방화벽-관리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        방화벽 관리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#로그-위치-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그 위치 차이
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#패키지-검색-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        패키지 검색 방법
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#서비스-관리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스 관리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#보안-업데이트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        보안 업데이트
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#배포판-선택-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        배포판 선택 기준
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="배포판 선택 기준">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#서버-환경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서버 환경
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#개발-환경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개발 환경
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#데스크톱" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데스크톱
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#마이그레이션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        마이그레이션
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="마이그레이션">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#centos--rockyalmalinux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CentOS → Rocky/AlmaLinux
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#배포판-간-마이그레이션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        배포판 간 마이그레이션
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#클라우드-이미지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라우드 이미지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="클라우드 이미지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aws" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#azure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#컨테이너-베이스-이미지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컨테이너 베이스 이미지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="컨테이너 베이스 이미지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alpine-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alpine Linux
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubuntudebian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ubuntu/Debian
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#red-hat-ubi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat UBI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#성능-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        성능 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#문서-및-커뮤니티" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문서 및 커뮤니티
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#결론" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        결론
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SA__PSACCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SA와 PSACCT 모니터링 도구
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../WSL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WSL2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기본 명령어
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EB%B3%B4%EC%95%88/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EC%89%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    셸
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시스템 관리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%ED%8C%8C%EC%9D%BC_%EC%8B%9C%EC%8A%A4%ED%85%9C/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    파일 시스템
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%ED%8C%A8%ED%82%A4%EC%A7%80/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    패키지
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로세스
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EC%82%AC%EC%9A%A9%EC%9E%90_%EA%B4%80%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사용자 관리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%ED%85%8D%EC%8A%A4%ED%8A%B8_%EC%B2%98%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    텍스트 처리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Container_Registry/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Container Registry
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Secrets/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Testing/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#주요-계열-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        주요 계열 비교
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="주요 계열 비교">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#red-hat-vs-debian-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat vs Debian 계열
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#패키지-관리자-명령어-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        패키지 관리자 명령어 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#red-hat-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Red Hat 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rhel-red-hat-enterprise-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RHEL (Red Hat Enterprise Linux)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#centos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CentOS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rocky-linux-vs-almalinux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rocky Linux vs AlmaLinux
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fedora" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fedora
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#red-hat-계열-내-차이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat 계열 내 차이점
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debian-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Debian 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#debian-vs-ubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian vs Ubuntu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubuntu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ubuntu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debian-계열-내-차이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debian 계열 내 차이점
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suse-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SUSE 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SUSE 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opensuse-vs-suse-linux-enterprise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        openSUSE vs SUSE Linux Enterprise
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arch-계열" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arch 계열
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Arch 계열">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#arch-linux-vs-manjaro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arch Linux vs Manjaro
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무-차이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무 차이점
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="실무 차이점">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#방화벽-관리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        방화벽 관리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#로그-위치-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그 위치 차이
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#패키지-검색-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        패키지 검색 방법
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#서비스-관리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스 관리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#보안-업데이트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        보안 업데이트
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#배포판-선택-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        배포판 선택 기준
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="배포판 선택 기준">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#서버-환경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서버 환경
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#개발-환경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개발 환경
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#데스크톱" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데스크톱
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#마이그레이션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        마이그레이션
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="마이그레이션">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#centos--rockyalmalinux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CentOS → Rocky/AlmaLinux
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#배포판-간-마이그레이션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        배포판 간 마이그레이션
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#클라우드-이미지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클라우드 이미지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="클라우드 이미지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aws" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#azure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#컨테이너-베이스-이미지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        컨테이너 베이스 이미지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="컨테이너 베이스 이미지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alpine-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alpine Linux
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubuntudebian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ubuntu/Debian
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#red-hat-ubi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Red Hat UBI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#성능-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        성능 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#문서-및-커뮤니티" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문서 및 커뮤니티
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#결론" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        결론
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">devops</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">linux</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="linux-배포판-계열">Linux 배포판 계열<a class="headerlink" href="#linux-배포판-계열" title="Permanent link">&para;</a></h1>
+<h2 id="개요">개요<a class="headerlink" href="#개요" title="Permanent link">&para;</a></h2>
+<p>Linux 배포판은 패키지 관리자, 설정 파일 위치, 릴리스 주기에서 차이가 있다. 서버 환경에서는 Red Hat 계열과 Debian 계열을 주로 사용한다.</p>
+<h2 id="주요-계열-비교">주요 계열 비교<a class="headerlink" href="#주요-계열-비교" title="Permanent link">&para;</a></h2>
+<h3 id="red-hat-vs-debian-계열">Red Hat vs Debian 계열<a class="headerlink" href="#red-hat-vs-debian-계열" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>Red Hat 계열</th>
+<th>Debian 계열</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>패키지 관리자</td>
+<td><code>yum</code>/<code>dnf</code>, <code>rpm</code></td>
+<td><code>apt</code>/<code>apt-get</code>, <code>dpkg</code></td>
+</tr>
+<tr>
+<td>패키지 포맷</td>
+<td><code>.rpm</code></td>
+<td><code>.deb</code></td>
+</tr>
+<tr>
+<td>네트워크 설정 (7/8+)</td>
+<td><code>/etc/sysconfig/network-scripts/</code>, NetworkManager</td>
+<td><code>/etc/netplan/</code> (Ubuntu), <code>/etc/network/</code> (Debian)</td>
+</tr>
+<tr>
+<td>방화벽</td>
+<td><code>firewalld</code></td>
+<td><code>ufw</code></td>
+</tr>
+<tr>
+<td>로그 파일</td>
+<td><code>/var/log/messages</code></td>
+<td><code>/var/log/syslog</code></td>
+</tr>
+<tr>
+<td>리포지토리 설정</td>
+<td><code>/etc/yum.repos.d/</code></td>
+<td><code>/etc/apt/sources.list</code>, <code>/etc/apt/sources.list.d/</code></td>
+</tr>
+<tr>
+<td>서비스 관리</td>
+<td><code>systemd</code> (공통)</td>
+<td><code>systemd</code> (공통)</td>
+</tr>
+<tr>
+<td>SELinux</td>
+<td>기본 활성화</td>
+<td>기본 비활성화 (AppArmor 사용)</td>
+</tr>
+<tr>
+<td>지원 주기</td>
+<td>10년 (RHEL)</td>
+<td>5년 (Ubuntu LTS), 3년 (Debian)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="패키지-관리자-명령어-비교">패키지 관리자 명령어 비교<a class="headerlink" href="#패키지-관리자-명령어-비교" title="Permanent link">&para;</a></h3>
+<p><strong>Red Hat 계열:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 설치</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>yum<span class="w"> </span>install<span class="w"> </span>package<span class="w">      </span><span class="c1"># RHEL/CentOS 7</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>dnf<span class="w"> </span>install<span class="w"> </span>package<span class="w">      </span><span class="c1"># RHEL/CentOS 8+, Rocky, AlmaLinux</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># 업데이트</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>yum<span class="w"> </span>update
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>dnf<span class="w"> </span>update
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># 검색</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>yum<span class="w"> </span>search<span class="w"> </span>package
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>dnf<span class="w"> </span>search<span class="w"> </span>package
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># 파일 제공 패키지 찾기</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>yum<span class="w"> </span>provides<span class="w"> </span>/usr/bin/command
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>dnf<span class="w"> </span>provides<span class="w"> </span>/usr/bin/command
+</span></code></pre></div></p>
+<p><strong>Debian 계열:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 설치</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>apt<span class="w"> </span>install<span class="w"> </span>package
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>apt-get<span class="w"> </span>install<span class="w"> </span>package
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># 업데이트</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt<span class="w"> </span>upgrade
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>upgrade
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># 검색</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>apt<span class="w"> </span>search<span class="w"> </span>package
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>apt-cache<span class="w"> </span>search<span class="w"> </span>package
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># 파일 제공 패키지 찾기</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>apt-file<span class="w"> </span>search<span class="w"> </span>/usr/bin/command
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>dpkg<span class="w"> </span>-S<span class="w"> </span>/usr/bin/command
+</span></code></pre></div></p>
+<h2 id="red-hat-계열">Red Hat 계열<a class="headerlink" href="#red-hat-계열" title="Permanent link">&para;</a></h2>
+<h3 id="rhel-red-hat-enterprise-linux">RHEL (Red Hat Enterprise Linux)<a class="headerlink" href="#rhel-red-hat-enterprise-linux" title="Permanent link">&para;</a></h3>
+<p>상용 엔터프라이즈 배포판.</p>
+<p><strong>특징:</strong>
+- 10년 지원 (EUS 포함 시 13년)
+- 상용 라이선스 필요 (개발/테스트 무료)
+- 패키지 관리자: <code>yum</code> (7), <code>dnf</code> (8+)
+- 설정 파일: <code>/etc/sysconfig/</code>, <code>/etc/systemd/</code></p>
+<p><strong>실무:</strong>
+- <code>subscription-manager register</code>로 라이선스 등록
+- <code>yum-config-manager --enable rhel-*-optional-rpms</code>로 옵션 리포지토리 활성화
+- RHEL 7과 8+는 네트워크 설정 방식이 다름</p>
+<h3 id="centos">CentOS<a class="headerlink" href="#centos" title="Permanent link">&para;</a></h3>
+<p>RHEL 소스 재컴파일 무료 배포판.</p>
+<p><strong>CentOS 7:</strong>
+- RHEL 7과 100% 호환
+- 2024년 6월 30일 EOL
+- <code>yum</code> 사용</p>
+<p><strong>CentOS Stream:</strong>
+- RHEL 업스트림 버전
+- 롤링 릴리스
+- 프로덕션 부적합
+- <code>dnf</code> 사용</p>
+<p><strong>실무:</strong>
+- CentOS 7은 마이그레이션 필요
+- Rocky Linux나 AlmaLinux로 이전 권장</p>
+<h3 id="rocky-linux-vs-almalinux">Rocky Linux vs AlmaLinux<a class="headerlink" href="#rocky-linux-vs-almalinux" title="Permanent link">&para;</a></h3>
+<p>둘 다 RHEL 호환 무료 배포판.</p>
+<p><strong>공통점:</strong>
+- RHEL과 바이너리 호환
+- <code>dnf</code> 패키지 관리자
+- RHEL 8/9 지원</p>
+<p><strong>차이점:</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>Rocky Linux</th>
+<th>AlmaLinux</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>주체</td>
+<td>커뮤니티</td>
+<td>CloudLinux (기업)</td>
+</tr>
+<tr>
+<td>지원</td>
+<td>커뮤니티</td>
+<td>기업 지원 가능</td>
+</tr>
+<tr>
+<td>마이그레이션</td>
+<td><code>migrate2rocky</code></td>
+<td><code>almalinux-deploy</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>실무:</strong>
+- 둘 다 CentOS 대체로 적합
+- 기업 지원 필요 시 AlmaLinux, 커뮤니티 선호 시 Rocky Linux</p>
+<h3 id="fedora">Fedora<a class="headerlink" href="#fedora" title="Permanent link">&para;</a></h3>
+<p>Red Hat 후원 커뮤니티 배포판. 최신 기술 도입.</p>
+<p><strong>특징:</strong>
+- 6개월 릴리스 주기
+- 최신 패키지
+- <code>dnf</code> 사용
+- RHEL 테스트베드 역할</p>
+<p><strong>실무:</strong>
+- 프로덕션 부적합
+- 개발 환경이나 최신 기능 테스트용</p>
+<h3 id="red-hat-계열-내-차이점">Red Hat 계열 내 차이점<a class="headerlink" href="#red-hat-계열-내-차이점" title="Permanent link">&para;</a></h3>
+<p><strong>RHEL 7 vs 8+:</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>RHEL 7</th>
+<th>RHEL 8+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>패키지 관리자</td>
+<td><code>yum</code></td>
+<td><code>dnf</code></td>
+</tr>
+<tr>
+<td>네트워크</td>
+<td><code>network-scripts</code></td>
+<td>NetworkManager</td>
+</tr>
+<tr>
+<td>Python</td>
+<td>2.7 기본</td>
+<td>3.6+ 기본</td>
+</tr>
+<tr>
+<td>OpenSSL</td>
+<td>1.0.2</td>
+<td>1.1.1</td>
+</tr>
+<tr>
+<td>네트워크 설정 파일</td>
+<td><code>/etc/sysconfig/network-scripts/ifcfg-*</code></td>
+<td>NetworkManager 설정</td>
+</tr>
+</tbody>
+</table>
+<p><strong>네트워크 설정 예시:</strong></p>
+<p>RHEL 7:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># /etc/sysconfig/network-scripts/ifcfg-eth0</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">DEVICE</span><span class="o">=</span>eth0
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nv">BOOTPROTO</span><span class="o">=</span>static
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nv">IPADDR</span><span class="o">=</span><span class="m">192</span>.168.1.100
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nv">NETMASK</span><span class="o">=</span><span class="m">255</span>.255.255.0
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nv">GATEWAY</span><span class="o">=</span><span class="m">192</span>.168.1.1
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nv">ONBOOT</span><span class="o">=</span>yes
+</span></code></pre></div></p>
+<p>RHEL 8+:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># NetworkManager 사용</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>nmcli<span class="w"> </span>connection<span class="w"> </span>modify<span class="w"> </span>eth0<span class="w"> </span>ipv4.addresses<span class="w"> </span><span class="m">192</span>.168.1.100/24
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>nmcli<span class="w"> </span>connection<span class="w"> </span>modify<span class="w"> </span>eth0<span class="w"> </span>ipv4.gateway<span class="w"> </span><span class="m">192</span>.168.1.1
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>nmcli<span class="w"> </span>connection<span class="w"> </span>modify<span class="w"> </span>eth0<span class="w"> </span>ipv4.method<span class="w"> </span>manual
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>nmcli<span class="w"> </span>connection<span class="w"> </span>up<span class="w"> </span>eth0
+</span></code></pre></div></p>
+<h2 id="debian-계열">Debian 계열<a class="headerlink" href="#debian-계열" title="Permanent link">&para;</a></h2>
+<h3 id="debian-vs-ubuntu">Debian vs Ubuntu<a class="headerlink" href="#debian-vs-ubuntu" title="Permanent link">&para;</a></h3>
+<p><strong>차이점:</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>Debian</th>
+<th>Ubuntu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>릴리스 주기</td>
+<td>2~3년</td>
+<td>6개월 (LTS 2년)</td>
+</tr>
+<tr>
+<td>지원 기간</td>
+<td>3년</td>
+<td>5년 (LTS)</td>
+</tr>
+<tr>
+<td>패키지 버전</td>
+<td>보수적 (안정성)</td>
+<td>최신 (기능)</td>
+</tr>
+<tr>
+<td>snap</td>
+<td>미사용</td>
+<td>기본 포함</td>
+</tr>
+<tr>
+<td>네트워크 설정</td>
+<td><code>/etc/network/interfaces</code></td>
+<td><code>/etc/netplan/</code> (18+)</td>
+</tr>
+<tr>
+<td>초기화</td>
+<td><code>systemd</code> (8+)</td>
+<td><code>systemd</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Debian 특징:</strong>
+- 완전 오픈소스 철학
+- 안정성 우선
+- 패키지 검증 엄격</p>
+<p><strong>Ubuntu 특징:</strong>
+- 사용자 친화적
+- 클라우드 환경에서 널리 사용
+- <code>snap</code> 패키지 시스템</p>
+<p><strong>실무:</strong>
+- Debian: 안정성 중시, 오픈소스 철학
+- Ubuntu: 최신 기능 필요, 클라우드 환경</p>
+<h3 id="debian">Debian<a class="headerlink" href="#debian" title="Permanent link">&para;</a></h3>
+<p>커뮤니티 주도 배포판.</p>
+<p><strong>특징:</strong>
+- 2~3년 릴리스 주기
+- 완전 오픈소스
+- 패키지 관리자: <code>apt</code>, <code>apt-get</code>, <code>dpkg</code>
+- 설정 파일: <code>/etc/apt/</code>, <code>/etc/default/</code></p>
+<p><strong>릴리스:</strong>
+- Debian 12: Bookworm
+- Debian 11: Bullseye
+- Debian 10: Buster</p>
+<p><strong>실무:</strong>
+- <code>/etc/apt/sources.list</code>로 리포지토리 관리
+- <code>apt update &amp;&amp; apt upgrade</code>로 업데이트
+- <code>apt</code>는 <code>apt-get</code>의 사용자 친화적 래퍼</p>
+<h3 id="ubuntu">Ubuntu<a class="headerlink" href="#ubuntu" title="Permanent link">&para;</a></h3>
+<p>Debian 기반, Canonical 개발.</p>
+<p><strong>특징:</strong>
+- 6개월 정기 릴리스, 2년마다 LTS
+- LTS 5년 지원
+- 패키지 관리자: <code>apt</code>, <code>apt-get</code>, <code>dpkg</code>
+- <code>snap</code> 패키지 시스템</p>
+<p><strong>버전:</strong>
+- Ubuntu 22.04 LTS: Jammy Jellyfish
+- Ubuntu 20.04 LTS: Focal Fossa
+- Ubuntu 18.04 LTS: Bionic Beaver</p>
+<p><strong>Ubuntu Server vs Desktop:</strong>
+- Server: GUI 없음, 서버 패키지 중심
+- Desktop: GNOME 포함, 데스크톱 앱 포함</p>
+<p><strong>실무:</strong>
+- <code>ubuntu-minimal</code> 이미지로 최소 설치
+- <code>unattended-upgrades</code>로 자동 보안 업데이트
+- <code>do-release-upgrade</code>로 LTS 간 업그레이드
+- <code>snap</code>은 별도 관리 필요</p>
+<h3 id="debian-계열-내-차이점">Debian 계열 내 차이점<a class="headerlink" href="#debian-계열-내-차이점" title="Permanent link">&para;</a></h3>
+<p><strong>네트워크 설정:</strong></p>
+<p>Debian:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># /etc/network/interfaces</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>auto<span class="w"> </span>eth0
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>iface<span class="w"> </span>eth0<span class="w"> </span>inet<span class="w"> </span>static
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>address<span class="w"> </span><span class="m">192</span>.168.1.100
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span>netmask<span class="w"> </span><span class="m">255</span>.255.255.0
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span>gateway<span class="w"> </span><span class="m">192</span>.168.1.1
+</span></code></pre></div></p>
+<p>Ubuntu 18+:
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># /etc/netplan/01-netcfg.yaml</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">network</span><span class="p">:</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">ethernets</span><span class="p">:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nt">eth0</span><span class="p">:</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">      </span><span class="nt">addresses</span><span class="p">:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.1.100/24</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">      </span><span class="nt">gateway4</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.168.1.1</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">      </span><span class="nt">nameservers</span><span class="p">:</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">        </span><span class="nt">addresses</span><span class="p">:</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8.8.8.8</span>
+</span></code></pre></div></p>
+<p><strong>패키지 관리:</strong></p>
+<p>Debian은 전통적 패키지만, Ubuntu는 <code>snap</code>도 사용:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Ubuntu에서 snap 확인</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>snap<span class="w"> </span>list
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>snap<span class="w"> </span>install<span class="w"> </span>package
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Debian은 snap 미지원 (수동 설치 가능하나 권장 안 함)</span>
+</span></code></pre></div></p>
+<h2 id="suse-계열">SUSE 계열<a class="headerlink" href="#suse-계열" title="Permanent link">&para;</a></h2>
+<h3 id="opensuse-vs-suse-linux-enterprise">openSUSE vs SUSE Linux Enterprise<a class="headerlink" href="#opensuse-vs-suse-linux-enterprise" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>openSUSE</th>
+<th>SUSE Linux Enterprise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>라이선스</td>
+<td>무료</td>
+<td>상용</td>
+</tr>
+<tr>
+<td>지원</td>
+<td>커뮤니티</td>
+<td>기업 지원</td>
+</tr>
+<tr>
+<td>릴리스</td>
+<td>Leap (정기), Tumbleweed (롤링)</td>
+<td>장기 지원</td>
+</tr>
+<tr>
+<td>패키지 관리자</td>
+<td><code>zypper</code></td>
+<td><code>zypper</code></td>
+</tr>
+<tr>
+<td>설정 도구</td>
+<td>YaST</td>
+<td>YaST</td>
+</tr>
+</tbody>
+</table>
+<p><strong>특징:</strong>
+- <code>zypper</code>는 <code>yum</code>/<code>apt</code>와 다른 명령어 구조
+- YaST는 GUI/CLI 설정 도구
+- 유럽에서 주로 사용</p>
+<p><strong>실무:</strong>
+- <code>zypper refresh</code>로 리포지토리 갱신
+- <code>zypper install package</code>로 패키지 설치
+- <code>yast</code> 명령어로 설정 도구 실행</p>
+<h2 id="arch-계열">Arch 계열<a class="headerlink" href="#arch-계열" title="Permanent link">&para;</a></h2>
+<h3 id="arch-linux-vs-manjaro">Arch Linux vs Manjaro<a class="headerlink" href="#arch-linux-vs-manjaro" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>Arch Linux</th>
+<th>Manjaro</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>설치</td>
+<td>최소 설치, 수동 구성</td>
+<td>GUI 설치 프로그램</td>
+</tr>
+<tr>
+<td>안정성</td>
+<td>롤링 릴리스</td>
+<td>Arch보다 안정성 중시</td>
+</tr>
+<tr>
+<td>패키지 관리자</td>
+<td><code>pacman</code></td>
+<td><code>pacman</code></td>
+</tr>
+<tr>
+<td>AUR</td>
+<td>지원</td>
+<td>지원</td>
+</tr>
+</tbody>
+</table>
+<p><strong>특징:</strong>
+- 롤링 릴리스
+- <code>pacman -Syu</code>로 전체 시스템 업데이트
+- AUR 패키지는 수동 빌드 필요</p>
+<p><strong>실무:</strong>
+- 서버 환경 부적합
+- 개발 환경이나 학습 목적</p>
+<h2 id="실무-차이점">실무 차이점<a class="headerlink" href="#실무-차이점" title="Permanent link">&para;</a></h2>
+<h3 id="방화벽-관리">방화벽 관리<a class="headerlink" href="#방화벽-관리" title="Permanent link">&para;</a></h3>
+<p><strong>Red Hat 계열 (firewalld):</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 서비스 추가</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-service<span class="o">=</span>http
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-service<span class="o">=</span>https
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>firewall-cmd<span class="w"> </span>--reload
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># 포트 추가</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-port<span class="o">=</span><span class="m">8080</span>/tcp
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>firewall-cmd<span class="w"> </span>--reload
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># 상태 확인</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>firewall-cmd<span class="w"> </span>--list-all
+</span></code></pre></div></p>
+<p><strong>Debian/Ubuntu (ufw):</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># 서비스 허용</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>ufw<span class="w"> </span>allow<span class="w"> </span>http
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>ufw<span class="w"> </span>allow<span class="w"> </span>https
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># 포트 허용</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>ufw<span class="w"> </span>allow<span class="w"> </span><span class="m">8080</span>/tcp
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># 활성화</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>ufw<span class="w"> </span><span class="nb">enable</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>ufw<span class="w"> </span>status
+</span></code></pre></div></p>
+<h3 id="로그-위치-차이">로그 위치 차이<a class="headerlink" href="#로그-위치-차이" title="Permanent link">&para;</a></h3>
+<p><strong>Red Hat 계열:</strong>
+- <code>/var/log/messages</code>: 시스템 메시지
+- <code>/var/log/secure</code>: 보안 관련
+- <code>journalctl</code>: systemd 로그</p>
+<p><strong>Debian/Ubuntu:</strong>
+- <code>/var/log/syslog</code>: 시스템 로그
+- <code>/var/log/auth.log</code>: 인증 로그
+- <code>journalctl</code>: systemd 로그</p>
+<p><strong>공통:</strong>
+- <code>/var/log/</code>: 애플리케이션 로그
+- <code>journalctl -u service</code>: 서비스별 로그</p>
+<h3 id="패키지-검색-방법">패키지 검색 방법<a class="headerlink" href="#패키지-검색-방법" title="Permanent link">&para;</a></h3>
+<p><strong>Red Hat:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 파일 제공 패키지 찾기</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>dnf<span class="w"> </span>provides<span class="w"> </span>/usr/bin/python3
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>yum<span class="w"> </span>provides<span class="w"> </span>/usr/bin/python3
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># 패키지 정보</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>dnf<span class="w"> </span>info<span class="w"> </span>package
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>rpm<span class="w"> </span>-qi<span class="w"> </span>package
+</span></code></pre></div></p>
+<p><strong>Debian:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 파일 제공 패키지 찾기 (apt-file 설치 필요)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>apt<span class="w"> </span>install<span class="w"> </span>apt-file
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>apt-file<span class="w"> </span>update
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>apt-file<span class="w"> </span>search<span class="w"> </span>/usr/bin/python3
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># 또는 dpkg로</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>dpkg<span class="w"> </span>-S<span class="w"> </span>/usr/bin/python3
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="c1"># 패키지 정보</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>apt<span class="w"> </span>show<span class="w"> </span>package
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>dpkg<span class="w"> </span>-s<span class="w"> </span>package
+</span></code></pre></div></p>
+<h3 id="서비스-관리">서비스 관리<a class="headerlink" href="#서비스-관리" title="Permanent link">&para;</a></h3>
+<p>모든 주요 배포판이 <code>systemd</code> 사용:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 공통 명령어</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>systemctl<span class="w"> </span>start<span class="w"> </span>service
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>systemctl<span class="w"> </span>stop<span class="w"> </span>service
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>systemctl<span class="w"> </span>restart<span class="w"> </span>service
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>systemctl<span class="w"> </span>reload<span class="w"> </span>service
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>service
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>systemctl<span class="w"> </span>disable<span class="w"> </span>service
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>systemctl<span class="w"> </span>status<span class="w"> </span>service
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>systemctl<span class="w"> </span>is-active<span class="w"> </span>service
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>systemctl<span class="w"> </span>is-enabled<span class="w"> </span>service
+</span></code></pre></div></p>
+<p><strong>차이점:</strong>
+- Red Hat: <code>/etc/systemd/system/</code>에 커스텀 서비스 파일
+- Debian/Ubuntu: 동일하나 일부 기본 서비스 위치가 다를 수 있음</p>
+<h3 id="보안-업데이트">보안 업데이트<a class="headerlink" href="#보안-업데이트" title="Permanent link">&para;</a></h3>
+<p><strong>Red Hat 계열:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># 보안 업데이트만</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>dnf<span class="w"> </span>update<span class="w"> </span>--security
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>yum<span class="w"> </span>update<span class="w"> </span>--security
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="c1"># 자동 업데이트 설정</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>dnf<span class="w"> </span>install<span class="w"> </span>dnf-automatic
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>dnf-automatic.timer
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="c1"># 설정 파일</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>/etc/dnf/automatic.conf
+</span></code></pre></div></p>
+<p><strong>Debian/Ubuntu:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># 보안 업데이트 확인</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>apt<span class="w"> </span>upgrade<span class="w"> </span>-s<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>security
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># 자동 업데이트 설정</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>apt<span class="w"> </span>install<span class="w"> </span>unattended-upgrades
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>dpkg-reconfigure<span class="w"> </span>-plow<span class="w"> </span>unattended-upgrades
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="c1"># 설정 파일</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>/etc/apt/apt.conf.d/50unattended-upgrades
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>/etc/apt/apt.conf.d/20auto-upgrades
+</span></code></pre></div></p>
+<p><strong>실무:</strong>
+- 프로덕션은 자동 업데이트보다 수동 검토 후 적용
+- 스테이징에서 먼저 테스트
+- 롤백 계획 수립</p>
+<h2 id="배포판-선택-기준">배포판 선택 기준<a class="headerlink" href="#배포판-선택-기준" title="Permanent link">&para;</a></h2>
+<h3 id="서버-환경">서버 환경<a class="headerlink" href="#서버-환경" title="Permanent link">&para;</a></h3>
+<p><strong>엔터프라이즈 서버:</strong>
+- RHEL: 상용 지원 필요
+- Rocky/AlmaLinux: RHEL 호환 무료
+- Ubuntu LTS: 클라우드, 최신 기능
+- Debian: 안정성 우선</p>
+<p><strong>클라우드:</strong>
+- AWS: Amazon Linux 2023, Ubuntu, RHEL
+- Azure: Ubuntu, RHEL, SUSE
+- GCP: Ubuntu, Debian, RHEL</p>
+<p><strong>컨테이너:</strong>
+- Alpine: 최소 크기 (5MB)
+- Ubuntu: 범용 (100MB+)
+- Debian: 안정성
+- Red Hat UBI: RHEL 호환</p>
+<h3 id="개발-환경">개발 환경<a class="headerlink" href="#개발-환경" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ubuntu: 널리 사용, 문서 풍부</li>
+<li>Fedora: 최신 기술</li>
+<li>Arch: 커스터마이징</li>
+</ul>
+<h3 id="데스크톱">데스크톱<a class="headerlink" href="#데스크톱" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ubuntu: 사용자 친화적</li>
+<li>Linux Mint: Ubuntu 대체</li>
+<li>Fedora: 최신 데스크톱</li>
+</ul>
+<h2 id="마이그레이션">마이그레이션<a class="headerlink" href="#마이그레이션" title="Permanent link">&para;</a></h2>
+<h3 id="centos--rockyalmalinux">CentOS → Rocky/AlmaLinux<a class="headerlink" href="#centos--rockyalmalinux" title="Permanent link">&para;</a></h3>
+<p><strong>Rocky Linux:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>curl<span class="w"> </span>-O<span class="w"> </span>https://raw.githubusercontent.com/rocky-linux/rocky-tools/main/migrate2rocky/migrate2rocky.sh
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>chmod<span class="w"> </span>+x<span class="w"> </span>migrate2rocky.sh
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>./migrate2rocky.sh<span class="w"> </span>-r
+</span></code></pre></div></p>
+<p><strong>AlmaLinux:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>curl<span class="w"> </span>-O<span class="w"> </span>https://raw.githubusercontent.com/AlmaLinux/almalinux-deploy/master/almalinux-deploy.sh
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>chmod<span class="w"> </span>+x<span class="w"> </span>almalinux-deploy.sh
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>./almalinux-deploy.sh
+</span></code></pre></div></p>
+<p><strong>주의사항:</strong>
+- 백업 필수
+- 테스트 환경에서 먼저 검증
+- 커스텀 패키지 확인
+- 설정 파일 차이점 확인</p>
+<h3 id="배포판-간-마이그레이션">배포판 간 마이그레이션<a class="headerlink" href="#배포판-간-마이그레이션" title="Permanent link">&para;</a></h3>
+<p><strong>가능:</strong>
+- 동일 계열 내 (CentOS → Rocky)
+- Ubuntu LTS 간 업그레이드</p>
+<p><strong>불가능:</strong>
+- Red Hat → Debian (재설치 필요)
+- Debian → Arch (재설치 필요)</p>
+<p>이유: 패키지 구조, 설정 파일 위치, 초기화 시스템이 다름.</p>
+<h2 id="클라우드-이미지">클라우드 이미지<a class="headerlink" href="#클라우드-이미지" title="Permanent link">&para;</a></h2>
+<h3 id="aws">AWS<a class="headerlink" href="#aws" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Amazon Linux 2023: AWS 최적화</li>
+<li>Ubuntu: 가장 널리 사용</li>
+<li>RHEL: 엔터프라이즈</li>
+</ul>
+<h3 id="azure">Azure<a class="headerlink" href="#azure" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ubuntu Server</li>
+<li>RHEL</li>
+<li>SUSE Linux Enterprise</li>
+</ul>
+<h3 id="gcp">GCP<a class="headerlink" href="#gcp" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ubuntu</li>
+<li>Debian</li>
+<li>Container-Optimized OS</li>
+</ul>
+<p><strong>실무:</strong>
+- 클라우드 제공 이미지 사용 권장
+- 커스텀 이미지는 보안 업데이트 관리 필요
+- 이미지 ID는 리전별로 다름</p>
+<h2 id="컨테이너-베이스-이미지">컨테이너 베이스 이미지<a class="headerlink" href="#컨테이너-베이스-이미지" title="Permanent link">&para;</a></h2>
+<h3 id="alpine-linux">Alpine Linux<a class="headerlink" href="#alpine-linux" title="Permanent link">&para;</a></h3>
+<ul>
+<li>크기: 5MB</li>
+<li>libc: musl</li>
+<li>패키지: <code>apk</code></li>
+<li>사용: 프로덕션 컨테이너, 크기 최소화</li>
+</ul>
+<h3 id="ubuntudebian">Ubuntu/Debian<a class="headerlink" href="#ubuntudebian" title="Permanent link">&para;</a></h3>
+<ul>
+<li>크기: 100MB+</li>
+<li>libc: glibc</li>
+<li>패키지: <code>apt</code></li>
+<li>사용: 개발 환경, 복잡한 의존성</li>
+</ul>
+<h3 id="red-hat-ubi">Red Hat UBI<a class="headerlink" href="#red-hat-ubi" title="Permanent link">&para;</a></h3>
+<ul>
+<li>기반: RHEL</li>
+<li>라이선스: 무료 사용 가능</li>
+<li>사용: RHEL 환경 호환</li>
+</ul>
+<p><strong>실무:</strong>
+- 프로덕션: Alpine (크기 최소화)
+- 개발: Ubuntu (패키지 풍부)
+- RHEL 환경: UBI (호환성)</p>
+<h2 id="성능-차이">성능 차이<a class="headerlink" href="#성능-차이" title="Permanent link">&para;</a></h2>
+<p>배포판 간 성능 차이는 미미하다. 커널 버전과 설정이 더 중요하다.</p>
+<p><strong>차이가 나는 경우:</strong>
+- 컴파일 최적화: Gentoo, Alpine
+- 기본 스케줄러 설정
+- I/O 스케줄러 설정</p>
+<p><strong>실무:</strong>
+- 배포판보다 애플리케이션 최적화가 중요
+- 벤치마크로 실제 환경 측정</p>
+<h2 id="문서-및-커뮤니티">문서 및 커뮤니티<a class="headerlink" href="#문서-및-커뮤니티" title="Permanent link">&para;</a></h2>
+<p><strong>문서:</strong>
+- RHEL: 공식 문서 우수
+- Ubuntu: 커뮤니티 문서 풍부
+- Debian: 공식 문서 상세
+- Arch: Wiki 매우 상세</p>
+<p><strong>커뮤니티:</strong>
+- Ubuntu: 가장 큰 커뮤니티
+- Red Hat: 엔터프라이즈 지원
+- Debian: 개발자 중심
+- Arch: 기술적 지원 우수</p>
+<h2 id="결론">결론<a class="headerlink" href="#결론" title="Permanent link">&para;</a></h2>
+<p>서버 환경에서는 Red Hat 계열(RHEL, Rocky, AlmaLinux)과 Debian 계열(Ubuntu, Debian)을 주로 사용한다.</p>
+<p><strong>권장:</strong>
+- 엔터프라이즈: RHEL 또는 Rocky/AlmaLinux
+- 클라우드: Ubuntu LTS
+- 컨테이너: Alpine (프로덕션), Ubuntu (개발)
+- 학습: Ubuntu 또는 Fedora</p>
+<p>선택 기준: 지원 정책, 패키지 관리자 선호도, 클라우드 환경, 기존 인프라 호환성.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Infrastructure_as_Code/Ansible/">Ansible</a></li>
+<li><a href="../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/">Linux 기본 명령어</a></li>
+<li><a href="../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/Network_Management_Deep_Dive/">Linux 네트워크 관리 심화</a></li>
+<li><a href="../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC_%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85/">Linux 네트워크 트러블슈팅</a></li>
+<li><a href="../%EB%B3%B4%EC%95%88/Security_Hardening/">Linux 보안 하드닝</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="이전: Linux 전체 보기">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Linux 전체 보기
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../SA__PSACCT/" class="md-footer__link md-footer__link--next" aria-label="다음: SA와 PSACCT 모니터링 도구">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                SA와 PSACCT 모니터링 도구
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

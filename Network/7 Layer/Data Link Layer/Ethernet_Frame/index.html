@@ -1,48 +1,2784 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Ethernet_Frame/ rel=canonical><link href=../ rel=prev><link href=../Link_Aggregation_LACP/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>이더넷 프레임 — L2가 실제로 주고받는 바이트 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#이더넷-프레임--l2가-실제로-주고받는-바이트 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 이더넷 프레임 — L2가 실제로 주고받는 바이트 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> OSI 7계층 </span> </a> <label class="md-nav__link " for=__nav_7_1_7 id=__nav_7_1_7_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7> <span class="md-nav__icon md-icon"></span> OSI 7계층 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../DHCP/ class=md-nav__link> <span class=md-ellipsis> DHCP </span> </a> </li> <li class=md-nav__item> <a href=../../GSLB/ class=md-nav__link> <span class=md-ellipsis> GSLB </span> </a> </li> <li class=md-nav__item> <a href=../../Network%20Flow/ class=md-nav__link> <span class=md-ellipsis> 네트워크 플로우 </span> </a> </li> <li class=md-nav__item> <a href=../../OSI_7_Layer_Model/ class=md-nav__link> <span class=md-ellipsis> OSI 7 계층 모델 </span> </a> </li> <li class=md-nav__item> <a href=../../Qo_S_Traffic_Shaping/ class=md-nav__link> <span class=md-ellipsis> QoS와 트래픽 셰이핑 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application%20Layer/ class=md-nav__link> <span class=md-ellipsis> Application Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7_8 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 데이터 링크 계층 </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_7_1_7_8_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7_8> <span class="md-nav__icon md-icon"></span> 데이터 링크 계층 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network%20Layer/ class=md-nav__link> <span class=md-ellipsis> Network Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Transport%20Layer/ class=md-nav__link> <span class=md-ellipsis> Transport Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#들어가며 class=md-nav__link> <span class=md-ellipsis> 들어가며 </span> </a> </li> <li class=md-nav__item> <a href=#이더넷-프레임-구조 class=md-nav__link> <span class=md-ellipsis> 이더넷 프레임 구조 </span> </a> <nav class=md-nav aria-label="이더넷 프레임 구조"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#프리앰블과-sfd class=md-nav__link> <span class=md-ellipsis> 프리앰블과 SFD </span> </a> </li> <li class=md-nav__item> <a href=#mac-주소 class=md-nav__link> <span class=md-ellipsis> MAC 주소 </span> </a> </li> <li class=md-nav__item> <a href=#ethertype class=md-nav__link> <span class=md-ellipsis> EtherType </span> </a> </li> <li class=md-nav__item> <a href=#페이로드와-최소-길이 class=md-nav__link> <span class=md-ellipsis> 페이로드와 최소 길이 </span> </a> </li> <li class=md-nav__item> <a href=#fcs class=md-nav__link> <span class=md-ellipsis> FCS </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#csmacd와-충돌-도메인 class=md-nav__link> <span class=md-ellipsis> CSMA/CD와 충돌 도메인 </span> </a> </li> <li class=md-nav__item> <a href=#스위치의-mac-학습과-플러딩 class=md-nav__link> <span class=md-ellipsis> 스위치의 MAC 학습과 플러딩 </span> </a> </li> <li class=md-nav__item> <a href=#점보-프레임과-mtu class=md-nav__link> <span class=md-ellipsis> 점보 프레임과 MTU </span> </a> </li> <li class=md-nav__item> <a href=#tcpdump로-프레임-헤더-확인하기 class=md-nav__link> <span class=md-ellipsis> tcpdump로 프레임 헤더 확인하기 </span> </a> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>network</span> </nav> <h1 id=이더넷-프레임--l2가-실제로-주고받는-바이트>이더넷 프레임 — L2가 실제로 주고받는 바이트<a class=headerlink href=#이더넷-프레임--l2가-실제로-주고받는-바이트 title="Permanent link">&para;</a></h1> <h2 id=들어가며>들어가며<a class=headerlink href=#들어가며 title="Permanent link">&para;</a></h2> <p>서버 운영을 하다 보면 패킷 캡처를 떠야 할 때가 온다. 애플리케이션 로그상으로는 요청을 보냈다는데 상대는 못 받았다고 하고, 방화벽도 다 열려 있고, 라우팅 테이블도 멀쩡하다. 이쯤 되면 결국 <code>tcpdump</code>를 켜고 와이어 위에 실제로 뭐가 흘러다니는지 봐야 한다. 그런데 캡처 결과를 열어보면 IP 헤더 위에 또 뭔가가 붙어 있다. 출발지·목적지 MAC 주소, EtherType 같은 것들. 이게 이더넷 프레임이다.</p> <p>IP가 동네 주소(어느 건물)라면 MAC은 그 건물 안에서 실제로 물건을 받는 사람이다. 같은 네트워크 세그먼트 안에서 호스트끼리 데이터를 주고받을 때 실제로 와이어를 타고 가는 단위가 이더넷 프레임이고, IP 패킷은 그 프레임의 페이로드로 실려 간다. L3 이상만 보다가 통신이 안 되는 문제를 만나면 결국 이 L2 레벨까지 내려와야 풀리는 경우가 많다.</p> <p>이 문서는 이더넷 프레임의 구조, CSMA/CD와 충돌 도메인이 왜 옛날 이야기가 됐는지, 스위치가 MAC을 어떻게 학습하고 모를 때 어떻게 행동하는지, 그리고 점보 프레임과 MTU 문제를 정리한 글이다.</p> <h2 id=이더넷-프레임-구조>이더넷 프레임 구조<a class=headerlink href=#이더넷-프레임-구조 title="Permanent link">&para;</a></h2> <p>이더넷 프레임은 정해진 순서로 필드가 나열된 바이트 덩어리다. 흔히 쓰는 Ethernet II 프레임 기준으로 보면 이렇게 생겼다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>+----------+-----+--------+--------+-----------+------------------+-----+
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>| Preamble | SFD | 목적지  | 출발지  | EtherType |     Payload      | FCS |
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>|   7B     | 1B  |  MAC   |  MAC   |   2B      |   46 ~ 1500B     | 4B  |
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>|          |     |   6B   |   6B   |           |                  |     |
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>+----------+-----+--------+--------+-----------+------------------+-----+
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>            &lt;------------ 여기부터 FCS까지가 캡처에 잡히는 프레임 -------&gt;
-</span></code></pre></div> <h3 id=프리앰블과-sfd>프리앰블과 SFD<a class=headerlink href=#프리앰블과-sfd title="Permanent link">&para;</a></h3> <p>프리앰블(Preamble)은 <code>10101010</code>이 7바이트 반복되는 비트열이다. 받는 쪽 NIC가 들어오는 신호에 클록을 맞추라고 보내는 신호다. 그 뒤에 SFD(Start Frame Delimiter) 1바이트(<code>10101011</code>)가 붙어서 "여기부터 진짜 프레임 시작"이라고 알린다.</p> <p>프리앰블과 SFD는 하드웨어가 처리하고 버린다. <code>tcpdump</code>로 캡처해도 이 부분은 안 보인다. 캡처에서 첫 바이트로 잡히는 건 목적지 MAC부터다. 처음 캡처를 뜨고 "프리앰블이 왜 안 보이지" 하는 경우가 있는데, 원래 안 보이는 게 정상이다.</p> <h3 id=mac-주소>MAC 주소<a class=headerlink href=#mac-주소 title="Permanent link">&para;</a></h3> <p>목적지 MAC 6바이트, 출발지 MAC 6바이트가 이어진다. 목적지가 먼저 온다는 점이 중요하다. 스위치가 프레임을 받자마자 어디로 보낼지 결정하려면 목적지를 먼저 읽는 게 빠르기 때문이다.</p> <p>MAC 주소는 48비트(6바이트)고 <code>00:1a:2b:3c:4d:5e</code> 같은 16진수로 쓴다. 앞 3바이트(OUI)는 제조사를 나타내고 뒤 3바이트는 제조사가 장비마다 부여한다. 그래서 캡처에서 MAC 앞부분만 봐도 어느 회사 NIC인지 대충 알 수 있다.</p> <p>특수한 MAC도 알아둬야 한다. <code>ff:ff:ff:ff:ff:ff</code>는 브로드캐스트로, 세그먼트의 모든 호스트가 받는다. ARP Request가 이 주소로 나간다. 첫 바이트의 최하위 비트가 1이면 멀티캐스트다(<code>01:00:5e:...</code> 같은 IPv4 멀티캐스트).</p> <h3 id=ethertype>EtherType<a class=headerlink href=#ethertype title="Permanent link">&para;</a></h3> <p>2바이트짜리 EtherType은 페이로드가 어떤 상위 프로토콜인지 알려준다. 받는 쪽이 페이로드를 IP 스택으로 올릴지 ARP로 올릴지 판단하는 근거다.</p> <table> <thead> <tr> <th>값 (16진수)</th> <th>프로토콜</th> </tr> </thead> <tbody> <tr> <td>0x0800</td> <td>IPv4</td> </tr> <tr> <td>0x0806</td> <td>ARP</td> </tr> <tr> <td>0x86DD</td> <td>IPv6</td> </tr> <tr> <td>0x8100</td> <td>802.1Q VLAN 태그</td> </tr> </tbody> </table> <p>여기서 헷갈리는 지점이 하나 있다. 이 자리의 2바이트 값이 1500(0x05DC) 이하면 EtherType이 아니라 페이로드 길이(Length)를 뜻한다. 이게 옛날 IEEE 802.3 프레임 방식이다. 1536(0x0600) 이상이면 EtherType으로 해석한다. 현대 네트워크는 거의 다 Ethernet II라 EtherType으로 보면 되지만, 캡처에서 가끔 Length로 잡히는 프레임을 만나면 이 차이를 떠올려야 한다.</p> <p>802.1Q VLAN 태그가 붙으면 출발지 MAC 뒤에 4바이트 태그가 끼어들고 그 뒤에 실제 EtherType이 온다. VLAN 트렁크 포트를 캡처하면 프레임 길이가 4바이트씩 늘어나는 게 이 때문이다. VLAN 자체는 별도 문서에서 다룬다.</p> <h3 id=페이로드와-최소-길이>페이로드와 최소 길이<a class=headerlink href=#페이로드와-최소-길이 title="Permanent link">&para;</a></h3> <p>페이로드는 46~1500바이트다. 위쪽 1500이 우리가 흔히 말하는 MTU다. IP 패킷이 이 자리에 통째로 들어간다.</p> <p>아래쪽 46바이트 최소 제한이 실무에서 가끔 발목을 잡는다. 페이로드가 46바이트보다 작으면 0으로 패딩을 채워 46바이트를 맞춘다. 프레임 전체가 최소 64바이트는 돼야 한다는 규칙 때문인데, 이건 뒤에 나오는 CSMA/CD와 관련이 있다. ARP 응답처럼 작은 프레임을 캡처하면 뒤에 의미 없는 0이 잔뜩 붙어 있는 걸 보게 된다. 그게 패딩이다.</p> <h3 id=fcs>FCS<a class=headerlink href=#fcs title="Permanent link">&para;</a></h3> <p>맨 뒤 4바이트는 FCS(Frame Check Sequence)다. CRC-32로 계산한 체크섬이고, 받는 쪽 NIC가 프레임이 전송 중 깨졌는지 검사한다. CRC가 안 맞으면 NIC가 프레임을 조용히 버린다. 상위 계층은 그런 프레임이 있었는지도 모른다.</p> <p>FCS도 보통 NIC와 드라이버가 처리하기 때문에 <code>tcpdump</code> 출력에는 안 나온다. 깨진 프레임은 아예 캡처에 안 올라오는 경우가 많다. "분명히 패킷을 보냈는데 캡처에 안 잡힌다"면 중간에서 FCS 에러로 드롭됐을 가능성을 의심해야 한다. 이럴 땐 스위치 포트의 에러 카운터(<code>show interface</code>의 CRC errors)를 봐야 원인이 잡힌다.</p> <h2 id=csmacd와-충돌-도메인>CSMA/CD와 충돌 도메인<a class=headerlink href=#csmacd와-충돌-도메인 title="Permanent link">&para;</a></h2> <p>CSMA/CD는 이더넷이 허브와 동축 케이블을 쓰던 시절의 핵심 동작이다. 지금은 거의 죽은 기술이지만, 왜 프레임 최소 길이가 64바이트인지, 충돌 도메인이라는 말이 왜 나왔는지 이해하려면 알아야 한다.</p> <p>옛날 이더넷은 하나의 와이어를 여러 호스트가 공유했다. 동시에 두 호스트가 신호를 쏘면 신호가 겹쳐서 망가진다. 이게 충돌(Collision)이다. CSMA/CD는 이걸 다루는 규칙이다.</p> <ul> <li><strong>CS (Carrier Sense)</strong>: 보내기 전에 와이어가 비었는지 먼저 듣는다.</li> <li><strong>MA (Multiple Access)</strong>: 여러 호스트가 같은 매체를 공유한다.</li> <li><strong>CD (Collision Detection)</strong>: 보내는 도중에도 계속 들으면서 충돌이 났는지 감지한다. 충돌을 감지하면 즉시 멈추고, 무작위 시간만큼 기다렸다가(백오프) 다시 시도한다.</li> </ul> <p>충돌이 일어날 수 있는 호스트들의 범위를 충돌 도메인이라고 한다. 허브는 받은 신호를 모든 포트로 그대로 뿌리기 때문에 허브에 붙은 모든 호스트가 하나의 충돌 도메인이다. 호스트가 많아질수록 충돌이 잦아지고 실효 대역폭이 떨어진다.</p> <p>프레임 최소 64바이트 규칙이 여기서 나온다. 충돌을 제대로 감지하려면 프레임이 와이어 끝까지 갔다가 충돌 신호가 돌아올 때까지 송신이 끝나면 안 된다. 그 최소 시간을 바이트로 환산한 게 64바이트다. 프레임이 이보다 짧으면 충돌이 났는데도 송신이 이미 끝나버려서 감지를 못 한다. 그래서 짧은 프레임은 패딩으로 64바이트를 채운다.</p> <p>지금은 이게 거의 무의미하다. 스위치가 허브를 대체하면서 각 포트가 독립된 충돌 도메인이 됐고, 풀 듀플렉스에서는 송신과 수신 회선이 분리돼서 충돌 자체가 발생하지 않는다. 풀 듀플렉스 링크에서는 CSMA/CD가 아예 꺼진다. 그래도 캡처에서 64바이트짜리 패딩된 프레임을 보면 이 옛날 규칙의 흔적이라는 걸 알 수 있다.</p> <h2 id=스위치의-mac-학습과-플러딩>스위치의 MAC 학습과 플러딩<a class=headerlink href=#스위치의-mac-학습과-플러딩 title="Permanent link">&para;</a></h2> <p>스위치가 허브와 다른 점이 바로 이거다. 허브는 받은 걸 무조건 다 뿌리지만, 스위치는 목적지 MAC을 보고 필요한 포트로만 보낸다. 이걸 하려면 어떤 MAC이 어느 포트에 붙어 있는지 알아야 하고, 스위치는 이걸 스스로 학습한다.</p> <p>학습 과정은 단순하다. 스위치는 MAC 주소 테이블(CAM 테이블)을 들고 있다. 프레임이 들어오면 출발지 MAC과 그 프레임이 들어온 포트를 짝지어 테이블에 적는다. "MAC X는 포트 3에 있다." 이렇게 들어오는 프레임마다 출발지를 보고 테이블을 채워간다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>초기 상태 (테이블 비어 있음)
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>호스트 A(포트1) → 호스트 B로 프레임 전송
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>1) 스위치: 출발지 A를 포트1로 학습
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>   [A → 포트1]
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>2) 목적지 B는 테이블에 없음 → 들어온 포트 빼고 전부로 플러딩
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>3) B가 응답하면 출발지 B를 포트2로 학습
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>   [A → 포트1, B → 포트2]
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>4) 이후 A↔B 통신은 해당 포트로만 전달 (플러딩 안 함)
-</span></code></pre></div> <p>목적지 MAC이 테이블에 있으면 그 포트로만 보낸다(포워딩). 테이블에 없으면(Unknown Unicast) 들어온 포트를 제외한 모든 포트로 내보낸다. 이게 플러딩이다. 브로드캐스트(<code>ff:ff:ff:ff:ff:ff</code>)도 마찬가지로 모든 포트로 플러딩한다.</p> <p>CAM 테이블의 각 엔트리에는 수명(보통 5분)이 있다. 일정 시간 그 MAC에서 프레임이 안 오면 엔트리를 지운다. 호스트를 다른 포트로 옮겼는데 잠깐 통신이 이상하다가 정상으로 돌아오는 경우가 있는데, 오래된 엔트리가 만료되고 새 포트로 다시 학습될 때까지 걸리는 시간 때문이다.</p> <p>실무에서 알아둘 함정이 몇 가지 있다.</p> <p>플러딩이 많아지면 의심해야 한다. CAM 테이블이 꽉 차거나(MAC flooding 공격이 대표적) 엔트리가 자꾸 만료되면 스위치가 유니캐스트를 계속 플러딩한다. 그러면 원래 한 포트로만 갔어야 할 트래픽이 전 포트로 퍼져서 대역폭을 갉아먹고, 다른 포트에서 캡처를 떠도 남의 트래픽이 보이게 된다. 캡처할 때 "왜 나랑 상관없는 트래픽이 잡히지" 싶으면 플러딩 상황을 의심한다.</p> <p>같은 MAC이 두 포트에서 번갈아 학습되면(MAC flapping) 루프가 의심된다. 스위치가 같은 출발지 MAC을 포트3에서 봤다가 포트5에서 봤다가 하면 어딘가 케이블이 루프로 연결됐을 가능성이 크다. 스위치 로그에 MAC flapping 경고가 뜨면 STP 설정과 물리 연결을 먼저 확인해야 한다.</p> <h2 id=점보-프레임과-mtu>점보 프레임과 MTU<a class=headerlink href=#점보-프레임과-mtu title="Permanent link">&para;</a></h2> <p>표준 이더넷 페이로드 최대치는 1500바이트, 즉 MTU 1500이다. 점보 프레임은 이 페이로드를 9000바이트까지 키운 프레임이다. 표준은 아니지만 데이터센터 장비 대부분이 지원한다.</p> <p>왜 키우냐면, 큰 데이터를 보낼 때 프레임 개수가 줄기 때문이다. 1500바이트씩 쪼개 보내는 것보다 9000바이트씩 보내면 헤더 오버헤드가 줄고, 프레임당 인터럽트 처리 횟수가 줄어 CPU 부담이 내려간다. iSCSI나 NFS처럼 큰 블록을 많이 옮기는 스토리지 트래픽, 백업 트래픽에서 체감 차이가 난다.</p> <p>문제는 경로상의 모든 장비가 같은 MTU를 써야 한다는 점이다. 한 호스트만 MTU 9000으로 올리고 중간 스위치나 상대 호스트가 1500이면 통신이 깨진다. 이게 실무에서 정말 자주 겪는 함정이다.</p> <p>증상이 고약하다. 작은 패킷(핑 기본 크기)은 잘 나가는데 큰 데이터 전송만 멈춘다. SSH 접속은 되는데 <code>scp</code>로 큰 파일을 보내면 중간에 멈추는 식이다. ping은 되니까 "네트워크는 멀쩡한데?" 하고 엉뚱한 데를 뒤지게 된다.</p> <p>MTU 불일치는 패킷 크기를 키워서 ping으로 확인한다. DF(Don't Fragment) 비트를 세우고 큰 패킷을 보내본다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1># 리눅스: 페이로드 8972바이트 + ICMP 8B + IP 20B = 9000</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=c1># -M do 로 단편화 금지, 못 가면 에러</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>ping<span class=w> </span>-M<span class=w> </span><span class=k>do</span><span class=w> </span>-s<span class=w> </span><span class=m>8972</span><span class=w> </span><span class=m>192</span>.168.1.10
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=c1># 정상이면:</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=c1># 8980 bytes from 192.168.1.10: icmp_seq=1 ttl=64 time=0.3 ms</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=c1># MTU가 모자라면:</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=c1># ping: local error: message too long, mtu=1500</span>
-</span></code></pre></div> <p><code>message too long, mtu=1500</code> 같은 에러가 나오면 경로 어딘가 MTU 1500 구간이 있다는 뜻이다. 어느 인터페이스의 MTU가 얼마인지는 이렇게 본다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>ip<span class=w> </span>link<span class=w> </span>show<span class=w> </span>eth0
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=c1># eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 ...</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=c1>#                                          ^^^^^^^^</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=c1># 점보 프레임으로 올리려면</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>sudo<span class=w> </span>ip<span class=w> </span>link<span class=w> </span><span class=nb>set</span><span class=w> </span>eth0<span class=w> </span>mtu<span class=w> </span><span class=m>9000</span>
-</span></code></pre></div> <p>TCP에는 PMTUD(Path MTU Discovery)라는 자동 조정 장치가 있어서, 경로 최소 MTU를 찾아 세그먼트 크기를 맞춘다. 문제는 PMTUD가 ICMP "Fragmentation Needed" 메시지에 의존하는데, 방화벽이 ICMP를 막아버리면 이 신호가 안 오고 PMTUD가 먹통이 된다(ICMP black hole). 그러면 위에서 말한 "작은 건 되고 큰 건 멈추는" 증상이 그대로 재현된다. 방화벽에서 ICMP를 무작정 다 막으면 안 되는 이유가 이거다.</p> <h2 id=tcpdump로-프레임-헤더-확인하기>tcpdump로 프레임 헤더 확인하기<a class=headerlink href=#tcpdump로-프레임-헤더-확인하기 title="Permanent link">&para;</a></h2> <p>이론은 이쯤 하고, 실제로 프레임을 어떻게 들여다보는지 본다. <code>tcpdump</code>에 <code>-e</code> 옵션을 주면 이더넷 헤더(MAC, EtherType)까지 출력한다. 평소엔 안 보이는 L2 정보를 봐야 할 때 이 옵션이 필요하다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1># -e: 이더넷 헤더(MAC) 출력</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=c1># -n: 이름 해석 끄기 (IP/포트를 숫자로)</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=c1># -i eth0: 캡처할 인터페이스</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>sudo<span class=w> </span>tcpdump<span class=w> </span>-e<span class=w> </span>-n<span class=w> </span>-i<span class=w> </span>eth0
-</span></code></pre></div> <p>출력은 이렇게 나온다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>14:02:11.123456 00:1a:2b:3c:4d:5e &gt; 00:50:56:aa:bb:cc, ethertype IPv4 (0x0800),
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>  length 98: 192.168.1.20 &gt; 192.168.1.10: ICMP echo request, id 1, seq 1, length 64
-</span></code></pre></div> <p>읽는 법은 이렇다. <code>00:1a:2b:3c:4d:5e &gt; 00:50:56:aa:bb:cc</code>가 출발지 MAC → 목적지 MAC이다. <code>ethertype IPv4 (0x0800)</code>이 EtherType 필드 값으로, 페이로드가 IPv4라는 뜻이다. 그 뒤 <code>length 98</code>이 프레임 길이고, 이어서 IP 레벨 정보가 나온다.</p> <p>ARP를 캡처하면 EtherType이 달라지는 걸 볼 수 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>sudo<span class=w> </span>tcpdump<span class=w> </span>-e<span class=w> </span>-n<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>arp
-</span></code></pre></div> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>14:05:33.654321 00:1a:2b:3c:4d:5e &gt; ff:ff:ff:ff:ff:ff, ethertype ARP (0x0806),
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>  length 42: Request who-has 192.168.1.10 tell 192.168.1.20
-</span></code></pre></div> <p>목적지 MAC이 <code>ff:ff:ff:ff:ff:ff</code> 브로드캐스트고 EtherType이 <code>ARP (0x0806)</code>인 게 보인다. ARP Request가 브로드캐스트로 나간다는 게 캡처상으로 확인되는 셈이다. length 42는 14바이트 이더넷 헤더 + 28바이트 ARP인데, 앞서 말한 최소 프레임 64바이트(헤더 14 + 페이로드 46)를 맞추려면 NIC가 패딩을 붙인다. 그 패딩은 보통 캡처에 안 나오거나 0으로 채워져 보인다.</p> <p>특정 MAC만 골라 보고 싶으면 <code>ether host</code> 필터를 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1># 특정 MAC이 오가는 프레임만</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>sudo<span class=w> </span>tcpdump<span class=w> </span>-e<span class=w> </span>-n<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>ether<span class=w> </span>host<span class=w> </span><span class=m>00</span>:1a:2b:3c:4d:5e
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=c1># 브로드캐스트 프레임만 (브로드캐스트 폭주 의심될 때)</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>sudo<span class=w> </span>tcpdump<span class=w> </span>-e<span class=w> </span>-n<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>ether<span class=w> </span>broadcast
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=c1># 나중에 분석하려면 파일로 저장 (Wireshark로 열어 보면 편하다)</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a>sudo<span class=w> </span>tcpdump<span class=w> </span>-e<span class=w> </span>-n<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-w<span class=w> </span>capture.pcap
-</span></code></pre></div> <p>캡처 파일을 떠두면 Wireshark에서 프레임을 바이트 단위로 펼쳐 볼 수 있다. 프리앰블·SFD·FCS는 NIC가 처리해서 안 보이지만, 목적지 MAC부터 페이로드까지는 그대로 펼쳐진다. L2 문제를 잡을 땐 이 캡처가 가장 확실한 증거가 된다.</p> <h2 id=정리>정리<a class=headerlink href=#정리 title="Permanent link">&para;</a></h2> <p>이더넷 프레임은 L2에서 실제로 와이어를 타는 단위다. 목적지·출발지 MAC, EtherType, 페이로드, FCS로 구성되고, 프리앰블·SFD·FCS는 하드웨어가 처리해서 캡처에는 안 잡힌다. CSMA/CD와 충돌 도메인은 허브 시절의 유산이고 스위치·풀 듀플렉스 환경에서는 거의 의미가 없지만, 64바이트 최소 프레임 규칙의 배경이 된다. 스위치는 출발지 MAC을 보고 CAM 테이블을 채우며, 모르는 목적지는 플러딩한다. 플러딩이 잦거나 MAC flapping이 보이면 테이블 포화나 루프를 의심한다. 점보 프레임은 처리량을 높이지만 경로 전체가 같은 MTU를 써야 하고, MTU 불일치는 "작은 건 되고 큰 건 멈추는" 증상으로 나타난다. 문제를 만나면 <code>tcpdump -e</code>로 프레임 헤더부터 확인하는 게 빠른 길이다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/ >AMQP vs MQTT 비교 분석</a></li> <li><a href=../../../GateWay/API_Gateway/ >API Gateway 심화</a></li> <li><a href=../../Network%20Layer/ARP/ >ARP — IP와 MAC을 잇는 끈</a></li> <li><a href=../../Network%20Layer/BGP/ >BGP — 인터넷을 굴리는 라우팅 프로토콜</a></li> <li><a href=../../../CDN/ >CDN 동작 원리와 실무 운영</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ class="md-footer__link md-footer__link--prev" aria-label="이전: Data Link Layer 전체 보기"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Data Link Layer 전체 보기 </div> </div> </a> <a href=../Link_Aggregation_LACP/ class="md-footer__link md-footer__link--next" aria-label="다음: 링크 애그리게이션과 LACP"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 링크 애그리게이션과 LACP </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Ethernet_Frame/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../Link_Aggregation_LACP/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>이더넷 프레임 — L2가 실제로 주고받는 바이트 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#이더넷-프레임--l2가-실제로-주고받는-바이트" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              이더넷 프레임 — L2가 실제로 주고받는 바이트
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_7" id="__nav_7_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OSI 7계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../DHCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../GSLB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GSLB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Network%20Flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 플로우
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../OSI_7_Layer_Model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7 계층 모델
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Qo_S_Traffic_Shaping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QoS와 트래픽 셰이핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 링크 계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_7_1_7_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    데이터 링크 계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Transport%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#들어가며" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        들어가며
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#이더넷-프레임-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이더넷 프레임 구조
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="이더넷 프레임 구조">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#프리앰블과-sfd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        프리앰블과 SFD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mac-주소" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAC 주소
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ethertype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EtherType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#페이로드와-최소-길이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        페이로드와 최소 길이
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fcs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FCS
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#csmacd와-충돌-도메인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSMA/CD와 충돌 도메인
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#스위치의-mac-학습과-플러딩" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스위치의 MAC 학습과 플러딩
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#점보-프레임과-mtu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        점보 프레임과 MTU
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tcpdump로-프레임-헤더-확인하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tcpdump로 프레임 헤더 확인하기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="이더넷-프레임--l2가-실제로-주고받는-바이트">이더넷 프레임 — L2가 실제로 주고받는 바이트<a class="headerlink" href="#이더넷-프레임--l2가-실제로-주고받는-바이트" title="Permanent link">&para;</a></h1>
+<h2 id="들어가며">들어가며<a class="headerlink" href="#들어가며" title="Permanent link">&para;</a></h2>
+<p>서버 운영을 하다 보면 패킷 캡처를 떠야 할 때가 온다. 애플리케이션 로그상으로는 요청을 보냈다는데 상대는 못 받았다고 하고, 방화벽도 다 열려 있고, 라우팅 테이블도 멀쩡하다. 이쯤 되면 결국 <code>tcpdump</code>를 켜고 와이어 위에 실제로 뭐가 흘러다니는지 봐야 한다. 그런데 캡처 결과를 열어보면 IP 헤더 위에 또 뭔가가 붙어 있다. 출발지·목적지 MAC 주소, EtherType 같은 것들. 이게 이더넷 프레임이다.</p>
+<p>IP가 동네 주소(어느 건물)라면 MAC은 그 건물 안에서 실제로 물건을 받는 사람이다. 같은 네트워크 세그먼트 안에서 호스트끼리 데이터를 주고받을 때 실제로 와이어를 타고 가는 단위가 이더넷 프레임이고, IP 패킷은 그 프레임의 페이로드로 실려 간다. L3 이상만 보다가 통신이 안 되는 문제를 만나면 결국 이 L2 레벨까지 내려와야 풀리는 경우가 많다.</p>
+<p>이 문서는 이더넷 프레임의 구조, CSMA/CD와 충돌 도메인이 왜 옛날 이야기가 됐는지, 스위치가 MAC을 어떻게 학습하고 모를 때 어떻게 행동하는지, 그리고 점보 프레임과 MTU 문제를 정리한 글이다.</p>
+<h2 id="이더넷-프레임-구조">이더넷 프레임 구조<a class="headerlink" href="#이더넷-프레임-구조" title="Permanent link">&para;</a></h2>
+<p>이더넷 프레임은 정해진 순서로 필드가 나열된 바이트 덩어리다. 흔히 쓰는 Ethernet II 프레임 기준으로 보면 이렇게 생겼다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>+----------+-----+--------+--------+-----------+------------------+-----+
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>| Preamble | SFD | 목적지  | 출발지  | EtherType |     Payload      | FCS |
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>|   7B     | 1B  |  MAC   |  MAC   |   2B      |   46 ~ 1500B     | 4B  |
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>|          |     |   6B   |   6B   |           |                  |     |
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>+----------+-----+--------+--------+-----------+------------------+-----+
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>            &lt;------------ 여기부터 FCS까지가 캡처에 잡히는 프레임 -------&gt;
+</span></code></pre></div>
+<h3 id="프리앰블과-sfd">프리앰블과 SFD<a class="headerlink" href="#프리앰블과-sfd" title="Permanent link">&para;</a></h3>
+<p>프리앰블(Preamble)은 <code>10101010</code>이 7바이트 반복되는 비트열이다. 받는 쪽 NIC가 들어오는 신호에 클록을 맞추라고 보내는 신호다. 그 뒤에 SFD(Start Frame Delimiter) 1바이트(<code>10101011</code>)가 붙어서 "여기부터 진짜 프레임 시작"이라고 알린다.</p>
+<p>프리앰블과 SFD는 하드웨어가 처리하고 버린다. <code>tcpdump</code>로 캡처해도 이 부분은 안 보인다. 캡처에서 첫 바이트로 잡히는 건 목적지 MAC부터다. 처음 캡처를 뜨고 "프리앰블이 왜 안 보이지" 하는 경우가 있는데, 원래 안 보이는 게 정상이다.</p>
+<h3 id="mac-주소">MAC 주소<a class="headerlink" href="#mac-주소" title="Permanent link">&para;</a></h3>
+<p>목적지 MAC 6바이트, 출발지 MAC 6바이트가 이어진다. 목적지가 먼저 온다는 점이 중요하다. 스위치가 프레임을 받자마자 어디로 보낼지 결정하려면 목적지를 먼저 읽는 게 빠르기 때문이다.</p>
+<p>MAC 주소는 48비트(6바이트)고 <code>00:1a:2b:3c:4d:5e</code> 같은 16진수로 쓴다. 앞 3바이트(OUI)는 제조사를 나타내고 뒤 3바이트는 제조사가 장비마다 부여한다. 그래서 캡처에서 MAC 앞부분만 봐도 어느 회사 NIC인지 대충 알 수 있다.</p>
+<p>특수한 MAC도 알아둬야 한다. <code>ff:ff:ff:ff:ff:ff</code>는 브로드캐스트로, 세그먼트의 모든 호스트가 받는다. ARP Request가 이 주소로 나간다. 첫 바이트의 최하위 비트가 1이면 멀티캐스트다(<code>01:00:5e:...</code> 같은 IPv4 멀티캐스트).</p>
+<h3 id="ethertype">EtherType<a class="headerlink" href="#ethertype" title="Permanent link">&para;</a></h3>
+<p>2바이트짜리 EtherType은 페이로드가 어떤 상위 프로토콜인지 알려준다. 받는 쪽이 페이로드를 IP 스택으로 올릴지 ARP로 올릴지 판단하는 근거다.</p>
+<table>
+<thead>
+<tr>
+<th>값 (16진수)</th>
+<th>프로토콜</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x0800</td>
+<td>IPv4</td>
+</tr>
+<tr>
+<td>0x0806</td>
+<td>ARP</td>
+</tr>
+<tr>
+<td>0x86DD</td>
+<td>IPv6</td>
+</tr>
+<tr>
+<td>0x8100</td>
+<td>802.1Q VLAN 태그</td>
+</tr>
+</tbody>
+</table>
+<p>여기서 헷갈리는 지점이 하나 있다. 이 자리의 2바이트 값이 1500(0x05DC) 이하면 EtherType이 아니라 페이로드 길이(Length)를 뜻한다. 이게 옛날 IEEE 802.3 프레임 방식이다. 1536(0x0600) 이상이면 EtherType으로 해석한다. 현대 네트워크는 거의 다 Ethernet II라 EtherType으로 보면 되지만, 캡처에서 가끔 Length로 잡히는 프레임을 만나면 이 차이를 떠올려야 한다.</p>
+<p>802.1Q VLAN 태그가 붙으면 출발지 MAC 뒤에 4바이트 태그가 끼어들고 그 뒤에 실제 EtherType이 온다. VLAN 트렁크 포트를 캡처하면 프레임 길이가 4바이트씩 늘어나는 게 이 때문이다. VLAN 자체는 별도 문서에서 다룬다.</p>
+<h3 id="페이로드와-최소-길이">페이로드와 최소 길이<a class="headerlink" href="#페이로드와-최소-길이" title="Permanent link">&para;</a></h3>
+<p>페이로드는 46~1500바이트다. 위쪽 1500이 우리가 흔히 말하는 MTU다. IP 패킷이 이 자리에 통째로 들어간다.</p>
+<p>아래쪽 46바이트 최소 제한이 실무에서 가끔 발목을 잡는다. 페이로드가 46바이트보다 작으면 0으로 패딩을 채워 46바이트를 맞춘다. 프레임 전체가 최소 64바이트는 돼야 한다는 규칙 때문인데, 이건 뒤에 나오는 CSMA/CD와 관련이 있다. ARP 응답처럼 작은 프레임을 캡처하면 뒤에 의미 없는 0이 잔뜩 붙어 있는 걸 보게 된다. 그게 패딩이다.</p>
+<h3 id="fcs">FCS<a class="headerlink" href="#fcs" title="Permanent link">&para;</a></h3>
+<p>맨 뒤 4바이트는 FCS(Frame Check Sequence)다. CRC-32로 계산한 체크섬이고, 받는 쪽 NIC가 프레임이 전송 중 깨졌는지 검사한다. CRC가 안 맞으면 NIC가 프레임을 조용히 버린다. 상위 계층은 그런 프레임이 있었는지도 모른다.</p>
+<p>FCS도 보통 NIC와 드라이버가 처리하기 때문에 <code>tcpdump</code> 출력에는 안 나온다. 깨진 프레임은 아예 캡처에 안 올라오는 경우가 많다. "분명히 패킷을 보냈는데 캡처에 안 잡힌다"면 중간에서 FCS 에러로 드롭됐을 가능성을 의심해야 한다. 이럴 땐 스위치 포트의 에러 카운터(<code>show interface</code>의 CRC errors)를 봐야 원인이 잡힌다.</p>
+<h2 id="csmacd와-충돌-도메인">CSMA/CD와 충돌 도메인<a class="headerlink" href="#csmacd와-충돌-도메인" title="Permanent link">&para;</a></h2>
+<p>CSMA/CD는 이더넷이 허브와 동축 케이블을 쓰던 시절의 핵심 동작이다. 지금은 거의 죽은 기술이지만, 왜 프레임 최소 길이가 64바이트인지, 충돌 도메인이라는 말이 왜 나왔는지 이해하려면 알아야 한다.</p>
+<p>옛날 이더넷은 하나의 와이어를 여러 호스트가 공유했다. 동시에 두 호스트가 신호를 쏘면 신호가 겹쳐서 망가진다. 이게 충돌(Collision)이다. CSMA/CD는 이걸 다루는 규칙이다.</p>
+<ul>
+<li><strong>CS (Carrier Sense)</strong>: 보내기 전에 와이어가 비었는지 먼저 듣는다.</li>
+<li><strong>MA (Multiple Access)</strong>: 여러 호스트가 같은 매체를 공유한다.</li>
+<li><strong>CD (Collision Detection)</strong>: 보내는 도중에도 계속 들으면서 충돌이 났는지 감지한다. 충돌을 감지하면 즉시 멈추고, 무작위 시간만큼 기다렸다가(백오프) 다시 시도한다.</li>
+</ul>
+<p>충돌이 일어날 수 있는 호스트들의 범위를 충돌 도메인이라고 한다. 허브는 받은 신호를 모든 포트로 그대로 뿌리기 때문에 허브에 붙은 모든 호스트가 하나의 충돌 도메인이다. 호스트가 많아질수록 충돌이 잦아지고 실효 대역폭이 떨어진다.</p>
+<p>프레임 최소 64바이트 규칙이 여기서 나온다. 충돌을 제대로 감지하려면 프레임이 와이어 끝까지 갔다가 충돌 신호가 돌아올 때까지 송신이 끝나면 안 된다. 그 최소 시간을 바이트로 환산한 게 64바이트다. 프레임이 이보다 짧으면 충돌이 났는데도 송신이 이미 끝나버려서 감지를 못 한다. 그래서 짧은 프레임은 패딩으로 64바이트를 채운다.</p>
+<p>지금은 이게 거의 무의미하다. 스위치가 허브를 대체하면서 각 포트가 독립된 충돌 도메인이 됐고, 풀 듀플렉스에서는 송신과 수신 회선이 분리돼서 충돌 자체가 발생하지 않는다. 풀 듀플렉스 링크에서는 CSMA/CD가 아예 꺼진다. 그래도 캡처에서 64바이트짜리 패딩된 프레임을 보면 이 옛날 규칙의 흔적이라는 걸 알 수 있다.</p>
+<h2 id="스위치의-mac-학습과-플러딩">스위치의 MAC 학습과 플러딩<a class="headerlink" href="#스위치의-mac-학습과-플러딩" title="Permanent link">&para;</a></h2>
+<p>스위치가 허브와 다른 점이 바로 이거다. 허브는 받은 걸 무조건 다 뿌리지만, 스위치는 목적지 MAC을 보고 필요한 포트로만 보낸다. 이걸 하려면 어떤 MAC이 어느 포트에 붙어 있는지 알아야 하고, 스위치는 이걸 스스로 학습한다.</p>
+<p>학습 과정은 단순하다. 스위치는 MAC 주소 테이블(CAM 테이블)을 들고 있다. 프레임이 들어오면 출발지 MAC과 그 프레임이 들어온 포트를 짝지어 테이블에 적는다. "MAC X는 포트 3에 있다." 이렇게 들어오는 프레임마다 출발지를 보고 테이블을 채워간다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>초기 상태 (테이블 비어 있음)
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>호스트 A(포트1) → 호스트 B로 프레임 전송
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>1) 스위치: 출발지 A를 포트1로 학습
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>   [A → 포트1]
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>2) 목적지 B는 테이블에 없음 → 들어온 포트 빼고 전부로 플러딩
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>3) B가 응답하면 출발지 B를 포트2로 학습
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>   [A → 포트1, B → 포트2]
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>4) 이후 A↔B 통신은 해당 포트로만 전달 (플러딩 안 함)
+</span></code></pre></div>
+<p>목적지 MAC이 테이블에 있으면 그 포트로만 보낸다(포워딩). 테이블에 없으면(Unknown Unicast) 들어온 포트를 제외한 모든 포트로 내보낸다. 이게 플러딩이다. 브로드캐스트(<code>ff:ff:ff:ff:ff:ff</code>)도 마찬가지로 모든 포트로 플러딩한다.</p>
+<p>CAM 테이블의 각 엔트리에는 수명(보통 5분)이 있다. 일정 시간 그 MAC에서 프레임이 안 오면 엔트리를 지운다. 호스트를 다른 포트로 옮겼는데 잠깐 통신이 이상하다가 정상으로 돌아오는 경우가 있는데, 오래된 엔트리가 만료되고 새 포트로 다시 학습될 때까지 걸리는 시간 때문이다.</p>
+<p>실무에서 알아둘 함정이 몇 가지 있다.</p>
+<p>플러딩이 많아지면 의심해야 한다. CAM 테이블이 꽉 차거나(MAC flooding 공격이 대표적) 엔트리가 자꾸 만료되면 스위치가 유니캐스트를 계속 플러딩한다. 그러면 원래 한 포트로만 갔어야 할 트래픽이 전 포트로 퍼져서 대역폭을 갉아먹고, 다른 포트에서 캡처를 떠도 남의 트래픽이 보이게 된다. 캡처할 때 "왜 나랑 상관없는 트래픽이 잡히지" 싶으면 플러딩 상황을 의심한다.</p>
+<p>같은 MAC이 두 포트에서 번갈아 학습되면(MAC flapping) 루프가 의심된다. 스위치가 같은 출발지 MAC을 포트3에서 봤다가 포트5에서 봤다가 하면 어딘가 케이블이 루프로 연결됐을 가능성이 크다. 스위치 로그에 MAC flapping 경고가 뜨면 STP 설정과 물리 연결을 먼저 확인해야 한다.</p>
+<h2 id="점보-프레임과-mtu">점보 프레임과 MTU<a class="headerlink" href="#점보-프레임과-mtu" title="Permanent link">&para;</a></h2>
+<p>표준 이더넷 페이로드 최대치는 1500바이트, 즉 MTU 1500이다. 점보 프레임은 이 페이로드를 9000바이트까지 키운 프레임이다. 표준은 아니지만 데이터센터 장비 대부분이 지원한다.</p>
+<p>왜 키우냐면, 큰 데이터를 보낼 때 프레임 개수가 줄기 때문이다. 1500바이트씩 쪼개 보내는 것보다 9000바이트씩 보내면 헤더 오버헤드가 줄고, 프레임당 인터럽트 처리 횟수가 줄어 CPU 부담이 내려간다. iSCSI나 NFS처럼 큰 블록을 많이 옮기는 스토리지 트래픽, 백업 트래픽에서 체감 차이가 난다.</p>
+<p>문제는 경로상의 모든 장비가 같은 MTU를 써야 한다는 점이다. 한 호스트만 MTU 9000으로 올리고 중간 스위치나 상대 호스트가 1500이면 통신이 깨진다. 이게 실무에서 정말 자주 겪는 함정이다.</p>
+<p>증상이 고약하다. 작은 패킷(핑 기본 크기)은 잘 나가는데 큰 데이터 전송만 멈춘다. SSH 접속은 되는데 <code>scp</code>로 큰 파일을 보내면 중간에 멈추는 식이다. ping은 되니까 "네트워크는 멀쩡한데?" 하고 엉뚱한 데를 뒤지게 된다.</p>
+<p>MTU 불일치는 패킷 크기를 키워서 ping으로 확인한다. DF(Don't Fragment) 비트를 세우고 큰 패킷을 보내본다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 리눅스: 페이로드 8972바이트 + ICMP 8B + IP 20B = 9000</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># -M do 로 단편화 금지, 못 가면 에러</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>ping<span class="w"> </span>-M<span class="w"> </span><span class="k">do</span><span class="w"> </span>-s<span class="w"> </span><span class="m">8972</span><span class="w"> </span><span class="m">192</span>.168.1.10
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># 정상이면:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># 8980 bytes from 192.168.1.10: icmp_seq=1 ttl=64 time=0.3 ms</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># MTU가 모자라면:</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># ping: local error: message too long, mtu=1500</span>
+</span></code></pre></div>
+<p><code>message too long, mtu=1500</code> 같은 에러가 나오면 경로 어딘가 MTU 1500 구간이 있다는 뜻이다. 어느 인터페이스의 MTU가 얼마인지는 이렇게 본다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ip<span class="w"> </span>link<span class="w"> </span>show<span class="w"> </span>eth0
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 ...</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">#                                          ^^^^^^^^</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># 점보 프레임으로 올리려면</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>sudo<span class="w"> </span>ip<span class="w"> </span>link<span class="w"> </span><span class="nb">set</span><span class="w"> </span>eth0<span class="w"> </span>mtu<span class="w"> </span><span class="m">9000</span>
+</span></code></pre></div>
+<p>TCP에는 PMTUD(Path MTU Discovery)라는 자동 조정 장치가 있어서, 경로 최소 MTU를 찾아 세그먼트 크기를 맞춘다. 문제는 PMTUD가 ICMP "Fragmentation Needed" 메시지에 의존하는데, 방화벽이 ICMP를 막아버리면 이 신호가 안 오고 PMTUD가 먹통이 된다(ICMP black hole). 그러면 위에서 말한 "작은 건 되고 큰 건 멈추는" 증상이 그대로 재현된다. 방화벽에서 ICMP를 무작정 다 막으면 안 되는 이유가 이거다.</p>
+<h2 id="tcpdump로-프레임-헤더-확인하기">tcpdump로 프레임 헤더 확인하기<a class="headerlink" href="#tcpdump로-프레임-헤더-확인하기" title="Permanent link">&para;</a></h2>
+<p>이론은 이쯤 하고, 실제로 프레임을 어떻게 들여다보는지 본다. <code>tcpdump</code>에 <code>-e</code> 옵션을 주면 이더넷 헤더(MAC, EtherType)까지 출력한다. 평소엔 안 보이는 L2 정보를 봐야 할 때 이 옵션이 필요하다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># -e: 이더넷 헤더(MAC) 출력</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># -n: 이름 해석 끄기 (IP/포트를 숫자로)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># -i eth0: 캡처할 인터페이스</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-e<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>eth0
+</span></code></pre></div>
+<p>출력은 이렇게 나온다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>14:02:11.123456 00:1a:2b:3c:4d:5e &gt; 00:50:56:aa:bb:cc, ethertype IPv4 (0x0800),
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  length 98: 192.168.1.20 &gt; 192.168.1.10: ICMP echo request, id 1, seq 1, length 64
+</span></code></pre></div>
+<p>읽는 법은 이렇다. <code>00:1a:2b:3c:4d:5e &gt; 00:50:56:aa:bb:cc</code>가 출발지 MAC → 목적지 MAC이다. <code>ethertype IPv4 (0x0800)</code>이 EtherType 필드 값으로, 페이로드가 IPv4라는 뜻이다. 그 뒤 <code>length 98</code>이 프레임 길이고, 이어서 IP 레벨 정보가 나온다.</p>
+<p>ARP를 캡처하면 EtherType이 달라지는 걸 볼 수 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-e<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>arp
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>14:05:33.654321 00:1a:2b:3c:4d:5e &gt; ff:ff:ff:ff:ff:ff, ethertype ARP (0x0806),
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  length 42: Request who-has 192.168.1.10 tell 192.168.1.20
+</span></code></pre></div>
+<p>목적지 MAC이 <code>ff:ff:ff:ff:ff:ff</code> 브로드캐스트고 EtherType이 <code>ARP (0x0806)</code>인 게 보인다. ARP Request가 브로드캐스트로 나간다는 게 캡처상으로 확인되는 셈이다. length 42는 14바이트 이더넷 헤더 + 28바이트 ARP인데, 앞서 말한 최소 프레임 64바이트(헤더 14 + 페이로드 46)를 맞추려면 NIC가 패딩을 붙인다. 그 패딩은 보통 캡처에 안 나오거나 0으로 채워져 보인다.</p>
+<p>특정 MAC만 골라 보고 싶으면 <code>ether host</code> 필터를 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># 특정 MAC이 오가는 프레임만</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-e<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>ether<span class="w"> </span>host<span class="w"> </span><span class="m">00</span>:1a:2b:3c:4d:5e
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># 브로드캐스트 프레임만 (브로드캐스트 폭주 의심될 때)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-e<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>ether<span class="w"> </span>broadcast
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># 나중에 분석하려면 파일로 저장 (Wireshark로 열어 보면 편하다)</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-e<span class="w"> </span>-n<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-w<span class="w"> </span>capture.pcap
+</span></code></pre></div>
+<p>캡처 파일을 떠두면 Wireshark에서 프레임을 바이트 단위로 펼쳐 볼 수 있다. 프리앰블·SFD·FCS는 NIC가 처리해서 안 보이지만, 목적지 MAC부터 페이로드까지는 그대로 펼쳐진다. L2 문제를 잡을 땐 이 캡처가 가장 확실한 증거가 된다.</p>
+<h2 id="정리">정리<a class="headerlink" href="#정리" title="Permanent link">&para;</a></h2>
+<p>이더넷 프레임은 L2에서 실제로 와이어를 타는 단위다. 목적지·출발지 MAC, EtherType, 페이로드, FCS로 구성되고, 프리앰블·SFD·FCS는 하드웨어가 처리해서 캡처에는 안 잡힌다. CSMA/CD와 충돌 도메인은 허브 시절의 유산이고 스위치·풀 듀플렉스 환경에서는 거의 의미가 없지만, 64바이트 최소 프레임 규칙의 배경이 된다. 스위치는 출발지 MAC을 보고 CAM 테이블을 채우며, 모르는 목적지는 플러딩한다. 플러딩이 잦거나 MAC flapping이 보이면 테이블 포화나 루프를 의심한다. 점보 프레임은 처리량을 높이지만 경로 전체가 같은 MTU를 써야 하고, MTU 불일치는 "작은 건 되고 큰 건 멈추는" 증상으로 나타난다. 문제를 만나면 <code>tcpdump -e</code>로 프레임 헤더부터 확인하는 게 빠른 길이다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/">AMQP vs MQTT 비교 분석</a></li>
+<li><a href="../../../GateWay/API_Gateway/">API Gateway 심화</a></li>
+<li><a href="../../Network%20Layer/ARP/">ARP — IP와 MAC을 잇는 끈</a></li>
+<li><a href="../../Network%20Layer/BGP/">BGP — 인터넷을 굴리는 라우팅 프로토콜</a></li>
+<li><a href="../../../CDN/">CDN 동작 원리와 실무 운영</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="이전: Data Link Layer 전체 보기">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Data Link Layer 전체 보기
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Link_Aggregation_LACP/" class="md-footer__link md-footer__link--next" aria-label="다음: 링크 애그리게이션과 LACP">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                링크 애그리게이션과 LACP
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,4 +1,2578 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Spanning_Tree_Protocol/ rel=canonical><link href=../MacAddress/ rel=prev><link href=../VLAN/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#stp--스위치-이중화하다-브로드캐스트-스톰-만나는-이야기 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> OSI 7계층 </span> </a> <label class="md-nav__link " for=__nav_7_1_7 id=__nav_7_1_7_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7> <span class="md-nav__icon md-icon"></span> OSI 7계층 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../DHCP/ class=md-nav__link> <span class=md-ellipsis> DHCP </span> </a> </li> <li class=md-nav__item> <a href=../../GSLB/ class=md-nav__link> <span class=md-ellipsis> GSLB </span> </a> </li> <li class=md-nav__item> <a href=../../Network%20Flow/ class=md-nav__link> <span class=md-ellipsis> 네트워크 플로우 </span> </a> </li> <li class=md-nav__item> <a href=../../OSI_7_Layer_Model/ class=md-nav__link> <span class=md-ellipsis> OSI 7 계층 모델 </span> </a> </li> <li class=md-nav__item> <a href=../../Qo_S_Traffic_Shaping/ class=md-nav__link> <span class=md-ellipsis> QoS와 트래픽 셰이핑 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application%20Layer/ class=md-nav__link> <span class=md-ellipsis> Application Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7_8 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 데이터 링크 계층 </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_7_1_7_8_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7_8> <span class="md-nav__icon md-icon"></span> 데이터 링크 계층 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network%20Layer/ class=md-nav__link> <span class=md-ellipsis> Network Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Transport%20Layer/ class=md-nav__link> <span class=md-ellipsis> Transport Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#왜-이걸-알아야-하나 class=md-nav__link> <span class=md-ellipsis> 왜 이걸 알아야 하나 </span> </a> </li> <li class=md-nav__item> <a href=#동작-원리-한-줄-요약 class=md-nav__link> <span class=md-ellipsis> 동작 원리 한 줄 요약 </span> </a> </li> <li class=md-nav__item> <a href=#bpdu--스위치들이-주고받는-쪽지 class=md-nav__link> <span class=md-ellipsis> BPDU — 스위치들이 주고받는 쪽지 </span> </a> <nav class=md-nav aria-label="BPDU — 스위치들이 주고받는 쪽지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#bridge-id class=md-nav__link> <span class=md-ellipsis> Bridge ID </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#root-bridge-선출 class=md-nav__link> <span class=md-ellipsis> Root Bridge 선출 </span> </a> </li> <li class=md-nav__item> <a href=#path-cost와-포트-역할 class=md-nav__link> <span class=md-ellipsis> Path Cost와 포트 역할 </span> </a> </li> <li class=md-nav__item> <a href=#포트-상태와-컨버전스-시간-문제 class=md-nav__link> <span class=md-ellipsis> 포트 상태와 컨버전스 시간 문제 </span> </a> </li> <li class=md-nav__item> <a href=#rstp--컨버전스를-초-단위로-줄이기 class=md-nav__link> <span class=md-ellipsis> RSTP — 컨버전스를 초 단위로 줄이기 </span> </a> </li> <li class=md-nav__item> <a href=#portfast--종단-포트는-줄-세우지-마라 class=md-nav__link> <span class=md-ellipsis> PortFast — 종단 포트는 줄 세우지 마라 </span> </a> </li> <li class=md-nav__item> <a href=#브로드캐스트-스톰-실제-트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 브로드캐스트 스톰 실제 트러블슈팅 </span> </a> <nav class=md-nav aria-label="브로드캐스트 스톰 실제 트러블슈팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-증상으로-루프부터-의심 class=md-nav__link> <span class=md-ellipsis> 1. 증상으로 루프부터 의심 </span> </a> </li> <li class=md-nav__item> <a href=#2-stp-상태부터-확인 class=md-nav__link> <span class=md-ellipsis> 2. STP 상태부터 확인 </span> </a> </li> <li class=md-nav__item> <a href=#3-stp가-꺼져-있거나-bpdu가-한쪽만-흐르는-경우 class=md-nav__link> <span class=md-ellipsis> 3. STP가 꺼져 있거나 BPDU가 한쪽만 흐르는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#4-급할-때-응급-처치 class=md-nav__link> <span class=md-ellipsis> 4. 급할 때 응급 처치 </span> </a> </li> <li class=md-nav__item> <a href=#5-재발-방지 class=md-nav__link> <span class=md-ellipsis> 5. 재발 방지 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>network</span> </nav> <h1 id=stp--스위치-이중화하다-브로드캐스트-스톰-만나는-이야기>STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기<a class=headerlink href=#stp--스위치-이중화하다-브로드캐스트-스톰-만나는-이야기 title="Permanent link">&para;</a></h1> <h2 id=왜-이걸-알아야-하나>왜 이걸 알아야 하나<a class=headerlink href=#왜-이걸-알아야-하나 title="Permanent link">&para;</a></h2> <p>스위치를 두 대 이상 케이블로 엮다 보면 어느 순간 루프가 생긴다. 가용성을 높이려고 일부러 회선을 두 가닥 뽑아 이중화하는 경우가 대표적이다. A 스위치와 B 스위치를 두 개의 링크로 연결하면, 한 링크가 끊겨도 다른 링크로 통신이 이어진다. 문제는 평상시에도 두 링크가 다 살아 있다는 점이다.</p> <p>L2 스위치는 목적지 MAC을 모르는 프레임(브로드캐스트, 모르는 유니캐스트, 멀티캐스트)을 받으면 들어온 포트를 뺀 모든 포트로 복제해서 내보낸다. 이게 플러딩이다. 루프가 있는 토폴로지에서 브로드캐스트 한 개가 들어오면 A→B로 갔다가, B가 다시 다른 링크로 A에게 돌려보내고, A가 또 B로 보낸다. IP 패킷처럼 TTL이 줄어드는 필드가 이더넷 프레임에는 없다. 그래서 한 번 돌기 시작한 프레임은 영원히 돈다. 초당 수만, 수십만 개로 불어나면서 스위치 CPU와 대역폭을 다 잡아먹는다. 이게 브로드캐스트 스톰이다.</p> <p>실제로 겪으면 증상이 꽤 무섭다. 핑이 간헐적으로 끊기고, 스위치 LED가 전 포트 미친 듯이 깜빡이고, 관리 인터페이스(SSH, 콘솔)조차 응답이 느려진다. MAC 주소 테이블도 같은 MAC이 이 포트 저 포트로 계속 바뀌면서 플래핑한다. 로그에 <code>MAC flapping</code> 또는 <code>host moving between ports</code>가 찍히면 거의 루프다.</p> <p>Spanning Tree Protocol(STP, IEEE 802.1D)은 이 루프를 막으려고 나왔다. 물리적으로는 루프가 있는 토폴로지에서, 논리적으로 트리 구조를 만들어 루프를 끊는다. 여분 링크를 평소엔 막아두고(Blocking), 주 경로가 죽으면 그제서야 살려서 우회한다.</p> <h2 id=동작-원리-한-줄-요약>동작 원리 한 줄 요약<a class=headerlink href=#동작-원리-한-줄-요약 title="Permanent link">&para;</a></h2> <p>STP는 결국 "어느 링크를 막을지" 정하는 알고리즘이다. 막는 기준을 정하려면 스위치들끼리 정보를 주고받아야 하고, 그 정보 교환에 쓰는 게 BPDU다. 순서는 이렇다.</p> <ol> <li>스위치 한 대를 기준점(Root Bridge)으로 뽑는다.</li> <li>각 스위치는 Root까지 가는 가장 가까운 경로(Root Port)를 하나 고른다.</li> <li>각 네트워크 세그먼트마다 대표 포트(Designated Port)를 하나 정한다.</li> <li>Root Port도 Designated Port도 아닌 포트는 막는다(Blocking).</li> </ol> <pre class=mermaid-diagram><code>graph TD
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Data%20Link%20Layer/Spanning_Tree_Protocol/">
+      
+      
+        <link rel="prev" href="../MacAddress/">
+      
+      
+        <link rel="next" href="../VLAN/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#stp--스위치-이중화하다-브로드캐스트-스톰-만나는-이야기" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_7" id="__nav_7_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OSI 7계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../DHCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../GSLB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GSLB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Network%20Flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 플로우
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../OSI_7_Layer_Model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7 계층 모델
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Qo_S_Traffic_Shaping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QoS와 트래픽 셰이핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 링크 계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_7_1_7_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    데이터 링크 계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Transport%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#왜-이걸-알아야-하나" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 이걸 알아야 하나
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#동작-원리-한-줄-요약" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        동작 원리 한 줄 요약
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bpdu--스위치들이-주고받는-쪽지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BPDU — 스위치들이 주고받는 쪽지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BPDU — 스위치들이 주고받는 쪽지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bridge-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bridge ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#root-bridge-선출" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root Bridge 선출
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#path-cost와-포트-역할" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Path Cost와 포트 역할
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#포트-상태와-컨버전스-시간-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        포트 상태와 컨버전스 시간 문제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rstp--컨버전스를-초-단위로-줄이기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RSTP — 컨버전스를 초 단위로 줄이기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#portfast--종단-포트는-줄-세우지-마라" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PortFast — 종단 포트는 줄 세우지 마라
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#브로드캐스트-스톰-실제-트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        브로드캐스트 스톰 실제 트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="브로드캐스트 스톰 실제 트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-증상으로-루프부터-의심" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 증상으로 루프부터 의심
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-stp-상태부터-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. STP 상태부터 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-stp가-꺼져-있거나-bpdu가-한쪽만-흐르는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. STP가 꺼져 있거나 BPDU가 한쪽만 흐르는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-급할-때-응급-처치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 급할 때 응급 처치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-재발-방지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 재발 방지
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="stp--스위치-이중화하다-브로드캐스트-스톰-만나는-이야기">STP — 스위치 이중화하다 브로드캐스트 스톰 만나는 이야기<a class="headerlink" href="#stp--스위치-이중화하다-브로드캐스트-스톰-만나는-이야기" title="Permanent link">&para;</a></h1>
+<h2 id="왜-이걸-알아야-하나">왜 이걸 알아야 하나<a class="headerlink" href="#왜-이걸-알아야-하나" title="Permanent link">&para;</a></h2>
+<p>스위치를 두 대 이상 케이블로 엮다 보면 어느 순간 루프가 생긴다. 가용성을 높이려고 일부러 회선을 두 가닥 뽑아 이중화하는 경우가 대표적이다. A 스위치와 B 스위치를 두 개의 링크로 연결하면, 한 링크가 끊겨도 다른 링크로 통신이 이어진다. 문제는 평상시에도 두 링크가 다 살아 있다는 점이다.</p>
+<p>L2 스위치는 목적지 MAC을 모르는 프레임(브로드캐스트, 모르는 유니캐스트, 멀티캐스트)을 받으면 들어온 포트를 뺀 모든 포트로 복제해서 내보낸다. 이게 플러딩이다. 루프가 있는 토폴로지에서 브로드캐스트 한 개가 들어오면 A→B로 갔다가, B가 다시 다른 링크로 A에게 돌려보내고, A가 또 B로 보낸다. IP 패킷처럼 TTL이 줄어드는 필드가 이더넷 프레임에는 없다. 그래서 한 번 돌기 시작한 프레임은 영원히 돈다. 초당 수만, 수십만 개로 불어나면서 스위치 CPU와 대역폭을 다 잡아먹는다. 이게 브로드캐스트 스톰이다.</p>
+<p>실제로 겪으면 증상이 꽤 무섭다. 핑이 간헐적으로 끊기고, 스위치 LED가 전 포트 미친 듯이 깜빡이고, 관리 인터페이스(SSH, 콘솔)조차 응답이 느려진다. MAC 주소 테이블도 같은 MAC이 이 포트 저 포트로 계속 바뀌면서 플래핑한다. 로그에 <code>MAC flapping</code> 또는 <code>host moving between ports</code>가 찍히면 거의 루프다.</p>
+<p>Spanning Tree Protocol(STP, IEEE 802.1D)은 이 루프를 막으려고 나왔다. 물리적으로는 루프가 있는 토폴로지에서, 논리적으로 트리 구조를 만들어 루프를 끊는다. 여분 링크를 평소엔 막아두고(Blocking), 주 경로가 죽으면 그제서야 살려서 우회한다.</p>
+<h2 id="동작-원리-한-줄-요약">동작 원리 한 줄 요약<a class="headerlink" href="#동작-원리-한-줄-요약" title="Permanent link">&para;</a></h2>
+<p>STP는 결국 "어느 링크를 막을지" 정하는 알고리즘이다. 막는 기준을 정하려면 스위치들끼리 정보를 주고받아야 하고, 그 정보 교환에 쓰는 게 BPDU다. 순서는 이렇다.</p>
+<ol>
+<li>스위치 한 대를 기준점(Root Bridge)으로 뽑는다.</li>
+<li>각 스위치는 Root까지 가는 가장 가까운 경로(Root Port)를 하나 고른다.</li>
+<li>각 네트워크 세그먼트마다 대표 포트(Designated Port)를 하나 정한다.</li>
+<li>Root Port도 Designated Port도 아닌 포트는 막는다(Blocking).</li>
+</ol>
+<pre class="mermaid-diagram"><code>graph TD
     Root["Root Bridge&lt;br/&gt;(SW1)"]
     SW2["SW2"]
     SW3["SW3"]
@@ -6,31 +2580,280 @@
     Root ---|Designated| SW3
     SW2 ---|Blocking| SW3
     SW2 -.Root Port.- Root
-    SW3 -.Root Port.- Root</code></pre> <p>SW2와 SW3 사이 링크가 막혀서 트리가 된다. 평소엔 이 링크로 트래픽이 안 흐르고, SW1↔SW2나 SW1↔SW3 링크가 죽으면 그제서야 SW2↔SW3가 풀린다.</p> <h2 id=bpdu--스위치들이-주고받는-쪽지>BPDU — 스위치들이 주고받는 쪽지<a class=headerlink href=#bpdu--스위치들이-주고받는-쪽지 title="Permanent link">&para;</a></h2> <p>BPDU(Bridge Protocol Data Unit)는 STP가 토폴로지를 계산하려고 스위치끼리 교환하는 프레임이다. 목적지 MAC은 <code>01:80:C2:00:00:00</code>(STP 예약 멀티캐스트)이고, 기본 2초마다 한 번씩 나간다.</p> <p>종류는 둘이다.</p> <ul> <li><strong>Configuration BPDU</strong>: Root 정보, 경로 비용, 보내는 스위치 ID 등을 담는다. Root가 만들어 흘려보내고, 나머지 스위치가 받아서 갱신해 다시 전달한다.</li> <li><strong>TCN(Topology Change Notification) BPDU</strong>: 토폴로지가 바뀌었을 때(링크 up/down) Root 쪽으로 올려보내는 쪽지. 이걸 받으면 MAC 테이블 에이징 타임을 기본 300초에서 15초로 줄여 빠르게 재학습한다.</li> </ul> <p>Configuration BPDU 안에서 중요한 필드가 Bridge ID와 Path Cost다. 이 두 개로 Root 선출과 포트 역할이 다 정해진다.</p> <h3 id=bridge-id>Bridge ID<a class=headerlink href=#bridge-id title="Permanent link">&para;</a></h3> <p>Bridge ID = <strong>Bridge Priority(2바이트)</strong> + <strong>MAC 주소(6바이트)</strong>다. 802.1D 원본은 Priority가 2바이트 통째였는데, 지금 장비는 대부분 802.1t 확장을 써서 Priority 4비트 + VLAN ID 12비트(Extended System ID)로 쪼개 쓴다. 그래서 Priority는 0부터 65535까지지만 실제로는 4096 단위로만 설정된다(0, 4096, 8192...). 기본값은 32768이다.</p> <p>값이 작을수록 우선순위가 높다. 이게 STP에서 제일 자주 헷갈리는 부분이다. "Priority 높다"가 숫자가 크다는 뜻이 아니라 작다는 뜻이다.</p> <h2 id=root-bridge-선출>Root Bridge 선출<a class=headerlink href=#root-bridge-선출 title="Permanent link">&para;</a></h2> <p>전원을 켜면 모든 스위치가 처음엔 자기가 Root라고 우긴다. 자기 Bridge ID를 Root ID에 박아 BPDU를 뿌린다. 그러다 자기보다 작은 Bridge ID를 가진 BPDU를 받으면 "쟤가 나보다 위네" 하고 그 정보로 갱신해서 전달한다. 이 과정을 반복하면 결국 네트워크 전체에서 Bridge ID가 가장 작은 스위치 하나가 Root로 남는다.</p> <p>비교 순서는 이렇다.</p> <ol> <li>Bridge Priority가 낮은 쪽이 Root.</li> <li>Priority가 같으면 MAC 주소가 낮은 쪽이 Root.</li> </ol> <p>여기서 실무 함정이 하나 있다. 아무 설정도 안 하면 Priority가 전부 기본값 32768이라, 결국 <strong>MAC 주소가 가장 낮은 스위치</strong>가 Root가 된다. MAC이 낮다는 건 보통 가장 오래된, 제일 구린 스위치라는 뜻이다. 코어에 둔 고성능 스위치가 아니라 구석에 박힌 액세스 스위치가 Root가 되면 트래픽이 그 구린 스위치로 다 몰려서 경로가 비효율적으로 꼬인다.</p> <p>그래서 Root는 반드시 사람이 지정한다. 코어 스위치에 Priority를 낮춰 박는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>! 코어 스위치를 VLAN 10의 Root로 강제
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>SW-CORE(config)# spanning-tree vlan 10 priority 4096
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>! 또는 자동으로 가장 낮은 값 잡게
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>SW-CORE(config)# spanning-tree vlan 10 root primary
-</span></code></pre></div> <p><code>root primary</code>는 현재 네트워크에서 제일 낮은 Priority를 보고 그보다 낮은 값을 자동 계산해 넣어준다. 백업용 Root는 <code>root secondary</code>로 잡아둔다. Root가 죽었을 때 두 번째로 좋은 스위치가 받게 하려는 거다.</p> <h2 id=path-cost와-포트-역할>Path Cost와 포트 역할<a class=headerlink href=#path-cost와-포트-역할 title="Permanent link">&para;</a></h2> <p>Root를 정하고 나면, 각 스위치는 Root까지 가는 비용을 따진다. Path Cost는 링크 속도가 빠를수록 낮다. 표준값은 아래와 같다.</p> <table> <thead> <tr> <th>링크 속도</th> <th>Cost (802.1D 기본)</th> </tr> </thead> <tbody> <tr> <td>10 Mbps</td> <td>100</td> </tr> <tr> <td>100 Mbps</td> <td>19</td> </tr> <tr> <td>1 Gbps</td> <td>4</td> </tr> <tr> <td>10 Gbps</td> <td>2</td> </tr> </tbody> </table> <p>스위치는 자기 포트들 중 Root까지 누적 Cost가 가장 작은 포트를 <strong>Root Port</strong>로 고른다. 세그먼트마다는 그 세그먼트에서 Root에 가장 가까운 포트가 <strong>Designated Port</strong>가 된다. Root Bridge의 모든 포트는 항상 Designated다(Root까지 Cost가 0이니까). 어느 쪽도 못 된 포트가 <strong>Blocking</strong> 상태로 들어가 루프를 끊는다.</p> <p>Cost가 같으면 타이브레이커가 작동한다. 송신 측 Bridge ID가 낮은 쪽, 그것도 같으면 송신 측 Port ID(Port Priority + 포트 번호)가 낮은 쪽이 이긴다.</p> <h2 id=포트-상태와-컨버전스-시간-문제>포트 상태와 컨버전스 시간 문제<a class=headerlink href=#포트-상태와-컨버전스-시간-문제 title="Permanent link">&para;</a></h2> <p>여기가 STP를 운영할 때 제일 골치 아픈 부분이다. 802.1D 포트는 링크가 올라오면 곧장 통신하지 못하고 단계를 밟는다.</p> <pre class=mermaid-diagram><code>graph LR
+    SW3 -.Root Port.- Root</code></pre>
+<p>SW2와 SW3 사이 링크가 막혀서 트리가 된다. 평소엔 이 링크로 트래픽이 안 흐르고, SW1↔SW2나 SW1↔SW3 링크가 죽으면 그제서야 SW2↔SW3가 풀린다.</p>
+<h2 id="bpdu--스위치들이-주고받는-쪽지">BPDU — 스위치들이 주고받는 쪽지<a class="headerlink" href="#bpdu--스위치들이-주고받는-쪽지" title="Permanent link">&para;</a></h2>
+<p>BPDU(Bridge Protocol Data Unit)는 STP가 토폴로지를 계산하려고 스위치끼리 교환하는 프레임이다. 목적지 MAC은 <code>01:80:C2:00:00:00</code>(STP 예약 멀티캐스트)이고, 기본 2초마다 한 번씩 나간다.</p>
+<p>종류는 둘이다.</p>
+<ul>
+<li><strong>Configuration BPDU</strong>: Root 정보, 경로 비용, 보내는 스위치 ID 등을 담는다. Root가 만들어 흘려보내고, 나머지 스위치가 받아서 갱신해 다시 전달한다.</li>
+<li><strong>TCN(Topology Change Notification) BPDU</strong>: 토폴로지가 바뀌었을 때(링크 up/down) Root 쪽으로 올려보내는 쪽지. 이걸 받으면 MAC 테이블 에이징 타임을 기본 300초에서 15초로 줄여 빠르게 재학습한다.</li>
+</ul>
+<p>Configuration BPDU 안에서 중요한 필드가 Bridge ID와 Path Cost다. 이 두 개로 Root 선출과 포트 역할이 다 정해진다.</p>
+<h3 id="bridge-id">Bridge ID<a class="headerlink" href="#bridge-id" title="Permanent link">&para;</a></h3>
+<p>Bridge ID = <strong>Bridge Priority(2바이트)</strong> + <strong>MAC 주소(6바이트)</strong>다. 802.1D 원본은 Priority가 2바이트 통째였는데, 지금 장비는 대부분 802.1t 확장을 써서 Priority 4비트 + VLAN ID 12비트(Extended System ID)로 쪼개 쓴다. 그래서 Priority는 0부터 65535까지지만 실제로는 4096 단위로만 설정된다(0, 4096, 8192...). 기본값은 32768이다.</p>
+<p>값이 작을수록 우선순위가 높다. 이게 STP에서 제일 자주 헷갈리는 부분이다. "Priority 높다"가 숫자가 크다는 뜻이 아니라 작다는 뜻이다.</p>
+<h2 id="root-bridge-선출">Root Bridge 선출<a class="headerlink" href="#root-bridge-선출" title="Permanent link">&para;</a></h2>
+<p>전원을 켜면 모든 스위치가 처음엔 자기가 Root라고 우긴다. 자기 Bridge ID를 Root ID에 박아 BPDU를 뿌린다. 그러다 자기보다 작은 Bridge ID를 가진 BPDU를 받으면 "쟤가 나보다 위네" 하고 그 정보로 갱신해서 전달한다. 이 과정을 반복하면 결국 네트워크 전체에서 Bridge ID가 가장 작은 스위치 하나가 Root로 남는다.</p>
+<p>비교 순서는 이렇다.</p>
+<ol>
+<li>Bridge Priority가 낮은 쪽이 Root.</li>
+<li>Priority가 같으면 MAC 주소가 낮은 쪽이 Root.</li>
+</ol>
+<p>여기서 실무 함정이 하나 있다. 아무 설정도 안 하면 Priority가 전부 기본값 32768이라, 결국 <strong>MAC 주소가 가장 낮은 스위치</strong>가 Root가 된다. MAC이 낮다는 건 보통 가장 오래된, 제일 구린 스위치라는 뜻이다. 코어에 둔 고성능 스위치가 아니라 구석에 박힌 액세스 스위치가 Root가 되면 트래픽이 그 구린 스위치로 다 몰려서 경로가 비효율적으로 꼬인다.</p>
+<p>그래서 Root는 반드시 사람이 지정한다. 코어 스위치에 Priority를 낮춰 박는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>! 코어 스위치를 VLAN 10의 Root로 강제
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>SW-CORE(config)# spanning-tree vlan 10 priority 4096
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>! 또는 자동으로 가장 낮은 값 잡게
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>SW-CORE(config)# spanning-tree vlan 10 root primary
+</span></code></pre></div>
+<p><code>root primary</code>는 현재 네트워크에서 제일 낮은 Priority를 보고 그보다 낮은 값을 자동 계산해 넣어준다. 백업용 Root는 <code>root secondary</code>로 잡아둔다. Root가 죽었을 때 두 번째로 좋은 스위치가 받게 하려는 거다.</p>
+<h2 id="path-cost와-포트-역할">Path Cost와 포트 역할<a class="headerlink" href="#path-cost와-포트-역할" title="Permanent link">&para;</a></h2>
+<p>Root를 정하고 나면, 각 스위치는 Root까지 가는 비용을 따진다. Path Cost는 링크 속도가 빠를수록 낮다. 표준값은 아래와 같다.</p>
+<table>
+<thead>
+<tr>
+<th>링크 속도</th>
+<th>Cost (802.1D 기본)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10 Mbps</td>
+<td>100</td>
+</tr>
+<tr>
+<td>100 Mbps</td>
+<td>19</td>
+</tr>
+<tr>
+<td>1 Gbps</td>
+<td>4</td>
+</tr>
+<tr>
+<td>10 Gbps</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>스위치는 자기 포트들 중 Root까지 누적 Cost가 가장 작은 포트를 <strong>Root Port</strong>로 고른다. 세그먼트마다는 그 세그먼트에서 Root에 가장 가까운 포트가 <strong>Designated Port</strong>가 된다. Root Bridge의 모든 포트는 항상 Designated다(Root까지 Cost가 0이니까). 어느 쪽도 못 된 포트가 <strong>Blocking</strong> 상태로 들어가 루프를 끊는다.</p>
+<p>Cost가 같으면 타이브레이커가 작동한다. 송신 측 Bridge ID가 낮은 쪽, 그것도 같으면 송신 측 Port ID(Port Priority + 포트 번호)가 낮은 쪽이 이긴다.</p>
+<h2 id="포트-상태와-컨버전스-시간-문제">포트 상태와 컨버전스 시간 문제<a class="headerlink" href="#포트-상태와-컨버전스-시간-문제" title="Permanent link">&para;</a></h2>
+<p>여기가 STP를 운영할 때 제일 골치 아픈 부분이다. 802.1D 포트는 링크가 올라오면 곧장 통신하지 못하고 단계를 밟는다.</p>
+<pre class="mermaid-diagram"><code>graph LR
     A["Blocking&lt;br/&gt;(20초 Max Age)"] --&gt; B["Listening&lt;br/&gt;(15초 Forward Delay)"]
     B --&gt; C["Learning&lt;br/&gt;(15초 Forward Delay)"]
-    C --&gt; D["Forwarding"]</code></pre> <ul> <li><strong>Blocking</strong>: BPDU만 듣는다. 데이터 프레임은 보내지도 받지도 않는다.</li> <li><strong>Listening</strong>: BPDU를 주고받으며 자기 역할을 계산한다. 아직 MAC 학습도 안 하고 데이터도 안 흘린다.</li> <li><strong>Learning</strong>: 들어오는 프레임의 출발지 MAC을 학습해 테이블을 채운다. 데이터는 아직 안 흘린다.</li> <li><strong>Forwarding</strong>: 정상 통신.</li> </ul> <p>문제는 시간이다. Listening 15초 + Learning 15초 = 30초. 여기에 Blocking에서 깨어날 때 Max Age 20초까지 걸릴 수 있다. 즉 포트 하나가 올라와서 실제 트래픽을 흘리기까지 <strong>최대 50초</strong>가 걸린다.</p> <p>이게 실무에서 어떻게 터지냐면, 서버에 랜선을 꽂거나 PC를 켜면 링크는 즉시 올라오는데 통신이 30초 동안 안 된다. DHCP 클라이언트가 그 사이에 타임아웃 나서 IP를 못 받는다. PXE 부팅하는 서버는 부팅 자체가 실패한다. "케이블 꽂았는데 30초 동안 인터넷이 안 돼요"라는 문의가 들어오면 십중팔구 이거다.</p> <h2 id=rstp--컨버전스를-초-단위로-줄이기>RSTP — 컨버전스를 초 단위로 줄이기<a class=headerlink href=#rstp--컨버전스를-초-단위로-줄이기 title="Permanent link">&para;</a></h2> <p>RSTP(Rapid STP, IEEE 802.1w)가 이 30~50초 문제를 푼다. 지금 새로 사는 장비는 기본이 거의 RSTP거나 그 변형(MSTP, Rapid-PVST)이다.</p> <p>핵심 차이 몇 가지.</p> <p><strong>포트 상태를 3개로 줄였다.</strong> Blocking/Listening/Disabled를 Discarding 하나로 합쳤다. Discarding → Learning → Forwarding 셋만 남는다.</p> <p><strong>타이머를 안 기다리고 핸드셰이크로 넘어간다.</strong> 802.1D는 Forward Delay 타이머가 만료되길 무조건 기다렸다. RSTP는 인접 스위치끼리 Proposal/Agreement를 주고받아 "이 링크 양쪽 다 점대점이고 루프 없는 거 확인됐지?"를 합의하면 즉시 Forwarding으로 간다. 정상이면 컨버전스가 1초 안쪽이다.</p> <p><strong>포트 타입을 구분한다.</strong> 다른 스위치와 직결된 점대점(point-to-point) 링크는 빠른 전환 대상이다. 종단 장치가 붙는 Edge 포트는 아예 루프 가능성이 없다고 보고 곧바로 Forwarding으로 보낸다. 이 Edge 포트 개념이 시스코의 PortFast와 같은 거다.</p> <p><strong>모든 스위치가 BPDU를 자기가 만들어 보낸다.</strong> 802.1D는 Root만 BPDU를 생성하고 나머지는 중계만 했다. RSTP는 각자 2초마다 BPDU를 직접 내보내서, 3번(6초) 연속 못 받으면 인접 스위치가 죽었다고 빠르게 판단한다.</p> <p>호환성은 된다. RSTP 스위치가 802.1D만 아는 옛날 스위치를 만나면 그 포트만 레거시 모드로 떨어져 느리게 동작한다. 그래서 망에 STP 장비 한 대 섞여 있으면 그 구간만 컨버전스가 느려진다.</p> <h2 id=portfast--종단-포트는-줄-세우지-마라>PortFast — 종단 포트는 줄 세우지 마라<a class=headerlink href=#portfast--종단-포트는-줄-세우지-마라 title="Permanent link">&para;</a></h2> <p>서버나 PC가 붙는 액세스 포트는 거기서 루프가 생길 일이 없다. 그런 포트까지 30초씩 Listening/Learning을 시킬 이유가 없다. PortFast(RSTP에선 Edge 포트)를 켜면 링크 업과 동시에 바로 Forwarding으로 보낸다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>! 단일 포트에 적용
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>SW(config)# interface GigabitEthernet0/1
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>SW(config-if)# spanning-tree portfast
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>! 액세스 모드 포트 전부에 일괄 적용
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>SW(config)# spanning-tree portfast default
-</span></code></pre></div> <p>앞서 말한 DHCP 타임아웃, PXE 부팅 실패는 PortFast 한 줄로 거의 다 사라진다.</p> <p>대신 절대 지켜야 할 규칙이 하나 있다. <strong>PortFast는 종단 장치 포트에만 켠다. 스위치끼리 연결되는 포트(트렁크, 업링크)에는 절대 켜지 마라.</strong> PortFast 포트는 STP 계산을 건너뛰고 바로 Forwarding이라, 거기에 실수로 다른 스위치를 물리면 STP가 루프를 인지하기도 전에 브로드캐스트 스톰이 터진다. 이걸 막으려고 BPDU Guard를 같이 건다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>! PortFast 포트에 BPDU가 들어오면 포트를 즉시 차단(err-disabled)
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>SW(config-if)# spanning-tree bpduguard enable
-</span></code></pre></div> <p>BPDU Guard는 PortFast 포트로 BPDU가 들어오는 순간(=거기에 스위치가 물렸다는 신호) 포트를 err-disabled로 내려버린다. 종단 포트엔 BPDU가 올 일이 없으니, BPDU가 왔다는 건 누가 거기에 스위치나 허브를 잘못 꽂았다는 뜻이다. 사고를 한 포트로 가둬버리는 안전장치다.</p> <h2 id=브로드캐스트-스톰-실제-트러블슈팅>브로드캐스트 스톰 실제 트러블슈팅<a class=headerlink href=#브로드캐스트-스톰-실제-트러블슈팅 title="Permanent link">&para;</a></h2> <p>이중화 구성하다 스톰을 만나면 어떻게 잡는지 순서대로 정리한다.</p> <h3 id=1-증상으로-루프부터-의심>1. 증상으로 루프부터 의심<a class=headerlink href=#1-증상으로-루프부터-의심 title="Permanent link">&para;</a></h3> <ul> <li>핑이 불규칙하게 끊기고 지연(RTT)이 들쭉날쭉하다.</li> <li>스위치 전 포트 LED가 동시에 미친 듯이 깜빡인다.</li> <li>SSH/콘솔이 버벅인다. CPU를 보면 거의 100%다.</li> <li>로그에 MAC 플래핑이 찍힌다.</li> </ul> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>! 시스코 기준 CPU 점유 확인
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>SW# show processes cpu sorted | exclude 0.00
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>! MAC 플래핑 로그 확인
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>SW# show logging | include MAC|flap|move
-</span></code></pre></div> <p><code>%SW_MATM-4-MACFLAP_NOTIF: Host aaaa.bbbb.cccc in vlan 10 is flapping between port Gi0/1 and Gi0/2</code> 같은 로그가 보이면 Gi0/1과 Gi0/2 사이에 루프가 있는 거다.</p> <h3 id=2-stp-상태부터-확인>2. STP 상태부터 확인<a class=headerlink href=#2-stp-상태부터-확인 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>SW# show spanning-tree vlan 10
-</span></code></pre></div> <p>여기서 봐야 할 것.</p> <ul> <li>Root Bridge가 의도한 스위치가 맞나. 엉뚱한 스위치가 Root면 누가 Priority를 안 잡은 거다.</li> <li>막혀 있어야 할 포트가 Blocking(RSTP면 Discarding) 상태로 잘 잡혀 있나. 전부 Forwarding이면 STP가 루프를 못 끊고 있다는 뜻이다.</li> <li>한쪽 포트만 BPDU를 못 받고 있진 않나.</li> </ul> <h3 id=3-stp가-꺼져-있거나-bpdu가-한쪽만-흐르는-경우>3. STP가 꺼져 있거나 BPDU가 한쪽만 흐르는 경우<a class=headerlink href=#3-stp가-꺼져-있거나-bpdu가-한쪽만-흐르는-경우 title="Permanent link">&para;</a></h3> <p>가장 흔한 사고 원인 두 가지다.</p> <p><strong>한쪽 장비에서 STP가 비활성화돼 있다.</strong> 일부 비관리형 스위치나 잘못 설정된 장비는 STP를 아예 안 돌린다. 그러면 BPDU 교환이 안 돼서 루프를 못 끊는다. 관리형 장비라면 STP가 켜져 있는지부터 확인한다.</p> <p><strong>단방향 링크(unidirectional link).</strong> 광 모듈 한 가닥이 죽거나 케이블 한 방향만 끊기면, 한쪽은 BPDU를 보내는데 받지를 못한다. 받는 쪽은 BPDU가 안 오니 "여긴 종단인가 보다" 하고 Blocking이던 포트를 Forwarding으로 열어버린다. 그 순간 루프가 풀려 스톰이 터진다. 이걸 막는 게 UDLD나 RSTP의 Loop Guard다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>! Loop Guard: BPDU가 끊긴 비지정 포트를 Forwarding으로 안 풀고 loop-inconsistent로 가둠
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>SW(config)# spanning-tree loopguard default
-</span></code></pre></div> <h3 id=4-급할-때-응급-처치>4. 급할 때 응급 처치<a class=headerlink href=#4-급할-때-응급-처치 title="Permanent link">&para;</a></h3> <p>스톰이 한창이라 SSH도 안 들어가는 상황이면, 의심되는 이중화 링크 한쪽을 <strong>물리적으로 뽑는다.</strong> 루프를 끊으면 트래픽이 가라앉고 그제서야 관리 접속이 살아난다. 그 다음 STP 설정을 점검하고 다시 꽂는다. 콘솔 케이블이 살아 있으면 의심 포트를 <code>shutdown</code> 해서 끊어도 된다.</p> <h3 id=5-재발-방지>5. 재발 방지<a class=headerlink href=#5-재발-방지 title="Permanent link">&para;</a></h3> <ul> <li>모든 스위치 포트에서 STP를 켜둔다. 이중화 구간에서 끄지 마라.</li> <li>Root는 코어에 Priority로 고정한다. 기본값에 맡기지 마라.</li> <li>종단 포트엔 PortFast + BPDU Guard를 같이 건다.</li> <li>스위치 간 업링크엔 Loop Guard나 UDLD를 건다.</li> <li>스톰 컨트롤로 브로드캐스트 비율 상한을 걸어 폭주 시 자동 억제되게 한다.</li> </ul> <div class="language-text highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>! 브로드캐스트가 대역폭의 1% 넘으면 초과분 드롭
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>SW(config-if)# storm-control broadcast level 1.00
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>SW(config-if)# storm-control action shutdown
-</span></code></pre></div> <p>스톰 컨트롤은 루프를 막는 게 아니라 터졌을 때 피해를 줄이는 안전망이다. 근본 원인은 STP로 잡고, 스톰 컨트롤은 보험으로 깔아둔다.</p> <h2 id=정리>정리<a class=headerlink href=#정리 title="Permanent link">&para;</a></h2> <p>스위치를 이중화하면 물리적 루프가 생기고, 이더넷엔 TTL이 없어서 루프 한 번이 그대로 브로드캐스트 스톰이 된다. STP는 여분 링크를 막아 논리적 트리를 만들어 루프를 끊는다. Root Bridge는 Bridge ID(Priority + MAC)가 가장 작은 스위치가 되는데, 기본값에 맡기면 제일 구린 스위치가 Root가 되니 코어에 Priority를 박아 고정한다.</p> <p>802.1D는 포트가 Forwarding까지 30~50초 걸려서 DHCP 타임아웃 같은 문제를 일으킨다. RSTP는 핸드셰이크로 이걸 1초 안쪽으로 줄였고, 종단 포트엔 PortFast(Edge)로 대기 시간을 없앤다. PortFast 포트엔 BPDU Guard를, 스위치 간 링크엔 Loop Guard를 같이 걸어 오설정 사고를 한 포트로 가둔다. 스톰이 실제로 터지면 의심 링크부터 끊어 루프를 멈추고, STP 상태와 BPDU 흐름을 점검한다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/ >AMQP vs MQTT 비교 분석</a></li> <li><a href=../../../GateWay/API_Gateway/ >API Gateway 심화</a></li> <li><a href=../../Network%20Layer/ARP/ >ARP — IP와 MAC을 잇는 끈</a></li> <li><a href=../../Network%20Layer/BGP/ >BGP — 인터넷을 굴리는 라우팅 프로토콜</a></li> <li><a href=../../../CDN/ >CDN 동작 원리와 실무 운영</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../MacAddress/ class="md-footer__link md-footer__link--prev" aria-label="이전: MAC 주소 (Media Access Control Address)"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> MAC 주소 (Media Access Control Address) </div> </div> </a> <a href=../VLAN/ class="md-footer__link md-footer__link--next" aria-label="다음: VLAN — 스위치 한 대를 논리적으로 쪼개기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> VLAN — 스위치 한 대를 논리적으로 쪼개기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    C --&gt; D["Forwarding"]</code></pre>
+<ul>
+<li><strong>Blocking</strong>: BPDU만 듣는다. 데이터 프레임은 보내지도 받지도 않는다.</li>
+<li><strong>Listening</strong>: BPDU를 주고받으며 자기 역할을 계산한다. 아직 MAC 학습도 안 하고 데이터도 안 흘린다.</li>
+<li><strong>Learning</strong>: 들어오는 프레임의 출발지 MAC을 학습해 테이블을 채운다. 데이터는 아직 안 흘린다.</li>
+<li><strong>Forwarding</strong>: 정상 통신.</li>
+</ul>
+<p>문제는 시간이다. Listening 15초 + Learning 15초 = 30초. 여기에 Blocking에서 깨어날 때 Max Age 20초까지 걸릴 수 있다. 즉 포트 하나가 올라와서 실제 트래픽을 흘리기까지 <strong>최대 50초</strong>가 걸린다.</p>
+<p>이게 실무에서 어떻게 터지냐면, 서버에 랜선을 꽂거나 PC를 켜면 링크는 즉시 올라오는데 통신이 30초 동안 안 된다. DHCP 클라이언트가 그 사이에 타임아웃 나서 IP를 못 받는다. PXE 부팅하는 서버는 부팅 자체가 실패한다. "케이블 꽂았는데 30초 동안 인터넷이 안 돼요"라는 문의가 들어오면 십중팔구 이거다.</p>
+<h2 id="rstp--컨버전스를-초-단위로-줄이기">RSTP — 컨버전스를 초 단위로 줄이기<a class="headerlink" href="#rstp--컨버전스를-초-단위로-줄이기" title="Permanent link">&para;</a></h2>
+<p>RSTP(Rapid STP, IEEE 802.1w)가 이 30~50초 문제를 푼다. 지금 새로 사는 장비는 기본이 거의 RSTP거나 그 변형(MSTP, Rapid-PVST)이다.</p>
+<p>핵심 차이 몇 가지.</p>
+<p><strong>포트 상태를 3개로 줄였다.</strong> Blocking/Listening/Disabled를 Discarding 하나로 합쳤다. Discarding → Learning → Forwarding 셋만 남는다.</p>
+<p><strong>타이머를 안 기다리고 핸드셰이크로 넘어간다.</strong> 802.1D는 Forward Delay 타이머가 만료되길 무조건 기다렸다. RSTP는 인접 스위치끼리 Proposal/Agreement를 주고받아 "이 링크 양쪽 다 점대점이고 루프 없는 거 확인됐지?"를 합의하면 즉시 Forwarding으로 간다. 정상이면 컨버전스가 1초 안쪽이다.</p>
+<p><strong>포트 타입을 구분한다.</strong> 다른 스위치와 직결된 점대점(point-to-point) 링크는 빠른 전환 대상이다. 종단 장치가 붙는 Edge 포트는 아예 루프 가능성이 없다고 보고 곧바로 Forwarding으로 보낸다. 이 Edge 포트 개념이 시스코의 PortFast와 같은 거다.</p>
+<p><strong>모든 스위치가 BPDU를 자기가 만들어 보낸다.</strong> 802.1D는 Root만 BPDU를 생성하고 나머지는 중계만 했다. RSTP는 각자 2초마다 BPDU를 직접 내보내서, 3번(6초) 연속 못 받으면 인접 스위치가 죽었다고 빠르게 판단한다.</p>
+<p>호환성은 된다. RSTP 스위치가 802.1D만 아는 옛날 스위치를 만나면 그 포트만 레거시 모드로 떨어져 느리게 동작한다. 그래서 망에 STP 장비 한 대 섞여 있으면 그 구간만 컨버전스가 느려진다.</p>
+<h2 id="portfast--종단-포트는-줄-세우지-마라">PortFast — 종단 포트는 줄 세우지 마라<a class="headerlink" href="#portfast--종단-포트는-줄-세우지-마라" title="Permanent link">&para;</a></h2>
+<p>서버나 PC가 붙는 액세스 포트는 거기서 루프가 생길 일이 없다. 그런 포트까지 30초씩 Listening/Learning을 시킬 이유가 없다. PortFast(RSTP에선 Edge 포트)를 켜면 링크 업과 동시에 바로 Forwarding으로 보낸다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>! 단일 포트에 적용
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>SW(config)# interface GigabitEthernet0/1
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>SW(config-if)# spanning-tree portfast
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>! 액세스 모드 포트 전부에 일괄 적용
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>SW(config)# spanning-tree portfast default
+</span></code></pre></div>
+<p>앞서 말한 DHCP 타임아웃, PXE 부팅 실패는 PortFast 한 줄로 거의 다 사라진다.</p>
+<p>대신 절대 지켜야 할 규칙이 하나 있다. <strong>PortFast는 종단 장치 포트에만 켠다. 스위치끼리 연결되는 포트(트렁크, 업링크)에는 절대 켜지 마라.</strong> PortFast 포트는 STP 계산을 건너뛰고 바로 Forwarding이라, 거기에 실수로 다른 스위치를 물리면 STP가 루프를 인지하기도 전에 브로드캐스트 스톰이 터진다. 이걸 막으려고 BPDU Guard를 같이 건다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>! PortFast 포트에 BPDU가 들어오면 포트를 즉시 차단(err-disabled)
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>SW(config-if)# spanning-tree bpduguard enable
+</span></code></pre></div>
+<p>BPDU Guard는 PortFast 포트로 BPDU가 들어오는 순간(=거기에 스위치가 물렸다는 신호) 포트를 err-disabled로 내려버린다. 종단 포트엔 BPDU가 올 일이 없으니, BPDU가 왔다는 건 누가 거기에 스위치나 허브를 잘못 꽂았다는 뜻이다. 사고를 한 포트로 가둬버리는 안전장치다.</p>
+<h2 id="브로드캐스트-스톰-실제-트러블슈팅">브로드캐스트 스톰 실제 트러블슈팅<a class="headerlink" href="#브로드캐스트-스톰-실제-트러블슈팅" title="Permanent link">&para;</a></h2>
+<p>이중화 구성하다 스톰을 만나면 어떻게 잡는지 순서대로 정리한다.</p>
+<h3 id="1-증상으로-루프부터-의심">1. 증상으로 루프부터 의심<a class="headerlink" href="#1-증상으로-루프부터-의심" title="Permanent link">&para;</a></h3>
+<ul>
+<li>핑이 불규칙하게 끊기고 지연(RTT)이 들쭉날쭉하다.</li>
+<li>스위치 전 포트 LED가 동시에 미친 듯이 깜빡인다.</li>
+<li>SSH/콘솔이 버벅인다. CPU를 보면 거의 100%다.</li>
+<li>로그에 MAC 플래핑이 찍힌다.</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>! 시스코 기준 CPU 점유 확인
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>SW# show processes cpu sorted | exclude 0.00
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>! MAC 플래핑 로그 확인
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>SW# show logging | include MAC|flap|move
+</span></code></pre></div>
+<p><code>%SW_MATM-4-MACFLAP_NOTIF: Host aaaa.bbbb.cccc in vlan 10 is flapping between port Gi0/1 and Gi0/2</code> 같은 로그가 보이면 Gi0/1과 Gi0/2 사이에 루프가 있는 거다.</p>
+<h3 id="2-stp-상태부터-확인">2. STP 상태부터 확인<a class="headerlink" href="#2-stp-상태부터-확인" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>SW# show spanning-tree vlan 10
+</span></code></pre></div>
+<p>여기서 봐야 할 것.</p>
+<ul>
+<li>Root Bridge가 의도한 스위치가 맞나. 엉뚱한 스위치가 Root면 누가 Priority를 안 잡은 거다.</li>
+<li>막혀 있어야 할 포트가 Blocking(RSTP면 Discarding) 상태로 잘 잡혀 있나. 전부 Forwarding이면 STP가 루프를 못 끊고 있다는 뜻이다.</li>
+<li>한쪽 포트만 BPDU를 못 받고 있진 않나.</li>
+</ul>
+<h3 id="3-stp가-꺼져-있거나-bpdu가-한쪽만-흐르는-경우">3. STP가 꺼져 있거나 BPDU가 한쪽만 흐르는 경우<a class="headerlink" href="#3-stp가-꺼져-있거나-bpdu가-한쪽만-흐르는-경우" title="Permanent link">&para;</a></h3>
+<p>가장 흔한 사고 원인 두 가지다.</p>
+<p><strong>한쪽 장비에서 STP가 비활성화돼 있다.</strong> 일부 비관리형 스위치나 잘못 설정된 장비는 STP를 아예 안 돌린다. 그러면 BPDU 교환이 안 돼서 루프를 못 끊는다. 관리형 장비라면 STP가 켜져 있는지부터 확인한다.</p>
+<p><strong>단방향 링크(unidirectional link).</strong> 광 모듈 한 가닥이 죽거나 케이블 한 방향만 끊기면, 한쪽은 BPDU를 보내는데 받지를 못한다. 받는 쪽은 BPDU가 안 오니 "여긴 종단인가 보다" 하고 Blocking이던 포트를 Forwarding으로 열어버린다. 그 순간 루프가 풀려 스톰이 터진다. 이걸 막는 게 UDLD나 RSTP의 Loop Guard다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>! Loop Guard: BPDU가 끊긴 비지정 포트를 Forwarding으로 안 풀고 loop-inconsistent로 가둠
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>SW(config)# spanning-tree loopguard default
+</span></code></pre></div>
+<h3 id="4-급할-때-응급-처치">4. 급할 때 응급 처치<a class="headerlink" href="#4-급할-때-응급-처치" title="Permanent link">&para;</a></h3>
+<p>스톰이 한창이라 SSH도 안 들어가는 상황이면, 의심되는 이중화 링크 한쪽을 <strong>물리적으로 뽑는다.</strong> 루프를 끊으면 트래픽이 가라앉고 그제서야 관리 접속이 살아난다. 그 다음 STP 설정을 점검하고 다시 꽂는다. 콘솔 케이블이 살아 있으면 의심 포트를 <code>shutdown</code> 해서 끊어도 된다.</p>
+<h3 id="5-재발-방지">5. 재발 방지<a class="headerlink" href="#5-재발-방지" title="Permanent link">&para;</a></h3>
+<ul>
+<li>모든 스위치 포트에서 STP를 켜둔다. 이중화 구간에서 끄지 마라.</li>
+<li>Root는 코어에 Priority로 고정한다. 기본값에 맡기지 마라.</li>
+<li>종단 포트엔 PortFast + BPDU Guard를 같이 건다.</li>
+<li>스위치 간 업링크엔 Loop Guard나 UDLD를 건다.</li>
+<li>스톰 컨트롤로 브로드캐스트 비율 상한을 걸어 폭주 시 자동 억제되게 한다.</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>! 브로드캐스트가 대역폭의 1% 넘으면 초과분 드롭
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>SW(config-if)# storm-control broadcast level 1.00
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>SW(config-if)# storm-control action shutdown
+</span></code></pre></div>
+<p>스톰 컨트롤은 루프를 막는 게 아니라 터졌을 때 피해를 줄이는 안전망이다. 근본 원인은 STP로 잡고, 스톰 컨트롤은 보험으로 깔아둔다.</p>
+<h2 id="정리">정리<a class="headerlink" href="#정리" title="Permanent link">&para;</a></h2>
+<p>스위치를 이중화하면 물리적 루프가 생기고, 이더넷엔 TTL이 없어서 루프 한 번이 그대로 브로드캐스트 스톰이 된다. STP는 여분 링크를 막아 논리적 트리를 만들어 루프를 끊는다. Root Bridge는 Bridge ID(Priority + MAC)가 가장 작은 스위치가 되는데, 기본값에 맡기면 제일 구린 스위치가 Root가 되니 코어에 Priority를 박아 고정한다.</p>
+<p>802.1D는 포트가 Forwarding까지 30~50초 걸려서 DHCP 타임아웃 같은 문제를 일으킨다. RSTP는 핸드셰이크로 이걸 1초 안쪽으로 줄였고, 종단 포트엔 PortFast(Edge)로 대기 시간을 없앤다. PortFast 포트엔 BPDU Guard를, 스위치 간 링크엔 Loop Guard를 같이 걸어 오설정 사고를 한 포트로 가둔다. 스톰이 실제로 터지면 의심 링크부터 끊어 루프를 멈추고, STP 상태와 BPDU 흐름을 점검한다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/">AMQP vs MQTT 비교 분석</a></li>
+<li><a href="../../../GateWay/API_Gateway/">API Gateway 심화</a></li>
+<li><a href="../../Network%20Layer/ARP/">ARP — IP와 MAC을 잇는 끈</a></li>
+<li><a href="../../Network%20Layer/BGP/">BGP — 인터넷을 굴리는 라우팅 프로토콜</a></li>
+<li><a href="../../../CDN/">CDN 동작 원리와 실무 운영</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../MacAddress/" class="md-footer__link md-footer__link--prev" aria-label="이전: MAC 주소 (Media Access Control Address)">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                MAC 주소 (Media Access Control Address)
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../VLAN/" class="md-footer__link md-footer__link--next" aria-label="다음: VLAN — 스위치 한 대를 논리적으로 쪼개기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                VLAN — 스위치 한 대를 논리적으로 쪼개기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

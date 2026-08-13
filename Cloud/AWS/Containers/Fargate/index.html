@@ -1,4 +1,2443 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Containers/Fargate/ rel=canonical><link href=../EKS_VPC_CNI_ENI/ rel=prev><link href=../Fargate_MSA_Server_Deployment/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>AWS Fargate - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#aws-fargate class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> AWS Fargate </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Containers </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_5_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_5> <span class="md-nav__icon md-icon"></span> Containers </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Database/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Analytics/ class=md-nav__link> <span class=md-ellipsis> Analytics </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> <nav class=md-nav aria-label=개요> <ul class=md-nav__list> <li class=md-nav__item> <a href=#fargate-내부-아키텍처 class=md-nav__link> <span class=md-ellipsis> Fargate 내부 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=#서버리스의-의미 class=md-nav__link> <span class=md-ellipsis> 서버리스의 의미 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#vcpu--메모리-조합 class=md-nav__link> <span class=md-ellipsis> vCPU / 메모리 조합 </span> </a> </li> <li class=md-nav__item> <a href=#비용-구조 class=md-nav__link> <span class=md-ellipsis> 비용 구조 </span> </a> <nav class=md-nav aria-label="비용 구조"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#비용-계산-예시 class=md-nav__link> <span class=md-ellipsis> 비용 계산 예시 </span> </a> </li> <li class=md-nav__item> <a href=#fargate-savings-plans class=md-nav__link> <span class=md-ellipsis> Fargate Savings Plans </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#fargate-spot class=md-nav__link> <span class=md-ellipsis> Fargate Spot </span> </a> <nav class=md-nav aria-label="Fargate Spot"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#중단-메커니즘 class=md-nav__link> <span class=md-ellipsis> 중단 메커니즘 </span> </a> </li> <li class=md-nav__item> <a href=#혼합-전략 class=md-nav__link> <span class=md-ellipsis> 혼합 전략 </span> </a> </li> <li class=md-nav__item> <a href=#spot-중단-대응 class=md-nav__link> <span class=md-ellipsis> Spot 중단 대응 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#플랫폼-버전-관리 class=md-nav__link> <span class=md-ellipsis> 플랫폼 버전 관리 </span> </a> <nav class=md-nav aria-label="플랫폼 버전 관리"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#플랫폼-버전-종류-linux class=md-nav__link> <span class=md-ellipsis> 플랫폼 버전 종류 (Linux) </span> </a> </li> <li class=md-nav__item> <a href=#latest를-쓰면-안-되는-경우 class=md-nav__link> <span class=md-ellipsis> LATEST를 쓰면 안 되는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#플랫폼-버전-확인 class=md-nav__link> <span class=md-ellipsis> 플랫폼 버전 확인 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#이미지-캐싱과-시작-시간 class=md-nav__link> <span class=md-ellipsis> 이미지 캐싱과 시작 시간 </span> </a> <nav class=md-nav aria-label="이미지 캐싱과 시작 시간"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#시작-시간-구성 class=md-nav__link> <span class=md-ellipsis> 시작 시간 구성 </span> </a> </li> <li class=md-nav__item> <a href=#이미지-크기-줄이기 class=md-nav__link> <span class=md-ellipsis> 이미지 크기 줄이기 </span> </a> </li> <li class=md-nav__item> <a href=#soci-seekable-oci-인덱스 class=md-nav__link> <span class=md-ellipsis> SOCI (Seekable OCI) 인덱스 </span> </a> </li> <li class=md-nav__item> <a href=#ecr-풀-캐시-동작 class=md-nav__link> <span class=md-ellipsis> ECR 풀 캐시 동작 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#ecs-fargate-사용법 class=md-nav__link> <span class=md-ellipsis> ECS Fargate 사용법 </span> </a> <nav class=md-nav aria-label="ECS Fargate 사용법"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#task-definition-작성 class=md-nav__link> <span class=md-ellipsis> Task Definition 작성 </span> </a> </li> <li class=md-nav__item> <a href=#service-생성과-설정 class=md-nav__link> <span class=md-ellipsis> Service 생성과 설정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#운영-트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 운영 트러블슈팅 </span> </a> <nav class=md-nav aria-label="운영 트러블슈팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#task가-시작되지-않는-경우 class=md-nav__link> <span class=md-ellipsis> Task가 시작되지 않는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#task가-반복적으로-죽는-경우 class=md-nav__link> <span class=md-ellipsis> Task가 반복적으로 죽는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#eni-할당-실패 class=md-nav__link> <span class=md-ellipsis> ENI 할당 실패 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#참고 class=md-nav__link> <span class=md-ellipsis> 참고 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>cloud</span> <span class=md-tag>docker</span> </nav> <h1 id=aws-fargate>AWS Fargate<a class=headerlink href=#aws-fargate title="Permanent link">&para;</a></h1> <h2 id=개요>개요<a class=headerlink href=#개요 title="Permanent link">&para;</a></h2> <p>AWS Fargate는 서버를 관리하지 않고 컨테이너를 실행하는 서버리스 컴퓨팅 엔진이다. EC2 인스턴스를 프로비저닝하거나 관리할 필요 없이 컨테이너만 정의하면 AWS가 인프라를 자동으로 관리한다.</p> <p>ECS, EKS 두 오케스트레이터 모두에서 실행 모드로 선택할 수 있다. EC2 모드와의 비교는 <a href=../ECS/ >ECS 문서</a>에 정리되어 있으므로, 이 문서에서는 Fargate 자체의 구조와 운영에 집중한다.</p> <h3 id=fargate-내부-아키텍처>Fargate 내부 아키텍처<a class=headerlink href=#fargate-내부-아키텍처 title="Permanent link">&para;</a></h3> <p>Fargate의 핵심은 Firecracker microVM이다. 각 Task는 독립된 경량 VM 위에서 실행되기 때문에 다른 고객의 워크로드와 커널을 공유하지 않는다.</p> <p><img alt="Fargate 내부 아키텍처" src=../images/fargate_architecture.svg></p> <pre class=mermaid-diagram><code>graph TB
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Containers/Fargate/">
+      
+      
+        <link rel="prev" href="../EKS_VPC_CNI_ENI/">
+      
+      
+        <link rel="next" href="../Fargate_MSA_Server_Deployment/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>AWS Fargate - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aws-fargate" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              AWS Fargate
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Containers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Database/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Analytics/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="개요">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fargate-내부-아키텍처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fargate 내부 아키텍처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#서버리스의-의미" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서버리스의 의미
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vcpu--메모리-조합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vCPU / 메모리 조합
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#비용-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        비용 구조
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="비용 구조">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#비용-계산-예시" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        비용 계산 예시
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fargate-savings-plans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fargate Savings Plans
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fargate-spot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fargate Spot
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fargate Spot">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#중단-메커니즘" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        중단 메커니즘
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#혼합-전략" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        혼합 전략
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spot-중단-대응" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spot 중단 대응
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#플랫폼-버전-관리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        플랫폼 버전 관리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="플랫폼 버전 관리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#플랫폼-버전-종류-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        플랫폼 버전 종류 (Linux)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#latest를-쓰면-안-되는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LATEST를 쓰면 안 되는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#플랫폼-버전-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        플랫폼 버전 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#이미지-캐싱과-시작-시간" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 캐싱과 시작 시간
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="이미지 캐싱과 시작 시간">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#시작-시간-구성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        시작 시간 구성
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#이미지-크기-줄이기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 크기 줄이기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#soci-seekable-oci-인덱스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SOCI (Seekable OCI) 인덱스
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ecr-풀-캐시-동작" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ECR 풀 캐시 동작
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ecs-fargate-사용법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ECS Fargate 사용법
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ECS Fargate 사용법">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-definition-작성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task Definition 작성
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-생성과-설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service 생성과 설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#운영-트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="운영 트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task가-시작되지-않는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task가 시작되지 않는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task가-반복적으로-죽는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task가 반복적으로 죽는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eni-할당-실패" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENI 할당 실패
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#참고" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        참고
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">docker</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="aws-fargate">AWS Fargate<a class="headerlink" href="#aws-fargate" title="Permanent link">&para;</a></h1>
+<h2 id="개요">개요<a class="headerlink" href="#개요" title="Permanent link">&para;</a></h2>
+<p>AWS Fargate는 서버를 관리하지 않고 컨테이너를 실행하는 서버리스 컴퓨팅 엔진이다. EC2 인스턴스를 프로비저닝하거나 관리할 필요 없이 컨테이너만 정의하면 AWS가 인프라를 자동으로 관리한다.</p>
+<p>ECS, EKS 두 오케스트레이터 모두에서 실행 모드로 선택할 수 있다. EC2 모드와의 비교는 <a href="../ECS/">ECS 문서</a>에 정리되어 있으므로, 이 문서에서는 Fargate 자체의 구조와 운영에 집중한다.</p>
+<h3 id="fargate-내부-아키텍처">Fargate 내부 아키텍처<a class="headerlink" href="#fargate-내부-아키텍처" title="Permanent link">&para;</a></h3>
+<p>Fargate의 핵심은 Firecracker microVM이다. 각 Task는 독립된 경량 VM 위에서 실행되기 때문에 다른 고객의 워크로드와 커널을 공유하지 않는다.</p>
+<p><img alt="Fargate 내부 아키텍처" src="../images/fargate_architecture.svg" /></p>
+<pre class="mermaid-diagram"><code>graph TB
     subgraph Host["물리 호스트"]
         subgraph VM1["Firecracker microVM"]
             RT1["컨테이너 런타임"]
@@ -15,165 +2454,615 @@
     end
 
     ENI1["ENI&lt;br/&gt;10.0.1.5"] --- T1
-    ENI2["ENI&lt;br/&gt;10.0.1.6"] --- T2</code></pre> <p>Firecracker는 AWS가 Lambda용으로 만든 경량 VMM(Virtual Machine Monitor)이다. 부팅에 125ms 미만이 걸린다. 이 구조 덕분에 Fargate Task는 EC2와 동등한 수준의 하드웨어 격리를 제공하면서도, 개발자는 VM을 신경 쓸 필요가 없다.</p> <h3 id=서버리스의-의미>서버리스의 의미<a class=headerlink href=#서버리스의-의미 title="Permanent link">&para;</a></h3> <p>"서버리스"는 서버가 없다는 뜻이 아니다. 서버는 존재하지만, 개발자가 관리하지 않는다는 의미다.</p> <p>Lambda와 비교하면 역할이 다르다.</p> <ul> <li>Lambda: 함수 단위, 15분 실행 제한, 이벤트 기반</li> <li>Fargate: 컨테이너 단위, 시간 제한 없음, 지속 실행 가능</li> </ul> <p>Fargate는 전통적인 웹 애플리케이션을 서버리스로 실행할 수 있게 해준다.</p> <h2 id=vcpu--메모리-조합>vCPU / 메모리 조합<a class=headerlink href=#vcpu--메모리-조합 title="Permanent link">&para;</a></h2> <p>Fargate는 정해진 vCPU-메모리 조합만 사용할 수 있다. 잘못된 조합으로 Task Definition을 등록하면 바로 에러가 난다.</p> <p><img alt="vCPU / 메모리 유효 조합" src=../images/fargate_vcpu_memory.svg></p> <table> <thead> <tr> <th>vCPU</th> <th>메모리 범위</th> <th>단위</th> <th>주 용도</th> </tr> </thead> <tbody> <tr> <td>0.25</td> <td>0.5 ~ 2 GB</td> <td>1 GB</td> <td>경량 사이드카, 프록시</td> </tr> <tr> <td>0.5</td> <td>1 ~ 4 GB</td> <td>1 GB</td> <td>가벼운 API, 워커</td> </tr> <tr> <td>1</td> <td>2 ~ 8 GB</td> <td>1 GB</td> <td>일반 웹 서비스</td> </tr> <tr> <td>2</td> <td>4 ~ 16 GB</td> <td>1 GB</td> <td>Java/Spring, 배치</td> </tr> <tr> <td>4</td> <td>8 ~ 30 GB</td> <td>1 GB</td> <td>고사양 연산, 데이터 처리</td> </tr> <tr> <td>8</td> <td>16 ~ 60 GB</td> <td>4 GB</td> <td>메모리 집약 워크로드</td> </tr> <tr> <td>16</td> <td>32 ~ 120 GB</td> <td>8 GB</td> <td>대규모 인메모리 처리</td> </tr> </tbody> </table> <p>Windows 컨테이너는 1~4 vCPU만 지원한다.</p> <p><strong>리소스 할당 시 주의할 점:</strong></p> <p>처음에는 작은 리소스로 시작한다. 0.5 vCPU, 1 GB 메모리. CloudWatch 메트릭으로 실제 사용량을 확인한 후 조정한다. 과도하게 할당하면 비용만 증가한다.</p> <p>Spring Boot 같은 JVM 기반 애플리케이션은 힙 메모리 설정에 주의해야 한다. Task 메모리를 2 GB로 잡았는데 JVM 힙을 1.5 GB로 설정하면, 메타스페이스와 네이티브 메모리를 합치면 OOM으로 Task가 죽는 경우가 있다. Task 메모리의 60~70% 정도를 힙으로 잡는 게 안전하다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># Task 메모리 2048MB일 때 JVM 설정 예시</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=nv>JAVA_OPTS</span><span class=o>=</span><span class=s2>&quot;-Xms1024m -Xmx1280m -XX:MaxMetaspaceSize=256m&quot;</span>
-</span></code></pre></div> <h2 id=비용-구조>비용 구조<a class=headerlink href=#비용-구조 title="Permanent link">&para;</a></h2> <p>Fargate는 Task가 실행되는 시간만큼 비용이 발생한다. vCPU와 메모리 사용량에 따라 초 단위로 청구되며, 최소 1분 과금이다.</p> <p><strong>가격 (us-east-1 기준):</strong></p> <ul> <li>vCPU: $0.04048/시간</li> <li>메모리: $0.004445/GB/시간</li> </ul> <p><img alt="월별 비용 비교" src=../images/fargate_cost_comparison.svg></p> <h3 id=비용-계산-예시>비용 계산 예시<a class=headerlink href=#비용-계산-예시 title="Permanent link">&para;</a></h3> <p><strong>24시간 실행하는 웹 서비스 (1 vCPU, 2 GB, 1개 Task):</strong></p> <ul> <li>vCPU: 1 x $0.04048 x 720시간 = $29.1</li> <li>메모리: 2 x $0.004445 x 720시간 = $6.4</li> <li>월 합계: 약 $35.5</li> </ul> <p><strong>하루 2시간 배치 작업 (1 vCPU, 2 GB):</strong></p> <ul> <li>vCPU: 1 x $0.04048 x 60시간 = $2.4</li> <li>메모리: 2 x $0.004445 x 60시간 = $0.5</li> <li>월 합계: 약 $2.9</li> </ul> <p>간헐적으로 실행되는 워크로드에서 Fargate의 비용 이점이 크다. EC2는 배치 작업이 안 돌아도 인스턴스가 켜져 있으면 비용이 나간다.</p> <h3 id=fargate-savings-plans>Fargate Savings Plans<a class=headerlink href=#fargate-savings-plans title="Permanent link">&para;</a></h3> <p>1년 또는 3년 약정으로 최대 50%까지 할인받을 수 있다. Compute Savings Plans은 Fargate, Lambda, EC2에 모두 적용되므로 워크로드가 혼재된 환경에서 유리하다.</p> <h2 id=fargate-spot>Fargate Spot<a class=headerlink href=#fargate-spot title="Permanent link">&para;</a></h2> <p>Fargate Spot은 온디맨드 대비 최대 70% 저렴하다.</p> <h3 id=중단-메커니즘>중단 메커니즘<a class=headerlink href=#중단-메커니즘 title="Permanent link">&para;</a></h3> <ol> <li>AWS가 용량이 필요하면 Task를 중단한다</li> <li>2분 전에 SIGTERM 신호를 보낸다</li> <li>2분 후 SIGKILL 신호로 강제 종료한다</li> </ol> <p>ECS Service는 자동으로 새 Task를 시작한다. 새 Task는 온디맨드 또는 Spot으로 시작된다.</p> <h3 id=혼합-전략>혼합 전략<a class=headerlink href=#혼합-전략 title="Permanent link">&para;</a></h3> <p>온디맨드와 Spot을 섞어서 사용한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=p>{</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=w>  </span><span class=nt>&quot;capacityProviderStrategy&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>    </span><span class=p>{</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>      </span><span class=nt>&quot;capacityProvider&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;FARGATE&quot;</span><span class=p>,</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=w>      </span><span class=nt>&quot;weight&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>1</span><span class=p>,</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=w>      </span><span class=nt>&quot;base&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>2</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>    </span><span class=p>},</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=w>    </span><span class=p>{</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=w>      </span><span class=nt>&quot;capacityProvider&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;FARGATE_SPOT&quot;</span><span class=p>,</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=w>      </span><span class=nt>&quot;weight&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>4</span><span class=p>,</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a><span class=w>      </span><span class=nt>&quot;base&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>0</span>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a><span class=p>}</span>
-</span></code></pre></div> <ul> <li>base: 2 → 최소 2개는 온디맨드로 실행</li> <li>weight 비율: FARGATE 1, FARGATE_SPOT 4 → 추가 Task는 80% Spot, 20% 온디맨드</li> </ul> <p>desired count가 7이면:</p> <ul> <li>온디맨드: 2 (base) + 1 (20%) = 3개</li> <li>Spot: 4 (80%) = 4개</li> </ul> <p>중요한 Task는 항상 온디맨드로 실행한다. base를 설정해 최소 개수를 보장하고, 추가 Task는 Spot으로 비용을 절감한다.</p> <h3 id=spot-중단-대응>Spot 중단 대응<a class=headerlink href=#spot-중단-대응 title="Permanent link">&para;</a></h3> <p>Spot Task가 중단될 때 데이터 유실이나 요청 실패가 발생하지 않도록 준비해야 한다.</p> <p><strong>SIGTERM 핸들링:</strong></p> <p>애플리케이션이 SIGTERM을 받으면 진행 중인 요청을 마무리하고 정리 작업을 수행해야 한다. Spring Boot는 graceful shutdown을 설정한다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1># application.yml</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=nt>server</span><span class=p>:</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span><span class=nt>shutdown</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">graceful</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=nt>spring</span><span class=p>:</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>  </span><span class=nt>lifecycle</span><span class=p>:</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>    </span><span class=nt>timeout-per-shutdown-phase</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">90s</span>
-</span></code></pre></div> <p>Node.js는 직접 핸들러를 등록한다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=nx>process</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;SIGTERM&#39;</span><span class=p>,</span><span class=w> </span><span class=k>async</span><span class=w> </span><span class=p>()</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;SIGTERM received, starting graceful shutdown&#39;</span><span class=p>);</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span><span class=nx>server</span><span class=p>.</span><span class=nx>close</span><span class=p>();</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span><span class=k>await</span><span class=w> </span><span class=nx>drainConnections</span><span class=p>();</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span><span class=k>await</span><span class=w> </span><span class=nx>flushMetrics</span><span class=p>();</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span><span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mf>0</span><span class=p>);</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=p>});</span>
-</span></code></pre></div> <p><strong>실무에서 겪는 문제:</strong></p> <p>ALB 타겟 해제와 Spot 중단이 동시에 일어나면, ALB가 이미 죽은 Task로 요청을 보내는 순간이 생긴다. <code>deregistration_delay</code>를 Spot 중단 경고 시간(2분)보다 짧게 설정해야 한다. 120초 이하, 보통 30~60초로 설정한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>aws<span class=w> </span>elbv2<span class=w> </span>modify-target-group-attributes<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=w>  </span>--target-group-arn<span class=w> </span>arn:aws:elasticloadbalancing:...<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>  </span>--attributes<span class=w> </span><span class=nv>Key</span><span class=o>=</span>deregistration_delay.timeout_seconds,Value<span class=o>=</span><span class=m>60</span>
-</span></code></pre></div> <p><strong>SQS 기반 워커의 경우:</strong></p> <p>메시지 처리 중 Spot이 중단되면 메시지가 유실될 수 있다. visibility timeout을 충분히 길게 잡고, 처리 완료 후에만 메시지를 삭제한다. 중단 시 처리 중이던 메시지는 visibility timeout이 지나면 다른 워커가 다시 가져간다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=k>def</span><span class=w> </span><span class=nf>process_message</span><span class=p>(</span><span class=n>message</span><span class=p>):</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>    <span class=k>try</span><span class=p>:</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>        <span class=n>do_work</span><span class=p>(</span><span class=n>message</span><span class=p>)</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>        <span class=n>sqs</span><span class=o>.</span><span class=n>delete_message</span><span class=p>(</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>            <span class=n>QueueUrl</span><span class=o>=</span><span class=n>queue_url</span><span class=p>,</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>            <span class=n>ReceiptHandle</span><span class=o>=</span><span class=n>message</span><span class=p>[</span><span class=s1>&#39;ReceiptHandle&#39;</span><span class=p>]</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>        <span class=p>)</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>    <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>        <span class=c1># 삭제하지 않으면 visibility timeout 후 재처리됨</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>        <span class=k>pass</span>
-</span></code></pre></div> <p><strong>ECS Task 중단 이벤트 감지:</strong></p> <p>EventBridge로 Spot 중단 이벤트를 잡아서 알림을 보낼 수 있다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=p>{</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span><span class=nt>&quot;source&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;aws.ecs&quot;</span><span class=p>],</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>  </span><span class=nt>&quot;detail-type&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;ECS Task State Change&quot;</span><span class=p>],</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>  </span><span class=nt>&quot;detail&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span><span class=nt>&quot;stopCode&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;SpotInterruption&quot;</span><span class=p>],</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>    </span><span class=nt>&quot;lastStatus&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;STOPPED&quot;</span><span class=p>]</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a><span class=p>}</span>
-</span></code></pre></div> <p>이 이벤트를 SNS나 Slack 알림으로 연결해두면, Spot 중단 빈도를 모니터링할 수 있다. 중단이 너무 자주 발생하면 온디맨드 비율을 올려야 한다.</p> <h2 id=플랫폼-버전-관리>플랫폼 버전 관리<a class=headerlink href=#플랫폼-버전-관리 title="Permanent link">&para;</a></h2> <p>Fargate 플랫폼 버전은 커널, 컨테이너 런타임, 네트워크 스택 등 인프라 계층의 버전을 의미한다. EC2 모드에서 AMI를 관리하는 것과 비슷한 개념이지만, AWS가 제공하는 버전 중 선택만 하면 된다.</p> <h3 id=플랫폼-버전-종류-linux>플랫폼 버전 종류 (Linux)<a class=headerlink href=#플랫폼-버전-종류-linux title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>버전</th> <th>주요 변경사항</th> </tr> </thead> <tbody> <tr> <td>1.4.0</td> <td>Ephemeral 스토리지 20GB→200GB 확장 가능, EFS 지원, SYS_PTRACE 기능, Task ENI 트렁킹</td> </tr> <tr> <td>1.3.0</td> <td>Task ENI 플러그인 개선, Secrets Manager/SSM 파라미터 주입</td> </tr> <tr> <td>LATEST</td> <td>항상 최신 안정 버전을 가리킨다. 현재 1.4.0</td> </tr> </tbody> </table> <h3 id=latest를-쓰면-안-되는-경우>LATEST를 쓰면 안 되는 경우<a class=headerlink href=#latest를-쓰면-안-되는-경우 title="Permanent link">&para;</a></h3> <p>프로덕션 서비스에서 <code>LATEST</code>를 쓰면 AWS가 플랫폼 버전을 올릴 때 예기치 않은 동작 변경이 발생할 수 있다. 테스트 없이 인프라 계층이 바뀌는 셈이다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=p>{</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>  </span><span class=nt>&quot;platformVersion&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;1.4.0&quot;</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=p>}</span>
-</span></code></pre></div> <p>명시적으로 버전을 고정하고, 새 버전이 나오면 스테이징에서 먼저 검증한 후 프로덕션에 적용한다.</p> <p><strong>AWS가 플랫폼 버전을 은퇴시키는 경우:</strong></p> <p>오래된 플랫폼 버전은 AWS가 은퇴(deprecate)시킨다. 은퇴된 버전에서 실행 중인 Task는 계속 동작하지만, 새 Task를 시작할 수 없게 된다. 은퇴 알림은 AWS Health Dashboard와 이메일로 온다. 이 알림을 놓치면 배포가 갑자기 실패하는 상황이 발생한다.</p> <h3 id=플랫폼-버전-확인>플랫폼 버전 확인<a class=headerlink href=#플랫폼-버전-확인 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1># 현재 서비스의 플랫폼 버전 확인</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>aws<span class=w> </span>ecs<span class=w> </span>describe-services<span class=w> </span><span class=se>\</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>  </span>--cluster<span class=w> </span>my-cluster<span class=w> </span><span class=se>\</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>  </span>--services<span class=w> </span>my-service<span class=w> </span><span class=se>\</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;services[].platformVersion&#39;</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=c1># 사용 가능한 플랫폼 버전 목록</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a>aws<span class=w> </span>ecs<span class=w> </span>list-task-definitions<span class=w> </span><span class=se>\</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;taskDefinitionArns&#39;</span>
-</span></code></pre></div> <h2 id=이미지-캐싱과-시작-시간>이미지 캐싱과 시작 시간<a class=headerlink href=#이미지-캐싱과-시작-시간 title="Permanent link">&para;</a></h2> <p>Fargate의 Task 시작 시간은 이미지 크기에 크게 좌우된다. EC2 모드와 달리 Fargate는 호스트가 매번 바뀔 수 있어서 이미지 캐시가 보장되지 않는다.</p> <h3 id=시작-시간-구성>시작 시간 구성<a class=headerlink href=#시작-시간-구성 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>단계</th> <th>소요 시간</th> </tr> </thead> <tbody> <tr> <td>microVM 부팅</td> <td>수백 ms</td> </tr> <tr> <td>ENI 할당</td> <td>1~5초</td> </tr> <tr> <td>이미지 풀</td> <td>5초 ~ 수 분 (이미지 크기에 따라)</td> </tr> <tr> <td>컨테이너 시작</td> <td>1~3초</td> </tr> <tr> <td>헬스 체크 통과</td> <td>설정에 따라 다름</td> </tr> </tbody> </table> <p>이미지 크기가 1 GB를 넘으면 풀하는 데만 1분 이상 걸리는 경우가 있다. 콜드 스타트가 문제되는 서비스라면 이미지를 줄여야 한다.</p> <h3 id=이미지-크기-줄이기>이미지 크기 줄이기<a class=headerlink href=#이미지-크기-줄이기 title="Permanent link">&para;</a></h3> <p><strong>멀티 스테이지 빌드:</strong></p> <div class="language-dockerfile highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c># 빌드 스테이지</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=k>FROM</span><span class=w> </span><span class=s>gradle:8-jdk21</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=s>build</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=k>COPY</span><span class=w> </span>.<span class=w> </span>/app
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=k>WORKDIR</span><span class=w> </span><span class=s>/app</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=k>RUN</span><span class=w> </span>gradle<span class=w> </span>bootJar<span class=w> </span>--no-daemon
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=c># 실행 스테이지</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=k>FROM</span><span class=w> </span><span class=s>eclipse-temurin:21-jre-alpine</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=k>COPY</span><span class=w> </span>--from<span class=o>=</span>build<span class=w> </span>/app/build/libs/app.jar<span class=w> </span>/app.jar
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=k>EXPOSE</span><span class=w> </span><span class=s>8080</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a><span class=k>ENTRYPOINT</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;java&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;-jar&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;/app.jar&quot;</span><span class=p>]</span>
-</span></code></pre></div> <p>JDK 이미지(약 600 MB) 대신 JRE 이미지(약 200 MB)를 쓰는 것만으로 시작 시간이 크게 줄어든다. Alpine 기반 이미지를 쓰면 더 줄일 수 있다.</p> <p><strong>이미지 크기 비교:</strong></p> <table> <thead> <tr> <th>베이스 이미지</th> <th>크기</th> <th>비고</th> </tr> </thead> <tbody> <tr> <td>ubuntu:22.04</td> <td>~77 MB</td> <td>범용, 디버깅 도구 포함</td> </tr> <tr> <td>debian:slim</td> <td>~52 MB</td> <td>불필요한 패키지 제거</td> </tr> <tr> <td>alpine:3.19</td> <td>~7 MB</td> <td>musl libc, 일부 호환성 이슈</td> </tr> <tr> <td>distroless</td> <td>~20 MB</td> <td>셸 없음, 디버깅 어려움</td> </tr> <tr> <td>scratch</td> <td>0 MB</td> <td>Go 바이너리 등 정적 빌드 전용</td> </tr> </tbody> </table> <h3 id=soci-seekable-oci-인덱스>SOCI (Seekable OCI) 인덱스<a class=headerlink href=#soci-seekable-oci-인덱스 title="Permanent link">&para;</a></h3> <p>Fargate는 SOCI(Seekable OCI)를 지원한다. 이미지 전체를 다운로드하지 않고 필요한 레이어만 지연 로드한다. 이미지가 클수록 효과가 크다.</p> <p>SOCI 인덱스를 ECR에 미리 생성해두면 Fargate가 자동으로 인식한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># SOCI CLI로 인덱스 생성</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>soci<span class=w> </span>create<span class=w> </span><span class=m>123456789012</span>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:v1.2.3
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=c1># ECR에 인덱스 푸시</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>soci<span class=w> </span>push<span class=w> </span><span class=m>123456789012</span>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:v1.2.3
-</span></code></pre></div> <p>250 MB 이상 이미지에서 시작 시간이 눈에 띄게 줄어든다. 750 MB 이미지 기준으로 풀 시간이 약 50% 단축된 사례가 있다.</p> <p><strong>SOCI 적용 시 주의사항:</strong></p> <ul> <li>SOCI 인덱스는 이미지 태그별로 생성해야 한다. <code>latest</code> 태그를 계속 덮어쓰면 인덱스가 무효화된다</li> <li>플랫폼 버전 1.4.0 이상에서만 동작한다</li> <li>ECR에 인덱스를 푸시할 권한이 필요하다 (ecr:BatchCheckLayerAvailability, ecr:PutImage)</li> </ul> <h3 id=ecr-풀-캐시-동작>ECR 풀 캐시 동작<a class=headerlink href=#ecr-풀-캐시-동작 title="Permanent link">&para;</a></h3> <p>같은 리전의 ECR에서 이미지를 풀하면 네트워크 비용이 발생하지 않는다. 다른 리전 ECR이나 Docker Hub에서 풀하면 NAT Gateway 비용이 추가된다. ECR 풀스루 캐시를 사용하면 Docker Hub 이미지를 ECR에 자동으로 캐시할 수 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># ECR 풀스루 캐시 규칙 생성</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>aws<span class=w> </span>ecr<span class=w> </span>create-pull-through-cache-rule<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a><span class=w>  </span>--ecr-repository-prefix<span class=w> </span>docker-hub<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=w>  </span>--upstream-registry-url<span class=w> </span>registry-1.docker.io
-</span></code></pre></div> <p>이 설정 후 <code>123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/docker-hub/library/nginx:latest</code>로 이미지를 참조하면, ECR이 Docker Hub에서 자동으로 풀해서 캐시한다.</p> <h2 id=ecs-fargate-사용법>ECS Fargate 사용법<a class=headerlink href=#ecs-fargate-사용법 title="Permanent link">&para;</a></h2> <h3 id=task-definition-작성>Task Definition 작성<a class=headerlink href=#task-definition-작성 title="Permanent link">&para;</a></h3> <p>Task Definition은 컨테이너 실행 방법을 정의한다.</p> <p><strong>필수 설정:</strong></p> <ol> <li><code>networkMode</code>: 반드시 <code>awsvpc</code>여야 한다. Fargate는 awsvpc 모드만 지원한다</li> <li><code>requiresCompatibilities</code>: <code>["FARGATE"]</code>를 명시한다</li> <li><code>cpu</code>와 <code>memory</code>: Task 레벨에서 지정한다. 컨테이너 레벨이 아니다</li> </ol> <div class="language-json highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=p>{</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=w>  </span><span class=nt>&quot;family&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;my-web-app&quot;</span><span class=p>,</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=w>  </span><span class=nt>&quot;networkMode&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;awsvpc&quot;</span><span class=p>,</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=w>  </span><span class=nt>&quot;requiresCompatibilities&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;FARGATE&quot;</span><span class=p>],</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=w>  </span><span class=nt>&quot;cpu&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;512&quot;</span><span class=p>,</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=w>  </span><span class=nt>&quot;memory&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;1024&quot;</span><span class=p>,</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a><span class=w>  </span><span class=nt>&quot;executionRoleArn&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;arn:aws:iam::123456789012:role/ecsTaskExecutionRole&quot;</span><span class=p>,</span>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a><span class=w>  </span><span class=nt>&quot;taskRoleArn&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;arn:aws:iam::123456789012:role/myTaskRole&quot;</span><span class=p>,</span>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a><span class=w>  </span><span class=nt>&quot;containerDefinitions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a><span class=w>    </span><span class=p>{</span>
-</span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a><span class=w>      </span><span class=nt>&quot;name&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;web&quot;</span><span class=p>,</span>
-</span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a><span class=w>      </span><span class=nt>&quot;image&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;my-app:latest&quot;</span><span class=p>,</span>
-</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a><span class=w>      </span><span class=nt>&quot;portMappings&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-12-14><a id=__codelineno-12-14 name=__codelineno-12-14 href=#__codelineno-12-14></a><span class=w>        </span><span class=p>{</span>
-</span><span id=__span-12-15><a id=__codelineno-12-15 name=__codelineno-12-15 href=#__codelineno-12-15></a><span class=w>          </span><span class=nt>&quot;containerPort&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>8080</span><span class=p>,</span>
-</span><span id=__span-12-16><a id=__codelineno-12-16 name=__codelineno-12-16 href=#__codelineno-12-16></a><span class=w>          </span><span class=nt>&quot;protocol&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;tcp&quot;</span>
-</span><span id=__span-12-17><a id=__codelineno-12-17 name=__codelineno-12-17 href=#__codelineno-12-17></a><span class=w>        </span><span class=p>}</span>
-</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a><span class=w>      </span><span class=p>],</span>
-</span><span id=__span-12-19><a id=__codelineno-12-19 name=__codelineno-12-19 href=#__codelineno-12-19></a><span class=w>      </span><span class=nt>&quot;environment&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-12-20><a id=__codelineno-12-20 name=__codelineno-12-20 href=#__codelineno-12-20></a><span class=w>        </span><span class=p>{</span>
-</span><span id=__span-12-21><a id=__codelineno-12-21 name=__codelineno-12-21 href=#__codelineno-12-21></a><span class=w>          </span><span class=nt>&quot;name&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;NODE_ENV&quot;</span><span class=p>,</span>
-</span><span id=__span-12-22><a id=__codelineno-12-22 name=__codelineno-12-22 href=#__codelineno-12-22></a><span class=w>          </span><span class=nt>&quot;value&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;production&quot;</span>
-</span><span id=__span-12-23><a id=__codelineno-12-23 name=__codelineno-12-23 href=#__codelineno-12-23></a><span class=w>        </span><span class=p>}</span>
-</span><span id=__span-12-24><a id=__codelineno-12-24 name=__codelineno-12-24 href=#__codelineno-12-24></a><span class=w>      </span><span class=p>],</span>
-</span><span id=__span-12-25><a id=__codelineno-12-25 name=__codelineno-12-25 href=#__codelineno-12-25></a><span class=w>      </span><span class=nt>&quot;logConfiguration&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-12-26><a id=__codelineno-12-26 name=__codelineno-12-26 href=#__codelineno-12-26></a><span class=w>        </span><span class=nt>&quot;logDriver&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;awslogs&quot;</span><span class=p>,</span>
-</span><span id=__span-12-27><a id=__codelineno-12-27 name=__codelineno-12-27 href=#__codelineno-12-27></a><span class=w>        </span><span class=nt>&quot;options&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-12-28><a id=__codelineno-12-28 name=__codelineno-12-28 href=#__codelineno-12-28></a><span class=w>          </span><span class=nt>&quot;awslogs-group&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;/ecs/my-web-app&quot;</span><span class=p>,</span>
-</span><span id=__span-12-29><a id=__codelineno-12-29 name=__codelineno-12-29 href=#__codelineno-12-29></a><span class=w>          </span><span class=nt>&quot;awslogs-region&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;us-west-2&quot;</span><span class=p>,</span>
-</span><span id=__span-12-30><a id=__codelineno-12-30 name=__codelineno-12-30 href=#__codelineno-12-30></a><span class=w>          </span><span class=nt>&quot;awslogs-stream-prefix&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;ecs&quot;</span>
-</span><span id=__span-12-31><a id=__codelineno-12-31 name=__codelineno-12-31 href=#__codelineno-12-31></a><span class=w>        </span><span class=p>}</span>
-</span><span id=__span-12-32><a id=__codelineno-12-32 name=__codelineno-12-32 href=#__codelineno-12-32></a><span class=w>      </span><span class=p>}</span>
-</span><span id=__span-12-33><a id=__codelineno-12-33 name=__codelineno-12-33 href=#__codelineno-12-33></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-12-34><a id=__codelineno-12-34 name=__codelineno-12-34 href=#__codelineno-12-34></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-12-35><a id=__codelineno-12-35 name=__codelineno-12-35 href=#__codelineno-12-35></a><span class=p>}</span>
-</span></code></pre></div> <h3 id=service-생성과-설정>Service 생성과 설정<a class=headerlink href=#service-생성과-설정 title="Permanent link">&para;</a></h3> <p><strong>네트워크 구성:</strong></p> <div class="language-json highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=p>{</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=w>  </span><span class=nt>&quot;networkConfiguration&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=w>    </span><span class=nt>&quot;awsvpcConfiguration&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=w>      </span><span class=nt>&quot;subnets&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a><span class=w>        </span><span class=s2>&quot;subnet-12345678&quot;</span><span class=p>,</span>
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=w>        </span><span class=s2>&quot;subnet-87654321&quot;</span>
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a><span class=w>      </span><span class=p>],</span>
-</span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a><span class=w>      </span><span class=nt>&quot;securityGroups&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a><span class=w>        </span><span class=s2>&quot;sg-12345678&quot;</span>
-</span><span id=__span-13-10><a id=__codelineno-13-10 name=__codelineno-13-10 href=#__codelineno-13-10></a><span class=w>      </span><span class=p>],</span>
-</span><span id=__span-13-11><a id=__codelineno-13-11 name=__codelineno-13-11 href=#__codelineno-13-11></a><span class=w>      </span><span class=nt>&quot;assignPublicIp&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;DISABLED&quot;</span>
-</span><span id=__span-13-12><a id=__codelineno-13-12 name=__codelineno-13-12 href=#__codelineno-13-12></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-13-13><a id=__codelineno-13-13 name=__codelineno-13-13 href=#__codelineno-13-13></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-13-14><a id=__codelineno-13-14 name=__codelineno-13-14 href=#__codelineno-13-14></a><span class=p>}</span>
-</span></code></pre></div> <ul> <li><strong>Private Subnet + NAT Gateway</strong>: Task가 Private IP만 받는다. NAT Gateway를 통해 외부 통신한다 (권장)</li> <li><strong>Private Subnet + VPC Endpoint</strong>: 인터넷 없이 AWS 서비스에 접근한다. NAT Gateway 비용 절감</li> </ul> <p>Private Subnet에서 실행하고, 외부 접근은 ALB를 통해서만 허용한다.</p> <p><strong>Auto Scaling 설정:</strong></p> <div class="language-json highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a><span class=p>{</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=w>  </span><span class=nt>&quot;policyType&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;TargetTrackingScaling&quot;</span><span class=p>,</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=w>  </span><span class=nt>&quot;targetTrackingScalingPolicyConfiguration&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a><span class=w>    </span><span class=nt>&quot;targetValue&quot;</span><span class=p>:</span><span class=w> </span><span class=mf>70.0</span><span class=p>,</span>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a><span class=w>    </span><span class=nt>&quot;predefinedMetricSpecification&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a><span class=w>      </span><span class=nt>&quot;predefinedMetricType&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;ECSServiceAverageCPUUtilization&quot;</span>
-</span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a><span class=w>    </span><span class=p>},</span>
-</span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a><span class=w>    </span><span class=nt>&quot;scaleOutCooldown&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>60</span><span class=p>,</span>
-</span><span id=__span-14-9><a id=__codelineno-14-9 name=__codelineno-14-9 href=#__codelineno-14-9></a><span class=w>    </span><span class=nt>&quot;scaleInCooldown&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>300</span>
-</span><span id=__span-14-10><a id=__codelineno-14-10 name=__codelineno-14-10 href=#__codelineno-14-10></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-14-11><a id=__codelineno-14-11 name=__codelineno-14-11 href=#__codelineno-14-11></a><span class=p>}</span>
-</span></code></pre></div> <ul> <li>scaleOutCooldown을 짧게: 트래픽 급증에 빠르게 대응</li> <li>scaleInCooldown을 길게: 불필요한 축소를 방지</li> <li>CPU 70% 목표가 일반적이다</li> </ul> <h2 id=운영-트러블슈팅>운영 트러블슈팅<a class=headerlink href=#운영-트러블슈팅 title="Permanent link">&para;</a></h2> <h3 id=task가-시작되지-않는-경우>Task가 시작되지 않는 경우<a class=headerlink href=#task가-시작되지-않는-경우 title="Permanent link">&para;</a></h3> <p><strong>CannotPullContainerError:</strong></p> <p>가장 흔한 에러다. 원인은 대부분 네트워크 문제다.</p> <ul> <li>Private Subnet인데 NAT Gateway가 없거나 라우팅 테이블에 NAT가 빠져 있다</li> <li>ECR VPC Endpoint를 쓰는데 S3 Gateway Endpoint가 빠져 있다 (ECR 이미지 레이어는 S3에 저장된다)</li> <li>Security Group 아웃바운드에 443 포트가 막혀 있다</li> </ul> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=c1># VPC Endpoint 확인</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>aws<span class=w> </span>ec2<span class=w> </span>describe-vpc-endpoints<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=w>  </span>--filters<span class=w> </span><span class=nv>Name</span><span class=o>=</span>vpc-id,Values<span class=o>=</span>vpc-xxx<span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;VpcEndpoints[].{Service:ServiceName,State:State}&#39;</span>
-</span></code></pre></div> <p><strong>ResourceNotFoundException (Task execution role):</strong></p> <p>executionRoleArn에 지정한 IAM Role이 없거나 권한이 부족한 경우다. 최소한 아래 권한이 필요하다.</p> <ul> <li><code>ecr:GetAuthorizationToken</code></li> <li><code>ecr:BatchGetImage</code></li> <li><code>ecr:GetDownloadUrlForLayer</code></li> <li><code>logs:CreateLogStream</code></li> <li><code>logs:PutLogEvents</code></li> </ul> <h3 id=task가-반복적으로-죽는-경우>Task가 반복적으로 죽는 경우<a class=headerlink href=#task가-반복적으로-죽는-경우 title="Permanent link">&para;</a></h3> <p><strong>OOM(Out of Memory) Kill:</strong></p> <p>Task 메모리를 초과하면 Task가 종료된다. CloudWatch에서 <code>MemoryUtilization</code>이 100%에 가까웠는지 확인한다. 컨테이너 내부에서 실제 메모리 사용량을 확인하려면 ECS Exec을 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a>aws<span class=w> </span>ecs<span class=w> </span>execute-command<span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a><span class=w>  </span>--cluster<span class=w> </span>my-cluster<span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a><span class=w>  </span>--task<span class=w> </span>abc123<span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a><span class=w>  </span>--container<span class=w> </span>web<span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a><span class=w>  </span>--interactive<span class=w> </span><span class=se>\</span>
-</span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a><span class=w>  </span>--command<span class=w> </span><span class=s2>&quot;/bin/sh&quot;</span>
-</span><span id=__span-16-7><a id=__codelineno-16-7 name=__codelineno-16-7 href=#__codelineno-16-7></a>
-</span><span id=__span-16-8><a id=__codelineno-16-8 name=__codelineno-16-8 href=#__codelineno-16-8></a><span class=c1># 컨테이너 내부에서</span>
-</span><span id=__span-16-9><a id=__codelineno-16-9 name=__codelineno-16-9 href=#__codelineno-16-9></a>cat<span class=w> </span>/sys/fs/cgroup/memory/memory.usage_in_bytes
-</span><span id=__span-16-10><a id=__codelineno-16-10 name=__codelineno-16-10 href=#__codelineno-16-10></a>cat<span class=w> </span>/sys/fs/cgroup/memory/memory.limit_in_bytes
-</span></code></pre></div> <p><strong>Health Check 실패:</strong></p> <p>ALB Health Check가 실패하면 ECS가 Task를 종료하고 새로 시작한다. <code>startPeriod</code>를 충분히 길게 설정해야 한다. Spring Boot처럼 시작에 30초 이상 걸리는 애플리케이션은 <code>startPeriod</code>를 60~120초로 잡는다.</p> <h3 id=eni-할당-실패>ENI 할당 실패<a class=headerlink href=#eni-할당-실패 title="Permanent link">&para;</a></h3> <p>서브넷의 가용 IP가 부족하면 Task가 시작되지 않는다. <code>awsvpc</code> 모드에서 Task마다 ENI를 하나씩 사용하기 때문에, 서브넷 CIDR을 넉넉하게 잡아야 한다. <code>/24</code>(254개 IP)는 소규모 서비스에는 충분하지만, Task 수가 많으면 빠르게 소진된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=c1># 서브넷 가용 IP 확인</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a>aws<span class=w> </span>ec2<span class=w> </span>describe-subnets<span class=w> </span><span class=se>\</span>
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=w>  </span>--subnet-ids<span class=w> </span>subnet-xxx<span class=w> </span><span class=se>\</span>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;Subnets[].AvailableIpAddressCount&#39;</span>
-</span></code></pre></div> <h2 id=참고>참고<a class=headerlink href=#참고 title="Permanent link">&para;</a></h2> <ul> <li>AWS Fargate 사용자 가이드: https://docs.aws.amazon.com/AmazonECS/latest/userguide/what-is-fargate.html</li> <li>ECS Fargate 시작하기: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/getting-started-fargate.html</li> <li>EKS Fargate: https://docs.aws.amazon.com/eks/latest/userguide/fargate.html</li> <li>Fargate 요금: https://aws.amazon.com/fargate/pricing/</li> <li>Firecracker: https://firecracker-microvm.github.io/</li> <li>SOCI Snapshotter: https://github.com/awslabs/soci-snapshotter</li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../CICD/CodeBuild/ >AWS CodeBuild</a></li> <li><a href=../ECR/ >AWS ECR (Elastic Container Registry)</a></li> <li><a href=../ECS/ >AWS ECS (Elastic Container Service)</a></li> <li><a href=../EKS/ >AWS EKS (Elastic Kubernetes Service)</a></li> <li><a href=../ECS_Exec/ >ECS Exec — 실행 중인 컨테이너에 SSH 없이 접속하기</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../EKS_VPC_CNI_ENI/ class="md-footer__link md-footer__link--prev" aria-label="이전: EKS VPC CNI와 ENI — Pod IP 할당, warm pool, prefix delegation, Too many pods 디버깅"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> EKS VPC CNI와 ENI — Pod IP 할당, warm pool, prefix delegation, Too many pods 디버깅 </div> </div> </a> <a href=../Fargate_MSA_Server_Deployment/ class="md-footer__link md-footer__link--next" aria-label="다음: Fargate로 MSA 서버 처음 띄우기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> Fargate로 MSA 서버 처음 띄우기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    ENI2["ENI&lt;br/&gt;10.0.1.6"] --- T2</code></pre>
+<p>Firecracker는 AWS가 Lambda용으로 만든 경량 VMM(Virtual Machine Monitor)이다. 부팅에 125ms 미만이 걸린다. 이 구조 덕분에 Fargate Task는 EC2와 동등한 수준의 하드웨어 격리를 제공하면서도, 개발자는 VM을 신경 쓸 필요가 없다.</p>
+<h3 id="서버리스의-의미">서버리스의 의미<a class="headerlink" href="#서버리스의-의미" title="Permanent link">&para;</a></h3>
+<p>"서버리스"는 서버가 없다는 뜻이 아니다. 서버는 존재하지만, 개발자가 관리하지 않는다는 의미다.</p>
+<p>Lambda와 비교하면 역할이 다르다.</p>
+<ul>
+<li>Lambda: 함수 단위, 15분 실행 제한, 이벤트 기반</li>
+<li>Fargate: 컨테이너 단위, 시간 제한 없음, 지속 실행 가능</li>
+</ul>
+<p>Fargate는 전통적인 웹 애플리케이션을 서버리스로 실행할 수 있게 해준다.</p>
+<h2 id="vcpu--메모리-조합">vCPU / 메모리 조합<a class="headerlink" href="#vcpu--메모리-조합" title="Permanent link">&para;</a></h2>
+<p>Fargate는 정해진 vCPU-메모리 조합만 사용할 수 있다. 잘못된 조합으로 Task Definition을 등록하면 바로 에러가 난다.</p>
+<p><img alt="vCPU / 메모리 유효 조합" src="../images/fargate_vcpu_memory.svg" /></p>
+<table>
+<thead>
+<tr>
+<th>vCPU</th>
+<th>메모리 범위</th>
+<th>단위</th>
+<th>주 용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.25</td>
+<td>0.5 ~ 2 GB</td>
+<td>1 GB</td>
+<td>경량 사이드카, 프록시</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>1 ~ 4 GB</td>
+<td>1 GB</td>
+<td>가벼운 API, 워커</td>
+</tr>
+<tr>
+<td>1</td>
+<td>2 ~ 8 GB</td>
+<td>1 GB</td>
+<td>일반 웹 서비스</td>
+</tr>
+<tr>
+<td>2</td>
+<td>4 ~ 16 GB</td>
+<td>1 GB</td>
+<td>Java/Spring, 배치</td>
+</tr>
+<tr>
+<td>4</td>
+<td>8 ~ 30 GB</td>
+<td>1 GB</td>
+<td>고사양 연산, 데이터 처리</td>
+</tr>
+<tr>
+<td>8</td>
+<td>16 ~ 60 GB</td>
+<td>4 GB</td>
+<td>메모리 집약 워크로드</td>
+</tr>
+<tr>
+<td>16</td>
+<td>32 ~ 120 GB</td>
+<td>8 GB</td>
+<td>대규모 인메모리 처리</td>
+</tr>
+</tbody>
+</table>
+<p>Windows 컨테이너는 1~4 vCPU만 지원한다.</p>
+<p><strong>리소스 할당 시 주의할 점:</strong></p>
+<p>처음에는 작은 리소스로 시작한다. 0.5 vCPU, 1 GB 메모리. CloudWatch 메트릭으로 실제 사용량을 확인한 후 조정한다. 과도하게 할당하면 비용만 증가한다.</p>
+<p>Spring Boot 같은 JVM 기반 애플리케이션은 힙 메모리 설정에 주의해야 한다. Task 메모리를 2 GB로 잡았는데 JVM 힙을 1.5 GB로 설정하면, 메타스페이스와 네이티브 메모리를 합치면 OOM으로 Task가 죽는 경우가 있다. Task 메모리의 60~70% 정도를 힙으로 잡는 게 안전하다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Task 메모리 2048MB일 때 JVM 설정 예시</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nv">JAVA_OPTS</span><span class="o">=</span><span class="s2">&quot;-Xms1024m -Xmx1280m -XX:MaxMetaspaceSize=256m&quot;</span>
+</span></code></pre></div>
+<h2 id="비용-구조">비용 구조<a class="headerlink" href="#비용-구조" title="Permanent link">&para;</a></h2>
+<p>Fargate는 Task가 실행되는 시간만큼 비용이 발생한다. vCPU와 메모리 사용량에 따라 초 단위로 청구되며, 최소 1분 과금이다.</p>
+<p><strong>가격 (us-east-1 기준):</strong></p>
+<ul>
+<li>vCPU: $0.04048/시간</li>
+<li>메모리: $0.004445/GB/시간</li>
+</ul>
+<p><img alt="월별 비용 비교" src="../images/fargate_cost_comparison.svg" /></p>
+<h3 id="비용-계산-예시">비용 계산 예시<a class="headerlink" href="#비용-계산-예시" title="Permanent link">&para;</a></h3>
+<p><strong>24시간 실행하는 웹 서비스 (1 vCPU, 2 GB, 1개 Task):</strong></p>
+<ul>
+<li>vCPU: 1 x $0.04048 x 720시간 = $29.1</li>
+<li>메모리: 2 x $0.004445 x 720시간 = $6.4</li>
+<li>월 합계: 약 $35.5</li>
+</ul>
+<p><strong>하루 2시간 배치 작업 (1 vCPU, 2 GB):</strong></p>
+<ul>
+<li>vCPU: 1 x $0.04048 x 60시간 = $2.4</li>
+<li>메모리: 2 x $0.004445 x 60시간 = $0.5</li>
+<li>월 합계: 약 $2.9</li>
+</ul>
+<p>간헐적으로 실행되는 워크로드에서 Fargate의 비용 이점이 크다. EC2는 배치 작업이 안 돌아도 인스턴스가 켜져 있으면 비용이 나간다.</p>
+<h3 id="fargate-savings-plans">Fargate Savings Plans<a class="headerlink" href="#fargate-savings-plans" title="Permanent link">&para;</a></h3>
+<p>1년 또는 3년 약정으로 최대 50%까지 할인받을 수 있다. Compute Savings Plans은 Fargate, Lambda, EC2에 모두 적용되므로 워크로드가 혼재된 환경에서 유리하다.</p>
+<h2 id="fargate-spot">Fargate Spot<a class="headerlink" href="#fargate-spot" title="Permanent link">&para;</a></h2>
+<p>Fargate Spot은 온디맨드 대비 최대 70% 저렴하다.</p>
+<h3 id="중단-메커니즘">중단 메커니즘<a class="headerlink" href="#중단-메커니즘" title="Permanent link">&para;</a></h3>
+<ol>
+<li>AWS가 용량이 필요하면 Task를 중단한다</li>
+<li>2분 전에 SIGTERM 신호를 보낸다</li>
+<li>2분 후 SIGKILL 신호로 강제 종료한다</li>
+</ol>
+<p>ECS Service는 자동으로 새 Task를 시작한다. 새 Task는 온디맨드 또는 Spot으로 시작된다.</p>
+<h3 id="혼합-전략">혼합 전략<a class="headerlink" href="#혼합-전략" title="Permanent link">&para;</a></h3>
+<p>온디맨드와 Spot을 섞어서 사용한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;capacityProviderStrategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">&quot;capacityProvider&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FARGATE&quot;</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">&quot;weight&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">&quot;base&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">      </span><span class="nt">&quot;capacityProvider&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FARGATE_SPOT&quot;</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">      </span><span class="nt">&quot;weight&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">      </span><span class="nt">&quot;base&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li>base: 2 → 최소 2개는 온디맨드로 실행</li>
+<li>weight 비율: FARGATE 1, FARGATE_SPOT 4 → 추가 Task는 80% Spot, 20% 온디맨드</li>
+</ul>
+<p>desired count가 7이면:</p>
+<ul>
+<li>온디맨드: 2 (base) + 1 (20%) = 3개</li>
+<li>Spot: 4 (80%) = 4개</li>
+</ul>
+<p>중요한 Task는 항상 온디맨드로 실행한다. base를 설정해 최소 개수를 보장하고, 추가 Task는 Spot으로 비용을 절감한다.</p>
+<h3 id="spot-중단-대응">Spot 중단 대응<a class="headerlink" href="#spot-중단-대응" title="Permanent link">&para;</a></h3>
+<p>Spot Task가 중단될 때 데이터 유실이나 요청 실패가 발생하지 않도록 준비해야 한다.</p>
+<p><strong>SIGTERM 핸들링:</strong></p>
+<p>애플리케이션이 SIGTERM을 받으면 진행 중인 요청을 마무리하고 정리 작업을 수행해야 한다. Spring Boot는 graceful shutdown을 설정한다.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># application.yml</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">server</span><span class="p">:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">shutdown</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">graceful</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nt">spring</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">lifecycle</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">timeout-per-shutdown-phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">90s</span>
+</span></code></pre></div>
+<p>Node.js는 직접 핸들러를 등록한다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nx">process</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;SIGTERM&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;SIGTERM received, starting graceful shutdown&#39;</span><span class="p">);</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nx">server</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">drainConnections</span><span class="p">();</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">flushMetrics</span><span class="p">();</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nx">process</span><span class="p">.</span><span class="nx">exit</span><span class="p">(</span><span class="mf">0</span><span class="p">);</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">});</span>
+</span></code></pre></div>
+<p><strong>실무에서 겪는 문제:</strong></p>
+<p>ALB 타겟 해제와 Spot 중단이 동시에 일어나면, ALB가 이미 죽은 Task로 요청을 보내는 순간이 생긴다. <code>deregistration_delay</code>를 Spot 중단 경고 시간(2분)보다 짧게 설정해야 한다. 120초 이하, 보통 30~60초로 설정한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>aws<span class="w"> </span>elbv2<span class="w"> </span>modify-target-group-attributes<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--target-group-arn<span class="w"> </span>arn:aws:elasticloadbalancing:...<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--attributes<span class="w"> </span><span class="nv">Key</span><span class="o">=</span>deregistration_delay.timeout_seconds,Value<span class="o">=</span><span class="m">60</span>
+</span></code></pre></div>
+<p><strong>SQS 기반 워커의 경우:</strong></p>
+<p>메시지 처리 중 Spot이 중단되면 메시지가 유실될 수 있다. visibility timeout을 충분히 길게 잡고, 처리 완료 후에만 메시지를 삭제한다. 중단 시 처리 중이던 메시지는 visibility timeout이 지나면 다른 워커가 다시 가져간다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_message</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">do_work</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="n">sqs</span><span class="o">.</span><span class="n">delete_message</span><span class="p">(</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>            <span class="n">QueueUrl</span><span class="o">=</span><span class="n">queue_url</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>            <span class="n">ReceiptHandle</span><span class="o">=</span><span class="n">message</span><span class="p">[</span><span class="s1">&#39;ReceiptHandle&#39;</span><span class="p">]</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="c1"># 삭제하지 않으면 visibility timeout 후 재처리됨</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="k">pass</span>
+</span></code></pre></div>
+<p><strong>ECS Task 중단 이벤트 감지:</strong></p>
+<p>EventBridge로 Spot 중단 이벤트를 잡아서 알림을 보낼 수 있다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;aws.ecs&quot;</span><span class="p">],</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;detail-type&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ECS Task State Change&quot;</span><span class="p">],</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="nt">&quot;stopCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;SpotInterruption&quot;</span><span class="p">],</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="nt">&quot;lastStatus&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;STOPPED&quot;</span><span class="p">]</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>이 이벤트를 SNS나 Slack 알림으로 연결해두면, Spot 중단 빈도를 모니터링할 수 있다. 중단이 너무 자주 발생하면 온디맨드 비율을 올려야 한다.</p>
+<h2 id="플랫폼-버전-관리">플랫폼 버전 관리<a class="headerlink" href="#플랫폼-버전-관리" title="Permanent link">&para;</a></h2>
+<p>Fargate 플랫폼 버전은 커널, 컨테이너 런타임, 네트워크 스택 등 인프라 계층의 버전을 의미한다. EC2 모드에서 AMI를 관리하는 것과 비슷한 개념이지만, AWS가 제공하는 버전 중 선택만 하면 된다.</p>
+<h3 id="플랫폼-버전-종류-linux">플랫폼 버전 종류 (Linux)<a class="headerlink" href="#플랫폼-버전-종류-linux" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>버전</th>
+<th>주요 변경사항</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.4.0</td>
+<td>Ephemeral 스토리지 20GB→200GB 확장 가능, EFS 지원, SYS_PTRACE 기능, Task ENI 트렁킹</td>
+</tr>
+<tr>
+<td>1.3.0</td>
+<td>Task ENI 플러그인 개선, Secrets Manager/SSM 파라미터 주입</td>
+</tr>
+<tr>
+<td>LATEST</td>
+<td>항상 최신 안정 버전을 가리킨다. 현재 1.4.0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="latest를-쓰면-안-되는-경우">LATEST를 쓰면 안 되는 경우<a class="headerlink" href="#latest를-쓰면-안-되는-경우" title="Permanent link">&para;</a></h3>
+<p>프로덕션 서비스에서 <code>LATEST</code>를 쓰면 AWS가 플랫폼 버전을 올릴 때 예기치 않은 동작 변경이 발생할 수 있다. 테스트 없이 인프라 계층이 바뀌는 셈이다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;platformVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.4.0&quot;</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>명시적으로 버전을 고정하고, 새 버전이 나오면 스테이징에서 먼저 검증한 후 프로덕션에 적용한다.</p>
+<p><strong>AWS가 플랫폼 버전을 은퇴시키는 경우:</strong></p>
+<p>오래된 플랫폼 버전은 AWS가 은퇴(deprecate)시킨다. 은퇴된 버전에서 실행 중인 Task는 계속 동작하지만, 새 Task를 시작할 수 없게 된다. 은퇴 알림은 AWS Health Dashboard와 이메일로 온다. 이 알림을 놓치면 배포가 갑자기 실패하는 상황이 발생한다.</p>
+<h3 id="플랫폼-버전-확인">플랫폼 버전 확인<a class="headerlink" href="#플랫폼-버전-확인" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># 현재 서비스의 플랫폼 버전 확인</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>aws<span class="w"> </span>ecs<span class="w"> </span>describe-services<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>--cluster<span class="w"> </span>my-cluster<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>--services<span class="w"> </span>my-service<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;services[].platformVersion&#39;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># 사용 가능한 플랫폼 버전 목록</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>aws<span class="w"> </span>ecs<span class="w"> </span>list-task-definitions<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;taskDefinitionArns&#39;</span>
+</span></code></pre></div>
+<h2 id="이미지-캐싱과-시작-시간">이미지 캐싱과 시작 시간<a class="headerlink" href="#이미지-캐싱과-시작-시간" title="Permanent link">&para;</a></h2>
+<p>Fargate의 Task 시작 시간은 이미지 크기에 크게 좌우된다. EC2 모드와 달리 Fargate는 호스트가 매번 바뀔 수 있어서 이미지 캐시가 보장되지 않는다.</p>
+<h3 id="시작-시간-구성">시작 시간 구성<a class="headerlink" href="#시작-시간-구성" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>소요 시간</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>microVM 부팅</td>
+<td>수백 ms</td>
+</tr>
+<tr>
+<td>ENI 할당</td>
+<td>1~5초</td>
+</tr>
+<tr>
+<td>이미지 풀</td>
+<td>5초 ~ 수 분 (이미지 크기에 따라)</td>
+</tr>
+<tr>
+<td>컨테이너 시작</td>
+<td>1~3초</td>
+</tr>
+<tr>
+<td>헬스 체크 통과</td>
+<td>설정에 따라 다름</td>
+</tr>
+</tbody>
+</table>
+<p>이미지 크기가 1 GB를 넘으면 풀하는 데만 1분 이상 걸리는 경우가 있다. 콜드 스타트가 문제되는 서비스라면 이미지를 줄여야 한다.</p>
+<h3 id="이미지-크기-줄이기">이미지 크기 줄이기<a class="headerlink" href="#이미지-크기-줄이기" title="Permanent link">&para;</a></h3>
+<p><strong>멀티 스테이지 빌드:</strong></p>
+<div class="language-dockerfile highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c"># 빌드 스테이지</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">FROM</span><span class="w"> </span><span class="s">gradle:8-jdk21</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">build</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">COPY</span><span class="w"> </span>.<span class="w"> </span>/app
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="k">RUN</span><span class="w"> </span>gradle<span class="w"> </span>bootJar<span class="w"> </span>--no-daemon
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c"># 실행 스테이지</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="k">FROM</span><span class="w"> </span><span class="s">eclipse-temurin:21-jre-alpine</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="k">COPY</span><span class="w"> </span>--from<span class="o">=</span>build<span class="w"> </span>/app/build/libs/app.jar<span class="w"> </span>/app.jar
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="k">EXPOSE</span><span class="w"> </span><span class="s">8080</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;java&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;-jar&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;/app.jar&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<p>JDK 이미지(약 600 MB) 대신 JRE 이미지(약 200 MB)를 쓰는 것만으로 시작 시간이 크게 줄어든다. Alpine 기반 이미지를 쓰면 더 줄일 수 있다.</p>
+<p><strong>이미지 크기 비교:</strong></p>
+<table>
+<thead>
+<tr>
+<th>베이스 이미지</th>
+<th>크기</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ubuntu:22.04</td>
+<td>~77 MB</td>
+<td>범용, 디버깅 도구 포함</td>
+</tr>
+<tr>
+<td>debian:slim</td>
+<td>~52 MB</td>
+<td>불필요한 패키지 제거</td>
+</tr>
+<tr>
+<td>alpine:3.19</td>
+<td>~7 MB</td>
+<td>musl libc, 일부 호환성 이슈</td>
+</tr>
+<tr>
+<td>distroless</td>
+<td>~20 MB</td>
+<td>셸 없음, 디버깅 어려움</td>
+</tr>
+<tr>
+<td>scratch</td>
+<td>0 MB</td>
+<td>Go 바이너리 등 정적 빌드 전용</td>
+</tr>
+</tbody>
+</table>
+<h3 id="soci-seekable-oci-인덱스">SOCI (Seekable OCI) 인덱스<a class="headerlink" href="#soci-seekable-oci-인덱스" title="Permanent link">&para;</a></h3>
+<p>Fargate는 SOCI(Seekable OCI)를 지원한다. 이미지 전체를 다운로드하지 않고 필요한 레이어만 지연 로드한다. 이미지가 클수록 효과가 크다.</p>
+<p>SOCI 인덱스를 ECR에 미리 생성해두면 Fargate가 자동으로 인식한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># SOCI CLI로 인덱스 생성</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>soci<span class="w"> </span>create<span class="w"> </span><span class="m">123456789012</span>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:v1.2.3
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># ECR에 인덱스 푸시</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>soci<span class="w"> </span>push<span class="w"> </span><span class="m">123456789012</span>.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:v1.2.3
+</span></code></pre></div>
+<p>250 MB 이상 이미지에서 시작 시간이 눈에 띄게 줄어든다. 750 MB 이미지 기준으로 풀 시간이 약 50% 단축된 사례가 있다.</p>
+<p><strong>SOCI 적용 시 주의사항:</strong></p>
+<ul>
+<li>SOCI 인덱스는 이미지 태그별로 생성해야 한다. <code>latest</code> 태그를 계속 덮어쓰면 인덱스가 무효화된다</li>
+<li>플랫폼 버전 1.4.0 이상에서만 동작한다</li>
+<li>ECR에 인덱스를 푸시할 권한이 필요하다 (ecr:BatchCheckLayerAvailability, ecr:PutImage)</li>
+</ul>
+<h3 id="ecr-풀-캐시-동작">ECR 풀 캐시 동작<a class="headerlink" href="#ecr-풀-캐시-동작" title="Permanent link">&para;</a></h3>
+<p>같은 리전의 ECR에서 이미지를 풀하면 네트워크 비용이 발생하지 않는다. 다른 리전 ECR이나 Docker Hub에서 풀하면 NAT Gateway 비용이 추가된다. ECR 풀스루 캐시를 사용하면 Docker Hub 이미지를 ECR에 자동으로 캐시할 수 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># ECR 풀스루 캐시 규칙 생성</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>aws<span class="w"> </span>ecr<span class="w"> </span>create-pull-through-cache-rule<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--ecr-repository-prefix<span class="w"> </span>docker-hub<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span>--upstream-registry-url<span class="w"> </span>registry-1.docker.io
+</span></code></pre></div>
+<p>이 설정 후 <code>123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/docker-hub/library/nginx:latest</code>로 이미지를 참조하면, ECR이 Docker Hub에서 자동으로 풀해서 캐시한다.</p>
+<h2 id="ecs-fargate-사용법">ECS Fargate 사용법<a class="headerlink" href="#ecs-fargate-사용법" title="Permanent link">&para;</a></h2>
+<h3 id="task-definition-작성">Task Definition 작성<a class="headerlink" href="#task-definition-작성" title="Permanent link">&para;</a></h3>
+<p>Task Definition은 컨테이너 실행 방법을 정의한다.</p>
+<p><strong>필수 설정:</strong></p>
+<ol>
+<li><code>networkMode</code>: 반드시 <code>awsvpc</code>여야 한다. Fargate는 awsvpc 모드만 지원한다</li>
+<li><code>requiresCompatibilities</code>: <code>["FARGATE"]</code>를 명시한다</li>
+<li><code>cpu</code>와 <code>memory</code>: Task 레벨에서 지정한다. 컨테이너 레벨이 아니다</li>
+</ol>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">&quot;family&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-web-app&quot;</span><span class="p">,</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">&quot;networkMode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;awsvpc&quot;</span><span class="p">,</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">&quot;requiresCompatibilities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;FARGATE&quot;</span><span class="p">],</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">&quot;cpu&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;512&quot;</span><span class="p">,</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="nt">&quot;memory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1024&quot;</span><span class="p">,</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">&quot;executionRoleArn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:iam::123456789012:role/ecsTaskExecutionRole&quot;</span><span class="p">,</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="nt">&quot;taskRoleArn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:iam::123456789012:role/myTaskRole&quot;</span><span class="p">,</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">  </span><span class="nt">&quot;containerDefinitions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;web&quot;</span><span class="p">,</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">      </span><span class="nt">&quot;image&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-app:latest&quot;</span><span class="p">,</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">      </span><span class="nt">&quot;portMappings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">          </span><span class="nt">&quot;containerPort&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8080</span><span class="p">,</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">          </span><span class="nt">&quot;protocol&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tcp&quot;</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">      </span><span class="p">],</span>
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="w">      </span><span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="w">          </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;NODE_ENV&quot;</span><span class="p">,</span>
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;production&quot;</span>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="w">      </span><span class="p">],</span>
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="w">      </span><span class="nt">&quot;logConfiguration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="w">        </span><span class="nt">&quot;logDriver&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;awslogs&quot;</span><span class="p">,</span>
+</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a><span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a><span class="w">          </span><span class="nt">&quot;awslogs-group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/ecs/my-web-app&quot;</span><span class="p">,</span>
+</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a><span class="w">          </span><span class="nt">&quot;awslogs-region&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;us-west-2&quot;</span><span class="p">,</span>
+</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a><span class="w">          </span><span class="nt">&quot;awslogs-stream-prefix&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ecs&quot;</span>
+</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a><span class="w">      </span><span class="p">}</span>
+</span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-12-34"><a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-12-35"><a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="service-생성과-설정">Service 생성과 설정<a class="headerlink" href="#service-생성과-설정" title="Permanent link">&para;</a></h3>
+<p><strong>네트워크 구성:</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">&quot;networkConfiguration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">&quot;awsvpcConfiguration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">      </span><span class="nt">&quot;subnets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">        </span><span class="s2">&quot;subnet-12345678&quot;</span><span class="p">,</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">        </span><span class="s2">&quot;subnet-87654321&quot;</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">      </span><span class="p">],</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">      </span><span class="nt">&quot;securityGroups&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">        </span><span class="s2">&quot;sg-12345678&quot;</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">      </span><span class="p">],</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">      </span><span class="nt">&quot;assignPublicIp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DISABLED&quot;</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li><strong>Private Subnet + NAT Gateway</strong>: Task가 Private IP만 받는다. NAT Gateway를 통해 외부 통신한다 (권장)</li>
+<li><strong>Private Subnet + VPC Endpoint</strong>: 인터넷 없이 AWS 서비스에 접근한다. NAT Gateway 비용 절감</li>
+</ul>
+<p>Private Subnet에서 실행하고, 외부 접근은 ALB를 통해서만 허용한다.</p>
+<p><strong>Auto Scaling 설정:</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">&quot;policyType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;TargetTrackingScaling&quot;</span><span class="p">,</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">&quot;targetTrackingScalingPolicyConfiguration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nt">&quot;targetValue&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">70.0</span><span class="p">,</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="nt">&quot;predefinedMetricSpecification&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">      </span><span class="nt">&quot;predefinedMetricType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ECSServiceAverageCPUUtilization&quot;</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="nt">&quot;scaleOutCooldown&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span><span class="nt">&quot;scaleInCooldown&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li>scaleOutCooldown을 짧게: 트래픽 급증에 빠르게 대응</li>
+<li>scaleInCooldown을 길게: 불필요한 축소를 방지</li>
+<li>CPU 70% 목표가 일반적이다</li>
+</ul>
+<h2 id="운영-트러블슈팅">운영 트러블슈팅<a class="headerlink" href="#운영-트러블슈팅" title="Permanent link">&para;</a></h2>
+<h3 id="task가-시작되지-않는-경우">Task가 시작되지 않는 경우<a class="headerlink" href="#task가-시작되지-않는-경우" title="Permanent link">&para;</a></h3>
+<p><strong>CannotPullContainerError:</strong></p>
+<p>가장 흔한 에러다. 원인은 대부분 네트워크 문제다.</p>
+<ul>
+<li>Private Subnet인데 NAT Gateway가 없거나 라우팅 테이블에 NAT가 빠져 있다</li>
+<li>ECR VPC Endpoint를 쓰는데 S3 Gateway Endpoint가 빠져 있다 (ECR 이미지 레이어는 S3에 저장된다)</li>
+<li>Security Group 아웃바운드에 443 포트가 막혀 있다</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># VPC Endpoint 확인</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-vpc-endpoints<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>--filters<span class="w"> </span><span class="nv">Name</span><span class="o">=</span>vpc-id,Values<span class="o">=</span>vpc-xxx<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;VpcEndpoints[].{Service:ServiceName,State:State}&#39;</span>
+</span></code></pre></div>
+<p><strong>ResourceNotFoundException (Task execution role):</strong></p>
+<p>executionRoleArn에 지정한 IAM Role이 없거나 권한이 부족한 경우다. 최소한 아래 권한이 필요하다.</p>
+<ul>
+<li><code>ecr:GetAuthorizationToken</code></li>
+<li><code>ecr:BatchGetImage</code></li>
+<li><code>ecr:GetDownloadUrlForLayer</code></li>
+<li><code>logs:CreateLogStream</code></li>
+<li><code>logs:PutLogEvents</code></li>
+</ul>
+<h3 id="task가-반복적으로-죽는-경우">Task가 반복적으로 죽는 경우<a class="headerlink" href="#task가-반복적으로-죽는-경우" title="Permanent link">&para;</a></h3>
+<p><strong>OOM(Out of Memory) Kill:</strong></p>
+<p>Task 메모리를 초과하면 Task가 종료된다. CloudWatch에서 <code>MemoryUtilization</code>이 100%에 가까웠는지 확인한다. 컨테이너 내부에서 실제 메모리 사용량을 확인하려면 ECS Exec을 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>execute-command<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span>--cluster<span class="w"> </span>my-cluster<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span>--task<span class="w"> </span>abc123<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span>--container<span class="w"> </span>web<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span>--interactive<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">  </span>--command<span class="w"> </span><span class="s2">&quot;/bin/sh&quot;</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="c1"># 컨테이너 내부에서</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>cat<span class="w"> </span>/sys/fs/cgroup/memory/memory.usage_in_bytes
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>cat<span class="w"> </span>/sys/fs/cgroup/memory/memory.limit_in_bytes
+</span></code></pre></div>
+<p><strong>Health Check 실패:</strong></p>
+<p>ALB Health Check가 실패하면 ECS가 Task를 종료하고 새로 시작한다. <code>startPeriod</code>를 충분히 길게 설정해야 한다. Spring Boot처럼 시작에 30초 이상 걸리는 애플리케이션은 <code>startPeriod</code>를 60~120초로 잡는다.</p>
+<h3 id="eni-할당-실패">ENI 할당 실패<a class="headerlink" href="#eni-할당-실패" title="Permanent link">&para;</a></h3>
+<p>서브넷의 가용 IP가 부족하면 Task가 시작되지 않는다. <code>awsvpc</code> 모드에서 Task마다 ENI를 하나씩 사용하기 때문에, 서브넷 CIDR을 넉넉하게 잡아야 한다. <code>/24</code>(254개 IP)는 소규모 서비스에는 충분하지만, Task 수가 많으면 빠르게 소진된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># 서브넷 가용 IP 확인</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-subnets<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span>--subnet-ids<span class="w"> </span>subnet-xxx<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;Subnets[].AvailableIpAddressCount&#39;</span>
+</span></code></pre></div>
+<h2 id="참고">참고<a class="headerlink" href="#참고" title="Permanent link">&para;</a></h2>
+<ul>
+<li>AWS Fargate 사용자 가이드: https://docs.aws.amazon.com/AmazonECS/latest/userguide/what-is-fargate.html</li>
+<li>ECS Fargate 시작하기: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/getting-started-fargate.html</li>
+<li>EKS Fargate: https://docs.aws.amazon.com/eks/latest/userguide/fargate.html</li>
+<li>Fargate 요금: https://aws.amazon.com/fargate/pricing/</li>
+<li>Firecracker: https://firecracker-microvm.github.io/</li>
+<li>SOCI Snapshotter: https://github.com/awslabs/soci-snapshotter</li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../CICD/CodeBuild/">AWS CodeBuild</a></li>
+<li><a href="../ECR/">AWS ECR (Elastic Container Registry)</a></li>
+<li><a href="../ECS/">AWS ECS (Elastic Container Service)</a></li>
+<li><a href="../EKS/">AWS EKS (Elastic Kubernetes Service)</a></li>
+<li><a href="../ECS_Exec/">ECS Exec — 실행 중인 컨테이너에 SSH 없이 접속하기</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../EKS_VPC_CNI_ENI/" class="md-footer__link md-footer__link--prev" aria-label="이전: EKS VPC CNI와 ENI — Pod IP 할당, warm pool, prefix delegation, Too many pods 디버깅">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                EKS VPC CNI와 ENI — Pod IP 할당, warm pool, prefix delegation, Too many pods 디버깅
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Fargate_MSA_Server_Deployment/" class="md-footer__link md-footer__link--next" aria-label="다음: Fargate로 MSA 서버 처음 띄우기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                Fargate로 MSA 서버 처음 띄우기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

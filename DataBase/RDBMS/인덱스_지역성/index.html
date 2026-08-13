@@ -1,138 +1,3018 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EC%A7%80%EC%97%AD%EC%84%B1/ rel=canonical><link href=../B_Tree_Page_Split/ rel=prev><link href=../%EC%BF%BC%EB%A6%AC_%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>인덱스 지역성 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#인덱스-지역성 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 인덱스 지역성 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Database </span> </a> <label class="md-nav__link " for=__nav_5 id=__nav_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_5_label aria-expanded=true> <label class=md-nav__title for=__nav_5> <span class="md-nav__icon md-icon"></span> Database </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Connection_Pool/ class=md-nav__link> <span class=md-ellipsis> DB Connection Pool 종합 </span> </a> </li> <li class=md-nav__item> <a href=../../Database_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 심화 </span> </a> </li> <li class=md-nav__item> <a href=../../%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98_%EC%A0%84%EB%9E%B5/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 마이그레이션 전략 </span> </a> </li> <li class=md-nav__item> <a href=../../%EB%B0%B1%ED%95%84/ class=md-nav__link> <span class=md-ellipsis> 백필 (Backfill) </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 옵티마이저 </span> </a> </li> <li class=md-nav__item> <a href=../../%EB%A1%A4%EB%B0%B1_%EB%B6%88%EA%B0%80_%EB%B3%80%EA%B2%BD/ class=md-nav__link> <span class=md-ellipsis> 롤백 불가 변경 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DataRepresentation/ class=md-nav__link> <span class=md-ellipsis> Data Representation </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NoSQL/ class=md-nav__link> <span class=md-ellipsis> NoSQL </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_10 checked> <label class=md-nav__link for=__nav_5_10 id=__nav_5_10_label tabindex=0> <span class=md-ellipsis> RDBMS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_10_label aria-expanded=true> <label class=md-nav__title for=__nav_5_10> <span class="md-nav__icon md-icon"></span> RDBMS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../%EB%B6%80%EB%B6%84_%EC%9D%B8%EB%8D%B1%EC%8A%A4/ class=md-nav__link> <span class=md-ellipsis> 부분 인덱스 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%B3%B5%ED%95%A9_%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EC%84%A0%EB%91%90/ class=md-nav__link> <span class=md-ellipsis> 복합 인덱스 선두 컬럼 </span> </a> </li> <li class=md-nav__item> <a href=../%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EB%AC%B4%EB%A0%A5%ED%99%94/ class=md-nav__link> <span class=md-ellipsis> 인덱스 무력화 </span> </a> </li> <li class=md-nav__item> <a href=../%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EA%B0%80%EB%8A%A5%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 인덱스 가능성 </span> </a> </li> <li class=md-nav__item> <a href=../Soft_Delete/ class=md-nav__link> <span class=md-ellipsis> 소프트 삭제 </span> </a> </li> <li class=md-nav__item> <a href=../Archive_Table/ class=md-nav__link> <span class=md-ellipsis> 아카이브 테이블 </span> </a> </li> <li class=md-nav__item> <a href=../Schema_Per_Tenant/ class=md-nav__link> <span class=md-ellipsis> Schema-Per-Tenant </span> </a> </li> <li class=md-nav__item> <a href=../Shared_Table/ class=md-nav__link> <span class=md-ellipsis> Shared Table </span> </a> </li> <li class=md-nav__item> <a href=../Row_Level_Security/ class=md-nav__link> <span class=md-ellipsis> Row Level Security </span> </a> </li> <li class=md-nav__item> <a href=../Tenant_Column_JPA/ class=md-nav__link> <span class=md-ellipsis> 테넌트 컬럼 JPA </span> </a> </li> <li class=md-nav__item> <a href=../JSON_Column_JPA/ class=md-nav__link> <span class=md-ellipsis> JSON 컬럼 JPA 매핑 </span> </a> </li> <li class=md-nav__item> <a href=../%EC%88%A0%EC%96%B4_%EB%88%84%EB%9D%BD/ class=md-nav__link> <span class=md-ellipsis> 술어 누락 </span> </a> </li> <li class=md-nav__item> <a href=../Unique_Constraint_Conflict/ class=md-nav__link> <span class=md-ellipsis> 유니크 제약 충돌 </span> </a> </li> <li class=md-nav__item> <a href=../utf8mb4/ class=md-nav__link> <span class=md-ellipsis> MySQL utf8mb4 </span> </a> </li> <li class=md-nav__item> <a href=../EAV/ class=md-nav__link> <span class=md-ellipsis> EAV 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../Column_Suffix_Pattern/ class=md-nav__link> <span class=md-ellipsis> 컬럼 접미 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../Postgre_SQL_JSONB/ class=md-nav__link> <span class=md-ellipsis> PostgreSQL JSONB 실무 </span> </a> </li> <li class=md-nav__item> <a href=../Postgre_SQL_Schema_Migration/ class=md-nav__link> <span class=md-ellipsis> PostgreSQL 스키마 마이그레이션 </span> </a> </li> <li class=md-nav__item> <a href=../My_SQL_Online_DDL/ class=md-nav__link> <span class=md-ellipsis> MySQL Online DDL </span> </a> </li> <li class=md-nav__item> <a href=../gh_ost/ class=md-nav__link> <span class=md-ellipsis> gh-ost </span> </a> </li> <li class=md-nav__item> <a href=../pt_online_schema_change/ class=md-nav__link> <span class=md-ellipsis> Online Schema Change </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_10_22 checked> <label class=md-nav__link for=__nav_5_10_22 id=__nav_5_10_22_label tabindex=0> <span class=md-ellipsis> 인덱스 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_10_22_label aria-expanded=true> <label class=md-nav__title for=__nav_5_10_22> <span class="md-nav__icon md-icon"></span> 인덱스 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../RDBMS%EC%97%90%EC%84%9C%EC%9D%98%20index/ class=md-nav__link> <span class=md-ellipsis> RDBMS에서의 Index </span> </a> </li> <li class=md-nav__item> <a href=../B_Tree_Page_Split/ class=md-nav__link> <span class=md-ellipsis> B-Tree 페이지 분할 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 인덱스 지역성 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 인덱스 지역성 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#순차-io-vs-랜덤-io class=md-nav__link> <span class=md-ellipsis> 순차 I/O vs 랜덤 I/O </span> </a> </li> <li class=md-nav__item> <a href=#innodb-클러스터드-인덱스와-공간-지역성 class=md-nav__link> <span class=md-ellipsis> InnoDB 클러스터드 인덱스와 공간 지역성 </span> </a> </li> <li class=md-nav__item> <a href=#세컨더리-인덱스의-랜덤-io-문제 class=md-nav__link> <span class=md-ellipsis> 세컨더리 인덱스의 랜덤 I/O 문제 </span> </a> </li> <li class=md-nav__item> <a href=#커버링-인덱스로-랜덤-io-제거 class=md-nav__link> <span class=md-ellipsis> 커버링 인덱스로 랜덤 I/O 제거 </span> </a> </li> <li class=md-nav__item> <a href=#uuid-v4가-지역성을-파괴하는-과정 class=md-nav__link> <span class=md-ellipsis> UUID v4가 지역성을 파괴하는 과정 </span> </a> </li> <li class=md-nav__item> <a href=#innodb-linear-read-ahead class=md-nav__link> <span class=md-ellipsis> InnoDB Linear Read-Ahead </span> </a> </li> <li class=md-nav__item> <a href=#인덱스-조각화가-지역성에-미치는-영향 class=md-nav__link> <span class=md-ellipsis> 인덱스 조각화가 지역성에 미치는 영향 </span> </a> </li> <li class=md-nav__item> <a href=#실무에서-확인하는-방법 class=md-nav__link> <span class=md-ellipsis> 실무에서 확인하는 방법 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../%EC%BF%BC%EB%A6%AC_%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ class=md-nav__link> <span class=md-ellipsis> 쿼리 옵티마이저와 실행 계획 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Transaction_and_Lock/ class=md-nav__link> <span class=md-ellipsis> 트랜잭션과 동시성 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../DB_Modeling/ class=md-nav__link> <span class=md-ellipsis> 모델링과 정규화 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Temporal_Data_Modeling/ class=md-nav__link> <span class=md-ellipsis> 시간 데이터 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Identifier_Design/ class=md-nav__link> <span class=md-ellipsis> 키와 타입 설계 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Referential_Integrity/ class=md-nav__link> <span class=md-ellipsis> 무결성과 관계 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4_%EC%84%B1%EB%8A%A5_%ED%8A%9C%EB%8B%9D/ class=md-nav__link> <span class=md-ellipsis> 확장과 운영 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#순차-io-vs-랜덤-io class=md-nav__link> <span class=md-ellipsis> 순차 I/O vs 랜덤 I/O </span> </a> </li> <li class=md-nav__item> <a href=#innodb-클러스터드-인덱스와-공간-지역성 class=md-nav__link> <span class=md-ellipsis> InnoDB 클러스터드 인덱스와 공간 지역성 </span> </a> </li> <li class=md-nav__item> <a href=#세컨더리-인덱스의-랜덤-io-문제 class=md-nav__link> <span class=md-ellipsis> 세컨더리 인덱스의 랜덤 I/O 문제 </span> </a> </li> <li class=md-nav__item> <a href=#커버링-인덱스로-랜덤-io-제거 class=md-nav__link> <span class=md-ellipsis> 커버링 인덱스로 랜덤 I/O 제거 </span> </a> </li> <li class=md-nav__item> <a href=#uuid-v4가-지역성을-파괴하는-과정 class=md-nav__link> <span class=md-ellipsis> UUID v4가 지역성을 파괴하는 과정 </span> </a> </li> <li class=md-nav__item> <a href=#innodb-linear-read-ahead class=md-nav__link> <span class=md-ellipsis> InnoDB Linear Read-Ahead </span> </a> </li> <li class=md-nav__item> <a href=#인덱스-조각화가-지역성에-미치는-영향 class=md-nav__link> <span class=md-ellipsis> 인덱스 조각화가 지역성에 미치는 영향 </span> </a> </li> <li class=md-nav__item> <a href=#실무에서-확인하는-방법 class=md-nav__link> <span class=md-ellipsis> 실무에서 확인하는 방법 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>backend</span> <span class=md-tag>database</span> <span class=md-tag>mysql</span> <span class=md-tag>rdbms</span> </nav> <h1 id=인덱스-지역성>인덱스 지역성<a class=headerlink href=#인덱스-지역성 title="Permanent link">&para;</a></h1> <p>인덱스가 있어도 쿼리가 느린 경우가 있다. <code>EXPLAIN</code>을 보면 인덱스를 타고 있는데 I/O가 많고 응답이 느리다. 대부분 지역성(locality) 문제다. 인덱스를 올바르게 설계해도 데이터가 디스크에 흩어져 있으면 페이지 접근이 많아진다.</p> <p>지역성은 두 가지로 나뉜다. 공간 지역성(spatial locality)은 연관된 데이터가 물리적으로 가까이 저장되어 있다는 속성이고, 시간 지역성(temporal locality)은 최근 접근한 데이터를 다시 접근할 가능성이 높다는 속성이다. 데이터베이스에서 성능에 직접 영향을 미치는 건 공간 지역성이다.</p> <h2 id=순차-io-vs-랜덤-io>순차 I/O vs 랜덤 I/O<a class=headerlink href=#순차-io-vs-랜덤-io title="Permanent link">&para;</a></h2> <p>디스크 I/O에는 두 가지 패턴이 있다.</p> <p>순차 I/O는 연속된 주소 범위를 한 번에 읽는다. HDD에서 헤드 이동 없이 한 방향으로 읽기 때문에 빠르고, SSD에서도 프리페치(prefetch)가 효과적으로 동작한다. InnoDB가 페이지를 연속으로 읽을 때 한 번의 I/O 요청으로 여러 페이지를 가져올 수 있다.</p> <p>랜덤 I/O는 물리적으로 떨어진 주소를 여러 번 읽는다. HDD에서는 헤드가 매번 이동해야 하고, SSD에서도 IOPS 한도 때문에 건당 비용이 올라간다. 단건 행을 찾을 때마다 디스크의 다른 위치를 읽으면 1000개 행을 읽을 때 최대 1000번 랜덤 I/O가 발생한다.</p> <p>MySQL InnoDB 기준으로 데이터는 16KB 페이지 단위로 저장되고 읽힌다. 한 페이지에 행이 여러 개 들어가는데, 원하는 행들이 같은 페이지에 몰려 있으면 1번 I/O로 여러 행을 가져온다. 흩어져 있으면 행마다 I/O가 필요하다. 이 차이가 수십 배 성능 차로 이어진다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1>-- 상황 재현: 테이블을 만들고 I/O 카운트 확인</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=n>FLUSH</span><span class=w> </span><span class=n>STATUS</span><span class=p>;</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=k>BETWEEN</span><span class=w> </span><span class=s1>&#39;2024-01-01&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=s1>&#39;2024-01-31&#39;</span><span class=p>;</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=k>SHOW</span><span class=w> </span><span class=k>SESSION</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Handler_read%&#39;</span><span class=p>;</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=c1>-- Handler_read_rnd_next : 랜덤 읽기 횟수</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=c1>-- Handler_read_next     : 인덱스 순차 읽기 횟수</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=c1>-- 전자가 크면 랜덤 I/O가 많다는 뜻</span>
-</span></code></pre></div> <h2 id=innodb-클러스터드-인덱스와-공간-지역성>InnoDB 클러스터드 인덱스와 공간 지역성<a class=headerlink href=#innodb-클러스터드-인덱스와-공간-지역성 title="Permanent link">&para;</a></h2> <p>InnoDB는 테이블 데이터를 클러스터드 인덱스(clustered index) 형태로 저장한다. B+Tree의 리프 노드에 실제 행 데이터가 들어간다. PK 순서대로 행이 물리적으로 정렬되어 저장되기 때문에, PK 범위 스캔은 디스크에서 연속된 페이지를 읽는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>PK 1    → 페이지 1  [행 1, 행 2, 행 3, 행 4, ...]
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>PK 101  → 페이지 2  [행 101, 행 102, 행 103, ...]
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>PK 201  → 페이지 3  [행 201, 행 202, 행 203, ...]
-</span></code></pre></div> <p><code>WHERE id BETWEEN 1 AND 500</code> 쿼리는 페이지 1, 2, 3을 순서대로 읽는다. 이게 순차 I/O다. 디스크에서 연속 주소를 읽기 때문에 InnoDB의 read-ahead가 동작하고, 버퍼 풀에 페이지가 올라와 있으면 재사용 가능성이 높다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>-- PK 범위 스캔: 순차 I/O</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=k>BETWEEN</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=mi>10000</span><span class=p>;</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=c1>-- EXPLAIN 결과</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=c1>-- type: range, key: PRIMARY, rows: 10000 (연속 페이지 읽기)</span>
-</span></code></pre></div> <p>날짜 컬럼 기준 범위 조건도 인덱스를 타지만, 해당 컬럼이 PK가 아닌 경우 데이터 자체는 PK 순서로 저장되어 있다. 날짜 인덱스의 리프 노드는 PK 값만 가지고, 실제 행 데이터를 읽으려면 클러스터드 인덱스를 다시 한번 탄다. 이걸 "클러스터드 인덱스 룩업" 또는 비공식적으로 "더블 룩업"이라고 부른다.</p> <h2 id=세컨더리-인덱스의-랜덤-io-문제>세컨더리 인덱스의 랜덤 I/O 문제<a class=headerlink href=#세컨더리-인덱스의-랜덤-io-문제 title="Permanent link">&para;</a></h2> <p>세컨더리 인덱스의 리프 노드에는 행의 실제 위치가 아니라 PK 값이 저장된다. <code>SELECT *</code> 쿼리가 세컨더리 인덱스를 타면 아래 순서로 동작한다.</p> <ol> <li>세컨더리 인덱스 B+Tree에서 조건에 맞는 PK 값 목록을 가져온다.</li> <li>PK 값마다 클러스터드 인덱스에서 행 전체를 읽어온다.</li> </ol> <p>2번 단계에서 PK가 연속되지 않으면 랜덤 I/O가 발생한다. 예를 들어 <code>status = 'PENDING'</code> 조건으로 10만 건을 가져오는 경우, 해당 행들이 PK 순서로 테이블 전체에 흩어져 있으면 최대 10만 번의 랜덤 I/O가 발생한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1>-- status 인덱스를 타지만 랜덤 I/O 가능성이 높음</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span><span class=p>;</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=c1>-- EXPLAIN</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=c1>-- type: ref, key: idx_status, rows: 100000</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=c1>-- Extra: Using index condition (랜덤 I/O 발생 구간)</span>
-</span></code></pre></div> <p>이 문제는 조회 결과 건수가 많을수록 심각해진다. 건수가 적으면 랜덤 I/O 횟수가 작아서 허용 범위 내에 들지만, 결과가 수만 건 이상이면 옵티마이저가 아예 풀 테이블 스캔을 선택하는 경우도 있다. 이 때는 "인덱스가 있는데 왜 안 쓰나" 하는 의문이 생기는데, 랜덤 I/O가 풀 스캔 순차 I/O보다 비싸다고 판단했기 때문이다.</p> <h2 id=커버링-인덱스로-랜덤-io-제거>커버링 인덱스로 랜덤 I/O 제거<a class=headerlink href=#커버링-인덱스로-랜덤-io-제거 title="Permanent link">&para;</a></h2> <p>커버링 인덱스(covering index)는 쿼리에 필요한 컬럼을 인덱스 자체에 포함시킨다. 클러스터드 인덱스로 돌아가는 2번 단계를 없애는 방법이다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1>-- 기존: status 인덱스만 있을 때</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=c1>-- idx_status: (status)</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span><span class=p>;</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=c1>-- → status 인덱스에서 PK 가져오고, 클러스터드 인덱스에서 created_at 읽기</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=c1>-- 개선: 커버링 인덱스</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=c1>-- idx_status_covering: (status, created_at, id)</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_status_covering</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=p>(</span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=p>,</span><span class=w> </span><span class=n>id</span><span class=p>);</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span><span class=p>;</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=c1>-- → 인덱스만 읽고 끝. 클러스터드 인덱스 접근 없음</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=c1>-- EXPLAIN Extra: Using index</span>
-</span></code></pre></div> <p>커버링 인덱스가 동작하면 EXPLAIN의 Extra 컬럼에 <code>Using index</code>가 나온다. 클러스터드 인덱스 접근이 없으니 랜덤 I/O도 없다. 세컨더리 인덱스 리프 노드 자체가 공간 지역성을 가지기 때문에 순차 스캔처럼 동작한다.</p> <p>단점도 있다. 인덱스에 컬럼을 많이 포함할수록 인덱스 크기가 커지고, 쓰기 시 인덱스 갱신 비용도 늘어난다. <code>SELECT *</code> 패턴에서는 커버링 인덱스를 만들기 사실상 어렵다. 조회 패턴이 명확한 경우에만 적용한다.</p> <h2 id=uuid-v4가-지역성을-파괴하는-과정>UUID v4가 지역성을 파괴하는 과정<a class=headerlink href=#uuid-v4가-지역성을-파괴하는-과정 title="Permanent link">&para;</a></h2> <p>UUID v4는 완전한 랜덤 값이다. <code>id</code> 컬럼을 UUID v4로 쓰면 클러스터드 인덱스에서 행의 삽입 위치가 매번 달라진다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>INSERT 순서:
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>행 1: id = 550e8400-e29b-41d4-a716-446655440000  → 페이지 3
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>행 2: id = 6ba7b810-9dad-11d1-80b4-00c04fd430c8  → 페이지 7
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>행 3: id = 6ba7b811-9dad-11d1-80b4-00c04fd430c8  → 페이지 7 (운 좋게 근처)
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>행 4: id = 123e4567-e89b-12d3-a456-426614174000  → 페이지 1
-</span></code></pre></div> <p>삽입할 때마다 B+Tree의 다른 위치를 찾아 데이터를 넣어야 한다. 삽입이 빈번하면 버퍼 풀에 올라와 있지 않은 페이지를 디스크에서 읽어와야 하는 상황이 자주 생긴다. 버퍼 풀이 작은 서버에서는 페이지 교체(eviction)가 자주 일어나 히트율이 떨어진다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1>-- 버퍼 풀 히트율 확인</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=k>SELECT</span><span class=w> </span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span><span class=p>(</span><span class=mi>1</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=p>(</span><span class=n>Innodb_buffer_pool_reads</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=n>Innodb_buffer_pool_read_requests</span><span class=p>))</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>100</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>hit_rate_pct</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=k>FROM</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span><span class=k>SELECT</span><span class=w> </span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>        </span><span class=n>variable_value</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>Innodb_buffer_pool_reads</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>performance_schema</span><span class=p>.</span><span class=n>global_status</span><span class=w> </span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>variable_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;Innodb_buffer_pool_reads&#39;</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=p>)</span><span class=w> </span><span class=n>r</span><span class=p>,</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a><span class=p>(</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a><span class=w>    </span><span class=k>SELECT</span><span class=w> </span>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a><span class=w>        </span><span class=n>variable_value</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>Innodb_buffer_pool_read_requests</span>
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>performance_schema</span><span class=p>.</span><span class=n>global_status</span><span class=w> </span>
-</span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>variable_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;Innodb_buffer_pool_read_requests&#39;</span>
-</span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a><span class=p>)</span><span class=w> </span><span class=n>rr</span><span class=p>;</span>
-</span><span id=__span-6-16><a id=__codelineno-6-16 name=__codelineno-6-16 href=#__codelineno-6-16></a>
-</span><span id=__span-6-17><a id=__codelineno-6-17 name=__codelineno-6-17 href=#__codelineno-6-17></a><span class=c1>-- 정상: 99% 이상</span>
-</span><span id=__span-6-18><a id=__codelineno-6-18 name=__codelineno-6-18 href=#__codelineno-6-18></a><span class=c1>-- UUID v4 PK + 작은 버퍼 풀 환경: 95% 아래로 떨어지는 경우가 있다</span>
-</span></code></pre></div> <p>읽기 패턴도 문제다. 최근 생성된 데이터를 자주 읽는 일반적인 서비스 패턴에서, UUID v4 PK는 "최근 행"과 "디스크 위치"가 아무 상관이 없다. 최근 행이 페이지 전체에 흩어져 있어서 버퍼 풀의 시간 지역성 이점도 얻기 어렵다.</p> <p>ULID나 UUID v7처럼 시간 순서를 보장하는 식별자를 쓰면 이 문제가 해소된다. 최근 데이터가 인접한 페이지 범위에 들어가기 때문에, 버퍼 풀에 최근 페이지가 올라오면 이후 삽입과 조회가 같은 페이지 영역을 쓴다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1>-- UUID v7 또는 ULID 기반 PK: 시간 순 정렬 보장</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=c1>-- 01ARZ3NDEKTSV4RRFFQ69G5FAV (ULID 예시)</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=c1>-- 삽입 순서와 물리 저장 순서가 거의 일치 → 순차 I/O에 가까운 패턴</span>
-</span></code></pre></div> <h2 id=innodb-linear-read-ahead>InnoDB Linear Read-Ahead<a class=headerlink href=#innodb-linear-read-ahead title="Permanent link">&para;</a></h2> <p>InnoDB는 read-ahead 기능으로 아직 요청하지 않은 페이지를 미리 버퍼 풀에 올려둔다. 두 가지 방식이 있다.</p> <p><strong>Linear read-ahead</strong>: 같은 익스텐트(extent, 기본 64 페이지 = 1MB) 내에서 연속으로 페이지를 읽을 때 동작한다. <code>innodb_read_ahead_threshold</code> 값(기본 56) 이상의 페이지를 순서대로 읽으면, 다음 익스텐트 전체를 미리 읽는다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1>-- read-ahead 임계값 확인 및 조정</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_read_ahead_threshold&#39;</span><span class=p>;</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=c1>-- 기본값: 56 (64페이지 중 56개를 순차로 읽으면 다음 익스텐트 프리페치)</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=c1>-- read-ahead 동작 확인</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=k>SHOW</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Innodb_buffer_pool_read_ahead%&#39;</span><span class=p>;</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=c1>-- Innodb_buffer_pool_read_ahead: 프리페치된 페이지 수</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=c1>-- Innodb_buffer_pool_read_ahead_evicted: 사용되지 않고 교체된 페이지 수</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=c1>-- evicted 비율이 높으면 read-ahead가 과하거나 순차성이 없다는 뜻</span>
-</span></code></pre></div> <p><strong>Random read-ahead</strong>: 기본적으로 비활성화되어 있다. 같은 익스텐트 내에 13개 이상의 페이지가 버퍼 풀에 있으면 나머지를 미리 읽는 방식인데, 예측 정확도가 낮아서 기본값이 OFF다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_random_read_ahead&#39;</span><span class=p>;</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=c1>-- 기본: OFF</span>
-</span></code></pre></div> <p>UUID v4 PK 환경에서 linear read-ahead는 거의 동작하지 않는다. 삽입이 랜덤 페이지에 분산되니 익스텐트 내 연속 접근 패턴이 만들어지지 않는다. 반대로 PK가 순차적이거나 날짜 기반 범위 스캔을 자주 하는 경우, read-ahead 덕분에 I/O 횟수가 체감으로 줄어든다.</p> <h2 id=인덱스-조각화가-지역성에-미치는-영향>인덱스 조각화가 지역성에 미치는 영향<a class=headerlink href=#인덱스-조각화가-지역성에-미치는-영향 title="Permanent link">&para;</a></h2> <p>B+Tree는 페이지가 꽉 차면 분할(page split)한다. 삽입 순서가 순차적이면 분할이 끝에서만 일어나 페이지가 비교적 꽉 찬 상태를 유지한다. 중간 키에 삽입이 자주 일어나면 페이지 분할이 여기저기서 발생하고, 분할된 새 페이지가 파일 끝에 추가된다. 원래 인접했던 페이지들이 파일 내에서 멀어진다. 이게 인덱스 조각화다.</p> <p>조각화된 인덱스에서 범위 스캔을 하면 논리적으로는 연속된 키인데 물리적으로는 흩어진 페이지를 읽어야 한다. 순차 I/O가 아니라 랜덤 I/O에 가까운 패턴이 된다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1>-- InnoDB 인덱스 조각화 수준 확인</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=k>SELECT</span><span class=w> </span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>    </span><span class=k>table_name</span><span class=p>,</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>    </span><span class=n>index_name</span><span class=p>,</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>    </span><span class=n>stat_name</span><span class=p>,</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>    </span><span class=n>stat_value</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=k>FROM</span><span class=w> </span><span class=n>mysql</span><span class=p>.</span><span class=n>innodb_index_stats</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a><span class=k>WHERE</span><span class=w> </span><span class=n>database_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;your_db&#39;</span>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=k>table_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;orders&#39;</span>
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>stat_name</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;n_leaf_pages&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;size&#39;</span><span class=p>);</span>
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a>
-</span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a><span class=c1>-- information_schema로 단편화 추정</span>
-</span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a><span class=k>SELECT</span><span class=w> </span>
-</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a><span class=w>    </span><span class=k>table_name</span><span class=p>,</span>
-</span><span id=__span-10-15><a id=__codelineno-10-15 name=__codelineno-10-15 href=#__codelineno-10-15></a><span class=w>    </span><span class=n>data_length</span><span class=p>,</span>
-</span><span id=__span-10-16><a id=__codelineno-10-16 name=__codelineno-10-16 href=#__codelineno-10-16></a><span class=w>    </span><span class=n>data_free</span><span class=p>,</span>
-</span><span id=__span-10-17><a id=__codelineno-10-17 name=__codelineno-10-17 href=#__codelineno-10-17></a><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>data_free</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=n>data_length</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>100</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>fragmentation_pct</span>
-</span><span id=__span-10-18><a id=__codelineno-10-18 name=__codelineno-10-18 href=#__codelineno-10-18></a><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>tables</span>
-</span><span id=__span-10-19><a id=__codelineno-10-19 name=__codelineno-10-19 href=#__codelineno-10-19></a><span class=k>WHERE</span><span class=w> </span><span class=n>table_schema</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;your_db&#39;</span>
-</span><span id=__span-10-20><a id=__codelineno-10-20 name=__codelineno-10-20 href=#__codelineno-10-20></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=k>table_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;orders&#39;</span><span class=p>;</span>
-</span><span id=__span-10-21><a id=__codelineno-10-21 name=__codelineno-10-21 href=#__codelineno-10-21></a><span class=c1>-- fragmentation_pct가 20% 넘어가면 OPTIMIZE TABLE 고려</span>
-</span><span id=__span-10-22><a id=__codelineno-10-22 name=__codelineno-10-22 href=#__codelineno-10-22></a>
-</span><span id=__span-10-23><a id=__codelineno-10-23 name=__codelineno-10-23 href=#__codelineno-10-23></a><span class=c1>-- 조각화 해소: 테이블 재구성</span>
-</span><span id=__span-10-24><a id=__codelineno-10-24 name=__codelineno-10-24 href=#__codelineno-10-24></a><span class=n>OPTIMIZE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=p>;</span>
-</span><span id=__span-10-25><a id=__codelineno-10-25 name=__codelineno-10-25 href=#__codelineno-10-25></a><span class=c1>-- 내부적으로 ALTER TABLE ... ENGINE=InnoDB 와 동일. 테이블 풀 스캔 후 재작성.</span>
-</span><span id=__span-10-26><a id=__codelineno-10-26 name=__codelineno-10-26 href=#__codelineno-10-26></a><span class=c1>-- 대용량 테이블에서는 운영 중 실행 시 부하 주의</span>
-</span></code></pre></div> <p><code>OPTIMIZE TABLE</code>은 파일을 처음부터 다시 쓰기 때문에 클러스터드 인덱스 페이지가 PK 순서대로 연속되어 저장된다. 실행 직후 범위 스캔 성능이 개선되는 경우가 있다. 단, UUID v4 PK 환경에서는 재구성 직후에는 좋아도 삽입이 계속 쌓이면 다시 조각화된다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1>-- 조각화 전후 성능 비교</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=c1>-- 조각화 전</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a><span class=n>FLUSH</span><span class=w> </span><span class=n>STATUS</span><span class=p>;</span>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=k>BETWEEN</span><span class=w> </span><span class=mi>100000</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=mi>200000</span><span class=p>;</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=k>SHOW</span><span class=w> </span><span class=k>SESSION</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Innodb_pages_read&#39;</span><span class=p>;</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=n>OPTIMIZE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=p>;</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=c1>-- 조각화 후 (재구성)</span>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=n>FLUSH</span><span class=w> </span><span class=n>STATUS</span><span class=p>;</span>
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=k>BETWEEN</span><span class=w> </span><span class=mi>100000</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=mi>200000</span><span class=p>;</span>
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a><span class=k>SHOW</span><span class=w> </span><span class=k>SESSION</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Innodb_pages_read&#39;</span><span class=p>;</span>
-</span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a><span class=c1>-- 페이지 읽기 횟수 차이로 조각화 영향 확인 가능</span>
-</span></code></pre></div> <h2 id=실무에서-확인하는-방법>실무에서 확인하는 방법<a class=headerlink href=#실무에서-확인하는-방법 title="Permanent link">&para;</a></h2> <p>쿼리가 느린데 인덱스는 타고 있는 경우, 아래 순서로 확인한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1>-- 1. 인덱스 사용 패턴 확인</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=k>EXPLAIN</span><span class=w> </span><span class=n>FORMAT</span><span class=o>=</span><span class=n>JSON</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=p>...;</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=c1>-- &quot;using_index&quot;: true → 커버링 인덱스 (랜덤 I/O 없음)</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=c1>-- &quot;using_index_condition&quot;: true → 인덱스 조건 푸시다운, 클러스터드 룩업 있음</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=c1>-- 2. 실제 I/O 측정</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a><span class=k>SET</span><span class=w> </span><span class=n>optimizer_trace</span><span class=o>=</span><span class=s1>&#39;enabled=on&#39;</span><span class=p>;</span>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span><span class=p>;</span>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>optimizer_trace</span><span class=err>\</span><span class=k>G</span>
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a><span class=c1>-- rows_examined vs rows_sent 비율 확인</span>
-</span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a><span class=c1>-- 비율이 10:1 이상이면 인덱스 선택도 문제 또는 랜덤 I/O 낭비</span>
-</span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a>
-</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a><span class=c1>-- 3. 버퍼 풀 상태 확인</span>
-</span><span id=__span-12-14><a id=__codelineno-12-14 name=__codelineno-12-14 href=#__codelineno-12-14></a><span class=k>SELECT</span><span class=w> </span><span class=n>pool_id</span><span class=p>,</span><span class=w> </span><span class=n>hit_rate</span><span class=p>,</span><span class=w> </span><span class=n>pages_made_young</span><span class=p>,</span><span class=w> </span><span class=n>pages_not_made_young</span>
-</span><span id=__span-12-15><a id=__codelineno-12-15 name=__codelineno-12-15 href=#__codelineno-12-15></a><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>innodb_buffer_pool_stats</span><span class=p>;</span>
-</span><span id=__span-12-16><a id=__codelineno-12-16 name=__codelineno-12-16 href=#__codelineno-12-16></a><span class=c1>-- pages_not_made_young이 높으면 페이지가 young 영역으로 승급되지 못하고 교체되는 중</span>
-</span><span id=__span-12-17><a id=__codelineno-12-17 name=__codelineno-12-17 href=#__codelineno-12-17></a>
-</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a><span class=c1>-- 4. 느린 쿼리 I/O 분석</span>
-</span><span id=__span-12-19><a id=__codelineno-12-19 name=__codelineno-12-19 href=#__codelineno-12-19></a><span class=k>SELECT</span><span class=w> </span>
-</span><span id=__span-12-20><a id=__codelineno-12-20 name=__codelineno-12-20 href=#__codelineno-12-20></a><span class=w>    </span><span class=n>digest_text</span><span class=p>,</span>
-</span><span id=__span-12-21><a id=__codelineno-12-21 name=__codelineno-12-21 href=#__codelineno-12-21></a><span class=w>    </span><span class=n>count_star</span><span class=p>,</span>
-</span><span id=__span-12-22><a id=__codelineno-12-22 name=__codelineno-12-22 href=#__codelineno-12-22></a><span class=w>    </span><span class=n>sum_rows_examined</span><span class=p>,</span>
-</span><span id=__span-12-23><a id=__codelineno-12-23 name=__codelineno-12-23 href=#__codelineno-12-23></a><span class=w>    </span><span class=n>sum_rows_sent</span><span class=p>,</span>
-</span><span id=__span-12-24><a id=__codelineno-12-24 name=__codelineno-12-24 href=#__codelineno-12-24></a><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>sum_rows_examined</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=n>sum_rows_sent</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>examine_to_send_ratio</span>
-</span><span id=__span-12-25><a id=__codelineno-12-25 name=__codelineno-12-25 href=#__codelineno-12-25></a><span class=k>FROM</span><span class=w> </span><span class=n>performance_schema</span><span class=p>.</span><span class=n>events_statements_summary_by_digest</span>
-</span><span id=__span-12-26><a id=__codelineno-12-26 name=__codelineno-12-26 href=#__codelineno-12-26></a><span class=k>WHERE</span><span class=w> </span><span class=n>digest_text</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;%orders%&#39;</span>
-</span><span id=__span-12-27><a id=__codelineno-12-27 name=__codelineno-12-27 href=#__codelineno-12-27></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>sum_rows_examined</span><span class=w> </span><span class=k>DESC</span>
-</span><span id=__span-12-28><a id=__codelineno-12-28 name=__codelineno-12-28 href=#__codelineno-12-28></a><span class=k>LIMIT</span><span class=w> </span><span class=mi>10</span><span class=p>;</span>
-</span></code></pre></div> <p>PK 설계부터 인덱스 구성, 조각화 관리까지 지역성 관점에서 보면 "왜 이 쿼리가 느린가"에 대한 답이 나오는 경우가 많다. 인덱스가 있다는 사실보다, 그 인덱스가 I/O를 순차로 만드는지 랜덤으로 만드는지가 실제 성능을 결정한다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../B_Tree_Page_Split/ >B-Tree 페이지 분할</a></li> <li><a href=../Identifier_Design/ >식별자 설계</a></li> <li><a href=../Archive_Table/ >아카이브 테이블</a></li> <li><a href=../../DataRepresentation/Encoding/Collation/ >Collation</a></li> <li><a href=../My_SQL_Inno_DB_Locking_Deep_Dive/ >MySQL InnoDB 락 심화</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 29일 02:30:21 UTC">2026년 7월 29일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../B_Tree_Page_Split/ class="md-footer__link md-footer__link--prev" aria-label="이전: B-Tree 페이지 분할"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> B-Tree 페이지 분할 </div> </div> </a> <a href=../%EC%BF%BC%EB%A6%AC_%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ class="md-footer__link md-footer__link--next" aria-label="다음: 쿼리 옵티마이저와 실행 계획"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 쿼리 옵티마이저와 실행 계획 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/DataBase/RDBMS/%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EC%A7%80%EC%97%AD%EC%84%B1/">
+      
+      
+        <link rel="prev" href="../B_Tree_Page_Split/">
+      
+      
+        <link rel="next" href="../%EC%BF%BC%EB%A6%AC_%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>인덱스 지역성 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#인덱스-지역성" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              인덱스 지역성
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Database
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Connection_Pool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DB Connection Pool 종합
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Database_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98_%EC%A0%84%EB%9E%B5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 마이그레이션 전략
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EB%B0%B1%ED%95%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    백필 (Backfill)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 옵티마이저
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EB%A1%A4%EB%B0%B1_%EB%B6%88%EA%B0%80_%EB%B3%80%EA%B2%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    롤백 불가 변경
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DataRepresentation/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Representation
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NoSQL/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NoSQL
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RDBMS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RDBMS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%B6%80%EB%B6%84_%EC%9D%B8%EB%8D%B1%EC%8A%A4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    부분 인덱스
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%B3%B5%ED%95%A9_%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EC%84%A0%EB%91%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    복합 인덱스 선두 컬럼
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EB%AC%B4%EB%A0%A5%ED%99%94/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인덱스 무력화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%9D%B8%EB%8D%B1%EC%8A%A4_%EA%B0%80%EB%8A%A5%EC%84%B1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인덱스 가능성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Soft_Delete/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    소프트 삭제
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Archive_Table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    아카이브 테이블
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Schema_Per_Tenant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schema-Per-Tenant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Shared_Table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shared Table
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Row_Level_Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Row Level Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Tenant_Column_JPA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테넌트 컬럼 JPA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../JSON_Column_JPA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON 컬럼 JPA 매핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%88%A0%EC%96%B4_%EB%88%84%EB%9D%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    술어 누락
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Unique_Constraint_Conflict/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    유니크 제약 충돌
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utf8mb4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MySQL utf8mb4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EAV/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EAV 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Column_Suffix_Pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    컬럼 접미 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Postgre_SQL_JSONB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL JSONB 실무
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Postgre_SQL_Schema_Migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL 스키마 마이그레이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../My_SQL_Online_DDL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MySQL Online DDL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gh_ost/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    gh-ost
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pt_online_schema_change/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Online Schema Change
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10_22" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_10_22" id="__nav_5_10_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인덱스
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_10_22_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_10_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    인덱스
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RDBMS%EC%97%90%EC%84%9C%EC%9D%98%20index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RDBMS에서의 Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../B_Tree_Page_Split/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    B-Tree 페이지 분할
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인덱스 지역성
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인덱스 지역성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#순차-io-vs-랜덤-io" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        순차 I/O vs 랜덤 I/O
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#innodb-클러스터드-인덱스와-공간-지역성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InnoDB 클러스터드 인덱스와 공간 지역성
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#세컨더리-인덱스의-랜덤-io-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        세컨더리 인덱스의 랜덤 I/O 문제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#커버링-인덱스로-랜덤-io-제거" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커버링 인덱스로 랜덤 I/O 제거
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uuid-v4가-지역성을-파괴하는-과정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UUID v4가 지역성을 파괴하는 과정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#innodb-linear-read-ahead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InnoDB Linear Read-Ahead
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인덱스-조각화가-지역성에-미치는-영향" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인덱스 조각화가 지역성에 미치는 영향
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-확인하는-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 확인하는 방법
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%BF%BC%EB%A6%AC_%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    쿼리 옵티마이저와 실행 계획
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Transaction_and_Lock/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    트랜잭션과 동시성
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../DB_Modeling/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    모델링과 정규화
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Temporal_Data_Modeling/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시간 데이터
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Identifier_Design/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    키와 타입 설계
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Referential_Integrity/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    무결성과 관계
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4_%EC%84%B1%EB%8A%A5_%ED%8A%9C%EB%8B%9D/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    확장과 운영
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#순차-io-vs-랜덤-io" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        순차 I/O vs 랜덤 I/O
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#innodb-클러스터드-인덱스와-공간-지역성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InnoDB 클러스터드 인덱스와 공간 지역성
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#세컨더리-인덱스의-랜덤-io-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        세컨더리 인덱스의 랜덤 I/O 문제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#커버링-인덱스로-랜덤-io-제거" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커버링 인덱스로 랜덤 I/O 제거
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uuid-v4가-지역성을-파괴하는-과정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UUID v4가 지역성을 파괴하는 과정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#innodb-linear-read-ahead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InnoDB Linear Read-Ahead
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인덱스-조각화가-지역성에-미치는-영향" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인덱스 조각화가 지역성에 미치는 영향
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-확인하는-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 확인하는 방법
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">backend</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">database</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">mysql</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">rdbms</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="인덱스-지역성">인덱스 지역성<a class="headerlink" href="#인덱스-지역성" title="Permanent link">&para;</a></h1>
+<p>인덱스가 있어도 쿼리가 느린 경우가 있다. <code>EXPLAIN</code>을 보면 인덱스를 타고 있는데 I/O가 많고 응답이 느리다. 대부분 지역성(locality) 문제다. 인덱스를 올바르게 설계해도 데이터가 디스크에 흩어져 있으면 페이지 접근이 많아진다.</p>
+<p>지역성은 두 가지로 나뉜다. 공간 지역성(spatial locality)은 연관된 데이터가 물리적으로 가까이 저장되어 있다는 속성이고, 시간 지역성(temporal locality)은 최근 접근한 데이터를 다시 접근할 가능성이 높다는 속성이다. 데이터베이스에서 성능에 직접 영향을 미치는 건 공간 지역성이다.</p>
+<h2 id="순차-io-vs-랜덤-io">순차 I/O vs 랜덤 I/O<a class="headerlink" href="#순차-io-vs-랜덤-io" title="Permanent link">&para;</a></h2>
+<p>디스크 I/O에는 두 가지 패턴이 있다.</p>
+<p>순차 I/O는 연속된 주소 범위를 한 번에 읽는다. HDD에서 헤드 이동 없이 한 방향으로 읽기 때문에 빠르고, SSD에서도 프리페치(prefetch)가 효과적으로 동작한다. InnoDB가 페이지를 연속으로 읽을 때 한 번의 I/O 요청으로 여러 페이지를 가져올 수 있다.</p>
+<p>랜덤 I/O는 물리적으로 떨어진 주소를 여러 번 읽는다. HDD에서는 헤드가 매번 이동해야 하고, SSD에서도 IOPS 한도 때문에 건당 비용이 올라간다. 단건 행을 찾을 때마다 디스크의 다른 위치를 읽으면 1000개 행을 읽을 때 최대 1000번 랜덤 I/O가 발생한다.</p>
+<p>MySQL InnoDB 기준으로 데이터는 16KB 페이지 단위로 저장되고 읽힌다. 한 페이지에 행이 여러 개 들어가는데, 원하는 행들이 같은 페이지에 몰려 있으면 1번 I/O로 여러 행을 가져온다. 흩어져 있으면 행마다 I/O가 필요하다. 이 차이가 수십 배 성능 차로 이어진다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">-- 상황 재현: 테이블을 만들고 I/O 카운트 확인</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">FLUSH</span><span class="w"> </span><span class="n">STATUS</span><span class="p">;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">created_at</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="s1">&#39;2024-01-01&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="s1">&#39;2024-01-31&#39;</span><span class="p">;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">SHOW</span><span class="w"> </span><span class="k">SESSION</span><span class="w"> </span><span class="n">STATUS</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;Handler_read%&#39;</span><span class="p">;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1">-- Handler_read_rnd_next : 랜덤 읽기 횟수</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1">-- Handler_read_next     : 인덱스 순차 읽기 횟수</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">-- 전자가 크면 랜덤 I/O가 많다는 뜻</span>
+</span></code></pre></div>
+<h2 id="innodb-클러스터드-인덱스와-공간-지역성">InnoDB 클러스터드 인덱스와 공간 지역성<a class="headerlink" href="#innodb-클러스터드-인덱스와-공간-지역성" title="Permanent link">&para;</a></h2>
+<p>InnoDB는 테이블 데이터를 클러스터드 인덱스(clustered index) 형태로 저장한다. B+Tree의 리프 노드에 실제 행 데이터가 들어간다. PK 순서대로 행이 물리적으로 정렬되어 저장되기 때문에, PK 범위 스캔은 디스크에서 연속된 페이지를 읽는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>PK 1    → 페이지 1  [행 1, 행 2, 행 3, 행 4, ...]
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>PK 101  → 페이지 2  [행 101, 행 102, 행 103, ...]
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>PK 201  → 페이지 3  [행 201, 행 202, 행 203, ...]
+</span></code></pre></div>
+<p><code>WHERE id BETWEEN 1 AND 500</code> 쿼리는 페이지 1, 2, 3을 순서대로 읽는다. 이게 순차 I/O다. 디스크에서 연속 주소를 읽기 때문에 InnoDB의 read-ahead가 동작하고, 버퍼 풀에 페이지가 올라와 있으면 재사용 가능성이 높다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- PK 범위 스캔: 순차 I/O</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">10000</span><span class="p">;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1">-- EXPLAIN 결과</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1">-- type: range, key: PRIMARY, rows: 10000 (연속 페이지 읽기)</span>
+</span></code></pre></div>
+<p>날짜 컬럼 기준 범위 조건도 인덱스를 타지만, 해당 컬럼이 PK가 아닌 경우 데이터 자체는 PK 순서로 저장되어 있다. 날짜 인덱스의 리프 노드는 PK 값만 가지고, 실제 행 데이터를 읽으려면 클러스터드 인덱스를 다시 한번 탄다. 이걸 "클러스터드 인덱스 룩업" 또는 비공식적으로 "더블 룩업"이라고 부른다.</p>
+<h2 id="세컨더리-인덱스의-랜덤-io-문제">세컨더리 인덱스의 랜덤 I/O 문제<a class="headerlink" href="#세컨더리-인덱스의-랜덤-io-문제" title="Permanent link">&para;</a></h2>
+<p>세컨더리 인덱스의 리프 노드에는 행의 실제 위치가 아니라 PK 값이 저장된다. <code>SELECT *</code> 쿼리가 세컨더리 인덱스를 타면 아래 순서로 동작한다.</p>
+<ol>
+<li>세컨더리 인덱스 B+Tree에서 조건에 맞는 PK 값 목록을 가져온다.</li>
+<li>PK 값마다 클러스터드 인덱스에서 행 전체를 읽어온다.</li>
+</ol>
+<p>2번 단계에서 PK가 연속되지 않으면 랜덤 I/O가 발생한다. 예를 들어 <code>status = 'PENDING'</code> 조건으로 10만 건을 가져오는 경우, 해당 행들이 PK 순서로 테이블 전체에 흩어져 있으면 최대 10만 번의 랜덤 I/O가 발생한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- status 인덱스를 타지만 랜덤 I/O 가능성이 높음</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;PENDING&#39;</span><span class="p">;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">-- EXPLAIN</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1">-- type: ref, key: idx_status, rows: 100000</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">-- Extra: Using index condition (랜덤 I/O 발생 구간)</span>
+</span></code></pre></div>
+<p>이 문제는 조회 결과 건수가 많을수록 심각해진다. 건수가 적으면 랜덤 I/O 횟수가 작아서 허용 범위 내에 들지만, 결과가 수만 건 이상이면 옵티마이저가 아예 풀 테이블 스캔을 선택하는 경우도 있다. 이 때는 "인덱스가 있는데 왜 안 쓰나" 하는 의문이 생기는데, 랜덤 I/O가 풀 스캔 순차 I/O보다 비싸다고 판단했기 때문이다.</p>
+<h2 id="커버링-인덱스로-랜덤-io-제거">커버링 인덱스로 랜덤 I/O 제거<a class="headerlink" href="#커버링-인덱스로-랜덤-io-제거" title="Permanent link">&para;</a></h2>
+<p>커버링 인덱스(covering index)는 쿼리에 필요한 컬럼을 인덱스 자체에 포함시킨다. 클러스터드 인덱스로 돌아가는 2번 단계를 없애는 방법이다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">-- 기존: status 인덱스만 있을 때</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1">-- idx_status: (status)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">created_at</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;PENDING&#39;</span><span class="p">;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1">-- → status 인덱스에서 PK 가져오고, 클러스터드 인덱스에서 created_at 읽기</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1">-- 개선: 커버링 인덱스</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1">-- idx_status_covering: (status, created_at, id)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_status_covering</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">orders</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">created_at</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">created_at</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;PENDING&#39;</span><span class="p">;</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1">-- → 인덱스만 읽고 끝. 클러스터드 인덱스 접근 없음</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1">-- EXPLAIN Extra: Using index</span>
+</span></code></pre></div>
+<p>커버링 인덱스가 동작하면 EXPLAIN의 Extra 컬럼에 <code>Using index</code>가 나온다. 클러스터드 인덱스 접근이 없으니 랜덤 I/O도 없다. 세컨더리 인덱스 리프 노드 자체가 공간 지역성을 가지기 때문에 순차 스캔처럼 동작한다.</p>
+<p>단점도 있다. 인덱스에 컬럼을 많이 포함할수록 인덱스 크기가 커지고, 쓰기 시 인덱스 갱신 비용도 늘어난다. <code>SELECT *</code> 패턴에서는 커버링 인덱스를 만들기 사실상 어렵다. 조회 패턴이 명확한 경우에만 적용한다.</p>
+<h2 id="uuid-v4가-지역성을-파괴하는-과정">UUID v4가 지역성을 파괴하는 과정<a class="headerlink" href="#uuid-v4가-지역성을-파괴하는-과정" title="Permanent link">&para;</a></h2>
+<p>UUID v4는 완전한 랜덤 값이다. <code>id</code> 컬럼을 UUID v4로 쓰면 클러스터드 인덱스에서 행의 삽입 위치가 매번 달라진다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>INSERT 순서:
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>행 1: id = 550e8400-e29b-41d4-a716-446655440000  → 페이지 3
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>행 2: id = 6ba7b810-9dad-11d1-80b4-00c04fd430c8  → 페이지 7
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>행 3: id = 6ba7b811-9dad-11d1-80b4-00c04fd430c8  → 페이지 7 (운 좋게 근처)
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>행 4: id = 123e4567-e89b-12d3-a456-426614174000  → 페이지 1
+</span></code></pre></div>
+<p>삽입할 때마다 B+Tree의 다른 위치를 찾아 데이터를 넣어야 한다. 삽입이 빈번하면 버퍼 풀에 올라와 있지 않은 페이지를 디스크에서 읽어와야 하는 상황이 자주 생긴다. 버퍼 풀이 작은 서버에서는 페이지 교체(eviction)가 자주 일어나 히트율이 떨어진다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">-- 버퍼 풀 히트율 확인</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">Innodb_buffer_pool_reads</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">Innodb_buffer_pool_read_requests</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">hit_rate_pct</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">        </span><span class="n">variable_value</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">Innodb_buffer_pool_reads</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="k">FROM</span><span class="w"> </span><span class="n">performance_schema</span><span class="p">.</span><span class="n">global_status</span><span class="w"> </span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="n">variable_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Innodb_buffer_pool_reads&#39;</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">)</span><span class="w"> </span><span class="n">r</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">(</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">        </span><span class="n">variable_value</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">Innodb_buffer_pool_read_requests</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">    </span><span class="k">FROM</span><span class="w"> </span><span class="n">performance_schema</span><span class="p">.</span><span class="n">global_status</span><span class="w"> </span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="n">variable_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Innodb_buffer_pool_read_requests&#39;</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="p">)</span><span class="w"> </span><span class="n">rr</span><span class="p">;</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="c1">-- 정상: 99% 이상</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="c1">-- UUID v4 PK + 작은 버퍼 풀 환경: 95% 아래로 떨어지는 경우가 있다</span>
+</span></code></pre></div>
+<p>읽기 패턴도 문제다. 최근 생성된 데이터를 자주 읽는 일반적인 서비스 패턴에서, UUID v4 PK는 "최근 행"과 "디스크 위치"가 아무 상관이 없다. 최근 행이 페이지 전체에 흩어져 있어서 버퍼 풀의 시간 지역성 이점도 얻기 어렵다.</p>
+<p>ULID나 UUID v7처럼 시간 순서를 보장하는 식별자를 쓰면 이 문제가 해소된다. 최근 데이터가 인접한 페이지 범위에 들어가기 때문에, 버퍼 풀에 최근 페이지가 올라오면 이후 삽입과 조회가 같은 페이지 영역을 쓴다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">-- UUID v7 또는 ULID 기반 PK: 시간 순 정렬 보장</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1">-- 01ARZ3NDEKTSV4RRFFQ69G5FAV (ULID 예시)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">-- 삽입 순서와 물리 저장 순서가 거의 일치 → 순차 I/O에 가까운 패턴</span>
+</span></code></pre></div>
+<h2 id="innodb-linear-read-ahead">InnoDB Linear Read-Ahead<a class="headerlink" href="#innodb-linear-read-ahead" title="Permanent link">&para;</a></h2>
+<p>InnoDB는 read-ahead 기능으로 아직 요청하지 않은 페이지를 미리 버퍼 풀에 올려둔다. 두 가지 방식이 있다.</p>
+<p><strong>Linear read-ahead</strong>: 같은 익스텐트(extent, 기본 64 페이지 = 1MB) 내에서 연속으로 페이지를 읽을 때 동작한다. <code>innodb_read_ahead_threshold</code> 값(기본 56) 이상의 페이지를 순서대로 읽으면, 다음 익스텐트 전체를 미리 읽는다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">-- read-ahead 임계값 확인 및 조정</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;innodb_read_ahead_threshold&#39;</span><span class="p">;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1">-- 기본값: 56 (64페이지 중 56개를 순차로 읽으면 다음 익스텐트 프리페치)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1">-- read-ahead 동작 확인</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">STATUS</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;Innodb_buffer_pool_read_ahead%&#39;</span><span class="p">;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1">-- Innodb_buffer_pool_read_ahead: 프리페치된 페이지 수</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1">-- Innodb_buffer_pool_read_ahead_evicted: 사용되지 않고 교체된 페이지 수</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="c1">-- evicted 비율이 높으면 read-ahead가 과하거나 순차성이 없다는 뜻</span>
+</span></code></pre></div>
+<p><strong>Random read-ahead</strong>: 기본적으로 비활성화되어 있다. 같은 익스텐트 내에 13개 이상의 페이지가 버퍼 풀에 있으면 나머지를 미리 읽는 방식인데, 예측 정확도가 낮아서 기본값이 OFF다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;innodb_random_read_ahead&#39;</span><span class="p">;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1">-- 기본: OFF</span>
+</span></code></pre></div>
+<p>UUID v4 PK 환경에서 linear read-ahead는 거의 동작하지 않는다. 삽입이 랜덤 페이지에 분산되니 익스텐트 내 연속 접근 패턴이 만들어지지 않는다. 반대로 PK가 순차적이거나 날짜 기반 범위 스캔을 자주 하는 경우, read-ahead 덕분에 I/O 횟수가 체감으로 줄어든다.</p>
+<h2 id="인덱스-조각화가-지역성에-미치는-영향">인덱스 조각화가 지역성에 미치는 영향<a class="headerlink" href="#인덱스-조각화가-지역성에-미치는-영향" title="Permanent link">&para;</a></h2>
+<p>B+Tree는 페이지가 꽉 차면 분할(page split)한다. 삽입 순서가 순차적이면 분할이 끝에서만 일어나 페이지가 비교적 꽉 찬 상태를 유지한다. 중간 키에 삽입이 자주 일어나면 페이지 분할이 여기저기서 발생하고, 분할된 새 페이지가 파일 끝에 추가된다. 원래 인접했던 페이지들이 파일 내에서 멀어진다. 이게 인덱스 조각화다.</p>
+<p>조각화된 인덱스에서 범위 스캔을 하면 논리적으로는 연속된 키인데 물리적으로는 흩어진 페이지를 읽어야 한다. 순차 I/O가 아니라 랜덤 I/O에 가까운 패턴이 된다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">-- InnoDB 인덱스 조각화 수준 확인</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="k">table_name</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="n">index_name</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="n">stat_name</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="n">stat_value</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">FROM</span><span class="w"> </span><span class="n">mysql</span><span class="p">.</span><span class="n">innodb_index_stats</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">database_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;your_db&#39;</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;orders&#39;</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">stat_name</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;n_leaf_pages&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;size&#39;</span><span class="p">);</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="c1">-- information_schema로 단편화 추정</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">    </span><span class="k">table_name</span><span class="p">,</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">    </span><span class="n">data_length</span><span class="p">,</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">    </span><span class="n">data_free</span><span class="p">,</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">    </span><span class="n">ROUND</span><span class="p">(</span><span class="n">data_free</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">data_length</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">fragmentation_pct</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="k">FROM</span><span class="w"> </span><span class="n">information_schema</span><span class="p">.</span><span class="n">tables</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">table_schema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;your_db&#39;</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;orders&#39;</span><span class="p">;</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="c1">-- fragmentation_pct가 20% 넘어가면 OPTIMIZE TABLE 고려</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="c1">-- 조각화 해소: 테이블 재구성</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="n">OPTIMIZE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="p">;</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="c1">-- 내부적으로 ALTER TABLE ... ENGINE=InnoDB 와 동일. 테이블 풀 스캔 후 재작성.</span>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="c1">-- 대용량 테이블에서는 운영 중 실행 시 부하 주의</span>
+</span></code></pre></div>
+<p><code>OPTIMIZE TABLE</code>은 파일을 처음부터 다시 쓰기 때문에 클러스터드 인덱스 페이지가 PK 순서대로 연속되어 저장된다. 실행 직후 범위 스캔 성능이 개선되는 경우가 있다. 단, UUID v4 PK 환경에서는 재구성 직후에는 좋아도 삽입이 계속 쌓이면 다시 조각화된다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">-- 조각화 전후 성능 비교</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1">-- 조각화 전</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">FLUSH</span><span class="w"> </span><span class="n">STATUS</span><span class="p">;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="mi">100000</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">200000</span><span class="p">;</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">SHOW</span><span class="w"> </span><span class="k">SESSION</span><span class="w"> </span><span class="n">STATUS</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;Innodb_pages_read&#39;</span><span class="p">;</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">OPTIMIZE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="p">;</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c1">-- 조각화 후 (재구성)</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="n">FLUSH</span><span class="w"> </span><span class="n">STATUS</span><span class="p">;</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="mi">100000</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">200000</span><span class="p">;</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="k">SHOW</span><span class="w"> </span><span class="k">SESSION</span><span class="w"> </span><span class="n">STATUS</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;Innodb_pages_read&#39;</span><span class="p">;</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1">-- 페이지 읽기 횟수 차이로 조각화 영향 확인 가능</span>
+</span></code></pre></div>
+<h2 id="실무에서-확인하는-방법">실무에서 확인하는 방법<a class="headerlink" href="#실무에서-확인하는-방법" title="Permanent link">&para;</a></h2>
+<p>쿼리가 느린데 인덱스는 타고 있는 경우, 아래 순서로 확인한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">-- 1. 인덱스 사용 패턴 확인</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">EXPLAIN</span><span class="w"> </span><span class="n">FORMAT</span><span class="o">=</span><span class="n">JSON</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="p">...;</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1">-- &quot;using_index&quot;: true → 커버링 인덱스 (랜덤 I/O 없음)</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1">-- &quot;using_index_condition&quot;: true → 인덱스 조건 푸시다운, 클러스터드 룩업 있음</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="c1">-- 2. 실제 I/O 측정</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="k">SET</span><span class="w"> </span><span class="n">optimizer_trace</span><span class="o">=</span><span class="s1">&#39;enabled=on&#39;</span><span class="p">;</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;PENDING&#39;</span><span class="p">;</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">information_schema</span><span class="p">.</span><span class="n">optimizer_trace</span><span class="err">\</span><span class="k">G</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1">-- rows_examined vs rows_sent 비율 확인</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="c1">-- 비율이 10:1 이상이면 인덱스 선택도 문제 또는 랜덤 I/O 낭비</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="c1">-- 3. 버퍼 풀 상태 확인</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">pool_id</span><span class="p">,</span><span class="w"> </span><span class="n">hit_rate</span><span class="p">,</span><span class="w"> </span><span class="n">pages_made_young</span><span class="p">,</span><span class="w"> </span><span class="n">pages_not_made_young</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="k">FROM</span><span class="w"> </span><span class="n">information_schema</span><span class="p">.</span><span class="n">innodb_buffer_pool_stats</span><span class="p">;</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="c1">-- pages_not_made_young이 높으면 페이지가 young 영역으로 승급되지 못하고 교체되는 중</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="c1">-- 4. 느린 쿼리 I/O 분석</span>
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="w">    </span><span class="n">digest_text</span><span class="p">,</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="w">    </span><span class="n">count_star</span><span class="p">,</span>
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="w">    </span><span class="n">sum_rows_examined</span><span class="p">,</span>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="w">    </span><span class="n">sum_rows_sent</span><span class="p">,</span>
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="w">    </span><span class="n">ROUND</span><span class="p">(</span><span class="n">sum_rows_examined</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sum_rows_sent</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">examine_to_send_ratio</span>
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="k">FROM</span><span class="w"> </span><span class="n">performance_schema</span><span class="p">.</span><span class="n">events_statements_summary_by_digest</span>
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">digest_text</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%orders%&#39;</span>
+</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">sum_rows_examined</span><span class="w"> </span><span class="k">DESC</span>
+</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</span></code></pre></div>
+<p>PK 설계부터 인덱스 구성, 조각화 관리까지 지역성 관점에서 보면 "왜 이 쿼리가 느린가"에 대한 답이 나오는 경우가 많다. 인덱스가 있다는 사실보다, 그 인덱스가 I/O를 순차로 만드는지 랜덤으로 만드는지가 실제 성능을 결정한다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../B_Tree_Page_Split/">B-Tree 페이지 분할</a></li>
+<li><a href="../Identifier_Design/">식별자 설계</a></li>
+<li><a href="../Archive_Table/">아카이브 테이블</a></li>
+<li><a href="../../DataRepresentation/Encoding/Collation/">Collation</a></li>
+<li><a href="../My_SQL_Inno_DB_Locking_Deep_Dive/">MySQL InnoDB 락 심화</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../B_Tree_Page_Split/" class="md-footer__link md-footer__link--prev" aria-label="이전: B-Tree 페이지 분할">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                B-Tree 페이지 분할
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../%EC%BF%BC%EB%A6%AC_%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/" class="md-footer__link md-footer__link--next" aria-label="다음: 쿼리 옵티마이저와 실행 계획">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                쿼리 옵티마이저와 실행 계획
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

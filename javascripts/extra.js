@@ -1,4 +1,13 @@
 (function () {
+  // GitHub releases API 호출 차단 — 릴리스가 없어 매 페이지 404 낭비
+  var _fetch = window.fetch;
+  window.fetch = function (url, opts) {
+    if (typeof url === 'string' && url.indexOf('api.github.com') !== -1 && url.indexOf('/releases/latest') !== -1) {
+      return Promise.resolve(new Response('null', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    return _fetch.apply(this, arguments);
+  };
+
   var pos = 0;
 
   // 사이드바 내 scrollIntoView 완전 차단

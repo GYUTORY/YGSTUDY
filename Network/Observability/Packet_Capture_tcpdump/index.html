@@ -1,105 +1,2892 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/Observability/Packet_Capture_tcpdump/ rel=canonical><link href=../ rel=prev><link href=../../../OS/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>tcpdump 패킷 캡처와 분석 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#tcpdump-패킷-캡처와-분석 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> tcpdump 패킷 캡처와 분석 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../7%20Layer/ class=md-nav__link> <span class=md-ellipsis> OSI 7계층 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_14 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Observability </span> </a> <label class="md-nav__link " for=__nav_7_1_14 id=__nav_7_1_14_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_14_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_14> <span class="md-nav__icon md-icon"></span> Observability </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> tcpdump 패킷 캡처와 분석 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> tcpdump 패킷 캡처와 분석 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#tcpdump가-보는-것 class=md-nav__link> <span class=md-ellipsis> tcpdump가 보는 것 </span> </a> </li> <li class=md-nav__item> <a href=#필터-문법-bpf class=md-nav__link> <span class=md-ellipsis> 필터 문법 (BPF) </span> </a> <nav class=md-nav aria-label="필터 문법 (BPF)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#host-net-port class=md-nav__link> <span class=md-ellipsis> host, net, port </span> </a> </li> <li class=md-nav__item> <a href=#논리-연산자로-조합 class=md-nav__link> <span class=md-ellipsis> 논리 연산자로 조합 </span> </a> </li> <li class=md-nav__item> <a href=#tcp-플래그-필터 class=md-nav__link> <span class=md-ellipsis> TCP 플래그 필터 </span> </a> </li> <li class=md-nav__item> <a href=#페이로드-길이로-거르기 class=md-nav__link> <span class=md-ellipsis> 페이로드 길이로 거르기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#파일로-저장하고-wireshark로-분석 class=md-nav__link> <span class=md-ellipsis> 파일로 저장하고 Wireshark로 분석 </span> </a> <nav class=md-nav aria-label="파일로 저장하고 Wireshark로 분석"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#스냅-길이와-전체-페이로드 class=md-nav__link> <span class=md-ellipsis> 스냅 길이와 전체 페이로드 </span> </a> </li> <li class=md-nav__item> <a href=#wireshark로-옮겨서-보기 class=md-nav__link> <span class=md-ellipsis> Wireshark로 옮겨서 보기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#패킷에서-문제-읽어내기 class=md-nav__link> <span class=md-ellipsis> 패킷에서 문제 읽어내기 </span> </a> <nav class=md-nav aria-label="패킷에서 문제 읽어내기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#핸드셰이크-성공과-실패 class=md-nav__link> <span class=md-ellipsis> 핸드셰이크 성공과 실패 </span> </a> </li> <li class=md-nav__item> <a href=#rst의-의미-구분 class=md-nav__link> <span class=md-ellipsis> RST의 의미 구분 </span> </a> </li> <li class=md-nav__item> <a href=#재전송-판독 class=md-nav__link> <span class=md-ellipsis> 재전송 판독 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#운영-서버에서-캡처할-때 class=md-nav__link> <span class=md-ellipsis> 운영 서버에서 캡처할 때 </span> </a> <nav class=md-nav aria-label="운영 서버에서 캡처할 때"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#디스크가-먼저-찬다 class=md-nav__link> <span class=md-ellipsis> 디스크가 먼저 찬다 </span> </a> </li> <li class=md-nav__item> <a href=#성능-부담 class=md-nav__link> <span class=md-ellipsis> 성능 부담 </span> </a> </li> <li class=md-nav__item> <a href=#권한과-흔적 class=md-nav__link> <span class=md-ellipsis> 권한과 흔적 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#자주-쓰는-한-줄-모음 class=md-nav__link> <span class=md-ellipsis> 자주 쓰는 한 줄 모음 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#tcpdump가-보는-것 class=md-nav__link> <span class=md-ellipsis> tcpdump가 보는 것 </span> </a> </li> <li class=md-nav__item> <a href=#필터-문법-bpf class=md-nav__link> <span class=md-ellipsis> 필터 문법 (BPF) </span> </a> <nav class=md-nav aria-label="필터 문법 (BPF)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#host-net-port class=md-nav__link> <span class=md-ellipsis> host, net, port </span> </a> </li> <li class=md-nav__item> <a href=#논리-연산자로-조합 class=md-nav__link> <span class=md-ellipsis> 논리 연산자로 조합 </span> </a> </li> <li class=md-nav__item> <a href=#tcp-플래그-필터 class=md-nav__link> <span class=md-ellipsis> TCP 플래그 필터 </span> </a> </li> <li class=md-nav__item> <a href=#페이로드-길이로-거르기 class=md-nav__link> <span class=md-ellipsis> 페이로드 길이로 거르기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#파일로-저장하고-wireshark로-분석 class=md-nav__link> <span class=md-ellipsis> 파일로 저장하고 Wireshark로 분석 </span> </a> <nav class=md-nav aria-label="파일로 저장하고 Wireshark로 분석"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#스냅-길이와-전체-페이로드 class=md-nav__link> <span class=md-ellipsis> 스냅 길이와 전체 페이로드 </span> </a> </li> <li class=md-nav__item> <a href=#wireshark로-옮겨서-보기 class=md-nav__link> <span class=md-ellipsis> Wireshark로 옮겨서 보기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#패킷에서-문제-읽어내기 class=md-nav__link> <span class=md-ellipsis> 패킷에서 문제 읽어내기 </span> </a> <nav class=md-nav aria-label="패킷에서 문제 읽어내기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#핸드셰이크-성공과-실패 class=md-nav__link> <span class=md-ellipsis> 핸드셰이크 성공과 실패 </span> </a> </li> <li class=md-nav__item> <a href=#rst의-의미-구분 class=md-nav__link> <span class=md-ellipsis> RST의 의미 구분 </span> </a> </li> <li class=md-nav__item> <a href=#재전송-판독 class=md-nav__link> <span class=md-ellipsis> 재전송 판독 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#운영-서버에서-캡처할-때 class=md-nav__link> <span class=md-ellipsis> 운영 서버에서 캡처할 때 </span> </a> <nav class=md-nav aria-label="운영 서버에서 캡처할 때"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#디스크가-먼저-찬다 class=md-nav__link> <span class=md-ellipsis> 디스크가 먼저 찬다 </span> </a> </li> <li class=md-nav__item> <a href=#성능-부담 class=md-nav__link> <span class=md-ellipsis> 성능 부담 </span> </a> </li> <li class=md-nav__item> <a href=#권한과-흔적 class=md-nav__link> <span class=md-ellipsis> 권한과 흔적 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#자주-쓰는-한-줄-모음 class=md-nav__link> <span class=md-ellipsis> 자주 쓰는 한 줄 모음 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>network</span> <span class=md-tag>observability</span> </nav> <h1 id=tcpdump-패킷-캡처와-분석>tcpdump 패킷 캡처와 분석<a class=headerlink href=#tcpdump-패킷-캡처와-분석 title="Permanent link">&para;</a></h1> <p>애플리케이션 로그만으로는 안 잡히는 문제가 있다. "타임아웃이 났는데 상대 서버 로그에는 요청이 안 보인다", "커넥션이 자꾸 끊긴다", "응답은 200인데 클라이언트가 못 받았다고 한다" 같은 상황. 이럴 때는 결국 와이어 위에서 실제로 무슨 패킷이 오갔는지를 봐야 답이 나온다. tcpdump는 그걸 보는 도구다.</p> <p>여기서는 tcpdump 필터 문법, 캡처한 파일을 Wireshark로 넘겨서 분석하는 방법, TCP 재전송·RST·핸드셰이크 실패를 패킷에서 읽어내는 법, 그리고 운영 서버에서 캡처할 때 디스크와 성능을 어떻게 챙기는지를 다룬다.</p> <h2 id=tcpdump가-보는-것>tcpdump가 보는 것<a class=headerlink href=#tcpdump가-보는-것 title="Permanent link">&para;</a></h2> <p>tcpdump는 커널의 패킷 필터(리눅스는 AF_PACKET, BPF)에 붙어서 NIC를 지나는 프레임을 그대로 복사해 온다. 애플리케이션 계층 위에서 동작하는 게 아니라 그 아래에서 본다. 그래서 TLS로 암호화된 페이로드는 못 읽지만, TCP 핸드셰이크·재전송·윈도우·RST 같은 전송 계층의 사실은 전부 보인다. 문제가 애플리케이션에 있는지 네트워크에 있는지를 가르는 데는 이 정도만으로 충분한 경우가 많다.</p> <p>기본 실행은 인터페이스와 필터를 주는 형태다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># eth0에서 80번 포트로 오가는 패킷을 화면에 출력</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-n<span class=w> </span>port<span class=w> </span><span class=m>80</span>
-</span></code></pre></div> <p><code>-n</code>을 빼면 tcpdump가 IP를 호스트명으로, 포트를 서비스명으로 역변환하려고 DNS를 친다. 캡처 중에 DNS 조회가 끼어들면 출력이 느려지고, 그 DNS 트래픽 자체가 캡처에 섞여서 헷갈린다. 운영에서 캡처할 때는 <code>-nn</code>을 거의 항상 붙인다(<code>-nn</code>은 포트 이름 변환까지 끈다).</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>port<span class=w> </span><span class=m>443</span>
-</span></code></pre></div> <p>인터페이스 이름이 헷갈리면 <code>tcpdump -D</code>로 목록을 본다. <code>any</code>를 주면 모든 인터페이스를 한꺼번에 잡는데, 이 경우 링크 계층 헤더가 표준 이더넷 형식이 아니라서 일부 필터가 다르게 동작하는 경우가 있다. 가능하면 실제 인터페이스를 지정하는 게 깔끔하다.</p> <h2 id=필터-문법-bpf>필터 문법 (BPF)<a class=headerlink href=#필터-문법-bpf title="Permanent link">&para;</a></h2> <p>tcpdump 필터는 BPF(Berkeley Packet Filter) 문법이다. 커널 수준에서 거르기 때문에, 필터를 잘 쓰면 애초에 관심 없는 패킷은 유저 공간으로 올라오지도 않는다. 운영 서버에서 이건 성능 차이로 직결된다. 트래픽 많은 서버에서 필터 없이 <code>tcpdump -i eth0</code> 한 줄 잘못 치면 부하가 확 오른다.</p> <h3 id=host-net-port>host, net, port<a class=headerlink href=#host-net-port title="Permanent link">&para;</a></h3> <p>가장 많이 쓰는 세 가지다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1># 특정 호스트와 오가는 모든 패킷</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>tcpdump<span class=w> </span>-nn<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=c1># 출발지 또는 목적지를 따로 지정</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>tcpdump<span class=w> </span>-nn<span class=w> </span>src<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>tcpdump<span class=w> </span>-nn<span class=w> </span>dst<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=c1># 서브넷 단위</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a>tcpdump<span class=w> </span>-nn<span class=w> </span>net<span class=w> </span><span class=m>10</span>.0.1.0/24
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a><span class=c1># 포트</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a>tcpdump<span class=w> </span>-nn<span class=w> </span>port<span class=w> </span><span class=m>5432</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a>tcpdump<span class=w> </span>-nn<span class=w> </span>src<span class=w> </span>port<span class=w> </span><span class=m>5432</span><span class=w>      </span><span class=c1># 출발지 포트가 5432 (DB 응답)</span>
-</span><span id=__span-2-14><a id=__codelineno-2-14 name=__codelineno-2-14 href=#__codelineno-2-14></a>tcpdump<span class=w> </span>-nn<span class=w> </span>dst<span class=w> </span>port<span class=w> </span><span class=m>5432</span><span class=w>      </span><span class=c1># 목적지 포트가 5432 (DB 요청)</span>
-</span><span id=__span-2-15><a id=__codelineno-2-15 name=__codelineno-2-15 href=#__codelineno-2-15></a>
-</span><span id=__span-2-16><a id=__codelineno-2-16 name=__codelineno-2-16 href=#__codelineno-2-16></a><span class=c1># 포트 범위</span>
-</span><span id=__span-2-17><a id=__codelineno-2-17 name=__codelineno-2-17 href=#__codelineno-2-17></a>tcpdump<span class=w> </span>-nn<span class=w> </span>portrange<span class=w> </span><span class=m>8000</span>-8100
-</span></code></pre></div> <h3 id=논리-연산자로-조합>논리 연산자로 조합<a class=headerlink href=#논리-연산자로-조합 title="Permanent link">&para;</a></h3> <p><code>and</code>(<code>&amp;&amp;</code>), <code>or</code>(<code>||</code>), <code>not</code>(<code>!</code>)로 묶는다. 실무에서는 거의 항상 조합해서 쓴다. "이 DB로 가는 우리 앱 서버 트래픽만" 같은 식으로 좁혀야 노이즈가 줄어든다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># 특정 호스트의 5432 포트 트래픽만</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>tcpdump<span class=w> </span>-nn<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50<span class=w> </span>and<span class=w> </span>port<span class=w> </span><span class=m>5432</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=c1># 두 호스트 사이 트래픽</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>tcpdump<span class=w> </span>-nn<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50<span class=w> </span>and<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.2.30
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=c1># 5432나 6379 중 하나</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a>tcpdump<span class=w> </span>-nn<span class=w> </span>port<span class=w> </span><span class=m>5432</span><span class=w> </span>or<span class=w> </span>port<span class=w> </span><span class=m>6379</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=c1># SSH는 빼고 보기 (캡처를 SSH로 하고 있을 때 자기 트래픽 제외)</span>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a>tcpdump<span class=w> </span>-nn<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50<span class=w> </span>and<span class=w> </span>not<span class=w> </span>port<span class=w> </span><span class=m>22</span>
-</span></code></pre></div> <p>SSH로 접속한 채 캡처하면 내가 친 명령과 그 출력이 다시 SSH 패킷으로 잡혀서 무한히 늘어나는 경우가 있다. <code>and not port 22</code> 또는 <code>and not host &lt;내 IP&gt;</code>를 습관적으로 붙이는 게 좋다.</p> <h3 id=tcp-플래그-필터>TCP 플래그 필터<a class=headerlink href=#tcp-플래그-필터 title="Permanent link">&para;</a></h3> <p>여기서부터가 트러블슈팅의 핵심이다. TCP 헤더의 플래그 비트를 직접 거를 수 있다. <code>tcp[tcpflags]</code>로 플래그 바이트를 가리키고, 비트 이름은 <code>tcp-syn</code>, <code>tcp-ack</code>, <code>tcp-fin</code>, <code>tcp-rst</code>, <code>tcp-push</code>, <code>tcp-urg</code>다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1># SYN이 켜진 패킷 (연결 시도 + 응답)</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;tcp[tcpflags] &amp; tcp-syn != 0&#39;</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=c1># SYN만 켜지고 ACK는 꺼진 순수 연결 요청 (핸드셰이크 첫 패킷)</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;tcp[tcpflags] &amp; (tcp-syn|tcp-ack) == tcp-syn&#39;</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=c1># RST가 켜진 패킷 (연결 거부/강제 종료)</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;tcp[tcpflags] &amp; tcp-rst != 0&#39;</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=c1># FIN이 켜진 패킷 (정상 종료 시작)</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;tcp[tcpflags] &amp; tcp-fin != 0&#39;</span>
-</span></code></pre></div> <p>작은따옴표로 감싸는 이유는 <code>&amp;</code>, <code>|</code>, 괄호가 셸 메타문자라서다. 안 감싸면 셸이 먼저 해석해서 엉뚱하게 동작한다.</p> <p><code>tcp[tcpflags] &amp; X != 0</code>은 "X 비트가 켜진 패킷"이고, <code>tcp[tcpflags] &amp; (A|B) == A</code>는 "A는 켜지고 B는 꺼진 패킷"이다. 후자가 순수 SYN만 잡을 때 쓰는 형태다. SYN-ACK까지 포함하면 연결이 성립했는지 안 했는지가 안 보인다.</p> <p>RST만 거르는 필터는 연결 문제 잡을 때 제일 먼저 친다. RST가 어느 방향에서 누구한테서 오는지만 봐도 절반은 풀린다.</p> <h3 id=페이로드-길이로-거르기>페이로드 길이로 거르기<a class=headerlink href=#페이로드-길이로-거르기 title="Permanent link">&para;</a></h3> <p>데이터가 실제로 실린 패킷만 보고 싶을 때가 있다. 순수 ACK(데이터 없는 빈 ACK)를 빼는 식이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># IP 전체 길이에서 IP헤더+TCP헤더를 빼서 페이로드가 있는 TCP 패킷만</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;tcp and (ip[2:2] - ((ip[0]&amp;0xf)&lt;&lt;2) - ((tcp[12]&amp;0xf0)&gt;&gt;2)) != 0&#39;</span>
-</span></code></pre></div> <p>이건 외우기 어렵고 자주 쓰지도 않는다. 보통은 Wireshark로 넘겨서 거기서 거른다. tcpdump 단계에서는 host/port/flags 조합까지만 하고, 세밀한 분석은 GUI에서 한다.</p> <h2 id=파일로-저장하고-wireshark로-분석>파일로 저장하고 Wireshark로 분석<a class=headerlink href=#파일로-저장하고-wireshark로-분석 title="Permanent link">&para;</a></h2> <p>화면에 흘려보면서 보는 건 한계가 명확하다. 패킷이 빠르게 지나가고, 스크롤백도 안 되고, 여러 스트림이 섞이면 눈으로 못 따라간다. 실무에서는 거의 항상 파일로 떨군 다음 Wireshark로 연다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># pcap 파일로 저장 (-w)</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50<span class=w> </span>and<span class=w> </span>port<span class=w> </span><span class=m>5432</span><span class=w> </span>-w<span class=w> </span>/tmp/db.pcap
-</span></code></pre></div> <p><code>-w</code>로 저장할 때는 화면에 패킷 내용이 안 나오고 캡처된 개수만 카운트된다. 저장 파일은 바이너리 pcap 포맷이라 <code>cat</code>으로 못 본다. 다시 읽으려면 <code>-r</code>을 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># 저장한 파일을 다시 tcpdump로 읽기 (필터 다시 적용 가능)</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>tcpdump<span class=w> </span>-nn<span class=w> </span>-r<span class=w> </span>/tmp/db.pcap<span class=w> </span><span class=s1>&#39;tcp[tcpflags] &amp; tcp-rst != 0&#39;</span>
-</span></code></pre></div> <p><code>-r</code>로 읽을 때도 BPF 필터를 다시 줄 수 있다. 일단 넓게 캡처해서 파일로 받고, 읽을 때 좁히는 방식이 안전하다. 캡처 시점에 필터를 너무 좁게 걸었다가 정작 필요한 패킷을 놓치는 것보다, 디스크 여유가 있으면 넓게 받아두는 편이 낫다.</p> <h3 id=스냅-길이와-전체-페이로드>스냅 길이와 전체 페이로드<a class=headerlink href=#스냅-길이와-전체-페이로드 title="Permanent link">&para;</a></h3> <p>tcpdump는 기본적으로 패킷 앞부분만 잘라서 캡처할 수 있다. 옛날 기본값은 잘렸지만 요즘 버전은 기본이 262144바이트라 사실상 전체를 받는다. 헤더만 필요하면 <code>-s</code>로 잘라서 파일 크기를 줄인다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1># 헤더만 (96바이트면 IP+TCP 헤더는 충분히 커버)</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>-s<span class=w> </span><span class=m>96</span><span class=w> </span>port<span class=w> </span><span class=m>443</span><span class=w> </span>-w<span class=w> </span>/tmp/headers.pcap
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=c1># 전체 페이로드 명시</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>-s<span class=w> </span><span class=m>0</span><span class=w> </span>port<span class=w> </span><span class=m>8080</span><span class=w> </span>-w<span class=w> </span>/tmp/full.pcap
-</span></code></pre></div> <p><code>-s 0</code>은 "자르지 말고 전체"라는 뜻이다. HTTP 본문이나 평문 프로토콜 내용까지 봐야 하면 <code>-s 0</code>으로 받아야 한다. 스냅 길이를 너무 짧게 잡으면 Wireshark에서 "Packet size limited during capture"가 뜨면서 본문 분석이 안 된다.</p> <h3 id=wireshark로-옮겨서-보기>Wireshark로 옮겨서 보기<a class=headerlink href=#wireshark로-옮겨서-보기 title="Permanent link">&para;</a></h3> <p>파일을 받았으면 로컬로 가져와서 Wireshark로 연다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># 운영 서버에서 캡처한 파일을 로컬로 복사</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>scp<span class=w> </span>prod-server:/tmp/db.pcap<span class=w> </span>./
-</span></code></pre></div> <p>Wireshark에서 자주 쓰는 표시 필터(display filter)는 tcpdump의 BPF와 문법이 다르다. 헷갈리기 쉬운데, Wireshark 표시 필터는 점 표기법이다.</p> <table> <thead> <tr> <th>목적</th> <th>tcpdump (BPF)</th> <th>Wireshark (표시 필터)</th> </tr> </thead> <tbody> <tr> <td>특정 호스트</td> <td><code>host 10.0.1.50</code></td> <td><code>ip.addr == 10.0.1.50</code></td> </tr> <tr> <td>목적지 포트</td> <td><code>dst port 5432</code></td> <td><code>tcp.dstport == 5432</code></td> </tr> <tr> <td>RST 패킷</td> <td><code>tcp[tcpflags] &amp; tcp-rst != 0</code></td> <td><code>tcp.flags.reset == 1</code></td> </tr> <tr> <td>SYN 패킷</td> <td><code>tcp[tcpflags] &amp; tcp-syn != 0</code></td> <td><code>tcp.flags.syn == 1</code></td> </tr> <tr> <td>재전송</td> <td>(BPF로 불가)</td> <td><code>tcp.analysis.retransmission</code></td> </tr> </tbody> </table> <p>마지막 줄이 중요하다. 재전송은 BPF만으로는 못 거른다. 재전송 여부는 시퀀스 번호를 추적해서 같은 데이터가 다시 왔는지를 봐야 알 수 있는데, 이건 상태를 들고 있어야 하는 분석이라 tcpdump의 무상태 필터로는 안 된다. Wireshark는 스트림을 따라가면서 <code>tcp.analysis.retransmission</code>, <code>tcp.analysis.duplicate_ack</code> 같은 걸 자동으로 표시해 준다. 그래서 "재전송이 일어났나"는 질문은 거의 항상 Wireshark에서 답한다.</p> <p>Wireshark에서 패킷 하나를 우클릭해서 "Follow &gt; TCP Stream"을 누르면 그 커넥션의 전체 주고받은 내용을 하나로 모아서 보여준다. 평문 HTTP면 요청·응답이 그대로 읽힌다. 어떤 커넥션이 문제인지 잡았으면 이걸로 흐름 전체를 본다.</p> <h2 id=패킷에서-문제-읽어내기>패킷에서 문제 읽어내기<a class=headerlink href=#패킷에서-문제-읽어내기 title="Permanent link">&para;</a></h2> <h3 id=핸드셰이크-성공과-실패>핸드셰이크 성공과 실패<a class=headerlink href=#핸드셰이크-성공과-실패 title="Permanent link">&para;</a></h3> <p>정상적인 TCP 연결은 3-way 핸드셰이크로 시작한다. SYN → SYN-ACK → ACK. tcpdump 출력에서 이게 보이면 연결 자체는 됐다는 뜻이다.</p> <pre class=mermaid-diagram><code>sequenceDiagram
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/Observability/Packet_Capture_tcpdump/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../../OS/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>tcpdump 패킷 캡처와 분석 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tcpdump-패킷-캡처와-분석" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              tcpdump 패킷 캡처와 분석
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../7%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_14" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_14" id="__nav_7_1_14_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_14_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Observability
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tcpdump 패킷 캡처와 분석
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tcpdump 패킷 캡처와 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tcpdump가-보는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tcpdump가 보는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#필터-문법-bpf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        필터 문법 (BPF)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="필터 문법 (BPF)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-net-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        host, net, port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#논리-연산자로-조합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        논리 연산자로 조합
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcp-플래그-필터" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TCP 플래그 필터
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#페이로드-길이로-거르기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        페이로드 길이로 거르기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#파일로-저장하고-wireshark로-분석" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일로 저장하고 Wireshark로 분석
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="파일로 저장하고 Wireshark로 분석">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#스냅-길이와-전체-페이로드" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스냅 길이와 전체 페이로드
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wireshark로-옮겨서-보기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wireshark로 옮겨서 보기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#패킷에서-문제-읽어내기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        패킷에서 문제 읽어내기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="패킷에서 문제 읽어내기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#핸드셰이크-성공과-실패" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핸드셰이크 성공과 실패
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rst의-의미-구분" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RST의 의미 구분
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#재전송-판독" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        재전송 판독
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#운영-서버에서-캡처할-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 서버에서 캡처할 때
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="운영 서버에서 캡처할 때">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#디스크가-먼저-찬다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        디스크가 먼저 찬다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#성능-부담" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        성능 부담
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#권한과-흔적" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        권한과 흔적
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#자주-쓰는-한-줄-모음" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자주 쓰는 한 줄 모음
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tcpdump가-보는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tcpdump가 보는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#필터-문법-bpf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        필터 문법 (BPF)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="필터 문법 (BPF)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-net-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        host, net, port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#논리-연산자로-조합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        논리 연산자로 조합
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcp-플래그-필터" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TCP 플래그 필터
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#페이로드-길이로-거르기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        페이로드 길이로 거르기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#파일로-저장하고-wireshark로-분석" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일로 저장하고 Wireshark로 분석
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="파일로 저장하고 Wireshark로 분석">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#스냅-길이와-전체-페이로드" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스냅 길이와 전체 페이로드
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wireshark로-옮겨서-보기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wireshark로 옮겨서 보기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#패킷에서-문제-읽어내기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        패킷에서 문제 읽어내기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="패킷에서 문제 읽어내기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#핸드셰이크-성공과-실패" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핸드셰이크 성공과 실패
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rst의-의미-구분" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RST의 의미 구분
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#재전송-판독" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        재전송 판독
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#운영-서버에서-캡처할-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 서버에서 캡처할 때
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="운영 서버에서 캡처할 때">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#디스크가-먼저-찬다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        디스크가 먼저 찬다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#성능-부담" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        성능 부담
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#권한과-흔적" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        권한과 흔적
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#자주-쓰는-한-줄-모음" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자주 쓰는 한 줄 모음
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">observability</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="tcpdump-패킷-캡처와-분석">tcpdump 패킷 캡처와 분석<a class="headerlink" href="#tcpdump-패킷-캡처와-분석" title="Permanent link">&para;</a></h1>
+<p>애플리케이션 로그만으로는 안 잡히는 문제가 있다. "타임아웃이 났는데 상대 서버 로그에는 요청이 안 보인다", "커넥션이 자꾸 끊긴다", "응답은 200인데 클라이언트가 못 받았다고 한다" 같은 상황. 이럴 때는 결국 와이어 위에서 실제로 무슨 패킷이 오갔는지를 봐야 답이 나온다. tcpdump는 그걸 보는 도구다.</p>
+<p>여기서는 tcpdump 필터 문법, 캡처한 파일을 Wireshark로 넘겨서 분석하는 방법, TCP 재전송·RST·핸드셰이크 실패를 패킷에서 읽어내는 법, 그리고 운영 서버에서 캡처할 때 디스크와 성능을 어떻게 챙기는지를 다룬다.</p>
+<h2 id="tcpdump가-보는-것">tcpdump가 보는 것<a class="headerlink" href="#tcpdump가-보는-것" title="Permanent link">&para;</a></h2>
+<p>tcpdump는 커널의 패킷 필터(리눅스는 AF_PACKET, BPF)에 붙어서 NIC를 지나는 프레임을 그대로 복사해 온다. 애플리케이션 계층 위에서 동작하는 게 아니라 그 아래에서 본다. 그래서 TLS로 암호화된 페이로드는 못 읽지만, TCP 핸드셰이크·재전송·윈도우·RST 같은 전송 계층의 사실은 전부 보인다. 문제가 애플리케이션에 있는지 네트워크에 있는지를 가르는 데는 이 정도만으로 충분한 경우가 많다.</p>
+<p>기본 실행은 인터페이스와 필터를 주는 형태다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># eth0에서 80번 포트로 오가는 패킷을 화면에 출력</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-n<span class="w"> </span>port<span class="w"> </span><span class="m">80</span>
+</span></code></pre></div>
+<p><code>-n</code>을 빼면 tcpdump가 IP를 호스트명으로, 포트를 서비스명으로 역변환하려고 DNS를 친다. 캡처 중에 DNS 조회가 끼어들면 출력이 느려지고, 그 DNS 트래픽 자체가 캡처에 섞여서 헷갈린다. 운영에서 캡처할 때는 <code>-nn</code>을 거의 항상 붙인다(<code>-nn</code>은 포트 이름 변환까지 끈다).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>port<span class="w"> </span><span class="m">443</span>
+</span></code></pre></div>
+<p>인터페이스 이름이 헷갈리면 <code>tcpdump -D</code>로 목록을 본다. <code>any</code>를 주면 모든 인터페이스를 한꺼번에 잡는데, 이 경우 링크 계층 헤더가 표준 이더넷 형식이 아니라서 일부 필터가 다르게 동작하는 경우가 있다. 가능하면 실제 인터페이스를 지정하는 게 깔끔하다.</p>
+<h2 id="필터-문법-bpf">필터 문법 (BPF)<a class="headerlink" href="#필터-문법-bpf" title="Permanent link">&para;</a></h2>
+<p>tcpdump 필터는 BPF(Berkeley Packet Filter) 문법이다. 커널 수준에서 거르기 때문에, 필터를 잘 쓰면 애초에 관심 없는 패킷은 유저 공간으로 올라오지도 않는다. 운영 서버에서 이건 성능 차이로 직결된다. 트래픽 많은 서버에서 필터 없이 <code>tcpdump -i eth0</code> 한 줄 잘못 치면 부하가 확 오른다.</p>
+<h3 id="host-net-port">host, net, port<a class="headerlink" href="#host-net-port" title="Permanent link">&para;</a></h3>
+<p>가장 많이 쓰는 세 가지다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 특정 호스트와 오가는 모든 패킷</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 출발지 또는 목적지를 따로 지정</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>src<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>dst<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># 서브넷 단위</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>net<span class="w"> </span><span class="m">10</span>.0.1.0/24
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># 포트</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>src<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span><span class="w">      </span><span class="c1"># 출발지 포트가 5432 (DB 응답)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>dst<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span><span class="w">      </span><span class="c1"># 목적지 포트가 5432 (DB 요청)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># 포트 범위</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>portrange<span class="w"> </span><span class="m">8000</span>-8100
+</span></code></pre></div>
+<h3 id="논리-연산자로-조합">논리 연산자로 조합<a class="headerlink" href="#논리-연산자로-조합" title="Permanent link">&para;</a></h3>
+<p><code>and</code>(<code>&amp;&amp;</code>), <code>or</code>(<code>||</code>), <code>not</code>(<code>!</code>)로 묶는다. 실무에서는 거의 항상 조합해서 쓴다. "이 DB로 가는 우리 앱 서버 트래픽만" 같은 식으로 좁혀야 노이즈가 줄어든다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 특정 호스트의 5432 포트 트래픽만</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50<span class="w"> </span>and<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># 두 호스트 사이 트래픽</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50<span class="w"> </span>and<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.2.30
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># 5432나 6379 중 하나</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span><span class="w"> </span>or<span class="w"> </span>port<span class="w"> </span><span class="m">6379</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># SSH는 빼고 보기 (캡처를 SSH로 하고 있을 때 자기 트래픽 제외)</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50<span class="w"> </span>and<span class="w"> </span>not<span class="w"> </span>port<span class="w"> </span><span class="m">22</span>
+</span></code></pre></div>
+<p>SSH로 접속한 채 캡처하면 내가 친 명령과 그 출력이 다시 SSH 패킷으로 잡혀서 무한히 늘어나는 경우가 있다. <code>and not port 22</code> 또는 <code>and not host &lt;내 IP&gt;</code>를 습관적으로 붙이는 게 좋다.</p>
+<h3 id="tcp-플래그-필터">TCP 플래그 필터<a class="headerlink" href="#tcp-플래그-필터" title="Permanent link">&para;</a></h3>
+<p>여기서부터가 트러블슈팅의 핵심이다. TCP 헤더의 플래그 비트를 직접 거를 수 있다. <code>tcp[tcpflags]</code>로 플래그 바이트를 가리키고, 비트 이름은 <code>tcp-syn</code>, <code>tcp-ack</code>, <code>tcp-fin</code>, <code>tcp-rst</code>, <code>tcp-push</code>, <code>tcp-urg</code>다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># SYN이 켜진 패킷 (연결 시도 + 응답)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;tcp[tcpflags] &amp; tcp-syn != 0&#39;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># SYN만 켜지고 ACK는 꺼진 순수 연결 요청 (핸드셰이크 첫 패킷)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;tcp[tcpflags] &amp; (tcp-syn|tcp-ack) == tcp-syn&#39;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># RST가 켜진 패킷 (연결 거부/강제 종료)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;tcp[tcpflags] &amp; tcp-rst != 0&#39;</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># FIN이 켜진 패킷 (정상 종료 시작)</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;tcp[tcpflags] &amp; tcp-fin != 0&#39;</span>
+</span></code></pre></div>
+<p>작은따옴표로 감싸는 이유는 <code>&amp;</code>, <code>|</code>, 괄호가 셸 메타문자라서다. 안 감싸면 셸이 먼저 해석해서 엉뚱하게 동작한다.</p>
+<p><code>tcp[tcpflags] &amp; X != 0</code>은 "X 비트가 켜진 패킷"이고, <code>tcp[tcpflags] &amp; (A|B) == A</code>는 "A는 켜지고 B는 꺼진 패킷"이다. 후자가 순수 SYN만 잡을 때 쓰는 형태다. SYN-ACK까지 포함하면 연결이 성립했는지 안 했는지가 안 보인다.</p>
+<p>RST만 거르는 필터는 연결 문제 잡을 때 제일 먼저 친다. RST가 어느 방향에서 누구한테서 오는지만 봐도 절반은 풀린다.</p>
+<h3 id="페이로드-길이로-거르기">페이로드 길이로 거르기<a class="headerlink" href="#페이로드-길이로-거르기" title="Permanent link">&para;</a></h3>
+<p>데이터가 실제로 실린 패킷만 보고 싶을 때가 있다. 순수 ACK(데이터 없는 빈 ACK)를 빼는 식이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># IP 전체 길이에서 IP헤더+TCP헤더를 빼서 페이로드가 있는 TCP 패킷만</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;tcp and (ip[2:2] - ((ip[0]&amp;0xf)&lt;&lt;2) - ((tcp[12]&amp;0xf0)&gt;&gt;2)) != 0&#39;</span>
+</span></code></pre></div>
+<p>이건 외우기 어렵고 자주 쓰지도 않는다. 보통은 Wireshark로 넘겨서 거기서 거른다. tcpdump 단계에서는 host/port/flags 조합까지만 하고, 세밀한 분석은 GUI에서 한다.</p>
+<h2 id="파일로-저장하고-wireshark로-분석">파일로 저장하고 Wireshark로 분석<a class="headerlink" href="#파일로-저장하고-wireshark로-분석" title="Permanent link">&para;</a></h2>
+<p>화면에 흘려보면서 보는 건 한계가 명확하다. 패킷이 빠르게 지나가고, 스크롤백도 안 되고, 여러 스트림이 섞이면 눈으로 못 따라간다. 실무에서는 거의 항상 파일로 떨군 다음 Wireshark로 연다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># pcap 파일로 저장 (-w)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50<span class="w"> </span>and<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span><span class="w"> </span>-w<span class="w"> </span>/tmp/db.pcap
+</span></code></pre></div>
+<p><code>-w</code>로 저장할 때는 화면에 패킷 내용이 안 나오고 캡처된 개수만 카운트된다. 저장 파일은 바이너리 pcap 포맷이라 <code>cat</code>으로 못 본다. 다시 읽으려면 <code>-r</code>을 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># 저장한 파일을 다시 tcpdump로 읽기 (필터 다시 적용 가능)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>-r<span class="w"> </span>/tmp/db.pcap<span class="w"> </span><span class="s1">&#39;tcp[tcpflags] &amp; tcp-rst != 0&#39;</span>
+</span></code></pre></div>
+<p><code>-r</code>로 읽을 때도 BPF 필터를 다시 줄 수 있다. 일단 넓게 캡처해서 파일로 받고, 읽을 때 좁히는 방식이 안전하다. 캡처 시점에 필터를 너무 좁게 걸었다가 정작 필요한 패킷을 놓치는 것보다, 디스크 여유가 있으면 넓게 받아두는 편이 낫다.</p>
+<h3 id="스냅-길이와-전체-페이로드">스냅 길이와 전체 페이로드<a class="headerlink" href="#스냅-길이와-전체-페이로드" title="Permanent link">&para;</a></h3>
+<p>tcpdump는 기본적으로 패킷 앞부분만 잘라서 캡처할 수 있다. 옛날 기본값은 잘렸지만 요즘 버전은 기본이 262144바이트라 사실상 전체를 받는다. 헤더만 필요하면 <code>-s</code>로 잘라서 파일 크기를 줄인다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># 헤더만 (96바이트면 IP+TCP 헤더는 충분히 커버)</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>-s<span class="w"> </span><span class="m">96</span><span class="w"> </span>port<span class="w"> </span><span class="m">443</span><span class="w"> </span>-w<span class="w"> </span>/tmp/headers.pcap
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># 전체 페이로드 명시</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>-s<span class="w"> </span><span class="m">0</span><span class="w"> </span>port<span class="w"> </span><span class="m">8080</span><span class="w"> </span>-w<span class="w"> </span>/tmp/full.pcap
+</span></code></pre></div>
+<p><code>-s 0</code>은 "자르지 말고 전체"라는 뜻이다. HTTP 본문이나 평문 프로토콜 내용까지 봐야 하면 <code>-s 0</code>으로 받아야 한다. 스냅 길이를 너무 짧게 잡으면 Wireshark에서 "Packet size limited during capture"가 뜨면서 본문 분석이 안 된다.</p>
+<h3 id="wireshark로-옮겨서-보기">Wireshark로 옮겨서 보기<a class="headerlink" href="#wireshark로-옮겨서-보기" title="Permanent link">&para;</a></h3>
+<p>파일을 받았으면 로컬로 가져와서 Wireshark로 연다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 운영 서버에서 캡처한 파일을 로컬로 복사</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>scp<span class="w"> </span>prod-server:/tmp/db.pcap<span class="w"> </span>./
+</span></code></pre></div>
+<p>Wireshark에서 자주 쓰는 표시 필터(display filter)는 tcpdump의 BPF와 문법이 다르다. 헷갈리기 쉬운데, Wireshark 표시 필터는 점 표기법이다.</p>
+<table>
+<thead>
+<tr>
+<th>목적</th>
+<th>tcpdump (BPF)</th>
+<th>Wireshark (표시 필터)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>특정 호스트</td>
+<td><code>host 10.0.1.50</code></td>
+<td><code>ip.addr == 10.0.1.50</code></td>
+</tr>
+<tr>
+<td>목적지 포트</td>
+<td><code>dst port 5432</code></td>
+<td><code>tcp.dstport == 5432</code></td>
+</tr>
+<tr>
+<td>RST 패킷</td>
+<td><code>tcp[tcpflags] &amp; tcp-rst != 0</code></td>
+<td><code>tcp.flags.reset == 1</code></td>
+</tr>
+<tr>
+<td>SYN 패킷</td>
+<td><code>tcp[tcpflags] &amp; tcp-syn != 0</code></td>
+<td><code>tcp.flags.syn == 1</code></td>
+</tr>
+<tr>
+<td>재전송</td>
+<td>(BPF로 불가)</td>
+<td><code>tcp.analysis.retransmission</code></td>
+</tr>
+</tbody>
+</table>
+<p>마지막 줄이 중요하다. 재전송은 BPF만으로는 못 거른다. 재전송 여부는 시퀀스 번호를 추적해서 같은 데이터가 다시 왔는지를 봐야 알 수 있는데, 이건 상태를 들고 있어야 하는 분석이라 tcpdump의 무상태 필터로는 안 된다. Wireshark는 스트림을 따라가면서 <code>tcp.analysis.retransmission</code>, <code>tcp.analysis.duplicate_ack</code> 같은 걸 자동으로 표시해 준다. 그래서 "재전송이 일어났나"는 질문은 거의 항상 Wireshark에서 답한다.</p>
+<p>Wireshark에서 패킷 하나를 우클릭해서 "Follow &gt; TCP Stream"을 누르면 그 커넥션의 전체 주고받은 내용을 하나로 모아서 보여준다. 평문 HTTP면 요청·응답이 그대로 읽힌다. 어떤 커넥션이 문제인지 잡았으면 이걸로 흐름 전체를 본다.</p>
+<h2 id="패킷에서-문제-읽어내기">패킷에서 문제 읽어내기<a class="headerlink" href="#패킷에서-문제-읽어내기" title="Permanent link">&para;</a></h2>
+<h3 id="핸드셰이크-성공과-실패">핸드셰이크 성공과 실패<a class="headerlink" href="#핸드셰이크-성공과-실패" title="Permanent link">&para;</a></h3>
+<p>정상적인 TCP 연결은 3-way 핸드셰이크로 시작한다. SYN → SYN-ACK → ACK. tcpdump 출력에서 이게 보이면 연결 자체는 됐다는 뜻이다.</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant C as Client
     participant S as Server
     C-&gt;&gt;S: SYN (seq=x)
     S--&gt;&gt;C: SYN, ACK (seq=y, ack=x+1)
     C-&gt;&gt;S: ACK (ack=y+1)
-    Note over C,S: 연결 성립, 데이터 전송 시작</code></pre> <p>tcpdump 실제 출력은 이렇게 보인다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>10:12:03.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>10:12:03.002 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [S.], seq 8000, ack 1001
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>10:12:03.002 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [.], ack 8001
-</span></code></pre></div> <p><code>[S]</code>가 SYN, <code>[S.]</code>가 SYN-ACK(점이 ACK), <code>[.]</code>가 순수 ACK다. <code>[R]</code>은 RST, <code>[F]</code>는 FIN, <code>[P]</code>는 PSH다. 이 세 줄이 차례로 보이면 핸드셰이크 성공이다.</p> <p>핸드셰이크 실패는 패턴이 몇 가지로 갈린다.</p> <p><strong>SYN만 가고 응답이 없다.</strong> 클라이언트가 SYN을 보냈는데 SYN-ACK가 안 온다. 그리고 잠시 후 같은 SYN이 또 나간다(SYN 재전송). 이건 보통 상대 서버까지 패킷이 안 닿거나, 방화벽이 조용히 드롭하고 있다는 신호다. 방화벽이 거부(reject)면 RST나 ICMP가 오는데, 그냥 버리면(drop) 아무것도 안 온다. 그래서 "SYN만 반복해서 나가고 무응답"이면 경로 어딘가에서 드롭되고 있다고 본다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>10:12:03.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>10:12:04.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>10:12:06.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
-</span></code></pre></div> <p>1초, 2초… 간격이 벌어지면서 SYN이 재시도되는 게 보인다. 상대 SYN-ACK가 한 줄도 없다.</p> <p><strong>SYN에 RST로 응답이 온다.</strong> 포트가 안 열려 있거나 서비스가 안 떠 있다. 상대 호스트까지는 패킷이 닿았는데, 해당 포트에서 듣는 프로세스가 없으면 커널이 RST로 거절한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>10:12:03.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>10:12:03.002 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [R.], seq 0, ack 1001
-</span></code></pre></div> <p>SYN 보냈더니 바로 <code>[R.]</code>이 돌아온다. "Connection refused"의 정체가 이거다. 애플리케이션이 안 떠 있거나, 떠 있어도 다른 포트에서 듣고 있거나, listen 백로그가 꽉 찼을 때 이런 RST가 온다.</p> <h3 id=rst의-의미-구분>RST의 의미 구분<a class=headerlink href=#rst의-의미-구분 title="Permanent link">&para;</a></h3> <p>RST는 한 가지 의미가 아니다. 언제 어느 방향에서 오느냐로 원인이 갈린다.</p> <p>연결 시도(SYN) 직후의 RST는 위에서 본 "포트 안 열림"이다. 반면 이미 연결돼서 데이터가 오가던 중에 갑자기 RST가 나오면 다른 얘기다. 한쪽이 비정상 종료했거나(애플리케이션 크래시, OOM 킬), 커넥션을 강제로 끊었거나(타임아웃 설정으로 서버가 idle 커넥션을 RST로 정리), 방화벽/로드밸런서가 중간에 끼어들어 끊은 경우다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a># 데이터 주고받던 중간에 갑자기 RST
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>10:15:20.100 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [P.], seq 8000:8100, ack 1500
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>10:15:20.101 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [.], ack 8100
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>10:15:45.000 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [R.], seq 8100, ack 1500
-</span></code></pre></div> <p>마지막 RST의 타임스탬프를 보면 직전 패킷에서 25초가 떴다. 25초 동안 조용하다가 서버가 RST를 보냈다. 이러면 서버나 중간 장비(LB, 방화벽)의 idle timeout을 의심한다. 클라이언트 커넥션 풀이 죽은 커넥션을 재사용하려다 "Connection reset by peer"를 맞는 전형적인 패턴이다. 커넥션 풀의 idle 검증 주기나 최대 수명을 중간 장비 타임아웃보다 짧게 잡으면 해결되는 경우가 많다.</p> <p>RST 방향도 본다. 서버 IP에서 나온 RST면 서버 쪽 사정(앱 종료, 타임아웃)이고, 클라이언트에서 나온 RST면 클라이언트가 끊은 거다. HTTP 클라이언트 라이브러리가 응답을 다 안 받고 커넥션을 닫으면 클라이언트발 RST가 보인다.</p> <h3 id=재전송-판독>재전송 판독<a class=headerlink href=#재전송-판독 title="Permanent link">&para;</a></h3> <p>재전송은 패킷이 중간에 유실됐거나 ACK가 제때 안 와서 송신 측이 같은 데이터를 다시 보낸 거다. 적당한 재전송은 정상이지만, 비율이 높으면 경로 어딘가에 문제가 있다. 패킷 로스, 혼잡, MTU 불일치 같은 게 원인이다.</p> <p>tcpdump 출력만으로는 재전송을 알아보기 어렵다. 같은 시퀀스 번호가 두 번 나오면 재전송이긴 한데, 빠르게 흐르는 출력에서 시퀀스를 눈으로 비교하긴 힘들다. 그래서 재전송은 Wireshark에서 본다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a># Wireshark 표시 필터
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>tcp.analysis.retransmission           # 재전송된 패킷
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>tcp.analysis.fast_retransmission      # 빠른 재전송 (중복 ACK 3개 후)
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>tcp.analysis.duplicate_ack            # 중복 ACK
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>tcp.analysis.lost_segment             # 유실 추정 구간
-</span></code></pre></div> <p>Wireshark는 이걸 검정 배경에 빨간 글씨로 강조해 준다. 재전송이 띄엄띄엄 몇 개면 무시해도 되지만, 특정 커넥션에서 연달아 뜨거나 전체 패킷 중 비율이 높으면(대략 1%만 넘어도 체감 성능이 떨어진다) 네트워크 경로를 의심한다.</p> <p>MTU 문제로 인한 재전송은 패턴이 특이하다. 작은 패킷은 잘 가는데 큰 패킷만 계속 재전송되면 경로 중간의 MTU가 작아서 큰 프레임이 드롭되고 있을 수 있다. 특히 터널링(VPN, 오버레이 네트워크)이 끼면 헤더가 추가되면서 MTU 여유가 줄어 이런 일이 생긴다.</p> <p>중복 ACK가 연달아 보이면 수신 측이 "기대한 시퀀스가 안 왔다"고 계속 신호하는 거고, 송신 측이 중복 ACK 3개를 받으면 타임아웃을 안 기다리고 바로 다시 보낸다(빠른 재전송). Wireshark에서 중복 ACK 뒤에 빠른 재전송이 따라붙는 패턴이 보이면 그 구간에서 패킷 하나가 유실됐다고 읽는다.</p> <h2 id=운영-서버에서-캡처할-때>운영 서버에서 캡처할 때<a class=headerlink href=#운영-서버에서-캡처할-때 title="Permanent link">&para;</a></h2> <p>개발 환경에서야 마음대로 캡처해도 되지만, 트래픽 받는 운영 서버에서는 캡처 자체가 사고로 이어질 수 있다. 두 가지를 항상 챙긴다. 디스크와 성능.</p> <h3 id=디스크가-먼저-찬다>디스크가 먼저 찬다<a class=headerlink href=#디스크가-먼저-찬다 title="Permanent link">&para;</a></h3> <p><code>-w</code>로 저장하면 파일이 계속 커진다. 트래픽 많은 서버에서 <code>-s 0</code>으로 전체 캡처를 걸어두고 잊어버리면 몇 분 만에 수 GB가 쌓이고, 디스크가 꽉 차면 그때부터는 캡처가 아니라 서비스가 죽는다. 로그를 못 써서 애플리케이션이 멈추는 식이다.</p> <p>그래서 운영에서는 항상 파일을 돌려쓰는 옵션을 건다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=c1># 파일당 100MB로 자르고(-C), 최대 10개만 유지(-W)</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>host<span class=w> </span><span class=m>10</span>.0.1.50<span class=w> </span>and<span class=w> </span>port<span class=w> </span><span class=m>5432</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=w>  </span>-s<span class=w> </span><span class=m>0</span><span class=w> </span>-C<span class=w> </span><span class=m>100</span><span class=w> </span>-W<span class=w> </span><span class=m>10</span><span class=w> </span>-w<span class=w> </span>/tmp/capture.pcap
-</span></code></pre></div> <p><code>-C 100</code>은 파일이 100MB가 되면 새 파일로 넘어가고, <code>-W 10</code>은 파일을 10개까지만 유지하면서 가장 오래된 걸 덮어쓴다. 이렇게 하면 최대 사용량이 1GB로 묶인다. 링 버퍼처럼 동작해서 디스크가 무한정 차는 일이 없다.</p> <p>시간 기준으로 자르려면 <code>-G</code>를 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=c1># 60초마다 새 파일, 파일명에 타임스탬프</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>port<span class=w> </span><span class=m>443</span><span class=w> </span>-G<span class=w> </span><span class=m>60</span><span class=w> </span>-w<span class=w> </span>/tmp/cap-%Y%m%d-%H%M%S.pcap
-</span></code></pre></div> <p><code>-G</code>와 함께 <code>-W</code>를 주면 시간 기준 링 버퍼가 된다. 패킷 개수로 끊고 싶으면 <code>-c</code>를 쓴다. <code>-c 10000</code>이면 1만 개 잡고 자동으로 멈춘다. "잠깐만 떠서 증상 한 번 잡고 끝낼" 때 <code>-c</code>가 편하다. 켜놓고 깜빡할 일이 없다.</p> <p>캡처는 가능하면 <code>/tmp</code>이나 별도 볼륨처럼 서비스 데이터와 분리된 곳에 쓴다. 같은 디스크에 쓰면 캡처가 서비스 IO와 경쟁하고, 꽉 찼을 때 같이 죽는다.</p> <h3 id=성능-부담>성능 부담<a class=headerlink href=#성능-부담 title="Permanent link">&para;</a></h3> <p>tcpdump가 부하를 주는 지점은 두 곳이다. 패킷을 커널에서 유저 공간으로 복사하는 비용, 그리고 파일로 쓰는 디스크 IO. 트래픽이 많을수록 둘 다 커진다.</p> <p>부하를 줄이는 첫 번째는 BPF 필터를 좁히는 거다. 필터는 커널에서 적용되니까, 관심 없는 패킷이 유저 공간으로 안 올라오게 막으면 복사 비용 자체가 준다. <code>tcpdump -i eth0</code> 같은 무필터 캡처를 트래픽 많은 서버에서 돌리는 건 피한다. 반드시 host와 port로 좁힌다.</p> <p>두 번째는 헤더만 받는 거다. 페이로드 분석이 필요 없으면 <code>-s 96</code>으로 잘라서 복사·저장량을 줄인다. RST/재전송/핸드셰이크만 볼 거면 본문이 필요 없으니 헤더만으로 충분하다.</p> <p>세 번째는 화면 출력을 끄는 거다. <code>-w</code>로 파일에 쓰면 패킷을 사람이 읽는 텍스트로 변환하는 비용이 안 든다. 화면에 흘리면서 보는 건 변환·출력 비용이 추가로 든다. 운영에서는 무조건 <code>-w</code>로 파일에 받고, 분석은 나중에 따로 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=c1># 운영 서버 캡처 권장 형태: 필터 좁힘 + 헤더만 + 링버퍼 + 개수 제한</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;host 10.0.1.50 and port 5432&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=w>  </span>-s<span class=w> </span><span class=m>128</span><span class=w> </span>-C<span class=w> </span><span class=m>100</span><span class=w> </span>-W<span class=w> </span><span class=m>5</span><span class=w> </span>-c<span class=w> </span><span class=m>500000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=w>  </span>-w<span class=w> </span>/tmp/db-issue.pcap
-</span></code></pre></div> <p>이렇게 하면 특정 호스트·포트만, 헤더 위주로, 최대 500MB, 최대 50만 패킷까지만 받고 멈춘다. 잠깐 떠서 증상을 잡는 용도로는 이 정도가 안전하다.</p> <h3 id=권한과-흔적>권한과 흔적<a class=headerlink href=#권한과-흔적 title="Permanent link">&para;</a></h3> <p>tcpdump는 raw 소켓을 열어야 해서 root나 <code>CAP_NET_RAW</code> 권한이 필요하다. 운영 서버에서 sudo로 돌릴 텐데, 캡처 파일에 평문 트래픽이 그대로 담긴다는 걸 잊으면 안 된다. 평문 HTTP면 헤더의 토큰, 쿠키, 인증 정보가 pcap에 다 남는다. 분석 끝나면 파일을 지운다. 로컬로 옮긴 pcap도 마찬가지다. 민감 정보가 담긴 캡처 파일을 정리 안 하고 방치하는 게 의외로 흔한 사고다.</p> <p>캡처를 백그라운드로 돌렸으면 끝나고 프로세스가 살아있는지 확인한다. <code>-c</code>나 <code>-W</code> 없이 띄운 tcpdump를 nohup으로 백그라운드에 넣고 잊으면, 며칠 뒤 디스크 알람으로 그 존재를 알게 된다.</p> <h2 id=자주-쓰는-한-줄-모음>자주 쓰는 한 줄 모음<a class=headerlink href=#자주-쓰는-한-줄-모음 title="Permanent link">&para;</a></h2> <p>상황별로 바로 꺼내 쓰는 형태를 정리해 둔다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a><span class=c1># 연결이 안 된다 - SYN/RST만 보면서 핸드셰이크 추적</span>
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;host 10.0.1.50 and (tcp[tcpflags] &amp; (tcp-syn|tcp-rst) != 0)&#39;</span>
-</span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a>
-</span><span id=__span-18-4><a id=__codelineno-18-4 name=__codelineno-18-4 href=#__codelineno-18-4></a><span class=c1># 커넥션이 끊긴다 - RST와 FIN 추적</span>
-</span><span id=__span-18-5><a id=__codelineno-18-5 name=__codelineno-18-5 href=#__codelineno-18-5></a>tcpdump<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;host 10.0.1.50 and (tcp[tcpflags] &amp; (tcp-rst|tcp-fin) != 0)&#39;</span>
-</span><span id=__span-18-6><a id=__codelineno-18-6 name=__codelineno-18-6 href=#__codelineno-18-6></a>
-</span><span id=__span-18-7><a id=__codelineno-18-7 name=__codelineno-18-7 href=#__codelineno-18-7></a><span class=c1># 특정 DB로 가는 트래픽 전체를 파일로 (분석은 나중에)</span>
-</span><span id=__span-18-8><a id=__codelineno-18-8 name=__codelineno-18-8 href=#__codelineno-18-8></a>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span><span class=s1>&#39;host 10.0.1.50 and port 5432&#39;</span><span class=w> </span>-s<span class=w> </span><span class=m>0</span><span class=w> </span>-C<span class=w> </span><span class=m>100</span><span class=w> </span>-W<span class=w> </span><span class=m>5</span><span class=w> </span>-w<span class=w> </span>/tmp/db.pcap
-</span><span id=__span-18-9><a id=__codelineno-18-9 name=__codelineno-18-9 href=#__codelineno-18-9></a>
-</span><span id=__span-18-10><a id=__codelineno-18-10 name=__codelineno-18-10 href=#__codelineno-18-10></a><span class=c1># DNS 조회 확인 (이름 해석이 의심될 때)</span>
-</span><span id=__span-18-11><a id=__codelineno-18-11 name=__codelineno-18-11 href=#__codelineno-18-11></a>tcpdump<span class=w> </span>-nn<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span><span class=s1>&#39;udp port 53&#39;</span>
-</span><span id=__span-18-12><a id=__codelineno-18-12 name=__codelineno-18-12 href=#__codelineno-18-12></a>
-</span><span id=__span-18-13><a id=__codelineno-18-13 name=__codelineno-18-13 href=#__codelineno-18-13></a><span class=c1># 특정 호스트로 가는 ICMP (ping/unreachable)</span>
-</span><span id=__span-18-14><a id=__codelineno-18-14 name=__codelineno-18-14 href=#__codelineno-18-14></a>tcpdump<span class=w> </span>-nn<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span><span class=s1>&#39;icmp and host 10.0.1.50&#39;</span>
-</span><span id=__span-18-15><a id=__codelineno-18-15 name=__codelineno-18-15 href=#__codelineno-18-15></a>
-</span><span id=__span-18-16><a id=__codelineno-18-16 name=__codelineno-18-16 href=#__codelineno-18-16></a><span class=c1># 저장한 파일에서 RST만 다시 추려보기</span>
-</span><span id=__span-18-17><a id=__codelineno-18-17 name=__codelineno-18-17 href=#__codelineno-18-17></a>tcpdump<span class=w> </span>-nn<span class=w> </span>-r<span class=w> </span>/tmp/db.pcap<span class=w> </span><span class=s1>&#39;tcp[tcpflags] &amp; tcp-rst != 0&#39;</span>
-</span></code></pre></div> <p>tcpdump로 캡처해서 좁히고, 파일로 받아서 Wireshark로 따라가는 흐름이 거의 모든 네트워크 트러블슈팅의 기본 동선이다. 핸드셰이크가 되는지, RST가 어디서 오는지, 재전송이 얼마나 일어나는지. 이 세 개를 패킷에서 읽어내면 "네트워크 문제냐 애플리케이션 문제냐"는 대부분 그 자리에서 갈린다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../7%20Layer/Application%20Layer/Http/HTTP_Status_Code/ >HTTP Status Code</a></li> <li><a href=../../NAT/ >NAT (Network Address Translation)</a></li> <li><a href=../../GateWay/Network_Gateway_Advanced/ >Network Gateway 심화</a></li> <li><a href=../../7%20Layer/OSI_7_Layer_Model/ >OSI 7 계층 모델 (OSI 7 Layer Model)</a></li> <li><a href=../../7%20Layer/Transport%20Layer/TCP/TCP_Socket_Programming_Patterns/ >TCP 소켓 프로그래밍 실무 패턴</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ class="md-footer__link md-footer__link--prev" aria-label="이전: Observability 전체 보기"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Observability 전체 보기 </div> </div> </a> <a href=../../../OS/ class="md-footer__link md-footer__link--next" aria-label="다음: OS 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> OS 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+    Note over C,S: 연결 성립, 데이터 전송 시작</code></pre>
+<p>tcpdump 실제 출력은 이렇게 보인다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>10:12:03.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>10:12:03.002 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [S.], seq 8000, ack 1001
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>10:12:03.002 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [.], ack 8001
+</span></code></pre></div>
+<p><code>[S]</code>가 SYN, <code>[S.]</code>가 SYN-ACK(점이 ACK), <code>[.]</code>가 순수 ACK다. <code>[R]</code>은 RST, <code>[F]</code>는 FIN, <code>[P]</code>는 PSH다. 이 세 줄이 차례로 보이면 핸드셰이크 성공이다.</p>
+<p>핸드셰이크 실패는 패턴이 몇 가지로 갈린다.</p>
+<p><strong>SYN만 가고 응답이 없다.</strong> 클라이언트가 SYN을 보냈는데 SYN-ACK가 안 온다. 그리고 잠시 후 같은 SYN이 또 나간다(SYN 재전송). 이건 보통 상대 서버까지 패킷이 안 닿거나, 방화벽이 조용히 드롭하고 있다는 신호다. 방화벽이 거부(reject)면 RST나 ICMP가 오는데, 그냥 버리면(drop) 아무것도 안 온다. 그래서 "SYN만 반복해서 나가고 무응답"이면 경로 어딘가에서 드롭되고 있다고 본다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>10:12:03.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>10:12:04.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>10:12:06.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
+</span></code></pre></div>
+<p>1초, 2초… 간격이 벌어지면서 SYN이 재시도되는 게 보인다. 상대 SYN-ACK가 한 줄도 없다.</p>
+<p><strong>SYN에 RST로 응답이 온다.</strong> 포트가 안 열려 있거나 서비스가 안 떠 있다. 상대 호스트까지는 패킷이 닿았는데, 해당 포트에서 듣는 프로세스가 없으면 커널이 RST로 거절한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>10:12:03.001 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [S], seq 1000
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>10:12:03.002 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [R.], seq 0, ack 1001
+</span></code></pre></div>
+<p>SYN 보냈더니 바로 <code>[R.]</code>이 돌아온다. "Connection refused"의 정체가 이거다. 애플리케이션이 안 떠 있거나, 떠 있어도 다른 포트에서 듣고 있거나, listen 백로그가 꽉 찼을 때 이런 RST가 온다.</p>
+<h3 id="rst의-의미-구분">RST의 의미 구분<a class="headerlink" href="#rst의-의미-구분" title="Permanent link">&para;</a></h3>
+<p>RST는 한 가지 의미가 아니다. 언제 어느 방향에서 오느냐로 원인이 갈린다.</p>
+<p>연결 시도(SYN) 직후의 RST는 위에서 본 "포트 안 열림"이다. 반면 이미 연결돼서 데이터가 오가던 중에 갑자기 RST가 나오면 다른 얘기다. 한쪽이 비정상 종료했거나(애플리케이션 크래시, OOM 킬), 커넥션을 강제로 끊었거나(타임아웃 설정으로 서버가 idle 커넥션을 RST로 정리), 방화벽/로드밸런서가 중간에 끼어들어 끊은 경우다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a># 데이터 주고받던 중간에 갑자기 RST
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>10:15:20.100 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [P.], seq 8000:8100, ack 1500
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>10:15:20.101 IP 10.0.2.30.51234 &gt; 10.0.1.50.5432: Flags [.], ack 8100
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>10:15:45.000 IP 10.0.1.50.5432 &gt; 10.0.2.30.51234: Flags [R.], seq 8100, ack 1500
+</span></code></pre></div>
+<p>마지막 RST의 타임스탬프를 보면 직전 패킷에서 25초가 떴다. 25초 동안 조용하다가 서버가 RST를 보냈다. 이러면 서버나 중간 장비(LB, 방화벽)의 idle timeout을 의심한다. 클라이언트 커넥션 풀이 죽은 커넥션을 재사용하려다 "Connection reset by peer"를 맞는 전형적인 패턴이다. 커넥션 풀의 idle 검증 주기나 최대 수명을 중간 장비 타임아웃보다 짧게 잡으면 해결되는 경우가 많다.</p>
+<p>RST 방향도 본다. 서버 IP에서 나온 RST면 서버 쪽 사정(앱 종료, 타임아웃)이고, 클라이언트에서 나온 RST면 클라이언트가 끊은 거다. HTTP 클라이언트 라이브러리가 응답을 다 안 받고 커넥션을 닫으면 클라이언트발 RST가 보인다.</p>
+<h3 id="재전송-판독">재전송 판독<a class="headerlink" href="#재전송-판독" title="Permanent link">&para;</a></h3>
+<p>재전송은 패킷이 중간에 유실됐거나 ACK가 제때 안 와서 송신 측이 같은 데이터를 다시 보낸 거다. 적당한 재전송은 정상이지만, 비율이 높으면 경로 어딘가에 문제가 있다. 패킷 로스, 혼잡, MTU 불일치 같은 게 원인이다.</p>
+<p>tcpdump 출력만으로는 재전송을 알아보기 어렵다. 같은 시퀀스 번호가 두 번 나오면 재전송이긴 한데, 빠르게 흐르는 출력에서 시퀀스를 눈으로 비교하긴 힘들다. 그래서 재전송은 Wireshark에서 본다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a># Wireshark 표시 필터
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>tcp.analysis.retransmission           # 재전송된 패킷
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>tcp.analysis.fast_retransmission      # 빠른 재전송 (중복 ACK 3개 후)
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>tcp.analysis.duplicate_ack            # 중복 ACK
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>tcp.analysis.lost_segment             # 유실 추정 구간
+</span></code></pre></div>
+<p>Wireshark는 이걸 검정 배경에 빨간 글씨로 강조해 준다. 재전송이 띄엄띄엄 몇 개면 무시해도 되지만, 특정 커넥션에서 연달아 뜨거나 전체 패킷 중 비율이 높으면(대략 1%만 넘어도 체감 성능이 떨어진다) 네트워크 경로를 의심한다.</p>
+<p>MTU 문제로 인한 재전송은 패턴이 특이하다. 작은 패킷은 잘 가는데 큰 패킷만 계속 재전송되면 경로 중간의 MTU가 작아서 큰 프레임이 드롭되고 있을 수 있다. 특히 터널링(VPN, 오버레이 네트워크)이 끼면 헤더가 추가되면서 MTU 여유가 줄어 이런 일이 생긴다.</p>
+<p>중복 ACK가 연달아 보이면 수신 측이 "기대한 시퀀스가 안 왔다"고 계속 신호하는 거고, 송신 측이 중복 ACK 3개를 받으면 타임아웃을 안 기다리고 바로 다시 보낸다(빠른 재전송). Wireshark에서 중복 ACK 뒤에 빠른 재전송이 따라붙는 패턴이 보이면 그 구간에서 패킷 하나가 유실됐다고 읽는다.</p>
+<h2 id="운영-서버에서-캡처할-때">운영 서버에서 캡처할 때<a class="headerlink" href="#운영-서버에서-캡처할-때" title="Permanent link">&para;</a></h2>
+<p>개발 환경에서야 마음대로 캡처해도 되지만, 트래픽 받는 운영 서버에서는 캡처 자체가 사고로 이어질 수 있다. 두 가지를 항상 챙긴다. 디스크와 성능.</p>
+<h3 id="디스크가-먼저-찬다">디스크가 먼저 찬다<a class="headerlink" href="#디스크가-먼저-찬다" title="Permanent link">&para;</a></h3>
+<p><code>-w</code>로 저장하면 파일이 계속 커진다. 트래픽 많은 서버에서 <code>-s 0</code>으로 전체 캡처를 걸어두고 잊어버리면 몇 분 만에 수 GB가 쌓이고, 디스크가 꽉 차면 그때부터는 캡처가 아니라 서비스가 죽는다. 로그를 못 써서 애플리케이션이 멈추는 식이다.</p>
+<p>그래서 운영에서는 항상 파일을 돌려쓰는 옵션을 건다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># 파일당 100MB로 자르고(-C), 최대 10개만 유지(-W)</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>host<span class="w"> </span><span class="m">10</span>.0.1.50<span class="w"> </span>and<span class="w"> </span>port<span class="w"> </span><span class="m">5432</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>-s<span class="w"> </span><span class="m">0</span><span class="w"> </span>-C<span class="w"> </span><span class="m">100</span><span class="w"> </span>-W<span class="w"> </span><span class="m">10</span><span class="w"> </span>-w<span class="w"> </span>/tmp/capture.pcap
+</span></code></pre></div>
+<p><code>-C 100</code>은 파일이 100MB가 되면 새 파일로 넘어가고, <code>-W 10</code>은 파일을 10개까지만 유지하면서 가장 오래된 걸 덮어쓴다. 이렇게 하면 최대 사용량이 1GB로 묶인다. 링 버퍼처럼 동작해서 디스크가 무한정 차는 일이 없다.</p>
+<p>시간 기준으로 자르려면 <code>-G</code>를 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># 60초마다 새 파일, 파일명에 타임스탬프</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>port<span class="w"> </span><span class="m">443</span><span class="w"> </span>-G<span class="w"> </span><span class="m">60</span><span class="w"> </span>-w<span class="w"> </span>/tmp/cap-%Y%m%d-%H%M%S.pcap
+</span></code></pre></div>
+<p><code>-G</code>와 함께 <code>-W</code>를 주면 시간 기준 링 버퍼가 된다. 패킷 개수로 끊고 싶으면 <code>-c</code>를 쓴다. <code>-c 10000</code>이면 1만 개 잡고 자동으로 멈춘다. "잠깐만 떠서 증상 한 번 잡고 끝낼" 때 <code>-c</code>가 편하다. 켜놓고 깜빡할 일이 없다.</p>
+<p>캡처는 가능하면 <code>/tmp</code>이나 별도 볼륨처럼 서비스 데이터와 분리된 곳에 쓴다. 같은 디스크에 쓰면 캡처가 서비스 IO와 경쟁하고, 꽉 찼을 때 같이 죽는다.</p>
+<h3 id="성능-부담">성능 부담<a class="headerlink" href="#성능-부담" title="Permanent link">&para;</a></h3>
+<p>tcpdump가 부하를 주는 지점은 두 곳이다. 패킷을 커널에서 유저 공간으로 복사하는 비용, 그리고 파일로 쓰는 디스크 IO. 트래픽이 많을수록 둘 다 커진다.</p>
+<p>부하를 줄이는 첫 번째는 BPF 필터를 좁히는 거다. 필터는 커널에서 적용되니까, 관심 없는 패킷이 유저 공간으로 안 올라오게 막으면 복사 비용 자체가 준다. <code>tcpdump -i eth0</code> 같은 무필터 캡처를 트래픽 많은 서버에서 돌리는 건 피한다. 반드시 host와 port로 좁힌다.</p>
+<p>두 번째는 헤더만 받는 거다. 페이로드 분석이 필요 없으면 <code>-s 96</code>으로 잘라서 복사·저장량을 줄인다. RST/재전송/핸드셰이크만 볼 거면 본문이 필요 없으니 헤더만으로 충분하다.</p>
+<p>세 번째는 화면 출력을 끄는 거다. <code>-w</code>로 파일에 쓰면 패킷을 사람이 읽는 텍스트로 변환하는 비용이 안 든다. 화면에 흘리면서 보는 건 변환·출력 비용이 추가로 든다. 운영에서는 무조건 <code>-w</code>로 파일에 받고, 분석은 나중에 따로 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># 운영 서버 캡처 권장 형태: 필터 좁힘 + 헤더만 + 링버퍼 + 개수 제한</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;host 10.0.1.50 and port 5432&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span>-s<span class="w"> </span><span class="m">128</span><span class="w"> </span>-C<span class="w"> </span><span class="m">100</span><span class="w"> </span>-W<span class="w"> </span><span class="m">5</span><span class="w"> </span>-c<span class="w"> </span><span class="m">500000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span>-w<span class="w"> </span>/tmp/db-issue.pcap
+</span></code></pre></div>
+<p>이렇게 하면 특정 호스트·포트만, 헤더 위주로, 최대 500MB, 최대 50만 패킷까지만 받고 멈춘다. 잠깐 떠서 증상을 잡는 용도로는 이 정도가 안전하다.</p>
+<h3 id="권한과-흔적">권한과 흔적<a class="headerlink" href="#권한과-흔적" title="Permanent link">&para;</a></h3>
+<p>tcpdump는 raw 소켓을 열어야 해서 root나 <code>CAP_NET_RAW</code> 권한이 필요하다. 운영 서버에서 sudo로 돌릴 텐데, 캡처 파일에 평문 트래픽이 그대로 담긴다는 걸 잊으면 안 된다. 평문 HTTP면 헤더의 토큰, 쿠키, 인증 정보가 pcap에 다 남는다. 분석 끝나면 파일을 지운다. 로컬로 옮긴 pcap도 마찬가지다. 민감 정보가 담긴 캡처 파일을 정리 안 하고 방치하는 게 의외로 흔한 사고다.</p>
+<p>캡처를 백그라운드로 돌렸으면 끝나고 프로세스가 살아있는지 확인한다. <code>-c</code>나 <code>-W</code> 없이 띄운 tcpdump를 nohup으로 백그라운드에 넣고 잊으면, 며칠 뒤 디스크 알람으로 그 존재를 알게 된다.</p>
+<h2 id="자주-쓰는-한-줄-모음">자주 쓰는 한 줄 모음<a class="headerlink" href="#자주-쓰는-한-줄-모음" title="Permanent link">&para;</a></h2>
+<p>상황별로 바로 꺼내 쓰는 형태를 정리해 둔다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># 연결이 안 된다 - SYN/RST만 보면서 핸드셰이크 추적</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;host 10.0.1.50 and (tcp[tcpflags] &amp; (tcp-syn|tcp-rst) != 0)&#39;</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># 커넥션이 끊긴다 - RST와 FIN 추적</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;host 10.0.1.50 and (tcp[tcpflags] &amp; (tcp-rst|tcp-fin) != 0)&#39;</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1"># 특정 DB로 가는 트래픽 전체를 파일로 (분석은 나중에)</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span><span class="s1">&#39;host 10.0.1.50 and port 5432&#39;</span><span class="w"> </span>-s<span class="w"> </span><span class="m">0</span><span class="w"> </span>-C<span class="w"> </span><span class="m">100</span><span class="w"> </span>-W<span class="w"> </span><span class="m">5</span><span class="w"> </span>-w<span class="w"> </span>/tmp/db.pcap
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="c1"># DNS 조회 확인 (이름 해석이 의심될 때)</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span><span class="s1">&#39;udp port 53&#39;</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="c1"># 특정 호스트로 가는 ICMP (ping/unreachable)</span>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span><span class="s1">&#39;icmp and host 10.0.1.50&#39;</span>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="c1"># 저장한 파일에서 RST만 다시 추려보기</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>tcpdump<span class="w"> </span>-nn<span class="w"> </span>-r<span class="w"> </span>/tmp/db.pcap<span class="w"> </span><span class="s1">&#39;tcp[tcpflags] &amp; tcp-rst != 0&#39;</span>
+</span></code></pre></div>
+<p>tcpdump로 캡처해서 좁히고, 파일로 받아서 Wireshark로 따라가는 흐름이 거의 모든 네트워크 트러블슈팅의 기본 동선이다. 핸드셰이크가 되는지, RST가 어디서 오는지, 재전송이 얼마나 일어나는지. 이 세 개를 패킷에서 읽어내면 "네트워크 문제냐 애플리케이션 문제냐"는 대부분 그 자리에서 갈린다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../7%20Layer/Application%20Layer/Http/HTTP_Status_Code/">HTTP Status Code</a></li>
+<li><a href="../../NAT/">NAT (Network Address Translation)</a></li>
+<li><a href="../../GateWay/Network_Gateway_Advanced/">Network Gateway 심화</a></li>
+<li><a href="../../7%20Layer/OSI_7_Layer_Model/">OSI 7 계층 모델 (OSI 7 Layer Model)</a></li>
+<li><a href="../../7%20Layer/Transport%20Layer/TCP/TCP_Socket_Programming_Patterns/">TCP 소켓 프로그래밍 실무 패턴</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="이전: Observability 전체 보기">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Observability 전체 보기
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../../OS/" class="md-footer__link md-footer__link--next" aria-label="다음: OS 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                OS 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

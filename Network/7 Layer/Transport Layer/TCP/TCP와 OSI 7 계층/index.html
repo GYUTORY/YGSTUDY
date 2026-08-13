@@ -1,90 +1,2831 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Transport%20Layer/TCP/TCP%EC%99%80%20OSI%207%20%EA%B3%84%EC%B8%B5/ rel=canonical><link href=../TCP_vs_UDP/ rel=prev><link href=../Mqtt/AMQP%20vs%20MQTT/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../../feed_rss_updated.xml><link rel=icon href=../../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>TCP와 OSI 7 계층 - YGSTUDY</title><link rel=stylesheet href=../../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#tcp와-osi-7-계층 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> TCP와 OSI 7 계층 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> OSI 7계층 </span> </a> <label class="md-nav__link " for=__nav_7_1_7 id=__nav_7_1_7_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7> <span class="md-nav__icon md-icon"></span> OSI 7계층 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../DHCP/ class=md-nav__link> <span class=md-ellipsis> DHCP </span> </a> </li> <li class=md-nav__item> <a href=../../../GSLB/ class=md-nav__link> <span class=md-ellipsis> GSLB </span> </a> </li> <li class=md-nav__item> <a href=../../../Network%20Flow/ class=md-nav__link> <span class=md-ellipsis> 네트워크 플로우 </span> </a> </li> <li class=md-nav__item> <a href=../../../OSI_7_Layer_Model/ class=md-nav__link> <span class=md-ellipsis> OSI 7 계층 모델 </span> </a> </li> <li class=md-nav__item> <a href=../../../Qo_S_Traffic_Shaping/ class=md-nav__link> <span class=md-ellipsis> QoS와 트래픽 셰이핑 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Application%20Layer/ class=md-nav__link> <span class=md-ellipsis> Application Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Data%20Link%20Layer/ class=md-nav__link> <span class=md-ellipsis> 데이터 링크 계층 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network%20Layer/ class=md-nav__link> <span class=md-ellipsis> Network Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7_10 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Transport Layer </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_7_1_7_10_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7_10> <span class="md-nav__icon md-icon"></span> Transport Layer </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#http-요청-하나가-7개-계층을-지나는-과정 class=md-nav__link> <span class=md-ellipsis> HTTP 요청 하나가 7개 계층을 지나는 과정 </span> </a> <nav class=md-nav aria-label="HTTP 요청 하나가 7개 계층을 지나는 과정"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#l7--l4-애플리케이션-데이터가-tcp-세그먼트가-되기까지 class=md-nav__link> <span class=md-ellipsis> L7 → L4: 애플리케이션 데이터가 TCP 세그먼트가 되기까지 </span> </a> </li> <li class=md-nav__item> <a href=#l3--l1-ip-패킷이-물리-신호가-되기까지 class=md-nav__link> <span class=md-ellipsis> L3 → L1: IP 패킷이 물리 신호가 되기까지 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#tcpdump로-계층-경계-추적하기 class=md-nav__link> <span class=md-ellipsis> tcpdump로 계층 경계 추적하기 </span> </a> </li> <li class=md-nav__item> <a href=#수신-측-헤더를-벗겨내는-역방향-과정 class=md-nav__link> <span class=md-ellipsis> 수신 측: 헤더를 벗겨내는 역방향 과정 </span> </a> </li> <li class=md-nav__item> <a href=#l4가-담당하는-것과-tcp가-그것을-어떻게-푸는가 class=md-nav__link> <span class=md-ellipsis> L4가 담당하는 것과 TCP가 그것을 어떻게 푸는가 </span> </a> </li> <li class=md-nav__item> <a href=#tcp-헤더를-l4-pdu로-분해하기 class=md-nav__link> <span class=md-ellipsis> TCP 헤더를 L4 PDU로 분해하기 </span> </a> </li> <li class=md-nav__item> <a href=#l5l7-tls와-http가-tcp-위에-얹히는-방식 class=md-nav__link> <span class=md-ellipsis> L5~L7: TLS와 HTTP가 TCP 위에 얹히는 방식 </span> </a> </li> <li class=md-nav__item> <a href=#tcp-소켓-api와-l4-추상화 class=md-nav__link> <span class=md-ellipsis> TCP 소켓 API와 L4 추상화 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>encryption</span> <span class=md-tag>http</span> <span class=md-tag>network</span> <span class=md-tag>tcp</span> </nav> <h1 id=tcp와-osi-7-계층>TCP와 OSI 7 계층<a class=headerlink href=#tcp와-osi-7-계층 title="Permanent link">&para;</a></h1> <p>OSI 모델 전반은 <a href=../../../OSI_7_Layer_Model/ >OSI 7 계층 모델</a> 문서에 정리되어 있다. 이 문서는 TCP가 OSI 7계층 전체에서 어떤 위치를 차지하는지, HTTP 요청 하나가 L7에서 L1까지 내려가고 다시 올라오는 과정을 실제 패킷 단위로 추적한다.</p> <h2 id=http-요청-하나가-7개-계층을-지나는-과정>HTTP 요청 하나가 7개 계층을 지나는 과정<a class=headerlink href=#http-요청-하나가-7개-계층을-지나는-과정 title="Permanent link">&para;</a></h2> <p>브라우저가 <code>https://example.com/index.html</code>을 요청할 때 각 계층에서 무슨 일이 일어나는지 순서대로 쫓아본다.</p> <h3 id=l7--l4-애플리케이션-데이터가-tcp-세그먼트가-되기까지>L7 → L4: 애플리케이션 데이터가 TCP 세그먼트가 되기까지<a class=headerlink href=#l7--l4-애플리케이션-데이터가-tcp-세그먼트가-되기까지 title="Permanent link">&para;</a></h3> <p><strong>L7 (Application): HTTP 요청 구성</strong></p> <div class="language-http highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=err>GET /index.html HTTP/1.1\r\n</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=err>Host: example.com\r\n</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=err>Connection: keep-alive\r\n</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=err>\r\n</span>
-</span></code></pre></div> <p>텍스트 약 60바이트가 애플리케이션 레이어에서 만들어진다.</p> <p><strong>L5/L6 (Session/Presentation): TLS Record로 암호화</strong></p> <p>HTTPS라면 이 HTTP 바이트가 그냥 내려가지 않는다. TLS Record Layer가 감싼다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>TLS Record Header (5바이트):
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>  ContentType: 0x17 (Application Data)
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>  Version:     0x0303 (TLS 1.2/1.3 공통 레거시 필드)
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>  Length:      암호화 후 페이로드 길이
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>암호화된 HTTP 데이터 (가변):
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>  AEAD 인증 태그 16B 포함, 원본 60바이트가 80~90바이트 내외로 늘어남
-</span></code></pre></div> <p>TLS Record와 TCP 세그먼트는 1:1로 대응되지 않는다. TLS Record 하나가 여러 TCP 세그먼트로 쪼개질 수도 있고, 한 TCP 세그먼트에 여러 TLS Record가 합쳐질 수도 있다. tcpdump로 보면 암호화된 덩어리들만 보이는데, TLS Record 경계와 TCP 세그먼트 경계가 다르다는 점을 항상 염두에 둬야 한다.</p> <p><strong>L4 (Transport): TCP 세그먼트로 포장</strong></p> <p>L4에서 TCP 헤더 20바이트(옵션 제외)가 앞에 붙는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>[TCP Header 20B] [TLS Record (5B 헤더 + 암호화 데이터)]
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>출발지 포트: 임시 포트(예: 54321)
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>목적지 포트: 443
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>Seq:    현재 스트림 바이트 위치
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>ACK:    상대방에게 받은 마지막 바이트
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>Flags:  PSH, ACK
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>Window: 수신 버퍼 여유 공간
-</span></code></pre></div> <h3 id=l3--l1-ip-패킷이-물리-신호가-되기까지>L3 → L1: IP 패킷이 물리 신호가 되기까지<a class=headerlink href=#l3--l1-ip-패킷이-물리-신호가-되기까지 title="Permanent link">&para;</a></h3> <p><strong>L3 (Network): IP 헤더 추가</strong></p> <p>TCP 세그먼트가 IP 페이로드가 된다. IP 헤더 20바이트(옵션 없을 때)가 앞에 붙는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>[IP Header 20B] [TCP Header 20B] [TLS Record]
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>출발지 IP: 192.168.0.10
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>목적지 IP: 93.184.216.34
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>Protocol:  6 (TCP)
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>TTL:       64 (리눅스 기본값)
-</span></code></pre></div> <p>IP 헤더의 Protocol 필드가 <code>6</code>이라는 숫자 하나로 "이 패킷의 페이로드는 TCP 세그먼트"라는 L3→L4 경계를 정의한다.</p> <p><strong>L2 (Data Link): 이더넷 프레임으로 감싸기</strong></p> <p>목적지가 같은 서브넷이 아니면 ARP로 라우터의 MAC 주소를 알아낸 뒤 이더넷 프레임으로 감싼다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>[Ethernet Header 14B] [IP Header 20B] [TCP Header 20B] [TLS Record] [FCS 4B]
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>DST MAC: 라우터(게이트웨이)의 MAC
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>SRC MAC: 내 NIC의 MAC
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>EtherType: 0x0800 (IPv4)
-</span></code></pre></div> <p>이더넷 헤더의 MAC 주소는 홉마다 바뀐다. 패킷이 라우터를 거칠 때마다 L2 헤더는 새로 씌워지지만, L3 IP 헤더는 출발지에서 목적지까지 유지된다. end-to-end 식별자는 IP이고, L2 MAC은 다음 홉까지의 로컬 식별자다.</p> <p><strong>L1 (Physical): 비트로 전송</strong></p> <p>이더넷 프레임의 바이트들이 전기 신호(구리 케이블), 광 신호(광케이블), 또는 전파(무선)로 변환되어 전송된다. 1Gbps 이더넷이면 1비트당 1ns. L1은 프로토콜이라기보다 물리 매체와 신호 스펙이다.</p> <p>전체 오버헤드를 합산하면:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>L2 이더넷 헤더:    14B
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>L3 IP 헤더:        20B
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>L4 TCP 헤더:       20~40B (옵션 포함 시)
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>L5/L6 TLS:         5B 헤더 + AEAD 태그 16B
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>---------------------------------
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>HTTP 60B에 오버헤드 최소 75~95B
-</span></code></pre></div> <p>작은 요청일수록 헤더 오버헤드 비율이 높다. HTTP/2가 헤더 압축(HPACK)을 도입한 이유 중 하나다.</p> <h2 id=tcpdump로-계층-경계-추적하기>tcpdump로 계층 경계 추적하기<a class=headerlink href=#tcpdump로-계층-경계-추적하기 title="Permanent link">&para;</a></h2> <p><code>-e</code> 플래그를 붙이면 L2 이더넷 헤더까지 출력된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>sudo<span class=w> </span>tcpdump<span class=w> </span>-i<span class=w> </span>eth0<span class=w> </span>-nn<span class=w> </span>-e<span class=w> </span>-X<span class=w> </span><span class=s1>&#39;host 93.184.216.34 and port 443&#39;</span><span class=w> </span>-c<span class=w> </span><span class=m>10</span>
-</span></code></pre></div> <p><strong>SYN 패킷 (TCP 연결 시작, L2/L3/L4)</strong></p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>14:32:11.234567 aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e, ethertype IPv4 (0x0800), length 78:
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>  192.168.0.10.54321 &gt; 93.184.216.34.443: Flags [S], seq 3916014290, win 64240,
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>  options [mss 1460,sackOK,TS val 4294944 ecr 0,nop,wscale 7], length 0
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>  0x0000:  4500 003c 1c46 4000 4006 f4f5 c0a8 000a   E..&lt;.F@.@.......
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>  0x0010:  5db8 d822 d431 01bb e940 0fd2 0000 0000   ]..&quot;.1...@......
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>  0x0020:  a002 faf0 50f4 0000 0204 05b4 0402 080a   ....P...........
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>  0x0030:  0041 ae60 0000 0000 0103 0307             .A.`.......
-</span></code></pre></div> <p>줄별로 읽으면: - 맨 앞 줄: L2. <code>aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e</code>가 이더넷 헤더의 출발지/목적지 MAC. <code>0x0800</code>이 EtherType(IPv4). - <code>192.168.0.10.54321 &gt; 93.184.216.34.443</code>: tcpdump가 L3 IP 주소와 L4 포트를 파싱해서 보여준 것. - <code>Flags [S]</code>: TCP SYN 플래그만 켜진 상태. - 바이트 덤프 첫 바이트 <code>45</code>: <code>4</code>는 IPv4, <code>5</code>는 헤더 길이 5×4=20바이트. - <code>0x0006</code> 위치(IP 헤더 9번째 바이트): Protocol=6, TCP를 의미. - <code>d431 01bb</code>: TCP 헤더 시작. <code>0xd431</code>=54321(출발지 포트), <code>0x01bb</code>=443(목적지 포트). - <code>a002</code>: Data Offset=10(헤더 40바이트, 옵션 포함), Flags=0x02(SYN만 켜짐).</p> <p><strong>TLS ClientHello (L5/L6 레이어)</strong></p> <p>TCP 3-way handshake가 끝난 뒤 클라이언트가 TLS 핸드셰이크를 시작한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>14:32:11.356789 aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e, ethertype IPv4 (0x0800), length 583:
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>  192.168.0.10.54321 &gt; 93.184.216.34.443: Flags [P.], seq 1:530, ack 1, win 502, length 529
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>  0x0000:  4500 024b 1c48 4000 4006 f2a0 c0a8 000a   E..K.H@.@.......
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>  0x0010:  5db8 d822 d431 01bb e940 0fd3 ...         ]..&quot;.1...@......
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>  ...
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>  0x0036:  1603 0101 0204 ...                        ................
-</span></code></pre></div> <ul> <li><code>0x0036</code> 오프셋(이더넷 14B + IP 20B + TCP 20B = 54B 뒤)부터 TLS Record가 시작된다.</li> <li><code>16</code>: TLS ContentType=0x16=Handshake.</li> <li><code>03 01</code>: TLS 레코드 레이어의 레거시 버전 필드(TLS 1.3도 이 자리에 0x0303을 넣는다).</li> <li>이후 바이트: ClientHello 핸드셰이크 메시지(지원 cipher suite, SNI 등).</li> </ul> <p>tcpdump는 L4까지만 파싱한다. TLS(L5/L6) 이상은 바이트 덤프로만 보인다. TLS 내용을 보려면 <code>ssldump</code>나 Wireshark에 세션 키를 주입해야 한다.</p> <p><strong>HTTP Application Data (L7, TLS 암호화 상태)</strong></p> <p>TLS 핸드셰이크 완료 후 실제 HTTP 요청이 암호화되어 전송된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>14:32:11.892345 aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e, ethertype IPv4 (0x0800), length 140:
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>  192.168.0.10.54321 &gt; 93.184.216.34.443: Flags [P.], seq 530:616, ack 4192, win 501, length 86
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>  0x0000:  4500 008c ...
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>  ...
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>  0x0036:  1703 0300 51 ...                          ....Q...
-</span></code></pre></div> <ul> <li><code>0x0036</code>부터 TLS Record.</li> <li><code>17</code>: ContentType=0x17=Application Data. 이 시점부터 HTTP 데이터가 암호화되어 들어있다.</li> <li><code>03 03</code>: TLS 1.2/1.3 레코드 레이어 버전.</li> <li>이후는 완전히 암호화된 페이로드. <code>GET /index.html HTTP/1.1</code>이라는 내용은 여기서 보이지 않는다.</li> </ul> <p>L7이 L4 아래에서 완전히 불투명해지는 지점이 여기다.</p> <h2 id=수신-측-헤더를-벗겨내는-역방향-과정>수신 측: 헤더를 벗겨내는 역방향 과정<a class=headerlink href=#수신-측-헤더를-벗겨내는-역방향-과정 title="Permanent link">&para;</a></h2> <p>서버 측에서는 반대 순서로 처리한다.</p> <p>NIC가 비트를 받아 이더넷 프레임으로 조립(L1→L2). L2에서 EtherType <code>0x0800</code>을 보고 IP 스택으로 올린다(L2→L3). L3에서 Protocol 필드 <code>6</code>을 보고 TCP 스택으로 올린다(L3→L4). L4 TCP에서 목적지 포트 443을 보고 해당 소켓에 데이터를 전달한다(L4→L5). L5/L6 TLS Record Layer가 복호화한다. L7 HTTP 파서가 메서드, 경로, 헤더를 파싱한다.</p> <p>각 계층이 자기 헤더만 보고 판단한 뒤 상위 계층으로 올린다. L3는 L4의 내용을 모르고, L4는 L7의 내용을 모른다. 계층 간 결합이 헤더 필드 몇 바이트로만 이루어진다는 점이 OSI 모델의 실제 의미다.</p> <h2 id=l4가-담당하는-것과-tcp가-그것을-어떻게-푸는가>L4가 담당하는 것과 TCP가 그것을 어떻게 푸는가<a class=headerlink href=#l4가-담당하는-것과-tcp가-그것을-어떻게-푸는가 title="Permanent link">&para;</a></h2> <p>OSI 4계층의 책임은 <strong>프로세스 간 종단간(end-to-end) 연결</strong>을 만드는 것이다. L3(IP)는 호스트까지만 데이터를 가져다주고, "이 데이터가 어떤 프로세스에 가야 하는지"는 모른다. 거기서부터가 L4의 일이다.</p> <p>TCP는 이 책임을 구체적인 메커니즘으로 구현한 프로토콜이다. 네 가지를 동시에 처리한다.</p> <p><strong>포트 다중화(Multiplexing/Demultiplexing)</strong> 한 호스트의 IP는 하나지만 그 위에 수천 개의 프로세스가 동시에 통신할 수 있다. 16비트 포트 번호가 이를 가능하게 한다. 같은 80번 포트로 들어오는 패킷이라도 (출발지 IP, 출발지 포트, 목적지 IP, 목적지 포트, 프로토콜)이라는 5-tuple로 각 연결이 구분된다. 5-tuple이 같으면 같은 TCP 연결이고, 하나라도 다르면 다른 연결이다. 같은 클라이언트가 같은 서버의 같은 포트로 여러 번 연결해도 클라이언트 측 임시 포트(ephemeral port)가 달라서 별개의 연결이 된다.</p> <p><strong>바이트 스트림 추상화</strong> 애플리케이션 입장에서 TCP는 "양방향 바이트 스트림"이다. <code>write</code>한 바이트 100개가 그대로 <code>read</code>에서 100바이트로 나오는 것처럼 보이지만, 실제로는 IP 패킷 단위로 잘려서 가다가 순서가 뒤바뀌거나 일부가 유실될 수 있다. TCP는 모든 바이트에 시퀀스 번호를 붙이고, 받은 쪽이 ACK 번호로 "이 바이트까지 받았다"를 알려주면서 누락된 구간을 재전송한다. L4 세그먼트는 L3 패킷과 1:1 대응이 아니다. 한 세그먼트가 IP에서 단편화될 수도 있고, 애플리케이션이 보낸 데이터 1개가 여러 세그먼트로 쪼개질 수도 있다.</p> <p><strong>흐름 제어(Flow Control)</strong> 수신자가 처리할 수 있는 속도보다 빠르게 보내면 수신 버퍼가 넘친다. TCP 헤더의 Window 필드로 "지금 내 버퍼에 X바이트만큼 더 받을 수 있다"를 매번 알려주고, 송신자는 그 한도를 넘지 않게 보낸다.</p> <p><strong>혼잡 제어(Congestion Control)</strong> 흐름 제어가 수신자를 보호하는 거라면, 혼잡 제어는 네트워크 자체를 보호한다. 네트워크 어딘가가 막히면 패킷 유실로 나타나고, TCP는 이를 감지해서 송신 속도를 줄인다. CUBIC, BBR 같은 알고리즘이 여기에 해당한다. UDP는 L4지만 혼잡 제어를 하지 않는다.</p> <p>암호화나 메시지 경계는 TCP가 하지 않는다. 그건 위 계층의 일이다.</p> <h2 id=tcp-헤더를-l4-pdu로-분해하기>TCP 헤더를 L4 PDU로 분해하기<a class=headerlink href=#tcp-헤더를-l4-pdu로-분해하기 title="Permanent link">&para;</a></h2> <p>L4의 PDU(Protocol Data Unit)는 <strong>세그먼트(Segment)</strong>다. TCP 세그먼트는 TCP 헤더 + 페이로드로 구성되고, 헤더는 옵션 없이도 최소 20바이트다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a> 0                   1                   2                   3
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>|          Source Port          |       Destination Port        |  0~3
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a>|                        Sequence Number                        |  4~7
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>|                    Acknowledgment Number                      |  8~11
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a>|  DO |Rsv|U|A|P|R|S|F|         Window Size           |          12~15
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a>|           Checksum            |        Urgent Pointer         |  16~19
-</span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a>|                    Options (가변, 0~40바이트)                  |
-</span><span id=__span-10-15><a id=__codelineno-10-15 name=__codelineno-10-15 href=#__codelineno-10-15></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span><span id=__span-10-16><a id=__codelineno-10-16 name=__codelineno-10-16 href=#__codelineno-10-16></a>|                            Payload                            |
-</span><span id=__span-10-17><a id=__codelineno-10-17 name=__codelineno-10-17 href=#__codelineno-10-17></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-</span></code></pre></div> <p>L4의 책임과 매핑해서 보면 어떤 필드가 어떤 일을 하는지 분명해진다.</p> <ul> <li><strong>Source/Destination Port (0~3바이트)</strong>: 포트 다중화. IP 헤더에는 포트가 없다. L4에서 비로소 프로세스 단위 식별이 가능해진다.</li> <li><strong>Sequence Number (4~7바이트)</strong>: 이 세그먼트의 첫 페이로드 바이트가 전체 스트림에서 몇 번째 바이트인지. 32비트라서 약 4GB마다 한 바퀴 돈다. 고대역폭 환경에서 이 문제 때문에 PAWS(Protect Against Wrapped Sequences)가 옵션으로 들어왔다.</li> <li><strong>Acknowledgment Number (8~11바이트)</strong>: "이 번호 직전 바이트까지 받았다." ACK 플래그가 켜져 있을 때만 유효하다.</li> <li><strong>Data Offset(DO, 4비트)</strong>: TCP 헤더 길이를 32비트 워드 단위로 표현. 옵션 필드가 가변 길이라서 헤더 끝이 어디인지 알려줘야 한다. 최댓값 15면 60바이트, 그래서 옵션은 최대 40바이트.</li> <li><strong>Flags</strong>: 연결 상태 전이를 만드는 비트들. 3-way handshake도 4-way termination도 결국 이 비트 조합이다.</li> <li><strong>Window Size (14~15바이트)</strong>: 흐름 제어. 수신 가능 바이트. 16비트라 65535가 최대지만, Window Scale 옵션으로 최대 1GB 가까이 늘릴 수 있다. 1Gbps 이상 회선에서 이 옵션 없으면 throughput이 안 나온다.</li> <li><strong>Checksum (16~17바이트)</strong>: TCP 헤더+페이로드+IP pseudo-header에 대한 체크섬. L2 이더넷에도 FCS가 있지만 그건 다음 홉까지의 검증이고, end-to-end 검증은 여기서 한다.</li> <li><strong>Options</strong>: MSS, SACK Permitted, Window Scale, Timestamp 같은 협상 항목들. SYN과 SYN+ACK에서 주로 교환된다.</li> </ul> <h2 id=l5l7-tls와-http가-tcp-위에-얹히는-방식>L5~L7: TLS와 HTTP가 TCP 위에 얹히는 방식<a class=headerlink href=#l5l7-tls와-http가-tcp-위에-얹히는-방식 title="Permanent link">&para;</a></h2> <p>OSI 모델은 L5(세션), L6(표현), L7(응용)을 깔끔하게 분리하지만, 실제 인터넷 프로토콜에서는 이 셋이 거의 합쳐져 있다. TCP/IP 4계층 모델이 L5~L7을 그냥 "Application"으로 묶어버리는 이유다.</p> <p><strong>TLS의 계층 위치</strong></p> <p>TLS는 L4 위에서 동작하지만 OSI L5/L6에 걸쳐있다. 핸드셰이크 단계에서는 세션을 협상(L5)하고, 이후에는 암호화와 무결성을 제공(L6)한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>TLS Record 구조:
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>ContentType (1B):  Handshake(0x16), Alert(0x15), ApplicationData(0x17)
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>Version (2B):      0x0303 (TLS 1.2/1.3 공통)
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>Length (2B):       이 Record의 페이로드 길이
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a>Payload:           암호화된 데이터 또는 핸드셰이크 메시지
-</span></code></pre></div> <p>TLS Record와 TCP 세그먼트 경계가 맞지 않는 경우가 자주 발생한다. 16KB TLS Record(TLS 최대 Record 크기)는 MTU 1500바이트 기준으로 약 11개의 TCP 세그먼트로 쪼개진다. 첫 번째 세그먼트만 TLS Record 헤더를 포함하고 나머지는 페이로드만 담는다. 수신 측은 TCP 스트림에서 TLS Record를 재조립한 뒤에야 복호화할 수 있다.</p> <p>이 구조 때문에 TLS 위에서 패킷 유실이 발생하면 단순 재전송 지연보다 더 큰 문제가 생긴다. TLS Record 하나를 완성하지 못하면 복호화 자체가 블락된다. HTTP/3(QUIC)이 스트림 단위 재전송으로 이 head-of-line blocking을 피하려는 이유가 여기 있다.</p> <p><strong>HTTP의 계층 위치</strong></p> <p>교과서적으로 HTTP는 L7이지만, HTTP/1.1의 keep-alive와 Connection 헤더는 세션 관리(L5)에 가깝다. Content-Type, Content-Encoding은 데이터 표현(L6)이다. HTTP 하나가 L5/L6/L7을 다 한다. OSI로 정확히 자르려고 하면 답이 안 나오는 이유다.</p> <p><strong>L4 LB가 TLS 트래픽을 다룰 수 있는가</strong></p> <p>L4 LB(NLB, LVS 등)는 TCP 헤더까지만 본다. TLS 핸드셰이크 내용은 읽지 못한다. SNI 기반으로 도메인별 라우팅을 하려면 L7 LB(Nginx, ALB, Envoy)로 올라가거나, TLS Passthrough 상태에서 ClientHello의 SNI 확장 필드만 읽는 형태(L4와 L7 사이 어딘가)가 된다.</p> <p><strong>TLS 트래픽 트러블슈팅</strong></p> <p>서버 측에서 TLS termination을 하지 않으면 중간에서 HTTP 요청/응답을 볼 방법이 없다. 클라이언트 측에서 세션 키를 덤프(<code>SSLKEYLOGFILE</code> 환경변수 설정)하거나, L7 LB에서 TLS를 종료한 뒤 내부망은 HTTP로 통신하는 방식을 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># 클라이언트 세션 키 덤프 (curl 예시)</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=nv>SSLKEYLOGFILE</span><span class=o>=</span>/tmp/keylog.txt<span class=w> </span>curl<span class=w> </span>https://example.com
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=c1># Wireshark에서 keylog 파일을 주입하면 암호화된 TLS 트래픽 복호화 가능</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=c1># Edit &gt; Preferences &gt; Protocols &gt; TLS &gt; (Pre)-Master-Secret log filename</span>
-</span></code></pre></div> <p>tcpdump로 덤프한 패킷 캡처 파일과 keylog를 Wireshark에서 함께 열면, 암호화된 Application Data 패킷 안에 있던 HTTP 요청/응답 내용까지 평문으로 볼 수 있다.</p> <h2 id=tcp-소켓-api와-l4-추상화>TCP 소켓 API와 L4 추상화<a class=headerlink href=#tcp-소켓-api와-l4-추상화 title="Permanent link">&para;</a></h2> <p>L4의 추상화는 결국 BSD 소켓 API로 노출된다.</p> <div class="language-c highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=kt>int</span><span class=w> </span><span class=n>sock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>socket</span><span class=p>(</span><span class=n>AF_INET</span><span class=p>,</span><span class=w> </span><span class=n>SOCK_STREAM</span><span class=p>,</span><span class=w> </span><span class=mi>0</span><span class=p>);</span><span class=w>  </span><span class=c1>// SOCK_STREAM = TCP</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=n>bind</span><span class=p>(</span><span class=n>sock</span><span class=p>,</span><span class=w> </span><span class=p>...);</span><span class=w>    </span><span class=c1>// 자기 측 포트 점유 - 포트 다중화 등록</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=n>listen</span><span class=p>(</span><span class=n>sock</span><span class=p>,</span><span class=w> </span><span class=mi>511</span><span class=p>);</span><span class=w>  </span><span class=c1>// accept queue 깊이 결정</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=n>accept</span><span class=p>(</span><span class=n>sock</span><span class=p>,</span><span class=w> </span><span class=p>...);</span><span class=w>  </span><span class=c1>// 완성된 5-tuple 연결을 가져옴</span>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a><span class=n>read</span><span class=p>(</span><span class=n>sock</span><span class=p>,</span><span class=w> </span><span class=n>buf</span><span class=p>,</span><span class=w> </span><span class=n>n</span><span class=p>);</span><span class=w> </span><span class=c1>// 바이트 스트림에서 n바이트 읽기</span>
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=n>write</span><span class=p>(</span><span class=n>sock</span><span class=p>,</span><span class=w> </span><span class=n>buf</span><span class=p>,</span><span class=w> </span><span class=n>n</span><span class=p>);</span><span class=c1>// 바이트 스트림에 n바이트 쓰기</span>
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a><span class=n>close</span><span class=p>(</span><span class=n>sock</span><span class=p>);</span><span class=w>        </span><span class=c1>// FIN 전송, 4-way termination 시작</span>
-</span></code></pre></div> <p><code>read()</code>로 받은 바이트 수가 한 번의 <code>write()</code>와 일치할 거라는 보장이 없다. TCP는 메시지 경계를 보존하지 않는다. 송신 측이 1000바이트를 한 번에 write했어도 수신 측은 300바이트, 700바이트로 나눠서 read할 수 있고, 반대로 두 번의 write가 한 번의 read에서 합쳐져 올 수도 있다. TCP를 처음 다룰 때 가장 많이 실수하는 지점이다. 메시지 단위 통신을 하려면 위 계층에서 길이 prefix나 delimiter로 경계를 따로 만들어야 한다.</p> <p><code>SO_KEEPALIVE</code>, <code>TCP_NODELAY</code>, <code>SO_LINGER</code> 같은 소켓 옵션들도 L4 내부 동작을 켜고 끄는 노브다. <code>TCP_NODELAY</code>로 Nagle 알고리즘을 끄는 것은 "작은 write를 모아서 한 번에 보내는 L4 최적화"를 포기하는 결정이고, 실시간성이 중요한 프로토콜에서 자주 쓴다.</p> <p>OSI 모델 전체와 다른 계층은 <a href=../../../OSI_7_Layer_Model/ >OSI 7 계층 모델</a> 문서, TCP의 구체적인 동작 메커니즘(handshake, 상태 전이, 재전송 등)은 <a href=../TCP/ >TCP 프로토콜 동작 메커니즘</a> 문서를 참고한다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../../Security/TLS_HTTPS/ >TLS와 HTTPS - 핸드셰이크 원리와 인증서 운영 실무</a></li> <li><a href=../../../Network%20Flow/ >네트워크 플로우 (Network Flow)</a></li> <li><a href=../../../../Domain/Web_Communication_Flow/ >웹 통신의 흐름</a></li> <li><a href=../Mqtt/AMQP%20vs%20MQTT/ >AMQP vs MQTT 비교 분석</a></li> <li><a href=../../../../CORS/ >CORS - Origin, Preflight, 인증 쿠키, 인프라 설정</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 9일 10:47:43 UTC">2026년 8월 9일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../TCP_vs_UDP/ class="md-footer__link md-footer__link--prev" aria-label="이전: TCP vs UDP - 실무 선택 기준"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> TCP vs UDP - 실무 선택 기준 </div> </div> </a> <a href=../Mqtt/AMQP%20vs%20MQTT/ class="md-footer__link md-footer__link--next" aria-label="다음: AMQP vs MQTT 비교 분석"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> AMQP vs MQTT 비교 분석 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../../javascripts/extra.js></script> <script src=../../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Transport%20Layer/TCP/TCP%EC%99%80%20OSI%207%20%EA%B3%84%EC%B8%B5/">
+      
+      
+        <link rel="prev" href="../TCP_vs_UDP/">
+      
+      
+        <link rel="next" href="../Mqtt/AMQP%20vs%20MQTT/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>TCP와 OSI 7 계층 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tcp와-osi-7-계층" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TCP와 OSI 7 계층
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_7" id="__nav_7_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OSI 7계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../DHCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../GSLB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GSLB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Network%20Flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 플로우
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../OSI_7_Layer_Model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7 계층 모델
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Qo_S_Traffic_Shaping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QoS와 트래픽 셰이핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Application%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Data%20Link%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 링크 계층
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Network%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7_10" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Layer
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_7_1_7_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Transport Layer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#http-요청-하나가-7개-계층을-지나는-과정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP 요청 하나가 7개 계층을 지나는 과정
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HTTP 요청 하나가 7개 계층을 지나는 과정">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#l7--l4-애플리케이션-데이터가-tcp-세그먼트가-되기까지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L7 → L4: 애플리케이션 데이터가 TCP 세그먼트가 되기까지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#l3--l1-ip-패킷이-물리-신호가-되기까지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L3 → L1: IP 패킷이 물리 신호가 되기까지
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tcpdump로-계층-경계-추적하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tcpdump로 계층 경계 추적하기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#수신-측-헤더를-벗겨내는-역방향-과정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        수신 측: 헤더를 벗겨내는 역방향 과정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l4가-담당하는-것과-tcp가-그것을-어떻게-푸는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L4가 담당하는 것과 TCP가 그것을 어떻게 푸는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tcp-헤더를-l4-pdu로-분해하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TCP 헤더를 L4 PDU로 분해하기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l5l7-tls와-http가-tcp-위에-얹히는-방식" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L5~L7: TLS와 HTTP가 TCP 위에 얹히는 방식
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tcp-소켓-api와-l4-추상화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TCP 소켓 API와 L4 추상화
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">encryption</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">http</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">tcp</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="tcp와-osi-7-계층">TCP와 OSI 7 계층<a class="headerlink" href="#tcp와-osi-7-계층" title="Permanent link">&para;</a></h1>
+<p>OSI 모델 전반은 <a href="../../../OSI_7_Layer_Model/">OSI 7 계층 모델</a> 문서에 정리되어 있다. 이 문서는 TCP가 OSI 7계층 전체에서 어떤 위치를 차지하는지, HTTP 요청 하나가 L7에서 L1까지 내려가고 다시 올라오는 과정을 실제 패킷 단위로 추적한다.</p>
+<h2 id="http-요청-하나가-7개-계층을-지나는-과정">HTTP 요청 하나가 7개 계층을 지나는 과정<a class="headerlink" href="#http-요청-하나가-7개-계층을-지나는-과정" title="Permanent link">&para;</a></h2>
+<p>브라우저가 <code>https://example.com/index.html</code>을 요청할 때 각 계층에서 무슨 일이 일어나는지 순서대로 쫓아본다.</p>
+<h3 id="l7--l4-애플리케이션-데이터가-tcp-세그먼트가-되기까지">L7 → L4: 애플리케이션 데이터가 TCP 세그먼트가 되기까지<a class="headerlink" href="#l7--l4-애플리케이션-데이터가-tcp-세그먼트가-되기까지" title="Permanent link">&para;</a></h3>
+<p><strong>L7 (Application): HTTP 요청 구성</strong></p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="err">GET /index.html HTTP/1.1\r\n</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="err">Host: example.com\r\n</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="err">Connection: keep-alive\r\n</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="err">\r\n</span>
+</span></code></pre></div>
+<p>텍스트 약 60바이트가 애플리케이션 레이어에서 만들어진다.</p>
+<p><strong>L5/L6 (Session/Presentation): TLS Record로 암호화</strong></p>
+<p>HTTPS라면 이 HTTP 바이트가 그냥 내려가지 않는다. TLS Record Layer가 감싼다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>TLS Record Header (5바이트):
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ContentType: 0x17 (Application Data)
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  Version:     0x0303 (TLS 1.2/1.3 공통 레거시 필드)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  Length:      암호화 후 페이로드 길이
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>암호화된 HTTP 데이터 (가변):
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>  AEAD 인증 태그 16B 포함, 원본 60바이트가 80~90바이트 내외로 늘어남
+</span></code></pre></div>
+<p>TLS Record와 TCP 세그먼트는 1:1로 대응되지 않는다. TLS Record 하나가 여러 TCP 세그먼트로 쪼개질 수도 있고, 한 TCP 세그먼트에 여러 TLS Record가 합쳐질 수도 있다. tcpdump로 보면 암호화된 덩어리들만 보이는데, TLS Record 경계와 TCP 세그먼트 경계가 다르다는 점을 항상 염두에 둬야 한다.</p>
+<p><strong>L4 (Transport): TCP 세그먼트로 포장</strong></p>
+<p>L4에서 TCP 헤더 20바이트(옵션 제외)가 앞에 붙는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[TCP Header 20B] [TLS Record (5B 헤더 + 암호화 데이터)]
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>출발지 포트: 임시 포트(예: 54321)
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>목적지 포트: 443
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Seq:    현재 스트림 바이트 위치
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>ACK:    상대방에게 받은 마지막 바이트
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Flags:  PSH, ACK
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>Window: 수신 버퍼 여유 공간
+</span></code></pre></div>
+<h3 id="l3--l1-ip-패킷이-물리-신호가-되기까지">L3 → L1: IP 패킷이 물리 신호가 되기까지<a class="headerlink" href="#l3--l1-ip-패킷이-물리-신호가-되기까지" title="Permanent link">&para;</a></h3>
+<p><strong>L3 (Network): IP 헤더 추가</strong></p>
+<p>TCP 세그먼트가 IP 페이로드가 된다. IP 헤더 20바이트(옵션 없을 때)가 앞에 붙는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[IP Header 20B] [TCP Header 20B] [TLS Record]
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>출발지 IP: 192.168.0.10
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>목적지 IP: 93.184.216.34
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Protocol:  6 (TCP)
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>TTL:       64 (리눅스 기본값)
+</span></code></pre></div>
+<p>IP 헤더의 Protocol 필드가 <code>6</code>이라는 숫자 하나로 "이 패킷의 페이로드는 TCP 세그먼트"라는 L3→L4 경계를 정의한다.</p>
+<p><strong>L2 (Data Link): 이더넷 프레임으로 감싸기</strong></p>
+<p>목적지가 같은 서브넷이 아니면 ARP로 라우터의 MAC 주소를 알아낸 뒤 이더넷 프레임으로 감싼다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[Ethernet Header 14B] [IP Header 20B] [TCP Header 20B] [TLS Record] [FCS 4B]
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>DST MAC: 라우터(게이트웨이)의 MAC
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>SRC MAC: 내 NIC의 MAC
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>EtherType: 0x0800 (IPv4)
+</span></code></pre></div>
+<p>이더넷 헤더의 MAC 주소는 홉마다 바뀐다. 패킷이 라우터를 거칠 때마다 L2 헤더는 새로 씌워지지만, L3 IP 헤더는 출발지에서 목적지까지 유지된다. end-to-end 식별자는 IP이고, L2 MAC은 다음 홉까지의 로컬 식별자다.</p>
+<p><strong>L1 (Physical): 비트로 전송</strong></p>
+<p>이더넷 프레임의 바이트들이 전기 신호(구리 케이블), 광 신호(광케이블), 또는 전파(무선)로 변환되어 전송된다. 1Gbps 이더넷이면 1비트당 1ns. L1은 프로토콜이라기보다 물리 매체와 신호 스펙이다.</p>
+<p>전체 오버헤드를 합산하면:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>L2 이더넷 헤더:    14B
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>L3 IP 헤더:        20B
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>L4 TCP 헤더:       20~40B (옵션 포함 시)
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>L5/L6 TLS:         5B 헤더 + AEAD 태그 16B
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>---------------------------------
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>HTTP 60B에 오버헤드 최소 75~95B
+</span></code></pre></div>
+<p>작은 요청일수록 헤더 오버헤드 비율이 높다. HTTP/2가 헤더 압축(HPACK)을 도입한 이유 중 하나다.</p>
+<h2 id="tcpdump로-계층-경계-추적하기">tcpdump로 계층 경계 추적하기<a class="headerlink" href="#tcpdump로-계층-경계-추적하기" title="Permanent link">&para;</a></h2>
+<p><code>-e</code> 플래그를 붙이면 L2 이더넷 헤더까지 출력된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-i<span class="w"> </span>eth0<span class="w"> </span>-nn<span class="w"> </span>-e<span class="w"> </span>-X<span class="w"> </span><span class="s1">&#39;host 93.184.216.34 and port 443&#39;</span><span class="w"> </span>-c<span class="w"> </span><span class="m">10</span>
+</span></code></pre></div>
+<p><strong>SYN 패킷 (TCP 연결 시작, L2/L3/L4)</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>14:32:11.234567 aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e, ethertype IPv4 (0x0800), length 78:
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  192.168.0.10.54321 &gt; 93.184.216.34.443: Flags [S], seq 3916014290, win 64240,
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  options [mss 1460,sackOK,TS val 4294944 ecr 0,nop,wscale 7], length 0
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  0x0000:  4500 003c 1c46 4000 4006 f4f5 c0a8 000a   E..&lt;.F@.@.......
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  0x0010:  5db8 d822 d431 01bb e940 0fd2 0000 0000   ]..&quot;.1...@......
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  0x0020:  a002 faf0 50f4 0000 0204 05b4 0402 080a   ....P...........
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  0x0030:  0041 ae60 0000 0000 0103 0307             .A.`.......
+</span></code></pre></div>
+<p>줄별로 읽으면:
+- 맨 앞 줄: L2. <code>aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e</code>가 이더넷 헤더의 출발지/목적지 MAC. <code>0x0800</code>이 EtherType(IPv4).
+- <code>192.168.0.10.54321 &gt; 93.184.216.34.443</code>: tcpdump가 L3 IP 주소와 L4 포트를 파싱해서 보여준 것.
+- <code>Flags [S]</code>: TCP SYN 플래그만 켜진 상태.
+- 바이트 덤프 첫 바이트 <code>45</code>: <code>4</code>는 IPv4, <code>5</code>는 헤더 길이 5×4=20바이트.
+- <code>0x0006</code> 위치(IP 헤더 9번째 바이트): Protocol=6, TCP를 의미.
+- <code>d431 01bb</code>: TCP 헤더 시작. <code>0xd431</code>=54321(출발지 포트), <code>0x01bb</code>=443(목적지 포트).
+- <code>a002</code>: Data Offset=10(헤더 40바이트, 옵션 포함), Flags=0x02(SYN만 켜짐).</p>
+<p><strong>TLS ClientHello (L5/L6 레이어)</strong></p>
+<p>TCP 3-way handshake가 끝난 뒤 클라이언트가 TLS 핸드셰이크를 시작한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>14:32:11.356789 aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e, ethertype IPv4 (0x0800), length 583:
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  192.168.0.10.54321 &gt; 93.184.216.34.443: Flags [P.], seq 1:530, ack 1, win 502, length 529
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  0x0000:  4500 024b 1c48 4000 4006 f2a0 c0a8 000a   E..K.H@.@.......
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>  0x0010:  5db8 d822 d431 01bb e940 0fd3 ...         ]..&quot;.1...@......
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>  ...
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  0x0036:  1603 0101 0204 ...                        ................
+</span></code></pre></div>
+<ul>
+<li><code>0x0036</code> 오프셋(이더넷 14B + IP 20B + TCP 20B = 54B 뒤)부터 TLS Record가 시작된다.</li>
+<li><code>16</code>: TLS ContentType=0x16=Handshake.</li>
+<li><code>03 01</code>: TLS 레코드 레이어의 레거시 버전 필드(TLS 1.3도 이 자리에 0x0303을 넣는다).</li>
+<li>이후 바이트: ClientHello 핸드셰이크 메시지(지원 cipher suite, SNI 등).</li>
+</ul>
+<p>tcpdump는 L4까지만 파싱한다. TLS(L5/L6) 이상은 바이트 덤프로만 보인다. TLS 내용을 보려면 <code>ssldump</code>나 Wireshark에 세션 키를 주입해야 한다.</p>
+<p><strong>HTTP Application Data (L7, TLS 암호화 상태)</strong></p>
+<p>TLS 핸드셰이크 완료 후 실제 HTTP 요청이 암호화되어 전송된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>14:32:11.892345 aa:bb:cc:11:22:33 &gt; 00:1a:2b:3c:4d:5e, ethertype IPv4 (0x0800), length 140:
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  192.168.0.10.54321 &gt; 93.184.216.34.443: Flags [P.], seq 530:616, ack 4192, win 501, length 86
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>  0x0000:  4500 008c ...
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>  ...
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>  0x0036:  1703 0300 51 ...                          ....Q...
+</span></code></pre></div>
+<ul>
+<li><code>0x0036</code>부터 TLS Record.</li>
+<li><code>17</code>: ContentType=0x17=Application Data. 이 시점부터 HTTP 데이터가 암호화되어 들어있다.</li>
+<li><code>03 03</code>: TLS 1.2/1.3 레코드 레이어 버전.</li>
+<li>이후는 완전히 암호화된 페이로드. <code>GET /index.html HTTP/1.1</code>이라는 내용은 여기서 보이지 않는다.</li>
+</ul>
+<p>L7이 L4 아래에서 완전히 불투명해지는 지점이 여기다.</p>
+<h2 id="수신-측-헤더를-벗겨내는-역방향-과정">수신 측: 헤더를 벗겨내는 역방향 과정<a class="headerlink" href="#수신-측-헤더를-벗겨내는-역방향-과정" title="Permanent link">&para;</a></h2>
+<p>서버 측에서는 반대 순서로 처리한다.</p>
+<p>NIC가 비트를 받아 이더넷 프레임으로 조립(L1→L2). L2에서 EtherType <code>0x0800</code>을 보고 IP 스택으로 올린다(L2→L3). L3에서 Protocol 필드 <code>6</code>을 보고 TCP 스택으로 올린다(L3→L4). L4 TCP에서 목적지 포트 443을 보고 해당 소켓에 데이터를 전달한다(L4→L5). L5/L6 TLS Record Layer가 복호화한다. L7 HTTP 파서가 메서드, 경로, 헤더를 파싱한다.</p>
+<p>각 계층이 자기 헤더만 보고 판단한 뒤 상위 계층으로 올린다. L3는 L4의 내용을 모르고, L4는 L7의 내용을 모른다. 계층 간 결합이 헤더 필드 몇 바이트로만 이루어진다는 점이 OSI 모델의 실제 의미다.</p>
+<h2 id="l4가-담당하는-것과-tcp가-그것을-어떻게-푸는가">L4가 담당하는 것과 TCP가 그것을 어떻게 푸는가<a class="headerlink" href="#l4가-담당하는-것과-tcp가-그것을-어떻게-푸는가" title="Permanent link">&para;</a></h2>
+<p>OSI 4계층의 책임은 <strong>프로세스 간 종단간(end-to-end) 연결</strong>을 만드는 것이다. L3(IP)는 호스트까지만 데이터를 가져다주고, "이 데이터가 어떤 프로세스에 가야 하는지"는 모른다. 거기서부터가 L4의 일이다.</p>
+<p>TCP는 이 책임을 구체적인 메커니즘으로 구현한 프로토콜이다. 네 가지를 동시에 처리한다.</p>
+<p><strong>포트 다중화(Multiplexing/Demultiplexing)</strong>
+한 호스트의 IP는 하나지만 그 위에 수천 개의 프로세스가 동시에 통신할 수 있다. 16비트 포트 번호가 이를 가능하게 한다. 같은 80번 포트로 들어오는 패킷이라도 (출발지 IP, 출발지 포트, 목적지 IP, 목적지 포트, 프로토콜)이라는 5-tuple로 각 연결이 구분된다. 5-tuple이 같으면 같은 TCP 연결이고, 하나라도 다르면 다른 연결이다. 같은 클라이언트가 같은 서버의 같은 포트로 여러 번 연결해도 클라이언트 측 임시 포트(ephemeral port)가 달라서 별개의 연결이 된다.</p>
+<p><strong>바이트 스트림 추상화</strong>
+애플리케이션 입장에서 TCP는 "양방향 바이트 스트림"이다. <code>write</code>한 바이트 100개가 그대로 <code>read</code>에서 100바이트로 나오는 것처럼 보이지만, 실제로는 IP 패킷 단위로 잘려서 가다가 순서가 뒤바뀌거나 일부가 유실될 수 있다. TCP는 모든 바이트에 시퀀스 번호를 붙이고, 받은 쪽이 ACK 번호로 "이 바이트까지 받았다"를 알려주면서 누락된 구간을 재전송한다. L4 세그먼트는 L3 패킷과 1:1 대응이 아니다. 한 세그먼트가 IP에서 단편화될 수도 있고, 애플리케이션이 보낸 데이터 1개가 여러 세그먼트로 쪼개질 수도 있다.</p>
+<p><strong>흐름 제어(Flow Control)</strong>
+수신자가 처리할 수 있는 속도보다 빠르게 보내면 수신 버퍼가 넘친다. TCP 헤더의 Window 필드로 "지금 내 버퍼에 X바이트만큼 더 받을 수 있다"를 매번 알려주고, 송신자는 그 한도를 넘지 않게 보낸다.</p>
+<p><strong>혼잡 제어(Congestion Control)</strong>
+흐름 제어가 수신자를 보호하는 거라면, 혼잡 제어는 네트워크 자체를 보호한다. 네트워크 어딘가가 막히면 패킷 유실로 나타나고, TCP는 이를 감지해서 송신 속도를 줄인다. CUBIC, BBR 같은 알고리즘이 여기에 해당한다. UDP는 L4지만 혼잡 제어를 하지 않는다.</p>
+<p>암호화나 메시지 경계는 TCP가 하지 않는다. 그건 위 계층의 일이다.</p>
+<h2 id="tcp-헤더를-l4-pdu로-분해하기">TCP 헤더를 L4 PDU로 분해하기<a class="headerlink" href="#tcp-헤더를-l4-pdu로-분해하기" title="Permanent link">&para;</a></h2>
+<p>L4의 PDU(Protocol Data Unit)는 <strong>세그먼트(Segment)</strong>다. TCP 세그먼트는 TCP 헤더 + 페이로드로 구성되고, 헤더는 옵션 없이도 최소 20바이트다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a> 0                   1                   2                   3
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>|          Source Port          |       Destination Port        |  0~3
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>|                        Sequence Number                        |  4~7
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>|                    Acknowledgment Number                      |  8~11
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>|  DO |Rsv|U|A|P|R|S|F|         Window Size           |          12~15
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>|           Checksum            |        Urgent Pointer         |  16~19
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>|                    Options (가변, 0~40바이트)                  |
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>|                            Payload                            |
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span></code></pre></div>
+<p>L4의 책임과 매핑해서 보면 어떤 필드가 어떤 일을 하는지 분명해진다.</p>
+<ul>
+<li><strong>Source/Destination Port (0~3바이트)</strong>: 포트 다중화. IP 헤더에는 포트가 없다. L4에서 비로소 프로세스 단위 식별이 가능해진다.</li>
+<li><strong>Sequence Number (4~7바이트)</strong>: 이 세그먼트의 첫 페이로드 바이트가 전체 스트림에서 몇 번째 바이트인지. 32비트라서 약 4GB마다 한 바퀴 돈다. 고대역폭 환경에서 이 문제 때문에 PAWS(Protect Against Wrapped Sequences)가 옵션으로 들어왔다.</li>
+<li><strong>Acknowledgment Number (8~11바이트)</strong>: "이 번호 직전 바이트까지 받았다." ACK 플래그가 켜져 있을 때만 유효하다.</li>
+<li><strong>Data Offset(DO, 4비트)</strong>: TCP 헤더 길이를 32비트 워드 단위로 표현. 옵션 필드가 가변 길이라서 헤더 끝이 어디인지 알려줘야 한다. 최댓값 15면 60바이트, 그래서 옵션은 최대 40바이트.</li>
+<li><strong>Flags</strong>: 연결 상태 전이를 만드는 비트들. 3-way handshake도 4-way termination도 결국 이 비트 조합이다.</li>
+<li><strong>Window Size (14~15바이트)</strong>: 흐름 제어. 수신 가능 바이트. 16비트라 65535가 최대지만, Window Scale 옵션으로 최대 1GB 가까이 늘릴 수 있다. 1Gbps 이상 회선에서 이 옵션 없으면 throughput이 안 나온다.</li>
+<li><strong>Checksum (16~17바이트)</strong>: TCP 헤더+페이로드+IP pseudo-header에 대한 체크섬. L2 이더넷에도 FCS가 있지만 그건 다음 홉까지의 검증이고, end-to-end 검증은 여기서 한다.</li>
+<li><strong>Options</strong>: MSS, SACK Permitted, Window Scale, Timestamp 같은 협상 항목들. SYN과 SYN+ACK에서 주로 교환된다.</li>
+</ul>
+<h2 id="l5l7-tls와-http가-tcp-위에-얹히는-방식">L5~L7: TLS와 HTTP가 TCP 위에 얹히는 방식<a class="headerlink" href="#l5l7-tls와-http가-tcp-위에-얹히는-방식" title="Permanent link">&para;</a></h2>
+<p>OSI 모델은 L5(세션), L6(표현), L7(응용)을 깔끔하게 분리하지만, 실제 인터넷 프로토콜에서는 이 셋이 거의 합쳐져 있다. TCP/IP 4계층 모델이 L5~L7을 그냥 "Application"으로 묶어버리는 이유다.</p>
+<p><strong>TLS의 계층 위치</strong></p>
+<p>TLS는 L4 위에서 동작하지만 OSI L5/L6에 걸쳐있다. 핸드셰이크 단계에서는 세션을 협상(L5)하고, 이후에는 암호화와 무결성을 제공(L6)한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>TLS Record 구조:
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ContentType (1B):  Handshake(0x16), Alert(0x15), ApplicationData(0x17)
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>Version (2B):      0x0303 (TLS 1.2/1.3 공통)
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>Length (2B):       이 Record의 페이로드 길이
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>Payload:           암호화된 데이터 또는 핸드셰이크 메시지
+</span></code></pre></div>
+<p>TLS Record와 TCP 세그먼트 경계가 맞지 않는 경우가 자주 발생한다. 16KB TLS Record(TLS 최대 Record 크기)는 MTU 1500바이트 기준으로 약 11개의 TCP 세그먼트로 쪼개진다. 첫 번째 세그먼트만 TLS Record 헤더를 포함하고 나머지는 페이로드만 담는다. 수신 측은 TCP 스트림에서 TLS Record를 재조립한 뒤에야 복호화할 수 있다.</p>
+<p>이 구조 때문에 TLS 위에서 패킷 유실이 발생하면 단순 재전송 지연보다 더 큰 문제가 생긴다. TLS Record 하나를 완성하지 못하면 복호화 자체가 블락된다. HTTP/3(QUIC)이 스트림 단위 재전송으로 이 head-of-line blocking을 피하려는 이유가 여기 있다.</p>
+<p><strong>HTTP의 계층 위치</strong></p>
+<p>교과서적으로 HTTP는 L7이지만, HTTP/1.1의 keep-alive와 Connection 헤더는 세션 관리(L5)에 가깝다. Content-Type, Content-Encoding은 데이터 표현(L6)이다. HTTP 하나가 L5/L6/L7을 다 한다. OSI로 정확히 자르려고 하면 답이 안 나오는 이유다.</p>
+<p><strong>L4 LB가 TLS 트래픽을 다룰 수 있는가</strong></p>
+<p>L4 LB(NLB, LVS 등)는 TCP 헤더까지만 본다. TLS 핸드셰이크 내용은 읽지 못한다. SNI 기반으로 도메인별 라우팅을 하려면 L7 LB(Nginx, ALB, Envoy)로 올라가거나, TLS Passthrough 상태에서 ClientHello의 SNI 확장 필드만 읽는 형태(L4와 L7 사이 어딘가)가 된다.</p>
+<p><strong>TLS 트래픽 트러블슈팅</strong></p>
+<p>서버 측에서 TLS termination을 하지 않으면 중간에서 HTTP 요청/응답을 볼 방법이 없다. 클라이언트 측에서 세션 키를 덤프(<code>SSLKEYLOGFILE</code> 환경변수 설정)하거나, L7 LB에서 TLS를 종료한 뒤 내부망은 HTTP로 통신하는 방식을 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># 클라이언트 세션 키 덤프 (curl 예시)</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">SSLKEYLOGFILE</span><span class="o">=</span>/tmp/keylog.txt<span class="w"> </span>curl<span class="w"> </span>https://example.com
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Wireshark에서 keylog 파일을 주입하면 암호화된 TLS 트래픽 복호화 가능</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="c1"># Edit &gt; Preferences &gt; Protocols &gt; TLS &gt; (Pre)-Master-Secret log filename</span>
+</span></code></pre></div>
+<p>tcpdump로 덤프한 패킷 캡처 파일과 keylog를 Wireshark에서 함께 열면, 암호화된 Application Data 패킷 안에 있던 HTTP 요청/응답 내용까지 평문으로 볼 수 있다.</p>
+<h2 id="tcp-소켓-api와-l4-추상화">TCP 소켓 API와 L4 추상화<a class="headerlink" href="#tcp-소켓-api와-l4-추상화" title="Permanent link">&para;</a></h2>
+<p>L4의 추상화는 결국 BSD 소켓 API로 노출된다.</p>
+<div class="language-c highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">sock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span><span class="w"> </span><span class="n">SOCK_STREAM</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="c1">// SOCK_STREAM = TCP</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">bind</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span><span class="w">    </span><span class="c1">// 자기 측 포트 점유 - 포트 다중화 등록</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">listen</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span><span class="w"> </span><span class="mi">511</span><span class="p">);</span><span class="w">  </span><span class="c1">// accept queue 깊이 결정</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">accept</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span><span class="w">  </span><span class="c1">// 완성된 5-tuple 연결을 가져옴</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">read</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span><span class="w"> </span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span><span class="w"> </span><span class="c1">// 바이트 스트림에서 n바이트 읽기</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">write</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span><span class="w"> </span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span><span class="c1">// 바이트 스트림에 n바이트 쓰기</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">close</span><span class="p">(</span><span class="n">sock</span><span class="p">);</span><span class="w">        </span><span class="c1">// FIN 전송, 4-way termination 시작</span>
+</span></code></pre></div>
+<p><code>read()</code>로 받은 바이트 수가 한 번의 <code>write()</code>와 일치할 거라는 보장이 없다. TCP는 메시지 경계를 보존하지 않는다. 송신 측이 1000바이트를 한 번에 write했어도 수신 측은 300바이트, 700바이트로 나눠서 read할 수 있고, 반대로 두 번의 write가 한 번의 read에서 합쳐져 올 수도 있다. TCP를 처음 다룰 때 가장 많이 실수하는 지점이다. 메시지 단위 통신을 하려면 위 계층에서 길이 prefix나 delimiter로 경계를 따로 만들어야 한다.</p>
+<p><code>SO_KEEPALIVE</code>, <code>TCP_NODELAY</code>, <code>SO_LINGER</code> 같은 소켓 옵션들도 L4 내부 동작을 켜고 끄는 노브다. <code>TCP_NODELAY</code>로 Nagle 알고리즘을 끄는 것은 "작은 write를 모아서 한 번에 보내는 L4 최적화"를 포기하는 결정이고, 실시간성이 중요한 프로토콜에서 자주 쓴다.</p>
+<p>OSI 모델 전체와 다른 계층은 <a href="../../../OSI_7_Layer_Model/">OSI 7 계층 모델</a> 문서, TCP의 구체적인 동작 메커니즘(handshake, 상태 전이, 재전송 등)은 <a href="../TCP/">TCP 프로토콜 동작 메커니즘</a> 문서를 참고한다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../../Security/TLS_HTTPS/">TLS와 HTTPS - 핸드셰이크 원리와 인증서 운영 실무</a></li>
+<li><a href="../../../Network%20Flow/">네트워크 플로우 (Network Flow)</a></li>
+<li><a href="../../../../Domain/Web_Communication_Flow/">웹 통신의 흐름</a></li>
+<li><a href="../Mqtt/AMQP%20vs%20MQTT/">AMQP vs MQTT 비교 분석</a></li>
+<li><a href="../../../../CORS/">CORS - Origin, Preflight, 인증 쿠키, 인프라 설정</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../TCP_vs_UDP/" class="md-footer__link md-footer__link--prev" aria-label="이전: TCP vs UDP - 실무 선택 기준">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                TCP vs UDP - 실무 선택 기준
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Mqtt/AMQP%20vs%20MQTT/" class="md-footer__link md-footer__link--next" aria-label="다음: AMQP vs MQTT 비교 분석">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                AMQP vs MQTT 비교 분석
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

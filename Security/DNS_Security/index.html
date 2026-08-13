@@ -1,83 +1,2984 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Security/DNS_Security/ rel=canonical><link href=../Server_Attack_Defense/ rel=prev><link href=../Supply_Chain_Security/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../feed_rss_updated.xml><link rel=icon href=../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>DNS Security - YGSTUDY</title><link rel=stylesheet href=../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../stylesheets/extra.css><script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#dns-security class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> DNS Security </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_4 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Security </span> </a> <label class="md-nav__link " for=__nav_7_4 id=__nav_7_4_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_4_label aria-expanded=true> <label class=md-nav__title for=__nav_7_4> <span class="md-nav__icon md-icon"></span> Security </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Basic/ class=md-nav__link> <span class=md-ellipsis> 보안 기초 개념 </span> </a> </li> <li class=md-nav__item> <a href=../Threat_Modeling/ class=md-nav__link> <span class=md-ellipsis> 위협 모델링 </span> </a> </li> <li class=md-nav__item> <a href=../OWASP_Top_10/ class=md-nav__link> <span class=md-ellipsis> OWASP Top 10 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/ class=md-nav__link> <span class=md-ellipsis> 보안 심화 및 취약점 분석 </span> </a> </li> <li class=md-nav__item> <a href=../Tenant_Key_Management/ class=md-nav__link> <span class=md-ellipsis> 테넌트별 암호화 키 격리 </span> </a> </li> <li class=md-nav__item> <a href=../Cross_Tenant_Leak/ class=md-nav__link> <span class=md-ellipsis> 크로스 테넌트 유출 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../API_Security/ class=md-nav__link> <span class=md-ellipsis> API 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../AES/ class=md-nav__link> <span class=md-ellipsis> 암호화 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../HTTPS_and_TLS/ class=md-nav__link> <span class=md-ellipsis> 전송 구간 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../OAuth/ class=md-nav__link> <span class=md-ellipsis> 인증과 세션 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../XSS/ class=md-nav__link> <span class=md-ellipsis> 웹 취약점 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_4_13 checked> <label class=md-nav__link for=__nav_7_4_13 id=__nav_7_4_13_label tabindex=0> <span class=md-ellipsis> 공격 방어 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_4_13_label aria-expanded=true> <label class=md-nav__title for=__nav_7_4_13> <span class="md-nav__icon md-icon"></span> 공격 방어 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../D_Do_S_Defense/ class=md-nav__link> <span class=md-ellipsis> DDoS 공격 방어 </span> </a> </li> <li class=md-nav__item> <a href=../Rate_Limiting/ class=md-nav__link> <span class=md-ellipsis> Rate Limiting </span> </a> </li> <li class=md-nav__item> <a href=../Web_Application_Firewall/ class=md-nav__link> <span class=md-ellipsis> 웹 애플리케이션 방화벽 </span> </a> </li> <li class=md-nav__item> <a href=../Server_Attack_Defense/ class=md-nav__link> <span class=md-ellipsis> 서버 취약점 공격 방어 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> DNS Security </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> DNS Security </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#dns-질의-흐름과-신뢰-모델 class=md-nav__link> <span class=md-ellipsis> DNS 질의 흐름과 신뢰 모델 </span> </a> </li> <li class=md-nav__item> <a href=#dnssec-동작-원리 class=md-nav__link> <span class=md-ellipsis> DNSSEC 동작 원리 </span> </a> <nav class=md-nav aria-label="DNSSEC 동작 원리"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#부재-증명-nsec와-nsec3 class=md-nav__link> <span class=md-ellipsis> 부재 증명: NSEC와 NSEC3 </span> </a> </li> <li class=md-nav__item> <a href=#dig로-dnssec-확인 class=md-nav__link> <span class=md-ellipsis> dig로 DNSSEC 확인 </span> </a> </li> <li class=md-nav__item> <a href=#delv로-직접-검증 class=md-nav__link> <span class=md-ellipsis> delv로 직접 검증 </span> </a> </li> <li class=md-nav__item> <a href=#dnssec-운영하면서-자주-깨지는-부분 class=md-nav__link> <span class=md-ellipsis> DNSSEC 운영하면서 자주 깨지는 부분 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#doh와-dot class=md-nav__link> <span class=md-ellipsis> DoH와 DoT </span> </a> <nav class=md-nav aria-label="DoH와 DoT"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#dohdot-도입-시-운영-이슈 class=md-nav__link> <span class=md-ellipsis> DoH/DoT 도입 시 운영 이슈 </span> </a> </li> <li class=md-nav__item> <a href=#linux에서-dot-적용 class=md-nav__link> <span class=md-ellipsis> Linux에서 DoT 적용 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dns-rebinding-공격 class=md-nav__link> <span class=md-ellipsis> DNS Rebinding 공격 </span> </a> <nav class=md-nav aria-label="DNS Rebinding 공격"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#방어 class=md-nav__link> <span class=md-ellipsis> 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dns-cache-poisoning class=md-nav__link> <span class=md-ellipsis> DNS Cache Poisoning </span> </a> <nav class=md-nav aria-label="DNS Cache Poisoning"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#완화 class=md-nav__link> <span class=md-ellipsis> 완화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dns-hijacking class=md-nav__link> <span class=md-ellipsis> DNS Hijacking </span> </a> </li> <li class=md-nav__item> <a href=#dangling-cname과-서브도메인-takeover class=md-nav__link> <span class=md-ellipsis> Dangling CNAME과 서브도메인 Takeover </span> </a> <nav class=md-nav aria-label="Dangling CNAME과 서브도메인 Takeover"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#탐지 class=md-nav__link> <span class=md-ellipsis> 탐지 </span> </a> </li> <li class=md-nav__item> <a href=#운영-절차로-막기 class=md-nav__link> <span class=md-ellipsis> 운영 절차로 막기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#운영-환경에서의-우선순위 class=md-nav__link> <span class=md-ellipsis> 운영 환경에서의 우선순위 </span> </a> </li> <li class=md-nav__item> <a href=#참고-자료 class=md-nav__link> <span class=md-ellipsis> 참고 자료 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../Supply_Chain_Security/ class=md-nav__link> <span class=md-ellipsis> 공급망 공격 방어 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Zero_Trust_Architecture/ class=md-nav__link> <span class=md-ellipsis> 인프라 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Dev_Sec_Ops/ class=md-nav__link> <span class=md-ellipsis> 운영과 컴플라이언스 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../SQL_%EC%9D%B8%EC%A0%9D%EC%85%98/ class=md-nav__link> <span class=md-ellipsis> SQL Injection </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#dns-질의-흐름과-신뢰-모델 class=md-nav__link> <span class=md-ellipsis> DNS 질의 흐름과 신뢰 모델 </span> </a> </li> <li class=md-nav__item> <a href=#dnssec-동작-원리 class=md-nav__link> <span class=md-ellipsis> DNSSEC 동작 원리 </span> </a> <nav class=md-nav aria-label="DNSSEC 동작 원리"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#부재-증명-nsec와-nsec3 class=md-nav__link> <span class=md-ellipsis> 부재 증명: NSEC와 NSEC3 </span> </a> </li> <li class=md-nav__item> <a href=#dig로-dnssec-확인 class=md-nav__link> <span class=md-ellipsis> dig로 DNSSEC 확인 </span> </a> </li> <li class=md-nav__item> <a href=#delv로-직접-검증 class=md-nav__link> <span class=md-ellipsis> delv로 직접 검증 </span> </a> </li> <li class=md-nav__item> <a href=#dnssec-운영하면서-자주-깨지는-부분 class=md-nav__link> <span class=md-ellipsis> DNSSEC 운영하면서 자주 깨지는 부분 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#doh와-dot class=md-nav__link> <span class=md-ellipsis> DoH와 DoT </span> </a> <nav class=md-nav aria-label="DoH와 DoT"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#dohdot-도입-시-운영-이슈 class=md-nav__link> <span class=md-ellipsis> DoH/DoT 도입 시 운영 이슈 </span> </a> </li> <li class=md-nav__item> <a href=#linux에서-dot-적용 class=md-nav__link> <span class=md-ellipsis> Linux에서 DoT 적용 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dns-rebinding-공격 class=md-nav__link> <span class=md-ellipsis> DNS Rebinding 공격 </span> </a> <nav class=md-nav aria-label="DNS Rebinding 공격"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#방어 class=md-nav__link> <span class=md-ellipsis> 방어 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dns-cache-poisoning class=md-nav__link> <span class=md-ellipsis> DNS Cache Poisoning </span> </a> <nav class=md-nav aria-label="DNS Cache Poisoning"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#완화 class=md-nav__link> <span class=md-ellipsis> 완화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#dns-hijacking class=md-nav__link> <span class=md-ellipsis> DNS Hijacking </span> </a> </li> <li class=md-nav__item> <a href=#dangling-cname과-서브도메인-takeover class=md-nav__link> <span class=md-ellipsis> Dangling CNAME과 서브도메인 Takeover </span> </a> <nav class=md-nav aria-label="Dangling CNAME과 서브도메인 Takeover"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#탐지 class=md-nav__link> <span class=md-ellipsis> 탐지 </span> </a> </li> <li class=md-nav__item> <a href=#운영-절차로-막기 class=md-nav__link> <span class=md-ellipsis> 운영 절차로 막기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#운영-환경에서의-우선순위 class=md-nav__link> <span class=md-ellipsis> 운영 환경에서의 우선순위 </span> </a> </li> <li class=md-nav__item> <a href=#참고-자료 class=md-nav__link> <span class=md-ellipsis> 참고 자료 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>dns</span> <span class=md-tag>network</span> <span class=md-tag>security</span> </nav> <h1 id=dns-security>DNS Security<a class=headerlink href=#dns-security title="Permanent link">&para;</a></h1> <p>DNS는 거의 모든 네트워크 통신의 출발점이다. 그런데 평문 UDP 53번에서 동작하고, 응답을 검증할 방법이 기본적으로 없다. 누군가 중간에서 응답을 위조하면 클라이언트는 그대로 믿는다. TLS 인증서 검증이 도입돼서 IP 단계에서의 가로채기는 어느 정도 막을 수 있지만, "어느 IP로 갈 것인가"를 정하는 DNS 단계가 깨지면 그 뒤가 다 흔들린다.</p> <p>실무에서 DNS 보안이라고 하면 보통 네 갈래로 본다.</p> <ol> <li>응답 무결성 — DNSSEC</li> <li>질의 기밀성 — DoH/DoT</li> <li>응답을 악용한 공격 방어 — DNS rebinding, cache poisoning</li> <li>도메인/레코드 운영 — dangling CNAME, 도메인 탈취</li> </ol> <p>각각 공격 표면과 대응 도구가 다르다. 한 번에 다 해결하는 마스터 키 같은 건 없고, 운영 환경에 맞춰 골라 적용해야 한다.</p> <h2 id=dns-질의-흐름과-신뢰-모델>DNS 질의 흐름과 신뢰 모델<a class=headerlink href=#dns-질의-흐름과-신뢰-모델 title="Permanent link">&para;</a></h2> <p>DNS 질의는 다음 경로를 거친다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>stub resolver (브라우저, libc) 
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    → recursive resolver (1.1.1.1, 8.8.8.8, ISP DNS, 사내 DNS)
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>        → root → TLD → authoritative name server
-</span></code></pre></div> <p>이 경로 중 어디든 응답을 위조할 수 있는 위치를 차지하면 공격이 성립한다. 클라이언트와 recursive resolver 사이는 LAN/Wi-Fi 라우터, ISP, 카페 공유기까지 다 노출돼 있다. recursive resolver에서 권위 서버까지의 구간은 BGP 하이재킹이나 캐시 오염 같은 더 깊은 단계 공격 영역이다.</p> <p>기본 DNS는 응답에 서명이 없다. 즉 "이 응답이 정말 권위 서버에서 온 것인가"를 클라이언트가 확인할 방법이 프로토콜 차원에서 없다. 이게 DNSSEC가 풀려는 문제다.</p> <h2 id=dnssec-동작-원리>DNSSEC 동작 원리<a class=headerlink href=#dnssec-동작-원리 title="Permanent link">&para;</a></h2> <p>DNSSEC는 DNS 응답에 디지털 서명을 붙인다. 응답이 위조되지 않았는지 공개키로 검증한다는 뜻이다. 핵심 레코드는 네 개다.</p> <table> <thead> <tr> <th>레코드</th> <th>역할</th> </tr> </thead> <tbody> <tr> <td>RRSIG</td> <td>특정 RRset(예: example.com A 레코드 묶음)의 서명</td> </tr> <tr> <td>DNSKEY</td> <td>서명 검증용 공개키 (ZSK, KSK)</td> </tr> <tr> <td>DS</td> <td>부모 존이 자식 존의 KSK 해시를 갖고 있어 신뢰 사슬을 잇는다</td> </tr> <tr> <td>NSEC/NSEC3</td> <td>"이 레코드는 존재하지 않는다"를 증명 (부재 증명)</td> </tr> </tbody> </table> <p>키는 두 종류다. ZSK(Zone Signing Key)는 실제 레코드를 서명하는 데 쓰고 자주 교체한다. KSK(Key Signing Key)는 ZSK를 서명하고 부모 존의 DS와 연결된다. KSK는 잘 안 바꾼다. 분리한 이유는 명확하다. ZSK는 자주 도는데 그때마다 부모 존에 DS를 갱신하려면 운영 비용이 폭발한다.</p> <p>신뢰 사슬은 root에서 시작한다. root의 KSK 해시(trust anchor)는 OS나 resolver 소프트웨어에 박혀 있다. root → .com → example.com 으로 내려가며 부모의 DS가 자식의 DNSKEY를 보증한다. 어느 한 단계라도 서명이 깨지면 검증 실패다.</p> <h3 id=부재-증명-nsec와-nsec3>부재 증명: NSEC와 NSEC3<a class=headerlink href=#부재-증명-nsec와-nsec3 title="Permanent link">&para;</a></h3> <p>존재하지 않는 도메인을 물었을 때 "없다"는 응답도 위조될 수 있어야 한다. NSEC는 알파벳 순서로 정렬된 다음 레코드를 가리킨다. <code>aaa.example.com</code> 다음이 <code>ccc.example.com</code>이라고 서명하면, 그 사이의 <code>bbb.example.com</code>은 존재하지 않음이 증명된다.</p> <p>문제는 NSEC가 존 전체를 그대로 노출시킨다는 점이다. 공격자가 NSEC 응답을 따라가면서 zone walking을 하면 모든 서브도메인 목록을 얻는다. 그래서 NSEC3가 나왔다. 이름을 해시해서 정렬하니까 원본 도메인 이름은 직접 노출되지 않는다. 다만 GPU로 해시 역산을 시도하면 짧은 이름은 풀린다. 최근에는 NSEC3 대신 NSEC에 minimally covering response를 쓰는 흐름도 있다. 어느 쪽이든 부재 증명에는 트레이드오프가 따른다.</p> <h3 id=dig로-dnssec-확인>dig로 DNSSEC 확인<a class=headerlink href=#dig로-dnssec-확인 title="Permanent link">&para;</a></h3> <p><code>+dnssec</code> 플래그를 붙이면 RRSIG와 DNSKEY를 같이 받는다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>dig<span class=w> </span>+dnssec<span class=w> </span>example.com<span class=w> </span>A
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=p>;;</span><span class=w> </span>ANSWER<span class=w> </span>SECTION:
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>example.com.<span class=w>    </span><span class=m>300</span><span class=w>  </span>IN<span class=w>  </span>A<span class=w>      </span><span class=m>93</span>.184.216.34
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>example.com.<span class=w>    </span><span class=m>300</span><span class=w>  </span>IN<span class=w>  </span>RRSIG<span class=w>  </span>A<span class=w> </span><span class=m>13</span><span class=w> </span><span class=m>2</span><span class=w> </span><span class=m>300</span><span class=w> </span><span class=m>20260612000000</span><span class=w> </span><span class=o>(</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=w>                                </span><span class=m>20260522000000</span><span class=w> </span><span class=m>12345</span><span class=w> </span>example.com.
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>                                </span>ABcdEf...<span class=w> </span><span class=o>)</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=p>;;</span><span class=w> </span>Query<span class=w> </span>time:<span class=w> </span><span class=m>23</span><span class=w> </span>msec
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=p>;;</span><span class=w> </span>flags:<span class=w> </span>qr<span class=w> </span>rd<span class=w> </span>ra<span class=w> </span>ad<span class=p>;</span><span class=w> </span>...
-</span></code></pre></div> <p>여기서 봐야 할 건 두 가지다.</p> <p><code>flags</code>에 <code>ad</code>(Authenticated Data)가 있는지. resolver가 DNSSEC 검증에 성공했다는 표시다. 없으면 검증을 안 했거나 검증 실패다. <code>cd</code>(Checking Disabled) 플래그가 켜져 있으면 클라이언트가 검증을 의도적으로 꺼버린 상태다.</p> <p>RRSIG 레코드에 서명이 같이 왔는지. 권위 서버가 DNSSEC를 적용했다는 증거다. RRSIG가 안 오면 그 도메인은 DNSSEC 미적용이다.</p> <h3 id=delv로-직접-검증>delv로 직접 검증<a class=headerlink href=#delv로-직접-검증 title="Permanent link">&para;</a></h3> <p><code>dig</code>는 resolver의 검증 결과를 그대로 받는다. <code>delv</code>는 클라이언트 자체가 root의 trust anchor부터 직접 검증을 수행한다. 신뢰 사슬을 처음부터 따라가서 확인하는 도구다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>delv<span class=w> </span>+rtrace<span class=w> </span>example.com<span class=w> </span>A
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=p>;;</span><span class=w> </span>resolution<span class=w> </span>succeeded
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=p>;;</span><span class=w> </span>fully<span class=w> </span>validated
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>example.com.<span class=w>  </span><span class=m>300</span><span class=w>  </span>IN<span class=w>  </span>A<span class=w>      </span><span class=m>93</span>.184.216.34
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>example.com.<span class=w>  </span><span class=m>300</span><span class=w>  </span>IN<span class=w>  </span>RRSIG<span class=w>  </span>A<span class=w> </span><span class=m>13</span><span class=w> </span><span class=m>2</span><span class=w> </span><span class=m>300</span><span class=w> </span>...
-</span></code></pre></div> <p><code>fully validated</code>가 뜨면 root → TLD → 도메인까지 신뢰 사슬이 깨끗하게 이어졌다는 의미다. 만약 <code>; resolution failed: insecurity proof failed</code> 같은 메시지가 나오면 어딘가에서 DS 등록이 빠졌거나 서명이 깨졌다는 뜻이다.</p> <p><code>+rtrace</code>는 검증 과정을 단계별로 보여줘서 디버깅에 쓸 만하다. 키 롤오버 직후 검증 실패가 나면 이걸로 어느 키에서 실패했는지 찾는다.</p> <h3 id=dnssec-운영하면서-자주-깨지는-부분>DNSSEC 운영하면서 자주 깨지는 부분<a class=headerlink href=#dnssec-운영하면서-자주-깨지는-부분 title="Permanent link">&para;</a></h3> <p>키 롤오버 사고가 가장 많다. ZSK를 교체하면서 RRSIG는 새 키로 서명했는데 DNSKEY 레코드에 이전 키를 같이 노출하지 않으면 캐시된 RRSIG를 들고 있는 resolver는 검증에 실패한다. 보통 prepublish 방식으로 신키를 먼저 노출하고 충분히 전파된 다음에 서명에 쓰기 시작한다.</p> <p>DS 등록 누락도 흔하다. 도메인 등록기관(레지스트라)에 DS를 등록하지 않으면 부모 존이 자식 존을 보증하지 못한다. 이 상태에서 DNSSEC를 켜면 검증 자체는 일어나지 않지만, "DNSSEC를 적용했다"고 착각하는 게 더 위험하다.</p> <p>서명 만료도 문제다. RRSIG에는 inception/expiration 타임스탬프가 박혀 있다. 자동 재서명이 죽거나 시계가 틀어지면 서명이 만료돼서 도메인 전체가 SERVFAIL로 떨어진다. Slack도 2021년에 비슷한 이유로 장애를 겪었다.</p> <p>DNSSEC가 풀어주는 건 응답 무결성뿐이다. 질의 내용과 응답이 평문으로 다닌다는 사실 자체는 그대로다. 누가 어떤 도메인을 물었는지는 경로상에서 다 보인다. 그래서 별도로 DoH/DoT가 필요하다.</p> <h2 id=doh와-dot>DoH와 DoT<a class=headerlink href=#doh와-dot title="Permanent link">&para;</a></h2> <p>DoT(DNS over TLS)는 853번 포트에서 TLS로 감싼 DNS 메시지를 주고받는다. RFC 7858. DNS 메시지 형식은 그대로고 전송 계층만 암호화된다. 방화벽이 853번을 보면 "DNS 트래픽이구나" 알 수 있다.</p> <p>DoH(DNS over HTTPS)는 443번 HTTPS 위에서 DNS 질의를 GET이나 POST로 보낸다. RFC 8484. 방화벽 입장에서는 그냥 HTTPS 트래픽처럼 보인다. 일반 웹 트래픽과 구분이 어렵다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># DoH 직접 호출 예시 (Cloudflare)</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>curl<span class=w> </span>-H<span class=w> </span><span class=s2>&quot;accept: application/dns-json&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span><span class=s2>&quot;https://cloudflare-dns.com/dns-query?name=example.com&amp;type=A&quot;</span>
-</span></code></pre></div> <div class="language-json highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=p>{</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=w>  </span><span class=nt>&quot;Status&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>0</span><span class=p>,</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>  </span><span class=nt>&quot;Answer&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>    </span><span class=p>{</span><span class=nt>&quot;name&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;example.com&quot;</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;type&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;TTL&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>268</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;data&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;93.184.216.34&quot;</span><span class=p>}</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=p>}</span>
-</span></code></pre></div> <h3 id=dohdot-도입-시-운영-이슈>DoH/DoT 도입 시 운영 이슈<a class=headerlink href=#dohdot-도입-시-운영-이슈 title="Permanent link">&para;</a></h3> <p>브라우저가 OS의 DNS 설정을 무시하고 자체 DoH로 가버리는 문제가 있다. Firefox는 일정 조건에서 Cloudflare DoH를 자동으로 쓴다. Chrome은 OS DNS와 매핑되는 DoH 서버가 있으면 자동 업그레이드한다. 사내 DNS로 내부 도메인을 풀어야 하는 환경에서는 골치 아프다. <code>corp.internal</code> 같은 사설 도메인이 외부 DoH 서버로 새서 NXDOMAIN을 받는 상황이 생긴다.</p> <p>방어선 입장에서도 평가가 갈린다. DoH는 멀웨어가 C2 통신을 숨기는 데 자주 쓰인다. 방화벽이 도메인 단위 차단(DNS sinkhole)을 하던 환경에서는 DoH 트래픽이 그 통제를 우회한다. 그래서 기업 환경에서는 외부 DoH 엔드포인트 자체를 차단하거나, 자체 DoH 서버를 운영해서 강제로 거기로 보내는 방식을 쓴다.</p> <p>Stub resolver 단에서 DoT만 켜는 것도 부분적인 해결이다. 클라이언트와 recursive resolver 구간만 암호화된다. recursive resolver와 권위 서버 사이는 여전히 평문이다. 이 구간을 위해 ADoT(Authoritative DoT)나 RFC 9539(EncryptedClientHello, ECH 기반)도 논의 중이지만 보급률은 낮다.</p> <h3 id=linux에서-dot-적용>Linux에서 DoT 적용<a class=headerlink href=#linux에서-dot-적용 title="Permanent link">&para;</a></h3> <p>systemd-resolved를 쓰면 설정 한두 줄로 DoT를 강제할 수 있다.</p> <div class="language-ini highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># /etc/systemd/resolved.conf</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=k>[Resolve]</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=na>DNS</span><span class=o>=</span><span class=s>1.1.1.1</span><span class=c1>#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=na>DNSOverTLS</span><span class=o>=</span><span class=s>yes</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=na>DNSSEC</span><span class=o>=</span><span class=s>yes</span>
-</span></code></pre></div> <p><code>DNSOverTLS=yes</code>는 TLS 실패 시 평문으로 폴백하지 않는다. <code>DNSOverTLS=opportunistic</code>은 실패 시 폴백한다. 보안 관점에서는 <code>yes</code>가 맞다. <code>#cloudflare-dns.com</code> 부분은 TLS 인증서의 SNI/SAN 검증에 쓴다. 이게 빠지면 IP 인증만 되고 MITM 가능성이 생긴다.</p> <h2 id=dns-rebinding-공격>DNS Rebinding 공격<a class=headerlink href=#dns-rebinding-공격 title="Permanent link">&para;</a></h2> <p>이게 실무에서 잡기 까다로운 공격이다. 핵심 아이디어는 단순하다. 공격자가 자기 도메인의 DNS 응답을 처음에는 자기 IP로 주고, 같은 도메인에 대해 두 번째 질의에는 피해자 내부 IP(예: 192.168.1.1)로 응답한다. TTL을 0이나 1초로 짧게 잡는다.</p> <p>진행 시나리오는 이렇다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>1. 사용자가 attacker.com 방문
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>2. attacker.com → 198.51.100.10 (공격자 서버) 응답
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>3. 브라우저가 attacker.com의 JavaScript 로드
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>4. JS가 attacker.com에 fetch 요청 (Same-Origin이라 허용)
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>5. TTL 만료, 다시 DNS 질의
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>6. attacker.com → 192.168.1.1 (피해자 라우터) 응답
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>7. 브라우저는 여전히 &quot;attacker.com&quot;으로 인식 → Same-Origin 정책 통과
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>8. JS가 192.168.1.1의 관리 페이지에 요청 가능
-</span></code></pre></div> <p>브라우저의 SOP(Same-Origin Policy)는 도메인 이름 기준으로 동작하지 SOP가 IP를 다시 확인하지는 않는다. 그래서 도메인 이름은 같은데 IP가 바뀌는 순간 내부망 자원에 외부 JS가 접근할 수 있게 된다. IoT 라우터, 로컬에서 도는 개발 서버, Redis/Elasticsearch가 0.0.0.0으로 바인딩된 경우 등이 다 표적이다.</p> <h3 id=방어>방어<a class=headerlink href=#방어 title="Permanent link">&para;</a></h3> <p>서버 측 Host 헤더 검증이 가장 현실적이다. 내부 서비스는 <code>Host: 192.168.1.1</code>로 들어오는 요청만 받지 말고, 화이트리스트된 호스트명만 받도록 한다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1>// Express</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=kd>const</span><span class=w> </span><span class=nx>allowedHosts</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=s1>&#39;admin.internal.local&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;localhost&#39;</span><span class=p>];</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=nx>app</span><span class=p>.</span><span class=nx>use</span><span class=p>((</span><span class=nx>req</span><span class=p>,</span><span class=w> </span><span class=nx>res</span><span class=p>,</span><span class=w> </span><span class=nx>next</span><span class=p>)</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=w>  </span><span class=kd>const</span><span class=w> </span><span class=nx>host</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>req</span><span class=p>.</span><span class=nx>headers</span><span class=p>.</span><span class=nx>host</span><span class=o>?</span><span class=p>.</span><span class=nx>split</span><span class=p>(</span><span class=s1>&#39;:&#39;</span><span class=p>)[</span><span class=mf>0</span><span class=p>];</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=w>  </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=nx>allowedHosts</span><span class=p>.</span><span class=nx>includes</span><span class=p>(</span><span class=nx>host</span><span class=p>))</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=nx>res</span><span class=p>.</span><span class=nx>status</span><span class=p>(</span><span class=mf>403</span><span class=p>).</span><span class=nx>send</span><span class=p>(</span><span class=s1>&#39;Invalid Host header&#39;</span><span class=p>);</span>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=w>  </span><span class=nx>next</span><span class=p>();</span>
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a><span class=p>});</span>
-</span></code></pre></div> <p>Resolver 단에서 Private IP 응답을 필터링하는 방법도 있다. RFC 1918 대역(10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), 링크 로컬(169.254.0.0/16), 루프백(127.0.0.0/8)을 외부 도메인 응답에서 받으면 차단한다. dnsmasq의 <code>stop-dns-rebind</code> 옵션, Unbound의 <code>private-address</code> 설정이 이걸 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a># Unbound 설정 예시
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>server:
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>    private-address: 10.0.0.0/8
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>    private-address: 172.16.0.0/12
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>    private-address: 192.168.0.0/16
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>    private-address: 169.254.0.0/16
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>    private-address: 127.0.0.0/8
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a>    private-address: ::1/128
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a>    private-address: fd00::/8
-</span></code></pre></div> <p>내부 서비스가 인증을 강제하고 CSRF 토큰을 요구하면 rebinding이 성공해도 의미 있는 행동을 못 한다. 라우터 관리 페이지가 비밀번호 없이 들어가지는 게 문제의 본질이지, DNS 자체만의 문제는 아니다.</p> <h2 id=dns-cache-poisoning>DNS Cache Poisoning<a class=headerlink href=#dns-cache-poisoning title="Permanent link">&para;</a></h2> <p>Recursive resolver의 캐시에 거짓 응답을 심는 공격이다. 2008년 Kaminsky 공격이 가장 유명하다. resolver가 권위 서버에 질의를 보낸 직후, 진짜 응답이 도착하기 전에 위조 응답을 마구 보내서 매칭시키는 방식이다.</p> <p>매칭 조건은 두 가지였다. 16비트 트랜잭션 ID와 질의한 도메인. ID가 16비트라 65536가지 경우의 수밖에 없고, 짧은 시간에 다량의 위조 응답을 보내면 충돌 가능성이 의외로 높다. Kaminsky는 여기에 서브도메인 무작위 질의를 결합해서 거의 100% 확률로 캐시를 오염시킬 수 있다는 걸 보여줬다.</p> <h3 id=완화>완화<a class=headerlink href=#완화 title="Permanent link">&para;</a></h3> <p>Source port randomization. 질의 출발 포트를 랜덤화해서 16비트 추가 엔트로피를 만든다. 트랜잭션 ID 16비트 + 포트 16비트 = 32비트로 매칭 난도를 올린다. 대부분의 resolver가 이미 적용하고 있다.</p> <p>0x20 인코딩. 질의 도메인 이름의 대소문자를 랜덤하게 섞어서 보낸다. <code>eXaMpLe.CoM</code> 같은 식. 권위 서버가 받은 그대로 응답하기 때문에 응답에서 대소문자 패턴이 안 맞으면 위조로 본다. 추가 엔트로피.</p> <p>DNSSEC. 응답에 서명이 붙으면 위조된 캐시는 검증에서 떨어진다. 가장 본질적인 해법이다. 다만 권위 서버와 resolver 양쪽이 다 지원해야 한다.</p> <p>QNAME minimization. resolver가 root에는 root 정보만, TLD에는 TLD 정보만 묻는다. 전체 질의 이름을 모든 단계에 노출하지 않는다. 직접적인 캐시 오염 방어라기보다 정보 노출 최소화 차원이다.</p> <h2 id=dns-hijacking>DNS Hijacking<a class=headerlink href=#dns-hijacking title="Permanent link">&para;</a></h2> <p>광범위한 용어다. 보통 다음 중 하나를 가리킨다.</p> <p>라우터/단말 DNS 설정 변조. 멀웨어가 가정용 라우터의 DNS 서버를 공격자 IP로 바꿔치는 사례가 흔하다. 이러면 모든 도메인 질의가 공격자를 거친다. HTTPS가 깔려있으면 TLS 인증서 검증에서 막히지만, HTTP나 인증서 검증을 안 하는 앱은 그대로 뚫린다.</p> <p>권위 네임서버 변조. 도메인 등록기관 계정이 탈취되면 NS 레코드 자체를 공격자 서버로 바꾼다. 2018년 MyEtherWallet이 이렇게 당해서 사용자 자금이 탈취됐다. 등록기관 계정에 MFA를 거는 게 첫 단계다. 추가로 registrar lock(transfer lock)을 걸어두면 계정이 뚫려도 도메인을 다른 등록기관으로 옮기지 못한다.</p> <p>BGP 하이재킹 + DNS. 공격자가 권위 네임서버 IP 대역을 BGP로 가로채면 DNS 응답 자체를 공격자가 만든다. AWS Route 53 IP 대역이 이렇게 당한 사례가 있다(2018년 MyEtherWallet 사건의 또 다른 측면).</p> <p>CAA 레코드(Certification Authority Authorization)를 같이 걸어두는 게 최근의 흐름이다. 도메인이 어느 CA에서 인증서를 발급받을 수 있는지 DNS에 명시한다. DNS가 일시적으로 탈취돼도 공격자가 임의의 CA에서 인증서를 못 받는다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>example.com.  IN  CAA  0 issue &quot;letsencrypt.org&quot;
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>example.com.  IN  CAA  0 issuewild &quot;;&quot;
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>example.com.  IN  CAA  0 iodef &quot;mailto:security@example.com&quot;
-</span></code></pre></div> <p><code>issuewild ";"</code>는 와일드카드 인증서 발급을 모두 차단한다는 의미다.</p> <h2 id=dangling-cname과-서브도메인-takeover>Dangling CNAME과 서브도메인 Takeover<a class=headerlink href=#dangling-cname과-서브도메인-takeover title="Permanent link">&para;</a></h2> <p>운영하다 보면 가장 자주 마주치는 DNS 보안 사고다. 흐름은 단순하다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>1. blog.example.com  CNAME  myblog.heroku.com
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>2. Heroku 앱 삭제, DNS 레코드는 그대로 둠
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>3. 공격자가 myblog.heroku.com 이름을 다시 등록
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>4. blog.example.com에 접속하면 공격자 콘텐츠가 뜸
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>5. 게다가 example.com 도메인의 신뢰성이 그대로 묻어감
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a>   - 쿠키 *.example.com 도 공격 가능
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>   - SSO 콜백 도메인이면 인증 토큰 탈취도 가능
-</span></code></pre></div> <p>문제가 큰 건 단순히 페이지가 바뀌는 데서 끝나지 않는다는 점이다. <code>*.example.com</code> 도메인의 쿠키가 같이 노출되고, OAuth redirect URI나 SAML ACS URL이 그 서브도메인을 가리키고 있으면 인증 토큰까지 새 나간다. 이메일 SPF 정책에 그 서브도메인이 포함돼 있으면 피싱 메일 발송에도 쓰인다.</p> <p>표적이 되는 서비스는 클라우드 호스팅, CDN, 정적 사이트 호스팅 전반이다. AWS S3 버킷, Azure 앱, Heroku, GitHub Pages, Netlify, Vercel, Fastly 등에서 다 사례가 나왔다. 핵심은 "내가 점유했던 서비스 측 이름을 다른 사람이 다시 점유 가능한가"다. S3 버킷 이름은 글로벌 유니크지만 한 번 삭제되면 누구나 다시 만든다.</p> <h3 id=탐지>탐지<a class=headerlink href=#탐지 title="Permanent link">&para;</a></h3> <p>운영 중인 도메인의 모든 CNAME을 주기적으로 스캔해서 다음을 확인한다. NXDOMAIN으로 떨어지는 CNAME 타깃이 있는가. 타깃 도메인이 알려진 takeover 가능 서비스 목록에 들어가는가. HTTP 응답에 "There isn't a GitHub Pages site here", "NoSuchBucket" 같은 시그니처가 뜨는가.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># CNAME 체이닝 추적</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>dig<span class=w> </span>+short<span class=w> </span>blog.example.com<span class=w> </span>CNAME
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>dig<span class=w> </span>+short<span class=w> </span>myblog.heroku.com
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=c1># 응답이 없으면 dangling</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>dig<span class=w> </span>blog.example.com
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=p>;;</span><span class=w> </span>-&gt;&gt;HEADER<span class=s>&lt;&lt;- opco</span>de:<span class=w> </span>QUERY,<span class=w> </span>status:<span class=w> </span>NOERROR,<span class=w> </span>id:<span class=w> </span><span class=m>12345</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a><span class=p>;;</span><span class=w> </span>ANSWER<span class=w> </span>SECTION:
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a>blog.example.com.<span class=w>  </span><span class=m>300</span><span class=w>  </span>IN<span class=w>  </span>CNAME<span class=w>  </span>myblog.heroku.com.
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=p>;;</span><span class=w> </span>AUTHORITY<span class=w> </span>SECTION:
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>heroku.com.<span class=w>  </span><span class=m>900</span><span class=w>  </span>IN<span class=w>  </span>SOA<span class=w>  </span>ns1.heroku.com.<span class=w> </span>...
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a><span class=p>;;</span><span class=w> </span><span class=o>(</span>myblog.heroku.com에<span class=w> </span>대한<span class=w> </span>A<span class=w> </span>레코드<span class=w> </span>없음<span class=o>)</span>
-</span></code></pre></div> <p>오픈소스로는 <code>subjack</code>, <code>subzy</code>, <code>nuclei</code>의 takeover 템플릿이 자주 쓰인다. 사내 자산 관리 시스템에 도메인/CNAME 인벤토리를 두고 변경 시 자동 검증하는 게 가장 안정적이다.</p> <h3 id=운영-절차로-막기>운영 절차로 막기<a class=headerlink href=#운영-절차로-막기 title="Permanent link">&para;</a></h3> <p>서비스를 내릴 때 DNS 레코드를 먼저 지우고 그 다음에 호스팅을 해제한다. 순서를 거꾸로 하면 잠깐 사이에 공격자가 끼어들 수 있다. 사내에서 도메인 인벤토리와 호스팅 인벤토리를 같은 시스템에서 관리하면 누락이 줄어든다. 서브도메인을 함부로 안 만드는 것도 방법이다. 일회성 마케팅 페이지가 만든 <code>event-2024.example.com</code> 같은 것들이 나중에 dangling 후보가 된다.</p> <h2 id=운영-환경에서의-우선순위>운영 환경에서의 우선순위<a class=headerlink href=#운영-환경에서의-우선순위 title="Permanent link">&para;</a></h2> <p>DNS 보안을 한 번에 다 갖추기는 어렵다. 보통 다음 순서로 잡아 나간다.</p> <ol> <li>도메인 등록기관 계정 MFA, registrar lock, CAA 레코드. 이건 비용이 거의 없고 효과는 크다.</li> <li>모든 서브도메인의 dangling CNAME 인벤토리 점검. 사고 사례가 가장 많은 영역이다.</li> <li>사내 resolver에 DoT 또는 DoH 적용. private IP 응답 필터링 활성화.</li> <li>권위 도메인에 DNSSEC 적용. 자동 키 롤오버와 모니터링이 같이 가야 한다.</li> <li>클라이언트 단 DoH/DoT 정책. 사내 도메인 split-horizon 처리.</li> </ol> <p>DNSSEC를 가장 늦게 두는 이유는 운영 부담 때문이다. 키 롤오버 사고 한 번이면 도메인 전체가 SERVFAIL로 죽는다. 다른 항목을 먼저 잡고 모니터링 체계가 갖춰진 다음에 들어가는 게 안전하다.</p> <h2 id=참고-자료>참고 자료<a class=headerlink href=#참고-자료 title="Permanent link">&para;</a></h2> <ul> <li>RFC 4033, 4034, 4035 — DNSSEC</li> <li>RFC 7858 — DNS over TLS</li> <li>RFC 8484 — DNS over HTTPS</li> <li>RFC 6797 — HSTS (DNS 단독으로 못 막는 부분 보완)</li> <li>RFC 6844 — CAA 레코드</li> <li>Kaminsky DNS attack (2008) — 캐시 오염 사례</li> <li>Slack DNSSEC 장애 (2021-09) — 서명 만료 사례</li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Network/Domain/DNSSEC/ >DNSSEC (DNS Security Extensions)</a></li> <li><a href=../D_Do_S_Defense/ >DDoS 공격 방어</a></li> <li><a href=../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/ >보안 심화 및 취약점 분석</a></li> <li><a href=../../Cloud/AWS/Network/PrivateLink/ >AWS PrivateLink</a></li> <li><a href=../../Cloud/AWS/Network/Route%2053/ >AWS Route 53</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Server_Attack_Defense/ class="md-footer__link md-footer__link--prev" aria-label="이전: 서버 취약점 공격 방어"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 서버 취약점 공격 방어 </div> </div> </a> <a href=../Supply_Chain_Security/ class="md-footer__link md-footer__link--next" aria-label="다음: 공급망 공격 방어"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 공급망 공격 방어 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../javascripts/extra.js></script> <script src=../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Security/DNS_Security/">
+      
+      
+        <link rel="prev" href="../Server_Attack_Defense/">
+      
+      
+        <link rel="next" href="../Supply_Chain_Security/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>DNS Security - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#dns-security" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              DNS Security
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 기초 개념
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Threat_Modeling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    위협 모델링
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OWASP_Top_10/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OWASP Top 10
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 심화 및 취약점 분석
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Tenant_Key_Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테넌트별 암호화 키 격리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Cross_Tenant_Leak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    크로스 테넌트 유출
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../API_Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../AES/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    암호화
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../HTTPS_and_TLS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    전송 구간 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../OAuth/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증과 세션
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../XSS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 취약점
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4_13" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_4_13" id="__nav_7_4_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    공격 방어
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_4_13_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_4_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    공격 방어
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../D_Do_S_Defense/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDoS 공격 방어
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Rate_Limiting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rate Limiting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Web_Application_Firewall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 애플리케이션 방화벽
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Server_Attack_Defense/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서버 취약점 공격 방어
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNS Security
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNS Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dns-질의-흐름과-신뢰-모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS 질의 흐름과 신뢰 모델
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dnssec-동작-원리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNSSEC 동작 원리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DNSSEC 동작 원리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#부재-증명-nsec와-nsec3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        부재 증명: NSEC와 NSEC3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dig로-dnssec-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dig로 DNSSEC 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delv로-직접-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delv로 직접 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dnssec-운영하면서-자주-깨지는-부분" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNSSEC 운영하면서 자주 깨지는 부분
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#doh와-dot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DoH와 DoT
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DoH와 DoT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dohdot-도입-시-운영-이슈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DoH/DoT 도입 시 운영 이슈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linux에서-dot-적용" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux에서 DoT 적용
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-rebinding-공격" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS Rebinding 공격
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DNS Rebinding 공격">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-cache-poisoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS Cache Poisoning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DNS Cache Poisoning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#완화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        완화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-hijacking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS Hijacking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dangling-cname과-서브도메인-takeover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dangling CNAME과 서브도메인 Takeover
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dangling CNAME과 서브도메인 Takeover">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#탐지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        탐지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#운영-절차로-막기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 절차로 막기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#운영-환경에서의-우선순위" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 환경에서의 우선순위
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#참고-자료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        참고 자료
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Supply_Chain_Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    공급망 공격 방어
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Zero_Trust_Architecture/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인프라 보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Dev_Sec_Ops/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영과 컴플라이언스
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../SQL_%EC%9D%B8%EC%A0%9D%EC%85%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL Injection
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dns-질의-흐름과-신뢰-모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS 질의 흐름과 신뢰 모델
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dnssec-동작-원리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNSSEC 동작 원리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DNSSEC 동작 원리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#부재-증명-nsec와-nsec3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        부재 증명: NSEC와 NSEC3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dig로-dnssec-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dig로 DNSSEC 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delv로-직접-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delv로 직접 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dnssec-운영하면서-자주-깨지는-부분" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNSSEC 운영하면서 자주 깨지는 부분
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#doh와-dot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DoH와 DoT
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DoH와 DoT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dohdot-도입-시-운영-이슈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DoH/DoT 도입 시 운영 이슈
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linux에서-dot-적용" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux에서 DoT 적용
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-rebinding-공격" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS Rebinding 공격
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DNS Rebinding 공격">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#방어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        방어
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-cache-poisoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS Cache Poisoning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DNS Cache Poisoning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#완화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        완화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dns-hijacking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS Hijacking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dangling-cname과-서브도메인-takeover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dangling CNAME과 서브도메인 Takeover
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dangling CNAME과 서브도메인 Takeover">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#탐지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        탐지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#운영-절차로-막기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 절차로 막기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#운영-환경에서의-우선순위" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        운영 환경에서의 우선순위
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#참고-자료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        참고 자료
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">dns</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">security</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="dns-security">DNS Security<a class="headerlink" href="#dns-security" title="Permanent link">&para;</a></h1>
+<p>DNS는 거의 모든 네트워크 통신의 출발점이다. 그런데 평문 UDP 53번에서 동작하고, 응답을 검증할 방법이 기본적으로 없다. 누군가 중간에서 응답을 위조하면 클라이언트는 그대로 믿는다. TLS 인증서 검증이 도입돼서 IP 단계에서의 가로채기는 어느 정도 막을 수 있지만, "어느 IP로 갈 것인가"를 정하는 DNS 단계가 깨지면 그 뒤가 다 흔들린다.</p>
+<p>실무에서 DNS 보안이라고 하면 보통 네 갈래로 본다.</p>
+<ol>
+<li>응답 무결성 — DNSSEC</li>
+<li>질의 기밀성 — DoH/DoT</li>
+<li>응답을 악용한 공격 방어 — DNS rebinding, cache poisoning</li>
+<li>도메인/레코드 운영 — dangling CNAME, 도메인 탈취</li>
+</ol>
+<p>각각 공격 표면과 대응 도구가 다르다. 한 번에 다 해결하는 마스터 키 같은 건 없고, 운영 환경에 맞춰 골라 적용해야 한다.</p>
+<h2 id="dns-질의-흐름과-신뢰-모델">DNS 질의 흐름과 신뢰 모델<a class="headerlink" href="#dns-질의-흐름과-신뢰-모델" title="Permanent link">&para;</a></h2>
+<p>DNS 질의는 다음 경로를 거친다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>stub resolver (브라우저, libc) 
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    → recursive resolver (1.1.1.1, 8.8.8.8, ISP DNS, 사내 DNS)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        → root → TLD → authoritative name server
+</span></code></pre></div>
+<p>이 경로 중 어디든 응답을 위조할 수 있는 위치를 차지하면 공격이 성립한다. 클라이언트와 recursive resolver 사이는 LAN/Wi-Fi 라우터, ISP, 카페 공유기까지 다 노출돼 있다. recursive resolver에서 권위 서버까지의 구간은 BGP 하이재킹이나 캐시 오염 같은 더 깊은 단계 공격 영역이다.</p>
+<p>기본 DNS는 응답에 서명이 없다. 즉 "이 응답이 정말 권위 서버에서 온 것인가"를 클라이언트가 확인할 방법이 프로토콜 차원에서 없다. 이게 DNSSEC가 풀려는 문제다.</p>
+<h2 id="dnssec-동작-원리">DNSSEC 동작 원리<a class="headerlink" href="#dnssec-동작-원리" title="Permanent link">&para;</a></h2>
+<p>DNSSEC는 DNS 응답에 디지털 서명을 붙인다. 응답이 위조되지 않았는지 공개키로 검증한다는 뜻이다. 핵심 레코드는 네 개다.</p>
+<table>
+<thead>
+<tr>
+<th>레코드</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RRSIG</td>
+<td>특정 RRset(예: example.com A 레코드 묶음)의 서명</td>
+</tr>
+<tr>
+<td>DNSKEY</td>
+<td>서명 검증용 공개키 (ZSK, KSK)</td>
+</tr>
+<tr>
+<td>DS</td>
+<td>부모 존이 자식 존의 KSK 해시를 갖고 있어 신뢰 사슬을 잇는다</td>
+</tr>
+<tr>
+<td>NSEC/NSEC3</td>
+<td>"이 레코드는 존재하지 않는다"를 증명 (부재 증명)</td>
+</tr>
+</tbody>
+</table>
+<p>키는 두 종류다. ZSK(Zone Signing Key)는 실제 레코드를 서명하는 데 쓰고 자주 교체한다. KSK(Key Signing Key)는 ZSK를 서명하고 부모 존의 DS와 연결된다. KSK는 잘 안 바꾼다. 분리한 이유는 명확하다. ZSK는 자주 도는데 그때마다 부모 존에 DS를 갱신하려면 운영 비용이 폭발한다.</p>
+<p>신뢰 사슬은 root에서 시작한다. root의 KSK 해시(trust anchor)는 OS나 resolver 소프트웨어에 박혀 있다. root → .com → example.com 으로 내려가며 부모의 DS가 자식의 DNSKEY를 보증한다. 어느 한 단계라도 서명이 깨지면 검증 실패다.</p>
+<h3 id="부재-증명-nsec와-nsec3">부재 증명: NSEC와 NSEC3<a class="headerlink" href="#부재-증명-nsec와-nsec3" title="Permanent link">&para;</a></h3>
+<p>존재하지 않는 도메인을 물었을 때 "없다"는 응답도 위조될 수 있어야 한다. NSEC는 알파벳 순서로 정렬된 다음 레코드를 가리킨다. <code>aaa.example.com</code> 다음이 <code>ccc.example.com</code>이라고 서명하면, 그 사이의 <code>bbb.example.com</code>은 존재하지 않음이 증명된다.</p>
+<p>문제는 NSEC가 존 전체를 그대로 노출시킨다는 점이다. 공격자가 NSEC 응답을 따라가면서 zone walking을 하면 모든 서브도메인 목록을 얻는다. 그래서 NSEC3가 나왔다. 이름을 해시해서 정렬하니까 원본 도메인 이름은 직접 노출되지 않는다. 다만 GPU로 해시 역산을 시도하면 짧은 이름은 풀린다. 최근에는 NSEC3 대신 NSEC에 minimally covering response를 쓰는 흐름도 있다. 어느 쪽이든 부재 증명에는 트레이드오프가 따른다.</p>
+<h3 id="dig로-dnssec-확인">dig로 DNSSEC 확인<a class="headerlink" href="#dig로-dnssec-확인" title="Permanent link">&para;</a></h3>
+<p><code>+dnssec</code> 플래그를 붙이면 RRSIG와 DNSKEY를 같이 받는다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>dig<span class="w"> </span>+dnssec<span class="w"> </span>example.com<span class="w"> </span>A
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">;;</span><span class="w"> </span>ANSWER<span class="w"> </span>SECTION:
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>example.com.<span class="w">    </span><span class="m">300</span><span class="w">  </span>IN<span class="w">  </span>A<span class="w">      </span><span class="m">93</span>.184.216.34
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>example.com.<span class="w">    </span><span class="m">300</span><span class="w">  </span>IN<span class="w">  </span>RRSIG<span class="w">  </span>A<span class="w"> </span><span class="m">13</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">300</span><span class="w"> </span><span class="m">20260612000000</span><span class="w"> </span><span class="o">(</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">                                </span><span class="m">20260522000000</span><span class="w"> </span><span class="m">12345</span><span class="w"> </span>example.com.
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">                                </span>ABcdEf...<span class="w"> </span><span class="o">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">;;</span><span class="w"> </span>Query<span class="w"> </span>time:<span class="w"> </span><span class="m">23</span><span class="w"> </span>msec
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">;;</span><span class="w"> </span>flags:<span class="w"> </span>qr<span class="w"> </span>rd<span class="w"> </span>ra<span class="w"> </span>ad<span class="p">;</span><span class="w"> </span>...
+</span></code></pre></div>
+<p>여기서 봐야 할 건 두 가지다.</p>
+<p><code>flags</code>에 <code>ad</code>(Authenticated Data)가 있는지. resolver가 DNSSEC 검증에 성공했다는 표시다. 없으면 검증을 안 했거나 검증 실패다. <code>cd</code>(Checking Disabled) 플래그가 켜져 있으면 클라이언트가 검증을 의도적으로 꺼버린 상태다.</p>
+<p>RRSIG 레코드에 서명이 같이 왔는지. 권위 서버가 DNSSEC를 적용했다는 증거다. RRSIG가 안 오면 그 도메인은 DNSSEC 미적용이다.</p>
+<h3 id="delv로-직접-검증">delv로 직접 검증<a class="headerlink" href="#delv로-직접-검증" title="Permanent link">&para;</a></h3>
+<p><code>dig</code>는 resolver의 검증 결과를 그대로 받는다. <code>delv</code>는 클라이언트 자체가 root의 trust anchor부터 직접 검증을 수행한다. 신뢰 사슬을 처음부터 따라가서 확인하는 도구다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>delv<span class="w"> </span>+rtrace<span class="w"> </span>example.com<span class="w"> </span>A
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">;;</span><span class="w"> </span>resolution<span class="w"> </span>succeeded
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">;;</span><span class="w"> </span>fully<span class="w"> </span>validated
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>example.com.<span class="w">  </span><span class="m">300</span><span class="w">  </span>IN<span class="w">  </span>A<span class="w">      </span><span class="m">93</span>.184.216.34
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>example.com.<span class="w">  </span><span class="m">300</span><span class="w">  </span>IN<span class="w">  </span>RRSIG<span class="w">  </span>A<span class="w"> </span><span class="m">13</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">300</span><span class="w"> </span>...
+</span></code></pre></div>
+<p><code>fully validated</code>가 뜨면 root → TLD → 도메인까지 신뢰 사슬이 깨끗하게 이어졌다는 의미다. 만약 <code>; resolution failed: insecurity proof failed</code> 같은 메시지가 나오면 어딘가에서 DS 등록이 빠졌거나 서명이 깨졌다는 뜻이다.</p>
+<p><code>+rtrace</code>는 검증 과정을 단계별로 보여줘서 디버깅에 쓸 만하다. 키 롤오버 직후 검증 실패가 나면 이걸로 어느 키에서 실패했는지 찾는다.</p>
+<h3 id="dnssec-운영하면서-자주-깨지는-부분">DNSSEC 운영하면서 자주 깨지는 부분<a class="headerlink" href="#dnssec-운영하면서-자주-깨지는-부분" title="Permanent link">&para;</a></h3>
+<p>키 롤오버 사고가 가장 많다. ZSK를 교체하면서 RRSIG는 새 키로 서명했는데 DNSKEY 레코드에 이전 키를 같이 노출하지 않으면 캐시된 RRSIG를 들고 있는 resolver는 검증에 실패한다. 보통 prepublish 방식으로 신키를 먼저 노출하고 충분히 전파된 다음에 서명에 쓰기 시작한다.</p>
+<p>DS 등록 누락도 흔하다. 도메인 등록기관(레지스트라)에 DS를 등록하지 않으면 부모 존이 자식 존을 보증하지 못한다. 이 상태에서 DNSSEC를 켜면 검증 자체는 일어나지 않지만, "DNSSEC를 적용했다"고 착각하는 게 더 위험하다.</p>
+<p>서명 만료도 문제다. RRSIG에는 inception/expiration 타임스탬프가 박혀 있다. 자동 재서명이 죽거나 시계가 틀어지면 서명이 만료돼서 도메인 전체가 SERVFAIL로 떨어진다. Slack도 2021년에 비슷한 이유로 장애를 겪었다.</p>
+<p>DNSSEC가 풀어주는 건 응답 무결성뿐이다. 질의 내용과 응답이 평문으로 다닌다는 사실 자체는 그대로다. 누가 어떤 도메인을 물었는지는 경로상에서 다 보인다. 그래서 별도로 DoH/DoT가 필요하다.</p>
+<h2 id="doh와-dot">DoH와 DoT<a class="headerlink" href="#doh와-dot" title="Permanent link">&para;</a></h2>
+<p>DoT(DNS over TLS)는 853번 포트에서 TLS로 감싼 DNS 메시지를 주고받는다. RFC 7858. DNS 메시지 형식은 그대로고 전송 계층만 암호화된다. 방화벽이 853번을 보면 "DNS 트래픽이구나" 알 수 있다.</p>
+<p>DoH(DNS over HTTPS)는 443번 HTTPS 위에서 DNS 질의를 GET이나 POST로 보낸다. RFC 8484. 방화벽 입장에서는 그냥 HTTPS 트래픽처럼 보인다. 일반 웹 트래픽과 구분이 어렵다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># DoH 직접 호출 예시 (Cloudflare)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;accept: application/dns-json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="s2">&quot;https://cloudflare-dns.com/dns-query?name=example.com&amp;type=A&quot;</span>
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;Status&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;Answer&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;TTL&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">268</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;93.184.216.34&quot;</span><span class="p">}</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="dohdot-도입-시-운영-이슈">DoH/DoT 도입 시 운영 이슈<a class="headerlink" href="#dohdot-도입-시-운영-이슈" title="Permanent link">&para;</a></h3>
+<p>브라우저가 OS의 DNS 설정을 무시하고 자체 DoH로 가버리는 문제가 있다. Firefox는 일정 조건에서 Cloudflare DoH를 자동으로 쓴다. Chrome은 OS DNS와 매핑되는 DoH 서버가 있으면 자동 업그레이드한다. 사내 DNS로 내부 도메인을 풀어야 하는 환경에서는 골치 아프다. <code>corp.internal</code> 같은 사설 도메인이 외부 DoH 서버로 새서 NXDOMAIN을 받는 상황이 생긴다.</p>
+<p>방어선 입장에서도 평가가 갈린다. DoH는 멀웨어가 C2 통신을 숨기는 데 자주 쓰인다. 방화벽이 도메인 단위 차단(DNS sinkhole)을 하던 환경에서는 DoH 트래픽이 그 통제를 우회한다. 그래서 기업 환경에서는 외부 DoH 엔드포인트 자체를 차단하거나, 자체 DoH 서버를 운영해서 강제로 거기로 보내는 방식을 쓴다.</p>
+<p>Stub resolver 단에서 DoT만 켜는 것도 부분적인 해결이다. 클라이언트와 recursive resolver 구간만 암호화된다. recursive resolver와 권위 서버 사이는 여전히 평문이다. 이 구간을 위해 ADoT(Authoritative DoT)나 RFC 9539(EncryptedClientHello, ECH 기반)도 논의 중이지만 보급률은 낮다.</p>
+<h3 id="linux에서-dot-적용">Linux에서 DoT 적용<a class="headerlink" href="#linux에서-dot-적용" title="Permanent link">&para;</a></h3>
+<p>systemd-resolved를 쓰면 설정 한두 줄로 DoT를 강제할 수 있다.</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># /etc/systemd/resolved.conf</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">[Resolve]</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="na">DNS</span><span class="o">=</span><span class="s">1.1.1.1</span><span class="c1">#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="na">DNSOverTLS</span><span class="o">=</span><span class="s">yes</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="na">DNSSEC</span><span class="o">=</span><span class="s">yes</span>
+</span></code></pre></div>
+<p><code>DNSOverTLS=yes</code>는 TLS 실패 시 평문으로 폴백하지 않는다. <code>DNSOverTLS=opportunistic</code>은 실패 시 폴백한다. 보안 관점에서는 <code>yes</code>가 맞다. <code>#cloudflare-dns.com</code> 부분은 TLS 인증서의 SNI/SAN 검증에 쓴다. 이게 빠지면 IP 인증만 되고 MITM 가능성이 생긴다.</p>
+<h2 id="dns-rebinding-공격">DNS Rebinding 공격<a class="headerlink" href="#dns-rebinding-공격" title="Permanent link">&para;</a></h2>
+<p>이게 실무에서 잡기 까다로운 공격이다. 핵심 아이디어는 단순하다. 공격자가 자기 도메인의 DNS 응답을 처음에는 자기 IP로 주고, 같은 도메인에 대해 두 번째 질의에는 피해자 내부 IP(예: 192.168.1.1)로 응답한다. TTL을 0이나 1초로 짧게 잡는다.</p>
+<p>진행 시나리오는 이렇다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>1. 사용자가 attacker.com 방문
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>2. attacker.com → 198.51.100.10 (공격자 서버) 응답
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>3. 브라우저가 attacker.com의 JavaScript 로드
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>4. JS가 attacker.com에 fetch 요청 (Same-Origin이라 허용)
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>5. TTL 만료, 다시 DNS 질의
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>6. attacker.com → 192.168.1.1 (피해자 라우터) 응답
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>7. 브라우저는 여전히 &quot;attacker.com&quot;으로 인식 → Same-Origin 정책 통과
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>8. JS가 192.168.1.1의 관리 페이지에 요청 가능
+</span></code></pre></div>
+<p>브라우저의 SOP(Same-Origin Policy)는 도메인 이름 기준으로 동작하지 SOP가 IP를 다시 확인하지는 않는다. 그래서 도메인 이름은 같은데 IP가 바뀌는 순간 내부망 자원에 외부 JS가 접근할 수 있게 된다. IoT 라우터, 로컬에서 도는 개발 서버, Redis/Elasticsearch가 0.0.0.0으로 바인딩된 경우 등이 다 표적이다.</p>
+<h3 id="방어">방어<a class="headerlink" href="#방어" title="Permanent link">&para;</a></h3>
+<p>서버 측 Host 헤더 검증이 가장 현실적이다. 내부 서비스는 <code>Host: 192.168.1.1</code>로 들어오는 요청만 받지 말고, 화이트리스트된 호스트명만 받도록 한다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">// Express</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">allowedHosts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;admin.internal.local&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;localhost&#39;</span><span class="p">];</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">,</span><span class="w"> </span><span class="nx">next</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">req</span><span class="p">.</span><span class="nx">headers</span><span class="p">.</span><span class="nx">host</span><span class="o">?</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mf">0</span><span class="p">];</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">allowedHosts</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="nx">host</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mf">403</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;Invalid Host header&#39;</span><span class="p">);</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="nx">next</span><span class="p">();</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="p">});</span>
+</span></code></pre></div>
+<p>Resolver 단에서 Private IP 응답을 필터링하는 방법도 있다. RFC 1918 대역(10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), 링크 로컬(169.254.0.0/16), 루프백(127.0.0.0/8)을 외부 도메인 응답에서 받으면 차단한다. dnsmasq의 <code>stop-dns-rebind</code> 옵션, Unbound의 <code>private-address</code> 설정이 이걸 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a># Unbound 설정 예시
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>server:
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    private-address: 10.0.0.0/8
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    private-address: 172.16.0.0/12
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    private-address: 192.168.0.0/16
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    private-address: 169.254.0.0/16
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    private-address: 127.0.0.0/8
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    private-address: ::1/128
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    private-address: fd00::/8
+</span></code></pre></div>
+<p>내부 서비스가 인증을 강제하고 CSRF 토큰을 요구하면 rebinding이 성공해도 의미 있는 행동을 못 한다. 라우터 관리 페이지가 비밀번호 없이 들어가지는 게 문제의 본질이지, DNS 자체만의 문제는 아니다.</p>
+<h2 id="dns-cache-poisoning">DNS Cache Poisoning<a class="headerlink" href="#dns-cache-poisoning" title="Permanent link">&para;</a></h2>
+<p>Recursive resolver의 캐시에 거짓 응답을 심는 공격이다. 2008년 Kaminsky 공격이 가장 유명하다. resolver가 권위 서버에 질의를 보낸 직후, 진짜 응답이 도착하기 전에 위조 응답을 마구 보내서 매칭시키는 방식이다.</p>
+<p>매칭 조건은 두 가지였다. 16비트 트랜잭션 ID와 질의한 도메인. ID가 16비트라 65536가지 경우의 수밖에 없고, 짧은 시간에 다량의 위조 응답을 보내면 충돌 가능성이 의외로 높다. Kaminsky는 여기에 서브도메인 무작위 질의를 결합해서 거의 100% 확률로 캐시를 오염시킬 수 있다는 걸 보여줬다.</p>
+<h3 id="완화">완화<a class="headerlink" href="#완화" title="Permanent link">&para;</a></h3>
+<p>Source port randomization. 질의 출발 포트를 랜덤화해서 16비트 추가 엔트로피를 만든다. 트랜잭션 ID 16비트 + 포트 16비트 = 32비트로 매칭 난도를 올린다. 대부분의 resolver가 이미 적용하고 있다.</p>
+<p>0x20 인코딩. 질의 도메인 이름의 대소문자를 랜덤하게 섞어서 보낸다. <code>eXaMpLe.CoM</code> 같은 식. 권위 서버가 받은 그대로 응답하기 때문에 응답에서 대소문자 패턴이 안 맞으면 위조로 본다. 추가 엔트로피.</p>
+<p>DNSSEC. 응답에 서명이 붙으면 위조된 캐시는 검증에서 떨어진다. 가장 본질적인 해법이다. 다만 권위 서버와 resolver 양쪽이 다 지원해야 한다.</p>
+<p>QNAME minimization. resolver가 root에는 root 정보만, TLD에는 TLD 정보만 묻는다. 전체 질의 이름을 모든 단계에 노출하지 않는다. 직접적인 캐시 오염 방어라기보다 정보 노출 최소화 차원이다.</p>
+<h2 id="dns-hijacking">DNS Hijacking<a class="headerlink" href="#dns-hijacking" title="Permanent link">&para;</a></h2>
+<p>광범위한 용어다. 보통 다음 중 하나를 가리킨다.</p>
+<p>라우터/단말 DNS 설정 변조. 멀웨어가 가정용 라우터의 DNS 서버를 공격자 IP로 바꿔치는 사례가 흔하다. 이러면 모든 도메인 질의가 공격자를 거친다. HTTPS가 깔려있으면 TLS 인증서 검증에서 막히지만, HTTP나 인증서 검증을 안 하는 앱은 그대로 뚫린다.</p>
+<p>권위 네임서버 변조. 도메인 등록기관 계정이 탈취되면 NS 레코드 자체를 공격자 서버로 바꾼다. 2018년 MyEtherWallet이 이렇게 당해서 사용자 자금이 탈취됐다. 등록기관 계정에 MFA를 거는 게 첫 단계다. 추가로 registrar lock(transfer lock)을 걸어두면 계정이 뚫려도 도메인을 다른 등록기관으로 옮기지 못한다.</p>
+<p>BGP 하이재킹 + DNS. 공격자가 권위 네임서버 IP 대역을 BGP로 가로채면 DNS 응답 자체를 공격자가 만든다. AWS Route 53 IP 대역이 이렇게 당한 사례가 있다(2018년 MyEtherWallet 사건의 또 다른 측면).</p>
+<p>CAA 레코드(Certification Authority Authorization)를 같이 걸어두는 게 최근의 흐름이다. 도메인이 어느 CA에서 인증서를 발급받을 수 있는지 DNS에 명시한다. DNS가 일시적으로 탈취돼도 공격자가 임의의 CA에서 인증서를 못 받는다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>example.com.  IN  CAA  0 issue &quot;letsencrypt.org&quot;
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>example.com.  IN  CAA  0 issuewild &quot;;&quot;
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>example.com.  IN  CAA  0 iodef &quot;mailto:security@example.com&quot;
+</span></code></pre></div>
+<p><code>issuewild ";"</code>는 와일드카드 인증서 발급을 모두 차단한다는 의미다.</p>
+<h2 id="dangling-cname과-서브도메인-takeover">Dangling CNAME과 서브도메인 Takeover<a class="headerlink" href="#dangling-cname과-서브도메인-takeover" title="Permanent link">&para;</a></h2>
+<p>운영하다 보면 가장 자주 마주치는 DNS 보안 사고다. 흐름은 단순하다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>1. blog.example.com  CNAME  myblog.heroku.com
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>2. Heroku 앱 삭제, DNS 레코드는 그대로 둠
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>3. 공격자가 myblog.heroku.com 이름을 다시 등록
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>4. blog.example.com에 접속하면 공격자 콘텐츠가 뜸
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>5. 게다가 example.com 도메인의 신뢰성이 그대로 묻어감
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>   - 쿠키 *.example.com 도 공격 가능
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>   - SSO 콜백 도메인이면 인증 토큰 탈취도 가능
+</span></code></pre></div>
+<p>문제가 큰 건 단순히 페이지가 바뀌는 데서 끝나지 않는다는 점이다. <code>*.example.com</code> 도메인의 쿠키가 같이 노출되고, OAuth redirect URI나 SAML ACS URL이 그 서브도메인을 가리키고 있으면 인증 토큰까지 새 나간다. 이메일 SPF 정책에 그 서브도메인이 포함돼 있으면 피싱 메일 발송에도 쓰인다.</p>
+<p>표적이 되는 서비스는 클라우드 호스팅, CDN, 정적 사이트 호스팅 전반이다. AWS S3 버킷, Azure 앱, Heroku, GitHub Pages, Netlify, Vercel, Fastly 등에서 다 사례가 나왔다. 핵심은 "내가 점유했던 서비스 측 이름을 다른 사람이 다시 점유 가능한가"다. S3 버킷 이름은 글로벌 유니크지만 한 번 삭제되면 누구나 다시 만든다.</p>
+<h3 id="탐지">탐지<a class="headerlink" href="#탐지" title="Permanent link">&para;</a></h3>
+<p>운영 중인 도메인의 모든 CNAME을 주기적으로 스캔해서 다음을 확인한다. NXDOMAIN으로 떨어지는 CNAME 타깃이 있는가. 타깃 도메인이 알려진 takeover 가능 서비스 목록에 들어가는가. HTTP 응답에 "There isn't a GitHub Pages site here", "NoSuchBucket" 같은 시그니처가 뜨는가.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># CNAME 체이닝 추적</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>dig<span class="w"> </span>+short<span class="w"> </span>blog.example.com<span class="w"> </span>CNAME
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>dig<span class="w"> </span>+short<span class="w"> </span>myblog.heroku.com
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># 응답이 없으면 dangling</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>dig<span class="w"> </span>blog.example.com
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="p">;;</span><span class="w"> </span>-&gt;&gt;HEADER<span class="s">&lt;&lt;- opco</span>de:<span class="w"> </span>QUERY,<span class="w"> </span>status:<span class="w"> </span>NOERROR,<span class="w"> </span>id:<span class="w"> </span><span class="m">12345</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">;;</span><span class="w"> </span>ANSWER<span class="w"> </span>SECTION:
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>blog.example.com.<span class="w">  </span><span class="m">300</span><span class="w">  </span>IN<span class="w">  </span>CNAME<span class="w">  </span>myblog.heroku.com.
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">;;</span><span class="w"> </span>AUTHORITY<span class="w"> </span>SECTION:
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>heroku.com.<span class="w">  </span><span class="m">900</span><span class="w">  </span>IN<span class="w">  </span>SOA<span class="w">  </span>ns1.heroku.com.<span class="w"> </span>...
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="p">;;</span><span class="w"> </span><span class="o">(</span>myblog.heroku.com에<span class="w"> </span>대한<span class="w"> </span>A<span class="w"> </span>레코드<span class="w"> </span>없음<span class="o">)</span>
+</span></code></pre></div>
+<p>오픈소스로는 <code>subjack</code>, <code>subzy</code>, <code>nuclei</code>의 takeover 템플릿이 자주 쓰인다. 사내 자산 관리 시스템에 도메인/CNAME 인벤토리를 두고 변경 시 자동 검증하는 게 가장 안정적이다.</p>
+<h3 id="운영-절차로-막기">운영 절차로 막기<a class="headerlink" href="#운영-절차로-막기" title="Permanent link">&para;</a></h3>
+<p>서비스를 내릴 때 DNS 레코드를 먼저 지우고 그 다음에 호스팅을 해제한다. 순서를 거꾸로 하면 잠깐 사이에 공격자가 끼어들 수 있다. 사내에서 도메인 인벤토리와 호스팅 인벤토리를 같은 시스템에서 관리하면 누락이 줄어든다. 서브도메인을 함부로 안 만드는 것도 방법이다. 일회성 마케팅 페이지가 만든 <code>event-2024.example.com</code> 같은 것들이 나중에 dangling 후보가 된다.</p>
+<h2 id="운영-환경에서의-우선순위">운영 환경에서의 우선순위<a class="headerlink" href="#운영-환경에서의-우선순위" title="Permanent link">&para;</a></h2>
+<p>DNS 보안을 한 번에 다 갖추기는 어렵다. 보통 다음 순서로 잡아 나간다.</p>
+<ol>
+<li>도메인 등록기관 계정 MFA, registrar lock, CAA 레코드. 이건 비용이 거의 없고 효과는 크다.</li>
+<li>모든 서브도메인의 dangling CNAME 인벤토리 점검. 사고 사례가 가장 많은 영역이다.</li>
+<li>사내 resolver에 DoT 또는 DoH 적용. private IP 응답 필터링 활성화.</li>
+<li>권위 도메인에 DNSSEC 적용. 자동 키 롤오버와 모니터링이 같이 가야 한다.</li>
+<li>클라이언트 단 DoH/DoT 정책. 사내 도메인 split-horizon 처리.</li>
+</ol>
+<p>DNSSEC를 가장 늦게 두는 이유는 운영 부담 때문이다. 키 롤오버 사고 한 번이면 도메인 전체가 SERVFAIL로 죽는다. 다른 항목을 먼저 잡고 모니터링 체계가 갖춰진 다음에 들어가는 게 안전하다.</p>
+<h2 id="참고-자료">참고 자료<a class="headerlink" href="#참고-자료" title="Permanent link">&para;</a></h2>
+<ul>
+<li>RFC 4033, 4034, 4035 — DNSSEC</li>
+<li>RFC 7858 — DNS over TLS</li>
+<li>RFC 8484 — DNS over HTTPS</li>
+<li>RFC 6797 — HSTS (DNS 단독으로 못 막는 부분 보완)</li>
+<li>RFC 6844 — CAA 레코드</li>
+<li>Kaminsky DNS attack (2008) — 캐시 오염 사례</li>
+<li>Slack DNSSEC 장애 (2021-09) — 서명 만료 사례</li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Network/Domain/DNSSEC/">DNSSEC (DNS Security Extensions)</a></li>
+<li><a href="../D_Do_S_Defense/">DDoS 공격 방어</a></li>
+<li><a href="../%EB%B3%B4%EC%95%88_%EC%8B%AC%ED%99%94_%EB%B0%8F_%EC%B7%A8%EC%95%BD%EC%A0%90_%EB%B6%84%EC%84%9D/">보안 심화 및 취약점 분석</a></li>
+<li><a href="../../Cloud/AWS/Network/PrivateLink/">AWS PrivateLink</a></li>
+<li><a href="../../Cloud/AWS/Network/Route%2053/">AWS Route 53</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Server_Attack_Defense/" class="md-footer__link md-footer__link--prev" aria-label="이전: 서버 취약점 공격 방어">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                서버 취약점 공격 방어
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Supply_Chain_Security/" class="md-footer__link md-footer__link--next" aria-label="다음: 공급망 공격 방어">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                공급망 공격 방어
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

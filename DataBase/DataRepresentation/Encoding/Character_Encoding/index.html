@@ -1,127 +1,2201 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/DataBase/DataRepresentation/Encoding/Character_Encoding/ rel=canonical><link href=../Base64/ rel=prev><link href=../Code_Point/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>문자 인코딩 (Character Encoding) - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#문자-인코딩-character-encoding class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 문자 인코딩 (Character Encoding) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Database </span> </a> <label class="md-nav__link " for=__nav_5 id=__nav_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_5_label aria-expanded=true> <label class=md-nav__title for=__nav_5> <span class="md-nav__icon md-icon"></span> Database </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../Connection_Pool/ class=md-nav__link> <span class=md-ellipsis> DB Connection Pool 종합 </span> </a> </li> <li class=md-nav__item> <a href=../../../Database_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 심화 </span> </a> </li> <li class=md-nav__item> <a href=../../../%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98_%EC%A0%84%EB%9E%B5/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 마이그레이션 전략 </span> </a> </li> <li class=md-nav__item> <a href=../../../%EB%B0%B1%ED%95%84/ class=md-nav__link> <span class=md-ellipsis> 백필 (Backfill) </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 옵티마이저 </span> </a> </li> <li class=md-nav__item> <a href=../../../%EB%A1%A4%EB%B0%B1_%EB%B6%88%EA%B0%80_%EB%B3%80%EA%B2%BD/ class=md-nav__link> <span class=md-ellipsis> 롤백 불가 변경 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_8 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Data Representation </span> </a> <label class="md-nav__link " for=__nav_5_8 id=__nav_5_8_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_8_label aria-expanded=true> <label class=md-nav__title for=__nav_5_8> <span class="md-nav__icon md-icon"></span> Data Representation </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../2%EC%A7%84%EC%88%98%EB%A5%BC%2016%EC%A7%84%EC%88%98%EB%A1%9C%20%EB%B3%80%ED%99%98%ED%95%98%EB%8A%94%20%EB%B0%A9%EB%B2%95/ class=md-nav__link> <span class=md-ellipsis> 2진수를 16진수로 변환하는 방법 </span> </a> </li> <li class=md-nav__item> <a href=../../Binary%20VS%20Bit/ class=md-nav__link> <span class=md-ellipsis> Binary와 Bit의 차이 </span> </a> </li> <li class=md-nav__item> <a href=../../Binary_Hex_Conversion_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> 2진수와 16진수 변환 심화 </span> </a> </li> <li class=md-nav__item> <a href=../../Buffer/ class=md-nav__link> <span class=md-ellipsis> Buffer </span> </a> </li> <li class=md-nav__item> <a href=../../Hash/ class=md-nav__link> <span class=md-ellipsis> 해시와 체크섬 </span> </a> </li> <li class=md-nav__item> <a href=../../IEEE_754_Floating_Point_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> IEEE 754 부동소수점 표현 심화 </span> </a> </li> <li class=md-nav__item> <a href=../../Serialization/ class=md-nav__link> <span class=md-ellipsis> 직렬화(Serialization) </span> </a> </li> <li class=md-nav__item> <a href=../../Serialization_Formats_Deep_Dive/ class=md-nav__link> <span class=md-ellipsis> 직렬화 포맷 심화 </span> </a> </li> <li class=md-nav__item> <a href=../../%EB%B9%84%ED%8A%B8%20%EB%8B%A8%EC%9C%84%20%EB%85%BC%EB%A6%AC%20%EC%97%B0%EC%82%B0/ class=md-nav__link> <span class=md-ellipsis> 비트 단위 논리 연산 </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%97%94%EB%94%94%EC%96%B8%EA%B3%BC%202%EC%9D%98%20%EB%B3%B4%EC%88%98%2C%20IEEE%20754%20%EB%B6%80%EB%8F%99%EC%86%8C%EC%88%98%EC%A0%90/ class=md-nav__link> <span class=md-ellipsis> 엔디언·부동소수점 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_8_12 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Encoding </span> </a> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_8_12_label aria-expanded=true> <label class=md-nav__title for=__nav_5_8_12> <span class="md-nav__icon md-icon"></span> Encoding </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../NoSQL/ class=md-nav__link> <span class=md-ellipsis> NoSQL </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../RDBMS/%EB%B6%80%EB%B6%84_%EC%9D%B8%EB%8D%B1%EC%8A%A4/ class=md-nav__link> <span class=md-ellipsis> RDBMS </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#문자-인코딩이-뭔지부터 class=md-nav__link> <span class=md-ellipsis> 문자 인코딩이 뭔지부터 </span> </a> </li> <li class=md-nav__item> <a href=#ascii class=md-nav__link> <span class=md-ellipsis> ASCII </span> </a> <nav class=md-nav aria-label=ASCII> <ul class=md-nav__list> <li class=md-nav__item> <a href=#확장-ascii class=md-nav__link> <span class=md-ellipsis> 확장 ASCII </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#euc-kr과-cp949 class=md-nav__link> <span class=md-ellipsis> EUC-KR과 CP949 </span> </a> <nav class=md-nav aria-label="EUC-KR과 CP949"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#euc-kr class=md-nav__link> <span class=md-ellipsis> EUC-KR </span> </a> </li> <li class=md-nav__item> <a href=#cp949-ms949 class=md-nav__link> <span class=md-ellipsis> CP949 (MS949) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#unicode class=md-nav__link> <span class=md-ellipsis> Unicode </span> </a> <nav class=md-nav aria-label=Unicode> <ul class=md-nav__list> <li class=md-nav__item> <a href=#코드-포인트 class=md-nav__link> <span class=md-ellipsis> 코드 포인트 </span> </a> </li> <li class=md-nav__item> <a href=#평면plane-구조 class=md-nav__link> <span class=md-ellipsis> 평면(Plane) 구조 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#utf-8 class=md-nav__link> <span class=md-ellipsis> UTF-8 </span> </a> <nav class=md-nav aria-label=UTF-8> <ul class=md-nav__list> <li class=md-nav__item> <a href=#바이트-구조 class=md-nav__link> <span class=md-ellipsis> 바이트 구조 </span> </a> </li> <li class=md-nav__item> <a href=#ascii-호환 class=md-nav__link> <span class=md-ellipsis> ASCII 호환 </span> </a> </li> <li class=md-nav__item> <a href=#한글과-용량 class=md-nav__link> <span class=md-ellipsis> 한글과 용량 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#utf-16 class=md-nav__link> <span class=md-ellipsis> UTF-16 </span> </a> <nav class=md-nav aria-label=UTF-16> <ul class=md-nav__list> <li class=md-nav__item> <a href=#서로게이트-페어 class=md-nav__link> <span class=md-ellipsis> 서로게이트 페어 </span> </a> </li> <li class=md-nav__item> <a href=#utf-16-바이트-순서 class=md-nav__link> <span class=md-ellipsis> UTF-16 바이트 순서 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#bom-byte-order-mark class=md-nav__link> <span class=md-ellipsis> BOM (Byte Order Mark) </span> </a> <nav class=md-nav aria-label="BOM (Byte Order Mark)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#utf-8-bom-문제 class=md-nav__link> <span class=md-ellipsis> UTF-8 BOM 문제 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#인코딩-변환-흐름 class=md-nav__link> <span class=md-ellipsis> 인코딩 변환 흐름 </span> </a> </li> <li class=md-nav__item> <a href=#실무에서-겪는-인코딩-문제 class=md-nav__link> <span class=md-ellipsis> 실무에서 겪는 인코딩 문제 </span> </a> <nav class=md-nav aria-label="실무에서 겪는 인코딩 문제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-db-인코딩-설정 class=md-nav__link> <span class=md-ellipsis> 1. DB 인코딩 설정 </span> </a> </li> <li class=md-nav__item> <a href=#2-http-content-type과-charset class=md-nav__link> <span class=md-ellipsis> 2. HTTP Content-Type과 charset </span> </a> </li> <li class=md-nav__item> <a href=#3-파일-읽기에서의-인코딩 class=md-nav__link> <span class=md-ellipsis> 3. 파일 읽기에서의 인코딩 </span> </a> </li> <li class=md-nav__item> <a href=#4-레거시-시스템-연동 class=md-nav__link> <span class=md-ellipsis> 4. 레거시 시스템 연동 </span> </a> </li> <li class=md-nav__item> <a href=#5-한글-깨짐-디버깅 class=md-nav__link> <span class=md-ellipsis> 5. 한글 깨짐 디버깅 </span> </a> </li> <li class=md-nav__item> <a href=#6-url-인코딩과의-관계 class=md-nav__link> <span class=md-ellipsis> 6. URL 인코딩과의 관계 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#인코딩-선택-기준 class=md-nav__link> <span class=md-ellipsis> 인코딩 선택 기준 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>database</span> </nav> <h1 id=문자-인코딩-character-encoding>문자 인코딩 (Character Encoding)<a class=headerlink href=#문자-인코딩-character-encoding title="Permanent link">&para;</a></h1> <h2 id=문자-인코딩이-뭔지부터>문자 인코딩이 뭔지부터<a class=headerlink href=#문자-인코딩이-뭔지부터 title="Permanent link">&para;</a></h2> <p>컴퓨터는 숫자만 다룬다. 문자를 저장하려면 "A는 65번, B는 66번"처럼 문자와 숫자를 대응시키는 약속이 필요하다. 이 약속이 문자 인코딩이다.</p> <p>문제는 이 약속이 하나가 아니라는 것이다. 미국에서 만든 약속(ASCII), 한국에서 만든 약속(EUC-KR), 전 세계를 통합하려는 약속(Unicode)이 각각 존재한다. 서로 다른 약속을 쓰는 시스템끼리 데이터를 주고받으면 글자가 깨진다.</p> <h2 id=ascii>ASCII<a class=headerlink href=#ascii title="Permanent link">&para;</a></h2> <p>1963년에 만들어진 7비트 인코딩이다. 0~127까지 128개 문자를 표현한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>0x00~0x1F: 제어 문자 (줄바꿈, 탭 등)
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>0x20~0x7E: 출력 가능한 문자 (영문, 숫자, 특수문자)
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>0x7F:      DEL
-</span></code></pre></div> <p>영어권에서는 이걸로 충분했다. 하지만 7비트라 128개가 한계고, 한글이나 한자 같은 문자는 표현 자체가 불가능하다.</p> <h3 id=확장-ascii>확장 ASCII<a class=headerlink href=#확장-ascii title="Permanent link">&para;</a></h3> <p>8비트로 확장해서 128~255 영역을 추가한 버전이 있다. 문제는 이 영역을 나라마다 다르게 정의했다는 것이다. ISO-8859-1(서유럽), ISO-8859-2(중유럽) 등이 각각 다른 문자를 배치했다. 같은 바이트 값인데 인코딩에 따라 다른 글자가 나온다.</p> <h2 id=euc-kr과-cp949>EUC-KR과 CP949<a class=headerlink href=#euc-kr과-cp949 title="Permanent link">&para;</a></h2> <h3 id=euc-kr>EUC-KR<a class=headerlink href=#euc-kr title="Permanent link">&para;</a></h3> <p>한글을 표현하기 위해 만들어진 인코딩이다. 완성형 방식으로, 자주 쓰는 한글 2,350자를 2바이트로 표현한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>ASCII 영역:   1바이트 (0x00~0x7F) — 영문과 호환
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>한글 영역:    2바이트 (0xA1A1~0xFEFE)
-</span></code></pre></div> <p>2,350자라는 한계가 문제다. "똠"이나 "뷁" 같은 글자는 EUC-KR에 포함되어 있지 않다. 사람 이름에 포함된 한글이 표현 불가능한 경우가 실제로 발생한다.</p> <h3 id=cp949-ms949>CP949 (MS949)<a class=headerlink href=#cp949-ms949 title="Permanent link">&para;</a></h3> <p>마이크로소프트가 EUC-KR을 확장한 것이다. 11,172자의 현대 한글 완성형을 모두 포함한다. Windows에서 "EUC-KR"이라고 표시되는 것은 사실 CP949인 경우가 많다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>// Java에서 CP949 명시</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=kt>byte</span><span class=o>[]</span><span class=w> </span><span class=n>bytes</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&quot;테스트&quot;</span><span class=p>.</span><span class=na>getBytes</span><span class=p>(</span><span class=s>&quot;MS949&quot;</span><span class=p>);</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=n>String</span><span class=w> </span><span class=n>str</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>String</span><span class=p>(</span><span class=n>bytes</span><span class=p>,</span><span class=w> </span><span class=s>&quot;MS949&quot;</span><span class=p>);</span>
-</span></code></pre></div> <p>레거시 시스템과 연동할 때 EUC-KR로 지정했는데 실제로는 CP949로 동작하는 경우가 있다. 특히 Windows 환경에서 만든 데이터를 Linux에서 읽을 때 차이가 드러난다.</p> <h2 id=unicode>Unicode<a class=headerlink href=#unicode title="Permanent link">&para;</a></h2> <h3 id=코드-포인트>코드 포인트<a class=headerlink href=#코드-포인트 title="Permanent link">&para;</a></h3> <p>Unicode는 전 세계 모든 문자에 고유한 번호(코드 포인트)를 부여하는 표준이다. 인코딩 방식이 아니라 문자 집합(Character Set)이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>U+0041: A
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>U+AC00: 가
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>U+1F600: 😀 (이모지)
-</span></code></pre></div> <p>현재 15만 자 이상의 문자가 등록되어 있다. 코드 포인트는 0x0000부터 0x10FFFF까지의 범위를 가진다.</p> <h3 id=평면plane-구조>평면(Plane) 구조<a class=headerlink href=#평면plane-구조 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>Unicode 코드 포인트 공간
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>U+000000 ┌──────────────────────────────────┐
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>         │  BMP (Basic Multilingual Plane)  │  ← 대부분의 일상 문자
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>         │  ASCII, 한글, 한자, 라틴 등         │
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>         │  UTF-16: 2바이트 / UTF-8: 1~3바이트 │
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>U+00FFFF ├──────────────────────────────────┤
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>         │  SMP                             │  ← 이모지, 고대 문자
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>         │  UTF-16: 4바이트(서로게이트 페어)    │
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>U+01FFFF ├──────────────────────────────────┤
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>         │  SIP (한자 확장 B, C, D ...)       │
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a>U+02FFFF ├──────────────────────────────────┤
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a>         │  Plane 3 ~ 13 (대부분 미사용)      │
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a>         │          ⋮                        │
-</span><span id=__span-4-15><a id=__codelineno-4-15 name=__codelineno-4-15 href=#__codelineno-4-15></a>U+0DFFFF ├──────────────────────────────────┤
-</span><span id=__span-4-16><a id=__codelineno-4-16 name=__codelineno-4-16 href=#__codelineno-4-16></a>         │  Plane 14 (태그, 변형 선택자)      │
-</span><span id=__span-4-17><a id=__codelineno-4-17 name=__codelineno-4-17 href=#__codelineno-4-17></a>U+0EFFFF ├──────────────────────────────────┤
-</span><span id=__span-4-18><a id=__codelineno-4-18 name=__codelineno-4-18 href=#__codelineno-4-18></a>         │  Plane 15~16 (사용자 정의 영역)    │
-</span><span id=__span-4-19><a id=__codelineno-4-19 name=__codelineno-4-19 href=#__codelineno-4-19></a>U+10FFFF └──────────────────────────────────┘
-</span></code></pre></div> <p>실무에서 마주치는 문자 대부분은 BMP에 있다. BMP 바깥에서 자주 만나는 건 이모지 정도다.</p> <p>중요한 건 Unicode 자체는 "이 문자의 번호는 몇 번이다"만 정의한다는 것이다. 이 번호를 실제로 바이트 배열로 어떻게 저장할지는 UTF-8, UTF-16 같은 인코딩이 결정한다.</p> <h2 id=utf-8>UTF-8<a class=headerlink href=#utf-8 title="Permanent link">&para;</a></h2> <p>현재 웹에서 가장 많이 쓰이는 인코딩이다. 가변 길이 인코딩으로, 문자에 따라 1~4바이트를 사용한다.</p> <h3 id=바이트-구조>바이트 구조<a class=headerlink href=#바이트-구조 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>1바이트: 0xxxxxxx                          (U+0000 ~ U+007F)    — ASCII와 동일
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>2바이트: 110xxxxx 10xxxxxx                  (U+0080 ~ U+07FF)
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>3바이트: 1110xxxx 10xxxxxx 10xxxxxx         (U+0800 ~ U+FFFF)   — 한글이 여기
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>4바이트: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (U+10000 ~ U+10FFFF) — 이모지
-</span></code></pre></div> <p>첫 바이트의 비트 패턴만 보면 몇 바이트짜리 문자인지 바로 알 수 있다. 이 구조 덕분에 바이트 스트림 중간부터 읽더라도 문자 경계를 찾을 수 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>UTF-8 가변 길이 바이트 구조
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>┌─────────────────────────────────────────────────────────────────┐
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>│  첫 바이트 비트 패턴으로 문자 길이를 판별한다                          │
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>├─────────────┬───────────────────────────────────────────────────┤
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>│  0xxxxxxx   │  1바이트 문자 (ASCII)                               │
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>│  ▼          │  데이터 비트: 7bit → 128자 표현                       │
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>│  &quot;A&quot; = 0x41 │  [0][1000001]                                     │
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>│             │   ↑ 0으로 시작하면 1바이트                             │
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>├─────────────┼───────────────────────────────────────────────────┤
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a>│  110xxxxx   │  2바이트 문자                                       │
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a>│  10xxxxxx   │  데이터 비트: 5+6 = 11bit → 1,920자 표현              │
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a>│  ▼          │                                                   │
-</span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a>│  &quot;é&quot; = C3A9 │  [110]00011 [10]101001                             │
-</span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a>│             │   ↑↑↑        ↑↑                                   │
-</span><span id=__span-6-16><a id=__codelineno-6-16 name=__codelineno-6-16 href=#__codelineno-6-16></a>│             │   길이표식    연속 바이트 표식                          │
-</span><span id=__span-6-17><a id=__codelineno-6-17 name=__codelineno-6-17 href=#__codelineno-6-17></a>├─────────────┼───────────────────────────────────────────────────┤
-</span><span id=__span-6-18><a id=__codelineno-6-18 name=__codelineno-6-18 href=#__codelineno-6-18></a>│  1110xxxx   │  3바이트 문자 (한글, 한자, 일본어 등)                   │
-</span><span id=__span-6-19><a id=__codelineno-6-19 name=__codelineno-6-19 href=#__codelineno-6-19></a>│  10xxxxxx   │  데이터 비트: 4+6+6 = 16bit → 63,488자 표현           │
-</span><span id=__span-6-20><a id=__codelineno-6-20 name=__codelineno-6-20 href=#__codelineno-6-20></a>│  10xxxxxx   │                                                   │
-</span><span id=__span-6-21><a id=__codelineno-6-21 name=__codelineno-6-21 href=#__codelineno-6-21></a>│  ▼          │                                                   │
-</span><span id=__span-6-22><a id=__codelineno-6-22 name=__codelineno-6-22 href=#__codelineno-6-22></a>│  &quot;가&quot; = EAB080│ [1110]1010 [10]110000 [10]000000                 │
-</span><span id=__span-6-23><a id=__codelineno-6-23 name=__codelineno-6-23 href=#__codelineno-6-23></a>│             │   ↑↑↑↑       ↑↑         ↑↑                       │
-</span><span id=__span-6-24><a id=__codelineno-6-24 name=__codelineno-6-24 href=#__codelineno-6-24></a>│             │   3바이트     연속        연속                        │
-</span><span id=__span-6-25><a id=__codelineno-6-25 name=__codelineno-6-25 href=#__codelineno-6-25></a>├─────────────┼───────────────────────────────────────────────────┤
-</span><span id=__span-6-26><a id=__codelineno-6-26 name=__codelineno-6-26 href=#__codelineno-6-26></a>│  11110xxx   │  4바이트 문자 (이모지, 고대 문자 등)                    │
-</span><span id=__span-6-27><a id=__codelineno-6-27 name=__codelineno-6-27 href=#__codelineno-6-27></a>│  10xxxxxx   │  데이터 비트: 3+6+6+6 = 21bit → 1,112,064자 표현     │
-</span><span id=__span-6-28><a id=__codelineno-6-28 name=__codelineno-6-28 href=#__codelineno-6-28></a>│  10xxxxxx   │                                                   │
-</span><span id=__span-6-29><a id=__codelineno-6-29 name=__codelineno-6-29 href=#__codelineno-6-29></a>│  10xxxxxx   │                                                   │
-</span><span id=__span-6-30><a id=__codelineno-6-30 name=__codelineno-6-30 href=#__codelineno-6-30></a>└─────────────┴───────────────────────────────────────────────────┘
-</span></code></pre></div> <p>한글은 3바이트다. "가"(U+AC00)를 예로 들면:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>U+AC00 = 1010 1100 0000 0000 (16비트)
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>3바이트 템플릿에 비트를 채워 넣는 과정:
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>  코드 포인트:     1010   110000   000000
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>                  ────   ──────   ──────
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>  템플릿:      1110____  10______  10______
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>                  ↓         ↓         ↓
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a>  결과:        1110 1010  10 110000  10 000000
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a>               ─────────  ─────────  ─────────
-</span><span id=__span-7-11><a id=__codelineno-7-11 name=__codelineno-7-11 href=#__codelineno-7-11></a>                 0xEA       0xB0       0x80
-</span></code></pre></div> <h3 id=ascii-호환>ASCII 호환<a class=headerlink href=#ascii-호환 title="Permanent link">&para;</a></h3> <p>UTF-8의 가장 큰 장점이다. ASCII 범위(0x00~0x7F)는 1바이트 그대로 표현한다. 영문으로만 된 파일은 ASCII와 UTF-8이 바이트 단위로 동일하다. 기존 ASCII 기반 시스템과 바로 호환된다.</p> <h3 id=한글과-용량>한글과 용량<a class=headerlink href=#한글과-용량 title="Permanent link">&para;</a></h3> <p>한글 한 글자가 3바이트라는 점은 무시할 수 없다. 순수 한글 텍스트 기준으로 EUC-KR(2바이트) 대비 50% 용량이 늘어난다. 대부분의 경우 문제가 되지 않지만, 대량의 한글 데이터를 다루는 시스템에서 스토리지 비용이나 네트워크 전송 크기를 따질 때 고려 대상이다.</p> <h2 id=utf-16>UTF-16<a class=headerlink href=#utf-16 title="Permanent link">&para;</a></h2> <p>2바이트 또는 4바이트를 사용하는 인코딩이다. BMP 범위(U+0000~U+FFFF)는 2바이트, 그 이상은 서로게이트 페어(surrogate pair)로 4바이트를 쓴다.</p> <h3 id=서로게이트-페어>서로게이트 페어<a class=headerlink href=#서로게이트-페어 title="Permanent link">&para;</a></h3> <p>BMP 바깥의 문자(이모지 등)를 표현하는 방식이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>U+1F600 (😀)를 UTF-16으로 인코딩하면:
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>1. 0x10000을 빼면: 0x0F600
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>2. 상위 10비트: 0x003D → 0xD83D (High Surrogate)
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>3. 하위 10비트: 0x0200 → 0xDE00 (Low Surrogate)
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>4. 결과: 0xD83D 0xDE00
-</span></code></pre></div> <p>Java의 <code>String</code>과 JavaScript의 문자열이 내부적으로 UTF-16을 쓴다. 이모지 처리에서 버그가 나는 이유가 대부분 서로게이트 페어 때문이다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=n>String</span><span class=w> </span><span class=n>emoji</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&quot;😀&quot;</span><span class=p>;</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>emoji</span><span class=p>.</span><span class=na>length</span><span class=p>());</span><span class=w>        </span><span class=c1>// 2 (UTF-16 코드 유닛 기준)</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=n>System</span><span class=p>.</span><span class=na>out</span><span class=p>.</span><span class=na>println</span><span class=p>(</span><span class=n>emoji</span><span class=p>.</span><span class=na>codePointCount</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span><span class=w> </span><span class=n>emoji</span><span class=p>.</span><span class=na>length</span><span class=p>()));</span><span class=w> </span><span class=c1>// 1 (실제 문자 수)</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=c1>// charAt()으로 접근하면 서로게이트 반쪽만 가져온다</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=kt>char</span><span class=w> </span><span class=n>high</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>emoji</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span><span class=w> </span><span class=c1>// 0xD83D — 의미 없는 값</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=kt>char</span><span class=w> </span><span class=n>low</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>emoji</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span><span class=w>  </span><span class=c1>// 0xDE00 — 의미 없는 값</span>
-</span></code></pre></div> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=kd>const</span><span class=w> </span><span class=nx>emoji</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;😀&quot;</span><span class=p>;</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=nx>emoji</span><span class=p>.</span><span class=nx>length</span><span class=p>);</span><span class=w>       </span><span class=c1>// 2</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>([...</span><span class=nx>emoji</span><span class=p>].</span><span class=nx>length</span><span class=p>);</span><span class=w>  </span><span class=c1>// 1 — 스프레드 연산자는 코드 포인트 단위로 분리</span>
-</span></code></pre></div> <p>문자열 자르기, 길이 계산, 인덱스 접근에서 이모지를 고려하지 않으면 문자가 잘리거나 깨진다.</p> <h3 id=utf-16-바이트-순서>UTF-16 바이트 순서<a class=headerlink href=#utf-16-바이트-순서 title="Permanent link">&para;</a></h3> <p>UTF-16은 2바이트 단위로 저장하기 때문에 바이트 순서(엔디언) 문제가 생긴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>&quot;가&quot; (U+AC00)
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>UTF-16 BE: AC 00
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>UTF-16 LE: 00 AC
-</span></code></pre></div> <h2 id=bom-byte-order-mark>BOM (Byte Order Mark)<a class=headerlink href=#bom-byte-order-mark title="Permanent link">&para;</a></h2> <p>파일 맨 앞에 붙여서 인코딩 방식과 바이트 순서를 알려주는 표식이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>UTF-8:    EF BB BF
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>UTF-16 BE: FE FF
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>UTF-16 LE: FF FE
-</span></code></pre></div> <h3 id=utf-8-bom-문제>UTF-8 BOM 문제<a class=headerlink href=#utf-8-bom-문제 title="Permanent link">&para;</a></h3> <p>UTF-8은 바이트 순서가 의미 없는데도 BOM을 넣는 경우가 있다. Windows의 메모장이 대표적이다(최근 버전은 BOM 없이 저장하는 게 기본값으로 바뀌었다).</p> <p>이 3바이트(EF BB BF)가 문제를 일으키는 경우:</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1># BOM이 있는 쉘 스크립트</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>$<span class=w> </span>cat<span class=w> </span>-v<span class=w> </span>script.sh
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>M-oM-<span class=p>;</span>M-?#!/bin/bash<span class=w>    </span><span class=c1># ← shebang 앞에 BOM이 붙어 있다</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>$<span class=w> </span>./script.sh
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a>./script.sh:<span class=w> </span>line<span class=w> </span><span class=m>1</span>:<span class=w> </span><span class=c1>#!/bin/bash: No such file or directory</span>
-</span></code></pre></div> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a># BOM이 있는 CSV 파일
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>HTTP 응답으로 CSV를 내려줄 때 BOM이 포함되면,
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>첫 번째 컬럼 이름 앞에 보이지 않는 3바이트가 붙어서
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>파싱 시 첫 번째 헤더를 인식하지 못한다.
-</span></code></pre></div> <div class="language-php highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=x>// BOM이 있는 PHP 파일</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a><span class=x>// </span><span class=cp>&lt;?php</span> <span class=nx>앞에</span> <span class=nx>BOM</span> <span class=mi>3</span><span class=nx>바이트가</span> <span class=nx>출력되어</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=c1>// &quot;headers already sent&quot; 에러가 발생한다</span>
-</span></code></pre></div> <p>BOM 확인 방법:</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=c1># 파일 앞부분 hex로 확인</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>hexdump<span class=w> </span>-C<span class=w> </span>file.txt<span class=w> </span><span class=p>|</span><span class=w> </span>head<span class=w> </span>-1
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a><span class=c1># EF BB BF로 시작하면 UTF-8 BOM</span>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a>
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a><span class=c1># BOM 제거</span>
-</span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a>sed<span class=w> </span>-i<span class=w> </span><span class=s1>&#39;1s/^\xEF\xBB\xBF//&#39;</span><span class=w> </span>file.txt
-</span></code></pre></div> <h2 id=인코딩-변환-흐름>인코딩 변환 흐름<a class=headerlink href=#인코딩-변환-흐름 title="Permanent link">&para;</a></h2> <p>실제 시스템에서 데이터가 어떤 과정을 거쳐 인코딩이 바뀌는지 흐름을 보면 깨지는 지점을 파악하기 쉽다.</p> <pre class=mermaid-diagram><code>flowchart LR
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/DataBase/DataRepresentation/Encoding/Character_Encoding/">
+      
+      
+        <link rel="prev" href="../Base64/">
+      
+      
+        <link rel="next" href="../Code_Point/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>문자 인코딩 (Character Encoding) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#문자-인코딩-character-encoding" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              문자 인코딩 (Character Encoding)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Database
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Connection_Pool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DB Connection Pool 종합
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Database_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98_%EC%A0%84%EB%9E%B5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 마이그레이션 전략
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EB%B0%B1%ED%95%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    백필 (Backfill)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%98%B5%ED%8B%B0%EB%A7%88%EC%9D%B4%EC%A0%80/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스 옵티마이저
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EB%A1%A4%EB%B0%B1_%EB%B6%88%EA%B0%80_%EB%B3%80%EA%B2%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    롤백 불가 변경
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Representation
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Representation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../2%EC%A7%84%EC%88%98%EB%A5%BC%2016%EC%A7%84%EC%88%98%EB%A1%9C%20%EB%B3%80%ED%99%98%ED%95%98%EB%8A%94%20%EB%B0%A9%EB%B2%95/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2진수를 16진수로 변환하는 방법
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Binary%20VS%20Bit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binary와 Bit의 차이
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Binary_Hex_Conversion_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2진수와 16진수 변환 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Hash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    해시와 체크섬
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../IEEE_754_Floating_Point_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IEEE 754 부동소수점 표현 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Serialization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    직렬화(Serialization)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Serialization_Formats_Deep_Dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    직렬화 포맷 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EB%B9%84%ED%8A%B8%20%EB%8B%A8%EC%9C%84%20%EB%85%BC%EB%A6%AC%20%EC%97%B0%EC%82%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    비트 단위 논리 연산
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%97%94%EB%94%94%EC%96%B8%EA%B3%BC%202%EC%9D%98%20%EB%B3%B4%EC%88%98%2C%20IEEE%20754%20%EB%B6%80%EB%8F%99%EC%86%8C%EC%88%98%EC%A0%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    엔디언·부동소수점
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8_12" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Encoding
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_8_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_8_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Encoding
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../NoSQL/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NoSQL
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../RDBMS/%EB%B6%80%EB%B6%84_%EC%9D%B8%EB%8D%B1%EC%8A%A4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RDBMS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#문자-인코딩이-뭔지부터" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문자 인코딩이 뭔지부터
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ASCII
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ASCII">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#확장-ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        확장 ASCII
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#euc-kr과-cp949" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EUC-KR과 CP949
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EUC-KR과 CP949">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#euc-kr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EUC-KR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cp949-ms949" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CP949 (MS949)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unicode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unicode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unicode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#코드-포인트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        코드 포인트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#평면plane-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        평면(Plane) 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#utf-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UTF-8
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UTF-8">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#바이트-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        바이트 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ascii-호환" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ASCII 호환
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#한글과-용량" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        한글과 용량
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#utf-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UTF-16
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UTF-16">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#서로게이트-페어" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서로게이트 페어
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utf-16-바이트-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UTF-16 바이트 순서
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bom-byte-order-mark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOM (Byte Order Mark)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOM (Byte Order Mark)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#utf-8-bom-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UTF-8 BOM 문제
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인코딩-변환-흐름" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인코딩 변환 흐름
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-겪는-인코딩-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 겪는 인코딩 문제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="실무에서 겪는 인코딩 문제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-db-인코딩-설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. DB 인코딩 설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-http-content-type과-charset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. HTTP Content-Type과 charset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-파일-읽기에서의-인코딩" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 파일 읽기에서의 인코딩
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-레거시-시스템-연동" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 레거시 시스템 연동
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-한글-깨짐-디버깅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 한글 깨짐 디버깅
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-url-인코딩과의-관계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. URL 인코딩과의 관계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인코딩-선택-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인코딩 선택 기준
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">database</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="문자-인코딩-character-encoding">문자 인코딩 (Character Encoding)<a class="headerlink" href="#문자-인코딩-character-encoding" title="Permanent link">&para;</a></h1>
+<h2 id="문자-인코딩이-뭔지부터">문자 인코딩이 뭔지부터<a class="headerlink" href="#문자-인코딩이-뭔지부터" title="Permanent link">&para;</a></h2>
+<p>컴퓨터는 숫자만 다룬다. 문자를 저장하려면 "A는 65번, B는 66번"처럼 문자와 숫자를 대응시키는 약속이 필요하다. 이 약속이 문자 인코딩이다.</p>
+<p>문제는 이 약속이 하나가 아니라는 것이다. 미국에서 만든 약속(ASCII), 한국에서 만든 약속(EUC-KR), 전 세계를 통합하려는 약속(Unicode)이 각각 존재한다. 서로 다른 약속을 쓰는 시스템끼리 데이터를 주고받으면 글자가 깨진다.</p>
+<h2 id="ascii">ASCII<a class="headerlink" href="#ascii" title="Permanent link">&para;</a></h2>
+<p>1963년에 만들어진 7비트 인코딩이다. 0~127까지 128개 문자를 표현한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>0x00~0x1F: 제어 문자 (줄바꿈, 탭 등)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>0x20~0x7E: 출력 가능한 문자 (영문, 숫자, 특수문자)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>0x7F:      DEL
+</span></code></pre></div>
+<p>영어권에서는 이걸로 충분했다. 하지만 7비트라 128개가 한계고, 한글이나 한자 같은 문자는 표현 자체가 불가능하다.</p>
+<h3 id="확장-ascii">확장 ASCII<a class="headerlink" href="#확장-ascii" title="Permanent link">&para;</a></h3>
+<p>8비트로 확장해서 128~255 영역을 추가한 버전이 있다. 문제는 이 영역을 나라마다 다르게 정의했다는 것이다. ISO-8859-1(서유럽), ISO-8859-2(중유럽) 등이 각각 다른 문자를 배치했다. 같은 바이트 값인데 인코딩에 따라 다른 글자가 나온다.</p>
+<h2 id="euc-kr과-cp949">EUC-KR과 CP949<a class="headerlink" href="#euc-kr과-cp949" title="Permanent link">&para;</a></h2>
+<h3 id="euc-kr">EUC-KR<a class="headerlink" href="#euc-kr" title="Permanent link">&para;</a></h3>
+<p>한글을 표현하기 위해 만들어진 인코딩이다. 완성형 방식으로, 자주 쓰는 한글 2,350자를 2바이트로 표현한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ASCII 영역:   1바이트 (0x00~0x7F) — 영문과 호환
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>한글 영역:    2바이트 (0xA1A1~0xFEFE)
+</span></code></pre></div>
+<p>2,350자라는 한계가 문제다. "똠"이나 "뷁" 같은 글자는 EUC-KR에 포함되어 있지 않다. 사람 이름에 포함된 한글이 표현 불가능한 경우가 실제로 발생한다.</p>
+<h3 id="cp949-ms949">CP949 (MS949)<a class="headerlink" href="#cp949-ms949" title="Permanent link">&para;</a></h3>
+<p>마이크로소프트가 EUC-KR을 확장한 것이다. 11,172자의 현대 한글 완성형을 모두 포함한다. Windows에서 "EUC-KR"이라고 표시되는 것은 사실 CP949인 경우가 많다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// Java에서 CP949 명시</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;테스트&quot;</span><span class="p">.</span><span class="na">getBytes</span><span class="p">(</span><span class="s">&quot;MS949&quot;</span><span class="p">);</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">String</span><span class="w"> </span><span class="n">str</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">(</span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;MS949&quot;</span><span class="p">);</span>
+</span></code></pre></div>
+<p>레거시 시스템과 연동할 때 EUC-KR로 지정했는데 실제로는 CP949로 동작하는 경우가 있다. 특히 Windows 환경에서 만든 데이터를 Linux에서 읽을 때 차이가 드러난다.</p>
+<h2 id="unicode">Unicode<a class="headerlink" href="#unicode" title="Permanent link">&para;</a></h2>
+<h3 id="코드-포인트">코드 포인트<a class="headerlink" href="#코드-포인트" title="Permanent link">&para;</a></h3>
+<p>Unicode는 전 세계 모든 문자에 고유한 번호(코드 포인트)를 부여하는 표준이다. 인코딩 방식이 아니라 문자 집합(Character Set)이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>U+0041: A
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>U+AC00: 가
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>U+1F600: 😀 (이모지)
+</span></code></pre></div>
+<p>현재 15만 자 이상의 문자가 등록되어 있다. 코드 포인트는 0x0000부터 0x10FFFF까지의 범위를 가진다.</p>
+<h3 id="평면plane-구조">평면(Plane) 구조<a class="headerlink" href="#평면plane-구조" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Unicode 코드 포인트 공간
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>U+000000 ┌──────────────────────────────────┐
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>         │  BMP (Basic Multilingual Plane)  │  ← 대부분의 일상 문자
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>         │  ASCII, 한글, 한자, 라틴 등         │
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>         │  UTF-16: 2바이트 / UTF-8: 1~3바이트 │
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>U+00FFFF ├──────────────────────────────────┤
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>         │  SMP                             │  ← 이모지, 고대 문자
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>         │  UTF-16: 4바이트(서로게이트 페어)    │
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>U+01FFFF ├──────────────────────────────────┤
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>         │  SIP (한자 확장 B, C, D ...)       │
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>U+02FFFF ├──────────────────────────────────┤
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>         │  Plane 3 ~ 13 (대부분 미사용)      │
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>         │          ⋮                        │
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>U+0DFFFF ├──────────────────────────────────┤
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>         │  Plane 14 (태그, 변형 선택자)      │
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>U+0EFFFF ├──────────────────────────────────┤
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>         │  Plane 15~16 (사용자 정의 영역)    │
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>U+10FFFF └──────────────────────────────────┘
+</span></code></pre></div>
+<p>실무에서 마주치는 문자 대부분은 BMP에 있다. BMP 바깥에서 자주 만나는 건 이모지 정도다.</p>
+<p>중요한 건 Unicode 자체는 "이 문자의 번호는 몇 번이다"만 정의한다는 것이다. 이 번호를 실제로 바이트 배열로 어떻게 저장할지는 UTF-8, UTF-16 같은 인코딩이 결정한다.</p>
+<h2 id="utf-8">UTF-8<a class="headerlink" href="#utf-8" title="Permanent link">&para;</a></h2>
+<p>현재 웹에서 가장 많이 쓰이는 인코딩이다. 가변 길이 인코딩으로, 문자에 따라 1~4바이트를 사용한다.</p>
+<h3 id="바이트-구조">바이트 구조<a class="headerlink" href="#바이트-구조" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>1바이트: 0xxxxxxx                          (U+0000 ~ U+007F)    — ASCII와 동일
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>2바이트: 110xxxxx 10xxxxxx                  (U+0080 ~ U+07FF)
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>3바이트: 1110xxxx 10xxxxxx 10xxxxxx         (U+0800 ~ U+FFFF)   — 한글이 여기
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>4바이트: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (U+10000 ~ U+10FFFF) — 이모지
+</span></code></pre></div>
+<p>첫 바이트의 비트 패턴만 보면 몇 바이트짜리 문자인지 바로 알 수 있다. 이 구조 덕분에 바이트 스트림 중간부터 읽더라도 문자 경계를 찾을 수 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>UTF-8 가변 길이 바이트 구조
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>┌─────────────────────────────────────────────────────────────────┐
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>│  첫 바이트 비트 패턴으로 문자 길이를 판별한다                          │
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>├─────────────┬───────────────────────────────────────────────────┤
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>│  0xxxxxxx   │  1바이트 문자 (ASCII)                               │
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>│  ▼          │  데이터 비트: 7bit → 128자 표현                       │
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>│  &quot;A&quot; = 0x41 │  [0][1000001]                                     │
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>│             │   ↑ 0으로 시작하면 1바이트                             │
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>├─────────────┼───────────────────────────────────────────────────┤
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>│  110xxxxx   │  2바이트 문자                                       │
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>│  10xxxxxx   │  데이터 비트: 5+6 = 11bit → 1,920자 표현              │
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>│  ▼          │                                                   │
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>│  &quot;é&quot; = C3A9 │  [110]00011 [10]101001                             │
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>│             │   ↑↑↑        ↑↑                                   │
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>│             │   길이표식    연속 바이트 표식                          │
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>├─────────────┼───────────────────────────────────────────────────┤
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>│  1110xxxx   │  3바이트 문자 (한글, 한자, 일본어 등)                   │
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>│  10xxxxxx   │  데이터 비트: 4+6+6 = 16bit → 63,488자 표현           │
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>│  10xxxxxx   │                                                   │
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>│  ▼          │                                                   │
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>│  &quot;가&quot; = EAB080│ [1110]1010 [10]110000 [10]000000                 │
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>│             │   ↑↑↑↑       ↑↑         ↑↑                       │
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>│             │   3바이트     연속        연속                        │
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>├─────────────┼───────────────────────────────────────────────────┤
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>│  11110xxx   │  4바이트 문자 (이모지, 고대 문자 등)                    │
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>│  10xxxxxx   │  데이터 비트: 3+6+6+6 = 21bit → 1,112,064자 표현     │
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>│  10xxxxxx   │                                                   │
+</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>│  10xxxxxx   │                                                   │
+</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>└─────────────┴───────────────────────────────────────────────────┘
+</span></code></pre></div>
+<p>한글은 3바이트다. "가"(U+AC00)를 예로 들면:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>U+AC00 = 1010 1100 0000 0000 (16비트)
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>3바이트 템플릿에 비트를 채워 넣는 과정:
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  코드 포인트:     1010   110000   000000
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>                  ────   ──────   ──────
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  템플릿:      1110____  10______  10______
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>                  ↓         ↓         ↓
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  결과:        1110 1010  10 110000  10 000000
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>               ─────────  ─────────  ─────────
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>                 0xEA       0xB0       0x80
+</span></code></pre></div>
+<h3 id="ascii-호환">ASCII 호환<a class="headerlink" href="#ascii-호환" title="Permanent link">&para;</a></h3>
+<p>UTF-8의 가장 큰 장점이다. ASCII 범위(0x00~0x7F)는 1바이트 그대로 표현한다. 영문으로만 된 파일은 ASCII와 UTF-8이 바이트 단위로 동일하다. 기존 ASCII 기반 시스템과 바로 호환된다.</p>
+<h3 id="한글과-용량">한글과 용량<a class="headerlink" href="#한글과-용량" title="Permanent link">&para;</a></h3>
+<p>한글 한 글자가 3바이트라는 점은 무시할 수 없다. 순수 한글 텍스트 기준으로 EUC-KR(2바이트) 대비 50% 용량이 늘어난다. 대부분의 경우 문제가 되지 않지만, 대량의 한글 데이터를 다루는 시스템에서 스토리지 비용이나 네트워크 전송 크기를 따질 때 고려 대상이다.</p>
+<h2 id="utf-16">UTF-16<a class="headerlink" href="#utf-16" title="Permanent link">&para;</a></h2>
+<p>2바이트 또는 4바이트를 사용하는 인코딩이다. BMP 범위(U+0000~U+FFFF)는 2바이트, 그 이상은 서로게이트 페어(surrogate pair)로 4바이트를 쓴다.</p>
+<h3 id="서로게이트-페어">서로게이트 페어<a class="headerlink" href="#서로게이트-페어" title="Permanent link">&para;</a></h3>
+<p>BMP 바깥의 문자(이모지 등)를 표현하는 방식이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>U+1F600 (😀)를 UTF-16으로 인코딩하면:
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>1. 0x10000을 빼면: 0x0F600
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>2. 상위 10비트: 0x003D → 0xD83D (High Surrogate)
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>3. 하위 10비트: 0x0200 → 0xDE00 (Low Surrogate)
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>4. 결과: 0xD83D 0xDE00
+</span></code></pre></div>
+<p>Java의 <code>String</code>과 JavaScript의 문자열이 내부적으로 UTF-16을 쓴다. 이모지 처리에서 버그가 나는 이유가 대부분 서로게이트 페어 때문이다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">String</span><span class="w"> </span><span class="n">emoji</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;😀&quot;</span><span class="p">;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">emoji</span><span class="p">.</span><span class="na">length</span><span class="p">());</span><span class="w">        </span><span class="c1">// 2 (UTF-16 코드 유닛 기준)</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">emoji</span><span class="p">.</span><span class="na">codePointCount</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">emoji</span><span class="p">.</span><span class="na">length</span><span class="p">()));</span><span class="w"> </span><span class="c1">// 1 (실제 문자 수)</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1">// charAt()으로 접근하면 서로게이트 반쪽만 가져온다</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="kt">char</span><span class="w"> </span><span class="n">high</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emoji</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// 0xD83D — 의미 없는 값</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="kt">char</span><span class="w"> </span><span class="n">low</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emoji</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0xDE00 — 의미 없는 값</span>
+</span></code></pre></div>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">emoji</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;😀&quot;</span><span class="p">;</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">emoji</span><span class="p">.</span><span class="nx">length</span><span class="p">);</span><span class="w">       </span><span class="c1">// 2</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">([...</span><span class="nx">emoji</span><span class="p">].</span><span class="nx">length</span><span class="p">);</span><span class="w">  </span><span class="c1">// 1 — 스프레드 연산자는 코드 포인트 단위로 분리</span>
+</span></code></pre></div>
+<p>문자열 자르기, 길이 계산, 인덱스 접근에서 이모지를 고려하지 않으면 문자가 잘리거나 깨진다.</p>
+<h3 id="utf-16-바이트-순서">UTF-16 바이트 순서<a class="headerlink" href="#utf-16-바이트-순서" title="Permanent link">&para;</a></h3>
+<p>UTF-16은 2바이트 단위로 저장하기 때문에 바이트 순서(엔디언) 문제가 생긴다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>&quot;가&quot; (U+AC00)
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>UTF-16 BE: AC 00
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>UTF-16 LE: 00 AC
+</span></code></pre></div>
+<h2 id="bom-byte-order-mark">BOM (Byte Order Mark)<a class="headerlink" href="#bom-byte-order-mark" title="Permanent link">&para;</a></h2>
+<p>파일 맨 앞에 붙여서 인코딩 방식과 바이트 순서를 알려주는 표식이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>UTF-8:    EF BB BF
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>UTF-16 BE: FE FF
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>UTF-16 LE: FF FE
+</span></code></pre></div>
+<h3 id="utf-8-bom-문제">UTF-8 BOM 문제<a class="headerlink" href="#utf-8-bom-문제" title="Permanent link">&para;</a></h3>
+<p>UTF-8은 바이트 순서가 의미 없는데도 BOM을 넣는 경우가 있다. Windows의 메모장이 대표적이다(최근 버전은 BOM 없이 저장하는 게 기본값으로 바뀌었다).</p>
+<p>이 3바이트(EF BB BF)가 문제를 일으키는 경우:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># BOM이 있는 쉘 스크립트</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>$<span class="w"> </span>cat<span class="w"> </span>-v<span class="w"> </span>script.sh
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>M-oM-<span class="p">;</span>M-?#!/bin/bash<span class="w">    </span><span class="c1"># ← shebang 앞에 BOM이 붙어 있다</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>$<span class="w"> </span>./script.sh
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>./script.sh:<span class="w"> </span>line<span class="w"> </span><span class="m">1</span>:<span class="w"> </span><span class="c1">#!/bin/bash: No such file or directory</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a># BOM이 있는 CSV 파일
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>HTTP 응답으로 CSV를 내려줄 때 BOM이 포함되면,
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>첫 번째 컬럼 이름 앞에 보이지 않는 3바이트가 붙어서
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>파싱 시 첫 번째 헤더를 인식하지 못한다.
+</span></code></pre></div>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="x">// BOM이 있는 PHP 파일</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="x">// </span><span class="cp">&lt;?php</span> <span class="nx">앞에</span> <span class="nx">BOM</span> <span class="mi">3</span><span class="nx">바이트가</span> <span class="nx">출력되어</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1">// &quot;headers already sent&quot; 에러가 발생한다</span>
+</span></code></pre></div>
+<p>BOM 확인 방법:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># 파일 앞부분 hex로 확인</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>hexdump<span class="w"> </span>-C<span class="w"> </span>file.txt<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="c1"># EF BB BF로 시작하면 UTF-8 BOM</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="c1"># BOM 제거</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;1s/^\xEF\xBB\xBF//&#39;</span><span class="w"> </span>file.txt
+</span></code></pre></div>
+<h2 id="인코딩-변환-흐름">인코딩 변환 흐름<a class="headerlink" href="#인코딩-변환-흐름" title="Permanent link">&para;</a></h2>
+<p>실제 시스템에서 데이터가 어떤 과정을 거쳐 인코딩이 바뀌는지 흐름을 보면 깨지는 지점을 파악하기 쉽다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     A["원본 텍스트&lt;br/&gt;'한글'"] --&gt; B["메모리&lt;br/&gt;(Unicode 코드 포인트)&lt;br/&gt;U+D55C U+AE00"]
     B --&gt;|UTF-8 인코딩| C["바이트 배열&lt;br/&gt;ED 95 9C EA B8 80&lt;br/&gt;(6바이트)"]
     B --&gt;|EUC-KR 인코딩| D["바이트 배열&lt;br/&gt;C7 D1 B1 DB&lt;br/&gt;(4바이트)"]
     C --&gt;|UTF-8 디코딩| B
     D --&gt;|EUC-KR 디코딩| B
     C --&gt;|EUC-KR로&lt;br/&gt;잘못 디코딩| E["깨진 텍스트"]
-    D --&gt;|UTF-8로&lt;br/&gt;잘못 디코딩| E</code></pre> <p>핵심은 가운데 있는 Unicode 코드 포인트 단계다. 모든 인코딩 변환은 <code>원본 바이트 → 코드 포인트 → 대상 바이트</code>로 두 단계를 거친다. 바이트 배열에서 다른 바이트 배열로 직접 변환하는 게 아니다.</p> <p>레거시 시스템 연동에서 데이터가 깨지는 대부분의 경우는, 이 흐름 중 디코딩 단계에서 잘못된 인코딩을 지정했기 때문이다. EUC-KR 바이트를 UTF-8로 읽거나, 그 반대를 하면 코드 포인트 자체가 엉뚱한 값이 되어 복구가 안 된다.</p> <pre class=mermaid-diagram><code>flowchart TD
+    D --&gt;|UTF-8로&lt;br/&gt;잘못 디코딩| E</code></pre>
+<p>핵심은 가운데 있는 Unicode 코드 포인트 단계다. 모든 인코딩 변환은 <code>원본 바이트 → 코드 포인트 → 대상 바이트</code>로 두 단계를 거친다. 바이트 배열에서 다른 바이트 배열로 직접 변환하는 게 아니다.</p>
+<p>레거시 시스템 연동에서 데이터가 깨지는 대부분의 경우는, 이 흐름 중 디코딩 단계에서 잘못된 인코딩을 지정했기 때문이다. EUC-KR 바이트를 UTF-8로 읽거나, 그 반대를 하면 코드 포인트 자체가 엉뚱한 값이 되어 복구가 안 된다.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     subgraph correct["정상 변환"]
         direction LR
         A1["EUC-KR 바이트&lt;br/&gt;C7 D1"] --&gt;|"EUC-KR 디코딩"| B1["U+D55C&lt;br/&gt;(한)"]
@@ -131,74 +2205,100 @@
         direction LR
         A2["EUC-KR 바이트&lt;br/&gt;C7 D1"] --&gt;|"UTF-8로&lt;br/&gt;잘못 디코딩"| B2["U+FFFD&lt;br/&gt;(대체 문자)"]
         B2 --&gt;|"다시 인코딩해도"| C2["원본 손실"]
-    end</code></pre> <h2 id=실무에서-겪는-인코딩-문제>실무에서 겪는 인코딩 문제<a class=headerlink href=#실무에서-겪는-인코딩-문제 title="Permanent link">&para;</a></h2> <h3 id=1-db-인코딩-설정>1. DB 인코딩 설정<a class=headerlink href=#1-db-인코딩-설정 title="Permanent link">&para;</a></h3> <p>MySQL에서 가장 흔하게 겪는 문제다. <code>utf8</code>과 <code>utf8mb4</code>는 다르다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=c1>-- MySQL의 utf8은 3바이트까지만 지원한다 (BMP만)</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=c1>-- 이모지(4바이트)를 넣으면 에러나거나 잘린다</span>
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>bad_table</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=w>    </span><span class=n>name</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span>
-</span><span id=__span-17-5><a id=__codelineno-17-5 name=__codelineno-17-5 href=#__codelineno-17-5></a><span class=p>)</span><span class=w> </span><span class=nb>CHARACTER</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>utf8</span><span class=p>;</span>
-</span><span id=__span-17-6><a id=__codelineno-17-6 name=__codelineno-17-6 href=#__codelineno-17-6></a>
-</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a><span class=c1>-- utf8mb4가 진짜 UTF-8이다</span>
-</span><span id=__span-17-8><a id=__codelineno-17-8 name=__codelineno-17-8 href=#__codelineno-17-8></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>good_table</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-17-9><a id=__codelineno-17-9 name=__codelineno-17-9 href=#__codelineno-17-9></a><span class=w>    </span><span class=n>name</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span>
-</span><span id=__span-17-10><a id=__codelineno-17-10 name=__codelineno-17-10 href=#__codelineno-17-10></a><span class=p>)</span><span class=w> </span><span class=nb>CHARACTER</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>utf8mb4</span><span class=w> </span><span class=k>COLLATE</span><span class=w> </span><span class=n>utf8mb4_unicode_ci</span><span class=p>;</span>
-</span></code></pre></div> <p>MySQL의 <code>utf8</code>은 역사적 이유로 3바이트 제한이 있다. 2010년에 <code>utf8mb4</code>가 추가되었는데, 신규 프로젝트라면 무조건 <code>utf8mb4</code>를 쓴다.</p> <p>커넥션 레벨에서도 설정해야 한다:</p> <div class="language-properties highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a><span class=c1># JDBC URL</span>
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a><span class=na>jdbc</span><span class=o>:</span><span class=s>mysql://localhost:3306/mydb?characterEncoding=UTF-8&amp;connectionCollation=utf8mb4_unicode_ci</span>
-</span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a>
-</span><span id=__span-18-4><a id=__codelineno-18-4 name=__codelineno-18-4 href=#__codelineno-18-4></a><span class=c1># my.cnf</span>
-</span><span id=__span-18-5><a id=__codelineno-18-5 name=__codelineno-18-5 href=#__codelineno-18-5></a><span class=na>[client]</span>
-</span><span id=__span-18-6><a id=__codelineno-18-6 name=__codelineno-18-6 href=#__codelineno-18-6></a><span class=na>default-character-set</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>utf8mb4</span>
-</span><span id=__span-18-7><a id=__codelineno-18-7 name=__codelineno-18-7 href=#__codelineno-18-7></a>
-</span><span id=__span-18-8><a id=__codelineno-18-8 name=__codelineno-18-8 href=#__codelineno-18-8></a><span class=na>[mysqld]</span>
-</span><span id=__span-18-9><a id=__codelineno-18-9 name=__codelineno-18-9 href=#__codelineno-18-9></a><span class=na>character-set-server</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>utf8mb4</span>
-</span><span id=__span-18-10><a id=__codelineno-18-10 name=__codelineno-18-10 href=#__codelineno-18-10></a><span class=na>collation-server</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>utf8mb4_unicode_ci</span>
-</span></code></pre></div> <p>DB, 테이블, 컬럼, 커넥션 네 군데 인코딩이 모두 맞아야 한다. 하나라도 다르면 변환 과정에서 깨질 수 있다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a><span class=c1>-- 현재 설정 확인</span>
-</span><span id=__span-19-2><a id=__codelineno-19-2 name=__codelineno-19-2 href=#__codelineno-19-2></a><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;character_set%&#39;</span><span class=p>;</span>
-</span><span id=__span-19-3><a id=__codelineno-19-3 name=__codelineno-19-3 href=#__codelineno-19-3></a><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;collation%&#39;</span><span class=p>;</span>
-</span><span id=__span-19-4><a id=__codelineno-19-4 name=__codelineno-19-4 href=#__codelineno-19-4></a>
-</span><span id=__span-19-5><a id=__codelineno-19-5 name=__codelineno-19-5 href=#__codelineno-19-5></a><span class=c1>-- 테이블 인코딩 확인</span>
-</span><span id=__span-19-6><a id=__codelineno-19-6 name=__codelineno-19-6 href=#__codelineno-19-6></a><span class=k>SHOW</span><span class=w> </span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>my_table</span><span class=p>;</span>
-</span></code></pre></div> <h3 id=2-http-content-type과-charset>2. HTTP Content-Type과 charset<a class=headerlink href=#2-http-content-type과-charset title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-20-1><a id=__codelineno-20-1 name=__codelineno-20-1 href=#__codelineno-20-1></a>Content-Type: text/html; charset=UTF-8
-</span></code></pre></div> <p>이 헤더가 없거나 잘못 설정되면 브라우저가 인코딩을 추측한다. 추측이 틀리면 한글이 깨진다.</p> <div class="language-html highlight"><pre><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a><span class=cm>&lt;!-- HTML meta 태그도 설정해야 한다 --&gt;</span>
-</span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a><span class=p>&lt;</span><span class=nt>meta</span> <span class=na>charset</span><span class=o>=</span><span class=s>&quot;UTF-8&quot;</span><span class=p>&gt;</span>
-</span><span id=__span-21-3><a id=__codelineno-21-3 name=__codelineno-21-3 href=#__codelineno-21-3></a><span class=cm>&lt;!-- 이 태그는 반드시 &lt;head&gt;의 첫 1024바이트 안에 위치해야 한다 --&gt;</span>
-</span></code></pre></div> <p>Spring Boot에서 기본 charset이 달라서 겪는 문제:</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-22-1><a id=__codelineno-22-1 name=__codelineno-22-1 href=#__codelineno-22-1></a><span class=c1>// Spring Boot 2.x에서는 기본값이 UTF-8이 아닌 경우가 있다</span>
-</span><span id=__span-22-2><a id=__codelineno-22-2 name=__codelineno-22-2 href=#__codelineno-22-2></a><span class=c1>// application.properties에 명시</span>
-</span><span id=__span-22-3><a id=__codelineno-22-3 name=__codelineno-22-3 href=#__codelineno-22-3></a><span class=n>server</span><span class=p>.</span><span class=na>servlet</span><span class=p>.</span><span class=na>encoding</span><span class=p>.</span><span class=na>charset</span><span class=o>=</span><span class=n>UTF</span><span class=o>-</span><span class=mi>8</span>
-</span><span id=__span-22-4><a id=__codelineno-22-4 name=__codelineno-22-4 href=#__codelineno-22-4></a><span class=n>server</span><span class=p>.</span><span class=na>servlet</span><span class=p>.</span><span class=na>encoding</span><span class=p>.</span><span class=na>enabled</span><span class=o>=</span><span class=kc>true</span>
-</span><span id=__span-22-5><a id=__codelineno-22-5 name=__codelineno-22-5 href=#__codelineno-22-5></a><span class=n>server</span><span class=p>.</span><span class=na>servlet</span><span class=p>.</span><span class=na>encoding</span><span class=p>.</span><span class=na>force</span><span class=o>=</span><span class=kc>true</span>
-</span></code></pre></div> <h3 id=3-파일-읽기에서의-인코딩>3. 파일 읽기에서의 인코딩<a class=headerlink href=#3-파일-읽기에서의-인코딩 title="Permanent link">&para;</a></h3> <div class="language-java highlight"><pre><span></span><code><span id=__span-23-1><a id=__codelineno-23-1 name=__codelineno-23-1 href=#__codelineno-23-1></a><span class=c1>// 잘못된 방법 — 시스템 기본 인코딩에 의존</span>
-</span><span id=__span-23-2><a id=__codelineno-23-2 name=__codelineno-23-2 href=#__codelineno-23-2></a><span class=n>BufferedReader</span><span class=w> </span><span class=n>reader</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>BufferedReader</span><span class=p>(</span><span class=k>new</span><span class=w> </span><span class=n>FileReader</span><span class=p>(</span><span class=s>&quot;data.txt&quot;</span><span class=p>));</span>
-</span><span id=__span-23-3><a id=__codelineno-23-3 name=__codelineno-23-3 href=#__codelineno-23-3></a>
-</span><span id=__span-23-4><a id=__codelineno-23-4 name=__codelineno-23-4 href=#__codelineno-23-4></a><span class=c1>// 올바른 방법 — 인코딩 명시</span>
-</span><span id=__span-23-5><a id=__codelineno-23-5 name=__codelineno-23-5 href=#__codelineno-23-5></a><span class=n>BufferedReader</span><span class=w> </span><span class=n>reader</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>BufferedReader</span><span class=p>(</span>
-</span><span id=__span-23-6><a id=__codelineno-23-6 name=__codelineno-23-6 href=#__codelineno-23-6></a><span class=w>    </span><span class=k>new</span><span class=w> </span><span class=n>InputStreamReader</span><span class=p>(</span><span class=k>new</span><span class=w> </span><span class=n>FileInputStream</span><span class=p>(</span><span class=s>&quot;data.txt&quot;</span><span class=p>),</span><span class=w> </span><span class=n>StandardCharsets</span><span class=p>.</span><span class=na>UTF_8</span><span class=p>)</span>
-</span><span id=__span-23-7><a id=__codelineno-23-7 name=__codelineno-23-7 href=#__codelineno-23-7></a><span class=p>);</span>
-</span><span id=__span-23-8><a id=__codelineno-23-8 name=__codelineno-23-8 href=#__codelineno-23-8></a>
-</span><span id=__span-23-9><a id=__codelineno-23-9 name=__codelineno-23-9 href=#__codelineno-23-9></a><span class=c1>// Java 11+</span>
-</span><span id=__span-23-10><a id=__codelineno-23-10 name=__codelineno-23-10 href=#__codelineno-23-10></a><span class=n>String</span><span class=w> </span><span class=n>content</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>Files</span><span class=p>.</span><span class=na>readString</span><span class=p>(</span><span class=n>Path</span><span class=p>.</span><span class=na>of</span><span class=p>(</span><span class=s>&quot;data.txt&quot;</span><span class=p>),</span><span class=w> </span><span class=n>StandardCharsets</span><span class=p>.</span><span class=na>UTF_8</span><span class=p>);</span>
-</span></code></pre></div> <div class="language-python highlight"><pre><span></span><code><span id=__span-24-1><a id=__codelineno-24-1 name=__codelineno-24-1 href=#__codelineno-24-1></a><span class=c1># Python 3 — 인코딩 명시</span>
-</span><span id=__span-24-2><a id=__codelineno-24-2 name=__codelineno-24-2 href=#__codelineno-24-2></a><span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s1>&#39;data.txt&#39;</span><span class=p>,</span> <span class=s1>&#39;r&#39;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s1>&#39;utf-8&#39;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
-</span><span id=__span-24-3><a id=__codelineno-24-3 name=__codelineno-24-3 href=#__codelineno-24-3></a>    <span class=n>content</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
-</span><span id=__span-24-4><a id=__codelineno-24-4 name=__codelineno-24-4 href=#__codelineno-24-4></a>
-</span><span id=__span-24-5><a id=__codelineno-24-5 name=__codelineno-24-5 href=#__codelineno-24-5></a><span class=c1># 인코딩을 모를 때 — chardet 라이브러리 사용</span>
-</span><span id=__span-24-6><a id=__codelineno-24-6 name=__codelineno-24-6 href=#__codelineno-24-6></a><span class=kn>import</span><span class=w> </span><span class=nn>chardet</span>
-</span><span id=__span-24-7><a id=__codelineno-24-7 name=__codelineno-24-7 href=#__codelineno-24-7></a>
-</span><span id=__span-24-8><a id=__codelineno-24-8 name=__codelineno-24-8 href=#__codelineno-24-8></a><span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s1>&#39;data.txt&#39;</span><span class=p>,</span> <span class=s1>&#39;rb&#39;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
-</span><span id=__span-24-9><a id=__codelineno-24-9 name=__codelineno-24-9 href=#__codelineno-24-9></a>    <span class=n>raw</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
-</span><span id=__span-24-10><a id=__codelineno-24-10 name=__codelineno-24-10 href=#__codelineno-24-10></a>    <span class=n>detected</span> <span class=o>=</span> <span class=n>chardet</span><span class=o>.</span><span class=n>detect</span><span class=p>(</span><span class=n>raw</span><span class=p>)</span>
-</span><span id=__span-24-11><a id=__codelineno-24-11 name=__codelineno-24-11 href=#__codelineno-24-11></a>    <span class=nb>print</span><span class=p>(</span><span class=n>detected</span><span class=p>)</span>  <span class=c1># {&#39;encoding&#39;: &#39;EUC-KR&#39;, &#39;confidence&#39;: 0.99, ...}</span>
-</span><span id=__span-24-12><a id=__codelineno-24-12 name=__codelineno-24-12 href=#__codelineno-24-12></a>    <span class=n>content</span> <span class=o>=</span> <span class=n>raw</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>detected</span><span class=p>[</span><span class=s1>&#39;encoding&#39;</span><span class=p>])</span>
-</span></code></pre></div> <h3 id=4-레거시-시스템-연동>4. 레거시 시스템 연동<a class=headerlink href=#4-레거시-시스템-연동 title="Permanent link">&para;</a></h3> <p>오래된 시스템에서 EUC-KR로 인코딩된 데이터를 받아서 UTF-8 시스템에 저장할 때:</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-25-1><a id=__codelineno-25-1 name=__codelineno-25-1 href=#__codelineno-25-1></a><span class=c1>// EUC-KR → UTF-8 변환</span>
-</span><span id=__span-25-2><a id=__codelineno-25-2 name=__codelineno-25-2 href=#__codelineno-25-2></a><span class=kt>byte</span><span class=o>[]</span><span class=w> </span><span class=n>euckrBytes</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>receiveFromLegacy</span><span class=p>();</span>
-</span><span id=__span-25-3><a id=__codelineno-25-3 name=__codelineno-25-3 href=#__codelineno-25-3></a><span class=n>String</span><span class=w> </span><span class=n>text</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>String</span><span class=p>(</span><span class=n>euckrBytes</span><span class=p>,</span><span class=w> </span><span class=s>&quot;EUC-KR&quot;</span><span class=p>);</span>
-</span><span id=__span-25-4><a id=__codelineno-25-4 name=__codelineno-25-4 href=#__codelineno-25-4></a><span class=kt>byte</span><span class=o>[]</span><span class=w> </span><span class=n>utf8Bytes</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>text</span><span class=p>.</span><span class=na>getBytes</span><span class=p>(</span><span class=n>StandardCharsets</span><span class=p>.</span><span class=na>UTF_8</span><span class=p>);</span>
-</span></code></pre></div> <div class="language-python highlight"><pre><span></span><code><span id=__span-26-1><a id=__codelineno-26-1 name=__codelineno-26-1 href=#__codelineno-26-1></a><span class=c1># EUC-KR 파일을 UTF-8로 변환</span>
-</span><span id=__span-26-2><a id=__codelineno-26-2 name=__codelineno-26-2 href=#__codelineno-26-2></a><span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s1>&#39;legacy.txt&#39;</span><span class=p>,</span> <span class=s1>&#39;r&#39;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s1>&#39;euc-kr&#39;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
-</span><span id=__span-26-3><a id=__codelineno-26-3 name=__codelineno-26-3 href=#__codelineno-26-3></a>    <span class=n>content</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
-</span><span id=__span-26-4><a id=__codelineno-26-4 name=__codelineno-26-4 href=#__codelineno-26-4></a>
-</span><span id=__span-26-5><a id=__codelineno-26-5 name=__codelineno-26-5 href=#__codelineno-26-5></a><span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s1>&#39;converted.txt&#39;</span><span class=p>,</span> <span class=s1>&#39;w&#39;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s1>&#39;utf-8&#39;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
-</span><span id=__span-26-6><a id=__codelineno-26-6 name=__codelineno-26-6 href=#__codelineno-26-6></a>    <span class=n>f</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>content</span><span class=p>)</span>
-</span></code></pre></div> <p>변환할 때 주의할 점: EUC-KR에는 있지만 의미가 달라지는 문자는 없다(Unicode가 EUC-KR을 포함한다). 하지만 깨진 채로 저장된 데이터는 변환해도 복구되지 않는다. 이미 깨진 데이터는 원본을 찾아야 한다.</p> <h3 id=5-한글-깨짐-디버깅>5. 한글 깨짐 디버깅<a class=headerlink href=#5-한글-깨짐-디버깅 title="Permanent link">&para;</a></h3> <p>한글이 깨질 때 깨지는 패턴으로 원인을 추정할 수 있다.</p> <pre class=mermaid-diagram><code>flowchart TD
+    end</code></pre>
+<h2 id="실무에서-겪는-인코딩-문제">실무에서 겪는 인코딩 문제<a class="headerlink" href="#실무에서-겪는-인코딩-문제" title="Permanent link">&para;</a></h2>
+<h3 id="1-db-인코딩-설정">1. DB 인코딩 설정<a class="headerlink" href="#1-db-인코딩-설정" title="Permanent link">&para;</a></h3>
+<p>MySQL에서 가장 흔하게 겪는 문제다. <code>utf8</code>과 <code>utf8mb4</code>는 다르다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1">-- MySQL의 utf8은 3바이트까지만 지원한다 (BMP만)</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c1">-- 이모지(4바이트)를 넣으면 에러나거나 잘린다</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">bad_table</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">    </span><span class="n">name</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="p">)</span><span class="w"> </span><span class="nb">CHARACTER</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">utf8</span><span class="p">;</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c1">-- utf8mb4가 진짜 UTF-8이다</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">good_table</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="w">    </span><span class="n">name</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="p">)</span><span class="w"> </span><span class="nb">CHARACTER</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">utf8mb4</span><span class="w"> </span><span class="k">COLLATE</span><span class="w"> </span><span class="n">utf8mb4_unicode_ci</span><span class="p">;</span>
+</span></code></pre></div>
+<p>MySQL의 <code>utf8</code>은 역사적 이유로 3바이트 제한이 있다. 2010년에 <code>utf8mb4</code>가 추가되었는데, 신규 프로젝트라면 무조건 <code>utf8mb4</code>를 쓴다.</p>
+<p>커넥션 레벨에서도 설정해야 한다:</p>
+<div class="language-properties highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># JDBC URL</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="na">jdbc</span><span class="o">:</span><span class="s">mysql://localhost:3306/mydb?characterEncoding=UTF-8&amp;connectionCollation=utf8mb4_unicode_ci</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># my.cnf</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="na">[client]</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="na">default-character-set</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">utf8mb4</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="na">[mysqld]</span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="na">character-set-server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">utf8mb4</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="na">collation-server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">utf8mb4_unicode_ci</span>
+</span></code></pre></div>
+<p>DB, 테이블, 컬럼, 커넥션 네 군데 인코딩이 모두 맞아야 한다. 하나라도 다르면 변환 과정에서 깨질 수 있다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1">-- 현재 설정 확인</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;character_set%&#39;</span><span class="p">;</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;collation%&#39;</span><span class="p">;</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="c1">-- 테이블 인코딩 확인</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="k">SHOW</span><span class="w"> </span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">my_table</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="2-http-content-type과-charset">2. HTTP Content-Type과 charset<a class="headerlink" href="#2-http-content-type과-charset" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Content-Type: text/html; charset=UTF-8
+</span></code></pre></div>
+<p>이 헤더가 없거나 잘못 설정되면 브라우저가 인코딩을 추측한다. 추측이 틀리면 한글이 깨진다.</p>
+<div class="language-html highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="cm">&lt;!-- HTML meta 태그도 설정해야 한다 --&gt;</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="p">&lt;</span><span class="nt">meta</span> <span class="na">charset</span><span class="o">=</span><span class="s">&quot;UTF-8&quot;</span><span class="p">&gt;</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="cm">&lt;!-- 이 태그는 반드시 &lt;head&gt;의 첫 1024바이트 안에 위치해야 한다 --&gt;</span>
+</span></code></pre></div>
+<p>Spring Boot에서 기본 charset이 달라서 겪는 문제:</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1">// Spring Boot 2.x에서는 기본값이 UTF-8이 아닌 경우가 있다</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="c1">// application.properties에 명시</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="n">server</span><span class="p">.</span><span class="na">servlet</span><span class="p">.</span><span class="na">encoding</span><span class="p">.</span><span class="na">charset</span><span class="o">=</span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="n">server</span><span class="p">.</span><span class="na">servlet</span><span class="p">.</span><span class="na">encoding</span><span class="p">.</span><span class="na">enabled</span><span class="o">=</span><span class="kc">true</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="n">server</span><span class="p">.</span><span class="na">servlet</span><span class="p">.</span><span class="na">encoding</span><span class="p">.</span><span class="na">force</span><span class="o">=</span><span class="kc">true</span>
+</span></code></pre></div>
+<h3 id="3-파일-읽기에서의-인코딩">3. 파일 읽기에서의 인코딩<a class="headerlink" href="#3-파일-읽기에서의-인코딩" title="Permanent link">&para;</a></h3>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1">// 잘못된 방법 — 시스템 기본 인코딩에 의존</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">BufferedReader</span><span class="w"> </span><span class="n">reader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">BufferedReader</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">FileReader</span><span class="p">(</span><span class="s">&quot;data.txt&quot;</span><span class="p">));</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1">// 올바른 방법 — 인코딩 명시</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="n">BufferedReader</span><span class="w"> </span><span class="n">reader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">BufferedReader</span><span class="p">(</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">InputStreamReader</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">FileInputStream</span><span class="p">(</span><span class="s">&quot;data.txt&quot;</span><span class="p">),</span><span class="w"> </span><span class="n">StandardCharsets</span><span class="p">.</span><span class="na">UTF_8</span><span class="p">)</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="p">);</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="c1">// Java 11+</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="n">String</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Files</span><span class="p">.</span><span class="na">readString</span><span class="p">(</span><span class="n">Path</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;data.txt&quot;</span><span class="p">),</span><span class="w"> </span><span class="n">StandardCharsets</span><span class="p">.</span><span class="na">UTF_8</span><span class="p">);</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Python 3 — 인코딩 명시</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;data.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="c1"># 인코딩을 모를 때 — chardet 라이브러리 사용</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">chardet</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;data.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>    <span class="n">raw</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>    <span class="n">detected</span> <span class="o">=</span> <span class="n">chardet</span><span class="o">.</span><span class="n">detect</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">detected</span><span class="p">)</span>  <span class="c1"># {&#39;encoding&#39;: &#39;EUC-KR&#39;, &#39;confidence&#39;: 0.99, ...}</span>
+</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>    <span class="n">content</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">detected</span><span class="p">[</span><span class="s1">&#39;encoding&#39;</span><span class="p">])</span>
+</span></code></pre></div>
+<h3 id="4-레거시-시스템-연동">4. 레거시 시스템 연동<a class="headerlink" href="#4-레거시-시스템-연동" title="Permanent link">&para;</a></h3>
+<p>오래된 시스템에서 EUC-KR로 인코딩된 데이터를 받아서 UTF-8 시스템에 저장할 때:</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1">// EUC-KR → UTF-8 변환</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">euckrBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">receiveFromLegacy</span><span class="p">();</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="n">String</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">(</span><span class="n">euckrBytes</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;EUC-KR&quot;</span><span class="p">);</span>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">utf8Bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">text</span><span class="p">.</span><span class="na">getBytes</span><span class="p">(</span><span class="n">StandardCharsets</span><span class="p">.</span><span class="na">UTF_8</span><span class="p">);</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># EUC-KR 파일을 UTF-8로 변환</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;legacy.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;euc-kr&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>    <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;converted.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+</span></code></pre></div>
+<p>변환할 때 주의할 점: EUC-KR에는 있지만 의미가 달라지는 문자는 없다(Unicode가 EUC-KR을 포함한다). 하지만 깨진 채로 저장된 데이터는 변환해도 복구되지 않는다. 이미 깨진 데이터는 원본을 찾아야 한다.</p>
+<h3 id="5-한글-깨짐-디버깅">5. 한글 깨짐 디버깅<a class="headerlink" href="#5-한글-깨짐-디버깅" title="Permanent link">&para;</a></h3>
+<p>한글이 깨질 때 깨지는 패턴으로 원인을 추정할 수 있다.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     A["한글이 깨졌다"] --&gt; B{"깨진 형태는?"}
     B --&gt;|"글자 수 늘어남&lt;br/&gt;í\x95\x9c 같은 형태"| C["UTF-8 바이트를&lt;br/&gt;EUC-KR로 읽은 경우"]
     B --&gt;|"U+FFFD 대체 문자&lt;br/&gt;�로 표시됨"| D["EUC-KR 바이트를&lt;br/&gt;UTF-8로 읽은 경우"]
@@ -207,46 +2307,195 @@
     C --&gt; G["읽는 쪽 인코딩을&lt;br/&gt;UTF-8로 변경"]
     D --&gt; H["읽는 쪽 인코딩을&lt;br/&gt;EUC-KR로 변경"]
     E --&gt; I["읽는 쪽 인코딩을&lt;br/&gt;UTF-8로 변경"]
-    F --&gt; J["DB, 테이블, 커넥션&lt;br/&gt;charset 설정 확인"]</code></pre> <div class="language-text highlight"><pre><span></span><code><span id=__span-27-1><a id=__codelineno-27-1 name=__codelineno-27-1 href=#__codelineno-27-1></a>원본: &quot;한글 테스트&quot;
-</span><span id=__span-27-2><a id=__codelineno-27-2 name=__codelineno-27-2 href=#__codelineno-27-2></a>
-</span><span id=__span-27-3><a id=__codelineno-27-3 name=__codelineno-27-3 href=#__codelineno-27-3></a>UTF-8로 저장 → EUC-KR로 읽으면:
-</span><span id=__span-27-4><a id=__codelineno-27-4 name=__codelineno-27-4 href=#__codelineno-27-4></a>&quot;í\x95\x9cê¸\x80 í\x85\x8cì\x8a¤í\x8a¸&quot;  — 바이트가 더 많아서 글자 수가 늘어남
-</span><span id=__span-27-5><a id=__codelineno-27-5 name=__codelineno-27-5 href=#__codelineno-27-5></a>
-</span><span id=__span-27-6><a id=__codelineno-27-6 name=__codelineno-27-6 href=#__codelineno-27-6></a>EUC-KR로 저장 → UTF-8로 읽으면:
-</span><span id=__span-27-7><a id=__codelineno-27-7 name=__codelineno-27-7 href=#__codelineno-27-7></a>&quot;�۱� ���&quot; 같은 형태 — replacement character(U+FFFD)가 나옴
-</span><span id=__span-27-8><a id=__codelineno-27-8 name=__codelineno-27-8 href=#__codelineno-27-8></a>
-</span><span id=__span-27-9><a id=__codelineno-27-9 name=__codelineno-27-9 href=#__codelineno-27-9></a>UTF-8로 저장 → Latin-1로 읽으면:
-</span><span id=__span-27-10><a id=__codelineno-27-10 name=__codelineno-27-10 href=#__codelineno-27-10></a>&quot;í•œê¸€ í…ŒìŠ¤íŠ¸&quot; — 한글이 2~3글자의 유럽 문자로 표시됨
-</span></code></pre></div> <p>디버깅 순서:</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-28-1><a id=__codelineno-28-1 name=__codelineno-28-1 href=#__codelineno-28-1></a><span class=c1># 1. 파일의 실제 인코딩 확인</span>
-</span><span id=__span-28-2><a id=__codelineno-28-2 name=__codelineno-28-2 href=#__codelineno-28-2></a>file<span class=w> </span>-bi<span class=w> </span>data.txt
-</span><span id=__span-28-3><a id=__codelineno-28-3 name=__codelineno-28-3 href=#__codelineno-28-3></a><span class=c1># text/plain; charset=utf-8</span>
-</span><span id=__span-28-4><a id=__codelineno-28-4 name=__codelineno-28-4 href=#__codelineno-28-4></a>
-</span><span id=__span-28-5><a id=__codelineno-28-5 name=__codelineno-28-5 href=#__codelineno-28-5></a><span class=c1># 2. hex로 바이트 직접 확인</span>
-</span><span id=__span-28-6><a id=__codelineno-28-6 name=__codelineno-28-6 href=#__codelineno-28-6></a>xxd<span class=w> </span>data.txt<span class=w> </span><span class=p>|</span><span class=w> </span>head
-</span><span id=__span-28-7><a id=__codelineno-28-7 name=__codelineno-28-7 href=#__codelineno-28-7></a>
-</span><span id=__span-28-8><a id=__codelineno-28-8 name=__codelineno-28-8 href=#__codelineno-28-8></a><span class=c1># 3. iconv로 변환 시도</span>
-</span><span id=__span-28-9><a id=__codelineno-28-9 name=__codelineno-28-9 href=#__codelineno-28-9></a>iconv<span class=w> </span>-f<span class=w> </span>EUC-KR<span class=w> </span>-t<span class=w> </span>UTF-8<span class=w> </span>data.txt<span class=w> </span>&gt;<span class=w> </span>converted.txt
-</span><span id=__span-28-10><a id=__codelineno-28-10 name=__codelineno-28-10 href=#__codelineno-28-10></a><span class=c1># 변환 실패 시 해당 인코딩이 아닌 것</span>
-</span><span id=__span-28-11><a id=__codelineno-28-11 name=__codelineno-28-11 href=#__codelineno-28-11></a>
-</span><span id=__span-28-12><a id=__codelineno-28-12 name=__codelineno-28-12 href=#__codelineno-28-12></a><span class=c1># 4. 특정 인코딩으로 강제 해석</span>
-</span><span id=__span-28-13><a id=__codelineno-28-13 name=__codelineno-28-13 href=#__codelineno-28-13></a>python3<span class=w> </span>-c<span class=w> </span><span class=s2>&quot;</span>
-</span><span id=__span-28-14><a id=__codelineno-28-14 name=__codelineno-28-14 href=#__codelineno-28-14></a><span class=s2>import sys</span>
-</span><span id=__span-28-15><a id=__codelineno-28-15 name=__codelineno-28-15 href=#__codelineno-28-15></a><span class=s2>with open(&#39;data.txt&#39;, &#39;rb&#39;) as f:</span>
-</span><span id=__span-28-16><a id=__codelineno-28-16 name=__codelineno-28-16 href=#__codelineno-28-16></a><span class=s2>    raw = f.read()</span>
-</span><span id=__span-28-17><a id=__codelineno-28-17 name=__codelineno-28-17 href=#__codelineno-28-17></a><span class=s2>for enc in [&#39;utf-8&#39;, &#39;euc-kr&#39;, &#39;cp949&#39;, &#39;latin-1&#39;, &#39;shift_jis&#39;]:</span>
-</span><span id=__span-28-18><a id=__codelineno-28-18 name=__codelineno-28-18 href=#__codelineno-28-18></a><span class=s2>    try:</span>
-</span><span id=__span-28-19><a id=__codelineno-28-19 name=__codelineno-28-19 href=#__codelineno-28-19></a><span class=s2>        print(f&#39;{enc}: {raw.decode(enc)[:50]}&#39;)</span>
-</span><span id=__span-28-20><a id=__codelineno-28-20 name=__codelineno-28-20 href=#__codelineno-28-20></a><span class=s2>    except:</span>
-</span><span id=__span-28-21><a id=__codelineno-28-21 name=__codelineno-28-21 href=#__codelineno-28-21></a><span class=s2>        print(f&#39;{enc}: FAILED&#39;)</span>
-</span><span id=__span-28-22><a id=__codelineno-28-22 name=__codelineno-28-22 href=#__codelineno-28-22></a><span class=s2>&quot;</span>
-</span></code></pre></div> <h3 id=6-url-인코딩과의-관계>6. URL 인코딩과의 관계<a class=headerlink href=#6-url-인코딩과의-관계 title="Permanent link">&para;</a></h3> <p>URL에서 한글을 쓸 때는 퍼센트 인코딩이 적용된다. 이때 어떤 문자 인코딩을 기준으로 퍼센트 인코딩하느냐가 중요하다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-29-1><a id=__codelineno-29-1 name=__codelineno-29-1 href=#__codelineno-29-1></a>&quot;한&quot; (U+D55C)
-</span><span id=__span-29-2><a id=__codelineno-29-2 name=__codelineno-29-2 href=#__codelineno-29-2></a>
-</span><span id=__span-29-3><a id=__codelineno-29-3 name=__codelineno-29-3 href=#__codelineno-29-3></a>UTF-8 기준:  %ED%95%9C  (3바이트를 각각 퍼센트 인코딩)
-</span><span id=__span-29-4><a id=__codelineno-29-4 name=__codelineno-29-4 href=#__codelineno-29-4></a>EUC-KR 기준: %C7%D1     (2바이트를 각각 퍼센트 인코딩)
-</span></code></pre></div> <div class="language-java highlight"><pre><span></span><code><span id=__span-30-1><a id=__codelineno-30-1 name=__codelineno-30-1 href=#__codelineno-30-1></a><span class=c1>// Java — 인코딩 명시</span>
-</span><span id=__span-30-2><a id=__codelineno-30-2 name=__codelineno-30-2 href=#__codelineno-30-2></a><span class=n>String</span><span class=w> </span><span class=n>encoded</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>URLEncoder</span><span class=p>.</span><span class=na>encode</span><span class=p>(</span><span class=s>&quot;한글&quot;</span><span class=p>,</span><span class=w> </span><span class=n>StandardCharsets</span><span class=p>.</span><span class=na>UTF_8</span><span class=p>);</span>
-</span><span id=__span-30-3><a id=__codelineno-30-3 name=__codelineno-30-3 href=#__codelineno-30-3></a><span class=c1>// %ED%95%9C%EA%B8%80</span>
-</span><span id=__span-30-4><a id=__codelineno-30-4 name=__codelineno-30-4 href=#__codelineno-30-4></a>
-</span><span id=__span-30-5><a id=__codelineno-30-5 name=__codelineno-30-5 href=#__codelineno-30-5></a><span class=n>String</span><span class=w> </span><span class=n>decoded</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>URLDecoder</span><span class=p>.</span><span class=na>decode</span><span class=p>(</span><span class=n>encoded</span><span class=p>,</span><span class=w> </span><span class=n>StandardCharsets</span><span class=p>.</span><span class=na>UTF_8</span><span class=p>);</span>
-</span><span id=__span-30-6><a id=__codelineno-30-6 name=__codelineno-30-6 href=#__codelineno-30-6></a><span class=c1>// 한글</span>
-</span></code></pre></div> <p>현재 표준(RFC 3986)은 UTF-8을 사용하도록 규정하고 있다. 하지만 오래된 웹 애플리케이션에서 EUC-KR 기준으로 퍼센트 인코딩한 URL이 아직 남아 있는 경우가 있다.</p> <h2 id=인코딩-선택-기준>인코딩 선택 기준<a class=headerlink href=#인코딩-선택-기준 title="Permanent link">&para;</a></h2> <p>새로 만드는 시스템이라면 UTF-8 외에 다른 선택지는 없다. 이유는 간단하다:</p> <ul> <li>모든 Unicode 문자를 표현할 수 있다</li> <li>ASCII와 하위 호환된다</li> <li>웹 표준이다 (HTTP, HTML, JSON, XML 전부 UTF-8 기본)</li> <li>거의 모든 프로그래밍 언어와 프레임워크가 UTF-8을 기본으로 지원한다</li> </ul> <p>EUC-KR/CP949를 써야 하는 경우는 레거시 시스템 연동뿐이다. 이 경우에도 내부 처리는 UTF-8로 하고, 외부 시스템과의 경계에서만 변환한다.</p> <p>MySQL에서 <code>utf8</code> 대신 <code>utf8mb4</code>를 쓴다. JSON은 스펙 자체가 UTF-8이다. API 응답에 charset을 명시한다. 파일 I/O에서 인코딩을 항상 지정한다. 이 네 가지만 지키면 인코딩 문제의 대부분은 발생하지 않는다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../2%EC%A7%84%EC%88%98%EB%A5%BC%2016%EC%A7%84%EC%88%98%EB%A1%9C%20%EB%B3%80%ED%99%98%ED%95%98%EB%8A%94%20%EB%B0%A9%EB%B2%95/ >2진수를 16진수로 변환하는 방법</a></li> <li><a href=../../Binary_Hex_Conversion_Deep_Dive/ >2진수와 16진수 변환 심화</a></li> <li><a href=../../../RDBMS/Auto_Increment/ >AUTO_INCREMENT</a></li> <li><a href=../../../RDBMS/B_Tree_Page_Split/ >B-Tree 페이지 분할</a></li> <li><a href=../../../RDBMS/BCNF/ >BCNF</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Base64/ class="md-footer__link md-footer__link--prev" aria-label="이전: Base64 인코딩"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Base64 인코딩 </div> </div> </a> <a href=../Code_Point/ class="md-footer__link md-footer__link--next" aria-label="다음: 코드 포인트 (Code Point)"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 코드 포인트 (Code Point) </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    F --&gt; J["DB, 테이블, 커넥션&lt;br/&gt;charset 설정 확인"]</code></pre>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>원본: &quot;한글 테스트&quot;
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>UTF-8로 저장 → EUC-KR로 읽으면:
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>&quot;í\x95\x9cê¸\x80 í\x85\x8cì\x8a¤í\x8a¸&quot;  — 바이트가 더 많아서 글자 수가 늘어남
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>EUC-KR로 저장 → UTF-8로 읽으면:
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>&quot;�۱� ���&quot; 같은 형태 — replacement character(U+FFFD)가 나옴
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>UTF-8로 저장 → Latin-1로 읽으면:
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>&quot;í•œê¸€ í…ŒìŠ¤íŠ¸&quot; — 한글이 2~3글자의 유럽 문자로 표시됨
+</span></code></pre></div>
+<p>디버깅 순서:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c1"># 1. 파일의 실제 인코딩 확인</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>file<span class="w"> </span>-bi<span class="w"> </span>data.txt
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="c1"># text/plain; charset=utf-8</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="c1"># 2. hex로 바이트 직접 확인</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>xxd<span class="w"> </span>data.txt<span class="w"> </span><span class="p">|</span><span class="w"> </span>head
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a><span class="c1"># 3. iconv로 변환 시도</span>
+</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>iconv<span class="w"> </span>-f<span class="w"> </span>EUC-KR<span class="w"> </span>-t<span class="w"> </span>UTF-8<span class="w"> </span>data.txt<span class="w"> </span>&gt;<span class="w"> </span>converted.txt
+</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a><span class="c1"># 변환 실패 시 해당 인코딩이 아닌 것</span>
+</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a>
+</span><span id="__span-28-12"><a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a><span class="c1"># 4. 특정 인코딩으로 강제 해석</span>
+</span><span id="__span-28-13"><a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+</span><span id="__span-28-14"><a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a><span class="s2">import sys</span>
+</span><span id="__span-28-15"><a id="__codelineno-28-15" name="__codelineno-28-15" href="#__codelineno-28-15"></a><span class="s2">with open(&#39;data.txt&#39;, &#39;rb&#39;) as f:</span>
+</span><span id="__span-28-16"><a id="__codelineno-28-16" name="__codelineno-28-16" href="#__codelineno-28-16"></a><span class="s2">    raw = f.read()</span>
+</span><span id="__span-28-17"><a id="__codelineno-28-17" name="__codelineno-28-17" href="#__codelineno-28-17"></a><span class="s2">for enc in [&#39;utf-8&#39;, &#39;euc-kr&#39;, &#39;cp949&#39;, &#39;latin-1&#39;, &#39;shift_jis&#39;]:</span>
+</span><span id="__span-28-18"><a id="__codelineno-28-18" name="__codelineno-28-18" href="#__codelineno-28-18"></a><span class="s2">    try:</span>
+</span><span id="__span-28-19"><a id="__codelineno-28-19" name="__codelineno-28-19" href="#__codelineno-28-19"></a><span class="s2">        print(f&#39;{enc}: {raw.decode(enc)[:50]}&#39;)</span>
+</span><span id="__span-28-20"><a id="__codelineno-28-20" name="__codelineno-28-20" href="#__codelineno-28-20"></a><span class="s2">    except:</span>
+</span><span id="__span-28-21"><a id="__codelineno-28-21" name="__codelineno-28-21" href="#__codelineno-28-21"></a><span class="s2">        print(f&#39;{enc}: FAILED&#39;)</span>
+</span><span id="__span-28-22"><a id="__codelineno-28-22" name="__codelineno-28-22" href="#__codelineno-28-22"></a><span class="s2">&quot;</span>
+</span></code></pre></div>
+<h3 id="6-url-인코딩과의-관계">6. URL 인코딩과의 관계<a class="headerlink" href="#6-url-인코딩과의-관계" title="Permanent link">&para;</a></h3>
+<p>URL에서 한글을 쓸 때는 퍼센트 인코딩이 적용된다. 이때 어떤 문자 인코딩을 기준으로 퍼센트 인코딩하느냐가 중요하다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>&quot;한&quot; (U+D55C)
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>UTF-8 기준:  %ED%95%9C  (3바이트를 각각 퍼센트 인코딩)
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>EUC-KR 기준: %C7%D1     (2바이트를 각각 퍼센트 인코딩)
+</span></code></pre></div>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1">// Java — 인코딩 명시</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="n">String</span><span class="w"> </span><span class="n">encoded</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">URLEncoder</span><span class="p">.</span><span class="na">encode</span><span class="p">(</span><span class="s">&quot;한글&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">StandardCharsets</span><span class="p">.</span><span class="na">UTF_8</span><span class="p">);</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="c1">// %ED%95%9C%EA%B8%80</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="n">String</span><span class="w"> </span><span class="n">decoded</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">URLDecoder</span><span class="p">.</span><span class="na">decode</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span><span class="w"> </span><span class="n">StandardCharsets</span><span class="p">.</span><span class="na">UTF_8</span><span class="p">);</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="c1">// 한글</span>
+</span></code></pre></div>
+<p>현재 표준(RFC 3986)은 UTF-8을 사용하도록 규정하고 있다. 하지만 오래된 웹 애플리케이션에서 EUC-KR 기준으로 퍼센트 인코딩한 URL이 아직 남아 있는 경우가 있다.</p>
+<h2 id="인코딩-선택-기준">인코딩 선택 기준<a class="headerlink" href="#인코딩-선택-기준" title="Permanent link">&para;</a></h2>
+<p>새로 만드는 시스템이라면 UTF-8 외에 다른 선택지는 없다. 이유는 간단하다:</p>
+<ul>
+<li>모든 Unicode 문자를 표현할 수 있다</li>
+<li>ASCII와 하위 호환된다</li>
+<li>웹 표준이다 (HTTP, HTML, JSON, XML 전부 UTF-8 기본)</li>
+<li>거의 모든 프로그래밍 언어와 프레임워크가 UTF-8을 기본으로 지원한다</li>
+</ul>
+<p>EUC-KR/CP949를 써야 하는 경우는 레거시 시스템 연동뿐이다. 이 경우에도 내부 처리는 UTF-8로 하고, 외부 시스템과의 경계에서만 변환한다.</p>
+<p>MySQL에서 <code>utf8</code> 대신 <code>utf8mb4</code>를 쓴다. JSON은 스펙 자체가 UTF-8이다. API 응답에 charset을 명시한다. 파일 I/O에서 인코딩을 항상 지정한다. 이 네 가지만 지키면 인코딩 문제의 대부분은 발생하지 않는다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../2%EC%A7%84%EC%88%98%EB%A5%BC%2016%EC%A7%84%EC%88%98%EB%A1%9C%20%EB%B3%80%ED%99%98%ED%95%98%EB%8A%94%20%EB%B0%A9%EB%B2%95/">2진수를 16진수로 변환하는 방법</a></li>
+<li><a href="../../Binary_Hex_Conversion_Deep_Dive/">2진수와 16진수 변환 심화</a></li>
+<li><a href="../../../RDBMS/Auto_Increment/">AUTO_INCREMENT</a></li>
+<li><a href="../../../RDBMS/B_Tree_Page_Split/">B-Tree 페이지 분할</a></li>
+<li><a href="../../../RDBMS/BCNF/">BCNF</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Base64/" class="md-footer__link md-footer__link--prev" aria-label="이전: Base64 인코딩">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Base64 인코딩
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Code_Point/" class="md-footer__link md-footer__link--next" aria-label="다음: 코드 포인트 (Code Point)">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                코드 포인트 (Code Point)
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,161 +1,2899 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Database/DB_Proxy/ rel=canonical><link href=../DAX/ rel=prev><link href=../DMS/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>AWS DB Proxy - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#aws-db-proxy class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> AWS DB Proxy </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Containers/ class=md-nav__link> <span class=md-ellipsis> Containers </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_7 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Database </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_7_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_7> <span class="md-nav__icon md-icon"></span> Database </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Analytics/ class=md-nav__link> <span class=md-ellipsis> Analytics </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-개요 class=md-nav__link> <span class=md-ellipsis> 1. 개요 </span> </a> </li> <li class=md-nav__item> <a href=#2-도입을-고민할-시점 class=md-nav__link> <span class=md-ellipsis> 2. 도입을 고민할 시점 </span> </a> </li> <li class=md-nav__item> <a href=#3-풀링-동작의-핵심--multiplexing과-pinning class=md-nav__link> <span class=md-ellipsis> 3. 풀링 동작의 핵심 — Multiplexing과 Pinning </span> </a> <nav class=md-nav aria-label="3. 풀링 동작의 핵심 — Multiplexing과 Pinning"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-pinning이-발생하는-조건 class=md-nav__link> <span class=md-ellipsis> 3.1 Pinning이 발생하는 조건 </span> </a> </li> <li class=md-nav__item> <a href=#32-핀닝-모니터링 class=md-nav__link> <span class=md-ellipsis> 3.2 핀닝 모니터링 </span> </a> </li> <li class=md-nav__item> <a href=#33-prepared-statement-핀닝의-함정 class=md-nav__link> <span class=md-ellipsis> 3.3 prepared statement 핀닝의 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-transaction-level-vs-session-level-pooling class=md-nav__link> <span class=md-ellipsis> 4. Transaction-level vs Session-level Pooling </span> </a> </li> <li class=md-nav__item> <a href=#5-lambda--rds-proxy-실무-이슈 class=md-nav__link> <span class=md-ellipsis> 5. Lambda + RDS Proxy 실무 이슈 </span> </a> <nav class=md-nav aria-label="5. Lambda + RDS Proxy 실무 이슈"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-iam-토큰-만료 class=md-nav__link> <span class=md-ellipsis> 5.1 IAM 토큰 만료 </span> </a> </li> <li class=md-nav__item> <a href=#52-iam-토큰-발급-throttling class=md-nav__link> <span class=md-ellipsis> 5.2 IAM 토큰 발급 throttling </span> </a> </li> <li class=md-nav__item> <a href=#53-init_connection_timeout class=md-nav__link> <span class=md-ellipsis> 5.3 init_connection_timeout </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-failover-동작과-실제-끊김-시간 class=md-nav__link> <span class=md-ellipsis> 6. Failover 동작과 실제 끊김 시간 </span> </a> </li> <li class=md-nav__item> <a href=#7-aurora-reader-endpoint-vs-proxy-read-only-endpoint class=md-nav__link> <span class=md-ellipsis> 7. Aurora Reader endpoint vs Proxy Read-only endpoint </span> </a> </li> <li class=md-nav__item> <a href=#8-secrets-manager-자격증명-로테이션-이슈 class=md-nav__link> <span class=md-ellipsis> 8. Secrets Manager 자격증명 로테이션 이슈 </span> </a> </li> <li class=md-nav__item> <a href=#9-트러블슈팅-사례 class=md-nav__link> <span class=md-ellipsis> 9. 트러블슈팅 사례 </span> </a> <nav class=md-nav aria-label="9. 트러블슈팅 사례"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#91-connection-borrow-timeout class=md-nav__link> <span class=md-ellipsis> 9.1 connection borrow timeout </span> </a> </li> <li class=md-nav__item> <a href=#92-풀-효과가-거의-0인-케이스 class=md-nav__link> <span class=md-ellipsis> 9.2 풀 효과가 거의 0%인 케이스 </span> </a> </li> <li class=md-nav__item> <a href=#93-proxysqlpgbouncer-대비-한계 class=md-nav__link> <span class=md-ellipsis> 9.3 ProxySQL/PgBouncer 대비 한계 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#10-모니터링-메트릭-정리 class=md-nav__link> <span class=md-ellipsis> 10. 모니터링 메트릭 정리 </span> </a> </li> <li class=md-nav__item> <a href=#11-코드-예제 class=md-nav__link> <span class=md-ellipsis> 11. 코드 예제 </span> </a> <nav class=md-nav aria-label="11. 코드 예제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#aws-cli--rds-proxy-생성 class=md-nav__link> <span class=md-ellipsis> AWS CLI — RDS Proxy 생성 </span> </a> </li> <li class=md-nav__item> <a href=#terraform--rds-proxy-설정 class=md-nav__link> <span class=md-ellipsis> Terraform — RDS Proxy 설정 </span> </a> </li> <li class=md-nav__item> <a href=#lambda--iam-토큰-갱신-패턴-nodejs class=md-nav__link> <span class=md-ellipsis> Lambda — IAM 토큰 갱신 패턴 (Node.js) </span> </a> </li> <li class=md-nav__item> <a href=#cloudwatch-알람--핀닝-비율-모니터링 class=md-nav__link> <span class=md-ellipsis> CloudWatch 알람 — 핀닝 비율 모니터링 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#12-참고-링크 class=md-nav__link> <span class=md-ellipsis> 12. 참고 링크 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>cloud</span> <span class=md-tag>database</span> <span class=md-tag>rdbms</span> </nav> <h1 id=aws-db-proxy>AWS DB Proxy<a class=headerlink href=#aws-db-proxy title="Permanent link">&para;</a></h1> <h2 id=1-개요>1. 개요<a class=headerlink href=#1-개요 title="Permanent link">&para;</a></h2> <p>RDS Proxy는 애플리케이션과 RDS/Aurora 사이에 끼는 완전관리형 커넥션 풀이다. 기존에 ProxySQL, PgBouncer를 EC2에 띄워서 운영하던 것을 AWS가 매니지드로 제공한다고 보면 된다.</p> <p>직접 PgBouncer를 운영해 본 사람이라면 Proxy의 동작 방식이 익숙할 것이다. 다만 매니지드 서비스이기 때문에 내부 동작을 직접 들여다볼 수 없고, 튜닝 가능한 파라미터가 제한적이라는 점이 가장 큰 차이다. 그래서 Pinning이나 borrow timeout 같은 동작을 모르고 도입하면 "분명히 풀링이 되어야 하는데 왜 DB 연결이 안 줄어들지?"라는 상황을 자주 만난다.</p> <h2 id=2-도입을-고민할-시점>2. 도입을 고민할 시점<a class=headerlink href=#2-도입을-고민할-시점 title="Permanent link">&para;</a></h2> <p>다음 상황 중 하나에 해당하면 Proxy 도입을 검토할 만하다.</p> <ul> <li>Lambda 동시 실행 수가 100을 넘어가면서 DB의 <code>max_connections</code>에 근접하고 있다</li> <li>ECS task가 오토스케일링으로 늘어났을 때 DB 연결이 폭증한다</li> <li>RDS failover 시 애플리케이션이 DNS 캐시 때문에 1분 넘게 끊긴다</li> <li>애플리케이션 코드를 건드리지 않고 IAM 인증으로 전환하고 싶다</li> </ul> <p>반대로 도입 효과가 거의 없는 경우도 있다. 단일 EC2/ECS에서 이미 HikariCP 같은 풀러로 연결을 잘 관리하고 있는 워크로드, prepared statement를 매 쿼리마다 새로 만드는 ORM 환경, 트랜잭션이 길게 유지되는 OLAP 워크로드는 Proxy를 둬도 풀링 효과를 거의 못 본다.</p> <h2 id=3-풀링-동작의-핵심--multiplexing과-pinning>3. 풀링 동작의 핵심 — Multiplexing과 Pinning<a class=headerlink href=#3-풀링-동작의-핵심--multiplexing과-pinning title="Permanent link">&para;</a></h2> <p>Proxy의 풀링은 클라이언트 연결 N개가 백엔드 DB 연결 M개를 공유하는 구조다. 이상적으로는 N &gt;&gt; M이 되어야 의미가 있다. 그런데 실무에서 "왜 백엔드 연결이 클라이언트 연결만큼 많지?"라는 일이 자주 생기는데, 거의 대부분 Pinning이 원인이다.</p> <h3 id=31-pinning이-발생하는-조건>3.1 Pinning이 발생하는 조건<a class=headerlink href=#31-pinning이-발생하는-조건 title="Permanent link">&para;</a></h3> <p>Proxy가 클라이언트 세션을 특정 백엔드 연결에 고정시키는 것을 Pinning(핀닝)이라고 한다. 핀이 박힌 연결은 풀로 반환되지 않고 클라이언트가 연결을 끊을 때까지 점유된다. 즉 그 시간 동안 풀링 효과가 사라진다.</p> <p>MySQL에서 Pinning이 일어나는 대표적인 케이스는 다음과 같다.</p> <ul> <li><code>SET</code> 문으로 세션 변수 변경 (<code>SET autocommit</code>, <code>SET time_zone</code>, <code>SET names</code> 등)</li> <li>사용자 정의 변수 사용 (<code>SET @var = 1</code>, <code>SELECT @var := 1</code>)</li> <li>임시 테이블 생성 (<code>CREATE TEMPORARY TABLE</code>)</li> <li>명시적 <code>LOCK TABLES</code></li> <li>prepared statement (드라이버에 따라 다름, 뒤에 별도 설명)</li> <li><code>GET_LOCK()</code> 같은 advisory lock</li> </ul> <p>PostgreSQL은 조건이 조금 다르다.</p> <ul> <li><code>SET LOCAL</code>이 아닌 <code>SET</code> 문 (세션 단위 설정 변경)</li> <li><code>LISTEN/NOTIFY</code></li> <li>임시 테이블 (<code>CREATE TEMP TABLE</code>)</li> <li>커서를 트랜잭션 밖에서 유지 (<code>DECLARE ... WITH HOLD</code>)</li> <li>prepared statement (named statement)</li> </ul> <p>문제는 ORM이나 드라이버가 자동으로 이런 명령을 실행하는 경우가 많다는 것이다. JDBC가 연결 직후 <code>SET autocommit=0</code>을 보내거나, Sequelize가 <code>SET time_zone</code>을 매번 실행하거나, 일부 PostgreSQL 드라이버가 prepared statement를 named로 캐싱하면 사실상 모든 클라이언트 세션이 핀닝된다. 이런 환경에서는 Proxy 도입 후 풀 활용률이 0%에 가까워진다.</p> <h3 id=32-핀닝-모니터링>3.2 핀닝 모니터링<a class=headerlink href=#32-핀닝-모니터링 title="Permanent link">&para;</a></h3> <p>CloudWatch에서 풀링이 제대로 되고 있는지 가장 빠르게 확인할 수 있는 메트릭은 <code>DatabaseConnectionsCurrentlySessionPinned</code>다. 이 값이 <code>DatabaseConnections</code> 대비 얼마나 차지하는지가 풀 효율의 직접적인 지표가 된다.</p> <p>해석 기준을 잡으면:</p> <ul> <li>핀닝 비율 10% 미만: 풀링이 정상 작동 중</li> <li>10~50%: 일부 세션이 핀닝됨, ORM/드라이버 설정 점검 필요</li> <li>50% 이상: 사실상 풀링이 안 되는 상태, 풀러를 둔 의미가 없음</li> </ul> <p>Performance Insights에서 <code>EnhancedMonitoring</code>을 켜면 어떤 SQL이 핀닝을 유발했는지 RDS Proxy logs에서 추적할 수 있다. 로그에 <code>The client session was pinned to the database connection ... for the remainder of the session. Reason: ...</code> 형태로 핀닝 사유가 남는다. 이걸 <code>aws logs filter-log-events</code>로 한 번 훑어보면 어떤 패턴 때문에 풀이 망가지는지 바로 잡힌다.</p> <h3 id=33-prepared-statement-핀닝의-함정>3.3 prepared statement 핀닝의 함정<a class=headerlink href=#33-prepared-statement-핀닝의-함정 title="Permanent link">&para;</a></h3> <p>prepared statement는 드라이버 구현에 따라 핀닝 여부가 갈린다. MySQL의 경우 Proxy는 <code>COM_STMT_PREPARE</code>를 받으면 해당 세션을 즉시 핀닝한다. JDBC <code>useServerPrepStmts=true</code>, mysql2 Node.js의 <code>mysql.createConnection().prepare()</code>, Python <code>cursor.execute(prepared=True)</code> 같은 옵션이 켜져 있으면 모든 쿼리가 핀닝된다.</p> <p>해결 방법은 두 가지다. 하나는 클라이언트 측에서 prepare를 끄고 driver-side string interpolation으로 변경하는 것(보안 검토 필수), 다른 하나는 prepared statement를 포기하지 못하면 풀러로서의 효과를 어느 정도 포기하고 백엔드 연결 수를 늘려서 운영하는 것이다. PostgreSQL은 unnamed prepared statement(<code>PREPARE ""</code>)는 핀닝하지 않으므로, 드라이버 옵션을 unnamed로 바꿀 수 있는지 먼저 확인한다.</p> <h2 id=4-transaction-level-vs-session-level-pooling>4. Transaction-level vs Session-level Pooling<a class=headerlink href=#4-transaction-level-vs-session-level-pooling title="Permanent link">&para;</a></h2> <p>PgBouncer를 써본 사람은 <code>pool_mode = transaction</code>과 <code>pool_mode = session</code>의 차이를 알 것이다. RDS Proxy는 기본적으로 transaction-level에 가까운 동작을 한다. 트랜잭션이 끝나면(또는 단발 쿼리가 끝나면) 백엔드 연결을 풀로 반환한다.</p> <p>이 동작 때문에 PostgreSQL에서 한 가지 주의할 점이 생긴다. <code>BEGIN</code>만 보내고 다음 쿼리를 한참 안 보내는 클라이언트가 있으면, 그동안 백엔드 연결이 점유된 채로 풀에 못 돌아간다. 이걸 <code>idle_in_transaction</code> 상태라고 하는데, RDS PostgreSQL은 <code>idle_in_transaction_session_timeout</code> 파라미터로 강제 종료할 수 있지만 Proxy 자체는 트랜잭션 중인 연결을 강제로 회수하지 않는다.</p> <p>실무에서는 RDS 파라미터 그룹에 <code>idle_in_transaction_session_timeout = 30000</code> (30초) 정도를 설정해두는 편이 안전하다. 트랜잭션을 열어두고 외부 API를 호출하는 코드가 어딘가 숨어 있으면 풀이 순식간에 고갈된다. MySQL에서도 비슷하게 <code>wait_timeout</code>을 짧게 잡아두면 좀비 트랜잭션이 백엔드 연결을 잡고 있는 시간을 줄일 수 있다.</p> <p>세션 수준 동작이 강제되는 케이스(앞서 본 핀닝 조건)에서는 transaction-level의 장점이 사라지기 때문에, 핀닝 모니터링과 <code>idle_in_transaction</code> 모니터링은 같이 봐야 한다.</p> <h2 id=5-lambda--rds-proxy-실무-이슈>5. Lambda + RDS Proxy 실무 이슈<a class=headerlink href=#5-lambda--rds-proxy-실무-이슈 title="Permanent link">&para;</a></h2> <p>Lambda가 Proxy의 가장 흔한 사용처지만, 막상 붙여보면 골치 아픈 부분이 몇 가지 있다.</p> <h3 id=51-iam-토큰-만료>5.1 IAM 토큰 만료<a class=headerlink href=#51-iam-토큰-만료 title="Permanent link">&para;</a></h3> <p><code>generateAuthToken</code>으로 받은 IAM 인증 토큰은 발급 시점부터 15분 동안만 유효하다. Lambda 컨테이너가 재사용되면서 핸들러 밖의 connection 객체를 캐싱하는 일반적인 패턴에서는, 15분이 지나면 다음 요청에서 인증 실패가 난다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=kd>let</span><span class=w> </span><span class=nx>connection</span><span class=p>;</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=kd>let</span><span class=w> </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>0</span><span class=p>;</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=kd>const</span><span class=w> </span><span class=nx>TOKEN_TTL_MS</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>14</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mf>60</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mf>1000</span><span class=p>;</span><span class=w> </span><span class=c1>// 14분, 안전 마진</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a><span class=nx>exports</span><span class=p>.</span><span class=nx>handler</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>async</span><span class=w> </span><span class=p>(</span><span class=nx>event</span><span class=p>)</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=w>  </span><span class=kd>const</span><span class=w> </span><span class=nx>now</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>();</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=w>  </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=nx>connection</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=nx>now</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=nx>TOKEN_TTL_MS</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=nx>connection</span><span class=p>)</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>connection</span><span class=p>.</span><span class=nx>end</span><span class=p>().</span><span class=k>catch</span><span class=p>(()</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{});</span>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a><span class=w>    </span><span class=nx>connection</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>getConnection</span><span class=p>();</span>
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a><span class=w>    </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>now</span><span class=p>;</span>
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a><span class=w>  </span><span class=c1>// ...</span>
-</span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a><span class=p>};</span>
-</span></code></pre></div> <p>토큰 만료 시점을 14분으로 두는 이유는 Lambda 실행 중에 토큰이 만료되어 쿼리가 실패하는 사고를 막기 위해서다. 14분 시점에서 재발급해두면 1분의 안전 마진이 생긴다.</p> <h3 id=52-iam-토큰-발급-throttling>5.2 IAM 토큰 발급 throttling<a class=headerlink href=#52-iam-토큰-발급-throttling title="Permanent link">&para;</a></h3> <p>IAM 인증 토큰은 STS 기반이라 발급 자체에 throttling이 걸린다. Lambda 동시 실행이 갑자기 수천 개로 튀면 <code>RDS Proxy</code>로 가기 전에 토큰 생성 단계에서 실패하는 일이 생긴다. 로그에 <code>Rate exceeded</code> 또는 <code>ThrottlingException</code>이 보이면 이 케이스다.</p> <p>대응은 두 가지다. 첫째, 토큰을 핸들러 밖에서 캐싱해서 컨테이너 재사용 시 재발급을 줄인다(위 코드 패턴이 그것이다). 둘째, IAM 인증이 굳이 필요 없는 워크로드면 Secrets Manager 인증만 쓰는 것도 선택지다. Proxy가 자동으로 Secrets Manager에서 자격증명을 가져오므로 클라이언트는 평문 password처럼 사용한다.</p> <h3 id=53-init_connection_timeout>5.3 init_connection_timeout<a class=headerlink href=#53-init_connection_timeout title="Permanent link">&para;</a></h3> <p>Lambda VPC Config가 붙어 있는 함수가 cold start 후 처음으로 Proxy에 연결할 때, ENI 할당이 늦어지면 기본 타임아웃 3초로는 빠듯하다. 드라이버 레벨 connect timeout을 10초 정도로 늘려두는 편이 안전하다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=nx>mysql</span><span class=p>.</span><span class=nx>createConnection</span><span class=p>({</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=w>  </span><span class=nx>host</span><span class=o>:</span><span class=w> </span><span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>PROXY_ENDPOINT</span><span class=p>,</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>  </span><span class=nx>user</span><span class=o>:</span><span class=w> </span><span class=s1>&#39;lambda_user&#39;</span><span class=p>,</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>  </span><span class=nx>password</span><span class=o>:</span><span class=w> </span><span class=nx>token</span><span class=p>,</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=w>  </span><span class=nx>database</span><span class=o>:</span><span class=w> </span><span class=s1>&#39;myapp&#39;</span><span class=p>,</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=w>  </span><span class=nx>ssl</span><span class=o>:</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>rejectUnauthorized</span><span class=o>:</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>},</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>  </span><span class=nx>connectTimeout</span><span class=o>:</span><span class=w> </span><span class=mf>10000</span><span class=p>,</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=p>});</span>
-</span></code></pre></div> <p>VPC Lambda의 cold start가 충분히 짧아진 지금도 가끔 timeout이 발생하는데, 거의 ENI 할당 지연 아니면 보안 그룹 설정 누락이다.</p> <h2 id=6-failover-동작과-실제-끊김-시간>6. Failover 동작과 실제 끊김 시간<a class=headerlink href=#6-failover-동작과-실제-끊김-시간 title="Permanent link">&para;</a></h2> <p>Proxy를 도입하는 가장 큰 명분 중 하나가 빠른 failover다. RDS DNS는 TTL이 5초지만, JVM 같은 환경에서는 OS DNS 캐시 때문에 실제로는 30초~1분씩 끊기는 경우가 많다. Proxy를 두면 클라이언트 입장에서 DNS는 그대로고 백엔드 라우팅을 Proxy가 처리한다.</p> <p>실제 측정해본 결과:</p> <ul> <li>Aurora MySQL/PostgreSQL: failover 시 약 2초 내외로 회복. Aurora의 storage 분리 구조 덕분에 promotion이 빠르다</li> <li>RDS Multi-AZ (인스턴스 페일오버): 6~10초. standby 인스턴스가 active로 promote되는 시간이 추가로 든다</li> <li>RDS Multi-AZ Cluster (writer + 2 reader): 약 35초였던 기존 구조에서 5초 이하로 단축됨</li> </ul> <p>in-flight query 동작도 알아둬야 한다. failover 순간에 진행 중이던 쿼리는 어떻게든 실패한다. Proxy가 자동으로 retry해주지는 않는다. 클라이언트가 받는 에러는 보통 <code>Communications link failure</code> (MySQL) 또는 <code>terminating connection due to administrator command</code> (PostgreSQL)다. 애플리케이션 레벨에서 idempotent한 read 쿼리는 retry 로직을 두는 편이 좋다.</p> <p>write 쿼리는 retry가 위험하다. failover 시점에 해당 트랜잭션이 커밋됐는지 안 됐는지 클라이언트가 확신할 수 없기 때문이다. 멱등성 키(idempotency key)나 <code>INSERT ... ON CONFLICT DO NOTHING</code>으로 중복 실행에 안전하게 만들어 두지 않으면 retry로 데이터를 망가뜨릴 수 있다.</p> <h2 id=7-aurora-reader-endpoint-vs-proxy-read-only-endpoint>7. Aurora Reader endpoint vs Proxy Read-only endpoint<a class=headerlink href=#7-aurora-reader-endpoint-vs-proxy-read-only-endpoint title="Permanent link">&para;</a></h2> <p>Aurora를 쓰면 원래 reader endpoint가 있다. 그러면 Proxy의 read-only endpoint는 뭐가 다른가?</p> <table> <thead> <tr> <th>항목</th> <th>Aurora Reader endpoint</th> <th>Proxy Read-only endpoint</th> </tr> </thead> <tbody> <tr> <td>라우팅 단위</td> <td>DNS 라운드로빈</td> <td>연결 단위 라우팅</td> </tr> <tr> <td>failover 처리</td> <td>DNS TTL 의존</td> <td>Proxy가 즉시 라우팅 변경</td> </tr> <tr> <td>연결 풀링</td> <td>없음</td> <td>있음</td> </tr> <tr> <td>reader 인스턴스 추가</td> <td>자동 반영 (TTL 후)</td> <td>자동 반영 (즉시)</td> </tr> <tr> <td>writer로 쓰기 시도</td> <td>read-only 에러</td> <td>read-only 에러</td> </tr> </tbody> </table> <p>Aurora reader endpoint는 DNS 레벨 분산이라서 한 번 연결을 맺으면 그 연결은 특정 reader에 고정된다. reader 한 대에 트래픽이 쏠리면 다른 reader가 놀고 있어도 균형이 안 맞는다. Proxy read-only endpoint는 쿼리 단위로 reader를 선택하기 때문에 분산이 균일하다. reader 인스턴스가 추가되거나 빠질 때도 Proxy는 즉시 반영하지만, reader endpoint는 DNS TTL만큼 지연된다.</p> <p>writer 쿼리를 read-only endpoint에 보내면 둘 다 에러가 나는 건 동일하다. ORM에 read/write splitting을 구현할 때 Proxy를 쓴다고 해서 자동으로 분리되지는 않는다. 애플리케이션이 명시적으로 endpoint를 골라줘야 한다.</p> <h2 id=8-secrets-manager-자격증명-로테이션-이슈>8. Secrets Manager 자격증명 로테이션 이슈<a class=headerlink href=#8-secrets-manager-자격증명-로테이션-이슈 title="Permanent link">&para;</a></h2> <p>Secrets Manager가 자격증명을 자동 로테이션할 때 일시적인 인증 실패가 발생할 수 있다. 동작 순서가 이렇다.</p> <ol> <li>Secrets Manager가 새 password 생성</li> <li>Lambda 로테이션 함수가 DB에 새 password 적용 (<code>ALTER USER ... PASSWORD ...</code>)</li> <li>Secrets Manager의 <code>AWSCURRENT</code> 라벨을 새 password로 이동</li> <li>Proxy가 변경을 감지하고 새 password로 백엔드 연결 갱신</li> </ol> <p>3번과 4번 사이에 Proxy가 아직 이전 password를 쓰고 있는데 DB는 이미 새 password를 받았다면, 그 동안의 신규 백엔드 연결은 인증 실패한다. 이 시간이 짧으면 수 초, 길면 수십 초까지 갈 수 있다.</p> <p>대응 방법은 다음과 같다.</p> <ul> <li>로테이션 함수에서 <code>multi-user</code> 패턴을 쓴다. AWS가 제공하는 RDS rotation Lambda 템플릿 중 <code>single-user</code>와 <code>multi-user</code>가 있는데, multi-user는 두 개의 DB 사용자를 번갈아 사용한다. 로테이션 시점에 한쪽 사용자가 점진적으로 전환되므로 인증 실패 윈도우가 거의 없다</li> <li>애플리케이션 레벨에서 인증 실패 시 짧은 backoff retry를 둔다. 1초 sleep 후 한 번 더 시도하면 대부분 통과한다</li> <li>로테이션 일정을 트래픽이 적은 시간대로 맞춘다. cron expression으로 지정 가능하다</li> </ul> <p>운영 환경에서는 multi-user 패턴이 사실상 필수다. single-user는 PoC 수준에서만 쓴다.</p> <h2 id=9-트러블슈팅-사례>9. 트러블슈팅 사례<a class=headerlink href=#9-트러블슈팅-사례 title="Permanent link">&para;</a></h2> <p>실제로 마주친 케이스들을 정리한다.</p> <h3 id=91-connection-borrow-timeout>9.1 connection borrow timeout<a class=headerlink href=#91-connection-borrow-timeout title="Permanent link">&para;</a></h3> <p>가장 자주 보는 에러다. 클라이언트가 Proxy에 연결은 됐는데 백엔드 연결을 빌려오기까지 대기하다가 timeout이 난다.</p> <p>원인은 대부분 둘 중 하나다. 백엔드 풀이 가득 찼거나(다 핀닝되어 있거나 진짜로 트래픽이 많거나), <code>connection_borrow_timeout</code>이 너무 짧거나. 기본값은 120초인데 이걸 줄이는 건 거의 의미가 없다. 늘려도 본질적인 해결은 안 된다. 핵심은 풀이 왜 가득 찼는지를 봐야 한다.</p> <p>조사 순서는:</p> <ol> <li>CloudWatch에서 <code>DatabaseConnections</code> vs <code>MaxDatabaseConnections</code> 비교. 100% 근접이면 풀 부족</li> <li><code>DatabaseConnectionsCurrentlySessionPinned</code> 비율 확인. 높으면 핀닝이 원인</li> <li><code>MaxDatabaseConnections</code>는 <code>max_connections_percent</code>(기본 100)와 RDS 인스턴스의 <code>max_connections</code> 파라미터 곱이다. RDS <code>max_connections</code>가 충분한지 확인</li> <li>RDS Performance Insights에서 long-running query 또는 <code>idle in transaction</code> 세션 확인</li> </ol> <p><code>max_connections_percent</code>를 200처럼 100 이상으로 설정할 수도 있다. 이건 클라이언트 연결 N개에 대해 백엔드를 N의 200%까지 띄울 수 있다는 게 아니라, RDS 인스턴스의 <code>max_connections</code> 대비 비율이다. 100을 넘기면 burst 트래픽을 받을 때 잠깐 더 띄울 수 있는 여지가 생기지만, 실제로 많이 쓰지는 않는다.</p> <h3 id=92-풀-효과가-거의-0인-케이스>9.2 풀 효과가 거의 0%인 케이스<a class=headerlink href=#92-풀-효과가-거의-0인-케이스 title="Permanent link">&para;</a></h3> <p>도입 후 백엔드 연결 수가 줄지 않는다는 클레임이 가장 흔하다. 이미 위에서 설명한 핀닝이 거의 모든 원인이다. 한 번은 Spring Boot + HikariCP + JDBC <code>useServerPrepStmts=true</code> 조합에서 모든 쿼리가 핀닝되어 Proxy를 둔 의미가 사라진 적이 있었다. <code>useServerPrepStmts=false</code>로 바꾸자 핀닝 비율이 80%에서 5%로 떨어졌다.</p> <p>PostgreSQL에서는 PgJDBC의 <code>prepareThreshold</code> 기본값(5)이 문제다. 같은 쿼리를 5번 실행하면 자동으로 named prepared statement로 전환되어 핀닝된다. <code>prepareThreshold=0</code>으로 설정해 자동 전환을 끄거나, <code>preparedStatementCacheQueries=0</code>으로 캐시를 비활성화하면 된다.</p> <h3 id=93-proxysqlpgbouncer-대비-한계>9.3 ProxySQL/PgBouncer 대비 한계<a class=headerlink href=#93-proxysqlpgbouncer-대비-한계 title="Permanent link">&para;</a></h3> <p>PgBouncer를 직접 운영해본 사람이라면 RDS Proxy가 답답하게 느껴질 수 있다. 안 되는 것들이 있다.</p> <ul> <li>쿼리 라우팅 규칙 (PgBouncer의 read-only/read-write 분리, ProxySQL의 query rule)</li> <li>쿼리 캐싱 (ProxySQL의 query cache)</li> <li>쿼리 리라이팅</li> <li>세부 풀 모드 선택 (PgBouncer의 statement-level pooling 같은 옵션)</li> <li>쿼리 로깅 수준 제어</li> </ul> <p>대신 매니지드라는 점, IAM 인증, Secrets Manager 통합, AWS 보안 그룹 기반 격리가 장점이다. 트레이드오프를 알고 도입한다.</p> <p>복잡한 라우팅 로직이 필요하면 RDS Proxy 대신 ECS에 PgBouncer/ProxySQL을 띄우는 편이 낫다. 단순한 풀링과 빠른 failover만 필요하면 RDS Proxy가 운영 부담이 훨씬 적다.</p> <h2 id=10-모니터링-메트릭-정리>10. 모니터링 메트릭 정리<a class=headerlink href=#10-모니터링-메트릭-정리 title="Permanent link">&para;</a></h2> <p>CloudWatch에서 봐야 하는 메트릭과 해석 기준을 묶어둔다.</p> <table> <thead> <tr> <th>메트릭</th> <th>의미</th> <th>이상 신호</th> </tr> </thead> <tbody> <tr> <td><code>ClientConnections</code></td> <td>클라이언트→Proxy 연결 수</td> <td>평균 대비 급증</td> </tr> <tr> <td><code>DatabaseConnections</code></td> <td>Proxy→DB 백엔드 연결 수</td> <td><code>MaxDatabaseConnections</code>의 80% 초과</td> </tr> <tr> <td><code>DatabaseConnectionsCurrentlySessionPinned</code></td> <td>핀닝된 백엔드 연결 수</td> <td><code>DatabaseConnections</code>의 50% 초과 시 풀링 효과 거의 없음</td> </tr> <tr> <td><code>ClientConnectionsClosed</code></td> <td>클라이언트 연결 종료 수</td> <td>갑작스러운 spike는 timeout/에러 의심</td> </tr> <tr> <td><code>DatabaseConnectionsBorrowLatency</code></td> <td>백엔드 연결 빌리는 데 걸린 시간</td> <td>100ms 이상이면 풀 경합</td> </tr> <tr> <td><code>QueryDatabaseResponseLatency</code></td> <td>DB의 쿼리 응답 시간</td> <td>Proxy 도입 후 늘어났다면 문제</td> </tr> </tbody> </table> <p><code>DatabaseConnectionsBorrowLatency</code>가 늘어나기 시작하면 borrow timeout이 곧 발생한다는 신호다. timeout이 실제로 터지기 전에 alarm을 걸어두면 대응 시간을 벌 수 있다.</p> <p>쿼리 로깅이 필요하면 <code>EnhancedMonitoring</code>을 켠다. 다만 로그 양이 많아지므로 운영 환경에서는 평소엔 끄고 디버깅 시점에만 켜는 패턴을 쓴다. 토큰 발급 로그까지 다 남기면 비용이 빠르게 늘어난다.</p> <h2 id=11-코드-예제>11. 코드 예제<a class=headerlink href=#11-코드-예제 title="Permanent link">&para;</a></h2> <h3 id=aws-cli--rds-proxy-생성>AWS CLI — RDS Proxy 생성<a class=headerlink href=#aws-cli--rds-proxy-생성 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=nv>SECRET_ARN</span><span class=o>=</span><span class=k>$(</span>aws<span class=w> </span>secretsmanager<span class=w> </span>create-secret<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span>--name<span class=w> </span><span class=s2>&quot;prod/mydb/credentials&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span>--secret-string<span class=w> </span><span class=s1>&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;s3cr3t&quot;}&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;ARN&#39;</span><span class=w> </span>--output<span class=w> </span>text<span class=k>)</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>aws<span class=w> </span>rds<span class=w> </span>create-db-proxy<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>  </span>--db-proxy-name<span class=w> </span><span class=s2>&quot;myapp-proxy&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=w>  </span>--engine-family<span class=w> </span>MYSQL<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=w>  </span>--auth<span class=w> </span><span class=s1>&#39;[{</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=s1>    &quot;AuthScheme&quot;: &quot;SECRETS&quot;,</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a><span class=s1>    &quot;SecretArn&quot;: &quot;&#39;</span><span class=nv>$SECRET_ARN</span><span class=s1>&#39;&quot;,</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a><span class=s1>    &quot;IAMAuth&quot;: &quot;REQUIRED&quot;</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a><span class=s1>  }]&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-14><a id=__codelineno-2-14 name=__codelineno-2-14 href=#__codelineno-2-14></a><span class=w>  </span>--role-arn<span class=w> </span>arn:aws:iam::123456789012:role/RDSProxyRole<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-15><a id=__codelineno-2-15 name=__codelineno-2-15 href=#__codelineno-2-15></a><span class=w>  </span>--vpc-subnet-ids<span class=w> </span>subnet-aaa<span class=w> </span>subnet-bbb<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-16><a id=__codelineno-2-16 name=__codelineno-2-16 href=#__codelineno-2-16></a><span class=w>  </span>--vpc-security-group-ids<span class=w> </span>sg-xxxxxxxx
-</span><span id=__span-2-17><a id=__codelineno-2-17 name=__codelineno-2-17 href=#__codelineno-2-17></a>
-</span><span id=__span-2-18><a id=__codelineno-2-18 name=__codelineno-2-18 href=#__codelineno-2-18></a>aws<span class=w> </span>rds<span class=w> </span>describe-db-proxies<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-19><a id=__codelineno-2-19 name=__codelineno-2-19 href=#__codelineno-2-19></a><span class=w>  </span>--db-proxy-name<span class=w> </span>myapp-proxy<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-20><a id=__codelineno-2-20 name=__codelineno-2-20 href=#__codelineno-2-20></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;DBProxies[0].Endpoint&#39;</span><span class=w> </span>--output<span class=w> </span>text
-</span><span id=__span-2-21><a id=__codelineno-2-21 name=__codelineno-2-21 href=#__codelineno-2-21></a>
-</span><span id=__span-2-22><a id=__codelineno-2-22 name=__codelineno-2-22 href=#__codelineno-2-22></a>aws<span class=w> </span>rds<span class=w> </span>register-db-proxy-targets<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-23><a id=__codelineno-2-23 name=__codelineno-2-23 href=#__codelineno-2-23></a><span class=w>  </span>--db-proxy-name<span class=w> </span>myapp-proxy<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-24><a id=__codelineno-2-24 name=__codelineno-2-24 href=#__codelineno-2-24></a><span class=w>  </span>--db-instance-identifiers<span class=w> </span>my-mysql-instance
-</span></code></pre></div> <h3 id=terraform--rds-proxy-설정>Terraform — RDS Proxy 설정<a class=headerlink href=#terraform--rds-proxy-설정 title="Permanent link">&para;</a></h3> <div class="language-hcl highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=kr>resource</span><span class=w> </span><span class=nc>&quot;aws_secretsmanager_secret&quot;</span><span class=w> </span><span class=nv>&quot;db_creds&quot;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span><span class=na>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;prod/mydb/credentials&quot;</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=p>}</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=kr>resource</span><span class=w> </span><span class=nc>&quot;aws_secretsmanager_secret_version&quot;</span><span class=w> </span><span class=nv>&quot;db_creds&quot;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span><span class=na>secret_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nv>aws_secretsmanager_secret.db_creds.id</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=w>  </span><span class=na>secret_string</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nf>jsonencode</span><span class=p>({</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=w>    </span><span class=na>username</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;admin&quot;</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a><span class=w>    </span><span class=na>password</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nv>var.db_password</span>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=w>  </span><span class=p>})</span>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a><span class=p>}</span>
-</span><span id=__span-3-12><a id=__codelineno-3-12 name=__codelineno-3-12 href=#__codelineno-3-12></a>
-</span><span id=__span-3-13><a id=__codelineno-3-13 name=__codelineno-3-13 href=#__codelineno-3-13></a><span class=kr>resource</span><span class=w> </span><span class=nc>&quot;aws_iam_role&quot;</span><span class=w> </span><span class=nv>&quot;rds_proxy&quot;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-14><a id=__codelineno-3-14 name=__codelineno-3-14 href=#__codelineno-3-14></a><span class=w>  </span><span class=na>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;rds-proxy-role&quot;</span>
-</span><span id=__span-3-15><a id=__codelineno-3-15 name=__codelineno-3-15 href=#__codelineno-3-15></a><span class=w>  </span><span class=na>assume_role_policy</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nf>jsonencode</span><span class=p>({</span>
-</span><span id=__span-3-16><a id=__codelineno-3-16 name=__codelineno-3-16 href=#__codelineno-3-16></a><span class=w>    </span><span class=na>Version</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;2012-10-17&quot;</span>
-</span><span id=__span-3-17><a id=__codelineno-3-17 name=__codelineno-3-17 href=#__codelineno-3-17></a><span class=w>    </span><span class=na>Statement</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[{</span>
-</span><span id=__span-3-18><a id=__codelineno-3-18 name=__codelineno-3-18 href=#__codelineno-3-18></a><span class=w>      </span><span class=na>Action</span><span class=w>    </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;sts:AssumeRole&quot;</span>
-</span><span id=__span-3-19><a id=__codelineno-3-19 name=__codelineno-3-19 href=#__codelineno-3-19></a><span class=w>      </span><span class=na>Effect</span><span class=w>    </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;Allow&quot;</span>
-</span><span id=__span-3-20><a id=__codelineno-3-20 name=__codelineno-3-20 href=#__codelineno-3-20></a><span class=w>      </span><span class=nb>Principal</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=na>Service</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;rds.amazonaws.com&quot;</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-3-21><a id=__codelineno-3-21 name=__codelineno-3-21 href=#__codelineno-3-21></a><span class=w>    </span><span class=p>}]</span>
-</span><span id=__span-3-22><a id=__codelineno-3-22 name=__codelineno-3-22 href=#__codelineno-3-22></a><span class=w>  </span><span class=p>})</span>
-</span><span id=__span-3-23><a id=__codelineno-3-23 name=__codelineno-3-23 href=#__codelineno-3-23></a><span class=p>}</span>
-</span><span id=__span-3-24><a id=__codelineno-3-24 name=__codelineno-3-24 href=#__codelineno-3-24></a>
-</span><span id=__span-3-25><a id=__codelineno-3-25 name=__codelineno-3-25 href=#__codelineno-3-25></a><span class=kr>resource</span><span class=w> </span><span class=nc>&quot;aws_db_proxy&quot;</span><span class=w> </span><span class=nv>&quot;main&quot;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-26><a id=__codelineno-3-26 name=__codelineno-3-26 href=#__codelineno-3-26></a><span class=w>  </span><span class=na>name</span><span class=w>                   </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;myapp-proxy&quot;</span>
-</span><span id=__span-3-27><a id=__codelineno-3-27 name=__codelineno-3-27 href=#__codelineno-3-27></a><span class=w>  </span><span class=na>engine_family</span><span class=w>          </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;MYSQL&quot;</span>
-</span><span id=__span-3-28><a id=__codelineno-3-28 name=__codelineno-3-28 href=#__codelineno-3-28></a><span class=w>  </span><span class=na>idle_client_timeout</span><span class=w>    </span><span class=o>=</span><span class=w> </span><span class=m>1800</span>
-</span><span id=__span-3-29><a id=__codelineno-3-29 name=__codelineno-3-29 href=#__codelineno-3-29></a><span class=w>  </span><span class=na>require_tls</span><span class=w>            </span><span class=o>=</span><span class=w> </span><span class=no>true</span>
-</span><span id=__span-3-30><a id=__codelineno-3-30 name=__codelineno-3-30 href=#__codelineno-3-30></a><span class=w>  </span><span class=na>role_arn</span><span class=w>               </span><span class=o>=</span><span class=w> </span><span class=nv>aws_iam_role.rds_proxy.arn</span>
-</span><span id=__span-3-31><a id=__codelineno-3-31 name=__codelineno-3-31 href=#__codelineno-3-31></a><span class=w>  </span><span class=na>vpc_security_group_ids</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=nv>aws_security_group.proxy.id</span><span class=p>]</span>
-</span><span id=__span-3-32><a id=__codelineno-3-32 name=__codelineno-3-32 href=#__codelineno-3-32></a><span class=w>  </span><span class=na>vpc_subnet_ids</span><span class=w>         </span><span class=o>=</span><span class=w> </span><span class=nv>aws_subnet.private</span><span class=p>[</span><span class=err>*</span><span class=p>].</span><span class=err>id</span>
-</span><span id=__span-3-33><a id=__codelineno-3-33 name=__codelineno-3-33 href=#__codelineno-3-33></a>
-</span><span id=__span-3-34><a id=__codelineno-3-34 name=__codelineno-3-34 href=#__codelineno-3-34></a><span class=w>  </span><span class=nb>auth</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-35><a id=__codelineno-3-35 name=__codelineno-3-35 href=#__codelineno-3-35></a><span class=w>    </span><span class=na>auth_scheme</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;SECRETS&quot;</span>
-</span><span id=__span-3-36><a id=__codelineno-3-36 name=__codelineno-3-36 href=#__codelineno-3-36></a><span class=w>    </span><span class=na>iam_auth</span><span class=w>    </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;REQUIRED&quot;</span>
-</span><span id=__span-3-37><a id=__codelineno-3-37 name=__codelineno-3-37 href=#__codelineno-3-37></a><span class=w>    </span><span class=na>secret_arn</span><span class=w>  </span><span class=o>=</span><span class=w> </span><span class=nv>aws_secretsmanager_secret.db_creds.arn</span>
-</span><span id=__span-3-38><a id=__codelineno-3-38 name=__codelineno-3-38 href=#__codelineno-3-38></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-3-39><a id=__codelineno-3-39 name=__codelineno-3-39 href=#__codelineno-3-39></a><span class=p>}</span>
-</span><span id=__span-3-40><a id=__codelineno-3-40 name=__codelineno-3-40 href=#__codelineno-3-40></a>
-</span><span id=__span-3-41><a id=__codelineno-3-41 name=__codelineno-3-41 href=#__codelineno-3-41></a><span class=kr>resource</span><span class=w> </span><span class=nc>&quot;aws_db_proxy_default_target_group&quot;</span><span class=w> </span><span class=nv>&quot;main&quot;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-42><a id=__codelineno-3-42 name=__codelineno-3-42 href=#__codelineno-3-42></a><span class=w>  </span><span class=na>db_proxy_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nv>aws_db_proxy.main.name</span>
-</span><span id=__span-3-43><a id=__codelineno-3-43 name=__codelineno-3-43 href=#__codelineno-3-43></a>
-</span><span id=__span-3-44><a id=__codelineno-3-44 name=__codelineno-3-44 href=#__codelineno-3-44></a><span class=w>  </span><span class=nb>connection_pool_config</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-45><a id=__codelineno-3-45 name=__codelineno-3-45 href=#__codelineno-3-45></a><span class=w>    </span><span class=na>max_connections_percent</span><span class=w>      </span><span class=o>=</span><span class=w> </span><span class=m>100</span>
-</span><span id=__span-3-46><a id=__codelineno-3-46 name=__codelineno-3-46 href=#__codelineno-3-46></a><span class=w>    </span><span class=na>max_idle_connections_percent</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=m>50</span>
-</span><span id=__span-3-47><a id=__codelineno-3-47 name=__codelineno-3-47 href=#__codelineno-3-47></a><span class=w>    </span><span class=na>connection_borrow_timeout</span><span class=w>    </span><span class=o>=</span><span class=w> </span><span class=m>120</span>
-</span><span id=__span-3-48><a id=__codelineno-3-48 name=__codelineno-3-48 href=#__codelineno-3-48></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-3-49><a id=__codelineno-3-49 name=__codelineno-3-49 href=#__codelineno-3-49></a><span class=p>}</span>
-</span><span id=__span-3-50><a id=__codelineno-3-50 name=__codelineno-3-50 href=#__codelineno-3-50></a>
-</span><span id=__span-3-51><a id=__codelineno-3-51 name=__codelineno-3-51 href=#__codelineno-3-51></a><span class=kr>resource</span><span class=w> </span><span class=nc>&quot;aws_db_proxy_target&quot;</span><span class=w> </span><span class=nv>&quot;main&quot;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-52><a id=__codelineno-3-52 name=__codelineno-3-52 href=#__codelineno-3-52></a><span class=w>  </span><span class=na>db_instance_identifier</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nv>aws_db_instance.main.id</span>
-</span><span id=__span-3-53><a id=__codelineno-3-53 name=__codelineno-3-53 href=#__codelineno-3-53></a><span class=w>  </span><span class=na>db_proxy_name</span><span class=w>          </span><span class=o>=</span><span class=w> </span><span class=nv>aws_db_proxy.main.name</span>
-</span><span id=__span-3-54><a id=__codelineno-3-54 name=__codelineno-3-54 href=#__codelineno-3-54></a><span class=w>  </span><span class=na>target_group_name</span><span class=w>      </span><span class=o>=</span><span class=w> </span><span class=nv>aws_db_proxy_default_target_group.main.name</span>
-</span><span id=__span-3-55><a id=__codelineno-3-55 name=__codelineno-3-55 href=#__codelineno-3-55></a><span class=p>}</span>
-</span></code></pre></div> <h3 id=lambda--iam-토큰-갱신-패턴-nodejs>Lambda — IAM 토큰 갱신 패턴 (Node.js)<a class=headerlink href=#lambda--iam-토큰-갱신-패턴-nodejs title="Permanent link">&para;</a></h3> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=kd>const</span><span class=w> </span><span class=nx>mysql</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;mysql2/promise&#39;</span><span class=p>);</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=kd>const</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Signer</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;@aws-sdk/rds-signer&#39;</span><span class=p>);</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=kd>const</span><span class=w> </span><span class=nx>TOKEN_TTL_MS</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>14</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mf>60</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mf>1000</span><span class=p>;</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=kd>let</span><span class=w> </span><span class=nx>connection</span><span class=p>;</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=kd>let</span><span class=w> </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>0</span><span class=p>;</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a><span class=k>async</span><span class=w> </span><span class=kd>function</span><span class=w> </span><span class=nx>getConnection</span><span class=p>()</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=w>  </span><span class=kd>const</span><span class=w> </span><span class=nx>signer</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=ow>new</span><span class=w> </span><span class=nx>Signer</span><span class=p>({</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=w>    </span><span class=nx>hostname</span><span class=o>:</span><span class=w> </span><span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>PROXY_ENDPOINT</span><span class=p>,</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=w>    </span><span class=nx>port</span><span class=o>:</span><span class=w> </span><span class=mf>3306</span><span class=p>,</span>
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a><span class=w>    </span><span class=nx>region</span><span class=o>:</span><span class=w> </span><span class=s1>&#39;ap-northeast-2&#39;</span><span class=p>,</span>
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a><span class=w>    </span><span class=nx>username</span><span class=o>:</span><span class=w> </span><span class=s1>&#39;lambda_user&#39;</span><span class=p>,</span>
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a><span class=w>  </span><span class=p>});</span>
-</span><span id=__span-4-15><a id=__codelineno-4-15 name=__codelineno-4-15 href=#__codelineno-4-15></a>
-</span><span id=__span-4-16><a id=__codelineno-4-16 name=__codelineno-4-16 href=#__codelineno-4-16></a><span class=w>  </span><span class=kd>const</span><span class=w> </span><span class=nx>token</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>signer</span><span class=p>.</span><span class=nx>getAuthToken</span><span class=p>();</span>
-</span><span id=__span-4-17><a id=__codelineno-4-17 name=__codelineno-4-17 href=#__codelineno-4-17></a>
-</span><span id=__span-4-18><a id=__codelineno-4-18 name=__codelineno-4-18 href=#__codelineno-4-18></a><span class=w>  </span><span class=k>return</span><span class=w> </span><span class=nx>mysql</span><span class=p>.</span><span class=nx>createConnection</span><span class=p>({</span>
-</span><span id=__span-4-19><a id=__codelineno-4-19 name=__codelineno-4-19 href=#__codelineno-4-19></a><span class=w>    </span><span class=nx>host</span><span class=o>:</span><span class=w>           </span><span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>PROXY_ENDPOINT</span><span class=p>,</span>
-</span><span id=__span-4-20><a id=__codelineno-4-20 name=__codelineno-4-20 href=#__codelineno-4-20></a><span class=w>    </span><span class=nx>user</span><span class=o>:</span><span class=w>           </span><span class=s1>&#39;lambda_user&#39;</span><span class=p>,</span>
-</span><span id=__span-4-21><a id=__codelineno-4-21 name=__codelineno-4-21 href=#__codelineno-4-21></a><span class=w>    </span><span class=nx>password</span><span class=o>:</span><span class=w>       </span><span class=nx>token</span><span class=p>,</span>
-</span><span id=__span-4-22><a id=__codelineno-4-22 name=__codelineno-4-22 href=#__codelineno-4-22></a><span class=w>    </span><span class=nx>database</span><span class=o>:</span><span class=w>       </span><span class=s1>&#39;myapp&#39;</span><span class=p>,</span>
-</span><span id=__span-4-23><a id=__codelineno-4-23 name=__codelineno-4-23 href=#__codelineno-4-23></a><span class=w>    </span><span class=nx>ssl</span><span class=o>:</span><span class=w>            </span><span class=p>{</span><span class=w> </span><span class=nx>rejectUnauthorized</span><span class=o>:</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=p>},</span>
-</span><span id=__span-4-24><a id=__codelineno-4-24 name=__codelineno-4-24 href=#__codelineno-4-24></a><span class=w>    </span><span class=nx>connectTimeout</span><span class=o>:</span><span class=w> </span><span class=mf>10000</span><span class=p>,</span>
-</span><span id=__span-4-25><a id=__codelineno-4-25 name=__codelineno-4-25 href=#__codelineno-4-25></a><span class=w>  </span><span class=p>});</span>
-</span><span id=__span-4-26><a id=__codelineno-4-26 name=__codelineno-4-26 href=#__codelineno-4-26></a><span class=p>}</span>
-</span><span id=__span-4-27><a id=__codelineno-4-27 name=__codelineno-4-27 href=#__codelineno-4-27></a>
-</span><span id=__span-4-28><a id=__codelineno-4-28 name=__codelineno-4-28 href=#__codelineno-4-28></a><span class=nx>exports</span><span class=p>.</span><span class=nx>handler</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>async</span><span class=w> </span><span class=p>(</span><span class=nx>event</span><span class=p>)</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-29><a id=__codelineno-4-29 name=__codelineno-4-29 href=#__codelineno-4-29></a><span class=w>  </span><span class=kd>const</span><span class=w> </span><span class=nx>now</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>();</span>
-</span><span id=__span-4-30><a id=__codelineno-4-30 name=__codelineno-4-30 href=#__codelineno-4-30></a><span class=w>  </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=o>!</span><span class=nx>connection</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=nx>now</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=nx>TOKEN_TTL_MS</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-31><a id=__codelineno-4-31 name=__codelineno-4-31 href=#__codelineno-4-31></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=nx>connection</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-32><a id=__codelineno-4-32 name=__codelineno-4-32 href=#__codelineno-4-32></a><span class=w>      </span><span class=k>await</span><span class=w> </span><span class=nx>connection</span><span class=p>.</span><span class=nx>end</span><span class=p>().</span><span class=k>catch</span><span class=p>(()</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{});</span>
-</span><span id=__span-4-33><a id=__codelineno-4-33 name=__codelineno-4-33 href=#__codelineno-4-33></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-4-34><a id=__codelineno-4-34 name=__codelineno-4-34 href=#__codelineno-4-34></a><span class=w>    </span><span class=nx>connection</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>getConnection</span><span class=p>();</span>
-</span><span id=__span-4-35><a id=__codelineno-4-35 name=__codelineno-4-35 href=#__codelineno-4-35></a><span class=w>    </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>now</span><span class=p>;</span>
-</span><span id=__span-4-36><a id=__codelineno-4-36 name=__codelineno-4-36 href=#__codelineno-4-36></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-4-37><a id=__codelineno-4-37 name=__codelineno-4-37 href=#__codelineno-4-37></a>
-</span><span id=__span-4-38><a id=__codelineno-4-38 name=__codelineno-4-38 href=#__codelineno-4-38></a><span class=w>  </span><span class=k>try</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-39><a id=__codelineno-4-39 name=__codelineno-4-39 href=#__codelineno-4-39></a><span class=w>    </span><span class=kd>const</span><span class=w> </span><span class=p>[</span><span class=nx>rows</span><span class=p>]</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>await</span><span class=w> </span><span class=nx>connection</span><span class=p>.</span><span class=nx>execute</span><span class=p>(</span>
-</span><span id=__span-4-40><a id=__codelineno-4-40 name=__codelineno-4-40 href=#__codelineno-4-40></a><span class=w>      </span><span class=s1>&#39;SELECT * FROM users WHERE id = ?&#39;</span><span class=p>,</span>
-</span><span id=__span-4-41><a id=__codelineno-4-41 name=__codelineno-4-41 href=#__codelineno-4-41></a><span class=w>      </span><span class=p>[</span><span class=nx>event</span><span class=p>.</span><span class=nx>userId</span><span class=p>],</span>
-</span><span id=__span-4-42><a id=__codelineno-4-42 name=__codelineno-4-42 href=#__codelineno-4-42></a><span class=w>    </span><span class=p>);</span>
-</span><span id=__span-4-43><a id=__codelineno-4-43 name=__codelineno-4-43 href=#__codelineno-4-43></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>statusCode</span><span class=o>:</span><span class=w> </span><span class=mf>200</span><span class=p>,</span><span class=w> </span><span class=nx>body</span><span class=o>:</span><span class=w> </span><span class=nb>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>rows</span><span class=p>)</span><span class=w> </span><span class=p>};</span>
-</span><span id=__span-4-44><a id=__codelineno-4-44 name=__codelineno-4-44 href=#__codelineno-4-44></a><span class=w>  </span><span class=p>}</span><span class=w> </span><span class=k>catch</span><span class=w> </span><span class=p>(</span><span class=nx>err</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-45><a id=__codelineno-4-45 name=__codelineno-4-45 href=#__codelineno-4-45></a><span class=w>    </span><span class=nx>connection</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=kc>null</span><span class=p>;</span>
-</span><span id=__span-4-46><a id=__codelineno-4-46 name=__codelineno-4-46 href=#__codelineno-4-46></a><span class=w>    </span><span class=nx>tokenIssuedAt</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>0</span><span class=p>;</span>
-</span><span id=__span-4-47><a id=__codelineno-4-47 name=__codelineno-4-47 href=#__codelineno-4-47></a><span class=w>    </span><span class=k>throw</span><span class=w> </span><span class=nx>err</span><span class=p>;</span>
-</span><span id=__span-4-48><a id=__codelineno-4-48 name=__codelineno-4-48 href=#__codelineno-4-48></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-4-49><a id=__codelineno-4-49 name=__codelineno-4-49 href=#__codelineno-4-49></a><span class=p>};</span>
-</span></code></pre></div> <h3 id=cloudwatch-알람--핀닝-비율-모니터링>CloudWatch 알람 — 핀닝 비율 모니터링<a class=headerlink href=#cloudwatch-알람--핀닝-비율-모니터링 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>aws<span class=w> </span>cloudwatch<span class=w> </span>put-metric-alarm<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=w>  </span>--alarm-name<span class=w> </span><span class=s2>&quot;rds-proxy-pinning-ratio-high&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>  </span>--metric-name<span class=w> </span>DatabaseConnectionsCurrentlySessionPinned<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>  </span>--namespace<span class=w> </span>AWS/RDS<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>  </span>--statistic<span class=w> </span>Average<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=w>  </span>--period<span class=w> </span><span class=m>300</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>  </span>--threshold<span class=w> </span><span class=m>50</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>  </span>--comparison-operator<span class=w> </span>GreaterThanThreshold<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>  </span>--evaluation-periods<span class=w> </span><span class=m>2</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=w>  </span>--dimensions<span class=w> </span><span class=nv>Name</span><span class=o>=</span>ProxyName,Value<span class=o>=</span>myapp-proxy<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a><span class=w>  </span>--alarm-actions<span class=w> </span>arn:aws:sns:ap-northeast-2:123456789012:db-alerts
-</span></code></pre></div> <h2 id=12-참고-링크>12. 참고 링크<a class=headerlink href=#12-참고-링크 title="Permanent link">&para;</a></h2> <ul> <li><a href=https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/rds-proxy.html>AWS 공식 문서 - RDS Proxy</a></li> <li><a href=https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html#rds-proxy-pinning>RDS Proxy Pinning 동작</a></li> <li><a href=https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/rds-proxy.monitoring.html>RDS Proxy CloudWatch Metrics</a></li> <li><a href=https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_available-rotation-templates.html>Secrets Manager rotation Lambda templates</a></li> <li><a href=https://aws.amazon.com/rds/proxy/pricing/ >Pricing</a></li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Analytics/Athena/ >AWS Athena (S3 서버리스 SQL)</a></li> <li><a href=../DMS/ >AWS DMS (Database Migration Service)</a></li> <li><a href=../DynamoDB/ >AWS DynamoDB</a></li> <li><a href=../../Storage/EBS/ >AWS EBS (Elastic Block Store)</a></li> <li><a href=../../Storage/EFS/ >AWS EFS (Elastic File System)</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../DAX/ class="md-footer__link md-footer__link--prev" aria-label="이전: AWS DAX (DynamoDB Accelerator)"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> AWS DAX (DynamoDB Accelerator) </div> </div> </a> <a href=../DMS/ class="md-footer__link md-footer__link--next" aria-label="다음: AWS DMS (Database Migration Service)"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> AWS DMS (Database Migration Service) </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Database/DB_Proxy/">
+      
+      
+        <link rel="prev" href="../DAX/">
+      
+      
+        <link rel="next" href="../DMS/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>AWS DB Proxy - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aws-db-proxy" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              AWS DB Proxy
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Containers/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Database
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Analytics/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-도입을-고민할-시점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 도입을 고민할 시점
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-풀링-동작의-핵심--multiplexing과-pinning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 풀링 동작의 핵심 — Multiplexing과 Pinning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 풀링 동작의 핵심 — Multiplexing과 Pinning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-pinning이-발생하는-조건" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Pinning이 발생하는 조건
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-핀닝-모니터링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 핀닝 모니터링
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-prepared-statement-핀닝의-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 prepared statement 핀닝의 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-transaction-level-vs-session-level-pooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Transaction-level vs Session-level Pooling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-lambda--rds-proxy-실무-이슈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Lambda + RDS Proxy 실무 이슈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Lambda + RDS Proxy 실무 이슈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-iam-토큰-만료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 IAM 토큰 만료
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-iam-토큰-발급-throttling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 IAM 토큰 발급 throttling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-init_connection_timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 init_connection_timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-failover-동작과-실제-끊김-시간" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Failover 동작과 실제 끊김 시간
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-aurora-reader-endpoint-vs-proxy-read-only-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Aurora Reader endpoint vs Proxy Read-only endpoint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-secrets-manager-자격증명-로테이션-이슈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Secrets Manager 자격증명 로테이션 이슈
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-트러블슈팅-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 트러블슈팅 사례
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. 트러블슈팅 사례">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-connection-borrow-timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 connection borrow timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-풀-효과가-거의-0인-케이스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 풀 효과가 거의 0%인 케이스
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-proxysqlpgbouncer-대비-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 ProxySQL/PgBouncer 대비 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-모니터링-메트릭-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. 모니터링 메트릭 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-코드-예제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. 코드 예제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. 코드 예제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aws-cli--rds-proxy-생성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS CLI — RDS Proxy 생성
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terraform--rds-proxy-설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terraform — RDS Proxy 설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lambda--iam-토큰-갱신-패턴-nodejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lambda — IAM 토큰 갱신 패턴 (Node.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloudwatch-알람--핀닝-비율-모니터링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CloudWatch 알람 — 핀닝 비율 모니터링
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-참고-링크" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. 참고 링크
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">database</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">rdbms</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="aws-db-proxy">AWS DB Proxy<a class="headerlink" href="#aws-db-proxy" title="Permanent link">&para;</a></h1>
+<h2 id="1-개요">1. 개요<a class="headerlink" href="#1-개요" title="Permanent link">&para;</a></h2>
+<p>RDS Proxy는 애플리케이션과 RDS/Aurora 사이에 끼는 완전관리형 커넥션 풀이다. 기존에 ProxySQL, PgBouncer를 EC2에 띄워서 운영하던 것을 AWS가 매니지드로 제공한다고 보면 된다.</p>
+<p>직접 PgBouncer를 운영해 본 사람이라면 Proxy의 동작 방식이 익숙할 것이다. 다만 매니지드 서비스이기 때문에 내부 동작을 직접 들여다볼 수 없고, 튜닝 가능한 파라미터가 제한적이라는 점이 가장 큰 차이다. 그래서 Pinning이나 borrow timeout 같은 동작을 모르고 도입하면 "분명히 풀링이 되어야 하는데 왜 DB 연결이 안 줄어들지?"라는 상황을 자주 만난다.</p>
+<h2 id="2-도입을-고민할-시점">2. 도입을 고민할 시점<a class="headerlink" href="#2-도입을-고민할-시점" title="Permanent link">&para;</a></h2>
+<p>다음 상황 중 하나에 해당하면 Proxy 도입을 검토할 만하다.</p>
+<ul>
+<li>Lambda 동시 실행 수가 100을 넘어가면서 DB의 <code>max_connections</code>에 근접하고 있다</li>
+<li>ECS task가 오토스케일링으로 늘어났을 때 DB 연결이 폭증한다</li>
+<li>RDS failover 시 애플리케이션이 DNS 캐시 때문에 1분 넘게 끊긴다</li>
+<li>애플리케이션 코드를 건드리지 않고 IAM 인증으로 전환하고 싶다</li>
+</ul>
+<p>반대로 도입 효과가 거의 없는 경우도 있다. 단일 EC2/ECS에서 이미 HikariCP 같은 풀러로 연결을 잘 관리하고 있는 워크로드, prepared statement를 매 쿼리마다 새로 만드는 ORM 환경, 트랜잭션이 길게 유지되는 OLAP 워크로드는 Proxy를 둬도 풀링 효과를 거의 못 본다.</p>
+<h2 id="3-풀링-동작의-핵심--multiplexing과-pinning">3. 풀링 동작의 핵심 — Multiplexing과 Pinning<a class="headerlink" href="#3-풀링-동작의-핵심--multiplexing과-pinning" title="Permanent link">&para;</a></h2>
+<p>Proxy의 풀링은 클라이언트 연결 N개가 백엔드 DB 연결 M개를 공유하는 구조다. 이상적으로는 N &gt;&gt; M이 되어야 의미가 있다. 그런데 실무에서 "왜 백엔드 연결이 클라이언트 연결만큼 많지?"라는 일이 자주 생기는데, 거의 대부분 Pinning이 원인이다.</p>
+<h3 id="31-pinning이-발생하는-조건">3.1 Pinning이 발생하는 조건<a class="headerlink" href="#31-pinning이-발생하는-조건" title="Permanent link">&para;</a></h3>
+<p>Proxy가 클라이언트 세션을 특정 백엔드 연결에 고정시키는 것을 Pinning(핀닝)이라고 한다. 핀이 박힌 연결은 풀로 반환되지 않고 클라이언트가 연결을 끊을 때까지 점유된다. 즉 그 시간 동안 풀링 효과가 사라진다.</p>
+<p>MySQL에서 Pinning이 일어나는 대표적인 케이스는 다음과 같다.</p>
+<ul>
+<li><code>SET</code> 문으로 세션 변수 변경 (<code>SET autocommit</code>, <code>SET time_zone</code>, <code>SET names</code> 등)</li>
+<li>사용자 정의 변수 사용 (<code>SET @var = 1</code>, <code>SELECT @var := 1</code>)</li>
+<li>임시 테이블 생성 (<code>CREATE TEMPORARY TABLE</code>)</li>
+<li>명시적 <code>LOCK TABLES</code></li>
+<li>prepared statement (드라이버에 따라 다름, 뒤에 별도 설명)</li>
+<li><code>GET_LOCK()</code> 같은 advisory lock</li>
+</ul>
+<p>PostgreSQL은 조건이 조금 다르다.</p>
+<ul>
+<li><code>SET LOCAL</code>이 아닌 <code>SET</code> 문 (세션 단위 설정 변경)</li>
+<li><code>LISTEN/NOTIFY</code></li>
+<li>임시 테이블 (<code>CREATE TEMP TABLE</code>)</li>
+<li>커서를 트랜잭션 밖에서 유지 (<code>DECLARE ... WITH HOLD</code>)</li>
+<li>prepared statement (named statement)</li>
+</ul>
+<p>문제는 ORM이나 드라이버가 자동으로 이런 명령을 실행하는 경우가 많다는 것이다. JDBC가 연결 직후 <code>SET autocommit=0</code>을 보내거나, Sequelize가 <code>SET time_zone</code>을 매번 실행하거나, 일부 PostgreSQL 드라이버가 prepared statement를 named로 캐싱하면 사실상 모든 클라이언트 세션이 핀닝된다. 이런 환경에서는 Proxy 도입 후 풀 활용률이 0%에 가까워진다.</p>
+<h3 id="32-핀닝-모니터링">3.2 핀닝 모니터링<a class="headerlink" href="#32-핀닝-모니터링" title="Permanent link">&para;</a></h3>
+<p>CloudWatch에서 풀링이 제대로 되고 있는지 가장 빠르게 확인할 수 있는 메트릭은 <code>DatabaseConnectionsCurrentlySessionPinned</code>다. 이 값이 <code>DatabaseConnections</code> 대비 얼마나 차지하는지가 풀 효율의 직접적인 지표가 된다.</p>
+<p>해석 기준을 잡으면:</p>
+<ul>
+<li>핀닝 비율 10% 미만: 풀링이 정상 작동 중</li>
+<li>10~50%: 일부 세션이 핀닝됨, ORM/드라이버 설정 점검 필요</li>
+<li>50% 이상: 사실상 풀링이 안 되는 상태, 풀러를 둔 의미가 없음</li>
+</ul>
+<p>Performance Insights에서 <code>EnhancedMonitoring</code>을 켜면 어떤 SQL이 핀닝을 유발했는지 RDS Proxy logs에서 추적할 수 있다. 로그에 <code>The client session was pinned to the database connection ... for the remainder of the session. Reason: ...</code> 형태로 핀닝 사유가 남는다. 이걸 <code>aws logs filter-log-events</code>로 한 번 훑어보면 어떤 패턴 때문에 풀이 망가지는지 바로 잡힌다.</p>
+<h3 id="33-prepared-statement-핀닝의-함정">3.3 prepared statement 핀닝의 함정<a class="headerlink" href="#33-prepared-statement-핀닝의-함정" title="Permanent link">&para;</a></h3>
+<p>prepared statement는 드라이버 구현에 따라 핀닝 여부가 갈린다. MySQL의 경우 Proxy는 <code>COM_STMT_PREPARE</code>를 받으면 해당 세션을 즉시 핀닝한다. JDBC <code>useServerPrepStmts=true</code>, mysql2 Node.js의 <code>mysql.createConnection().prepare()</code>, Python <code>cursor.execute(prepared=True)</code> 같은 옵션이 켜져 있으면 모든 쿼리가 핀닝된다.</p>
+<p>해결 방법은 두 가지다. 하나는 클라이언트 측에서 prepare를 끄고 driver-side string interpolation으로 변경하는 것(보안 검토 필수), 다른 하나는 prepared statement를 포기하지 못하면 풀러로서의 효과를 어느 정도 포기하고 백엔드 연결 수를 늘려서 운영하는 것이다. PostgreSQL은 unnamed prepared statement(<code>PREPARE ""</code>)는 핀닝하지 않으므로, 드라이버 옵션을 unnamed로 바꿀 수 있는지 먼저 확인한다.</p>
+<h2 id="4-transaction-level-vs-session-level-pooling">4. Transaction-level vs Session-level Pooling<a class="headerlink" href="#4-transaction-level-vs-session-level-pooling" title="Permanent link">&para;</a></h2>
+<p>PgBouncer를 써본 사람은 <code>pool_mode = transaction</code>과 <code>pool_mode = session</code>의 차이를 알 것이다. RDS Proxy는 기본적으로 transaction-level에 가까운 동작을 한다. 트랜잭션이 끝나면(또는 단발 쿼리가 끝나면) 백엔드 연결을 풀로 반환한다.</p>
+<p>이 동작 때문에 PostgreSQL에서 한 가지 주의할 점이 생긴다. <code>BEGIN</code>만 보내고 다음 쿼리를 한참 안 보내는 클라이언트가 있으면, 그동안 백엔드 연결이 점유된 채로 풀에 못 돌아간다. 이걸 <code>idle_in_transaction</code> 상태라고 하는데, RDS PostgreSQL은 <code>idle_in_transaction_session_timeout</code> 파라미터로 강제 종료할 수 있지만 Proxy 자체는 트랜잭션 중인 연결을 강제로 회수하지 않는다.</p>
+<p>실무에서는 RDS 파라미터 그룹에 <code>idle_in_transaction_session_timeout = 30000</code> (30초) 정도를 설정해두는 편이 안전하다. 트랜잭션을 열어두고 외부 API를 호출하는 코드가 어딘가 숨어 있으면 풀이 순식간에 고갈된다. MySQL에서도 비슷하게 <code>wait_timeout</code>을 짧게 잡아두면 좀비 트랜잭션이 백엔드 연결을 잡고 있는 시간을 줄일 수 있다.</p>
+<p>세션 수준 동작이 강제되는 케이스(앞서 본 핀닝 조건)에서는 transaction-level의 장점이 사라지기 때문에, 핀닝 모니터링과 <code>idle_in_transaction</code> 모니터링은 같이 봐야 한다.</p>
+<h2 id="5-lambda--rds-proxy-실무-이슈">5. Lambda + RDS Proxy 실무 이슈<a class="headerlink" href="#5-lambda--rds-proxy-실무-이슈" title="Permanent link">&para;</a></h2>
+<p>Lambda가 Proxy의 가장 흔한 사용처지만, 막상 붙여보면 골치 아픈 부분이 몇 가지 있다.</p>
+<h3 id="51-iam-토큰-만료">5.1 IAM 토큰 만료<a class="headerlink" href="#51-iam-토큰-만료" title="Permanent link">&para;</a></h3>
+<p><code>generateAuthToken</code>으로 받은 IAM 인증 토큰은 발급 시점부터 15분 동안만 유효하다. Lambda 컨테이너가 재사용되면서 핸들러 밖의 connection 객체를 캐싱하는 일반적인 패턴에서는, 15분이 지나면 다음 요청에서 인증 실패가 난다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">let</span><span class="w"> </span><span class="nx">connection</span><span class="p">;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">let</span><span class="w"> </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kd">const</span><span class="w"> </span><span class="nx">TOKEN_TTL_MS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">14</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">60</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1000</span><span class="p">;</span><span class="w"> </span><span class="c1">// 14분, 안전 마진</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">();</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">connection</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">TOKEN_TTL_MS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">connection</span><span class="p">)</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">connection</span><span class="p">.</span><span class="nx">end</span><span class="p">().</span><span class="k">catch</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{});</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nx">connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">getConnection</span><span class="p">();</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">now</span><span class="p">;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="c1">// ...</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">};</span>
+</span></code></pre></div>
+<p>토큰 만료 시점을 14분으로 두는 이유는 Lambda 실행 중에 토큰이 만료되어 쿼리가 실패하는 사고를 막기 위해서다. 14분 시점에서 재발급해두면 1분의 안전 마진이 생긴다.</p>
+<h3 id="52-iam-토큰-발급-throttling">5.2 IAM 토큰 발급 throttling<a class="headerlink" href="#52-iam-토큰-발급-throttling" title="Permanent link">&para;</a></h3>
+<p>IAM 인증 토큰은 STS 기반이라 발급 자체에 throttling이 걸린다. Lambda 동시 실행이 갑자기 수천 개로 튀면 <code>RDS Proxy</code>로 가기 전에 토큰 생성 단계에서 실패하는 일이 생긴다. 로그에 <code>Rate exceeded</code> 또는 <code>ThrottlingException</code>이 보이면 이 케이스다.</p>
+<p>대응은 두 가지다. 첫째, 토큰을 핸들러 밖에서 캐싱해서 컨테이너 재사용 시 재발급을 줄인다(위 코드 패턴이 그것이다). 둘째, IAM 인증이 굳이 필요 없는 워크로드면 Secrets Manager 인증만 쓰는 것도 선택지다. Proxy가 자동으로 Secrets Manager에서 자격증명을 가져오므로 클라이언트는 평문 password처럼 사용한다.</p>
+<h3 id="53-init_connection_timeout">5.3 init_connection_timeout<a class="headerlink" href="#53-init_connection_timeout" title="Permanent link">&para;</a></h3>
+<p>Lambda VPC Config가 붙어 있는 함수가 cold start 후 처음으로 Proxy에 연결할 때, ENI 할당이 늦어지면 기본 타임아웃 3초로는 빠듯하다. 드라이버 레벨 connect timeout을 10초 정도로 늘려두는 편이 안전하다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nx">mysql</span><span class="p">.</span><span class="nx">createConnection</span><span class="p">({</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nx">host</span><span class="o">:</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PROXY_ENDPOINT</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nx">user</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;lambda_user&#39;</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nx">password</span><span class="o">:</span><span class="w"> </span><span class="nx">token</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nx">database</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;myapp&#39;</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nx">ssl</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">rejectUnauthorized</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nx">connectTimeout</span><span class="o">:</span><span class="w"> </span><span class="mf">10000</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">});</span>
+</span></code></pre></div>
+<p>VPC Lambda의 cold start가 충분히 짧아진 지금도 가끔 timeout이 발생하는데, 거의 ENI 할당 지연 아니면 보안 그룹 설정 누락이다.</p>
+<h2 id="6-failover-동작과-실제-끊김-시간">6. Failover 동작과 실제 끊김 시간<a class="headerlink" href="#6-failover-동작과-실제-끊김-시간" title="Permanent link">&para;</a></h2>
+<p>Proxy를 도입하는 가장 큰 명분 중 하나가 빠른 failover다. RDS DNS는 TTL이 5초지만, JVM 같은 환경에서는 OS DNS 캐시 때문에 실제로는 30초~1분씩 끊기는 경우가 많다. Proxy를 두면 클라이언트 입장에서 DNS는 그대로고 백엔드 라우팅을 Proxy가 처리한다.</p>
+<p>실제 측정해본 결과:</p>
+<ul>
+<li>Aurora MySQL/PostgreSQL: failover 시 약 2초 내외로 회복. Aurora의 storage 분리 구조 덕분에 promotion이 빠르다</li>
+<li>RDS Multi-AZ (인스턴스 페일오버): 6~10초. standby 인스턴스가 active로 promote되는 시간이 추가로 든다</li>
+<li>RDS Multi-AZ Cluster (writer + 2 reader): 약 35초였던 기존 구조에서 5초 이하로 단축됨</li>
+</ul>
+<p>in-flight query 동작도 알아둬야 한다. failover 순간에 진행 중이던 쿼리는 어떻게든 실패한다. Proxy가 자동으로 retry해주지는 않는다. 클라이언트가 받는 에러는 보통 <code>Communications link failure</code> (MySQL) 또는 <code>terminating connection due to administrator command</code> (PostgreSQL)다. 애플리케이션 레벨에서 idempotent한 read 쿼리는 retry 로직을 두는 편이 좋다.</p>
+<p>write 쿼리는 retry가 위험하다. failover 시점에 해당 트랜잭션이 커밋됐는지 안 됐는지 클라이언트가 확신할 수 없기 때문이다. 멱등성 키(idempotency key)나 <code>INSERT ... ON CONFLICT DO NOTHING</code>으로 중복 실행에 안전하게 만들어 두지 않으면 retry로 데이터를 망가뜨릴 수 있다.</p>
+<h2 id="7-aurora-reader-endpoint-vs-proxy-read-only-endpoint">7. Aurora Reader endpoint vs Proxy Read-only endpoint<a class="headerlink" href="#7-aurora-reader-endpoint-vs-proxy-read-only-endpoint" title="Permanent link">&para;</a></h2>
+<p>Aurora를 쓰면 원래 reader endpoint가 있다. 그러면 Proxy의 read-only endpoint는 뭐가 다른가?</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>Aurora Reader endpoint</th>
+<th>Proxy Read-only endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>라우팅 단위</td>
+<td>DNS 라운드로빈</td>
+<td>연결 단위 라우팅</td>
+</tr>
+<tr>
+<td>failover 처리</td>
+<td>DNS TTL 의존</td>
+<td>Proxy가 즉시 라우팅 변경</td>
+</tr>
+<tr>
+<td>연결 풀링</td>
+<td>없음</td>
+<td>있음</td>
+</tr>
+<tr>
+<td>reader 인스턴스 추가</td>
+<td>자동 반영 (TTL 후)</td>
+<td>자동 반영 (즉시)</td>
+</tr>
+<tr>
+<td>writer로 쓰기 시도</td>
+<td>read-only 에러</td>
+<td>read-only 에러</td>
+</tr>
+</tbody>
+</table>
+<p>Aurora reader endpoint는 DNS 레벨 분산이라서 한 번 연결을 맺으면 그 연결은 특정 reader에 고정된다. reader 한 대에 트래픽이 쏠리면 다른 reader가 놀고 있어도 균형이 안 맞는다. Proxy read-only endpoint는 쿼리 단위로 reader를 선택하기 때문에 분산이 균일하다. reader 인스턴스가 추가되거나 빠질 때도 Proxy는 즉시 반영하지만, reader endpoint는 DNS TTL만큼 지연된다.</p>
+<p>writer 쿼리를 read-only endpoint에 보내면 둘 다 에러가 나는 건 동일하다. ORM에 read/write splitting을 구현할 때 Proxy를 쓴다고 해서 자동으로 분리되지는 않는다. 애플리케이션이 명시적으로 endpoint를 골라줘야 한다.</p>
+<h2 id="8-secrets-manager-자격증명-로테이션-이슈">8. Secrets Manager 자격증명 로테이션 이슈<a class="headerlink" href="#8-secrets-manager-자격증명-로테이션-이슈" title="Permanent link">&para;</a></h2>
+<p>Secrets Manager가 자격증명을 자동 로테이션할 때 일시적인 인증 실패가 발생할 수 있다. 동작 순서가 이렇다.</p>
+<ol>
+<li>Secrets Manager가 새 password 생성</li>
+<li>Lambda 로테이션 함수가 DB에 새 password 적용 (<code>ALTER USER ... PASSWORD ...</code>)</li>
+<li>Secrets Manager의 <code>AWSCURRENT</code> 라벨을 새 password로 이동</li>
+<li>Proxy가 변경을 감지하고 새 password로 백엔드 연결 갱신</li>
+</ol>
+<p>3번과 4번 사이에 Proxy가 아직 이전 password를 쓰고 있는데 DB는 이미 새 password를 받았다면, 그 동안의 신규 백엔드 연결은 인증 실패한다. 이 시간이 짧으면 수 초, 길면 수십 초까지 갈 수 있다.</p>
+<p>대응 방법은 다음과 같다.</p>
+<ul>
+<li>로테이션 함수에서 <code>multi-user</code> 패턴을 쓴다. AWS가 제공하는 RDS rotation Lambda 템플릿 중 <code>single-user</code>와 <code>multi-user</code>가 있는데, multi-user는 두 개의 DB 사용자를 번갈아 사용한다. 로테이션 시점에 한쪽 사용자가 점진적으로 전환되므로 인증 실패 윈도우가 거의 없다</li>
+<li>애플리케이션 레벨에서 인증 실패 시 짧은 backoff retry를 둔다. 1초 sleep 후 한 번 더 시도하면 대부분 통과한다</li>
+<li>로테이션 일정을 트래픽이 적은 시간대로 맞춘다. cron expression으로 지정 가능하다</li>
+</ul>
+<p>운영 환경에서는 multi-user 패턴이 사실상 필수다. single-user는 PoC 수준에서만 쓴다.</p>
+<h2 id="9-트러블슈팅-사례">9. 트러블슈팅 사례<a class="headerlink" href="#9-트러블슈팅-사례" title="Permanent link">&para;</a></h2>
+<p>실제로 마주친 케이스들을 정리한다.</p>
+<h3 id="91-connection-borrow-timeout">9.1 connection borrow timeout<a class="headerlink" href="#91-connection-borrow-timeout" title="Permanent link">&para;</a></h3>
+<p>가장 자주 보는 에러다. 클라이언트가 Proxy에 연결은 됐는데 백엔드 연결을 빌려오기까지 대기하다가 timeout이 난다.</p>
+<p>원인은 대부분 둘 중 하나다. 백엔드 풀이 가득 찼거나(다 핀닝되어 있거나 진짜로 트래픽이 많거나), <code>connection_borrow_timeout</code>이 너무 짧거나. 기본값은 120초인데 이걸 줄이는 건 거의 의미가 없다. 늘려도 본질적인 해결은 안 된다. 핵심은 풀이 왜 가득 찼는지를 봐야 한다.</p>
+<p>조사 순서는:</p>
+<ol>
+<li>CloudWatch에서 <code>DatabaseConnections</code> vs <code>MaxDatabaseConnections</code> 비교. 100% 근접이면 풀 부족</li>
+<li><code>DatabaseConnectionsCurrentlySessionPinned</code> 비율 확인. 높으면 핀닝이 원인</li>
+<li><code>MaxDatabaseConnections</code>는 <code>max_connections_percent</code>(기본 100)와 RDS 인스턴스의 <code>max_connections</code> 파라미터 곱이다. RDS <code>max_connections</code>가 충분한지 확인</li>
+<li>RDS Performance Insights에서 long-running query 또는 <code>idle in transaction</code> 세션 확인</li>
+</ol>
+<p><code>max_connections_percent</code>를 200처럼 100 이상으로 설정할 수도 있다. 이건 클라이언트 연결 N개에 대해 백엔드를 N의 200%까지 띄울 수 있다는 게 아니라, RDS 인스턴스의 <code>max_connections</code> 대비 비율이다. 100을 넘기면 burst 트래픽을 받을 때 잠깐 더 띄울 수 있는 여지가 생기지만, 실제로 많이 쓰지는 않는다.</p>
+<h3 id="92-풀-효과가-거의-0인-케이스">9.2 풀 효과가 거의 0%인 케이스<a class="headerlink" href="#92-풀-효과가-거의-0인-케이스" title="Permanent link">&para;</a></h3>
+<p>도입 후 백엔드 연결 수가 줄지 않는다는 클레임이 가장 흔하다. 이미 위에서 설명한 핀닝이 거의 모든 원인이다. 한 번은 Spring Boot + HikariCP + JDBC <code>useServerPrepStmts=true</code> 조합에서 모든 쿼리가 핀닝되어 Proxy를 둔 의미가 사라진 적이 있었다. <code>useServerPrepStmts=false</code>로 바꾸자 핀닝 비율이 80%에서 5%로 떨어졌다.</p>
+<p>PostgreSQL에서는 PgJDBC의 <code>prepareThreshold</code> 기본값(5)이 문제다. 같은 쿼리를 5번 실행하면 자동으로 named prepared statement로 전환되어 핀닝된다. <code>prepareThreshold=0</code>으로 설정해 자동 전환을 끄거나, <code>preparedStatementCacheQueries=0</code>으로 캐시를 비활성화하면 된다.</p>
+<h3 id="93-proxysqlpgbouncer-대비-한계">9.3 ProxySQL/PgBouncer 대비 한계<a class="headerlink" href="#93-proxysqlpgbouncer-대비-한계" title="Permanent link">&para;</a></h3>
+<p>PgBouncer를 직접 운영해본 사람이라면 RDS Proxy가 답답하게 느껴질 수 있다. 안 되는 것들이 있다.</p>
+<ul>
+<li>쿼리 라우팅 규칙 (PgBouncer의 read-only/read-write 분리, ProxySQL의 query rule)</li>
+<li>쿼리 캐싱 (ProxySQL의 query cache)</li>
+<li>쿼리 리라이팅</li>
+<li>세부 풀 모드 선택 (PgBouncer의 statement-level pooling 같은 옵션)</li>
+<li>쿼리 로깅 수준 제어</li>
+</ul>
+<p>대신 매니지드라는 점, IAM 인증, Secrets Manager 통합, AWS 보안 그룹 기반 격리가 장점이다. 트레이드오프를 알고 도입한다.</p>
+<p>복잡한 라우팅 로직이 필요하면 RDS Proxy 대신 ECS에 PgBouncer/ProxySQL을 띄우는 편이 낫다. 단순한 풀링과 빠른 failover만 필요하면 RDS Proxy가 운영 부담이 훨씬 적다.</p>
+<h2 id="10-모니터링-메트릭-정리">10. 모니터링 메트릭 정리<a class="headerlink" href="#10-모니터링-메트릭-정리" title="Permanent link">&para;</a></h2>
+<p>CloudWatch에서 봐야 하는 메트릭과 해석 기준을 묶어둔다.</p>
+<table>
+<thead>
+<tr>
+<th>메트릭</th>
+<th>의미</th>
+<th>이상 신호</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ClientConnections</code></td>
+<td>클라이언트→Proxy 연결 수</td>
+<td>평균 대비 급증</td>
+</tr>
+<tr>
+<td><code>DatabaseConnections</code></td>
+<td>Proxy→DB 백엔드 연결 수</td>
+<td><code>MaxDatabaseConnections</code>의 80% 초과</td>
+</tr>
+<tr>
+<td><code>DatabaseConnectionsCurrentlySessionPinned</code></td>
+<td>핀닝된 백엔드 연결 수</td>
+<td><code>DatabaseConnections</code>의 50% 초과 시 풀링 효과 거의 없음</td>
+</tr>
+<tr>
+<td><code>ClientConnectionsClosed</code></td>
+<td>클라이언트 연결 종료 수</td>
+<td>갑작스러운 spike는 timeout/에러 의심</td>
+</tr>
+<tr>
+<td><code>DatabaseConnectionsBorrowLatency</code></td>
+<td>백엔드 연결 빌리는 데 걸린 시간</td>
+<td>100ms 이상이면 풀 경합</td>
+</tr>
+<tr>
+<td><code>QueryDatabaseResponseLatency</code></td>
+<td>DB의 쿼리 응답 시간</td>
+<td>Proxy 도입 후 늘어났다면 문제</td>
+</tr>
+</tbody>
+</table>
+<p><code>DatabaseConnectionsBorrowLatency</code>가 늘어나기 시작하면 borrow timeout이 곧 발생한다는 신호다. timeout이 실제로 터지기 전에 alarm을 걸어두면 대응 시간을 벌 수 있다.</p>
+<p>쿼리 로깅이 필요하면 <code>EnhancedMonitoring</code>을 켠다. 다만 로그 양이 많아지므로 운영 환경에서는 평소엔 끄고 디버깅 시점에만 켜는 패턴을 쓴다. 토큰 발급 로그까지 다 남기면 비용이 빠르게 늘어난다.</p>
+<h2 id="11-코드-예제">11. 코드 예제<a class="headerlink" href="#11-코드-예제" title="Permanent link">&para;</a></h2>
+<h3 id="aws-cli--rds-proxy-생성">AWS CLI — RDS Proxy 생성<a class="headerlink" href="#aws-cli--rds-proxy-생성" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">SECRET_ARN</span><span class="o">=</span><span class="k">$(</span>aws<span class="w"> </span>secretsmanager<span class="w"> </span>create-secret<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--name<span class="w"> </span><span class="s2">&quot;prod/mydb/credentials&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--secret-string<span class="w"> </span><span class="s1">&#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;s3cr3t&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;ARN&#39;</span><span class="w"> </span>--output<span class="w"> </span>text<span class="k">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>aws<span class="w"> </span>rds<span class="w"> </span>create-db-proxy<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span>--db-proxy-name<span class="w"> </span><span class="s2">&quot;myapp-proxy&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span>--engine-family<span class="w"> </span>MYSQL<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span>--auth<span class="w"> </span><span class="s1">&#39;[{</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="s1">    &quot;AuthScheme&quot;: &quot;SECRETS&quot;,</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="s1">    &quot;SecretArn&quot;: &quot;&#39;</span><span class="nv">$SECRET_ARN</span><span class="s1">&#39;&quot;,</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="s1">    &quot;IAMAuth&quot;: &quot;REQUIRED&quot;</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="s1">  }]&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span>--role-arn<span class="w"> </span>arn:aws:iam::123456789012:role/RDSProxyRole<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span>--vpc-subnet-ids<span class="w"> </span>subnet-aaa<span class="w"> </span>subnet-bbb<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span>--vpc-security-group-ids<span class="w"> </span>sg-xxxxxxxx
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>aws<span class="w"> </span>rds<span class="w"> </span>describe-db-proxies<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">  </span>--db-proxy-name<span class="w"> </span>myapp-proxy<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;DBProxies[0].Endpoint&#39;</span><span class="w"> </span>--output<span class="w"> </span>text
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>aws<span class="w"> </span>rds<span class="w"> </span>register-db-proxy-targets<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">  </span>--db-proxy-name<span class="w"> </span>myapp-proxy<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">  </span>--db-instance-identifiers<span class="w"> </span>my-mysql-instance
+</span></code></pre></div>
+<h3 id="terraform--rds-proxy-설정">Terraform — RDS Proxy 설정<a class="headerlink" href="#terraform--rds-proxy-설정" title="Permanent link">&para;</a></h3>
+<div class="language-hcl highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_secretsmanager_secret&quot;</span><span class="w"> </span><span class="nv">&quot;db_creds&quot;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;prod/mydb/credentials&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">}</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_secretsmanager_secret_version&quot;</span><span class="w"> </span><span class="nv">&quot;db_creds&quot;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="na">secret_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_secretsmanager_secret.db_creds.id</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="na">secret_string</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">jsonencode</span><span class="p">({</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="na">username</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">var.db_password</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="p">})</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">}</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_iam_role&quot;</span><span class="w"> </span><span class="nv">&quot;rds_proxy&quot;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">  </span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;rds-proxy-role&quot;</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">  </span><span class="na">assume_role_policy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">jsonencode</span><span class="p">({</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span><span class="na">Version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">    </span><span class="na">Statement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[{</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">      </span><span class="na">Action</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;sts:AssumeRole&quot;</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">      </span><span class="na">Effect</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span><span class="nb">Principal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="na">Service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;rds.amazonaws.com&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">    </span><span class="p">}]</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">  </span><span class="p">})</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="p">}</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_db_proxy&quot;</span><span class="w"> </span><span class="nv">&quot;main&quot;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">  </span><span class="na">name</span><span class="w">                   </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myapp-proxy&quot;</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">  </span><span class="na">engine_family</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MYSQL&quot;</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">  </span><span class="na">idle_client_timeout</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="m">1800</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">  </span><span class="na">require_tls</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="no">true</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">  </span><span class="na">role_arn</span><span class="w">               </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_iam_role.rds_proxy.arn</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">  </span><span class="na">vpc_security_group_ids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="nv">aws_security_group.proxy.id</span><span class="p">]</span>
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">  </span><span class="na">vpc_subnet_ids</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_subnet.private</span><span class="p">[</span><span class="err">*</span><span class="p">].</span><span class="err">id</span>
+</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>
+</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="w">  </span><span class="nb">auth</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-35"><a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="w">    </span><span class="na">auth_scheme</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;SECRETS&quot;</span>
+</span><span id="__span-3-36"><a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="w">    </span><span class="na">iam_auth</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;REQUIRED&quot;</span>
+</span><span id="__span-3-37"><a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="w">    </span><span class="na">secret_arn</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_secretsmanager_secret.db_creds.arn</span>
+</span><span id="__span-3-38"><a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-39"><a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="p">}</span>
+</span><span id="__span-3-40"><a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>
+</span><span id="__span-3-41"><a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_db_proxy_default_target_group&quot;</span><span class="w"> </span><span class="nv">&quot;main&quot;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-42"><a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="w">  </span><span class="na">db_proxy_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_db_proxy.main.name</span>
+</span><span id="__span-3-43"><a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>
+</span><span id="__span-3-44"><a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a><span class="w">  </span><span class="nb">connection_pool_config</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-45"><a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a><span class="w">    </span><span class="na">max_connections_percent</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="m">100</span>
+</span><span id="__span-3-46"><a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a><span class="w">    </span><span class="na">max_idle_connections_percent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">50</span>
+</span><span id="__span-3-47"><a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a><span class="w">    </span><span class="na">connection_borrow_timeout</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="m">120</span>
+</span><span id="__span-3-48"><a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-49"><a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a><span class="p">}</span>
+</span><span id="__span-3-50"><a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>
+</span><span id="__span-3-51"><a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a><span class="kr">resource</span><span class="w"> </span><span class="nc">&quot;aws_db_proxy_target&quot;</span><span class="w"> </span><span class="nv">&quot;main&quot;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-52"><a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a><span class="w">  </span><span class="na">db_instance_identifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_db_instance.main.id</span>
+</span><span id="__span-3-53"><a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a><span class="w">  </span><span class="na">db_proxy_name</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_db_proxy.main.name</span>
+</span><span id="__span-3-54"><a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a><span class="w">  </span><span class="na">target_group_name</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="nv">aws_db_proxy_default_target_group.main.name</span>
+</span><span id="__span-3-55"><a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="lambda--iam-토큰-갱신-패턴-nodejs">Lambda — IAM 토큰 갱신 패턴 (Node.js)<a class="headerlink" href="#lambda--iam-토큰-갱신-패턴-nodejs" title="Permanent link">&para;</a></h3>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">mysql</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mysql2/promise&#39;</span><span class="p">);</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Signer</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;@aws-sdk/rds-signer&#39;</span><span class="p">);</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kd">const</span><span class="w"> </span><span class="nx">TOKEN_TTL_MS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">14</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">60</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1000</span><span class="p">;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kd">let</span><span class="w"> </span><span class="nx">connection</span><span class="p">;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="kd">let</span><span class="w"> </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">getConnection</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">signer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Signer</span><span class="p">({</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nx">hostname</span><span class="o">:</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PROXY_ENDPOINT</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="mf">3306</span><span class="p">,</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="nx">region</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;ap-northeast-2&#39;</span><span class="p">,</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;lambda_user&#39;</span><span class="p">,</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="p">});</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">signer</span><span class="p">.</span><span class="nx">getAuthToken</span><span class="p">();</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">mysql</span><span class="p">.</span><span class="nx">createConnection</span><span class="p">({</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span><span class="nx">host</span><span class="o">:</span><span class="w">           </span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PROXY_ENDPOINT</span><span class="p">,</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">    </span><span class="nx">user</span><span class="o">:</span><span class="w">           </span><span class="s1">&#39;lambda_user&#39;</span><span class="p">,</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">    </span><span class="nx">password</span><span class="o">:</span><span class="w">       </span><span class="nx">token</span><span class="p">,</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">    </span><span class="nx">database</span><span class="o">:</span><span class="w">       </span><span class="s1">&#39;myapp&#39;</span><span class="p">,</span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">    </span><span class="nx">ssl</span><span class="o">:</span><span class="w">            </span><span class="p">{</span><span class="w"> </span><span class="nx">rejectUnauthorized</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">    </span><span class="nx">connectTimeout</span><span class="o">:</span><span class="w"> </span><span class="mf">10000</span><span class="p">,</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">  </span><span class="p">});</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="p">}</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">handler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">();</span>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">connection</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">TOKEN_TTL_MS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">connection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">      </span><span class="k">await</span><span class="w"> </span><span class="nx">connection</span><span class="p">.</span><span class="nx">end</span><span class="p">().</span><span class="k">catch</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{});</span>
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">    </span><span class="nx">connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">getConnection</span><span class="p">();</span>
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="w">    </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">now</span><span class="p">;</span>
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">  </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">rows</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">connection</span><span class="p">.</span><span class="nx">execute</span><span class="p">(</span>
+</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">      </span><span class="s1">&#39;SELECT * FROM users WHERE id = ?&#39;</span><span class="p">,</span>
+</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="w">      </span><span class="p">[</span><span class="nx">event</span><span class="p">.</span><span class="nx">userId</span><span class="p">],</span>
+</span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="w">    </span><span class="p">);</span>
+</span><span id="__span-4-43"><a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">statusCode</span><span class="o">:</span><span class="w"> </span><span class="mf">200</span><span class="p">,</span><span class="w"> </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">rows</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-4-44"><a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">err</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-45"><a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="w">    </span><span class="nx">connection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+</span><span id="__span-4-46"><a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="w">    </span><span class="nx">tokenIssuedAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+</span><span id="__span-4-47"><a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="nx">err</span><span class="p">;</span>
+</span><span id="__span-4-48"><a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-4-49"><a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="p">};</span>
+</span></code></pre></div>
+<h3 id="cloudwatch-알람--핀닝-비율-모니터링">CloudWatch 알람 — 핀닝 비율 모니터링<a class="headerlink" href="#cloudwatch-알람--핀닝-비율-모니터링" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>aws<span class="w"> </span>cloudwatch<span class="w"> </span>put-metric-alarm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--alarm-name<span class="w"> </span><span class="s2">&quot;rds-proxy-pinning-ratio-high&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--metric-name<span class="w"> </span>DatabaseConnectionsCurrentlySessionPinned<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>--namespace<span class="w"> </span>AWS/RDS<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span>--statistic<span class="w"> </span>Average<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span>--period<span class="w"> </span><span class="m">300</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span>--threshold<span class="w"> </span><span class="m">50</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span>--comparison-operator<span class="w"> </span>GreaterThanThreshold<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span>--evaluation-periods<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">  </span>--dimensions<span class="w"> </span><span class="nv">Name</span><span class="o">=</span>ProxyName,Value<span class="o">=</span>myapp-proxy<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">  </span>--alarm-actions<span class="w"> </span>arn:aws:sns:ap-northeast-2:123456789012:db-alerts
+</span></code></pre></div>
+<h2 id="12-참고-링크">12. 참고 링크<a class="headerlink" href="#12-참고-링크" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/rds-proxy.html">AWS 공식 문서 - RDS Proxy</a></li>
+<li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html#rds-proxy-pinning">RDS Proxy Pinning 동작</a></li>
+<li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/rds-proxy.monitoring.html">RDS Proxy CloudWatch Metrics</a></li>
+<li><a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_available-rotation-templates.html">Secrets Manager rotation Lambda templates</a></li>
+<li><a href="https://aws.amazon.com/rds/proxy/pricing/">Pricing</a></li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Analytics/Athena/">AWS Athena (S3 서버리스 SQL)</a></li>
+<li><a href="../DMS/">AWS DMS (Database Migration Service)</a></li>
+<li><a href="../DynamoDB/">AWS DynamoDB</a></li>
+<li><a href="../../Storage/EBS/">AWS EBS (Elastic Block Store)</a></li>
+<li><a href="../../Storage/EFS/">AWS EFS (Elastic File System)</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../DAX/" class="md-footer__link md-footer__link--prev" aria-label="이전: AWS DAX (DynamoDB Accelerator)">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                AWS DAX (DynamoDB Accelerator)
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../DMS/" class="md-footer__link md-footer__link--next" aria-label="다음: AWS DMS (Database Migration Service)">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                AWS DMS (Database Migration Service)
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

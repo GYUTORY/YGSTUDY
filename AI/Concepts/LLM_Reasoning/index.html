@@ -1,25 +1,2825 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/AI/Concepts/LLM_Reasoning/ rel=canonical><link href=../LLM_Evaluation/ rel=prev><link href=../LLM_Context_Window/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>LLM Reasoning 패턴과 모델 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#llm-reasoning-패턴과-모델 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> LLM Reasoning 패턴과 모델 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AI </span> </a> <label class="md-nav__link " for=__nav_8 id=__nav_8_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_8_label aria-expanded=true> <label class=md-nav__title for=__nav_8> <span class="md-nav__icon md-icon"></span> AI </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8_2 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 개념 </span> </a> <label class="md-nav__link " for=__nav_8_2 id=__nav_8_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_8_2_label aria-expanded=true> <label class=md-nav__title for=__nav_8_2> <span class="md-nav__icon md-icon"></span> 개념 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../RAG_Evaluation/ class=md-nav__link> <span class=md-ellipsis> RAG 품질 평가 </span> </a> </li> <li class=md-nav__item> <a href=../Prompt_Caching/ class=md-nav__link> <span class=md-ellipsis> Prompt Caching </span> </a> </li> <li class=md-nav__item> <a href=../Lang_Chain_vs_SDK/ class=md-nav__link> <span class=md-ellipsis> LangChain vs 순수 SDK </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Agent_Harness/ class=md-nav__link> <span class=md-ellipsis> 에이전트 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Embeddings/ class=md-nav__link> <span class=md-ellipsis> RAG와 검색 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Prompt_Engineering/ class=md-nav__link> <span class=md-ellipsis> 실무 활용 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8_2_8 checked> <label class=md-nav__link for=__nav_8_2_8 id=__nav_8_2_8_label tabindex=0> <span class=md-ellipsis> LLM </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_8_2_8_label aria-expanded=true> <label class=md-nav__title for=__nav_8_2_8> <span class="md-nav__icon md-icon"></span> LLM </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../LLM/ class=md-nav__link> <span class=md-ellipsis> 동작 원리와 프로덕션 통합 </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Pretraining/ class=md-nav__link> <span class=md-ellipsis> 사전학습 파이프라인 </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Tokenizer/ class=md-nav__link> <span class=md-ellipsis> 토크나이저 </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Inference_Optimization/ class=md-nav__link> <span class=md-ellipsis> 추론 최적화 심화 </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Fine_Tuning/ class=md-nav__link> <span class=md-ellipsis> 파인튜닝 실무 </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Evaluation/ class=md-nav__link> <span class=md-ellipsis> 평가 방법론 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> Reasoning 패턴과 모델 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> Reasoning 패턴과 모델 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-reasoning이-왜-필요한가 class=md-nav__link> <span class=md-ellipsis> 1. Reasoning이 왜 필요한가 </span> </a> </li> <li class=md-nav__item> <a href=#2-chain-of-thought-cot class=md-nav__link> <span class=md-ellipsis> 2. Chain-of-Thought (CoT) </span> </a> <nav class=md-nav aria-label="2. Chain-of-Thought (CoT)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#21-zero-shot-cot class=md-nav__link> <span class=md-ellipsis> 2.1 Zero-shot CoT </span> </a> </li> <li class=md-nav__item> <a href=#22-few-shot-cot class=md-nav__link> <span class=md-ellipsis> 2.2 Few-shot CoT </span> </a> </li> <li class=md-nav__item> <a href=#23-cot가-안-통하는-경우 class=md-nav__link> <span class=md-ellipsis> 2.3 CoT가 안 통하는 경우 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-self-consistency class=md-nav__link> <span class=md-ellipsis> 3. Self-Consistency </span> </a> <nav class=md-nav aria-label="3. Self-Consistency"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-실무-함정 class=md-nav__link> <span class=md-ellipsis> 3.1 실무 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-react-reasoning--acting class=md-nav__link> <span class=md-ellipsis> 4. ReAct (Reasoning + Acting) </span> </a> <nav class=md-nav aria-label="4. ReAct (Reasoning + Acting)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#41-구현-시-주의점 class=md-nav__link> <span class=md-ellipsis> 4.1 구현 시 주의점 </span> </a> </li> <li class=md-nav__item> <a href=#42-function-calling이-react를-흡수했다 class=md-nav__link> <span class=md-ellipsis> 4.2 Function calling이 ReAct를 흡수했다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#5-tree-of-thoughts-tot class=md-nav__link> <span class=md-ellipsis> 5. Tree-of-Thoughts (ToT) </span> </a> <nav class=md-nav aria-label="5. Tree-of-Thoughts (ToT)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-실무-적용은-거의-못-본다 class=md-nav__link> <span class=md-ellipsis> 5.1 실무 적용은 거의 못 본다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-reflexion class=md-nav__link> <span class=md-ellipsis> 6. Reflexion </span> </a> <nav class=md-nav aria-label="6. Reflexion"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#61-reflexion-구현-시-함정 class=md-nav__link> <span class=md-ellipsis> 6.1 Reflexion 구현 시 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking class=md-nav__link> <span class=md-ellipsis> 7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking </span> </a> <nav class=md-nav aria-label="7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#71-o1-시리즈-openai class=md-nav__link> <span class=md-ellipsis> 7.1 o1 시리즈 (OpenAI) </span> </a> </li> <li class=md-nav__item> <a href=#72-deepseek-r1 class=md-nav__link> <span class=md-ellipsis> 7.2 DeepSeek-R1 </span> </a> </li> <li class=md-nav__item> <a href=#73-claude-extended-thinking class=md-nav__link> <span class=md-ellipsis> 7.3 Claude Extended Thinking </span> </a> </li> <li class=md-nav__item> <a href=#74-세-모델-비교 class=md-nav__link> <span class=md-ellipsis> 7.4 세 모델 비교 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#8-reasoning을-켜야-할-때와-끄는-게-나을-때 class=md-nav__link> <span class=md-ellipsis> 8. Reasoning을 켜야 할 때와 끄는 게 나을 때 </span> </a> <nav class=md-nav aria-label="8. Reasoning을 켜야 할 때와 끄는 게 나을 때"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#81-켜야-하는-작업 class=md-nav__link> <span class=md-ellipsis> 8.1 켜야 하는 작업 </span> </a> </li> <li class=md-nav__item> <a href=#82-끄는-게-나은-작업 class=md-nav__link> <span class=md-ellipsis> 8.2 끄는 게 나은 작업 </span> </a> </li> <li class=md-nav__item> <a href=#83-판단-기준 class=md-nav__link> <span class=md-ellipsis> 8.3 판단 기준 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#9-토큰-비용-폭증-사례 class=md-nav__link> <span class=md-ellipsis> 9. 토큰 비용 폭증 사례 </span> </a> <nav class=md-nav aria-label="9. 토큰 비용 폭증 사례"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#91-사례-1-고객-지원-챗봇에-o1-적용 class=md-nav__link> <span class=md-ellipsis> 9.1 사례 1: 고객 지원 챗봇에 o1 적용 </span> </a> </li> <li class=md-nav__item> <a href=#92-사례-2-코드-리뷰-에이전트의-무한-reasoning class=md-nav__link> <span class=md-ellipsis> 9.2 사례 2: 코드 리뷰 에이전트의 무한 reasoning </span> </a> </li> <li class=md-nav__item> <a href=#93-사례-3-claude-extended-thinking-budget-미설정 class=md-nav__link> <span class=md-ellipsis> 9.3 사례 3: Claude Extended Thinking budget 미설정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#10-reasoning--캐싱--streaming-조합 class=md-nav__link> <span class=md-ellipsis> 10. Reasoning + 캐싱 + Streaming 조합 </span> </a> </li> <li class=md-nav__item> <a href=#11-reasoning이-hallucination을-줄이는가 class=md-nav__link> <span class=md-ellipsis> 11. Reasoning이 hallucination을 줄이는가 </span> </a> </li> <li class=md-nav__item> <a href=#12-정리 class=md-nav__link> <span class=md-ellipsis> 12. 정리 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../LLM_Context_Window/ class=md-nav__link> <span class=md-ellipsis> Context Window </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Agent/ class=md-nav__link> <span class=md-ellipsis> 에이전트 (Claude 관점) </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Security/ class=md-nav__link> <span class=md-ellipsis> 보안 위협과 대응 </span> </a> </li> <li class=md-nav__item> <a href=../LLM_Scaling_Laws/ class=md-nav__link> <span class=md-ellipsis> 스케일링 법칙 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Claude/ class=md-nav__link> <span class=md-ellipsis> Claude </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Claude_Code/ class=md-nav__link> <span class=md-ellipsis> Claude Code </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Gemini/ class=md-nav__link> <span class=md-ellipsis> Gemini </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GPT/GPT_5_5.md class=md-nav__link> <span class=md-ellipsis> AI 모델 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cursor/ class=md-nav__link> <span class=md-ellipsis> 개발 도구 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-reasoning이-왜-필요한가 class=md-nav__link> <span class=md-ellipsis> 1. Reasoning이 왜 필요한가 </span> </a> </li> <li class=md-nav__item> <a href=#2-chain-of-thought-cot class=md-nav__link> <span class=md-ellipsis> 2. Chain-of-Thought (CoT) </span> </a> <nav class=md-nav aria-label="2. Chain-of-Thought (CoT)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#21-zero-shot-cot class=md-nav__link> <span class=md-ellipsis> 2.1 Zero-shot CoT </span> </a> </li> <li class=md-nav__item> <a href=#22-few-shot-cot class=md-nav__link> <span class=md-ellipsis> 2.2 Few-shot CoT </span> </a> </li> <li class=md-nav__item> <a href=#23-cot가-안-통하는-경우 class=md-nav__link> <span class=md-ellipsis> 2.3 CoT가 안 통하는 경우 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-self-consistency class=md-nav__link> <span class=md-ellipsis> 3. Self-Consistency </span> </a> <nav class=md-nav aria-label="3. Self-Consistency"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-실무-함정 class=md-nav__link> <span class=md-ellipsis> 3.1 실무 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-react-reasoning--acting class=md-nav__link> <span class=md-ellipsis> 4. ReAct (Reasoning + Acting) </span> </a> <nav class=md-nav aria-label="4. ReAct (Reasoning + Acting)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#41-구현-시-주의점 class=md-nav__link> <span class=md-ellipsis> 4.1 구현 시 주의점 </span> </a> </li> <li class=md-nav__item> <a href=#42-function-calling이-react를-흡수했다 class=md-nav__link> <span class=md-ellipsis> 4.2 Function calling이 ReAct를 흡수했다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#5-tree-of-thoughts-tot class=md-nav__link> <span class=md-ellipsis> 5. Tree-of-Thoughts (ToT) </span> </a> <nav class=md-nav aria-label="5. Tree-of-Thoughts (ToT)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-실무-적용은-거의-못-본다 class=md-nav__link> <span class=md-ellipsis> 5.1 실무 적용은 거의 못 본다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-reflexion class=md-nav__link> <span class=md-ellipsis> 6. Reflexion </span> </a> <nav class=md-nav aria-label="6. Reflexion"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#61-reflexion-구현-시-함정 class=md-nav__link> <span class=md-ellipsis> 6.1 Reflexion 구현 시 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking class=md-nav__link> <span class=md-ellipsis> 7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking </span> </a> <nav class=md-nav aria-label="7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#71-o1-시리즈-openai class=md-nav__link> <span class=md-ellipsis> 7.1 o1 시리즈 (OpenAI) </span> </a> </li> <li class=md-nav__item> <a href=#72-deepseek-r1 class=md-nav__link> <span class=md-ellipsis> 7.2 DeepSeek-R1 </span> </a> </li> <li class=md-nav__item> <a href=#73-claude-extended-thinking class=md-nav__link> <span class=md-ellipsis> 7.3 Claude Extended Thinking </span> </a> </li> <li class=md-nav__item> <a href=#74-세-모델-비교 class=md-nav__link> <span class=md-ellipsis> 7.4 세 모델 비교 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#8-reasoning을-켜야-할-때와-끄는-게-나을-때 class=md-nav__link> <span class=md-ellipsis> 8. Reasoning을 켜야 할 때와 끄는 게 나을 때 </span> </a> <nav class=md-nav aria-label="8. Reasoning을 켜야 할 때와 끄는 게 나을 때"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#81-켜야-하는-작업 class=md-nav__link> <span class=md-ellipsis> 8.1 켜야 하는 작업 </span> </a> </li> <li class=md-nav__item> <a href=#82-끄는-게-나은-작업 class=md-nav__link> <span class=md-ellipsis> 8.2 끄는 게 나은 작업 </span> </a> </li> <li class=md-nav__item> <a href=#83-판단-기준 class=md-nav__link> <span class=md-ellipsis> 8.3 판단 기준 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#9-토큰-비용-폭증-사례 class=md-nav__link> <span class=md-ellipsis> 9. 토큰 비용 폭증 사례 </span> </a> <nav class=md-nav aria-label="9. 토큰 비용 폭증 사례"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#91-사례-1-고객-지원-챗봇에-o1-적용 class=md-nav__link> <span class=md-ellipsis> 9.1 사례 1: 고객 지원 챗봇에 o1 적용 </span> </a> </li> <li class=md-nav__item> <a href=#92-사례-2-코드-리뷰-에이전트의-무한-reasoning class=md-nav__link> <span class=md-ellipsis> 9.2 사례 2: 코드 리뷰 에이전트의 무한 reasoning </span> </a> </li> <li class=md-nav__item> <a href=#93-사례-3-claude-extended-thinking-budget-미설정 class=md-nav__link> <span class=md-ellipsis> 9.3 사례 3: Claude Extended Thinking budget 미설정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#10-reasoning--캐싱--streaming-조합 class=md-nav__link> <span class=md-ellipsis> 10. Reasoning + 캐싱 + Streaming 조합 </span> </a> </li> <li class=md-nav__item> <a href=#11-reasoning이-hallucination을-줄이는가 class=md-nav__link> <span class=md-ellipsis> 11. Reasoning이 hallucination을 줄이는가 </span> </a> </li> <li class=md-nav__item> <a href=#12-정리 class=md-nav__link> <span class=md-ellipsis> 12. 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>ai</span> <span class=md-tag>llm</span> </nav> <div class="admonition warning"> <p class=admonition-title>빠르게 낡는 문서</p> <p>이 주제는 릴리스 주기가 빠릅니다. 최종 확인: <strong><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span></strong><br> 읽기 전 해당 제품의 공식 문서와 릴리스 노트에서 최신 여부를 확인하세요.</p> </div> <h1 id=llm-reasoning-패턴과-모델>LLM Reasoning 패턴과 모델<a class=headerlink href=#llm-reasoning-패턴과-모델 title="Permanent link">&para;</a></h1> <p>LLM에게 "수도가 어디야"라고 묻는 것과 "이 SQL이 왜 느린지 분석해줘"라고 묻는 것은 완전히 다른 작업이다. 앞은 사실을 꺼내오면 되지만 뒤는 가설을 세우고, 검증하고, 다른 가능성을 떠올려야 한다. 후자가 안 풀리니까 사람들이 만들어낸 게 reasoning 패턴이다. 처음엔 프롬프트 한 줄로 시작했다가, ReAct로 도구를 끼우고, Tree-of-Thoughts로 분기를 치다가, 결국 모델 자체가 추론을 학습한 o1·DeepSeek-R1·Claude Extended Thinking까지 왔다.</p> <p>이 문서는 그 흐름을 따라가면서, 실무에서 reasoning을 켰을 때 토큰 비용이 어떻게 폭증하는지, 언제 끄는 게 나은지를 정리한다. "체인 오브 솟"이 만능이 아니라는 걸 토큰 청구서를 받아본 사람은 안다.</p> <h2 id=1-reasoning이-왜-필요한가>1. Reasoning이 왜 필요한가<a class=headerlink href=#1-reasoning이-왜-필요한가 title="Permanent link">&para;</a></h2> <p>GPT-3 시절에 발견된 현상이 있다. "다음 문제를 풀어라"라고 시키면 틀리는데, "단계별로 생각해보자"라고 한 줄 추가하면 정답률이 올라간다. 모델이 한 번에 답을 뱉는 대신 중간 사고 과정을 토큰으로 풀어내면 정확해진다.</p> <p>이유는 단순하다. Transformer의 forward pass는 토큰 한 개당 고정된 양의 연산만 한다. 복잡한 문제를 한 토큰 안에 압축해서 풀 수 없다. 중간 단계를 토큰으로 출력하게 만들면 그 토큰들이 다시 입력으로 들어가면서 연산량이 곱절로 늘어난다. 모델이 "생각할 시간"을 토큰 길이로 사는 셈이다.</p> <pre class=mermaid-diagram><code>graph LR
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/AI/Concepts/LLM_Reasoning/">
+      
+      
+        <link rel="prev" href="../LLM_Evaluation/">
+      
+      
+        <link rel="next" href="../LLM_Context_Window/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>LLM Reasoning 패턴과 모델 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#llm-reasoning-패턴과-모델" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LLM Reasoning 패턴과 모델
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개념
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    개념
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RAG_Evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG 품질 평가
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Prompt_Caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prompt Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Lang_Chain_vs_SDK/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LangChain vs 순수 SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Agent_Harness/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    에이전트
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Embeddings/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG와 검색
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Prompt_Engineering/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    실무 활용
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8_2_8" id="__nav_8_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_2_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    LLM
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    동작 원리와 프로덕션 통합
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Pretraining/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사전학습 파이프라인
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Tokenizer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    토크나이저
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Inference_Optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    추론 최적화 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Fine_Tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    파인튜닝 실무
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    평가 방법론
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reasoning 패턴과 모델
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reasoning 패턴과 모델
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-reasoning이-왜-필요한가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Reasoning이 왜 필요한가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-chain-of-thought-cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Chain-of-Thought (CoT)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Chain-of-Thought (CoT)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-zero-shot-cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Zero-shot CoT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-few-shot-cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Few-shot CoT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-cot가-안-통하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 CoT가 안 통하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-self-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Self-Consistency
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Self-Consistency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-실무-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 실무 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-react-reasoning--acting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. ReAct (Reasoning + Acting)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. ReAct (Reasoning + Acting)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-구현-시-주의점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 구현 시 주의점
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-function-calling이-react를-흡수했다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Function calling이 ReAct를 흡수했다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-tree-of-thoughts-tot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Tree-of-Thoughts (ToT)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Tree-of-Thoughts (ToT)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-실무-적용은-거의-못-본다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 실무 적용은 거의 못 본다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-reflexion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Reflexion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Reflexion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-reflexion-구현-시-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Reflexion 구현 시 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-o1-시리즈-openai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 o1 시리즈 (OpenAI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-deepseek-r1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 DeepSeek-R1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-claude-extended-thinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Claude Extended Thinking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-세-모델-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 세 모델 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-reasoning을-켜야-할-때와-끄는-게-나을-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Reasoning을 켜야 할 때와 끄는 게 나을 때
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Reasoning을 켜야 할 때와 끄는 게 나을 때">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-켜야-하는-작업" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 켜야 하는 작업
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-끄는-게-나은-작업" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 끄는 게 나은 작업
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-판단-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 판단 기준
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-토큰-비용-폭증-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 토큰 비용 폭증 사례
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. 토큰 비용 폭증 사례">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-사례-1-고객-지원-챗봇에-o1-적용" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 사례 1: 고객 지원 챗봇에 o1 적용
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-사례-2-코드-리뷰-에이전트의-무한-reasoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 사례 2: 코드 리뷰 에이전트의 무한 reasoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-사례-3-claude-extended-thinking-budget-미설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 사례 3: Claude Extended Thinking budget 미설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-reasoning--캐싱--streaming-조합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Reasoning + 캐싱 + Streaming 조합
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-reasoning이-hallucination을-줄이는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Reasoning이 hallucination을 줄이는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Context_Window/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context Window
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    에이전트 (Claude 관점)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안 위협과 대응
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LLM_Scaling_Laws/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스케일링 법칙
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Claude/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Claude_Code/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Gemini/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gemini
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GPT/GPT_5_5.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 모델
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cursor/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개발 도구
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-reasoning이-왜-필요한가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Reasoning이 왜 필요한가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-chain-of-thought-cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Chain-of-Thought (CoT)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Chain-of-Thought (CoT)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-zero-shot-cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Zero-shot CoT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-few-shot-cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Few-shot CoT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-cot가-안-통하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 CoT가 안 통하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-self-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Self-Consistency
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Self-Consistency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-실무-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 실무 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-react-reasoning--acting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. ReAct (Reasoning + Acting)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. ReAct (Reasoning + Acting)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-구현-시-주의점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 구현 시 주의점
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-function-calling이-react를-흡수했다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Function calling이 ReAct를 흡수했다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-tree-of-thoughts-tot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Tree-of-Thoughts (ToT)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Tree-of-Thoughts (ToT)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-실무-적용은-거의-못-본다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 실무 적용은 거의 못 본다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-reflexion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Reflexion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Reflexion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-reflexion-구현-시-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Reflexion 구현 시 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-o1-시리즈-openai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 o1 시리즈 (OpenAI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-deepseek-r1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 DeepSeek-R1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-claude-extended-thinking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Claude Extended Thinking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-세-모델-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 세 모델 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-reasoning을-켜야-할-때와-끄는-게-나을-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Reasoning을 켜야 할 때와 끄는 게 나을 때
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Reasoning을 켜야 할 때와 끄는 게 나을 때">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-켜야-하는-작업" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 켜야 하는 작업
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-끄는-게-나은-작업" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 끄는 게 나은 작업
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-판단-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 판단 기준
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-토큰-비용-폭증-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 토큰 비용 폭증 사례
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. 토큰 비용 폭증 사례">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-사례-1-고객-지원-챗봇에-o1-적용" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 사례 1: 고객 지원 챗봇에 o1 적용
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-사례-2-코드-리뷰-에이전트의-무한-reasoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 사례 2: 코드 리뷰 에이전트의 무한 reasoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-사례-3-claude-extended-thinking-budget-미설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 사례 3: Claude Extended Thinking budget 미설정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-reasoning--캐싱--streaming-조합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Reasoning + 캐싱 + Streaming 조합
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-reasoning이-hallucination을-줄이는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Reasoning이 hallucination을 줄이는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">ai</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">llm</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<div class="admonition warning">
+<p class="admonition-title">빠르게 낡는 문서</p>
+<p>이 주제는 릴리스 주기가 빠릅니다. 최종 확인: <strong>2026-06-04</strong><br />
+읽기 전 해당 제품의 공식 문서와 릴리스 노트에서 최신 여부를 확인하세요.</p>
+</div>
+<h1 id="llm-reasoning-패턴과-모델">LLM Reasoning 패턴과 모델<a class="headerlink" href="#llm-reasoning-패턴과-모델" title="Permanent link">&para;</a></h1>
+<p>LLM에게 "수도가 어디야"라고 묻는 것과 "이 SQL이 왜 느린지 분석해줘"라고 묻는 것은 완전히 다른 작업이다. 앞은 사실을 꺼내오면 되지만 뒤는 가설을 세우고, 검증하고, 다른 가능성을 떠올려야 한다. 후자가 안 풀리니까 사람들이 만들어낸 게 reasoning 패턴이다. 처음엔 프롬프트 한 줄로 시작했다가, ReAct로 도구를 끼우고, Tree-of-Thoughts로 분기를 치다가, 결국 모델 자체가 추론을 학습한 o1·DeepSeek-R1·Claude Extended Thinking까지 왔다.</p>
+<p>이 문서는 그 흐름을 따라가면서, 실무에서 reasoning을 켰을 때 토큰 비용이 어떻게 폭증하는지, 언제 끄는 게 나은지를 정리한다. "체인 오브 솟"이 만능이 아니라는 걸 토큰 청구서를 받아본 사람은 안다.</p>
+<h2 id="1-reasoning이-왜-필요한가">1. Reasoning이 왜 필요한가<a class="headerlink" href="#1-reasoning이-왜-필요한가" title="Permanent link">&para;</a></h2>
+<p>GPT-3 시절에 발견된 현상이 있다. "다음 문제를 풀어라"라고 시키면 틀리는데, "단계별로 생각해보자"라고 한 줄 추가하면 정답률이 올라간다. 모델이 한 번에 답을 뱉는 대신 중간 사고 과정을 토큰으로 풀어내면 정확해진다.</p>
+<p>이유는 단순하다. Transformer의 forward pass는 토큰 한 개당 고정된 양의 연산만 한다. 복잡한 문제를 한 토큰 안에 압축해서 풀 수 없다. 중간 단계를 토큰으로 출력하게 만들면 그 토큰들이 다시 입력으로 들어가면서 연산량이 곱절로 늘어난다. 모델이 "생각할 시간"을 토큰 길이로 사는 셈이다.</p>
+<pre class="mermaid-diagram"><code>graph LR
     A[질문] --&gt; B{직답}
     A --&gt; C[중간 토큰들]
     B --&gt; D[빠르지만 부정확]
     C --&gt; E[느리지만 정확]
-    C --&gt; F[비용 증가]</code></pre> <p>이게 reasoning의 본질이다. 정확도와 토큰 비용·지연을 맞바꾼다. 그래서 "언제 켜고 언제 끄는가"가 실무에서 가장 중요한 판단이 된다.</p> <h2 id=2-chain-of-thought-cot>2. Chain-of-Thought (CoT)<a class=headerlink href=#2-chain-of-thought-cot title="Permanent link">&para;</a></h2> <p>가장 오래되고 단순한 패턴이다. 2022년 구글이 발표한 논문이 시작이었는데, 지금도 거의 모든 reasoning 기법의 베이스다.</p> <h3 id=21-zero-shot-cot>2.1 Zero-shot CoT<a class=headerlink href=#21-zero-shot-cot title="Permanent link">&para;</a></h3> <p>프롬프트 마지막에 "Let's think step by step" 한 줄을 추가하는 게 전부다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>prompt</span> <span class=o>=</span> <span class=s2>&quot;&quot;&quot;</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=s2>문제: 한 가게에 사과가 23개 있다. 점심에 6개를 팔았고 오후에 새로 11개를 받았다.</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=s2>지금 사과가 몇 개 남았는가?</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a><span class=s2>Let&#39;s think step by step.</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=s2>&quot;&quot;&quot;</span>
-</span></code></pre></div> <p>모델이 알아서 "23 - 6 = 17, 17 + 11 = 28"을 풀어쓴다. 산수 문제 같은 다단계 추론에서 정확도가 30~40% 올라간다는 보고가 있었다.</p> <p>실무에서 쓸 때 주의할 점이 있다. 최신 모델(GPT-4o, Claude Sonnet 4.6 이상)은 별 지시 없이도 어려운 문제에 자동으로 CoT를 한다. "step by step" 같은 마법 단어가 옛날 모델에서만 효과가 컸지, 요즘은 큰 차이가 안 나는 경우가 많다.</p> <h3 id=22-few-shot-cot>2.2 Few-shot CoT<a class=headerlink href=#22-few-shot-cot title="Permanent link">&para;</a></h3> <p>예시를 직접 보여주는 방식이다. 추론 과정을 사람이 적은 예시 2~3개를 넣고, 그 다음에 실제 문제를 던진다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=n>prompt</span> <span class=o>=</span> <span class=s2>&quot;&quot;&quot;</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=s2>Q: Roger가 테니스공 5개를 가지고 있다. 공 2캔을 더 샀고 캔마다 3개가 들어있다. 지금 몇 개?</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=s2>A: Roger는 5개로 시작했다. 2캔 × 3개 = 6개. 5 + 6 = 11개.</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=s2>Q: 식당에 23개의 사과가 있다. 점심에 20개를 썼고 6개를 더 샀다. 지금 몇 개?</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=s2>A: 23 - 20 = 3개. 3 + 6 = 9개.</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=s2>Q: 한 가게에 사과가 23개 있다. 점심에 6개를 팔았고 오후에 새로 11개를 받았다. 지금 몇 개?</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=s2>A:</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=s2>&quot;&quot;&quot;</span>
-</span></code></pre></div> <p>Zero-shot보다 안정적이지만 프롬프트가 길어진다. 도메인 특화 작업(법률 추론, 의료 진단)에서는 few-shot이 여전히 강하다. 모델이 그 도메인의 추론 형식을 모를 때 예시가 가이드 역할을 한다.</p> <h3 id=23-cot가-안-통하는-경우>2.3 CoT가 안 통하는 경우<a class=headerlink href=#23-cot가-안-통하는-경우 title="Permanent link">&para;</a></h3> <p>CoT를 만능으로 생각하면 사고가 난다. 사실 검색(특정 인물의 생일, 위키피디아 사실)은 CoT를 켜도 정답률이 안 오른다. 모델이 모르는 사실은 단계를 쪼개도 모른다. 오히려 그럴듯한 추론 과정을 만들어내면서 hallucination이 강화된다.</p> <p>CoT가 효과적인 영역은 산수, 논리 퍼즐, 다단계 계획, 코드 디버깅처럼 "주어진 정보로 추론해서 도출하는" 작업이다. "기억해서 꺼내오는" 작업은 RAG로 해결해야지 CoT로는 안 풀린다.</p> <h2 id=3-self-consistency>3. Self-Consistency<a class=headerlink href=#3-self-consistency title="Permanent link">&para;</a></h2> <p>CoT의 약점은 추론 경로가 한 번에 결정된다는 것이다. 모델이 첫 단계에서 삐끗하면 그대로 틀린 답까지 간다. Self-Consistency는 이걸 다수결로 보정한다.</p> <pre class=mermaid-diagram><code>graph TD
+    C --&gt; F[비용 증가]</code></pre>
+<p>이게 reasoning의 본질이다. 정확도와 토큰 비용·지연을 맞바꾼다. 그래서 "언제 켜고 언제 끄는가"가 실무에서 가장 중요한 판단이 된다.</p>
+<h2 id="2-chain-of-thought-cot">2. Chain-of-Thought (CoT)<a class="headerlink" href="#2-chain-of-thought-cot" title="Permanent link">&para;</a></h2>
+<p>가장 오래되고 단순한 패턴이다. 2022년 구글이 발표한 논문이 시작이었는데, 지금도 거의 모든 reasoning 기법의 베이스다.</p>
+<h3 id="21-zero-shot-cot">2.1 Zero-shot CoT<a class="headerlink" href="#21-zero-shot-cot" title="Permanent link">&para;</a></h3>
+<p>프롬프트 마지막에 "Let's think step by step" 한 줄을 추가하는 게 전부다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="s2">문제: 한 가게에 사과가 23개 있다. 점심에 6개를 팔았고 오후에 새로 11개를 받았다.</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="s2">지금 사과가 몇 개 남았는가?</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="s2">Let&#39;s think step by step.</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s2">&quot;&quot;&quot;</span>
+</span></code></pre></div>
+<p>모델이 알아서 "23 - 6 = 17, 17 + 11 = 28"을 풀어쓴다. 산수 문제 같은 다단계 추론에서 정확도가 30~40% 올라간다는 보고가 있었다.</p>
+<p>실무에서 쓸 때 주의할 점이 있다. 최신 모델(GPT-4o, Claude Sonnet 4.6 이상)은 별 지시 없이도 어려운 문제에 자동으로 CoT를 한다. "step by step" 같은 마법 단어가 옛날 모델에서만 효과가 컸지, 요즘은 큰 차이가 안 나는 경우가 많다.</p>
+<h3 id="22-few-shot-cot">2.2 Few-shot CoT<a class="headerlink" href="#22-few-shot-cot" title="Permanent link">&para;</a></h3>
+<p>예시를 직접 보여주는 방식이다. 추론 과정을 사람이 적은 예시 2~3개를 넣고, 그 다음에 실제 문제를 던진다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="s2">Q: Roger가 테니스공 5개를 가지고 있다. 공 2캔을 더 샀고 캔마다 3개가 들어있다. 지금 몇 개?</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="s2">A: Roger는 5개로 시작했다. 2캔 × 3개 = 6개. 5 + 6 = 11개.</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="s2">Q: 식당에 23개의 사과가 있다. 점심에 20개를 썼고 6개를 더 샀다. 지금 몇 개?</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="s2">A: 23 - 20 = 3개. 3 + 6 = 9개.</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="s2">Q: 한 가게에 사과가 23개 있다. 점심에 6개를 팔았고 오후에 새로 11개를 받았다. 지금 몇 개?</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="s2">A:</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="s2">&quot;&quot;&quot;</span>
+</span></code></pre></div>
+<p>Zero-shot보다 안정적이지만 프롬프트가 길어진다. 도메인 특화 작업(법률 추론, 의료 진단)에서는 few-shot이 여전히 강하다. 모델이 그 도메인의 추론 형식을 모를 때 예시가 가이드 역할을 한다.</p>
+<h3 id="23-cot가-안-통하는-경우">2.3 CoT가 안 통하는 경우<a class="headerlink" href="#23-cot가-안-통하는-경우" title="Permanent link">&para;</a></h3>
+<p>CoT를 만능으로 생각하면 사고가 난다. 사실 검색(특정 인물의 생일, 위키피디아 사실)은 CoT를 켜도 정답률이 안 오른다. 모델이 모르는 사실은 단계를 쪼개도 모른다. 오히려 그럴듯한 추론 과정을 만들어내면서 hallucination이 강화된다.</p>
+<p>CoT가 효과적인 영역은 산수, 논리 퍼즐, 다단계 계획, 코드 디버깅처럼 "주어진 정보로 추론해서 도출하는" 작업이다. "기억해서 꺼내오는" 작업은 RAG로 해결해야지 CoT로는 안 풀린다.</p>
+<h2 id="3-self-consistency">3. Self-Consistency<a class="headerlink" href="#3-self-consistency" title="Permanent link">&para;</a></h2>
+<p>CoT의 약점은 추론 경로가 한 번에 결정된다는 것이다. 모델이 첫 단계에서 삐끗하면 그대로 틀린 답까지 간다. Self-Consistency는 이걸 다수결로 보정한다.</p>
+<pre class="mermaid-diagram"><code>graph TD
     A[질문] --&gt; B[CoT 경로 1&lt;br/&gt;temperature 0.7]
     A --&gt; C[CoT 경로 2&lt;br/&gt;temperature 0.7]
     A --&gt; D[CoT 경로 3&lt;br/&gt;temperature 0.7]
@@ -35,44 +2835,69 @@
     I --&gt; L
     J --&gt; L
     K --&gt; L
-    L --&gt; M[최종 답: 28]</code></pre> <p>같은 질문을 temperature를 올려서 N번 돌리고, 가장 자주 나온 답을 채택한다. 보통 N=5~40 범위에서 쓴다. GSM8K 같은 산수 벤치마크에서 단일 CoT 대비 10~15%p 정확도가 더 오른다.</p> <p>대가는 명확하다. 비용이 N배가 된다. 응답 시간도 병렬로 돌리지 않으면 N배 늘어난다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=k>async</span> <span class=k>def</span><span class=w> </span><span class=nf>self_consistency</span><span class=p>(</span><span class=n>question</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>10</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>    <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>        <span class=n>llm</span><span class=o>.</span><span class=n>complete</span><span class=p>(</span><span class=n>question</span><span class=p>,</span> <span class=n>temperature</span><span class=o>=</span><span class=mf>0.7</span><span class=p>)</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>    <span class=p>]</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>    <span class=n>responses</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a>    <span class=n>answers</span> <span class=o>=</span> <span class=p>[</span><span class=n>extract_answer</span><span class=p>(</span><span class=n>r</span><span class=p>)</span> <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>responses</span><span class=p>]</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>    <span class=k>return</span> <span class=n>Counter</span><span class=p>(</span><span class=n>answers</span><span class=p>)</span><span class=o>.</span><span class=n>most_common</span><span class=p>(</span><span class=mi>1</span><span class=p>)[</span><span class=mi>0</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span>
-</span></code></pre></div> <p>병렬 호출로 지연은 줄여도 토큰 비용은 그대로 N배다. 정답률이 5%p 오르는 데 비용 10배를 쓸 가치가 있는지는 작업에 따라 다르다. 의료 진단처럼 한 번 틀리면 치명적인 곳에서나 정당화된다.</p> <h3 id=31-실무-함정>3.1 실무 함정<a class=headerlink href=#31-실무-함정 title="Permanent link">&para;</a></h3> <p>Self-Consistency를 적용했는데 정확도가 안 오르는 경우가 있다. 원인은 보통 두 가지다.</p> <p>첫째, temperature가 너무 낮으면 N번 돌려도 거의 같은 답이 나온다. 다양성이 없으니 다수결이 의미가 없다. 0.5~0.9 사이를 권장한다.</p> <p>둘째, 답을 정규화하지 않으면 "28", "28개", "28 apples"가 다 다른 답으로 카운트된다. extract_answer 함수에서 숫자만 뽑거나, 모델에게 "최종 답은 한 줄에 숫자만 적어라"라고 강제해야 한다.</p> <h2 id=4-react-reasoning--acting>4. ReAct (Reasoning + Acting)<a class=headerlink href=#4-react-reasoning--acting title="Permanent link">&para;</a></h2> <p>CoT는 모델 머릿속에서만 돈다. 외부 정보가 필요하면 못 푼다. "오늘 비트코인 가격이 얼마야"는 모델 가중치에 없다. ReAct는 추론 도중 도구를 호출해서 외부 정보를 끌어온다.</p> <p>기본 루프는 Thought → Action → Observation의 반복이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>Thought: 비트코인 현재가가 필요하다. 검색 도구를 쓴다.
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>Action: search(&quot;bitcoin price today&quot;)
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>Observation: 95,432 USD
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>Thought: 한화로 환산해야 한다. 환율 도구를 쓴다.
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>Action: get_exchange_rate(&quot;USD&quot;, &quot;KRW&quot;)
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>Observation: 1342.5
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a>Thought: 95432 × 1342.5 = 128,117,460
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a>Final Answer: 약 1억 2,811만 원
-</span></code></pre></div> <p>이 루프가 LangChain, AutoGPT, 그리고 지금의 Claude Code 같은 agent harness의 뿌리다. 도구 호출과 추론을 같은 토큰 스트림에 섞어서 모델이 다음 행동을 결정하게 한다.</p> <h3 id=41-구현-시-주의점>4.1 구현 시 주의점<a class=headerlink href=#41-구현-시-주의점 title="Permanent link">&para;</a></h3> <p>ReAct 루프를 직접 구현해보면 몇 가지 함정이 있다.</p> <p><strong>무한 루프 방어.</strong> 모델이 같은 도구를 계속 부르거나, Observation을 무시하고 같은 Thought를 반복할 수 있다. 최대 step 수(보통 10~20)로 강제 종료해야 한다.</p> <p><strong>도구 출력 잘림.</strong> 검색 도구가 10KB 텍스트를 뱉으면 그게 그대로 context에 쌓인다. 5~6번 호출하면 context window가 터진다. Observation을 요약하거나, 모델이 필요한 부분만 추출하게 한 다음에 다음 step에 넣어야 한다.</p> <p><strong>Action 파싱 실패.</strong> 모델이 <code>Action: search("query")</code> 형식을 어길 때가 있다. JSON 모드나 function calling을 지원하는 API를 쓰면 파싱 안정성이 올라간다. 텍스트 정규식으로 파싱하는 건 프로토타입까지만 권한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=k>async</span> <span class=k>def</span><span class=w> </span><span class=nf>react_loop</span><span class=p>(</span><span class=n>question</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>tools</span><span class=p>:</span> <span class=nb>dict</span><span class=p>,</span> <span class=n>max_steps</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>10</span><span class=p>):</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>    <span class=n>context</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&quot;Question: </span><span class=si>{</span><span class=n>question</span><span class=si>}</span><span class=se>\n</span><span class=s2>&quot;</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>    <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_steps</span><span class=p>):</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>        <span class=n>response</span> <span class=o>=</span> <span class=k>await</span> <span class=n>llm</span><span class=o>.</span><span class=n>complete</span><span class=p>(</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>            <span class=n>context</span> <span class=o>+</span> <span class=s2>&quot;Thought:&quot;</span><span class=p>,</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>            <span class=n>stop</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;Observation:&quot;</span><span class=p>],</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>        <span class=p>)</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>        <span class=n>context</span> <span class=o>+=</span> <span class=n>response</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>        <span class=k>if</span> <span class=s2>&quot;Final Answer:&quot;</span> <span class=ow>in</span> <span class=n>response</span><span class=p>:</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>            <span class=k>return</span> <span class=n>extract_final_answer</span><span class=p>(</span><span class=n>response</span><span class=p>)</span>
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a>
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a>        <span class=n>action</span> <span class=o>=</span> <span class=n>parse_action</span><span class=p>(</span><span class=n>response</span><span class=p>)</span>
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a>        <span class=k>if</span> <span class=ow>not</span> <span class=n>action</span><span class=p>:</span>
-</span><span id=__span-4-15><a id=__codelineno-4-15 name=__codelineno-4-15 href=#__codelineno-4-15></a>            <span class=n>context</span> <span class=o>+=</span> <span class=s2>&quot;</span><span class=se>\n</span><span class=s2>Observation: Action 형식 오류. 다시 시도.</span><span class=se>\n</span><span class=s2>&quot;</span>
-</span><span id=__span-4-16><a id=__codelineno-4-16 name=__codelineno-4-16 href=#__codelineno-4-16></a>            <span class=k>continue</span>
-</span><span id=__span-4-17><a id=__codelineno-4-17 name=__codelineno-4-17 href=#__codelineno-4-17></a>
-</span><span id=__span-4-18><a id=__codelineno-4-18 name=__codelineno-4-18 href=#__codelineno-4-18></a>        <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>tools</span><span class=p>[</span><span class=n>action</span><span class=o>.</span><span class=n>name</span><span class=p>](</span><span class=o>**</span><span class=n>action</span><span class=o>.</span><span class=n>args</span><span class=p>)</span>
-</span><span id=__span-4-19><a id=__codelineno-4-19 name=__codelineno-4-19 href=#__codelineno-4-19></a>        <span class=n>context</span> <span class=o>+=</span> <span class=sa>f</span><span class=s2>&quot;</span><span class=se>\n</span><span class=s2>Observation: </span><span class=si>{</span><span class=n>truncate</span><span class=p>(</span><span class=n>result</span><span class=p>,</span><span class=w> </span><span class=mi>2000</span><span class=p>)</span><span class=si>}</span><span class=se>\n</span><span class=s2>&quot;</span>
-</span><span id=__span-4-20><a id=__codelineno-4-20 name=__codelineno-4-20 href=#__codelineno-4-20></a>
-</span><span id=__span-4-21><a id=__codelineno-4-21 name=__codelineno-4-21 href=#__codelineno-4-21></a>    <span class=k>return</span> <span class=s2>&quot;최대 step 초과&quot;</span>
-</span></code></pre></div> <h3 id=42-function-calling이-react를-흡수했다>4.2 Function calling이 ReAct를 흡수했다<a class=headerlink href=#42-function-calling이-react를-흡수했다 title="Permanent link">&para;</a></h3> <p>OpenAI가 2023년에 function calling을 정식 API로 내놓으면서 ReAct를 수동으로 짜는 일은 줄었다. 모델이 텍스트로 "Action: ..."를 뱉는 대신, 정형화된 tool_call을 API 응답에 직접 포함시킨다. 파싱 실패가 사라지고, 병렬 도구 호출도 지원된다.</p> <p>지금은 Anthropic, OpenAI, Google이 다 비슷한 tool use API를 제공한다. ReAct의 개념은 그대로지만, 텍스트 파싱이 SDK 안으로 들어갔다.</p> <h2 id=5-tree-of-thoughts-tot>5. Tree-of-Thoughts (ToT)<a class=headerlink href=#5-tree-of-thoughts-tot title="Permanent link">&para;</a></h2> <p>CoT는 한 줄기로 추론한다. ToT는 분기를 친다. 각 단계에서 여러 후보를 생성하고, 평가해서 좋은 가지만 남기고, 다음 단계로 간다.</p> <pre class=mermaid-diagram><code>graph TD
+    L --&gt; M[최종 답: 28]</code></pre>
+<p>같은 질문을 temperature를 올려서 N번 돌리고, 가장 자주 나온 답을 채택한다. 보통 N=5~40 범위에서 쓴다. GSM8K 같은 산수 벤치마크에서 단일 CoT 대비 10~15%p 정확도가 더 오른다.</p>
+<p>대가는 명확하다. 비용이 N배가 된다. 응답 시간도 병렬로 돌리지 않으면 N배 늘어난다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">self_consistency</span><span class="p">(</span><span class="n">question</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="p">]</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">responses</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">answers</span> <span class="o">=</span> <span class="p">[</span><span class="n">extract_answer</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">responses</span><span class="p">]</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="k">return</span> <span class="n">Counter</span><span class="p">(</span><span class="n">answers</span><span class="p">)</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</span></code></pre></div>
+<p>병렬 호출로 지연은 줄여도 토큰 비용은 그대로 N배다. 정답률이 5%p 오르는 데 비용 10배를 쓸 가치가 있는지는 작업에 따라 다르다. 의료 진단처럼 한 번 틀리면 치명적인 곳에서나 정당화된다.</p>
+<h3 id="31-실무-함정">3.1 실무 함정<a class="headerlink" href="#31-실무-함정" title="Permanent link">&para;</a></h3>
+<p>Self-Consistency를 적용했는데 정확도가 안 오르는 경우가 있다. 원인은 보통 두 가지다.</p>
+<p>첫째, temperature가 너무 낮으면 N번 돌려도 거의 같은 답이 나온다. 다양성이 없으니 다수결이 의미가 없다. 0.5~0.9 사이를 권장한다.</p>
+<p>둘째, 답을 정규화하지 않으면 "28", "28개", "28 apples"가 다 다른 답으로 카운트된다. extract_answer 함수에서 숫자만 뽑거나, 모델에게 "최종 답은 한 줄에 숫자만 적어라"라고 강제해야 한다.</p>
+<h2 id="4-react-reasoning--acting">4. ReAct (Reasoning + Acting)<a class="headerlink" href="#4-react-reasoning--acting" title="Permanent link">&para;</a></h2>
+<p>CoT는 모델 머릿속에서만 돈다. 외부 정보가 필요하면 못 푼다. "오늘 비트코인 가격이 얼마야"는 모델 가중치에 없다. ReAct는 추론 도중 도구를 호출해서 외부 정보를 끌어온다.</p>
+<p>기본 루프는 Thought → Action → Observation의 반복이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Thought: 비트코인 현재가가 필요하다. 검색 도구를 쓴다.
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Action: search(&quot;bitcoin price today&quot;)
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Observation: 95,432 USD
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Thought: 한화로 환산해야 한다. 환율 도구를 쓴다.
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>Action: get_exchange_rate(&quot;USD&quot;, &quot;KRW&quot;)
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>Observation: 1342.5
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>Thought: 95432 × 1342.5 = 128,117,460
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>Final Answer: 약 1억 2,811만 원
+</span></code></pre></div>
+<p>이 루프가 LangChain, AutoGPT, 그리고 지금의 Claude Code 같은 agent harness의 뿌리다. 도구 호출과 추론을 같은 토큰 스트림에 섞어서 모델이 다음 행동을 결정하게 한다.</p>
+<h3 id="41-구현-시-주의점">4.1 구현 시 주의점<a class="headerlink" href="#41-구현-시-주의점" title="Permanent link">&para;</a></h3>
+<p>ReAct 루프를 직접 구현해보면 몇 가지 함정이 있다.</p>
+<p><strong>무한 루프 방어.</strong> 모델이 같은 도구를 계속 부르거나, Observation을 무시하고 같은 Thought를 반복할 수 있다. 최대 step 수(보통 10~20)로 강제 종료해야 한다.</p>
+<p><strong>도구 출력 잘림.</strong> 검색 도구가 10KB 텍스트를 뱉으면 그게 그대로 context에 쌓인다. 5~6번 호출하면 context window가 터진다. Observation을 요약하거나, 모델이 필요한 부분만 추출하게 한 다음에 다음 step에 넣어야 한다.</p>
+<p><strong>Action 파싱 실패.</strong> 모델이 <code>Action: search("query")</code> 형식을 어길 때가 있다. JSON 모드나 function calling을 지원하는 API를 쓰면 파싱 안정성이 올라간다. 텍스트 정규식으로 파싱하는 건 프로토타입까지만 권한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">react_loop</span><span class="p">(</span><span class="n">question</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">context</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Question: </span><span class="si">{</span><span class="n">question</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>            <span class="n">context</span> <span class="o">+</span> <span class="s2">&quot;Thought:&quot;</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>            <span class="n">stop</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Observation:&quot;</span><span class="p">],</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">context</span> <span class="o">+=</span> <span class="n">response</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="k">if</span> <span class="s2">&quot;Final Answer:&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>            <span class="k">return</span> <span class="n">extract_final_answer</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">action</span> <span class="o">=</span> <span class="n">parse_action</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">action</span><span class="p">:</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>            <span class="n">context</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Observation: Action 형식 오류. 다시 시도.</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>            <span class="k">continue</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">tools</span><span class="p">[</span><span class="n">action</span><span class="o">.</span><span class="n">name</span><span class="p">](</span><span class="o">**</span><span class="n">action</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="n">context</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Observation: </span><span class="si">{</span><span class="n">truncate</span><span class="p">(</span><span class="n">result</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="k">return</span> <span class="s2">&quot;최대 step 초과&quot;</span>
+</span></code></pre></div>
+<h3 id="42-function-calling이-react를-흡수했다">4.2 Function calling이 ReAct를 흡수했다<a class="headerlink" href="#42-function-calling이-react를-흡수했다" title="Permanent link">&para;</a></h3>
+<p>OpenAI가 2023년에 function calling을 정식 API로 내놓으면서 ReAct를 수동으로 짜는 일은 줄었다. 모델이 텍스트로 "Action: ..."를 뱉는 대신, 정형화된 tool_call을 API 응답에 직접 포함시킨다. 파싱 실패가 사라지고, 병렬 도구 호출도 지원된다.</p>
+<p>지금은 Anthropic, OpenAI, Google이 다 비슷한 tool use API를 제공한다. ReAct의 개념은 그대로지만, 텍스트 파싱이 SDK 안으로 들어갔다.</p>
+<h2 id="5-tree-of-thoughts-tot">5. Tree-of-Thoughts (ToT)<a class="headerlink" href="#5-tree-of-thoughts-tot" title="Permanent link">&para;</a></h2>
+<p>CoT는 한 줄기로 추론한다. ToT는 분기를 친다. 각 단계에서 여러 후보를 생성하고, 평가해서 좋은 가지만 남기고, 다음 단계로 간다.</p>
+<pre class="mermaid-diagram"><code>graph TD
     A[문제] --&gt; B1[후보 1]
     A --&gt; B2[후보 2]
     A --&gt; B3[후보 3]
@@ -85,26 +2910,308 @@
     D1 --&gt; E[평가 0.9]
     D2 --&gt; E2[평가 0.4]
     D3 --&gt; E3[평가 0.7]
-    E --&gt; F[최종 답]</code></pre> <p>게임 24(주어진 숫자 4개로 사칙연산해서 24 만들기) 같은 탐색 문제에서 강하다. CoT의 정답률 4%가 ToT로 74%까지 올라간 보고가 있다.</p> <h3 id=51-실무-적용은-거의-못-본다>5.1 실무 적용은 거의 못 본다<a class=headerlink href=#51-실무-적용은-거의-못-본다 title="Permanent link">&para;</a></h3> <p>흥미로운 기법이지만 프로덕션에서 본 적이 거의 없다. 이유가 명확하다.</p> <p><strong>비용이 폭발한다.</strong> depth 5, branch 3이면 한 문제당 최대 243개 분기를 평가한다. 각 분기마다 LLM 호출이니까 단일 CoT 대비 100배 가까운 비용이 나온다.</p> <p><strong>평가 함수 만들기가 어렵다.</strong> 각 분기를 LLM으로 평가하면 그 자체가 또 추론이라 비용이 더 늘어난다. 도메인 특화 점수 함수(체스 평가, 산수 검증)가 있으면 가능하지만, 자유 텍스트 작업에는 평가가 곧 또 다른 LLM 호출이다.</p> <p><strong>Reasoning 모델이 ToT를 대체했다.</strong> o1, DeepSeek-R1이 내부에서 비슷한 탐색을 하면서 결과만 뱉기 때문에, 외부에서 ToT를 짜는 동기가 줄었다.</p> <p>ToT는 학술 벤치마크나 매우 특수한 탐색 문제(수학 정리 증명, 합성 경로 탐색)에서만 살아남았다. 일반 백엔드 서비스에서는 거의 안 쓴다.</p> <h2 id=6-reflexion>6. Reflexion<a class=headerlink href=#6-reflexion title="Permanent link">&para;</a></h2> <p>Reflexion은 실패에서 배우는 패턴이다. 작업을 시도하고, 결과를 평가하고, 평가 결과를 자연어 피드백으로 저장해서 다음 시도에 컨텍스트로 넣는다.</p> <pre class=mermaid-diagram><code>graph LR
+    E --&gt; F[최종 답]</code></pre>
+<p>게임 24(주어진 숫자 4개로 사칙연산해서 24 만들기) 같은 탐색 문제에서 강하다. CoT의 정답률 4%가 ToT로 74%까지 올라간 보고가 있다.</p>
+<h3 id="51-실무-적용은-거의-못-본다">5.1 실무 적용은 거의 못 본다<a class="headerlink" href="#51-실무-적용은-거의-못-본다" title="Permanent link">&para;</a></h3>
+<p>흥미로운 기법이지만 프로덕션에서 본 적이 거의 없다. 이유가 명확하다.</p>
+<p><strong>비용이 폭발한다.</strong> depth 5, branch 3이면 한 문제당 최대 243개 분기를 평가한다. 각 분기마다 LLM 호출이니까 단일 CoT 대비 100배 가까운 비용이 나온다.</p>
+<p><strong>평가 함수 만들기가 어렵다.</strong> 각 분기를 LLM으로 평가하면 그 자체가 또 추론이라 비용이 더 늘어난다. 도메인 특화 점수 함수(체스 평가, 산수 검증)가 있으면 가능하지만, 자유 텍스트 작업에는 평가가 곧 또 다른 LLM 호출이다.</p>
+<p><strong>Reasoning 모델이 ToT를 대체했다.</strong> o1, DeepSeek-R1이 내부에서 비슷한 탐색을 하면서 결과만 뱉기 때문에, 외부에서 ToT를 짜는 동기가 줄었다.</p>
+<p>ToT는 학술 벤치마크나 매우 특수한 탐색 문제(수학 정리 증명, 합성 경로 탐색)에서만 살아남았다. 일반 백엔드 서비스에서는 거의 안 쓴다.</p>
+<h2 id="6-reflexion">6. Reflexion<a class="headerlink" href="#6-reflexion" title="Permanent link">&para;</a></h2>
+<p>Reflexion은 실패에서 배우는 패턴이다. 작업을 시도하고, 결과를 평가하고, 평가 결과를 자연어 피드백으로 저장해서 다음 시도에 컨텍스트로 넣는다.</p>
+<pre class="mermaid-diagram"><code>graph LR
     A[Task] --&gt; B[Actor: 시도]
     B --&gt; C[Evaluator: 평가]
     C --&gt; D{성공?}
     D --&gt;|No| E[Self-Reflection&lt;br/&gt;실패 원인 분석]
     E --&gt; F[Memory에 저장]
     F --&gt; B
-    D --&gt;|Yes| G[종료]</code></pre> <p>코드 생성 벤치마크 HumanEval에서 GPT-4 단발 호출이 80%대였는데, Reflexion을 붙이면 90%대로 올라갔다. 테스트 실행 → 실패 메시지 분석 → 코드 수정 사이클이 자동으로 돈다.</p> <p>실무에서 Cursor의 agent 모드, Claude Code의 다단계 작업, ChatGPT의 Code Interpreter가 모두 Reflexion 변형이다. 코드를 짜고, 실행하고, 에러를 보고, 다시 짠다. 사용자는 이 루프가 돌고 있는 줄도 모르고 결과만 본다.</p> <h3 id=61-reflexion-구현-시-함정>6.1 Reflexion 구현 시 함정<a class=headerlink href=#61-reflexion-구현-시-함정 title="Permanent link">&para;</a></h3> <p><strong>무한 반복.</strong> 같은 에러로 같은 수정을 반복하는 경우가 흔하다. 같은 self-reflection이 두 번 나오면 멈추는 휴리스틱이 필요하다.</p> <p><strong>평가가 비싸다.</strong> 코드라면 테스트 실행이 평가다. 자유 텍스트(에세이 작성)에서는 평가 자체가 LLM 호출이라 비용 부담이 크다.</p> <p><strong>메모리 누적.</strong> N번째 시도 때 1~(N-1)번째 reflection이 다 context에 쌓인다. 3번 이상 돌면 context가 빠르게 비대해진다. 최근 3개 reflection만 유지하는 식으로 윈도우를 둬야 한다.</p> <h2 id=7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking>7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking<a class=headerlink href=#7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking title="Permanent link">&para;</a></h2> <p>2024년 9월 OpenAI o1이 나오면서 게임이 바뀌었다. 프롬프트로 reasoning을 유도하는 게 아니라, 모델 자체가 reasoning을 학습했다. 사용자가 "step by step"을 안 적어도 모델이 알아서 길게 생각한다.</p> <h3 id=71-o1-시리즈-openai>7.1 o1 시리즈 (OpenAI)<a class=headerlink href=#71-o1-시리즈-openai title="Permanent link">&para;</a></h3> <p>o1은 강화학습으로 reasoning을 학습한 모델이다. 응답 전에 내부적으로 "reasoning tokens"를 만든다. 이 토큰은 사용자에게 안 보이지만 과금된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>사용자 입력 → [숨겨진 reasoning 1000~50000 토큰] → 최종 응답 200 토큰
-</span></code></pre></div> <p>체감으로는 응답 시간이 5~60초로 늘어난다. 단순한 질문에 30초씩 기다리는 게 화면에서 보인다. 비용은 일반 GPT-4o 대비 4~6배 정도 더 비싸다(reasoning 토큰 + 응답 토큰 모두 과금).</p> <p>o1이 잘 푸는 문제: 수학 올림피아드, 코딩 콘테스트, 다단계 논리 퍼즐, 복잡한 SQL 디버깅. 잘 못 푸는 문제: 사실 검색, 짧은 분류, 대화형 챗봇 응답.</p> <h3 id=72-deepseek-r1>7.2 DeepSeek-R1<a class=headerlink href=#72-deepseek-r1 title="Permanent link">&para;</a></h3> <p>2025년 초 DeepSeek이 R1을 오픈소스로 공개했다. o1급 성능을 RL만으로 달성했다고 주장했고, 가중치도 풀어서 화제가 됐다. 671B MoE 모델인데 활성 파라미터는 37B다.</p> <p>핵심은 reasoning trace를 사용자가 볼 수 있다는 점이다. o1은 reasoning을 숨기지만 R1은 <code>&lt;think&gt;...&lt;/think&gt;</code> 블록으로 노출한다. 디버깅하기 좋고, 모델이 어디서 틀렸는지 추적할 수 있다.</p> <p>실무에서 자체 호스팅이 가능한 게 큰 차이다. API에 의존하지 않고, 데이터를 외부로 안 보내고 싶은 기업이 R1을 골랐다. 다만 671B를 띄우려면 H100 8장 정도가 필요해서 운영 비용은 크다. Distill 버전(R1-Distill-Qwen-32B 등)이 현실적인 선택지다.</p> <h3 id=73-claude-extended-thinking>7.3 Claude Extended Thinking<a class=headerlink href=#73-claude-extended-thinking title="Permanent link">&para;</a></h3> <p>Anthropic이 Claude 3.7 Sonnet에 도입한 기능이다. API 파라미터로 thinking budget을 토큰 수로 지정한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=n>response</span> <span class=o>=</span> <span class=n>anthropic</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;claude-sonnet-4-6&quot;</span><span class=p>,</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>8192</span><span class=p>,</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>    <span class=n>thinking</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>        <span class=s2>&quot;type&quot;</span><span class=p>:</span> <span class=s2>&quot;enabled&quot;</span><span class=p>,</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>        <span class=s2>&quot;budget_tokens&quot;</span><span class=p>:</span> <span class=mi>10000</span><span class=p>,</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>    <span class=p>},</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=s2>&quot;...&quot;</span><span class=p>}],</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=p>)</span>
-</span></code></pre></div> <p>budget_tokens가 thinking에 쓸 최대 토큰 수다. 모델이 그 안에서 알아서 사고하고, 끝나면 응답을 생성한다. 짧은 작업은 1024 토큰, 어려운 수학 문제는 32768 토큰까지 줄 수 있다.</p> <p>o1과 다른 점은 thinking 내용이 응답에 포함돼서 볼 수 있다는 것이다. R1처럼 디버깅 가능하다. 또 thinking 토큰을 캐싱할 수 있어서 같은 컨텍스트에 여러 질문할 때 비용을 아낀다.</p> <h3 id=74-세-모델-비교>7.4 세 모델 비교<a class=headerlink href=#74-세-모델-비교 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>o1</th> <th>DeepSeek-R1</th> <th>Claude Extended Thinking</th> </tr> </thead> <tbody> <tr> <td>Reasoning 노출</td> <td>숨김</td> <td><code>&lt;think&gt;</code> 노출</td> <td>응답에 포함</td> </tr> <tr> <td>자체 호스팅</td> <td>불가</td> <td>가능(오픈소스)</td> <td>불가</td> </tr> <tr> <td>Budget 제어</td> <td>reasoning_effort(low/medium/high)</td> <td>자동</td> <td>budget_tokens 정밀 제어</td> </tr> <tr> <td>일반 모델 대비 비용</td> <td>4~6배</td> <td>API 기준 1.5~3배</td> <td>thinking 토큰만큼 증가</td> </tr> <tr> <td>응답 지연</td> <td>5~60초</td> <td>3~40초</td> <td>2~30초(budget에 따라)</td> </tr> <tr> <td>Streaming</td> <td>불가 또는 reasoning 끝난 뒤</td> <td>가능</td> <td>가능</td> </tr> </tbody> </table> <h2 id=8-reasoning을-켜야-할-때와-끄는-게-나을-때>8. Reasoning을 켜야 할 때와 끄는 게 나을 때<a class=headerlink href=#8-reasoning을-켜야-할-때와-끄는-게-나을-때 title="Permanent link">&para;</a></h2> <p>이게 실무에서 가장 중요한 부분이다. Reasoning은 무조건 좋은 게 아니다. 잘못 켜면 비용만 날린다.</p> <h3 id=81-켜야-하는-작업>8.1 켜야 하는 작업<a class=headerlink href=#81-켜야-하는-작업 title="Permanent link">&para;</a></h3> <ul> <li>다단계 수학·논리 추론(SQL 쿼리 플랜 분석, 알고리즘 설계)</li> <li>코드 디버깅(스택 트레이스 → 원인 추적)</li> <li>복잡한 문서 요약(법률 문서, 논문)</li> <li>다중 제약 만족(스케줄링, 자원 배분)</li> <li>에이전트의 plan 단계(다음 step을 무엇으로 할지 결정)</li> </ul> <h3 id=82-끄는-게-나은-작업>8.2 끄는 게 나은 작업<a class=headerlink href=#82-끄는-게-나은-작업 title="Permanent link">&para;</a></h3> <ul> <li>분류(스팸·정상, 감성 분석)</li> <li>단순 추출(이메일에서 이름·전화번호 뽑기)</li> <li>사실 검색(고객 정보 조회, 위키 사실)</li> <li>짧은 대화 응답(챗봇의 인사, 단답)</li> <li>번역(특히 짧은 텍스트)</li> <li>형식 변환(JSON ↔ YAML)</li> </ul> <p>이런 작업에 reasoning을 켜면 어떻게 되는지 실제로 본 사례가 있다. 분류 작업(스팸 감지) API에 실수로 o1을 연결했는데, 메시지 한 건당 50초가 걸리고 비용이 평소의 30배가 나왔다. 정확도는 GPT-4o 대비 1%p도 안 올랐다. 단순 분류는 모델이 한 번에 답을 알고 있어서 추가 사고가 무의미하다.</p> <h3 id=83-판단-기준>8.3 판단 기준<a class=headerlink href=#83-판단-기준 title="Permanent link">&para;</a></h3> <p>작업을 받았을 때 "사람이 이 문제를 풀려면 종이에 메모하면서 30초 이상 생각해야 하는가"를 따져보면 된다.</p> <ul> <li>1초 안에 답이 나오는 작업 → reasoning 끄기</li> <li>종이에 적어가며 풀어야 하는 작업 → reasoning 켜기</li> <li>애매한 작업 → A/B 테스트로 비교</li> </ul> <p>A/B 테스트가 중요한 이유는 reasoning이 도움이 안 되는데도 약간의 정확도 상승이 있어서 "그래도 켜는 게 낫네"라고 착각하기 쉽기 때문이다. 비용과 지연을 같이 측정해야 한다.</p> <h2 id=9-토큰-비용-폭증-사례>9. 토큰 비용 폭증 사례<a class=headerlink href=#9-토큰-비용-폭증-사례 title="Permanent link">&para;</a></h2> <p>Reasoning을 켰을 때 비용이 어떻게 폭발하는지 구체적인 사례를 보자.</p> <h3 id=91-사례-1-고객-지원-챗봇에-o1-적용>9.1 사례 1: 고객 지원 챗봇에 o1 적용<a class=headerlink href=#91-사례-1-고객-지원-챗봇에-o1-적용 title="Permanent link">&para;</a></h3> <p>배경: 응답 품질을 높이려고 GPT-4o에서 o1으로 교체.</p> <p>결과: - 문의 한 건당 입력 토큰 800, 출력 토큰 400은 동일 - 그런데 reasoning 토큰이 평균 3000~8000개 추가 - 토큰 비용: 일 평균 $40 → $480 (12배) - 응답 시간: 3초 → 35초 (사용자 이탈률 증가) - 응답 품질 만족도: 4.2/5 → 4.3/5 (개선 미미)</p> <p>원인: 고객 문의는 대부분 사실 조회·간단한 안내라서 reasoning이 무의미했다. 1주일 만에 롤백했다.</p> <h3 id=92-사례-2-코드-리뷰-에이전트의-무한-reasoning>9.2 사례 2: 코드 리뷰 에이전트의 무한 reasoning<a class=headerlink href=#92-사례-2-코드-리뷰-에이전트의-무한-reasoning title="Permanent link">&para;</a></h3> <p>배경: PR 리뷰 자동화 에이전트를 ReAct + reasoning 모델로 구성.</p> <p>결과: - PR 한 건당 평균 reasoning 토큰 80,000개 - 큰 PR(파일 50개+) 에서는 500,000 토큰 초과 - 한 건당 비용 $30 발생 - 월 PR 1000건 처리 시 $30,000</p> <p>원인: ReAct loop의 각 step마다 reasoning 모델이 호출되니까 토큰이 누적됐다. 게다가 모델이 같은 파일을 여러 번 다시 읽으면서 reasoning을 반복했다.</p> <p>해결: plan 단계에서만 reasoning 켜고, 실제 코드 읽기·diff 분석은 일반 모델로 처리. step별로 모델을 다르게 쓰는 router를 도입해서 비용이 1/5로 떨어졌다.</p> <h3 id=93-사례-3-claude-extended-thinking-budget-미설정>9.3 사례 3: Claude Extended Thinking budget 미설정<a class=headerlink href=#93-사례-3-claude-extended-thinking-budget-미설정 title="Permanent link">&para;</a></h3> <p>배경: 문서 요약 API에 thinking 켜고 budget을 max(32768)로 설정.</p> <p>결과: - 짧은 문서(2페이지) 요약에도 thinking 25000 토큰 사용 - 짧은 문서는 thinking 1000 토큰이면 충분한데 모델이 budget까지 채움 - 비용이 예상 대비 15배</p> <p>해결: 입력 토큰 길이 기반으로 budget 동적 설정. 입력 1000 토큰 미만은 thinking 1024, 5000 토큰 미만은 4096, 그 이상만 16384. 평균 비용이 1/4로 줄었다.</p> <h2 id=10-reasoning--캐싱--streaming-조합>10. Reasoning + 캐싱 + Streaming 조합<a class=headerlink href=#10-reasoning--캐싱--streaming-조합 title="Permanent link">&para;</a></h2> <p>Reasoning 모델을 쓸 때 비용·지연을 줄이는 실무 기법이 몇 가지 있다.</p> <p><strong>Prompt caching.</strong> 같은 시스템 프롬프트로 여러 질문을 처리할 때, 시스템 프롬프트와 reasoning trace 일부를 캐싱한다. Anthropic은 prompt cache로 입력 토큰 비용을 90% 절감한다. OpenAI도 자동 캐싱을 지원한다.</p> <p><strong>Streaming thinking.</strong> Claude Extended Thinking은 thinking 토큰을 스트리밍할 수 있다. UI에 "생각하는 중..." 표시를 띄우면서 첫 응답까지의 체감 지연을 줄인다.</p> <p><strong>Reasoning effort 단계화.</strong> OpenAI는 reasoning_effort를 low/medium/high로 제공한다. 기본은 medium인데, 간단한 작업은 low로 떨어뜨리면 비용·지연이 절반으로 준다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=n>response</span> <span class=o>=</span> <span class=n>openai</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;o1&quot;</span><span class=p>,</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=n>question</span><span class=p>}],</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>    <span class=n>reasoning_effort</span><span class=o>=</span><span class=s2>&quot;low&quot;</span><span class=p>,</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=p>)</span>
-</span></code></pre></div> <p><strong>Router 패턴.</strong> 들어온 요청의 복잡도를 작은 모델로 먼저 판단하고, 단순하면 GPT-4o로, 복잡하면 o1으로 보낸다. 라우팅 비용은 작아서 전체적으로 70~80% 절감되는 경우가 흔하다.</p> <h2 id=11-reasoning이-hallucination을-줄이는가>11. Reasoning이 hallucination을 줄이는가<a class=headerlink href=#11-reasoning이-hallucination을-줄이는가 title="Permanent link">&para;</a></h2> <p>직관적으로는 추론을 길게 하면 사실 검증을 더 잘할 것 같다. 실제로는 그렇지 않다.</p> <p>Reasoning 모델은 모르는 사실에 대해 더 그럴듯한 hallucination을 만든다. CoT가 한 번 잘못된 가설로 출발하면, 그 가설을 정당화하는 추론 단계를 만들어내면서 hallucination이 강화된다. "왜 이게 맞는가"를 모델이 스스로 설득하는 셈이다.</p> <p><a href=../AI_Hallucination/ >ai-hallucination</a> 문서에서 다루는 패턴이 reasoning에서 더 심해지기도 한다. 사실 영역은 RAG로 풀고, 그 위에 reasoning을 얹어야 한다. Reasoning만으로 정확도를 끌어올리려 하지 마라.</p> <h2 id=12-정리>12. 정리<a class=headerlink href=#12-정리 title="Permanent link">&para;</a></h2> <p>Reasoning 패턴은 CoT → Self-Consistency → ReAct → ToT → Reflexion으로 발전해왔고, 지금은 o1·DeepSeek-R1·Claude Extended Thinking 같은 모델이 이걸 가중치 안으로 흡수했다. 외부에서 프롬프트로 짜던 기법이 모델 내부 동작이 됐다.</p> <p>실무 판단의 핵심은 두 가지다. 첫째, 작업이 진짜 추론을 필요로 하는가. 분류·추출·검색은 끄는 게 낫다. 둘째, 토큰 비용·지연·정확도 향상을 같이 측정하는가. 정확도가 1%p 올라도 비용이 10배면 의미가 없다.</p> <p>Reasoning은 도구지 만능약이 아니다. 사람이 머리 싸매고 풀어야 하는 문제에만 켜라. 나머지는 일반 모델이 더 빠르고 싸다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../AI_Hallucination/ >AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지</a></li> <li><a href=../Agent_Harness/ >Agent Harness — Claude Code 하네스로 보는 에이전트 런타임</a></li> <li><a href=../../Claude/Claude/ >Claude</a></li> <li><a href=../../Claude/Claude_Opus_4_7/ >Claude Opus 4.7</a></li> <li><a href=../../Claude/Claude_Opus_4_8/ >Claude Opus 4.8</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../LLM_Evaluation/ class="md-footer__link md-footer__link--prev" aria-label="이전: 평가 방법론"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 평가 방법론 </div> </div> </a> <a href=../LLM_Context_Window/ class="md-footer__link md-footer__link--next" aria-label="다음: Context Window"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> Context Window </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+    D --&gt;|Yes| G[종료]</code></pre>
+<p>코드 생성 벤치마크 HumanEval에서 GPT-4 단발 호출이 80%대였는데, Reflexion을 붙이면 90%대로 올라갔다. 테스트 실행 → 실패 메시지 분석 → 코드 수정 사이클이 자동으로 돈다.</p>
+<p>실무에서 Cursor의 agent 모드, Claude Code의 다단계 작업, ChatGPT의 Code Interpreter가 모두 Reflexion 변형이다. 코드를 짜고, 실행하고, 에러를 보고, 다시 짠다. 사용자는 이 루프가 돌고 있는 줄도 모르고 결과만 본다.</p>
+<h3 id="61-reflexion-구현-시-함정">6.1 Reflexion 구현 시 함정<a class="headerlink" href="#61-reflexion-구현-시-함정" title="Permanent link">&para;</a></h3>
+<p><strong>무한 반복.</strong> 같은 에러로 같은 수정을 반복하는 경우가 흔하다. 같은 self-reflection이 두 번 나오면 멈추는 휴리스틱이 필요하다.</p>
+<p><strong>평가가 비싸다.</strong> 코드라면 테스트 실행이 평가다. 자유 텍스트(에세이 작성)에서는 평가 자체가 LLM 호출이라 비용 부담이 크다.</p>
+<p><strong>메모리 누적.</strong> N번째 시도 때 1~(N-1)번째 reflection이 다 context에 쌓인다. 3번 이상 돌면 context가 빠르게 비대해진다. 최근 3개 reflection만 유지하는 식으로 윈도우를 둬야 한다.</p>
+<h2 id="7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking">7. Reasoning 모델: o1, DeepSeek-R1, Claude Extended Thinking<a class="headerlink" href="#7-reasoning-모델-o1-deepseek-r1-claude-extended-thinking" title="Permanent link">&para;</a></h2>
+<p>2024년 9월 OpenAI o1이 나오면서 게임이 바뀌었다. 프롬프트로 reasoning을 유도하는 게 아니라, 모델 자체가 reasoning을 학습했다. 사용자가 "step by step"을 안 적어도 모델이 알아서 길게 생각한다.</p>
+<h3 id="71-o1-시리즈-openai">7.1 o1 시리즈 (OpenAI)<a class="headerlink" href="#71-o1-시리즈-openai" title="Permanent link">&para;</a></h3>
+<p>o1은 강화학습으로 reasoning을 학습한 모델이다. 응답 전에 내부적으로 "reasoning tokens"를 만든다. 이 토큰은 사용자에게 안 보이지만 과금된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>사용자 입력 → [숨겨진 reasoning 1000~50000 토큰] → 최종 응답 200 토큰
+</span></code></pre></div>
+<p>체감으로는 응답 시간이 5~60초로 늘어난다. 단순한 질문에 30초씩 기다리는 게 화면에서 보인다. 비용은 일반 GPT-4o 대비 4~6배 정도 더 비싸다(reasoning 토큰 + 응답 토큰 모두 과금).</p>
+<p>o1이 잘 푸는 문제: 수학 올림피아드, 코딩 콘테스트, 다단계 논리 퍼즐, 복잡한 SQL 디버깅. 잘 못 푸는 문제: 사실 검색, 짧은 분류, 대화형 챗봇 응답.</p>
+<h3 id="72-deepseek-r1">7.2 DeepSeek-R1<a class="headerlink" href="#72-deepseek-r1" title="Permanent link">&para;</a></h3>
+<p>2025년 초 DeepSeek이 R1을 오픈소스로 공개했다. o1급 성능을 RL만으로 달성했다고 주장했고, 가중치도 풀어서 화제가 됐다. 671B MoE 모델인데 활성 파라미터는 37B다.</p>
+<p>핵심은 reasoning trace를 사용자가 볼 수 있다는 점이다. o1은 reasoning을 숨기지만 R1은 <code>&lt;think&gt;...&lt;/think&gt;</code> 블록으로 노출한다. 디버깅하기 좋고, 모델이 어디서 틀렸는지 추적할 수 있다.</p>
+<p>실무에서 자체 호스팅이 가능한 게 큰 차이다. API에 의존하지 않고, 데이터를 외부로 안 보내고 싶은 기업이 R1을 골랐다. 다만 671B를 띄우려면 H100 8장 정도가 필요해서 운영 비용은 크다. Distill 버전(R1-Distill-Qwen-32B 등)이 현실적인 선택지다.</p>
+<h3 id="73-claude-extended-thinking">7.3 Claude Extended Thinking<a class="headerlink" href="#73-claude-extended-thinking" title="Permanent link">&para;</a></h3>
+<p>Anthropic이 Claude 3.7 Sonnet에 도입한 기능이다. API 파라미터로 thinking budget을 토큰 수로 지정한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;claude-sonnet-4-6&quot;</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">max_tokens</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">thinking</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;enabled&quot;</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="s2">&quot;budget_tokens&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="p">},</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}],</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>budget_tokens가 thinking에 쓸 최대 토큰 수다. 모델이 그 안에서 알아서 사고하고, 끝나면 응답을 생성한다. 짧은 작업은 1024 토큰, 어려운 수학 문제는 32768 토큰까지 줄 수 있다.</p>
+<p>o1과 다른 점은 thinking 내용이 응답에 포함돼서 볼 수 있다는 것이다. R1처럼 디버깅 가능하다. 또 thinking 토큰을 캐싱할 수 있어서 같은 컨텍스트에 여러 질문할 때 비용을 아낀다.</p>
+<h3 id="74-세-모델-비교">7.4 세 모델 비교<a class="headerlink" href="#74-세-모델-비교" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>o1</th>
+<th>DeepSeek-R1</th>
+<th>Claude Extended Thinking</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reasoning 노출</td>
+<td>숨김</td>
+<td><code>&lt;think&gt;</code> 노출</td>
+<td>응답에 포함</td>
+</tr>
+<tr>
+<td>자체 호스팅</td>
+<td>불가</td>
+<td>가능(오픈소스)</td>
+<td>불가</td>
+</tr>
+<tr>
+<td>Budget 제어</td>
+<td>reasoning_effort(low/medium/high)</td>
+<td>자동</td>
+<td>budget_tokens 정밀 제어</td>
+</tr>
+<tr>
+<td>일반 모델 대비 비용</td>
+<td>4~6배</td>
+<td>API 기준 1.5~3배</td>
+<td>thinking 토큰만큼 증가</td>
+</tr>
+<tr>
+<td>응답 지연</td>
+<td>5~60초</td>
+<td>3~40초</td>
+<td>2~30초(budget에 따라)</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>불가 또는 reasoning 끝난 뒤</td>
+<td>가능</td>
+<td>가능</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-reasoning을-켜야-할-때와-끄는-게-나을-때">8. Reasoning을 켜야 할 때와 끄는 게 나을 때<a class="headerlink" href="#8-reasoning을-켜야-할-때와-끄는-게-나을-때" title="Permanent link">&para;</a></h2>
+<p>이게 실무에서 가장 중요한 부분이다. Reasoning은 무조건 좋은 게 아니다. 잘못 켜면 비용만 날린다.</p>
+<h3 id="81-켜야-하는-작업">8.1 켜야 하는 작업<a class="headerlink" href="#81-켜야-하는-작업" title="Permanent link">&para;</a></h3>
+<ul>
+<li>다단계 수학·논리 추론(SQL 쿼리 플랜 분석, 알고리즘 설계)</li>
+<li>코드 디버깅(스택 트레이스 → 원인 추적)</li>
+<li>복잡한 문서 요약(법률 문서, 논문)</li>
+<li>다중 제약 만족(스케줄링, 자원 배분)</li>
+<li>에이전트의 plan 단계(다음 step을 무엇으로 할지 결정)</li>
+</ul>
+<h3 id="82-끄는-게-나은-작업">8.2 끄는 게 나은 작업<a class="headerlink" href="#82-끄는-게-나은-작업" title="Permanent link">&para;</a></h3>
+<ul>
+<li>분류(스팸·정상, 감성 분석)</li>
+<li>단순 추출(이메일에서 이름·전화번호 뽑기)</li>
+<li>사실 검색(고객 정보 조회, 위키 사실)</li>
+<li>짧은 대화 응답(챗봇의 인사, 단답)</li>
+<li>번역(특히 짧은 텍스트)</li>
+<li>형식 변환(JSON ↔ YAML)</li>
+</ul>
+<p>이런 작업에 reasoning을 켜면 어떻게 되는지 실제로 본 사례가 있다. 분류 작업(스팸 감지) API에 실수로 o1을 연결했는데, 메시지 한 건당 50초가 걸리고 비용이 평소의 30배가 나왔다. 정확도는 GPT-4o 대비 1%p도 안 올랐다. 단순 분류는 모델이 한 번에 답을 알고 있어서 추가 사고가 무의미하다.</p>
+<h3 id="83-판단-기준">8.3 판단 기준<a class="headerlink" href="#83-판단-기준" title="Permanent link">&para;</a></h3>
+<p>작업을 받았을 때 "사람이 이 문제를 풀려면 종이에 메모하면서 30초 이상 생각해야 하는가"를 따져보면 된다.</p>
+<ul>
+<li>1초 안에 답이 나오는 작업 → reasoning 끄기</li>
+<li>종이에 적어가며 풀어야 하는 작업 → reasoning 켜기</li>
+<li>애매한 작업 → A/B 테스트로 비교</li>
+</ul>
+<p>A/B 테스트가 중요한 이유는 reasoning이 도움이 안 되는데도 약간의 정확도 상승이 있어서 "그래도 켜는 게 낫네"라고 착각하기 쉽기 때문이다. 비용과 지연을 같이 측정해야 한다.</p>
+<h2 id="9-토큰-비용-폭증-사례">9. 토큰 비용 폭증 사례<a class="headerlink" href="#9-토큰-비용-폭증-사례" title="Permanent link">&para;</a></h2>
+<p>Reasoning을 켰을 때 비용이 어떻게 폭발하는지 구체적인 사례를 보자.</p>
+<h3 id="91-사례-1-고객-지원-챗봇에-o1-적용">9.1 사례 1: 고객 지원 챗봇에 o1 적용<a class="headerlink" href="#91-사례-1-고객-지원-챗봇에-o1-적용" title="Permanent link">&para;</a></h3>
+<p>배경: 응답 품질을 높이려고 GPT-4o에서 o1으로 교체.</p>
+<p>결과:
+- 문의 한 건당 입력 토큰 800, 출력 토큰 400은 동일
+- 그런데 reasoning 토큰이 평균 3000~8000개 추가
+- 토큰 비용: 일 평균 $40 → $480 (12배)
+- 응답 시간: 3초 → 35초 (사용자 이탈률 증가)
+- 응답 품질 만족도: 4.2/5 → 4.3/5 (개선 미미)</p>
+<p>원인: 고객 문의는 대부분 사실 조회·간단한 안내라서 reasoning이 무의미했다. 1주일 만에 롤백했다.</p>
+<h3 id="92-사례-2-코드-리뷰-에이전트의-무한-reasoning">9.2 사례 2: 코드 리뷰 에이전트의 무한 reasoning<a class="headerlink" href="#92-사례-2-코드-리뷰-에이전트의-무한-reasoning" title="Permanent link">&para;</a></h3>
+<p>배경: PR 리뷰 자동화 에이전트를 ReAct + reasoning 모델로 구성.</p>
+<p>결과:
+- PR 한 건당 평균 reasoning 토큰 80,000개
+- 큰 PR(파일 50개+) 에서는 500,000 토큰 초과
+- 한 건당 비용 $30 발생
+- 월 PR 1000건 처리 시 $30,000</p>
+<p>원인: ReAct loop의 각 step마다 reasoning 모델이 호출되니까 토큰이 누적됐다. 게다가 모델이 같은 파일을 여러 번 다시 읽으면서 reasoning을 반복했다.</p>
+<p>해결: plan 단계에서만 reasoning 켜고, 실제 코드 읽기·diff 분석은 일반 모델로 처리. step별로 모델을 다르게 쓰는 router를 도입해서 비용이 1/5로 떨어졌다.</p>
+<h3 id="93-사례-3-claude-extended-thinking-budget-미설정">9.3 사례 3: Claude Extended Thinking budget 미설정<a class="headerlink" href="#93-사례-3-claude-extended-thinking-budget-미설정" title="Permanent link">&para;</a></h3>
+<p>배경: 문서 요약 API에 thinking 켜고 budget을 max(32768)로 설정.</p>
+<p>결과:
+- 짧은 문서(2페이지) 요약에도 thinking 25000 토큰 사용
+- 짧은 문서는 thinking 1000 토큰이면 충분한데 모델이 budget까지 채움
+- 비용이 예상 대비 15배</p>
+<p>해결: 입력 토큰 길이 기반으로 budget 동적 설정. 입력 1000 토큰 미만은 thinking 1024, 5000 토큰 미만은 4096, 그 이상만 16384. 평균 비용이 1/4로 줄었다.</p>
+<h2 id="10-reasoning--캐싱--streaming-조합">10. Reasoning + 캐싱 + Streaming 조합<a class="headerlink" href="#10-reasoning--캐싱--streaming-조합" title="Permanent link">&para;</a></h2>
+<p>Reasoning 모델을 쓸 때 비용·지연을 줄이는 실무 기법이 몇 가지 있다.</p>
+<p><strong>Prompt caching.</strong> 같은 시스템 프롬프트로 여러 질문을 처리할 때, 시스템 프롬프트와 reasoning trace 일부를 캐싱한다. Anthropic은 prompt cache로 입력 토큰 비용을 90% 절감한다. OpenAI도 자동 캐싱을 지원한다.</p>
+<p><strong>Streaming thinking.</strong> Claude Extended Thinking은 thinking 토큰을 스트리밍할 수 있다. UI에 "생각하는 중..." 표시를 띄우면서 첫 응답까지의 체감 지연을 줄인다.</p>
+<p><strong>Reasoning effort 단계화.</strong> OpenAI는 reasoning_effort를 low/medium/high로 제공한다. 기본은 medium인데, 간단한 작업은 low로 떨어뜨리면 비용·지연이 절반으로 준다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">question</span><span class="p">}],</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">reasoning_effort</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Router 패턴.</strong> 들어온 요청의 복잡도를 작은 모델로 먼저 판단하고, 단순하면 GPT-4o로, 복잡하면 o1으로 보낸다. 라우팅 비용은 작아서 전체적으로 70~80% 절감되는 경우가 흔하다.</p>
+<h2 id="11-reasoning이-hallucination을-줄이는가">11. Reasoning이 hallucination을 줄이는가<a class="headerlink" href="#11-reasoning이-hallucination을-줄이는가" title="Permanent link">&para;</a></h2>
+<p>직관적으로는 추론을 길게 하면 사실 검증을 더 잘할 것 같다. 실제로는 그렇지 않다.</p>
+<p>Reasoning 모델은 모르는 사실에 대해 더 그럴듯한 hallucination을 만든다. CoT가 한 번 잘못된 가설로 출발하면, 그 가설을 정당화하는 추론 단계를 만들어내면서 hallucination이 강화된다. "왜 이게 맞는가"를 모델이 스스로 설득하는 셈이다.</p>
+<p><a href="../AI_Hallucination/">ai-hallucination</a> 문서에서 다루는 패턴이 reasoning에서 더 심해지기도 한다. 사실 영역은 RAG로 풀고, 그 위에 reasoning을 얹어야 한다. Reasoning만으로 정확도를 끌어올리려 하지 마라.</p>
+<h2 id="12-정리">12. 정리<a class="headerlink" href="#12-정리" title="Permanent link">&para;</a></h2>
+<p>Reasoning 패턴은 CoT → Self-Consistency → ReAct → ToT → Reflexion으로 발전해왔고, 지금은 o1·DeepSeek-R1·Claude Extended Thinking 같은 모델이 이걸 가중치 안으로 흡수했다. 외부에서 프롬프트로 짜던 기법이 모델 내부 동작이 됐다.</p>
+<p>실무 판단의 핵심은 두 가지다. 첫째, 작업이 진짜 추론을 필요로 하는가. 분류·추출·검색은 끄는 게 낫다. 둘째, 토큰 비용·지연·정확도 향상을 같이 측정하는가. 정확도가 1%p 올라도 비용이 10배면 의미가 없다.</p>
+<p>Reasoning은 도구지 만능약이 아니다. 사람이 머리 싸매고 풀어야 하는 문제에만 켜라. 나머지는 일반 모델이 더 빠르고 싸다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../AI_Hallucination/">AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지</a></li>
+<li><a href="../Agent_Harness/">Agent Harness — Claude Code 하네스로 보는 에이전트 런타임</a></li>
+<li><a href="../../Claude/Claude/">Claude</a></li>
+<li><a href="../../Claude/Claude_Opus_4_7/">Claude Opus 4.7</a></li>
+<li><a href="../../Claude/Claude_Opus_4_8/">Claude Opus 4.8</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../LLM_Evaluation/" class="md-footer__link md-footer__link--prev" aria-label="이전: 평가 방법론">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                평가 방법론
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../LLM_Context_Window/" class="md-footer__link md-footer__link--next" aria-label="다음: Context Window">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                Context Window
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

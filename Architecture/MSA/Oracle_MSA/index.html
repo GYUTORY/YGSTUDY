@@ -1,114 +1,3308 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Architecture/MSA/Oracle_MSA/ rel=canonical><link href=../%EB%A9%80%ED%8B%B0%20%EB%A0%88%ED%8F%AC/ rel=prev><link href=../MSA_%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C_%EC%84%A0%ED%83%9D_%EC%A0%84%EB%9E%B5/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Oracle에서의 MSA - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#oracle에서의-msa class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Oracle에서의 MSA </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4 checked> <label class=md-nav__link for=__nav_4 id=__nav_4_label tabindex=0> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_4_label aria-expanded=true> <label class=md-nav__title for=__nav_4> <span class="md-nav__icon md-icon"></span> Backend </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Framework </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Backend/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_3 checked> <label class=md-nav__link for=__nav_4_3 id=__nav_4_3_label tabindex=0> <span class=md-ellipsis> Architecture </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_4_3_label aria-expanded=true> <label class=md-nav__title for=__nav_4_3> <span class="md-nav__icon md-icon"></span> Architecture </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Clean_Architecture/ class=md-nav__link> <span class=md-ellipsis> 클린 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../../MVP/ class=md-nav__link> <span class=md-ellipsis> MVP </span> </a> </li> <li class=md-nav__item> <a href=../../MVVM/ class=md-nav__link> <span class=md-ellipsis> MVVM </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%B0%8F_%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%ED%8C%A8%ED%84%B4/ class=md-nav__link> <span class=md-ellipsis> 시스템 설계 및 아키텍처 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%9D%BD%EA%B8%B0_%EA%B2%BD%EB%A1%9C/ class=md-nav__link> <span class=md-ellipsis> 읽기 경로 </span> </a> </li> <li class=md-nav__item> <a href=../../Backend_Layout/ class=md-nav__link> <span class=md-ellipsis> 백엔드 레이아웃 </span> </a> </li> <li class=md-nav__item> <a href=../../CQRS_Pattern/ class=md-nav__link> <span class=md-ellipsis> CQRS 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../../Event_Driven_Architecture/ class=md-nav__link> <span class=md-ellipsis> 이벤트 기반 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../../Hexagonal_Architecture/ class=md-nav__link> <span class=md-ellipsis> 헥사고날 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../../%EB%B6%84%EC%82%B0_%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EC%B8%A1%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 분산 시스템 관측성 </span> </a> </li> <li class=md-nav__item> <a href=../../Multi_Tenancy/ class=md-nav__link> <span class=md-ellipsis> 멀티테넌시 </span> </a> </li> <li class=md-nav__item> <a href=../../Tenant_Network_Isolation/ class=md-nav__link> <span class=md-ellipsis> 테넌트 네트워크 격리 </span> </a> </li> <li class=md-nav__item> <a href=../../Noisy_Neighbor/ class=md-nav__link> <span class=md-ellipsis> Noisy Neighbor </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Design%20Pattern/ class=md-nav__link> <span class=md-ellipsis> Design Pattern </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_3_15 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> MSA </span> </a> <label class="md-nav__link " for=__nav_4_3_15 id=__nav_4_3_15_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_4_3_15_label aria-expanded=true> <label class=md-nav__title for=__nav_4_3_15> <span class="md-nav__icon md-icon"></span> MSA </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Microservices_Architecture/ class=md-nav__link> <span class=md-ellipsis> 마이크로서비스 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../Expand_Migrate_Contract/ class=md-nav__link> <span class=md-ellipsis> EMC 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../MSA_Idempotency_Chain/ class=md-nav__link> <span class=md-ellipsis> 서비스 체인 멱등성 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_3_15_5 checked> <label class=md-nav__link for=__nav_4_3_15_5 id=__nav_4_3_15_5_label tabindex=0> <span class=md-ellipsis> 설계와 전환 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_4_3_15_5_label aria-expanded=true> <label class=md-nav__title for=__nav_4_3_15_5> <span class="md-nav__icon md-icon"></span> 설계와 전환 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B6%84%ED%95%B4_%EB%B0%8F_%EB%8F%84%EB%A9%94%EC%9D%B8_%EC%84%A4%EA%B3%84/ class=md-nav__link> <span class=md-ellipsis> 서비스 분해 및 도메인 설계 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%AA%A8%EB%86%80%EB%A6%AC%EC%8A%A4_to_MSA_%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98/ class=md-nav__link> <span class=md-ellipsis> 모놀리스 → MSA 마이그레이션 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%A9%80%ED%8B%B0%20%EB%A0%88%ED%8F%AC/ class=md-nav__link> <span class=md-ellipsis> 모노레포 vs 멀티레포 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> Oracle에서의 MSA </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> Oracle에서의 MSA </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#서비스별-db-격리를-oracle에서-구현하기 class=md-nav__link> <span class=md-ellipsis> 서비스별 DB 격리를 Oracle에서 구현하기 </span> </a> <nav class=md-nav aria-label="서비스별 DB 격리를 Oracle에서 구현하기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#인스턴스-분리 class=md-nav__link> <span class=md-ellipsis> 인스턴스 분리 </span> </a> </li> <li class=md-nav__item> <a href=#스키마user-per-service class=md-nav__link> <span class=md-ellipsis> 스키마(user)-per-service </span> </a> </li> <li class=md-nav__item> <a href=#multitenant-pdb-분리 class=md-nav__link> <span class=md-ellipsis> Multitenant PDB 분리 </span> </a> </li> <li class=md-nav__item> <a href=#실무-선택-기준 class=md-nav__link> <span class=md-ellipsis> 실무 선택 기준 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#db-link와-공유-스키마의-유혹 class=md-nav__link> <span class=md-ellipsis> DB Link와 공유 스키마의 유혹 </span> </a> </li> <li class=md-nav__item> <a href=#분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유 class=md-nav__link> <span class=md-ellipsis> 분산 트랜잭션: Oracle XA와 2PC가 안티패턴인 이유 </span> </a> </li> <li class=md-nav__item> <a href=#트랜잭셔널-아웃박스를-oracle로-구현하기 class=md-nav__link> <span class=md-ellipsis> 트랜잭셔널 아웃박스를 Oracle로 구현하기 </span> </a> <nav class=md-nav aria-label="트랜잭셔널 아웃박스를 Oracle로 구현하기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#skip-locked-폴링-11g class=md-nav__link> <span class=md-ellipsis> SKIP LOCKED 폴링 (11g+) </span> </a> </li> <li class=md-nav__item> <a href=#ora-00060-데드락 class=md-nav__link> <span class=md-ellipsis> ORA-00060 데드락 </span> </a> </li> <li class=md-nav__item> <a href=#sequence-캐싱과-순서-보장 class=md-nav__link> <span class=md-ellipsis> SEQUENCE 캐싱과 순서 보장 </span> </a> </li> <li class=md-nav__item> <a href=#cdc로-폴링을-대체하기 class=md-nav__link> <span class=md-ellipsis> CDC로 폴링을 대체하기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#oracle-aq를-메시지-브로커로-쓰기 class=md-nav__link> <span class=md-ellipsis> Oracle AQ를 메시지 브로커로 쓰기 </span> </a> </li> <li class=md-nav__item> <a href=#커넥션-관리-processessessions-고갈 class=md-nav__link> <span class=md-ellipsis> 커넥션 관리: processes/sessions 고갈 </span> </a> <nav class=md-nav aria-label="커넥션 관리: processes/sessions 고갈"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#풀-사이징이-먼저다 class=md-nav__link> <span class=md-ellipsis> 풀 사이징이 먼저다 </span> </a> </li> <li class=md-nav__item> <a href=#ucp와-rac의-fanfcf class=md-nav__link> <span class=md-ellipsis> UCP와 RAC의 FAN/FCF </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#스키마-마이그레이션과-라이브러리-캐시-락 class=md-nav__link> <span class=md-ellipsis> 스키마 마이그레이션과 라이브러리 캐시 락 </span> </a> <nav class=md-nav aria-label="스키마 마이그레이션과 라이브러리 캐시 락"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#ddl과-라이브러리-캐시-락 class=md-nav__link> <span class=md-ellipsis> DDL과 라이브러리 캐시 락 </span> </a> </li> <li class=md-nav__item> <a href=#무중단-스키마-변경 class=md-nav__link> <span class=md-ellipsis> 무중단 스키마 변경 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#rac와-data-guard로-가용성읽기-분산 class=md-nav__link> <span class=md-ellipsis> RAC와 Data Guard로 가용성·읽기 분산 </span> </a> <nav class=md-nav aria-label="RAC와 Data Guard로 가용성·읽기 분산"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#rac로-노드-장애-대응 class=md-nav__link> <span class=md-ellipsis> RAC로 노드 장애 대응 </span> </a> </li> <li class=md-nav__item> <a href=#data-guard로-읽기-분산 class=md-nav__link> <span class=md-ellipsis> Data Guard로 읽기 분산 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#정리하면서-남기는-실무-감각 class=md-nav__link> <span class=md-ellipsis> 정리하면서 남기는 실무 감각 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../MSA_%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C_%EC%84%A0%ED%83%9D_%EC%A0%84%EB%9E%B5/ class=md-nav__link> <span class=md-ellipsis> 클라우드 선택 전략 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EC%84%9C%EB%B2%84%20%EA%B0%84%20%ED%86%B5%EC%8B%A0%20%EB%B0%A9%EC%8B%9D%20%EC%A0%95%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 통신 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EB%8D%B0%EC%9D%B4%ED%84%B0_%EA%B4%80%EB%A6%AC_%ED%8C%A8%ED%84%B4/ class=md-nav__link> <span class=md-ellipsis> 데이터 일관성 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../%EB%B0%B0%ED%8F%AC_%ED%8C%A8%ED%84%B4/ class=md-nav__link> <span class=md-ellipsis> 배포와 운영 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../BFF_%ED%8C%A8%ED%84%B4/ class=md-nav__link> <span class=md-ellipsis> BFF </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../OMO/ class=md-nav__link> <span class=md-ellipsis> OMO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DDD/ class=md-nav__link> <span class=md-ellipsis> DDD </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#서비스별-db-격리를-oracle에서-구현하기 class=md-nav__link> <span class=md-ellipsis> 서비스별 DB 격리를 Oracle에서 구현하기 </span> </a> <nav class=md-nav aria-label="서비스별 DB 격리를 Oracle에서 구현하기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#인스턴스-분리 class=md-nav__link> <span class=md-ellipsis> 인스턴스 분리 </span> </a> </li> <li class=md-nav__item> <a href=#스키마user-per-service class=md-nav__link> <span class=md-ellipsis> 스키마(user)-per-service </span> </a> </li> <li class=md-nav__item> <a href=#multitenant-pdb-분리 class=md-nav__link> <span class=md-ellipsis> Multitenant PDB 분리 </span> </a> </li> <li class=md-nav__item> <a href=#실무-선택-기준 class=md-nav__link> <span class=md-ellipsis> 실무 선택 기준 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#db-link와-공유-스키마의-유혹 class=md-nav__link> <span class=md-ellipsis> DB Link와 공유 스키마의 유혹 </span> </a> </li> <li class=md-nav__item> <a href=#분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유 class=md-nav__link> <span class=md-ellipsis> 분산 트랜잭션: Oracle XA와 2PC가 안티패턴인 이유 </span> </a> </li> <li class=md-nav__item> <a href=#트랜잭셔널-아웃박스를-oracle로-구현하기 class=md-nav__link> <span class=md-ellipsis> 트랜잭셔널 아웃박스를 Oracle로 구현하기 </span> </a> <nav class=md-nav aria-label="트랜잭셔널 아웃박스를 Oracle로 구현하기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#skip-locked-폴링-11g class=md-nav__link> <span class=md-ellipsis> SKIP LOCKED 폴링 (11g+) </span> </a> </li> <li class=md-nav__item> <a href=#ora-00060-데드락 class=md-nav__link> <span class=md-ellipsis> ORA-00060 데드락 </span> </a> </li> <li class=md-nav__item> <a href=#sequence-캐싱과-순서-보장 class=md-nav__link> <span class=md-ellipsis> SEQUENCE 캐싱과 순서 보장 </span> </a> </li> <li class=md-nav__item> <a href=#cdc로-폴링을-대체하기 class=md-nav__link> <span class=md-ellipsis> CDC로 폴링을 대체하기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#oracle-aq를-메시지-브로커로-쓰기 class=md-nav__link> <span class=md-ellipsis> Oracle AQ를 메시지 브로커로 쓰기 </span> </a> </li> <li class=md-nav__item> <a href=#커넥션-관리-processessessions-고갈 class=md-nav__link> <span class=md-ellipsis> 커넥션 관리: processes/sessions 고갈 </span> </a> <nav class=md-nav aria-label="커넥션 관리: processes/sessions 고갈"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#풀-사이징이-먼저다 class=md-nav__link> <span class=md-ellipsis> 풀 사이징이 먼저다 </span> </a> </li> <li class=md-nav__item> <a href=#ucp와-rac의-fanfcf class=md-nav__link> <span class=md-ellipsis> UCP와 RAC의 FAN/FCF </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#스키마-마이그레이션과-라이브러리-캐시-락 class=md-nav__link> <span class=md-ellipsis> 스키마 마이그레이션과 라이브러리 캐시 락 </span> </a> <nav class=md-nav aria-label="스키마 마이그레이션과 라이브러리 캐시 락"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#ddl과-라이브러리-캐시-락 class=md-nav__link> <span class=md-ellipsis> DDL과 라이브러리 캐시 락 </span> </a> </li> <li class=md-nav__item> <a href=#무중단-스키마-변경 class=md-nav__link> <span class=md-ellipsis> 무중단 스키마 변경 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#rac와-data-guard로-가용성읽기-분산 class=md-nav__link> <span class=md-ellipsis> RAC와 Data Guard로 가용성·읽기 분산 </span> </a> <nav class=md-nav aria-label="RAC와 Data Guard로 가용성·읽기 분산"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#rac로-노드-장애-대응 class=md-nav__link> <span class=md-ellipsis> RAC로 노드 장애 대응 </span> </a> </li> <li class=md-nav__item> <a href=#data-guard로-읽기-분산 class=md-nav__link> <span class=md-ellipsis> Data Guard로 읽기 분산 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#정리하면서-남기는-실무-감각 class=md-nav__link> <span class=md-ellipsis> 정리하면서 남기는 실무 감각 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>architecture</span> <span class=md-tag>microservices</span> </nav> <h1 id=oracle에서의-msa>Oracle에서의 MSA<a class=headerlink href=#oracle에서의-msa title="Permanent link">&para;</a></h1> <p>MSA 이론은 대부분 PostgreSQL이나 MySQL을 전제로 쓰여 있다. "서비스마다 DB를 분리하라"는 말은 쉽지만, 회사에 이미 Oracle Enterprise Edition RAC가 깔려 있고 DBA 조직이 있고 라이선스 비용이 코어당 붙는 환경에서는 이야기가 다르다. Oracle을 쓰는 조직에서 MSA를 하면 겪는 문제들을 정리한다. Oracle 특유의 오류 코드와 트러블슈팅 위주로 다룬다.</p> <h2 id=서비스별-db-격리를-oracle에서-구현하기>서비스별 DB 격리를 Oracle에서 구현하기<a class=headerlink href=#서비스별-db-격리를-oracle에서-구현하기 title="Permanent link">&para;</a></h2> <p>MSA의 대원칙은 서비스가 자기 데이터를 독점하고 다른 서비스는 API로만 접근하는 것이다. Oracle에서 이걸 구현하는 방법은 세 가지이고, 각각 라이선스와 운영 부담이 크게 다르다.</p> <h3 id=인스턴스-분리>인스턴스 분리<a class=headerlink href=#인스턴스-분리 title="Permanent link">&para;</a></h3> <p>서비스마다 별도 Oracle 인스턴스(별도 서버 또는 별도 DB)를 띄운다. 격리는 가장 확실하다. 서비스 A의 테이블 스캔이 서비스 B의 버퍼 캐시를 오염시키는 일이 없고, 한 서비스의 폭주가 다른 서비스의 SGA를 잡아먹지 않는다.</p> <p>문제는 비용이다. Oracle EE는 코어 단위로 라이선스를 산다. 인스턴스를 20개로 쪼개면 각 인스턴스가 최소한의 코어를 먹고, 그게 다 라이선스 대상이다. 게다가 인스턴스마다 SGA/PGA 메모리를 따로 잡으니 물리 서버 메모리도 빨리 고갈된다. 소규모 서비스 15개를 각각 인스턴스로 띄우면 실사용률은 5%인데 라이선스는 100% 내는 상황이 나온다.</p> <h3 id=스키마user-per-service>스키마(user)-per-service<a class=headerlink href=#스키마user-per-service title="Permanent link">&para;</a></h3> <p>Oracle에서 스키마와 유저는 같은 개념이다. <code>CREATE USER order_svc</code>를 하면 <code>order_svc</code>라는 스키마가 생기고, 그 안에 테이블이 들어간다. 서비스마다 유저를 하나씩 만들고, 서비스 애플리케이션은 자기 유저로만 접속한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=k>CREATE</span><span class=w> </span><span class=k>USER</span><span class=w> </span><span class=n>order_svc</span><span class=w> </span><span class=n>IDENTIFIED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>...</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=w>  </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>TABLESPACE</span><span class=w> </span><span class=n>ts_order</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=w>  </span><span class=n>QUOTA</span><span class=w> </span><span class=n>UNLIMITED</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>ts_order</span><span class=p>;</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=k>GRANT</span><span class=w> </span><span class=k>CREATE</span><span class=w> </span><span class=k>SESSION</span><span class=p>,</span><span class=w> </span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=p>,</span><span class=w> </span><span class=k>CREATE</span><span class=w> </span><span class=n>SEQUENCE</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>order_svc</span><span class=p>;</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=k>CREATE</span><span class=w> </span><span class=k>USER</span><span class=w> </span><span class=n>payment_svc</span><span class=w> </span><span class=n>IDENTIFIED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>...</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=w>  </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>TABLESPACE</span><span class=w> </span><span class=n>ts_payment</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=w>  </span><span class=n>QUOTA</span><span class=w> </span><span class=n>UNLIMITED</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>ts_payment</span><span class=p>;</span>
-</span></code></pre></div> <p>같은 인스턴스 안에 유저만 나눠서 쓰니 라이선스는 인스턴스 하나 값만 낸다. 중소 규모에서 현실적으로 가장 많이 선택하는 방식이다.</p> <p>격리가 약하다는 게 함정이다. 물리적으로 같은 인스턴스라 버퍼 캐시, 리두 로그, undo 세그먼트, 그리고 무엇보다 <code>processes</code>/<code>sessions</code> 파라미터를 전 서비스가 공유한다. 한 서비스가 커넥션을 다 잡아먹으면 다른 서비스가 <code>ORA-00020: maximum number of processes exceeded</code>로 접속조차 못 한다. 그리고 유저 권한을 조금만 느슨하게 주면 <code>SELECT * FROM payment_svc.transactions</code> 같은 크로스 스키마 접근이 너무 쉽게 열린다. 이건 뒤에서 다시 다룬다.</p> <h3 id=multitenant-pdb-분리>Multitenant PDB 분리<a class=headerlink href=#multitenant-pdb-분리 title="Permanent link">&para;</a></h3> <p>12c부터 나온 Multitenant 아키텍처는 하나의 컨테이너 DB(CDB) 안에 여러 개의 플러그형 DB(PDB)를 넣는다. 서비스마다 PDB를 하나씩 주면, 논리적으로는 완전히 분리된 DB처럼 보이면서 물리 인스턴스는 하나를 공유한다. PDB 단위로 백업/복구/이관이 되고, PDB끼리는 기본적으로 서로 안 보인다. 스키마-per-service의 격리 약점과 인스턴스 분리의 비용 부담 사이의 절충안이다.</p> <p>라이선스를 반드시 확인해야 한다. 19c 기준으로 CDB에 PDB 3개까지는 Multitenant 옵션 없이 쓸 수 있지만, 4개째부터는 Multitenant 옵션 라이선스를 따로 사야 한다(버전별로 규칙이 바뀌므로 계약을 확인해야 한다). MSA는 서비스가 수십 개인데 PDB 3개 제한은 의미가 없다. 결국 Multitenant를 제대로 쓰려면 옵션 비용이 붙는다.</p> <h3 id=실무-선택-기준>실무 선택 기준<a class=headerlink href=#실무-선택-기준 title="Permanent link">&para;</a></h3> <p>정답은 규모와 라이선스 계약에 달렸다.</p> <ul> <li>서비스 5개 미만, 트래픽 작음 → 스키마-per-service. 인스턴스 하나에 다 넣고 유저만 나눈다.</li> <li>서비스 많고 이미 Multitenant 옵션 계약이 있음 → PDB-per-service.</li> <li>특정 서비스만 트래픽이 압도적으로 크거나 규제상 물리 분리가 필요함 → 그 서비스만 인스턴스 분리, 나머지는 스키마로.</li> </ul> <p>핵심은 "논리적 분리를 코드/권한 레벨에서 강제하는가"다. 물리 분리를 못 하더라도 서비스가 자기 스키마 밖을 못 건드리게 권한을 잠그면, 나중에 트래픽이 커졌을 때 그 스키마만 뽑아서 별도 인스턴스로 옮길 수 있다. 처음부터 크로스 스키마 조인을 허용하면 그 이관이 불가능해진다.</p> <h2 id=db-link와-공유-스키마의-유혹>DB Link와 공유 스키마의 유혹<a class=headerlink href=#db-link와-공유-스키마의-유혹 title="Permanent link">&para;</a></h2> <p>Oracle을 쓰는 조직에서 MSA를 망치는 첫 번째 원인은 대부분 DB Link다.</p> <p>서비스 A가 서비스 B의 데이터를 필요로 할 때, 정석은 B의 REST API를 호출하는 것이다. 하지만 DBA에게 "B 스키마로 가는 DB Link 하나만 만들어 주세요" 하면 5분 만에 끝난다. API를 만들 필요도, 네트워크 타임아웃을 다룰 필요도 없다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1>-- order_svc 스키마에서</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=k>CREATE</span><span class=w> </span><span class=k>DATABASE</span><span class=w> </span><span class=n>LINK</span><span class=w> </span><span class=n>payment_link</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>  </span><span class=k>CONNECT</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>payment_svc</span><span class=w> </span><span class=n>IDENTIFIED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>...</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>  </span><span class=k>USING</span><span class=w> </span><span class=s1>&#39;PAYMENT_DB&#39;</span><span class=p>;</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=c1>-- 그냥 조인해버린다</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=k>SELECT</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>p</span><span class=p>.</span><span class=n>paid_amount</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=n>o</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=k>JOIN</span><span class=w> </span><span class=n>payment</span><span class=o>@</span><span class=n>payment_link</span><span class=w> </span><span class=n>p</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>order_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>p</span><span class=p>.</span><span class=n>order_id</span><span class=p>;</span>
-</span></code></pre></div> <p>이 한 줄이 MSA를 조용히 모놀리스로 되돌린다.</p> <p>문제가 바로 안 보인다는 게 진짜 위험한 점이다. 개발할 때는 조인 한 방이 API 여러 번보다 빠르고 편하다. 6개월 지나면 서비스 15개가 서로 DB Link로 얽혀서, payment 스키마의 컬럼 하나를 못 바꾼다. 어디서 누가 <code>payment@payment_link</code>로 그 컬럼을 참조하는지 전수조사가 불가능하기 때문이다. 스키마 소유권이라는 MSA의 근간이 무너진다.</p> <p>순환 참조도 생긴다. A가 B의 테이블을 조인하고, B가 A의 테이블을 조인하면, 두 서비스는 배포 순서를 맞춰야 하고 한쪽 스키마 변경이 다른 쪽 쿼리를 깨뜨린다. 이건 서비스가 아니라 그냥 분산된 모놀리스다.</p> <p>DB Link를 쓰면 트랜잭션까지 자동으로 분산 트랜잭션이 된다. <code>payment@payment_link</code>를 건드리는 순간 그 세션은 분산 트랜잭션으로 승격되고, 다음 절에서 다룰 온갖 문제가 딸려온다.</p> <p>현실적인 대응은 DB Link 생성을 DBA 승인 프로세스로 막고, 이미 있는 것들은 목록을 뽑아서 하나씩 API로 걷어내는 것이다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>-- 인스턴스에 존재하는 DB Link 전수조사</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=k>SELECT</span><span class=w> </span><span class=k>owner</span><span class=p>,</span><span class=w> </span><span class=n>db_link</span><span class=p>,</span><span class=w> </span><span class=k>host</span><span class=p>,</span><span class=w> </span><span class=n>created</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>dba_db_links</span><span class=w> </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>owner</span><span class=p>;</span>
-</span></code></pre></div> <p>이 쿼리 결과가 서비스 개수보다 많으면 이미 강결합이 상당히 진행된 상태다.</p> <h2 id=분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유>분산 트랜잭션: Oracle XA와 2PC가 안티패턴인 이유<a class=headerlink href=#분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유 title="Permanent link">&para;</a></h2> <p>여러 서비스의 DB를 하나의 트랜잭션으로 묶고 싶은 유혹은 항상 있다. 주문을 넣으면서 재고를 까고 결제를 잡는 걸 all-or-nothing으로 하고 싶다. Oracle은 이걸 두 가지로 지원한다. XA(Java의 <code>XADataSource</code>로 애플리케이션이 여러 리소스를 2PC로 묶는 것)와 DB Link 분산 트랜잭션(서로 다른 인스턴스의 테이블을 하나의 트랜잭션에서 갱신하는 것)이다. 둘 다 내부적으로 2PC(Two-Phase Commit)를 쓴다.</p> <p>2PC의 흐름은 이렇다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>Coordinator                Resource A              Resource B
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>    |------- prepare -------&gt;|                        |
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>    |------- prepare --------------------------------&gt;|
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>    |&lt;------ ready ----------|                        |
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>    |&lt;------ ready -----------------------------------|
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>    |------- commit --------&gt;|                        |
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a>    |------- commit ---------------------------------&gt;|
-</span></code></pre></div> <p>prepare 단계에서 모든 리소스가 "커밋할 준비 됐다"고 답하면, coordinator가 commit을 뿌린다. 여기서 MSA에 치명적인 문제가 두 가지다.</p> <p>첫째, prepare와 commit 사이에 리소스가 잠긴다. A가 prepare로 "ready" 하고 나서 B의 응답을 기다리는 동안, A가 건드린 행(row)들은 잠긴 채로 커밋도 롤백도 못 한다. 이 상태에서 coordinator가 죽으면 그 트랜잭션은 in-doubt(미결) 상태가 되어 무한정 락을 잡는다. 서비스 하나가 느려지면 그 락을 기다리는 다른 서비스가 줄줄이 멈춘다. 마이크로서비스의 독립성이 근본적으로 깨진다.</p> <p>둘째, 실제로 자주 터지는 게 타임아웃이다. DB Link 분산 트랜잭션에서 원격 노드 응답이 <code>distributed_lock_timeout</code>(기본 60초)을 넘기면 이 오류가 난다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>ORA-02049: timeout: distributed transaction waiting for lock
-</span></code></pre></div> <p>원격 노드가 잠깐 느려지거나 네트워크가 출렁이면 바로 발생한다. 네트워크가 항상 흔들리는 게 전제인 MSA 환경에서 60초 락 대기는 재앙이다.</p> <p>in-doubt 트랜잭션이 남으면 이렇게 확인하고 강제 정리한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1>-- 미결 분산 트랜잭션 조회</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=k>SELECT</span><span class=w> </span><span class=n>local_tran_id</span><span class=p>,</span><span class=w> </span><span class=k>state</span><span class=p>,</span><span class=w> </span><span class=n>mixed</span><span class=p>,</span><span class=w> </span><span class=k>host</span><span class=p>,</span><span class=w> </span><span class=n>commit_comment</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=k>FROM</span><span class=w> </span><span class=n>dba_2pc_pending</span><span class=p>;</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=c1>-- DBA가 수동으로 강제 커밋/롤백. state를 보고 판단해야 한다</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=k>COMMIT</span><span class=w> </span><span class=k>FORCE</span><span class=w> </span><span class=s1>&#39;&lt;local_tran_id&gt;&#39;</span><span class=p>;</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=c1>-- 또는</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=k>ROLLBACK</span><span class=w> </span><span class=k>FORCE</span><span class=w> </span><span class=s1>&#39;&lt;local_tran_id&gt;&#39;</span><span class=p>;</span>
-</span></code></pre></div> <p><code>FORCE</code>로 한쪽만 커밋하고 다른 쪽을 롤백하면 데이터 정합성이 깨진 mixed 상태가 되고, <code>dba_2pc_pending</code>의 <code>mixed</code> 컬럼이 <code>yes</code>로 남는다. 이건 사람이 데이터를 직접 대조해서 맞춰야 한다. 새벽에 이걸 하고 있으면 XA를 쓴 걸 후회하게 된다.</p> <p><code>ORA-24756: transaction does not exist</code>도 XA 환경에서 자주 본다. 애플리케이션(트랜잭션 매니저)이 인지한 트랜잭션과 DB가 인지한 트랜잭션 상태가 어긋날 때 나온다. 보통 타임아웃으로 한쪽이 트랜잭션을 이미 정리했는데 다른 쪽이 뒤늦게 커밋을 시도하면 발생한다.</p> <p>결론은 MSA에서 서비스 간 원자성이 필요하면 2PC가 아니라 Saga나 아웃박스로 최종적 일관성(eventual consistency)을 받아들이는 것이다. 즉시 정합성을 포기하는 대신 서비스의 독립성과 가용성을 얻는다. Saga는 <a href=../Saga_%ED%8C%A8%ED%84%B4_%EB%B0%8F_%EB%B6%84%EC%82%B0_%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98/ >Saga_패턴_및_분산_트랜잭션</a>, 아웃박스는 <a href=../%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%94%EB%84%90_%EC%95%84%EC%9B%83%EB%B0%95%EC%8A%A4_%ED%8C%A8%ED%84%B4/ >트랜잭셔널_아웃박스_패턴</a>에서 다룬다. 여기서는 그 구현을 Oracle로 할 때의 디테일을 본다.</p> <p>XA를 정말로 못 피하는 경우가 있긴 하다. 레거시 EJB 컨테이너나 상용 패키지가 XA를 강제할 때다. 그럴 때는 XA 참여 리소스를 최소한으로 줄이고, <code>distributed_lock_timeout</code>을 짧게(예: 10초) 잡아서 락 대기가 오래 끌리지 않게 하는 방어가 최선이다.</p> <h2 id=트랜잭셔널-아웃박스를-oracle로-구현하기>트랜잭셔널 아웃박스를 Oracle로 구현하기<a class=headerlink href=#트랜잭셔널-아웃박스를-oracle로-구현하기 title="Permanent link">&para;</a></h2> <p>아웃박스 패턴 자체는 <a href=../%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%94%EB%84%90_%EC%95%84%EC%9B%83%EB%B0%95%EC%8A%A4_%ED%8C%A8%ED%84%B4/ >트랜잭셔널_아웃박스_패턴</a>에 있으니, 여기서는 Oracle에서 폴링 워커를 만들 때 부딪히는 것들만 본다.</p> <h3 id=skip-locked-폴링-11g>SKIP LOCKED 폴링 (11g+)<a class=headerlink href=#skip-locked-폴링-11g title="Permanent link">&para;</a></h3> <p>폴링 워커를 여러 개 띄우면 같은 아웃박스 행을 두 워커가 동시에 집어서 메시지가 중복 발행될 수 있다. <code>FOR UPDATE</code>로 락을 잡으면 중복은 막지만, 워커 B가 워커 A가 잡은 행이 풀릴 때까지 기다리느라 처리량이 안 나온다.</p> <p><code>SKIP LOCKED</code>는 이미 다른 세션이 잠근 행을 기다리지 않고 건너뛴다. Oracle은 11g부터 지원한다(그전에도 내부적으로 쓰였지만 문서화된 문법은 11g부터다).</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>aggregate_id</span><span class=p>,</span><span class=w> </span><span class=n>event_type</span><span class=p>,</span><span class=w> </span><span class=n>payload</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=k>FROM</span><span class=w> </span><span class=n>outbox</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>id</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=k>FETCH</span><span class=w> </span><span class=k>FIRST</span><span class=w> </span><span class=mi>100</span><span class=w> </span><span class=k>ROWS</span><span class=w> </span><span class=k>ONLY</span><span class=w>   </span><span class=c1>-- 12c+ 문법</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=n>SKIP</span><span class=w> </span><span class=n>LOCKED</span><span class=p>;</span>
-</span></code></pre></div> <p>11g에서는 <code>FETCH FIRST</code>가 없으니 <code>ROWNUM</code>으로 처리한다. <code>FOR UPDATE</code>와 <code>ROWNUM</code>을 한 쿼리에 섞으면 순서 문제가 생기므로 인라인 뷰로 감싼다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>aggregate_id</span><span class=p>,</span><span class=w> </span><span class=n>event_type</span><span class=p>,</span><span class=w> </span><span class=n>payload</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=k>FROM</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>  </span><span class=k>SELECT</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>aggregate_id</span><span class=p>,</span><span class=w> </span><span class=n>event_type</span><span class=p>,</span><span class=w> </span><span class=n>payload</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>  </span><span class=k>FROM</span><span class=w> </span><span class=n>outbox</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=w>  </span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;PENDING&#39;</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=w>  </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>id</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=p>)</span>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=k>WHERE</span><span class=w> </span><span class=n>ROWNUM</span><span class=w> </span><span class=o>&lt;=</span><span class=w> </span><span class=mi>100</span>
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=n>SKIP</span><span class=w> </span><span class=n>LOCKED</span><span class=p>;</span>
-</span></code></pre></div> <p>이렇게 하면 워커를 N개 띄워도 각자 다른 행을 집어간다. 워커마다 100건씩 잡아서 발행하고 <code>status = 'SENT'</code>로 업데이트한 뒤 커밋한다.</p> <h3 id=ora-00060-데드락>ORA-00060 데드락<a class=headerlink href=#ora-00060-데드락 title="Permanent link">&para;</a></h3> <p>아웃박스 워커를 여럿 돌리다 보면 이걸 만난다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>ORA-00060: deadlock detected while waiting for resource
-</span></code></pre></div> <p>원인은 대개 <code>ORDER BY</code> 없이 <code>SKIP LOCKED</code>를 쓰거나, 워커들이 아웃박스 행뿐 아니라 다른 테이블(예: 처리 로그, 집계 테이블)까지 서로 다른 순서로 잠글 때다. 워커 A는 outbox → log 순으로, 워커 B는 log → outbox 순으로 잠그면 교착이 생긴다.</p> <p>대응은 두 가지다. 락 획득 순서를 모든 워커에서 동일하게 통일한다(항상 <code>id</code> 오름차순, 항상 같은 테이블 순서). 그리고 아웃박스 워커는 아웃박스 테이블만 건드리게 하고, 부가 작업은 발행 후 별도 트랜잭션으로 분리한다. Oracle은 데드락이 나면 한쪽 트랜잭션의 마지막 문장만 롤백하고 <code>ORA-00060</code>을 던지므로, 애플리케이션에서 이 예외를 잡아 트랜잭션 전체를 롤백하고 재시도하게 만들어야 한다. 재시도하지 않으면 그 배치가 통째로 유실된다.</p> <h3 id=sequence-캐싱과-순서-보장>SEQUENCE 캐싱과 순서 보장<a class=headerlink href=#sequence-캐싱과-순서-보장 title="Permanent link">&para;</a></h3> <p>아웃박스에 이벤트 순서가 중요할 때(예: 같은 주문의 CREATED → PAID → SHIPPED 순서), <code>id</code>를 <code>SEQUENCE</code>로 뽑는데 여기서 함정이 있다.</p> <p>성능을 위해 시퀀스는 기본적으로 값을 캐시한다(<code>CACHE 20</code>이 기본). RAC 환경에서는 노드마다 시퀀스 캐시를 따로 갖는다. 노드 1이 1~20을, 노드 2가 21~40을 캐시하면, 노드 2에서 커밋된 이벤트가 노드 1에서 커밋된 이벤트보다 시간상 먼저인데 <code>id</code>는 더 클 수 있다. 즉 <code>ORDER BY id</code>가 실제 커밋 시간 순서를 보장하지 않는다.</p> <p>순서가 정말 중요하면 방법이 있다.</p> <ul> <li><code>ORDER</code> 옵션을 준 시퀀스(<code>CREATE SEQUENCE ... ORDER NOCACHE</code>). RAC에서 전 노드가 순서를 맞추지만 노드 간 조율 비용이 커서 성능이 크게 떨어진다. 고빈도 발행에는 못 쓴다.</li> <li><code>id</code>로 순서를 잡으려 하지 말고, 발행 시점 정렬은 <code>aggregate_id</code>(예: 주문 ID) 단위로만 보장하고 그 안에서 애플리케이션이 부여한 버전 컬럼을 쓴다. 전역 순서를 포기하고 집합체 단위 순서만 지키는 게 현실적이다.</li> </ul> <p>단일 인스턴스라면 시퀀스 캐시가 순서를 뒤집지는 않는다. 다만 인스턴스가 재시작되면 캐시에 있던 미사용 값이 날아가서 시퀀스에 구멍(gap)이 생긴다. 아웃박스 <code>id</code>는 순서 판단용이지 연속성을 가정하면 안 된다. gap이 있어도 동작에 문제없게 설계해야 한다.</p> <h3 id=cdc로-폴링을-대체하기>CDC로 폴링을 대체하기<a class=headerlink href=#cdc로-폴링을-대체하기 title="Permanent link">&para;</a></h3> <p>폴링 워커는 결국 DB를 주기적으로 긁는다. 폴링 주기를 짧게 하면 부하가 커지고, 길게 하면 지연이 커진다. 규모가 커지면 폴링 대신 CDC(Change Data Capture)로 넘어가는 걸 검토하게 된다.</p> <p>Oracle에서 CDC는 GoldenGate나 LogMiner 기반이다. 리두 로그(redo log)를 읽어서 아웃박스 테이블의 INSERT를 감지하고 그걸 그대로 메시지로 흘려보낸다. 애플리케이션은 아웃박스에 INSERT만 하고, 폴링 워커 없이 CDC가 알아서 발행한다. Debezium의 Oracle 커넥터도 내부적으로 LogMiner(또는 GoldenGate)를 쓴다.</p> <p>장점은 DB에 폴링 부하를 안 준다는 것과 지연이 작다는 것이다. 단점이 만만치 않다.</p> <ul> <li>LogMiner 기반 CDC는 리두 로그를 파싱하는데, 이게 CPU를 꽤 먹고 DDL이나 대용량 배치 트랜잭션이 있으면 지연이 급증한다.</li> <li>Supplemental logging을 켜야 한다(<code>ALTER DATABASE ADD SUPPLEMENTAL LOG DATA</code>). 이걸 켜면 리두 로그 양이 늘어서 스토리지와 아카이빙 부담이 커진다. DBA와 반드시 협의해야 한다.</li> <li>GoldenGate는 별도 라이선스 제품이라 비용이 크다.</li> </ul> <p>작은 규모에서 CDC까지 가는 건 과하다. 폴링으로 시작해서 폴링 부하가 실제로 문제가 될 때 CDC를 검토하는 순서가 맞다. Debezium/CDC의 일반론은 아웃박스 문서에 있다.</p> <h2 id=oracle-aq를-메시지-브로커로-쓰기>Oracle AQ를 메시지 브로커로 쓰기<a class=headerlink href=#oracle-aq를-메시지-브로커로-쓰기 title="Permanent link">&para;</a></h2> <p>Oracle에는 AQ(Advanced Queuing)라는 DB 내장 메시지 큐가 있다. 큐가 DB 테이블로 구현되어 있어서, 메시지 발행이 일반 DML과 같은 트랜잭션에 들어간다. 아웃박스 패턴에서 고민하는 "DB 커밋과 메시지 발행의 원자성" 문제가 AQ에서는 그냥 사라진다. 비즈니스 데이터 INSERT와 큐 enqueue가 같은 트랜잭션이니 둘 다 커밋되거나 둘 다 롤백된다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1>-- 큐 테이블과 큐 생성</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=k>BEGIN</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=w>  </span><span class=n>DBMS_AQADM</span><span class=p>.</span><span class=n>CREATE_QUEUE_TABLE</span><span class=p>(</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=w>    </span><span class=n>queue_table</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=s1>&#39;order_events_qt&#39;</span><span class=p>,</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=w>    </span><span class=n>queue_payload_type</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=s1>&#39;order_event_typ&#39;</span><span class=p>);</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=w>  </span><span class=n>DBMS_AQADM</span><span class=p>.</span><span class=n>CREATE_QUEUE</span><span class=p>(</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=w>    </span><span class=n>queue_name</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=s1>&#39;order_events_q&#39;</span><span class=p>,</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=w>    </span><span class=n>queue_table</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=s1>&#39;order_events_qt&#39;</span><span class=p>);</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=w>  </span><span class=n>DBMS_AQADM</span><span class=p>.</span><span class=n>START_QUEUE</span><span class=p>(</span><span class=n>queue_name</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=s1>&#39;order_events_q&#39;</span><span class=p>);</span>
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=k>END</span><span class=p>;</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a><span class=o>/</span>
-</span></code></pre></div> <p>비즈니스 로직과 같은 트랜잭션에서 enqueue한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=k>DECLARE</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=w>  </span><span class=n>enqueue_options</span><span class=w>    </span><span class=n>DBMS_AQ</span><span class=p>.</span><span class=n>enqueue_options_t</span><span class=p>;</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=w>  </span><span class=n>message_properties</span><span class=w> </span><span class=n>DBMS_AQ</span><span class=p>.</span><span class=n>message_properties_t</span><span class=p>;</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=w>  </span><span class=n>message_handle</span><span class=w>     </span><span class=n>RAW</span><span class=p>(</span><span class=mi>16</span><span class=p>);</span>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=w>  </span><span class=n>payload</span><span class=w>            </span><span class=n>order_event_typ</span><span class=p>;</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=k>BEGIN</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=w>  </span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(...)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(...);</span><span class=w>   </span><span class=c1>-- 비즈니스 데이터</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a><span class=w>  </span><span class=n>payload</span><span class=w> </span><span class=p>:</span><span class=o>=</span><span class=w> </span><span class=n>order_event_typ</span><span class=p>(</span><span class=s1>&#39;ORDER_CREATED&#39;</span><span class=p>,</span><span class=w> </span><span class=p>...);</span>
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a><span class=w>  </span><span class=n>DBMS_AQ</span><span class=p>.</span><span class=n>ENQUEUE</span><span class=p>(</span>
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a><span class=w>    </span><span class=n>queue_name</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=s1>&#39;order_events_q&#39;</span><span class=p>,</span>
-</span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a><span class=w>    </span><span class=n>enqueue_options</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=n>enqueue_options</span><span class=p>,</span>
-</span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a><span class=w>    </span><span class=n>message_properties</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=n>message_properties</span><span class=p>,</span>
-</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a><span class=w>    </span><span class=n>payload</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=n>payload</span><span class=p>,</span>
-</span><span id=__span-10-15><a id=__codelineno-10-15 name=__codelineno-10-15 href=#__codelineno-10-15></a><span class=w>    </span><span class=n>msgid</span><span class=w> </span><span class=o>=&gt;</span><span class=w> </span><span class=n>message_handle</span><span class=p>);</span>
-</span><span id=__span-10-16><a id=__codelineno-10-16 name=__codelineno-10-16 href=#__codelineno-10-16></a>
-</span><span id=__span-10-17><a id=__codelineno-10-17 name=__codelineno-10-17 href=#__codelineno-10-17></a><span class=w>  </span><span class=k>COMMIT</span><span class=p>;</span><span class=w>   </span><span class=c1>-- INSERT와 ENQUEUE가 함께 커밋된다</span>
-</span><span id=__span-10-18><a id=__codelineno-10-18 name=__codelineno-10-18 href=#__codelineno-10-18></a><span class=k>END</span><span class=p>;</span>
-</span><span id=__span-10-19><a id=__codelineno-10-19 name=__codelineno-10-19 href=#__codelineno-10-19></a><span class=o>/</span>
-</span></code></pre></div> <p>장점은 명확하다. 트랜잭션 원자성이 공짜다. 아웃박스 테이블도, 폴링 워커도, CDC도 필요 없다. 이미 Oracle을 쓰고 DBA가 있는 조직이라면 새 인프라(Kafka 클러스터, 주키퍼/KRaft, 모니터링) 없이 큐를 바로 쓸 수 있다. 트랜잭션 보장이 필요한 소규모 내부 서비스 간 통신에는 나쁘지 않다.</p> <p>단점이 왜 대부분 Kafka로 가는지를 설명한다.</p> <ul> <li>처리량. AQ는 결국 DB 테이블이다. 초당 수만~수십만 메시지를 Kafka처럼 흘려보내는 용도가 아니다. 발행량이 늘면 DB의 리두 로그와 undo에 그대로 부하가 간다. 큐가 곧 DB 부하다.</li> <li>DB 결합. AQ에 의존하면 모든 컨슈머가 Oracle에 붙어야 한다. 소비 측 서비스가 Node.js든 Go든 Oracle 클라이언트와 AQ 프로토콜을 물어야 한다. Kafka는 언어 중립적인 클라이언트 생태계가 넓다.</li> <li>재처리와 보관. Kafka는 로그를 보관해서 컨슈머가 오프셋을 되감아 재처리할 수 있다. AQ는 dequeue하면 메시지가 소비되어 사라지는 큐 모델이라(멀티 컨슈머 큐로 흉내낼 수는 있지만) 이벤트 소싱이나 대규모 fan-out에는 안 맞는다.</li> <li>운영 생태계. Kafka는 모니터링, 스키마 레지스트리, 커넥터 생태계가 성숙해 있다. AQ는 DBA 영역이라 애플리케이션 팀이 큐 상태를 관찰하기 불편하다.</li> </ul> <p>선택 기준은 이렇게 잡는다. 트랜잭션 원자성이 핵심이고 발행량이 크지 않고 컨슈머가 몇 개 안 되며 이미 Oracle 조직이면 AQ가 합리적이다. 처리량이 크거나, 여러 컨슈머가 이벤트를 각자 재처리해야 하거나, 폴리글랏(다언어) 서비스가 붙거나, 이벤트 스트림을 데이터 플랫폼으로 흘려야 하면 Kafka다. 현실에서는 트랜잭션이 중요한 일부 경로만 AQ로 하고 나머지는 아웃박스+Kafka로 가는 혼합이 많다.</p> <h2 id=커넥션-관리-processessessions-고갈>커넥션 관리: processes/sessions 고갈<a class=headerlink href=#커넥션-관리-processessessions-고갈 title="Permanent link">&para;</a></h2> <p>MSA로 넘어가면서 Oracle에서 가장 먼저 터지는 게 커넥션이다. 모놀리스일 때는 애플리케이션 인스턴스 몇 개가 커넥션 풀을 나눠 썼는데, MSA는 서비스 15개 × 각 서비스 인스턴스 4개 × 풀 사이즈 20 = 1200 커넥션이 된다. 이게 인스턴스 하나의 Oracle을 그대로 친다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>ORA-00020: maximum number of processes (%s) exceeded
-</span></code></pre></div> <p>Oracle은 전용 서버 모드(dedicated server)에서 세션 하나당 서버 프로세스 하나를 띄운다. <code>processes</code> 파라미터가 상한이고, <code>sessions</code>는 대략 <code>processes * 1.1 + 5</code>로 자동 계산된다. 현재 사용량은 이렇게 본다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=k>SELECT</span><span class=w> </span><span class=n>resource_name</span><span class=p>,</span><span class=w> </span><span class=n>current_utilization</span><span class=p>,</span><span class=w> </span><span class=n>max_utilization</span><span class=p>,</span><span class=w> </span><span class=n>limit_value</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=k>FROM</span><span class=w> </span><span class=n>v$resource_limit</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=k>WHERE</span><span class=w> </span><span class=n>resource_name</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;processes&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;sessions&#39;</span><span class=p>);</span>
-</span></code></pre></div> <p><code>max_utilization</code>이 <code>limit_value</code>에 근접하면 곧 <code>ORA-00020</code>이 난다. <code>processes</code>를 무작정 올리면(예: 3000) 세션마다 PGA 메모리를 먹으니 서버 메모리가 터진다. 프로세스 수와 메모리는 트레이드오프다.</p> <h3 id=풀-사이징이-먼저다>풀 사이징이 먼저다<a class=headerlink href=#풀-사이징이-먼저다 title="Permanent link">&para;</a></h3> <p>파라미터를 올리기 전에 커넥션 풀부터 손봐야 한다. 흔한 착각이 "풀을 크게 잡으면 빠르다"인데, DB 커넥션은 CPU 코어 수의 몇 배를 넘어가면 오히려 컨텍스트 스위칭으로 느려진다. HikariCP 문서의 권장도 작은 풀이다.</p> <p>HikariCP를 Oracle에 붙일 때 실무 설정.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a># 서비스 인스턴스 하나당 풀 크기. 서비스 인스턴스 수 × 이 값이
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a># Oracle processes 안에 들어와야 한다
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>maximumPoolSize=10
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>minimumIdle=10          # min과 max를 같게 두면 풀 크기가 요동치지 않는다
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>connectionTimeout=3000  # 풀에서 커넥션 못 얻으면 3초 만에 실패 (무한 대기 금지)
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a>maxLifetime=1800000     # 30분. RAC/방화벽이 유휴 커넥션을 끊기 전에 먼저 재생성
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a>validationTimeout=2000
-</span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a>connectionTestQuery=SELECT 1 FROM DUAL   # Oracle은 SELECT 1이 안 되니 DUAL 필요
-</span></code></pre></div> <p><code>maxLifetime</code>을 안 잡으면 방화벽이나 RAC가 유휴 커넥션을 조용히 끊은 걸 애플리케이션이 모르고 있다가, 그 죽은 커넥션을 꺼내 쓰는 순간 이 오류가 난다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>ORA-03113: end-of-file on communication channel
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>ORA-03135: connection lost contact
-</span></code></pre></div> <p><code>maxLifetime</code>을 DB/방화벽의 유휴 타임아웃보다 짧게 잡아서 풀이 먼저 커넥션을 갈아끼우게 하면 이 문제가 크게 준다.</p> <p>전체 커넥션 총량 관리가 핵심이다. 서비스별 풀 크기 합이 Oracle <code>processes</code>의 70~80% 안에 들어오도록 역산해야 한다. 서비스를 추가할 때마다 이 총량 계산을 다시 해야 하고, 이걸 안 하고 서비스만 계속 붙이면 어느 날 갑자기 <code>ORA-00020</code>으로 전 서비스가 접속 불가가 된다.</p> <h3 id=ucp와-rac의-fanfcf>UCP와 RAC의 FAN/FCF<a class=headerlink href=#ucp와-rac의-fanfcf title="Permanent link">&para;</a></h3> <p>Oracle에는 자체 커넥션 풀인 UCP(Universal Connection Pool)가 있다. HikariCP보다 무겁지만 RAC 환경에서 UCP만 되는 기능이 있다. FAN(Fast Application Notification)과 FCF(Fast Connection Failover)다.</p> <p>RAC는 여러 노드가 하나의 DB를 서비스한다. 노드 하나가 죽으면, HikariCP 같은 범용 풀은 그 노드로 붙어 있던 커넥션이 죽은 걸 다음에 쓸 때야 안다. 그 사이 요청들이 죽은 커넥션을 꺼내 쓰다 에러가 난다. UCP는 FAN 이벤트를 RAC로부터 실시간으로 받아서, 노드가 내려가는 즉시 그 노드로 향한 커넥션을 풀에서 제거하고 살아 있는 노드로 재분배한다(FCF). 새 노드가 붙으면 부하를 자동으로 그쪽으로 흘린다(런타임 로드 밸런싱).</p> <p>RAC를 쓰고 노드 장애 시 빠른 페일오버가 필요하면 UCP를 쓰는 게 맞다. RAC가 아니거나 단순한 구성이면 HikariCP로 충분하고 더 가볍다. RAC인데 HikariCP를 쓴다면, 최소한 <code>maxLifetime</code>을 짧게 잡고 커넥션 검증을 켜서 죽은 커넥션이 오래 안 남게 방어해야 한다.</p> <h2 id=스키마-마이그레이션과-라이브러리-캐시-락>스키마 마이그레이션과 라이브러리 캐시 락<a class=headerlink href=#스키마-마이그레이션과-라이브러리-캐시-락 title="Permanent link">&para;</a></h2> <p>서비스가 독립 배포되면 스키마 변경도 서비스마다 독립적이어야 한다. 각 서비스가 자기 스키마의 마이그레이션을 Flyway나 Liquibase로 관리한다. order_svc는 <code>order_svc</code> 스키마의 <code>flyway_schema_history</code>만, payment_svc는 자기 것만 본다. 서비스별로 마이그레이션 이력이 완전히 분리되니, 공유 스키마를 쓰지 않는 게 여기서도 전제 조건이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a># order_svc의 Flyway 설정. 자기 스키마만 관리한다
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>flyway.url=jdbc:oracle:thin:@//host:1521/PAYMENT_PDB
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>flyway.user=order_svc
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>flyway.schemas=order_svc
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>flyway.locations=classpath:db/migration/order
-</span></code></pre></div> <p>Oracle 마이그레이션에서 특히 조심할 건 DDL이 유발하는 락이다.</p> <h3 id=ddl과-라이브러리-캐시-락>DDL과 라이브러리 캐시 락<a class=headerlink href=#ddl과-라이브러리-캐시-락 title="Permanent link">&para;</a></h3> <p>Oracle에서 테이블에 DDL(<code>ALTER TABLE</code>, <code>CREATE INDEX</code> 등)을 걸면, 그 테이블을 참조하는 SQL 커서를 라이브러리 캐시에서 무효화(invalidate)해야 한다. 이를 위해 라이브러리 캐시 락을 잡는데, 그 테이블에 실행 중인 트랜잭션(DML)이 있으면 DDL이 그 락을 못 얻고 대기한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a>ORA-04021: timeout occurred while waiting to lock object
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
-</span></code></pre></div> <p>트래픽이 있는 시간에 <code>ALTER TABLE</code>을 실행하면, 진행 중인 트랜잭션 뒤에서 DDL이 대기하고, 그 대기하는 DDL 뒤로 새 트랜잭션들이 또 줄줄이 막힌다. DDL 하나가 그 테이블 전체를 얼려버린다. 무중단 배포를 한다면서 마이그레이션 스크립트에 <code>ALTER TABLE ... ADD COLUMN NOT NULL</code>을 넣으면 운영 중에 서비스가 멈춘다.</p> <p>11g부터 <code>DDL_LOCK_TIMEOUT</code>을 세션에 걸어서 DDL이 락을 무한정 안 기다리게 할 수 있다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=k>ALTER</span><span class=w> </span><span class=k>SESSION</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>ddl_lock_timeout</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>10</span><span class=p>;</span><span class=w>  </span><span class=c1>-- 10초 안에 락 못 얻으면 ORA-00054로 실패</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=p>(</span><span class=n>memo</span><span class=w> </span><span class=n>VARCHAR2</span><span class=p>(</span><span class=mi>200</span><span class=p>));</span>
-</span></code></pre></div> <p>이러면 DDL이 실패하더라도 트래픽을 오래 막지는 않는다. 실패하면 트래픽 적은 시간에 재시도한다.</p> <h3 id=무중단-스키마-변경>무중단 스키마 변경<a class=headerlink href=#무중단-스키마-변경 title="Permanent link">&para;</a></h3> <p>Oracle 무중단 변경의 원칙은 다른 DB와 같다. 파괴적 변경을 여러 단계로 쪼갠다.</p> <ul> <li>컬럼 추가는 nullable로만. <code>NOT NULL</code> + default를 한 번에 걸면 구버전 테이블 전체를 다시 쓰는 락이 걸린다(11g부터 default 있는 NOT NULL 추가가 메타데이터만 바꾸도록 개선됐지만, 버전과 조건에 따라 다르니 운영 테이블에서는 nullable로 추가 → 백필 → 제약 추가로 나누는 게 안전하다).</li> <li>컬럼 삭제는 즉시 하지 말고 <code>SET UNUSED</code>로 논리적으로만 끊었다가 나중에 물리 삭제한다. <code>DROP COLUMN</code>은 테이블을 다시 쓰므로 큰 테이블에서 오래 걸린다.</li> </ul> <div class="language-sql highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a><span class=c1>-- 즉시: 메타데이터만 바꿔 컬럼을 안 보이게</span>
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>UNUSED</span><span class=w> </span><span class=p>(</span><span class=n>legacy_flag</span><span class=p>);</span>
-</span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a><span class=c1>-- 나중에 트래픽 적을 때: 물리 삭제</span>
-</span><span id=__span-18-4><a id=__codelineno-18-4 name=__codelineno-18-4 href=#__codelineno-18-4></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>DROP</span><span class=w> </span><span class=n>UNUSED</span><span class=w> </span><span class=n>COLUMNS</span><span class=p>;</span>
-</span></code></pre></div> <ul> <li>인덱스는 <code>CREATE INDEX ... ONLINE</code>으로 만들어서 생성 중에도 DML이 되게 한다. <code>ONLINE</code> 없이 큰 테이블에 인덱스를 걸면 그동안 그 테이블 쓰기가 막힌다.</li> </ul> <div class="language-sql highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_status</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=p>(</span><span class=n>status</span><span class=p>)</span><span class=w> </span><span class=n>ONLINE</span><span class=p>;</span>
-</span></code></pre></div> <p>마이그레이션과 애플리케이션 배포 순서도 중요하다. 컬럼을 추가할 때는 DB 먼저(구버전 코드는 새 컬럼을 몰라도 됨), 컬럼을 제거할 때는 코드 먼저 배포해서 아무도 그 컬럼을 안 쓰게 만든 다음 DB에서 제거한다. 순서를 반대로 하면 배포 중간에 <code>ORA-00904: invalid identifier</code>(없는 컬럼 참조)나 <code>ORA-01400: cannot insert NULL</code>이 난다.</p> <h2 id=rac와-data-guard로-가용성읽기-분산>RAC와 Data Guard로 가용성·읽기 분산<a class=headerlink href=#rac와-data-guard로-가용성읽기-분산 title="Permanent link">&para;</a></h2> <p>Oracle을 쓰는 조직이 MSA에서 얻는 게 있다면 이미 갖춘 고가용성 인프라다.</p> <h3 id=rac로-노드-장애-대응>RAC로 노드 장애 대응<a class=headerlink href=#rac로-노드-장애-대응 title="Permanent link">&para;</a></h3> <p>RAC(Real Application Clusters)는 여러 노드가 공유 스토리지 위에서 하나의 DB를 서비스한다. 노드 하나가 죽어도 나머지 노드가 서비스를 계속한다. MSA 관점에서 RAC의 값은 DB 단일 장애점을 없애는 것이다. 앞서 말한 FAN/FCF와 UCP를 붙이면 노드 장애 시 애플리케이션이 거의 무중단으로 살아 있는 노드로 넘어간다.</p> <p>주의할 건 RAC가 만능이 아니라는 것이다. 여러 노드가 같은 블록을 동시에 갱신하려 하면 노드 간에 블록을 인터커넥트로 주고받는데(cache fusion), 이때 이 대기 이벤트가 뜬다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-20-1><a id=__codelineno-20-1 name=__codelineno-20-1 href=#__codelineno-20-1></a>gc buffer busy acquire / gc current block busy
-</span></code></pre></div> <p>핫한 행(예: 카운터, 시퀀스, 좁은 범위의 인덱스)에 여러 노드가 동시에 쓰면 인터커넥트 병목이 생겨서 오히려 단일 노드보다 느려질 수 있다. MSA에서는 서비스별로 접속할 RAC 서비스(service_name)를 나눠서, 특정 서비스는 특정 노드에 주로 붙게 하면(서비스별 노드 어피니티) 이 경합을 줄일 수 있다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a><span class=c1>-- 서비스를 특정 노드에 선호 배치</span>
-</span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a><span class=n>srvctl</span><span class=w> </span><span class=k>add</span><span class=w> </span><span class=n>service</span><span class=w> </span><span class=o>-</span><span class=n>d</span><span class=w> </span><span class=n>ORCL</span><span class=w> </span><span class=o>-</span><span class=n>s</span><span class=w> </span><span class=n>order_svc_srv</span><span class=w> </span><span class=o>-</span><span class=n>preferred</span><span class=w> </span><span class=n>node1</span><span class=w> </span><span class=o>-</span><span class=n>available</span><span class=w> </span><span class=n>node2</span>
-</span><span id=__span-21-3><a id=__codelineno-21-3 name=__codelineno-21-3 href=#__codelineno-21-3></a><span class=n>srvctl</span><span class=w> </span><span class=k>add</span><span class=w> </span><span class=n>service</span><span class=w> </span><span class=o>-</span><span class=n>d</span><span class=w> </span><span class=n>ORCL</span><span class=w> </span><span class=o>-</span><span class=n>s</span><span class=w> </span><span class=n>payment_svc_srv</span><span class=w> </span><span class=o>-</span><span class=n>preferred</span><span class=w> </span><span class=n>node2</span><span class=w> </span><span class=o>-</span><span class=n>available</span><span class=w> </span><span class=n>node1</span>
-</span></code></pre></div> <p>order_svc는 <code>order_svc_srv</code>로, payment_svc는 <code>payment_svc_srv</code>로 접속하게 하면, 평상시엔 서비스별로 노드가 나뉘어 cache fusion 경합이 줄고, 노드 하나가 죽으면 available 노드로 자동 페일오버된다.</p> <h3 id=data-guard로-읽기-분산>Data Guard로 읽기 분산<a class=headerlink href=#data-guard로-읽기-분산 title="Permanent link">&para;</a></h3> <p>Data Guard는 주(primary) DB의 변경을 대기(standby) DB로 복제한다. 재해 복구가 주 목적이지만, Active Data Guard 옵션(별도 라이선스)을 켜면 standby를 읽기 전용으로 열어서 조회 부하를 그쪽으로 보낼 수 있다.</p> <p>MSA에서 읽기가 압도적으로 많은 서비스(조회 전용 API, 리포트, 대시보드)의 SELECT를 standby로 돌리면 primary의 부하가 준다. 커넥션 문자열이나 서비스 라우팅으로 읽기 트래픽을 standby 쪽 서비스로 보낸다.</p> <p>함정은 복제 지연(replication lag)이다. Data Guard는 비동기 복제가 기본이라 standby가 primary보다 몇 초 뒤처질 수 있다. 방금 primary에 쓴 데이터를 바로 standby에서 읽으면 없거나 옛날 값이 나온다. "주문을 넣고 바로 주문 목록을 조회" 같은 read-your-own-write가 필요한 경로는 standby로 보내면 안 된다. 이런 경로는 primary로 읽고, 지연을 감수해도 되는 조회(어제까지의 집계, 통계)만 standby로 보낸다. 이건 CQRS에서 읽기 모델을 분리하는 것과 같은 고민이고, <a href=../%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%86%8C%EC%8B%B1_%EB%B0%8F_CQRS/ >이벤트_소싱_및_CQRS</a>와도 연결된다.</p> <h2 id=정리하면서-남기는-실무-감각>정리하면서 남기는 실무 감각<a class=headerlink href=#정리하면서-남기는-실무-감각 title="Permanent link">&para;</a></h2> <p>Oracle 위에서 MSA를 한다는 건 대개 "이미 Oracle에 크게 투자한 조직"이라는 뜻이다. 그래서 이론적으로 이상적인 "서비스마다 독립 오픈소스 DB"를 처음부터 하긴 어렵다. 현실적인 선은 이렇다.</p> <p>물리 분리를 못 하더라도 논리 분리(스키마-per-service)를 코드와 권한으로 강제하고, 크로스 스키마 조인과 DB Link를 금지해서 나중에 뽑아낼 수 있는 상태를 유지한다. 분산 트랜잭션은 XA/2PC 대신 Saga·아웃박스로 가고, 아웃박스는 SKIP LOCKED 폴링으로 시작해서 규모가 커지면 CDC를 검토한다. 커넥션은 서비스 추가마다 총량을 역산해서 <code>ORA-00020</code>을 예방하고, RAC를 쓴다면 UCP+FAN으로 페일오버를 챙긴다. 스키마 변경은 DDL 락을 의식해서 파괴적 변경을 단계로 쪼갠다.</p> <p>Oracle이 가진 RAC/Data Guard 같은 가용성 자산은 MSA에서도 그대로 값을 한다. 문제는 그 강력한 기능들(DB Link, XA)이 MSA의 원칙을 어기기 너무 쉽게 만든다는 것이다. 편한 길이 대부분 강결합으로 가는 길이라, 의식적으로 그 유혹을 막는 게 Oracle MSA의 핵심이다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../API_%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC/ >API 버전 관리</a></li> <li><a href=../BFF_%EB%B6%80%EB%B6%84_%EC%8B%A4%ED%8C%A8_%EC%B2%98%EB%A6%AC/ >BFF 부분 실패 처리</a></li> <li><a href=../Expand_Migrate_Contract/ >Expand-Migrate-Contract 패턴</a></li> <li><a href=../%EB%8D%B0%EC%9D%B4%ED%84%B0_%EA%B4%80%EB%A6%AC_%ED%8C%A8%ED%84%B4/ >MSA 데이터 관리 패턴</a></li> <li><a href=../MSA_Idempotency_Chain/ >MSA 서비스 체인 멱등성</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../%EB%A9%80%ED%8B%B0%20%EB%A0%88%ED%8F%AC/ class="md-footer__link md-footer__link--prev" aria-label="이전: 모노레포 vs 멀티레포"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 모노레포 vs 멀티레포 </div> </div> </a> <a href=../MSA_%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C_%EC%84%A0%ED%83%9D_%EC%A0%84%EB%9E%B5/ class="md-footer__link md-footer__link--next" aria-label="다음: 클라우드 선택 전략"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 클라우드 선택 전략 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Architecture/MSA/Oracle_MSA/">
+      
+      
+        <link rel="prev" href="../%EB%A9%80%ED%8B%B0%20%EB%A0%88%ED%8F%AC/">
+      
+      
+        <link rel="next" href="../MSA_%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C_%EC%84%A0%ED%83%9D_%EC%A0%84%EB%9E%B5/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Oracle에서의 MSA - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#oracle에서의-msa" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Oracle에서의 MSA
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Backend/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Clean_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    클린 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MVP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MVP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MVVM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MVVM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%B0%8F_%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%ED%8C%A8%ED%84%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시스템 설계 및 아키텍처 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%9D%BD%EA%B8%B0_%EA%B2%BD%EB%A1%9C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    읽기 경로
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Backend_Layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    백엔드 레이아웃
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CQRS_Pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CQRS 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Event_Driven_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이벤트 기반 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Hexagonal_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    헥사고날 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EB%B6%84%EC%82%B0_%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EC%B8%A1%EC%84%B1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 시스템 관측성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Multi_Tenancy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    멀티테넌시
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Tenant_Network_Isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테넌트 네트워크 격리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Noisy_Neighbor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noisy Neighbor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Design%20Pattern/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Pattern
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3_15" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MSA
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_3_15" id="__nav_4_3_15_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_3_15_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_3_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    MSA
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Microservices_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    마이크로서비스 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Expand_Migrate_Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EMC 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MSA_Idempotency_Chain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서비스 체인 멱등성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3_15_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_3_15_5" id="__nav_4_3_15_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설계와 전환
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_3_15_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_3_15_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    설계와 전환
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B6%84%ED%95%B4_%EB%B0%8F_%EB%8F%84%EB%A9%94%EC%9D%B8_%EC%84%A4%EA%B3%84/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서비스 분해 및 도메인 설계
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%AA%A8%EB%86%80%EB%A6%AC%EC%8A%A4_to_MSA_%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    모놀리스 → MSA 마이그레이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%A9%80%ED%8B%B0%20%EB%A0%88%ED%8F%AC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    모노레포 vs 멀티레포
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Oracle에서의 MSA
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Oracle에서의 MSA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#서비스별-db-격리를-oracle에서-구현하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스별 DB 격리를 Oracle에서 구현하기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="서비스별 DB 격리를 Oracle에서 구현하기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#인스턴스-분리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인스턴스 분리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#스키마user-per-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스키마(user)-per-service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multitenant-pdb-분리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multitenant PDB 분리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실무-선택-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무 선택 기준
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#db-link와-공유-스키마의-유혹" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DB Link와 공유 스키마의 유혹
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        분산 트랜잭션: Oracle XA와 2PC가 안티패턴인 이유
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트랜잭셔널-아웃박스를-oracle로-구현하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트랜잭셔널 아웃박스를 Oracle로 구현하기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트랜잭셔널 아웃박스를 Oracle로 구현하기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#skip-locked-폴링-11g" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SKIP LOCKED 폴링 (11g+)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ora-00060-데드락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ORA-00060 데드락
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-캐싱과-순서-보장" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEQUENCE 캐싱과 순서 보장
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdc로-폴링을-대체하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CDC로 폴링을 대체하기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oracle-aq를-메시지-브로커로-쓰기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Oracle AQ를 메시지 브로커로 쓰기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#커넥션-관리-processessessions-고갈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커넥션 관리: processes/sessions 고갈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="커넥션 관리: processes/sessions 고갈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#풀-사이징이-먼저다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        풀 사이징이 먼저다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucp와-rac의-fanfcf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UCP와 RAC의 FAN/FCF
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#스키마-마이그레이션과-라이브러리-캐시-락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스키마 마이그레이션과 라이브러리 캐시 락
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="스키마 마이그레이션과 라이브러리 캐시 락">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ddl과-라이브러리-캐시-락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DDL과 라이브러리 캐시 락
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#무중단-스키마-변경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        무중단 스키마 변경
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rac와-data-guard로-가용성읽기-분산" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RAC와 Data Guard로 가용성·읽기 분산
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RAC와 Data Guard로 가용성·읽기 분산">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rac로-노드-장애-대응" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RAC로 노드 장애 대응
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-guard로-읽기-분산" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Guard로 읽기 분산
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리하면서-남기는-실무-감각" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리하면서 남기는 실무 감각
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MSA_%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C_%EC%84%A0%ED%83%9D_%EC%A0%84%EB%9E%B5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    클라우드 선택 전략
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EC%84%9C%EB%B2%84%20%EA%B0%84%20%ED%86%B5%EC%8B%A0%20%EB%B0%A9%EC%8B%9D%20%EC%A0%95%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    통신
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EB%8D%B0%EC%9D%B4%ED%84%B0_%EA%B4%80%EB%A6%AC_%ED%8C%A8%ED%84%B4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 일관성
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../%EB%B0%B0%ED%8F%AC_%ED%8C%A8%ED%84%B4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    배포와 운영
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../BFF_%ED%8C%A8%ED%84%B4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFF
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../OMO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OMO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DDD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#서비스별-db-격리를-oracle에서-구현하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        서비스별 DB 격리를 Oracle에서 구현하기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="서비스별 DB 격리를 Oracle에서 구현하기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#인스턴스-분리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인스턴스 분리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#스키마user-per-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스키마(user)-per-service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multitenant-pdb-분리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multitenant PDB 분리
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실무-선택-기준" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무 선택 기준
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#db-link와-공유-스키마의-유혹" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DB Link와 공유 스키마의 유혹
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        분산 트랜잭션: Oracle XA와 2PC가 안티패턴인 이유
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트랜잭셔널-아웃박스를-oracle로-구현하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트랜잭셔널 아웃박스를 Oracle로 구현하기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트랜잭셔널 아웃박스를 Oracle로 구현하기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#skip-locked-폴링-11g" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SKIP LOCKED 폴링 (11g+)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ora-00060-데드락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ORA-00060 데드락
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequence-캐싱과-순서-보장" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEQUENCE 캐싱과 순서 보장
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdc로-폴링을-대체하기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CDC로 폴링을 대체하기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oracle-aq를-메시지-브로커로-쓰기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Oracle AQ를 메시지 브로커로 쓰기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#커넥션-관리-processessessions-고갈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        커넥션 관리: processes/sessions 고갈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="커넥션 관리: processes/sessions 고갈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#풀-사이징이-먼저다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        풀 사이징이 먼저다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ucp와-rac의-fanfcf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UCP와 RAC의 FAN/FCF
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#스키마-마이그레이션과-라이브러리-캐시-락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        스키마 마이그레이션과 라이브러리 캐시 락
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="스키마 마이그레이션과 라이브러리 캐시 락">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ddl과-라이브러리-캐시-락" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DDL과 라이브러리 캐시 락
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#무중단-스키마-변경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        무중단 스키마 변경
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rac와-data-guard로-가용성읽기-분산" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RAC와 Data Guard로 가용성·읽기 분산
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RAC와 Data Guard로 가용성·읽기 분산">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rac로-노드-장애-대응" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RAC로 노드 장애 대응
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-guard로-읽기-분산" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Guard로 읽기 분산
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리하면서-남기는-실무-감각" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리하면서 남기는 실무 감각
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">architecture</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">microservices</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="oracle에서의-msa">Oracle에서의 MSA<a class="headerlink" href="#oracle에서의-msa" title="Permanent link">&para;</a></h1>
+<p>MSA 이론은 대부분 PostgreSQL이나 MySQL을 전제로 쓰여 있다. "서비스마다 DB를 분리하라"는 말은 쉽지만, 회사에 이미 Oracle Enterprise Edition RAC가 깔려 있고 DBA 조직이 있고 라이선스 비용이 코어당 붙는 환경에서는 이야기가 다르다. Oracle을 쓰는 조직에서 MSA를 하면 겪는 문제들을 정리한다. Oracle 특유의 오류 코드와 트러블슈팅 위주로 다룬다.</p>
+<h2 id="서비스별-db-격리를-oracle에서-구현하기">서비스별 DB 격리를 Oracle에서 구현하기<a class="headerlink" href="#서비스별-db-격리를-oracle에서-구현하기" title="Permanent link">&para;</a></h2>
+<p>MSA의 대원칙은 서비스가 자기 데이터를 독점하고 다른 서비스는 API로만 접근하는 것이다. Oracle에서 이걸 구현하는 방법은 세 가지이고, 각각 라이선스와 운영 부담이 크게 다르다.</p>
+<h3 id="인스턴스-분리">인스턴스 분리<a class="headerlink" href="#인스턴스-분리" title="Permanent link">&para;</a></h3>
+<p>서비스마다 별도 Oracle 인스턴스(별도 서버 또는 별도 DB)를 띄운다. 격리는 가장 확실하다. 서비스 A의 테이블 스캔이 서비스 B의 버퍼 캐시를 오염시키는 일이 없고, 한 서비스의 폭주가 다른 서비스의 SGA를 잡아먹지 않는다.</p>
+<p>문제는 비용이다. Oracle EE는 코어 단위로 라이선스를 산다. 인스턴스를 20개로 쪼개면 각 인스턴스가 최소한의 코어를 먹고, 그게 다 라이선스 대상이다. 게다가 인스턴스마다 SGA/PGA 메모리를 따로 잡으니 물리 서버 메모리도 빨리 고갈된다. 소규모 서비스 15개를 각각 인스턴스로 띄우면 실사용률은 5%인데 라이선스는 100% 내는 상황이 나온다.</p>
+<h3 id="스키마user-per-service">스키마(user)-per-service<a class="headerlink" href="#스키마user-per-service" title="Permanent link">&para;</a></h3>
+<p>Oracle에서 스키마와 유저는 같은 개념이다. <code>CREATE USER order_svc</code>를 하면 <code>order_svc</code>라는 스키마가 생기고, 그 안에 테이블이 들어간다. 서비스마다 유저를 하나씩 만들고, 서비스 애플리케이션은 자기 유저로만 접속한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="n">order_svc</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="p">...</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">TABLESPACE</span><span class="w"> </span><span class="n">ts_order</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="n">QUOTA</span><span class="w"> </span><span class="n">UNLIMITED</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">ts_order</span><span class="p">;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">CREATE</span><span class="w"> </span><span class="k">SESSION</span><span class="p">,</span><span class="w"> </span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="p">,</span><span class="w"> </span><span class="k">CREATE</span><span class="w"> </span><span class="n">SEQUENCE</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">order_svc</span><span class="p">;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="n">payment_svc</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="p">...</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">TABLESPACE</span><span class="w"> </span><span class="n">ts_payment</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="n">QUOTA</span><span class="w"> </span><span class="n">UNLIMITED</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">ts_payment</span><span class="p">;</span>
+</span></code></pre></div>
+<p>같은 인스턴스 안에 유저만 나눠서 쓰니 라이선스는 인스턴스 하나 값만 낸다. 중소 규모에서 현실적으로 가장 많이 선택하는 방식이다.</p>
+<p>격리가 약하다는 게 함정이다. 물리적으로 같은 인스턴스라 버퍼 캐시, 리두 로그, undo 세그먼트, 그리고 무엇보다 <code>processes</code>/<code>sessions</code> 파라미터를 전 서비스가 공유한다. 한 서비스가 커넥션을 다 잡아먹으면 다른 서비스가 <code>ORA-00020: maximum number of processes exceeded</code>로 접속조차 못 한다. 그리고 유저 권한을 조금만 느슨하게 주면 <code>SELECT * FROM payment_svc.transactions</code> 같은 크로스 스키마 접근이 너무 쉽게 열린다. 이건 뒤에서 다시 다룬다.</p>
+<h3 id="multitenant-pdb-분리">Multitenant PDB 분리<a class="headerlink" href="#multitenant-pdb-분리" title="Permanent link">&para;</a></h3>
+<p>12c부터 나온 Multitenant 아키텍처는 하나의 컨테이너 DB(CDB) 안에 여러 개의 플러그형 DB(PDB)를 넣는다. 서비스마다 PDB를 하나씩 주면, 논리적으로는 완전히 분리된 DB처럼 보이면서 물리 인스턴스는 하나를 공유한다. PDB 단위로 백업/복구/이관이 되고, PDB끼리는 기본적으로 서로 안 보인다. 스키마-per-service의 격리 약점과 인스턴스 분리의 비용 부담 사이의 절충안이다.</p>
+<p>라이선스를 반드시 확인해야 한다. 19c 기준으로 CDB에 PDB 3개까지는 Multitenant 옵션 없이 쓸 수 있지만, 4개째부터는 Multitenant 옵션 라이선스를 따로 사야 한다(버전별로 규칙이 바뀌므로 계약을 확인해야 한다). MSA는 서비스가 수십 개인데 PDB 3개 제한은 의미가 없다. 결국 Multitenant를 제대로 쓰려면 옵션 비용이 붙는다.</p>
+<h3 id="실무-선택-기준">실무 선택 기준<a class="headerlink" href="#실무-선택-기준" title="Permanent link">&para;</a></h3>
+<p>정답은 규모와 라이선스 계약에 달렸다.</p>
+<ul>
+<li>서비스 5개 미만, 트래픽 작음 → 스키마-per-service. 인스턴스 하나에 다 넣고 유저만 나눈다.</li>
+<li>서비스 많고 이미 Multitenant 옵션 계약이 있음 → PDB-per-service.</li>
+<li>특정 서비스만 트래픽이 압도적으로 크거나 규제상 물리 분리가 필요함 → 그 서비스만 인스턴스 분리, 나머지는 스키마로.</li>
+</ul>
+<p>핵심은 "논리적 분리를 코드/권한 레벨에서 강제하는가"다. 물리 분리를 못 하더라도 서비스가 자기 스키마 밖을 못 건드리게 권한을 잠그면, 나중에 트래픽이 커졌을 때 그 스키마만 뽑아서 별도 인스턴스로 옮길 수 있다. 처음부터 크로스 스키마 조인을 허용하면 그 이관이 불가능해진다.</p>
+<h2 id="db-link와-공유-스키마의-유혹">DB Link와 공유 스키마의 유혹<a class="headerlink" href="#db-link와-공유-스키마의-유혹" title="Permanent link">&para;</a></h2>
+<p>Oracle을 쓰는 조직에서 MSA를 망치는 첫 번째 원인은 대부분 DB Link다.</p>
+<p>서비스 A가 서비스 B의 데이터를 필요로 할 때, 정석은 B의 REST API를 호출하는 것이다. 하지만 DBA에게 "B 스키마로 가는 DB Link 하나만 만들어 주세요" 하면 5분 만에 끝난다. API를 만들 필요도, 네트워크 타임아웃을 다룰 필요도 없다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">-- order_svc 스키마에서</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">DATABASE</span><span class="w"> </span><span class="n">LINK</span><span class="w"> </span><span class="n">payment_link</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="k">CONNECT</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">payment_svc</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="p">...</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="k">USING</span><span class="w"> </span><span class="s1">&#39;PAYMENT_DB&#39;</span><span class="p">;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1">-- 그냥 조인해버린다</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">order_id</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">paid_amount</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="n">o</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">JOIN</span><span class="w"> </span><span class="n">payment</span><span class="o">@</span><span class="n">payment_link</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">order_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">order_id</span><span class="p">;</span>
+</span></code></pre></div>
+<p>이 한 줄이 MSA를 조용히 모놀리스로 되돌린다.</p>
+<p>문제가 바로 안 보인다는 게 진짜 위험한 점이다. 개발할 때는 조인 한 방이 API 여러 번보다 빠르고 편하다. 6개월 지나면 서비스 15개가 서로 DB Link로 얽혀서, payment 스키마의 컬럼 하나를 못 바꾼다. 어디서 누가 <code>payment@payment_link</code>로 그 컬럼을 참조하는지 전수조사가 불가능하기 때문이다. 스키마 소유권이라는 MSA의 근간이 무너진다.</p>
+<p>순환 참조도 생긴다. A가 B의 테이블을 조인하고, B가 A의 테이블을 조인하면, 두 서비스는 배포 순서를 맞춰야 하고 한쪽 스키마 변경이 다른 쪽 쿼리를 깨뜨린다. 이건 서비스가 아니라 그냥 분산된 모놀리스다.</p>
+<p>DB Link를 쓰면 트랜잭션까지 자동으로 분산 트랜잭션이 된다. <code>payment@payment_link</code>를 건드리는 순간 그 세션은 분산 트랜잭션으로 승격되고, 다음 절에서 다룰 온갖 문제가 딸려온다.</p>
+<p>현실적인 대응은 DB Link 생성을 DBA 승인 프로세스로 막고, 이미 있는 것들은 목록을 뽑아서 하나씩 API로 걷어내는 것이다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- 인스턴스에 존재하는 DB Link 전수조사</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">owner</span><span class="p">,</span><span class="w"> </span><span class="n">db_link</span><span class="p">,</span><span class="w"> </span><span class="k">host</span><span class="p">,</span><span class="w"> </span><span class="n">created</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">dba_db_links</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">owner</span><span class="p">;</span>
+</span></code></pre></div>
+<p>이 쿼리 결과가 서비스 개수보다 많으면 이미 강결합이 상당히 진행된 상태다.</p>
+<h2 id="분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유">분산 트랜잭션: Oracle XA와 2PC가 안티패턴인 이유<a class="headerlink" href="#분산-트랜잭션-oracle-xa와-2pc가-안티패턴인-이유" title="Permanent link">&para;</a></h2>
+<p>여러 서비스의 DB를 하나의 트랜잭션으로 묶고 싶은 유혹은 항상 있다. 주문을 넣으면서 재고를 까고 결제를 잡는 걸 all-or-nothing으로 하고 싶다. Oracle은 이걸 두 가지로 지원한다. XA(Java의 <code>XADataSource</code>로 애플리케이션이 여러 리소스를 2PC로 묶는 것)와 DB Link 분산 트랜잭션(서로 다른 인스턴스의 테이블을 하나의 트랜잭션에서 갱신하는 것)이다. 둘 다 내부적으로 2PC(Two-Phase Commit)를 쓴다.</p>
+<p>2PC의 흐름은 이렇다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Coordinator                Resource A              Resource B
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    |------- prepare -------&gt;|                        |
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    |------- prepare --------------------------------&gt;|
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    |&lt;------ ready ----------|                        |
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    |&lt;------ ready -----------------------------------|
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    |------- commit --------&gt;|                        |
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    |------- commit ---------------------------------&gt;|
+</span></code></pre></div>
+<p>prepare 단계에서 모든 리소스가 "커밋할 준비 됐다"고 답하면, coordinator가 commit을 뿌린다. 여기서 MSA에 치명적인 문제가 두 가지다.</p>
+<p>첫째, prepare와 commit 사이에 리소스가 잠긴다. A가 prepare로 "ready" 하고 나서 B의 응답을 기다리는 동안, A가 건드린 행(row)들은 잠긴 채로 커밋도 롤백도 못 한다. 이 상태에서 coordinator가 죽으면 그 트랜잭션은 in-doubt(미결) 상태가 되어 무한정 락을 잡는다. 서비스 하나가 느려지면 그 락을 기다리는 다른 서비스가 줄줄이 멈춘다. 마이크로서비스의 독립성이 근본적으로 깨진다.</p>
+<p>둘째, 실제로 자주 터지는 게 타임아웃이다. DB Link 분산 트랜잭션에서 원격 노드 응답이 <code>distributed_lock_timeout</code>(기본 60초)을 넘기면 이 오류가 난다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ORA-02049: timeout: distributed transaction waiting for lock
+</span></code></pre></div>
+<p>원격 노드가 잠깐 느려지거나 네트워크가 출렁이면 바로 발생한다. 네트워크가 항상 흔들리는 게 전제인 MSA 환경에서 60초 락 대기는 재앙이다.</p>
+<p>in-doubt 트랜잭션이 남으면 이렇게 확인하고 강제 정리한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">-- 미결 분산 트랜잭션 조회</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">local_tran_id</span><span class="p">,</span><span class="w"> </span><span class="k">state</span><span class="p">,</span><span class="w"> </span><span class="n">mixed</span><span class="p">,</span><span class="w"> </span><span class="k">host</span><span class="p">,</span><span class="w"> </span><span class="n">commit_comment</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">dba_2pc_pending</span><span class="p">;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1">-- DBA가 수동으로 강제 커밋/롤백. state를 보고 판단해야 한다</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">COMMIT</span><span class="w"> </span><span class="k">FORCE</span><span class="w"> </span><span class="s1">&#39;&lt;local_tran_id&gt;&#39;</span><span class="p">;</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1">-- 또는</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">ROLLBACK</span><span class="w"> </span><span class="k">FORCE</span><span class="w"> </span><span class="s1">&#39;&lt;local_tran_id&gt;&#39;</span><span class="p">;</span>
+</span></code></pre></div>
+<p><code>FORCE</code>로 한쪽만 커밋하고 다른 쪽을 롤백하면 데이터 정합성이 깨진 mixed 상태가 되고, <code>dba_2pc_pending</code>의 <code>mixed</code> 컬럼이 <code>yes</code>로 남는다. 이건 사람이 데이터를 직접 대조해서 맞춰야 한다. 새벽에 이걸 하고 있으면 XA를 쓴 걸 후회하게 된다.</p>
+<p><code>ORA-24756: transaction does not exist</code>도 XA 환경에서 자주 본다. 애플리케이션(트랜잭션 매니저)이 인지한 트랜잭션과 DB가 인지한 트랜잭션 상태가 어긋날 때 나온다. 보통 타임아웃으로 한쪽이 트랜잭션을 이미 정리했는데 다른 쪽이 뒤늦게 커밋을 시도하면 발생한다.</p>
+<p>결론은 MSA에서 서비스 간 원자성이 필요하면 2PC가 아니라 Saga나 아웃박스로 최종적 일관성(eventual consistency)을 받아들이는 것이다. 즉시 정합성을 포기하는 대신 서비스의 독립성과 가용성을 얻는다. Saga는 <a href="../Saga_%ED%8C%A8%ED%84%B4_%EB%B0%8F_%EB%B6%84%EC%82%B0_%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98/">Saga_패턴_및_분산_트랜잭션</a>, 아웃박스는 <a href="../%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%94%EB%84%90_%EC%95%84%EC%9B%83%EB%B0%95%EC%8A%A4_%ED%8C%A8%ED%84%B4/">트랜잭셔널_아웃박스_패턴</a>에서 다룬다. 여기서는 그 구현을 Oracle로 할 때의 디테일을 본다.</p>
+<p>XA를 정말로 못 피하는 경우가 있긴 하다. 레거시 EJB 컨테이너나 상용 패키지가 XA를 강제할 때다. 그럴 때는 XA 참여 리소스를 최소한으로 줄이고, <code>distributed_lock_timeout</code>을 짧게(예: 10초) 잡아서 락 대기가 오래 끌리지 않게 하는 방어가 최선이다.</p>
+<h2 id="트랜잭셔널-아웃박스를-oracle로-구현하기">트랜잭셔널 아웃박스를 Oracle로 구현하기<a class="headerlink" href="#트랜잭셔널-아웃박스를-oracle로-구현하기" title="Permanent link">&para;</a></h2>
+<p>아웃박스 패턴 자체는 <a href="../%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%94%EB%84%90_%EC%95%84%EC%9B%83%EB%B0%95%EC%8A%A4_%ED%8C%A8%ED%84%B4/">트랜잭셔널_아웃박스_패턴</a>에 있으니, 여기서는 Oracle에서 폴링 워커를 만들 때 부딪히는 것들만 본다.</p>
+<h3 id="skip-locked-폴링-11g">SKIP LOCKED 폴링 (11g+)<a class="headerlink" href="#skip-locked-폴링-11g" title="Permanent link">&para;</a></h3>
+<p>폴링 워커를 여러 개 띄우면 같은 아웃박스 행을 두 워커가 동시에 집어서 메시지가 중복 발행될 수 있다. <code>FOR UPDATE</code>로 락을 잡으면 중복은 막지만, 워커 B가 워커 A가 잡은 행이 풀릴 때까지 기다리느라 처리량이 안 나온다.</p>
+<p><code>SKIP LOCKED</code>는 이미 다른 세션이 잠근 행을 기다리지 않고 건너뛴다. Oracle은 11g부터 지원한다(그전에도 내부적으로 쓰였지만 문서화된 문법은 11g부터다).</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">aggregate_id</span><span class="p">,</span><span class="w"> </span><span class="n">event_type</span><span class="p">,</span><span class="w"> </span><span class="n">payload</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">outbox</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;PENDING&#39;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">id</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">FETCH</span><span class="w"> </span><span class="k">FIRST</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="k">ROWS</span><span class="w"> </span><span class="k">ONLY</span><span class="w">   </span><span class="c1">-- 12c+ 문법</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">FOR</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="n">SKIP</span><span class="w"> </span><span class="n">LOCKED</span><span class="p">;</span>
+</span></code></pre></div>
+<p>11g에서는 <code>FETCH FIRST</code>가 없으니 <code>ROWNUM</code>으로 처리한다. <code>FOR UPDATE</code>와 <code>ROWNUM</code>을 한 쿼리에 섞으면 순서 문제가 생기므로 인라인 뷰로 감싼다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">aggregate_id</span><span class="p">,</span><span class="w"> </span><span class="n">event_type</span><span class="p">,</span><span class="w"> </span><span class="n">payload</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">FROM</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">aggregate_id</span><span class="p">,</span><span class="w"> </span><span class="n">event_type</span><span class="p">,</span><span class="w"> </span><span class="n">payload</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">outbox</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;PENDING&#39;</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">id</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">)</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">ROWNUM</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">100</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="k">FOR</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="n">SKIP</span><span class="w"> </span><span class="n">LOCKED</span><span class="p">;</span>
+</span></code></pre></div>
+<p>이렇게 하면 워커를 N개 띄워도 각자 다른 행을 집어간다. 워커마다 100건씩 잡아서 발행하고 <code>status = 'SENT'</code>로 업데이트한 뒤 커밋한다.</p>
+<h3 id="ora-00060-데드락">ORA-00060 데드락<a class="headerlink" href="#ora-00060-데드락" title="Permanent link">&para;</a></h3>
+<p>아웃박스 워커를 여럿 돌리다 보면 이걸 만난다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>ORA-00060: deadlock detected while waiting for resource
+</span></code></pre></div>
+<p>원인은 대개 <code>ORDER BY</code> 없이 <code>SKIP LOCKED</code>를 쓰거나, 워커들이 아웃박스 행뿐 아니라 다른 테이블(예: 처리 로그, 집계 테이블)까지 서로 다른 순서로 잠글 때다. 워커 A는 outbox → log 순으로, 워커 B는 log → outbox 순으로 잠그면 교착이 생긴다.</p>
+<p>대응은 두 가지다. 락 획득 순서를 모든 워커에서 동일하게 통일한다(항상 <code>id</code> 오름차순, 항상 같은 테이블 순서). 그리고 아웃박스 워커는 아웃박스 테이블만 건드리게 하고, 부가 작업은 발행 후 별도 트랜잭션으로 분리한다. Oracle은 데드락이 나면 한쪽 트랜잭션의 마지막 문장만 롤백하고 <code>ORA-00060</code>을 던지므로, 애플리케이션에서 이 예외를 잡아 트랜잭션 전체를 롤백하고 재시도하게 만들어야 한다. 재시도하지 않으면 그 배치가 통째로 유실된다.</p>
+<h3 id="sequence-캐싱과-순서-보장">SEQUENCE 캐싱과 순서 보장<a class="headerlink" href="#sequence-캐싱과-순서-보장" title="Permanent link">&para;</a></h3>
+<p>아웃박스에 이벤트 순서가 중요할 때(예: 같은 주문의 CREATED → PAID → SHIPPED 순서), <code>id</code>를 <code>SEQUENCE</code>로 뽑는데 여기서 함정이 있다.</p>
+<p>성능을 위해 시퀀스는 기본적으로 값을 캐시한다(<code>CACHE 20</code>이 기본). RAC 환경에서는 노드마다 시퀀스 캐시를 따로 갖는다. 노드 1이 1~20을, 노드 2가 21~40을 캐시하면, 노드 2에서 커밋된 이벤트가 노드 1에서 커밋된 이벤트보다 시간상 먼저인데 <code>id</code>는 더 클 수 있다. 즉 <code>ORDER BY id</code>가 실제 커밋 시간 순서를 보장하지 않는다.</p>
+<p>순서가 정말 중요하면 방법이 있다.</p>
+<ul>
+<li><code>ORDER</code> 옵션을 준 시퀀스(<code>CREATE SEQUENCE ... ORDER NOCACHE</code>). RAC에서 전 노드가 순서를 맞추지만 노드 간 조율 비용이 커서 성능이 크게 떨어진다. 고빈도 발행에는 못 쓴다.</li>
+<li><code>id</code>로 순서를 잡으려 하지 말고, 발행 시점 정렬은 <code>aggregate_id</code>(예: 주문 ID) 단위로만 보장하고 그 안에서 애플리케이션이 부여한 버전 컬럼을 쓴다. 전역 순서를 포기하고 집합체 단위 순서만 지키는 게 현실적이다.</li>
+</ul>
+<p>단일 인스턴스라면 시퀀스 캐시가 순서를 뒤집지는 않는다. 다만 인스턴스가 재시작되면 캐시에 있던 미사용 값이 날아가서 시퀀스에 구멍(gap)이 생긴다. 아웃박스 <code>id</code>는 순서 판단용이지 연속성을 가정하면 안 된다. gap이 있어도 동작에 문제없게 설계해야 한다.</p>
+<h3 id="cdc로-폴링을-대체하기">CDC로 폴링을 대체하기<a class="headerlink" href="#cdc로-폴링을-대체하기" title="Permanent link">&para;</a></h3>
+<p>폴링 워커는 결국 DB를 주기적으로 긁는다. 폴링 주기를 짧게 하면 부하가 커지고, 길게 하면 지연이 커진다. 규모가 커지면 폴링 대신 CDC(Change Data Capture)로 넘어가는 걸 검토하게 된다.</p>
+<p>Oracle에서 CDC는 GoldenGate나 LogMiner 기반이다. 리두 로그(redo log)를 읽어서 아웃박스 테이블의 INSERT를 감지하고 그걸 그대로 메시지로 흘려보낸다. 애플리케이션은 아웃박스에 INSERT만 하고, 폴링 워커 없이 CDC가 알아서 발행한다. Debezium의 Oracle 커넥터도 내부적으로 LogMiner(또는 GoldenGate)를 쓴다.</p>
+<p>장점은 DB에 폴링 부하를 안 준다는 것과 지연이 작다는 것이다. 단점이 만만치 않다.</p>
+<ul>
+<li>LogMiner 기반 CDC는 리두 로그를 파싱하는데, 이게 CPU를 꽤 먹고 DDL이나 대용량 배치 트랜잭션이 있으면 지연이 급증한다.</li>
+<li>Supplemental logging을 켜야 한다(<code>ALTER DATABASE ADD SUPPLEMENTAL LOG DATA</code>). 이걸 켜면 리두 로그 양이 늘어서 스토리지와 아카이빙 부담이 커진다. DBA와 반드시 협의해야 한다.</li>
+<li>GoldenGate는 별도 라이선스 제품이라 비용이 크다.</li>
+</ul>
+<p>작은 규모에서 CDC까지 가는 건 과하다. 폴링으로 시작해서 폴링 부하가 실제로 문제가 될 때 CDC를 검토하는 순서가 맞다. Debezium/CDC의 일반론은 아웃박스 문서에 있다.</p>
+<h2 id="oracle-aq를-메시지-브로커로-쓰기">Oracle AQ를 메시지 브로커로 쓰기<a class="headerlink" href="#oracle-aq를-메시지-브로커로-쓰기" title="Permanent link">&para;</a></h2>
+<p>Oracle에는 AQ(Advanced Queuing)라는 DB 내장 메시지 큐가 있다. 큐가 DB 테이블로 구현되어 있어서, 메시지 발행이 일반 DML과 같은 트랜잭션에 들어간다. 아웃박스 패턴에서 고민하는 "DB 커밋과 메시지 발행의 원자성" 문제가 AQ에서는 그냥 사라진다. 비즈니스 데이터 INSERT와 큐 enqueue가 같은 트랜잭션이니 둘 다 커밋되거나 둘 다 롤백된다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">-- 큐 테이블과 큐 생성</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">BEGIN</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="n">DBMS_AQADM</span><span class="p">.</span><span class="n">CREATE_QUEUE_TABLE</span><span class="p">(</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="n">queue_table</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">&#39;order_events_qt&#39;</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="n">queue_payload_type</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">&#39;order_event_typ&#39;</span><span class="p">);</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="n">DBMS_AQADM</span><span class="p">.</span><span class="n">CREATE_QUEUE</span><span class="p">(</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="n">queue_name</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">&#39;order_events_q&#39;</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="n">queue_table</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">&#39;order_events_qt&#39;</span><span class="p">);</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="n">DBMS_AQADM</span><span class="p">.</span><span class="n">START_QUEUE</span><span class="p">(</span><span class="n">queue_name</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">&#39;order_events_q&#39;</span><span class="p">);</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="k">END</span><span class="p">;</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="o">/</span>
+</span></code></pre></div>
+<p>비즈니스 로직과 같은 트랜잭션에서 enqueue한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">DECLARE</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="n">enqueue_options</span><span class="w">    </span><span class="n">DBMS_AQ</span><span class="p">.</span><span class="n">enqueue_options_t</span><span class="p">;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="n">message_properties</span><span class="w"> </span><span class="n">DBMS_AQ</span><span class="p">.</span><span class="n">message_properties_t</span><span class="p">;</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="n">message_handle</span><span class="w">     </span><span class="n">RAW</span><span class="p">(</span><span class="mi">16</span><span class="p">);</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="n">payload</span><span class="w">            </span><span class="n">order_event_typ</span><span class="p">;</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="k">BEGIN</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="p">(...)</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(...);</span><span class="w">   </span><span class="c1">-- 비즈니스 데이터</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">  </span><span class="n">payload</span><span class="w"> </span><span class="p">:</span><span class="o">=</span><span class="w"> </span><span class="n">order_event_typ</span><span class="p">(</span><span class="s1">&#39;ORDER_CREATED&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">  </span><span class="n">DBMS_AQ</span><span class="p">.</span><span class="n">ENQUEUE</span><span class="p">(</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span><span class="n">queue_name</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">&#39;order_events_q&#39;</span><span class="p">,</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">    </span><span class="n">enqueue_options</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">enqueue_options</span><span class="p">,</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">    </span><span class="n">message_properties</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">message_properties</span><span class="p">,</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">    </span><span class="n">payload</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">payload</span><span class="p">,</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">    </span><span class="n">msgid</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">message_handle</span><span class="p">);</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">  </span><span class="k">COMMIT</span><span class="p">;</span><span class="w">   </span><span class="c1">-- INSERT와 ENQUEUE가 함께 커밋된다</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="k">END</span><span class="p">;</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="o">/</span>
+</span></code></pre></div>
+<p>장점은 명확하다. 트랜잭션 원자성이 공짜다. 아웃박스 테이블도, 폴링 워커도, CDC도 필요 없다. 이미 Oracle을 쓰고 DBA가 있는 조직이라면 새 인프라(Kafka 클러스터, 주키퍼/KRaft, 모니터링) 없이 큐를 바로 쓸 수 있다. 트랜잭션 보장이 필요한 소규모 내부 서비스 간 통신에는 나쁘지 않다.</p>
+<p>단점이 왜 대부분 Kafka로 가는지를 설명한다.</p>
+<ul>
+<li>처리량. AQ는 결국 DB 테이블이다. 초당 수만~수십만 메시지를 Kafka처럼 흘려보내는 용도가 아니다. 발행량이 늘면 DB의 리두 로그와 undo에 그대로 부하가 간다. 큐가 곧 DB 부하다.</li>
+<li>DB 결합. AQ에 의존하면 모든 컨슈머가 Oracle에 붙어야 한다. 소비 측 서비스가 Node.js든 Go든 Oracle 클라이언트와 AQ 프로토콜을 물어야 한다. Kafka는 언어 중립적인 클라이언트 생태계가 넓다.</li>
+<li>재처리와 보관. Kafka는 로그를 보관해서 컨슈머가 오프셋을 되감아 재처리할 수 있다. AQ는 dequeue하면 메시지가 소비되어 사라지는 큐 모델이라(멀티 컨슈머 큐로 흉내낼 수는 있지만) 이벤트 소싱이나 대규모 fan-out에는 안 맞는다.</li>
+<li>운영 생태계. Kafka는 모니터링, 스키마 레지스트리, 커넥터 생태계가 성숙해 있다. AQ는 DBA 영역이라 애플리케이션 팀이 큐 상태를 관찰하기 불편하다.</li>
+</ul>
+<p>선택 기준은 이렇게 잡는다. 트랜잭션 원자성이 핵심이고 발행량이 크지 않고 컨슈머가 몇 개 안 되며 이미 Oracle 조직이면 AQ가 합리적이다. 처리량이 크거나, 여러 컨슈머가 이벤트를 각자 재처리해야 하거나, 폴리글랏(다언어) 서비스가 붙거나, 이벤트 스트림을 데이터 플랫폼으로 흘려야 하면 Kafka다. 현실에서는 트랜잭션이 중요한 일부 경로만 AQ로 하고 나머지는 아웃박스+Kafka로 가는 혼합이 많다.</p>
+<h2 id="커넥션-관리-processessessions-고갈">커넥션 관리: processes/sessions 고갈<a class="headerlink" href="#커넥션-관리-processessessions-고갈" title="Permanent link">&para;</a></h2>
+<p>MSA로 넘어가면서 Oracle에서 가장 먼저 터지는 게 커넥션이다. 모놀리스일 때는 애플리케이션 인스턴스 몇 개가 커넥션 풀을 나눠 썼는데, MSA는 서비스 15개 × 각 서비스 인스턴스 4개 × 풀 사이즈 20 = 1200 커넥션이 된다. 이게 인스턴스 하나의 Oracle을 그대로 친다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>ORA-00020: maximum number of processes (%s) exceeded
+</span></code></pre></div>
+<p>Oracle은 전용 서버 모드(dedicated server)에서 세션 하나당 서버 프로세스 하나를 띄운다. <code>processes</code> 파라미터가 상한이고, <code>sessions</code>는 대략 <code>processes * 1.1 + 5</code>로 자동 계산된다. 현재 사용량은 이렇게 본다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">resource_name</span><span class="p">,</span><span class="w"> </span><span class="n">current_utilization</span><span class="p">,</span><span class="w"> </span><span class="n">max_utilization</span><span class="p">,</span><span class="w"> </span><span class="n">limit_value</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">v$resource_limit</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">resource_name</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;processes&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;sessions&#39;</span><span class="p">);</span>
+</span></code></pre></div>
+<p><code>max_utilization</code>이 <code>limit_value</code>에 근접하면 곧 <code>ORA-00020</code>이 난다. <code>processes</code>를 무작정 올리면(예: 3000) 세션마다 PGA 메모리를 먹으니 서버 메모리가 터진다. 프로세스 수와 메모리는 트레이드오프다.</p>
+<h3 id="풀-사이징이-먼저다">풀 사이징이 먼저다<a class="headerlink" href="#풀-사이징이-먼저다" title="Permanent link">&para;</a></h3>
+<p>파라미터를 올리기 전에 커넥션 풀부터 손봐야 한다. 흔한 착각이 "풀을 크게 잡으면 빠르다"인데, DB 커넥션은 CPU 코어 수의 몇 배를 넘어가면 오히려 컨텍스트 스위칭으로 느려진다. HikariCP 문서의 권장도 작은 풀이다.</p>
+<p>HikariCP를 Oracle에 붙일 때 실무 설정.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a># 서비스 인스턴스 하나당 풀 크기. 서비스 인스턴스 수 × 이 값이
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a># Oracle processes 안에 들어와야 한다
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>maximumPoolSize=10
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>minimumIdle=10          # min과 max를 같게 두면 풀 크기가 요동치지 않는다
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>connectionTimeout=3000  # 풀에서 커넥션 못 얻으면 3초 만에 실패 (무한 대기 금지)
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>maxLifetime=1800000     # 30분. RAC/방화벽이 유휴 커넥션을 끊기 전에 먼저 재생성
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>validationTimeout=2000
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>connectionTestQuery=SELECT 1 FROM DUAL   # Oracle은 SELECT 1이 안 되니 DUAL 필요
+</span></code></pre></div>
+<p><code>maxLifetime</code>을 안 잡으면 방화벽이나 RAC가 유휴 커넥션을 조용히 끊은 걸 애플리케이션이 모르고 있다가, 그 죽은 커넥션을 꺼내 쓰는 순간 이 오류가 난다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>ORA-03113: end-of-file on communication channel
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>ORA-03135: connection lost contact
+</span></code></pre></div>
+<p><code>maxLifetime</code>을 DB/방화벽의 유휴 타임아웃보다 짧게 잡아서 풀이 먼저 커넥션을 갈아끼우게 하면 이 문제가 크게 준다.</p>
+<p>전체 커넥션 총량 관리가 핵심이다. 서비스별 풀 크기 합이 Oracle <code>processes</code>의 70~80% 안에 들어오도록 역산해야 한다. 서비스를 추가할 때마다 이 총량 계산을 다시 해야 하고, 이걸 안 하고 서비스만 계속 붙이면 어느 날 갑자기 <code>ORA-00020</code>으로 전 서비스가 접속 불가가 된다.</p>
+<h3 id="ucp와-rac의-fanfcf">UCP와 RAC의 FAN/FCF<a class="headerlink" href="#ucp와-rac의-fanfcf" title="Permanent link">&para;</a></h3>
+<p>Oracle에는 자체 커넥션 풀인 UCP(Universal Connection Pool)가 있다. HikariCP보다 무겁지만 RAC 환경에서 UCP만 되는 기능이 있다. FAN(Fast Application Notification)과 FCF(Fast Connection Failover)다.</p>
+<p>RAC는 여러 노드가 하나의 DB를 서비스한다. 노드 하나가 죽으면, HikariCP 같은 범용 풀은 그 노드로 붙어 있던 커넥션이 죽은 걸 다음에 쓸 때야 안다. 그 사이 요청들이 죽은 커넥션을 꺼내 쓰다 에러가 난다. UCP는 FAN 이벤트를 RAC로부터 실시간으로 받아서, 노드가 내려가는 즉시 그 노드로 향한 커넥션을 풀에서 제거하고 살아 있는 노드로 재분배한다(FCF). 새 노드가 붙으면 부하를 자동으로 그쪽으로 흘린다(런타임 로드 밸런싱).</p>
+<p>RAC를 쓰고 노드 장애 시 빠른 페일오버가 필요하면 UCP를 쓰는 게 맞다. RAC가 아니거나 단순한 구성이면 HikariCP로 충분하고 더 가볍다. RAC인데 HikariCP를 쓴다면, 최소한 <code>maxLifetime</code>을 짧게 잡고 커넥션 검증을 켜서 죽은 커넥션이 오래 안 남게 방어해야 한다.</p>
+<h2 id="스키마-마이그레이션과-라이브러리-캐시-락">스키마 마이그레이션과 라이브러리 캐시 락<a class="headerlink" href="#스키마-마이그레이션과-라이브러리-캐시-락" title="Permanent link">&para;</a></h2>
+<p>서비스가 독립 배포되면 스키마 변경도 서비스마다 독립적이어야 한다. 각 서비스가 자기 스키마의 마이그레이션을 Flyway나 Liquibase로 관리한다. order_svc는 <code>order_svc</code> 스키마의 <code>flyway_schema_history</code>만, payment_svc는 자기 것만 본다. 서비스별로 마이그레이션 이력이 완전히 분리되니, 공유 스키마를 쓰지 않는 게 여기서도 전제 조건이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a># order_svc의 Flyway 설정. 자기 스키마만 관리한다
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>flyway.url=jdbc:oracle:thin:@//host:1521/PAYMENT_PDB
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>flyway.user=order_svc
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>flyway.schemas=order_svc
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>flyway.locations=classpath:db/migration/order
+</span></code></pre></div>
+<p>Oracle 마이그레이션에서 특히 조심할 건 DDL이 유발하는 락이다.</p>
+<h3 id="ddl과-라이브러리-캐시-락">DDL과 라이브러리 캐시 락<a class="headerlink" href="#ddl과-라이브러리-캐시-락" title="Permanent link">&para;</a></h3>
+<p>Oracle에서 테이블에 DDL(<code>ALTER TABLE</code>, <code>CREATE INDEX</code> 등)을 걸면, 그 테이블을 참조하는 SQL 커서를 라이브러리 캐시에서 무효화(invalidate)해야 한다. 이를 위해 라이브러리 캐시 락을 잡는데, 그 테이블에 실행 중인 트랜잭션(DML)이 있으면 DDL이 그 락을 못 얻고 대기한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ORA-04021: timeout occurred while waiting to lock object
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
+</span></code></pre></div>
+<p>트래픽이 있는 시간에 <code>ALTER TABLE</code>을 실행하면, 진행 중인 트랜잭션 뒤에서 DDL이 대기하고, 그 대기하는 DDL 뒤로 새 트랜잭션들이 또 줄줄이 막힌다. DDL 하나가 그 테이블 전체를 얼려버린다. 무중단 배포를 한다면서 마이그레이션 스크립트에 <code>ALTER TABLE ... ADD COLUMN NOT NULL</code>을 넣으면 운영 중에 서비스가 멈춘다.</p>
+<p>11g부터 <code>DDL_LOCK_TIMEOUT</code>을 세션에 걸어서 DDL이 락을 무한정 안 기다리게 할 수 있다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">SESSION</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">ddl_lock_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span><span class="w">  </span><span class="c1">-- 10초 안에 락 못 얻으면 ORA-00054로 실패</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="p">(</span><span class="n">memo</span><span class="w"> </span><span class="n">VARCHAR2</span><span class="p">(</span><span class="mi">200</span><span class="p">));</span>
+</span></code></pre></div>
+<p>이러면 DDL이 실패하더라도 트래픽을 오래 막지는 않는다. 실패하면 트래픽 적은 시간에 재시도한다.</p>
+<h3 id="무중단-스키마-변경">무중단 스키마 변경<a class="headerlink" href="#무중단-스키마-변경" title="Permanent link">&para;</a></h3>
+<p>Oracle 무중단 변경의 원칙은 다른 DB와 같다. 파괴적 변경을 여러 단계로 쪼갠다.</p>
+<ul>
+<li>컬럼 추가는 nullable로만. <code>NOT NULL</code> + default를 한 번에 걸면 구버전 테이블 전체를 다시 쓰는 락이 걸린다(11g부터 default 있는 NOT NULL 추가가 메타데이터만 바꾸도록 개선됐지만, 버전과 조건에 따라 다르니 운영 테이블에서는 nullable로 추가 → 백필 → 제약 추가로 나누는 게 안전하다).</li>
+<li>컬럼 삭제는 즉시 하지 말고 <code>SET UNUSED</code>로 논리적으로만 끊었다가 나중에 물리 삭제한다. <code>DROP COLUMN</code>은 테이블을 다시 쓰므로 큰 테이블에서 오래 걸린다.</li>
+</ul>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1">-- 즉시: 메타데이터만 바꿔 컬럼을 안 보이게</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">UNUSED</span><span class="w"> </span><span class="p">(</span><span class="n">legacy_flag</span><span class="p">);</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="c1">-- 나중에 트래픽 적을 때: 물리 삭제</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">DROP</span><span class="w"> </span><span class="n">UNUSED</span><span class="w"> </span><span class="n">COLUMNS</span><span class="p">;</span>
+</span></code></pre></div>
+<ul>
+<li>인덱스는 <code>CREATE INDEX ... ONLINE</code>으로 만들어서 생성 중에도 DML이 되게 한다. <code>ONLINE</code> 없이 큰 테이블에 인덱스를 걸면 그동안 그 테이블 쓰기가 막힌다.</li>
+</ul>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_orders_status</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">orders</span><span class="p">(</span><span class="n">status</span><span class="p">)</span><span class="w"> </span><span class="n">ONLINE</span><span class="p">;</span>
+</span></code></pre></div>
+<p>마이그레이션과 애플리케이션 배포 순서도 중요하다. 컬럼을 추가할 때는 DB 먼저(구버전 코드는 새 컬럼을 몰라도 됨), 컬럼을 제거할 때는 코드 먼저 배포해서 아무도 그 컬럼을 안 쓰게 만든 다음 DB에서 제거한다. 순서를 반대로 하면 배포 중간에 <code>ORA-00904: invalid identifier</code>(없는 컬럼 참조)나 <code>ORA-01400: cannot insert NULL</code>이 난다.</p>
+<h2 id="rac와-data-guard로-가용성읽기-분산">RAC와 Data Guard로 가용성·읽기 분산<a class="headerlink" href="#rac와-data-guard로-가용성읽기-분산" title="Permanent link">&para;</a></h2>
+<p>Oracle을 쓰는 조직이 MSA에서 얻는 게 있다면 이미 갖춘 고가용성 인프라다.</p>
+<h3 id="rac로-노드-장애-대응">RAC로 노드 장애 대응<a class="headerlink" href="#rac로-노드-장애-대응" title="Permanent link">&para;</a></h3>
+<p>RAC(Real Application Clusters)는 여러 노드가 공유 스토리지 위에서 하나의 DB를 서비스한다. 노드 하나가 죽어도 나머지 노드가 서비스를 계속한다. MSA 관점에서 RAC의 값은 DB 단일 장애점을 없애는 것이다. 앞서 말한 FAN/FCF와 UCP를 붙이면 노드 장애 시 애플리케이션이 거의 무중단으로 살아 있는 노드로 넘어간다.</p>
+<p>주의할 건 RAC가 만능이 아니라는 것이다. 여러 노드가 같은 블록을 동시에 갱신하려 하면 노드 간에 블록을 인터커넥트로 주고받는데(cache fusion), 이때 이 대기 이벤트가 뜬다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>gc buffer busy acquire / gc current block busy
+</span></code></pre></div>
+<p>핫한 행(예: 카운터, 시퀀스, 좁은 범위의 인덱스)에 여러 노드가 동시에 쓰면 인터커넥트 병목이 생겨서 오히려 단일 노드보다 느려질 수 있다. MSA에서는 서비스별로 접속할 RAC 서비스(service_name)를 나눠서, 특정 서비스는 특정 노드에 주로 붙게 하면(서비스별 노드 어피니티) 이 경합을 줄일 수 있다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1">-- 서비스를 특정 노드에 선호 배치</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">srvctl</span><span class="w"> </span><span class="k">add</span><span class="w"> </span><span class="n">service</span><span class="w"> </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="n">ORCL</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">order_svc_srv</span><span class="w"> </span><span class="o">-</span><span class="n">preferred</span><span class="w"> </span><span class="n">node1</span><span class="w"> </span><span class="o">-</span><span class="n">available</span><span class="w"> </span><span class="n">node2</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="n">srvctl</span><span class="w"> </span><span class="k">add</span><span class="w"> </span><span class="n">service</span><span class="w"> </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="n">ORCL</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">payment_svc_srv</span><span class="w"> </span><span class="o">-</span><span class="n">preferred</span><span class="w"> </span><span class="n">node2</span><span class="w"> </span><span class="o">-</span><span class="n">available</span><span class="w"> </span><span class="n">node1</span>
+</span></code></pre></div>
+<p>order_svc는 <code>order_svc_srv</code>로, payment_svc는 <code>payment_svc_srv</code>로 접속하게 하면, 평상시엔 서비스별로 노드가 나뉘어 cache fusion 경합이 줄고, 노드 하나가 죽으면 available 노드로 자동 페일오버된다.</p>
+<h3 id="data-guard로-읽기-분산">Data Guard로 읽기 분산<a class="headerlink" href="#data-guard로-읽기-분산" title="Permanent link">&para;</a></h3>
+<p>Data Guard는 주(primary) DB의 변경을 대기(standby) DB로 복제한다. 재해 복구가 주 목적이지만, Active Data Guard 옵션(별도 라이선스)을 켜면 standby를 읽기 전용으로 열어서 조회 부하를 그쪽으로 보낼 수 있다.</p>
+<p>MSA에서 읽기가 압도적으로 많은 서비스(조회 전용 API, 리포트, 대시보드)의 SELECT를 standby로 돌리면 primary의 부하가 준다. 커넥션 문자열이나 서비스 라우팅으로 읽기 트래픽을 standby 쪽 서비스로 보낸다.</p>
+<p>함정은 복제 지연(replication lag)이다. Data Guard는 비동기 복제가 기본이라 standby가 primary보다 몇 초 뒤처질 수 있다. 방금 primary에 쓴 데이터를 바로 standby에서 읽으면 없거나 옛날 값이 나온다. "주문을 넣고 바로 주문 목록을 조회" 같은 read-your-own-write가 필요한 경로는 standby로 보내면 안 된다. 이런 경로는 primary로 읽고, 지연을 감수해도 되는 조회(어제까지의 집계, 통계)만 standby로 보낸다. 이건 CQRS에서 읽기 모델을 분리하는 것과 같은 고민이고, <a href="../%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%86%8C%EC%8B%B1_%EB%B0%8F_CQRS/">이벤트_소싱_및_CQRS</a>와도 연결된다.</p>
+<h2 id="정리하면서-남기는-실무-감각">정리하면서 남기는 실무 감각<a class="headerlink" href="#정리하면서-남기는-실무-감각" title="Permanent link">&para;</a></h2>
+<p>Oracle 위에서 MSA를 한다는 건 대개 "이미 Oracle에 크게 투자한 조직"이라는 뜻이다. 그래서 이론적으로 이상적인 "서비스마다 독립 오픈소스 DB"를 처음부터 하긴 어렵다. 현실적인 선은 이렇다.</p>
+<p>물리 분리를 못 하더라도 논리 분리(스키마-per-service)를 코드와 권한으로 강제하고, 크로스 스키마 조인과 DB Link를 금지해서 나중에 뽑아낼 수 있는 상태를 유지한다. 분산 트랜잭션은 XA/2PC 대신 Saga·아웃박스로 가고, 아웃박스는 SKIP LOCKED 폴링으로 시작해서 규모가 커지면 CDC를 검토한다. 커넥션은 서비스 추가마다 총량을 역산해서 <code>ORA-00020</code>을 예방하고, RAC를 쓴다면 UCP+FAN으로 페일오버를 챙긴다. 스키마 변경은 DDL 락을 의식해서 파괴적 변경을 단계로 쪼갠다.</p>
+<p>Oracle이 가진 RAC/Data Guard 같은 가용성 자산은 MSA에서도 그대로 값을 한다. 문제는 그 강력한 기능들(DB Link, XA)이 MSA의 원칙을 어기기 너무 쉽게 만든다는 것이다. 편한 길이 대부분 강결합으로 가는 길이라, 의식적으로 그 유혹을 막는 게 Oracle MSA의 핵심이다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../API_%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC/">API 버전 관리</a></li>
+<li><a href="../BFF_%EB%B6%80%EB%B6%84_%EC%8B%A4%ED%8C%A8_%EC%B2%98%EB%A6%AC/">BFF 부분 실패 처리</a></li>
+<li><a href="../Expand_Migrate_Contract/">Expand-Migrate-Contract 패턴</a></li>
+<li><a href="../%EB%8D%B0%EC%9D%B4%ED%84%B0_%EA%B4%80%EB%A6%AC_%ED%8C%A8%ED%84%B4/">MSA 데이터 관리 패턴</a></li>
+<li><a href="../MSA_Idempotency_Chain/">MSA 서비스 체인 멱등성</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../%EB%A9%80%ED%8B%B0%20%EB%A0%88%ED%8F%AC/" class="md-footer__link md-footer__link--prev" aria-label="이전: 모노레포 vs 멀티레포">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                모노레포 vs 멀티레포
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../MSA_%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C_%EC%84%A0%ED%83%9D_%EC%A0%84%EB%9E%B5/" class="md-footer__link md-footer__link--next" aria-label="다음: 클라우드 선택 전략">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                클라우드 선택 전략
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

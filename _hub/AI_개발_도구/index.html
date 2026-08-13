@@ -1,80 +1,2631 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/_hub/AI_%EA%B0%9C%EB%B0%9C_%EB%8F%84%EA%B5%AC/ rel=canonical><link href=../%EA%B4%80%EC%B8%A1%EC%84%B1/ rel=prev><link href=../JavaScript_TypeScript/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../feed_rss_updated.xml><link rel=icon href=../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>AI 개발 도구 허브 - YGSTUDY</title><link rel=stylesheet href=../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../stylesheets/extra.css><script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#ai-개발-도구-허브 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> AI 개발 도구 허브 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_9 checked> <label class=md-nav__link for=__nav_9 id=__nav_9_label tabindex=0> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_9_label aria-expanded=true> <label class=md-nav__title for=__nav_9> <span class="md-nav__icon md-icon"></span> 가이드 </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_9_1 checked> <label class=md-nav__link for=__nav_9_1 id=__nav_9_1_label tabindex=0> <span class=md-ellipsis> 주제별 가이드 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_9_1_label aria-expanded=true> <label class=md-nav__title for=__nav_9_1> <span class="md-nav__icon md-icon"></span> 주제별 가이드 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 트랜잭션과 동시성 </span> </a> </li> <li class=md-nav__item> <a href=../%EC%9D%B8%EC%A6%9D%EA%B3%BC_%ED%86%A0%ED%81%B0/ class=md-nav__link> <span class=md-ellipsis> 인증과 토큰 </span> </a> </li> <li class=md-nav__item> <a href=../%EB%A9%94%EC%8B%9C%EC%A7%95%EA%B3%BC_%EC%A0%84%EB%8B%AC_%EB%B3%B4%EC%9E%A5/ class=md-nav__link> <span class=md-ellipsis> 메시징과 전달 보장 </span> </a> </li> <li class=md-nav__item> <a href=../%EC%9D%B8%EB%8D%B1%EC%8A%A4%EC%99%80_%EC%BF%BC%EB%A6%AC_%EC%84%B1%EB%8A%A5/ class=md-nav__link> <span class=md-ellipsis> 인덱스와 쿼리 성능 </span> </a> </li> <li class=md-nav__item> <a href=../%EC%BA%90%EC%8B%B1/ class=md-nav__link> <span class=md-ellipsis> 캐싱 </span> </a> </li> <li class=md-nav__item> <a href=../%EA%B4%80%EC%B8%A1%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 관측성 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> AI 개발 도구 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> AI 개발 도구 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#이-주제를-언제-찾게-되는가 class=md-nav__link> <span class=md-ellipsis> 이 주제를 언제 찾게 되는가 </span> </a> </li> <li class=md-nav__item> <a href=#문서-지도 class=md-nav__link> <span class=md-ellipsis> 문서 지도 </span> </a> <nav class=md-nav aria-label="문서 지도"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#claude-code--ai-코딩-에이전트-핵심 class=md-nav__link> <span class=md-ellipsis> Claude Code — AI 코딩 에이전트 핵심 </span> </a> </li> <li class=md-nav__item> <a href=#claude-api--모델 class=md-nav__link> <span class=md-ellipsis> Claude API &amp; 모델 </span> </a> </li> <li class=md-nav__item> <a href=#llm-핵심-개념 class=md-nav__link> <span class=md-ellipsis> LLM 핵심 개념 </span> </a> </li> <li class=md-nav__item> <a href=#rag-및-검색-증강 class=md-nav__link> <span class=md-ellipsis> RAG 및 검색 증강 </span> </a> </li> <li class=md-nav__item> <a href=#mcp-model-context-protocol class=md-nav__link> <span class=md-ellipsis> MCP (Model Context Protocol) </span> </a> </li> <li class=md-nav__item> <a href=#ai-코딩-도구-비교 class=md-nav__link> <span class=md-ellipsis> AI 코딩 도구 비교 </span> </a> </li> <li class=md-nav__item> <a href=#gemini--google-ai class=md-nav__link> <span class=md-ellipsis> Gemini / Google AI </span> </a> </li> <li class=md-nav__item> <a href=#기타-llm-모델 class=md-nav__link> <span class=md-ellipsis> 기타 LLM 모델 </span> </a> </li> <li class=md-nav__item> <a href=#ai-업무-활용-및-워크플로우 class=md-nav__link> <span class=md-ellipsis> AI 업무 활용 및 워크플로우 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#핵심-코드-패턴 class=md-nav__link> <span class=md-ellipsis> 핵심 코드 패턴 </span> </a> <nav class=md-nav aria-label="핵심 코드 패턴"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#tool-use-기본-호출-anthropic-python-sdk class=md-nav__link> <span class=md-ellipsis> Tool Use 기본 호출 (Anthropic Python SDK) </span> </a> </li> <li class=md-nav__item> <a href=#mcp-서버-등록-python-fastmcp--claude-code class=md-nav__link> <span class=md-ellipsis> MCP 서버 등록 (Python FastMCP + Claude Code) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#읽는-순서 class=md-nav__link> <span class=md-ellipsis> 읽는 순서 </span> </a> <nav class=md-nav aria-label="읽는 순서"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#claude-code를-처음-도입하는-경우 class=md-nav__link> <span class=md-ellipsis> Claude Code를 처음 도입하는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#llm-기반-기능을-서비스에-붙이는-경우 class=md-nav__link> <span class=md-ellipsis> LLM 기반 기능을 서비스에 붙이는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#멀티-에이전트--오케스트레이션으로-확장하는-경우 class=md-nav__link> <span class=md-ellipsis> 멀티 에이전트 / 오케스트레이션으로 확장하는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#llm-인프라를-직접-운영하는-경우 class=md-nav__link> <span class=md-ellipsis> LLM 인프라를 직접 운영하는 경우 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#아직-없는-것 class=md-nav__link> <span class=md-ellipsis> 아직 없는 것 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../JavaScript_TypeScript/ class=md-nav__link> <span class=md-ellipsis> JS & TypeScript </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%A1%9C%EB%93%9C%EB%A7%B5/AWS_%EC%8B%A4%EB%AC%B4_%EC%9E%85%EB%AC%B8_15%EC%84%A0/ class=md-nav__link> <span class=md-ellipsis> 로드맵 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Frontend/ class=md-nav__link> <span class=md-ellipsis> Frontend </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#이-주제를-언제-찾게-되는가 class=md-nav__link> <span class=md-ellipsis> 이 주제를 언제 찾게 되는가 </span> </a> </li> <li class=md-nav__item> <a href=#문서-지도 class=md-nav__link> <span class=md-ellipsis> 문서 지도 </span> </a> <nav class=md-nav aria-label="문서 지도"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#claude-code--ai-코딩-에이전트-핵심 class=md-nav__link> <span class=md-ellipsis> Claude Code — AI 코딩 에이전트 핵심 </span> </a> </li> <li class=md-nav__item> <a href=#claude-api--모델 class=md-nav__link> <span class=md-ellipsis> Claude API &amp; 모델 </span> </a> </li> <li class=md-nav__item> <a href=#llm-핵심-개념 class=md-nav__link> <span class=md-ellipsis> LLM 핵심 개념 </span> </a> </li> <li class=md-nav__item> <a href=#rag-및-검색-증강 class=md-nav__link> <span class=md-ellipsis> RAG 및 검색 증강 </span> </a> </li> <li class=md-nav__item> <a href=#mcp-model-context-protocol class=md-nav__link> <span class=md-ellipsis> MCP (Model Context Protocol) </span> </a> </li> <li class=md-nav__item> <a href=#ai-코딩-도구-비교 class=md-nav__link> <span class=md-ellipsis> AI 코딩 도구 비교 </span> </a> </li> <li class=md-nav__item> <a href=#gemini--google-ai class=md-nav__link> <span class=md-ellipsis> Gemini / Google AI </span> </a> </li> <li class=md-nav__item> <a href=#기타-llm-모델 class=md-nav__link> <span class=md-ellipsis> 기타 LLM 모델 </span> </a> </li> <li class=md-nav__item> <a href=#ai-업무-활용-및-워크플로우 class=md-nav__link> <span class=md-ellipsis> AI 업무 활용 및 워크플로우 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#핵심-코드-패턴 class=md-nav__link> <span class=md-ellipsis> 핵심 코드 패턴 </span> </a> <nav class=md-nav aria-label="핵심 코드 패턴"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#tool-use-기본-호출-anthropic-python-sdk class=md-nav__link> <span class=md-ellipsis> Tool Use 기본 호출 (Anthropic Python SDK) </span> </a> </li> <li class=md-nav__item> <a href=#mcp-서버-등록-python-fastmcp--claude-code class=md-nav__link> <span class=md-ellipsis> MCP 서버 등록 (Python FastMCP + Claude Code) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#읽는-순서 class=md-nav__link> <span class=md-ellipsis> 읽는 순서 </span> </a> <nav class=md-nav aria-label="읽는 순서"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#claude-code를-처음-도입하는-경우 class=md-nav__link> <span class=md-ellipsis> Claude Code를 처음 도입하는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#llm-기반-기능을-서비스에-붙이는-경우 class=md-nav__link> <span class=md-ellipsis> LLM 기반 기능을 서비스에 붙이는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#멀티-에이전트--오케스트레이션으로-확장하는-경우 class=md-nav__link> <span class=md-ellipsis> 멀티 에이전트 / 오케스트레이션으로 확장하는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#llm-인프라를-직접-운영하는-경우 class=md-nav__link> <span class=md-ellipsis> LLM 인프라를 직접 운영하는 경우 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#아직-없는-것 class=md-nav__link> <span class=md-ellipsis> 아직 없는 것 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>ai</span> <span class=md-tag>llm</span> <span class=md-tag>mcp</span> <span class=md-tag>rag</span> </nav> <h1 id=ai-개발-도구-허브>AI 개발 도구 허브<a class=headerlink href=#ai-개발-도구-허브 title="Permanent link">&para;</a></h1> <h2 id=이-주제를-언제-찾게-되는가>이 주제를 언제 찾게 되는가<a class=headerlink href=#이-주제를-언제-찾게-되는가 title="Permanent link">&para;</a></h2> <ul> <li>Claude Code를 처음 도입하거나, 오케스트레이션·멀티 에이전트로 확장하려 할 때</li> <li>LLM 기반 기능을 프로덕션에 붙여야 하는데 RAG·파인튜닝·임베딩 중 어느 방향인지 갈릴 때</li> <li>AI 코딩 도구(Claude Code, Cursor, Copilot, Codex, Gemini CLI)를 비교해서 프로젝트에 맞는 걸 고르고 싶을 때</li> <li>MCP 서버를 만들거나 Claude Agent SDK로 자체 에이전트를 구축하려 할 때</li> <li>모델 선택(Claude Opus, Gemini, GPT, DeepSeek, Qwen, Grok)이 필요할 때</li> <li>AI가 생성한 코드의 보안 취약점이나 할루시네이션을 걱정할 때</li> <li>로컬 LLM(Ollama, GGUF) 셀프호스팅을 검토할 때</li> <li>LLM 추론 최적화, KV 캐시, 양자화 같은 인프라 수준 문제를 다룰 때</li> </ul> <h2 id=문서-지도>문서 지도<a class=headerlink href=#문서-지도 title="Permanent link">&para;</a></h2> <h3 id=claude-code--ai-코딩-에이전트-핵심>Claude Code — AI 코딩 에이전트 핵심<a class=headerlink href=#claude-code--ai-코딩-에이전트-핵심 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Claude_Code/Claude_Code/ >Claude Code</a></td> <td>Claude Code 전반 개요 — MCP, 훅, 슬래시 명령어, 권한 모델</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Tips/ >Claude Code 실전 팁</a></td> <td>실무에서 쌓인 생산성 노하우, 모델 선택 경험칙</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Skill_Rule/ >Claude Code 스킬과 룰 시스템</a></td> <td>CLAUDE.md 룰과 Skill의 차이, 각 용도와 작성법</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Memory/ >Claude Code 메모리 시스템</a></td> <td>세션 간 컨텍스트 유지를 위한 메모리 계층 구조</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Plan_Mode/ >Claude Code 플랜모드 실전 활용</a></td> <td>대규모 리팩토링·마이그레이션 전 플랜 검증 워크플로</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Auto_Mode/ >Claude Code Auto Mode</a></td> <td>반복 확인 마찰을 줄이는 자동 모드 설정과 한계</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Routine/ >Claude Code 개발 루틴</a></td> <td>하루 일과 속 Claude Code 투입 시점과 주기 설계</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Agent/ >Claude Code Agent 시스템</a></td> <td>세션 내 서브에이전트 위임 메커니즘</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Orchestration/ >Claude Code 오케스트레이션</a></td> <td>외부 SDK로 다수 인스턴스를 조율하는 멀티 에이전트 설계</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_OMC/ >Claude Code OMC</a></td> <td>프로세스 N개를 병렬로 돌리는 OMC 운영 방식</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Worktree/ >Claude Code Worktree</a></td> <td>git worktree로 브랜치별 격리 개발 환경 구성</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Worktree_Script/ >Claude Code Worktree 병렬 스크립트</a></td> <td>--print 모드 활용 병렬 자동화 스크립트</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Long_Job/ >Claude Code 롱잡 운영</a></td> <td>2분 타임아웃·컨텍스트 폭발 없이 장시간 작업 처리</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Harness/ >Claude Code 하네스</a></td> <td>하네스 내부 동작, 권한·훅·샌드박스 디버깅</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Model/ >Claude Code 모델 선택</a></td> <td>에이전틱 환경에서 Opus·Sonnet·Haiku 선택 기준</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Ultra/ >Claude Code Ultra Review</a></td> <td>/code-review ultra 멀티에이전트 코드 리뷰 사용법</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Web_Vulnerability/ >Claude Code 웹취약점 대응</a></td> <td>AI 생성 코드에서 XSS·SSRF·IDOR가 발생하는 패턴과 차단</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude_Code/Claude_Code_Troubleshooting/ >Claude Code 트러블슈팅</a></td> <td>실무에서 자주 겪는 CLI 문제와 해결법</td> <td>실무</td> </tr> </tbody> </table> <h3 id=claude-api--모델>Claude API &amp; 모델<a class=headerlink href=#claude-api--모델 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Claude/Claude/ >Claude</a></td> <td>Claude 모델 패밀리 개요, API 기초, 모델 비교</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Claude/Claude_Expert_Usage/ >Claude를 전문가처럼 활용</a></td> <td>Web·API·Desktop 전반에서 시스템 프롬프트·Projects 세팅</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude/Claude_API_Advanced/ >Claude API 고급 기능</a></td> <td>Batch API, Citations, Files API, Prompt Caching 실무</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude/Claude_Agent/ >Claude Agent SDK</a></td> <td>도구 루프·컨텍스트 압축·권한 처리를 SDK로 묶는 방법</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Claude/Claude_Opus_4_7/ >Claude Opus 4.7</a></td> <td>4.6 대비 긴 컨텍스트 일관성·도구 호출 품질 개선 포인트</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Claude/Claude_Opus_4_8/ >Claude Opus 4.8</a></td> <td>4.7 대비 추론 깊이·도구 호출 캘리브레이션 개선과 비용</td> <td>실무</td> </tr> </tbody> </table> <h3 id=llm-핵심-개념>LLM 핵심 개념<a class=headerlink href=#llm-핵심-개념 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Concepts/LLM/ >LLM 동작 원리와 프로덕션 통합</a></td> <td>트랜스포머·추론·파인튜닝·임베딩·평가 전 범위 개요</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Concepts/Prompt_Engineering/ >프롬프트 엔지니어링</a></td> <td>Few-shot, CoT, 코딩 특화 프롬프트 설계 원칙</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Agent/ >LLM 에이전트</a></td> <td>ReAct·도구 루프·계획·메모리 등 에이전트 구성 요소</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Multi_Agent_Systems/ >멀티 에이전트 시스템</a></td> <td>오케스트레이터-워커, A2A 핸드오프, 컨텍스트 격리 패턴</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/Agent_Harness/ >Agent Harness</a></td> <td>Claude Code 하네스로 보는 에이전트 런타임 구조</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/Tool_Use/ >Tool Use / Function Calling</a></td> <td>JSON Schema 정의부터 도구 루프 구현까지</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Structured_Output/ >Structured Output</a></td> <td>LLM 출력을 DTO·enum에 매핑하는 강제 구조화 기법</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Reasoning/ >LLM Reasoning 패턴과 모델</a></td> <td>CoT·ReAct·Tree-of-Thoughts·o1·Extended Thinking 비교</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/Effort_Mode/ >Effort Mode</a></td> <td>reasoning effort 다이얼이 생긴 배경과 모델별 설정법</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Context_Window/ >LLM Context Window</a></td> <td>RoPE·YaRN·Long Context·Prompt Caching 동작 원리</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/Prompt_Caching/ >Prompt Caching</a></td> <td>Anthropic·Gemini 캐시 동작, TTL별 비용 계산식, 무효화 케이스</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Lang_Chain_vs_SDK/ >LangChain / LlamaIndex vs 순수 SDK</a></td> <td>프레임워크 도입 비용·버전 의존성 문제, SDK 직접 구현과의 트레이드오프</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Security/ >LLM 보안 위협과 대응</a></td> <td>Prompt Injection·PII 유출·Jailbreak·Guardrails</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Vibe_Coding_Security/ >바이브 코딩 보안 대처법</a></td> <td>Slopsquatting·Prompt Injection·SAST 연동으로 위험 줄이기</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/AI_Hallucination/ >AI 할루시네이션</a></td> <td>코드 생성에서 할루시네이션이 발생하는 이유와 검증 전략</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Evaluation/ >LLM 평가 방법론</a></td> <td>MMLU·HumanEval·MT-Bench 등 벤치마크의 함정과 실무 평가</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Fine_Tuning/ >LLM 파인튜닝 실무</a></td> <td>LoRA·QLoRA·PEFT — 파인튜닝을 시작하기 전 판단 기준</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Inference_Optimization/ >LLM 추론 최적화 심화</a></td> <td>Quantization·KV Cache·PagedAttention·Speculative Decoding</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Scaling_Laws/ >LLM 스케일링 법칙</a></td> <td>Chinchilla·Compute-Optimal·창발적 능력과 파라미터 배분</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Tokenizer/ >LLM 토크나이저</a></td> <td>BPE 내부 구현과 토크나이저 병리 현상</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/LLM_Pretraining/ >LLM 사전학습 파이프라인</a></td> <td>데이터 준비·학습 루프·학습 불안정 원인 (nanoGPT 기반)</td> <td>심화</td> </tr> </tbody> </table> <h3 id=rag-및-검색-증강>RAG 및 검색 증강<a class=headerlink href=#rag-및-검색-증강 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Concepts/RAG_Pipeline/ >RAG 파이프라인</a></td> <td>문서 파싱·청킹·검색·생성 전 과정 설계와 비용</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Functional_RAG/ >Functional RAG</a></td> <td>함수형 파이프라인으로 RAG 복잡도 관리 (LCEL 활용)</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/RAG_for_Code/ >RAG for Code</a></td> <td>코드베이스를 대상으로 한 RAG 아키텍처</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/RAG_Evaluation/ >RAG 품질 평가</a></td> <td>RAGAS·TruLens 지표 해석, 품질 저하 원인 진단, 지표 함정 사례</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Embeddings/ >텍스트 임베딩 실무</a></td> <td>OpenAI·Cohere·BGE·E5 비교, 코사인 유사도 검색 설계</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Vector_Database/ >벡터 DB 실무 비교</a></td> <td>pgvector·Qdrant·Pinecone·Milvus 선택 기준과 운영</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Ontology/ >온톨로지</a></td> <td>지식 그래프·RDF·OWL·SPARQL — RAG 품질 향상을 위한 구조화 지식</td> <td>심화</td> </tr> </tbody> </table> <h3 id=mcp-model-context-protocol>MCP (Model Context Protocol)<a class=headerlink href=#mcp-model-context-protocol title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/MCP/MCP/ >MCP 핵심 개념</a></td> <td>MCP 프로토콜 구조, 서버/클라이언트 역할, 도구 등록</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/MCP/SSE_and_Stdio/ >MCP 전송 방식</a></td> <td>stdio vs SSE vs Streamable HTTP 전송 선택 기준</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/MCP/MCP_Server_Implementation/ >MCP 서버 직접 구현</a></td> <td>TypeScript·Python SDK로 서버 구현, 응답 형식·에러 처리, Claude Code 로컬 연동 테스트</td> <td>실무</td> </tr> </tbody> </table> <h3 id=ai-코딩-도구-비교>AI 코딩 도구 비교<a class=headerlink href=#ai-코딩-도구-비교 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Cursor/Cursor/ >Cursor</a></td> <td>AI 네이티브 IDE Cursor의 핵심 기능과 Composer 활용</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Cursor/Cursor_Rules/ >Cursor Rules</a></td> <td>프로젝트별 AI 동작 규칙 설정 (.cursorrules)</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Cursor/Cursor_Context_Management/ >Cursor Context 관리</a></td> <td>@태그·인덱싱·CursorIgnore·토큰 관리</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/GitHub_Copilot/GitHub_Copilot/ >GitHub Copilot</a></td> <td>Copilot 핵심 기능, Agent Mode, IDE별 차이</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Codex/Codex/ >OpenAI Codex</a></td> <td>Codex CLI 사용법, 에이전틱 코딩 특성</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Gemini/Gemini/ >Gemini Code Assist &amp; CLI</a></td> <td>Gemini Code Assist 플러그인과 CLI — 1M 토큰 활용</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/CodeSight/Code_Sight_Wiki/ >CodeSight --wiki</a></td> <td>코드베이스 문서화 자동화 CLI 도구</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Clawsweeper/Clawsweeper/ >Clawsweeper</a></td> <td>데드코드 탐지·정리 AI 정적 분석 CLI 도구</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Ultra_Review/ >UltraReview</a></td> <td>CI/CD 연동 AI 심층 코드 리뷰 도구</td> <td>실무</td> </tr> </tbody> </table> <h3 id=gemini--google-ai>Gemini / Google AI<a class=headerlink href=#gemini--google-ai title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Gemini/Gemini_API/ >Gemini API 실무</a></td> <td>SDK 인증·기본 호출·멀티모달 입력 기초</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Gemini/Gemini_API_Advanced/ >Gemini API 심화</a></td> <td>Function Calling·Streaming·Safety·Context Caching</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Gemini/Google_AI_Studio/ >Google AI Studio</a></td> <td>프로토타이핑 웹 도구 활용과 API 키 발급</td> <td>입문</td> </tr> <tr> <td><a href=../../AI/Gemini/Gemini_Troubleshooting/ >Gemini 트러블슈팅</a></td> <td>429 에러·인증 만료·멀티모달 파일 제한 대응</td> <td>실무</td> </tr> </tbody> </table> <h3 id=기타-llm-모델>기타 LLM 모델<a class=headerlink href=#기타-llm-모델 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/GPT/GPT_5_5/ >GPT-5.5</a></td> <td>GPT-5.5 모델 특성, API 사용, Claude와 비교</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/DeepSeek/Deep_Seek/ >DeepSeek</a></td> <td>DeepSeek MoE 모델 패밀리, 오픈소스 셀프호스팅</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Qwen/Qwen/ >Qwen</a></td> <td>Alibaba Qwen 패밀리, DashScope API, 추론 모델 활용</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Grok/Grok/ >Grok</a></td> <td>xAI Grok, 코딩 보조, API 접근 방법</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Ollama/Ollama/ >Ollama</a></td> <td>로컬 LLM 서빙 — GGUF, 모델 관리, vLLM 비교</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Unsloth_Qwen3_GGUF/ >Unsloth Qwen3 GGUF 로컬 구동</a></td> <td>27B GGUF 모델 로컬 구동과 llama.cpp·Ollama 연동</td> <td>실무</td> </tr> </tbody> </table> <h3 id=ai-업무-활용-및-워크플로우>AI 업무 활용 및 워크플로우<a class=headerlink href=#ai-업무-활용-및-워크플로우 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>문서</th> <th>이 문서가 답하는 것</th> <th>깊이</th> </tr> </thead> <tbody> <tr> <td><a href=../../AI/Concepts/Palantir_AI_Workflow/ >팔란티어가 AI로 일하는 방식</a></td> <td>Foundry·AIP·온톨로지 기반 엔터프라이즈 AI 운영</td> <td>심화</td> </tr> <tr> <td><a href=../../AI/Concepts/Karpathy_LLM_Obsidian/ >Karpathy LLM + Obsidian 워크플로우</a></td> <td>vault를 LLM에 먹여서 지식 관리를 확장하는 방법</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/Concepts/Obsidian/ >Obsidian 실무 사용법</a></td> <td>vault 구조·플러그인·동기화, AI와 함께 쓸 때 주의사항</td> <td>실무</td> </tr> <tr> <td><a href=../../AI/GBrain/G_Brain/ >GBrain</a></td> <td>국내 엔터프라이즈 AI 지식 관리 도구 GBrain</td> <td>입문</td> </tr> </tbody> </table> <h2 id=핵심-코드-패턴>핵심 코드 패턴<a class=headerlink href=#핵심-코드-패턴 title="Permanent link">&para;</a></h2> <h3 id=tool-use-기본-호출-anthropic-python-sdk>Tool Use 기본 호출 (Anthropic Python SDK)<a class=headerlink href=#tool-use-기본-호출-anthropic-python-sdk title="Permanent link">&para;</a></h3> <p>도구 호출은 두 번 왕복한다. 첫 번째 응답에서 <code>stop_reason == "tool_use"</code>가 오면 도구를 실행하고, 결과를 <code>tool_result</code>로 담아 다시 보내야 한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=kn>import</span><span class=w> </span><span class=nn>anthropic</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=n>client</span> <span class=o>=</span> <span class=n>anthropic</span><span class=o>.</span><span class=n>Anthropic</span><span class=p>()</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a><span class=n>tools</span> <span class=o>=</span> <span class=p>[{</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>    <span class=s2>&quot;name&quot;</span><span class=p>:</span> <span class=s2>&quot;get_order_status&quot;</span><span class=p>,</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>    <span class=s2>&quot;description&quot;</span><span class=p>:</span> <span class=s2>&quot;주문 번호로 배송 상태를 조회한다&quot;</span><span class=p>,</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>    <span class=s2>&quot;input_schema&quot;</span><span class=p>:</span> <span class=p>{</span>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>        <span class=s2>&quot;type&quot;</span><span class=p>:</span> <span class=s2>&quot;object&quot;</span><span class=p>,</span>
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>        <span class=s2>&quot;properties&quot;</span><span class=p>:</span> <span class=p>{</span>
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a>            <span class=s2>&quot;order_id&quot;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&quot;type&quot;</span><span class=p>:</span> <span class=s2>&quot;string&quot;</span><span class=p>,</span> <span class=s2>&quot;description&quot;</span><span class=p>:</span> <span class=s2>&quot;ORD- 접두사 포함 전체 문자열&quot;</span><span class=p>}</span>
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a>        <span class=p>},</span>
-</span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a>        <span class=s2>&quot;required&quot;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&quot;order_id&quot;</span><span class=p>]</span>
-</span><span id=__span-0-14><a id=__codelineno-0-14 name=__codelineno-0-14 href=#__codelineno-0-14></a>    <span class=p>}</span>
-</span><span id=__span-0-15><a id=__codelineno-0-15 name=__codelineno-0-15 href=#__codelineno-0-15></a><span class=p>}]</span>
-</span><span id=__span-0-16><a id=__codelineno-0-16 name=__codelineno-0-16 href=#__codelineno-0-16></a>
-</span><span id=__span-0-17><a id=__codelineno-0-17 name=__codelineno-0-17 href=#__codelineno-0-17></a><span class=n>messages</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=s2>&quot;ORD-12345 배송 어디까지 왔어?&quot;</span><span class=p>}]</span>
-</span><span id=__span-0-18><a id=__codelineno-0-18 name=__codelineno-0-18 href=#__codelineno-0-18></a>
-</span><span id=__span-0-19><a id=__codelineno-0-19 name=__codelineno-0-19 href=#__codelineno-0-19></a><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-0-20><a id=__codelineno-0-20 name=__codelineno-0-20 href=#__codelineno-0-20></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;claude-opus-4-7&quot;</span><span class=p>,</span>
-</span><span id=__span-0-21><a id=__codelineno-0-21 name=__codelineno-0-21 href=#__codelineno-0-21></a>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
-</span><span id=__span-0-22><a id=__codelineno-0-22 name=__codelineno-0-22 href=#__codelineno-0-22></a>    <span class=n>tools</span><span class=o>=</span><span class=n>tools</span><span class=p>,</span>
-</span><span id=__span-0-23><a id=__codelineno-0-23 name=__codelineno-0-23 href=#__codelineno-0-23></a>    <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span>
-</span><span id=__span-0-24><a id=__codelineno-0-24 name=__codelineno-0-24 href=#__codelineno-0-24></a><span class=p>)</span>
-</span><span id=__span-0-25><a id=__codelineno-0-25 name=__codelineno-0-25 href=#__codelineno-0-25></a>
-</span><span id=__span-0-26><a id=__codelineno-0-26 name=__codelineno-0-26 href=#__codelineno-0-26></a><span class=k>if</span> <span class=n>response</span><span class=o>.</span><span class=n>stop_reason</span> <span class=o>==</span> <span class=s2>&quot;tool_use&quot;</span><span class=p>:</span>
-</span><span id=__span-0-27><a id=__codelineno-0-27 name=__codelineno-0-27 href=#__codelineno-0-27></a>    <span class=n>tool_block</span> <span class=o>=</span> <span class=nb>next</span><span class=p>(</span><span class=n>b</span> <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span> <span class=k>if</span> <span class=n>b</span><span class=o>.</span><span class=n>type</span> <span class=o>==</span> <span class=s2>&quot;tool_use&quot;</span><span class=p>)</span>
-</span><span id=__span-0-28><a id=__codelineno-0-28 name=__codelineno-0-28 href=#__codelineno-0-28></a>    <span class=c1># 실제 함수 실행</span>
-</span><span id=__span-0-29><a id=__codelineno-0-29 name=__codelineno-0-29 href=#__codelineno-0-29></a>    <span class=n>result</span> <span class=o>=</span> <span class=n>get_order_status</span><span class=p>(</span><span class=o>**</span><span class=n>tool_block</span><span class=o>.</span><span class=n>input</span><span class=p>)</span>
-</span><span id=__span-0-30><a id=__codelineno-0-30 name=__codelineno-0-30 href=#__codelineno-0-30></a>
-</span><span id=__span-0-31><a id=__codelineno-0-31 name=__codelineno-0-31 href=#__codelineno-0-31></a>    <span class=c1># 대화에 tool_use + tool_result를 쌍으로 붙여야 한다</span>
-</span><span id=__span-0-32><a id=__codelineno-0-32 name=__codelineno-0-32 href=#__codelineno-0-32></a>    <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;assistant&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>})</span>
-</span><span id=__span-0-33><a id=__codelineno-0-33 name=__codelineno-0-33 href=#__codelineno-0-33></a>    <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
-</span><span id=__span-0-34><a id=__codelineno-0-34 name=__codelineno-0-34 href=#__codelineno-0-34></a>        <span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span>
-</span><span id=__span-0-35><a id=__codelineno-0-35 name=__codelineno-0-35 href=#__codelineno-0-35></a>        <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=p>[{</span>
-</span><span id=__span-0-36><a id=__codelineno-0-36 name=__codelineno-0-36 href=#__codelineno-0-36></a>            <span class=s2>&quot;type&quot;</span><span class=p>:</span> <span class=s2>&quot;tool_result&quot;</span><span class=p>,</span>
-</span><span id=__span-0-37><a id=__codelineno-0-37 name=__codelineno-0-37 href=#__codelineno-0-37></a>            <span class=s2>&quot;tool_use_id&quot;</span><span class=p>:</span> <span class=n>tool_block</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
-</span><span id=__span-0-38><a id=__codelineno-0-38 name=__codelineno-0-38 href=#__codelineno-0-38></a>            <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=nb>str</span><span class=p>(</span><span class=n>result</span><span class=p>),</span>
-</span><span id=__span-0-39><a id=__codelineno-0-39 name=__codelineno-0-39 href=#__codelineno-0-39></a>        <span class=p>}]</span>
-</span><span id=__span-0-40><a id=__codelineno-0-40 name=__codelineno-0-40 href=#__codelineno-0-40></a>    <span class=p>})</span>
-</span><span id=__span-0-41><a id=__codelineno-0-41 name=__codelineno-0-41 href=#__codelineno-0-41></a>
-</span><span id=__span-0-42><a id=__codelineno-0-42 name=__codelineno-0-42 href=#__codelineno-0-42></a>    <span class=n>final</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-0-43><a id=__codelineno-0-43 name=__codelineno-0-43 href=#__codelineno-0-43></a>        <span class=n>model</span><span class=o>=</span><span class=s2>&quot;claude-opus-4-7&quot;</span><span class=p>,</span>
-</span><span id=__span-0-44><a id=__codelineno-0-44 name=__codelineno-0-44 href=#__codelineno-0-44></a>        <span class=n>max_tokens</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
-</span><span id=__span-0-45><a id=__codelineno-0-45 name=__codelineno-0-45 href=#__codelineno-0-45></a>        <span class=n>tools</span><span class=o>=</span><span class=n>tools</span><span class=p>,</span>
-</span><span id=__span-0-46><a id=__codelineno-0-46 name=__codelineno-0-46 href=#__codelineno-0-46></a>        <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span>
-</span><span id=__span-0-47><a id=__codelineno-0-47 name=__codelineno-0-47 href=#__codelineno-0-47></a>    <span class=p>)</span>
-</span><span id=__span-0-48><a id=__codelineno-0-48 name=__codelineno-0-48 href=#__codelineno-0-48></a>    <span class=nb>print</span><span class=p>(</span><span class=n>final</span><span class=o>.</span><span class=n>content</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>text</span><span class=p>)</span>
-</span></code></pre></div> <p>tool_use 블록 없이 tool_result만 보내면 API 에러가 난다. 짝이 반드시 맞아야 한다.</p> <h3 id=mcp-서버-등록-python-fastmcp--claude-code>MCP 서버 등록 (Python FastMCP + Claude Code)<a class=headerlink href=#mcp-서버-등록-python-fastmcp--claude-code title="Permanent link">&para;</a></h3> <p>로컬에서 stdio 방식으로 MCP 서버를 만들고 Claude Code에 붙이는 최소 패턴이다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1># server.py</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=kn>from</span><span class=w> </span><span class=nn>mcp.server.fastmcp</span><span class=w> </span><span class=kn>import</span> <span class=n>FastMCP</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=n>mcp</span> <span class=o>=</span> <span class=n>FastMCP</span><span class=p>(</span><span class=s2>&quot;my-dev-tools&quot;</span><span class=p>)</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=nd>@mcp</span><span class=o>.</span><span class=n>tool</span><span class=p>()</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=k>def</span><span class=w> </span><span class=nf>get_user</span><span class=p>(</span><span class=n>user_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=w>    </span><span class=sd>&quot;&quot;&quot;user_id로 사용자 단건 조회. 없으면 None 반환.&quot;&quot;&quot;</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>    <span class=n>row</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>query_one</span><span class=p>(</span><span class=s2>&quot;SELECT * FROM users WHERE id = </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=p>[</span><span class=n>user_id</span><span class=p>])</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>    <span class=k>return</span> <span class=n>row</span> <span class=ow>or</span> <span class=p>{}</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=nd>@mcp</span><span class=o>.</span><span class=n>tool</span><span class=p>()</span>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a><span class=k>def</span><span class=w> </span><span class=nf>run_query</span><span class=p>(</span><span class=n>sql</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>dict</span><span class=p>]:</span>
-</span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a><span class=w>    </span><span class=sd>&quot;&quot;&quot;읽기 전용 SELECT만 허용. UPDATE/DELETE는 거부.&quot;&quot;&quot;</span>
-</span><span id=__span-1-15><a id=__codelineno-1-15 name=__codelineno-1-15 href=#__codelineno-1-15></a>    <span class=k>if</span> <span class=ow>not</span> <span class=n>sql</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=o>.</span><span class=n>upper</span><span class=p>()</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>&quot;SELECT&quot;</span><span class=p>):</span>
-</span><span id=__span-1-16><a id=__codelineno-1-16 name=__codelineno-1-16 href=#__codelineno-1-16></a>        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&quot;SELECT만 허용&quot;</span><span class=p>)</span>
-</span><span id=__span-1-17><a id=__codelineno-1-17 name=__codelineno-1-17 href=#__codelineno-1-17></a>    <span class=k>return</span> <span class=n>db</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=n>sql</span><span class=p>)</span>
-</span><span id=__span-1-18><a id=__codelineno-1-18 name=__codelineno-1-18 href=#__codelineno-1-18></a>
-</span><span id=__span-1-19><a id=__codelineno-1-19 name=__codelineno-1-19 href=#__codelineno-1-19></a><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&quot;__main__&quot;</span><span class=p>:</span>
-</span><span id=__span-1-20><a id=__codelineno-1-20 name=__codelineno-1-20 href=#__codelineno-1-20></a>    <span class=n>mcp</span><span class=o>.</span><span class=n>run</span><span class=p>()</span>  <span class=c1># stdin/stdout으로 JSON-RPC 처리</span>
-</span></code></pre></div> <p>Claude Code <code>.claude/settings.json</code>에 서버를 등록한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=p>{</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span><span class=nt>&quot;mcpServers&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>    </span><span class=nt>&quot;my-dev-tools&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>      </span><span class=nt>&quot;command&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;python&quot;</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>      </span><span class=nt>&quot;args&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;server.py&quot;</span><span class=p>],</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>      </span><span class=nt>&quot;env&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>        </span><span class=nt>&quot;DATABASE_URL&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;postgresql://localhost/mydb&quot;</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=w>      </span><span class=p>}</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a><span class=p>}</span>
-</span></code></pre></div> <p>등록 후 Claude Code에서 <code>/mcp</code> 명령으로 서버 상태와 사용 가능한 도구 목록을 확인할 수 있다. <code>command</code>에는 절대 경로 또는 가상환경 내 <code>python</code> 경로를 써야 한다. 상대 경로는 Claude Code 실행 위치에 따라 달라진다.</p> <h2 id=읽는-순서>읽는 순서<a class=headerlink href=#읽는-순서 title="Permanent link">&para;</a></h2> <h3 id=claude-code를-처음-도입하는-경우>Claude Code를 처음 도입하는 경우<a class=headerlink href=#claude-code를-처음-도입하는-경우 title="Permanent link">&para;</a></h3> <ol> <li><strong>Claude Code</strong> — 전체 기능 지형을 먼저 파악한다</li> <li><strong>Claude Code 스킬과 룰 시스템</strong> — CLAUDE.md와 Skill을 올바르게 구분해서 세팅한다</li> <li><strong>Claude Code 실전 팁</strong> — 빠르게 생산성을 높이는 경험칙을 흡수한다</li> <li><strong>Claude Code 플랜모드 실전 활용</strong> — 대형 작업 전 플랜 검증 습관을 들인다</li> <li><strong>Claude Code 개발 루틴</strong> — 일상 업무 사이클에 통합하는 방법을 잡는다</li> </ol> <h3 id=llm-기반-기능을-서비스에-붙이는-경우>LLM 기반 기능을 서비스에 붙이는 경우<a class=headerlink href=#llm-기반-기능을-서비스에-붙이는-경우 title="Permanent link">&para;</a></h3> <ol> <li><strong>LLM 동작 원리와 프로덕션 통합</strong> — LLM 전반 개념을 먼저 잡는다</li> <li><strong>프롬프트 엔지니어링</strong> — 기능 품질의 절반은 프롬프트 설계에서 결정된다</li> <li><strong>Tool Use / Function Calling</strong> — 외부 시스템 연동을 위한 도구 호출 구조를 익힌다</li> <li><strong>Structured Output</strong> — 백엔드 파이프라인이 받을 수 있는 형태로 출력을 강제한다</li> <li><strong>RAG 파이프라인 → 텍스트 임베딩 실무 → 벡터 DB 실무 비교</strong> — 문서 검색 기능 구축의 전 과정</li> <li><strong>LLM 보안 위협과 대응 → 바이브 코딩 보안 대처법</strong> — 보안 위협을 일찍 차단한다</li> </ol> <h3 id=멀티-에이전트--오케스트레이션으로-확장하는-경우>멀티 에이전트 / 오케스트레이션으로 확장하는 경우<a class=headerlink href=#멀티-에이전트--오케스트레이션으로-확장하는-경우 title="Permanent link">&para;</a></h3> <ol> <li><strong>LLM 에이전트</strong> — 에이전트 구성 요소 전체를 파악한다</li> <li><strong>Claude Code Agent 시스템</strong> — 세션 내 위임 메커니즘을 먼저 이해한다</li> <li><strong>Claude Code 오케스트레이션</strong> — 프로세스 레벨 확장으로 넘어간다</li> <li><strong>멀티 에이전트 시스템</strong> — A2A 핸드오프·컨텍스트 격리 패턴을 설계한다</li> <li><strong>Agent Harness</strong> — 런타임 구조를 깊이 이해해서 하네스를 직접 만들거나 디버깅한다</li> <li><strong>MCP 핵심 개념 → MCP 전송 방식</strong> — MCP로 도구를 외부 서버로 분리한다</li> </ol> <h3 id=llm-인프라를-직접-운영하는-경우>LLM 인프라를 직접 운영하는 경우<a class=headerlink href=#llm-인프라를-직접-운영하는-경우 title="Permanent link">&para;</a></h3> <ol> <li><strong>Ollama</strong> — 로컬 서빙 환경을 빠르게 구성한다</li> <li><strong>LLM 추론 최적화 심화</strong> — Quantization·KV Cache·PagedAttention으로 비용·속도를 잡는다</li> <li><strong>LLM 파인튜닝 실무</strong> — 파인튜닝이 정말 필요한 상황인지 판단하고 실행한다</li> <li><strong>LLM 스케일링 법칙 → LLM 사전학습 파이프라인</strong> — 학습 예산 배분과 데이터 파이프라인 이해</li> </ol> <h2 id=아직-없는-것>아직 없는 것<a class=headerlink href=#아직-없는-것 title="Permanent link">&para;</a></h2> <p><strong>부분 커버됨 — 관련 문서로 대신 참고</strong></p> <table> <thead> <tr> <th>주제</th> <th>관련 문서</th> <th>부족한 부분</th> </tr> </thead> <tbody> <tr> <td>MCP 서버 구현 (TypeScript·Python)</td> <td><a href=../../AI/MCP/MCP_Server_Implementation/ >MCP 서버 직접 구현</a></td> <td>OAuth 2.1 인증 흐름 세부 없음</td> </tr> <tr> <td>Prompt Caching 비용 최적화</td> <td><a href=../../AI/Concepts/Prompt_Caching/ >Prompt Caching</a></td> <td>Anthropic·Gemini 동작 원리, TTL별 비용 계산, 무효화 케이스</td> </tr> <tr> <td>AI 코드 리뷰 CI/CD 연동</td> <td><a href=../../AI/Concepts/Ultra_Review/ >UltraReview</a></td> <td>Semgrep + LLM 파이프라인 구성 세부 없음</td> </tr> <tr> <td>Tool Use 루프·병렬 호출</td> <td><a href=../../AI/Concepts/Tool_Use/ >Tool Use / Function Calling</a></td> <td>위의 기본 패턴으로 먼저 돌려볼 수 있음</td> </tr> </tbody> </table> <p><strong>문서 없음 — 필요하면 작성</strong></p> <ul> <li>Claude Code SDK를 이용한 자체 하네스 구현 실전 튜토리얼 (현재 <a href=../../AI/Claude_Code/Claude_Code_Harness/ >Claude Code 하네스</a>는 내부 동작 설명 위주)</li> <li><del>LangChain / LlamaIndex vs 순수 SDK 선택 기준</del> → <a href=../../AI/Concepts/Lang_Chain_vs_SDK/ >LangChain / LlamaIndex vs 순수 SDK</a></li> <li><del>RAG 품질 평가 지표(RAGAS, TruLens) 실무 적용</del> → <a href=../../AI/Concepts/RAG_Evaluation/ >RAG 품질 평가</a></li> <li>A/B 테스트로 프롬프트 버전을 관리하는 실무 패턴</li> <li>멀티모달(이미지·PDF·음성) 입력 파이프라인 설계</li> <li>OpenAI Assistants API vs Claude Agent SDK 상세 비교</li> <li>온프레미스 GPU 클러스터에서 vLLM 운영 실전 가이드</li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../AI/Concepts/LLM/ >LLM 동작 원리와 프로덕션 통합</a></li> <li><a href=../../AI/Concepts/Lang_Chain_vs_SDK/ >LangChain / LlamaIndex vs 순수 SDK</a></li> <li><a href=../../AI/Concepts/RAG_for_Code/ >RAG for Code (코드 기반 RAG)</a></li> <li><a href=../../AI/Concepts/RAG_Evaluation/ >RAG 품질 평가 - RAGAS와 TruLens 실무</a></li> <li><a href=../../AI/Concepts/Embeddings/ >텍스트 임베딩 실무</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 29일 03:54:17 UTC">2026년 7월 29일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../%EA%B4%80%EC%B8%A1%EC%84%B1/ class="md-footer__link md-footer__link--prev" aria-label="이전: 관측성"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 관측성 </div> </div> </a> <a href=../JavaScript_TypeScript/ class="md-footer__link md-footer__link--next" aria-label="다음: JS & TypeScript"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> JS & TypeScript </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../javascripts/extra.js></script> <script src=../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/_hub/AI_%EA%B0%9C%EB%B0%9C_%EB%8F%84%EA%B5%AC/">
+      
+      
+        <link rel="prev" href="../%EA%B4%80%EC%B8%A1%EC%84%B1/">
+      
+      
+        <link rel="next" href="../JavaScript_TypeScript/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>AI 개발 도구 허브 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ai-개발-도구-허브" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              AI 개발 도구 허브
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    가이드
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9_1" id="__nav_9_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주제별 가이드
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    주제별 가이드
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    트랜잭션과 동시성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%9D%B8%EC%A6%9D%EA%B3%BC_%ED%86%A0%ED%81%B0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증과 토큰
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EB%A9%94%EC%8B%9C%EC%A7%95%EA%B3%BC_%EC%A0%84%EB%8B%AC_%EB%B3%B4%EC%9E%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    메시징과 전달 보장
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%9D%B8%EB%8D%B1%EC%8A%A4%EC%99%80_%EC%BF%BC%EB%A6%AC_%EC%84%B1%EB%8A%A5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인덱스와 쿼리 성능
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EC%BA%90%EC%8B%B1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    캐싱
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%EA%B4%80%EC%B8%A1%EC%84%B1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 개발 도구
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 개발 도구
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#이-주제를-언제-찾게-되는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이 주제를 언제 찾게 되는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#문서-지도" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문서 지도
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="문서 지도">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#claude-code--ai-코딩-에이전트-핵심" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code — AI 코딩 에이전트 핵심
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#claude-api--모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude API &amp; 모델
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-핵심-개념" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 핵심 개념
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rag-및-검색-증강" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RAG 및 검색 증강
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-model-context-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP (Model Context Protocol)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-코딩-도구-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI 코딩 도구 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gemini--google-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gemini / Google AI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#기타-llm-모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        기타 LLM 모델
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-업무-활용-및-워크플로우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI 업무 활용 및 워크플로우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#핵심-코드-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핵심 코드 패턴
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="핵심 코드 패턴">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tool-use-기본-호출-anthropic-python-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool Use 기본 호출 (Anthropic Python SDK)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-서버-등록-python-fastmcp--claude-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP 서버 등록 (Python FastMCP + Claude Code)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#읽는-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        읽는 순서
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="읽는 순서">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#claude-code를-처음-도입하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code를 처음 도입하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-기반-기능을-서비스에-붙이는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 기반 기능을 서비스에 붙이는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#멀티-에이전트--오케스트레이션으로-확장하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        멀티 에이전트 / 오케스트레이션으로 확장하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-인프라를-직접-운영하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 인프라를 직접 운영하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#아직-없는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        아직 없는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../JavaScript_TypeScript/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JS & TypeScript
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%A1%9C%EB%93%9C%EB%A7%B5/AWS_%EC%8B%A4%EB%AC%B4_%EC%9E%85%EB%AC%B8_15%EC%84%A0/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    로드맵
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Frontend/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#이-주제를-언제-찾게-되는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이 주제를 언제 찾게 되는가
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#문서-지도" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        문서 지도
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="문서 지도">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#claude-code--ai-코딩-에이전트-핵심" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code — AI 코딩 에이전트 핵심
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#claude-api--모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude API &amp; 모델
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-핵심-개념" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 핵심 개념
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rag-및-검색-증강" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RAG 및 검색 증강
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-model-context-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP (Model Context Protocol)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-코딩-도구-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI 코딩 도구 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gemini--google-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gemini / Google AI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#기타-llm-모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        기타 LLM 모델
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-업무-활용-및-워크플로우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI 업무 활용 및 워크플로우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#핵심-코드-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핵심 코드 패턴
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="핵심 코드 패턴">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tool-use-기본-호출-anthropic-python-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tool Use 기본 호출 (Anthropic Python SDK)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mcp-서버-등록-python-fastmcp--claude-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP 서버 등록 (Python FastMCP + Claude Code)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#읽는-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        읽는 순서
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="읽는 순서">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#claude-code를-처음-도입하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code를 처음 도입하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-기반-기능을-서비스에-붙이는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 기반 기능을 서비스에 붙이는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#멀티-에이전트--오케스트레이션으로-확장하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        멀티 에이전트 / 오케스트레이션으로 확장하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-인프라를-직접-운영하는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM 인프라를 직접 운영하는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#아직-없는-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        아직 없는 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">ai</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">llm</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">mcp</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">rag</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="ai-개발-도구-허브">AI 개발 도구 허브<a class="headerlink" href="#ai-개발-도구-허브" title="Permanent link">&para;</a></h1>
+<h2 id="이-주제를-언제-찾게-되는가">이 주제를 언제 찾게 되는가<a class="headerlink" href="#이-주제를-언제-찾게-되는가" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Claude Code를 처음 도입하거나, 오케스트레이션·멀티 에이전트로 확장하려 할 때</li>
+<li>LLM 기반 기능을 프로덕션에 붙여야 하는데 RAG·파인튜닝·임베딩 중 어느 방향인지 갈릴 때</li>
+<li>AI 코딩 도구(Claude Code, Cursor, Copilot, Codex, Gemini CLI)를 비교해서 프로젝트에 맞는 걸 고르고 싶을 때</li>
+<li>MCP 서버를 만들거나 Claude Agent SDK로 자체 에이전트를 구축하려 할 때</li>
+<li>모델 선택(Claude Opus, Gemini, GPT, DeepSeek, Qwen, Grok)이 필요할 때</li>
+<li>AI가 생성한 코드의 보안 취약점이나 할루시네이션을 걱정할 때</li>
+<li>로컬 LLM(Ollama, GGUF) 셀프호스팅을 검토할 때</li>
+<li>LLM 추론 최적화, KV 캐시, 양자화 같은 인프라 수준 문제를 다룰 때</li>
+</ul>
+<h2 id="문서-지도">문서 지도<a class="headerlink" href="#문서-지도" title="Permanent link">&para;</a></h2>
+<h3 id="claude-code--ai-코딩-에이전트-핵심">Claude Code — AI 코딩 에이전트 핵심<a class="headerlink" href="#claude-code--ai-코딩-에이전트-핵심" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code/">Claude Code</a></td>
+<td>Claude Code 전반 개요 — MCP, 훅, 슬래시 명령어, 권한 모델</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Tips/">Claude Code 실전 팁</a></td>
+<td>실무에서 쌓인 생산성 노하우, 모델 선택 경험칙</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Skill_Rule/">Claude Code 스킬과 룰 시스템</a></td>
+<td>CLAUDE.md 룰과 Skill의 차이, 각 용도와 작성법</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Memory/">Claude Code 메모리 시스템</a></td>
+<td>세션 간 컨텍스트 유지를 위한 메모리 계층 구조</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Plan_Mode/">Claude Code 플랜모드 실전 활용</a></td>
+<td>대규모 리팩토링·마이그레이션 전 플랜 검증 워크플로</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Auto_Mode/">Claude Code Auto Mode</a></td>
+<td>반복 확인 마찰을 줄이는 자동 모드 설정과 한계</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Routine/">Claude Code 개발 루틴</a></td>
+<td>하루 일과 속 Claude Code 투입 시점과 주기 설계</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Agent/">Claude Code Agent 시스템</a></td>
+<td>세션 내 서브에이전트 위임 메커니즘</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Orchestration/">Claude Code 오케스트레이션</a></td>
+<td>외부 SDK로 다수 인스턴스를 조율하는 멀티 에이전트 설계</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_OMC/">Claude Code OMC</a></td>
+<td>프로세스 N개를 병렬로 돌리는 OMC 운영 방식</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Worktree/">Claude Code Worktree</a></td>
+<td>git worktree로 브랜치별 격리 개발 환경 구성</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Worktree_Script/">Claude Code Worktree 병렬 스크립트</a></td>
+<td>--print 모드 활용 병렬 자동화 스크립트</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Long_Job/">Claude Code 롱잡 운영</a></td>
+<td>2분 타임아웃·컨텍스트 폭발 없이 장시간 작업 처리</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Harness/">Claude Code 하네스</a></td>
+<td>하네스 내부 동작, 권한·훅·샌드박스 디버깅</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Model/">Claude Code 모델 선택</a></td>
+<td>에이전틱 환경에서 Opus·Sonnet·Haiku 선택 기준</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Ultra/">Claude Code Ultra Review</a></td>
+<td>/code-review ultra 멀티에이전트 코드 리뷰 사용법</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Web_Vulnerability/">Claude Code 웹취약점 대응</a></td>
+<td>AI 생성 코드에서 XSS·SSRF·IDOR가 발생하는 패턴과 차단</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude_Code/Claude_Code_Troubleshooting/">Claude Code 트러블슈팅</a></td>
+<td>실무에서 자주 겪는 CLI 문제와 해결법</td>
+<td>실무</td>
+</tr>
+</tbody>
+</table>
+<h3 id="claude-api--모델">Claude API &amp; 모델<a class="headerlink" href="#claude-api--모델" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Claude/Claude/">Claude</a></td>
+<td>Claude 모델 패밀리 개요, API 기초, 모델 비교</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude/Claude_Expert_Usage/">Claude를 전문가처럼 활용</a></td>
+<td>Web·API·Desktop 전반에서 시스템 프롬프트·Projects 세팅</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude/Claude_API_Advanced/">Claude API 고급 기능</a></td>
+<td>Batch API, Citations, Files API, Prompt Caching 실무</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude/Claude_Agent/">Claude Agent SDK</a></td>
+<td>도구 루프·컨텍스트 압축·권한 처리를 SDK로 묶는 방법</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude/Claude_Opus_4_7/">Claude Opus 4.7</a></td>
+<td>4.6 대비 긴 컨텍스트 일관성·도구 호출 품질 개선 포인트</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Claude/Claude_Opus_4_8/">Claude Opus 4.8</a></td>
+<td>4.7 대비 추론 깊이·도구 호출 캘리브레이션 개선과 비용</td>
+<td>실무</td>
+</tr>
+</tbody>
+</table>
+<h3 id="llm-핵심-개념">LLM 핵심 개념<a class="headerlink" href="#llm-핵심-개념" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Concepts/LLM/">LLM 동작 원리와 프로덕션 통합</a></td>
+<td>트랜스포머·추론·파인튜닝·임베딩·평가 전 범위 개요</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Prompt_Engineering/">프롬프트 엔지니어링</a></td>
+<td>Few-shot, CoT, 코딩 특화 프롬프트 설계 원칙</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Agent/">LLM 에이전트</a></td>
+<td>ReAct·도구 루프·계획·메모리 등 에이전트 구성 요소</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Multi_Agent_Systems/">멀티 에이전트 시스템</a></td>
+<td>오케스트레이터-워커, A2A 핸드오프, 컨텍스트 격리 패턴</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Agent_Harness/">Agent Harness</a></td>
+<td>Claude Code 하네스로 보는 에이전트 런타임 구조</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Tool_Use/">Tool Use / Function Calling</a></td>
+<td>JSON Schema 정의부터 도구 루프 구현까지</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Structured_Output/">Structured Output</a></td>
+<td>LLM 출력을 DTO·enum에 매핑하는 강제 구조화 기법</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Reasoning/">LLM Reasoning 패턴과 모델</a></td>
+<td>CoT·ReAct·Tree-of-Thoughts·o1·Extended Thinking 비교</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Effort_Mode/">Effort Mode</a></td>
+<td>reasoning effort 다이얼이 생긴 배경과 모델별 설정법</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Context_Window/">LLM Context Window</a></td>
+<td>RoPE·YaRN·Long Context·Prompt Caching 동작 원리</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Prompt_Caching/">Prompt Caching</a></td>
+<td>Anthropic·Gemini 캐시 동작, TTL별 비용 계산식, 무효화 케이스</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Lang_Chain_vs_SDK/">LangChain / LlamaIndex vs 순수 SDK</a></td>
+<td>프레임워크 도입 비용·버전 의존성 문제, SDK 직접 구현과의 트레이드오프</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Security/">LLM 보안 위협과 대응</a></td>
+<td>Prompt Injection·PII 유출·Jailbreak·Guardrails</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Vibe_Coding_Security/">바이브 코딩 보안 대처법</a></td>
+<td>Slopsquatting·Prompt Injection·SAST 연동으로 위험 줄이기</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/AI_Hallucination/">AI 할루시네이션</a></td>
+<td>코드 생성에서 할루시네이션이 발생하는 이유와 검증 전략</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Evaluation/">LLM 평가 방법론</a></td>
+<td>MMLU·HumanEval·MT-Bench 등 벤치마크의 함정과 실무 평가</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Fine_Tuning/">LLM 파인튜닝 실무</a></td>
+<td>LoRA·QLoRA·PEFT — 파인튜닝을 시작하기 전 판단 기준</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Inference_Optimization/">LLM 추론 최적화 심화</a></td>
+<td>Quantization·KV Cache·PagedAttention·Speculative Decoding</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Scaling_Laws/">LLM 스케일링 법칙</a></td>
+<td>Chinchilla·Compute-Optimal·창발적 능력과 파라미터 배분</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Tokenizer/">LLM 토크나이저</a></td>
+<td>BPE 내부 구현과 토크나이저 병리 현상</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/LLM_Pretraining/">LLM 사전학습 파이프라인</a></td>
+<td>데이터 준비·학습 루프·학습 불안정 원인 (nanoGPT 기반)</td>
+<td>심화</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rag-및-검색-증강">RAG 및 검색 증강<a class="headerlink" href="#rag-및-검색-증강" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Concepts/RAG_Pipeline/">RAG 파이프라인</a></td>
+<td>문서 파싱·청킹·검색·생성 전 과정 설계와 비용</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Functional_RAG/">Functional RAG</a></td>
+<td>함수형 파이프라인으로 RAG 복잡도 관리 (LCEL 활용)</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/RAG_for_Code/">RAG for Code</a></td>
+<td>코드베이스를 대상으로 한 RAG 아키텍처</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/RAG_Evaluation/">RAG 품질 평가</a></td>
+<td>RAGAS·TruLens 지표 해석, 품질 저하 원인 진단, 지표 함정 사례</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Embeddings/">텍스트 임베딩 실무</a></td>
+<td>OpenAI·Cohere·BGE·E5 비교, 코사인 유사도 검색 설계</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Vector_Database/">벡터 DB 실무 비교</a></td>
+<td>pgvector·Qdrant·Pinecone·Milvus 선택 기준과 운영</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Ontology/">온톨로지</a></td>
+<td>지식 그래프·RDF·OWL·SPARQL — RAG 품질 향상을 위한 구조화 지식</td>
+<td>심화</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mcp-model-context-protocol">MCP (Model Context Protocol)<a class="headerlink" href="#mcp-model-context-protocol" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/MCP/MCP/">MCP 핵심 개념</a></td>
+<td>MCP 프로토콜 구조, 서버/클라이언트 역할, 도구 등록</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/MCP/SSE_and_Stdio/">MCP 전송 방식</a></td>
+<td>stdio vs SSE vs Streamable HTTP 전송 선택 기준</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/MCP/MCP_Server_Implementation/">MCP 서버 직접 구현</a></td>
+<td>TypeScript·Python SDK로 서버 구현, 응답 형식·에러 처리, Claude Code 로컬 연동 테스트</td>
+<td>실무</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ai-코딩-도구-비교">AI 코딩 도구 비교<a class="headerlink" href="#ai-코딩-도구-비교" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Cursor/Cursor/">Cursor</a></td>
+<td>AI 네이티브 IDE Cursor의 핵심 기능과 Composer 활용</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Cursor/Cursor_Rules/">Cursor Rules</a></td>
+<td>프로젝트별 AI 동작 규칙 설정 (.cursorrules)</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Cursor/Cursor_Context_Management/">Cursor Context 관리</a></td>
+<td>@태그·인덱싱·CursorIgnore·토큰 관리</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/GitHub_Copilot/GitHub_Copilot/">GitHub Copilot</a></td>
+<td>Copilot 핵심 기능, Agent Mode, IDE별 차이</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Codex/Codex/">OpenAI Codex</a></td>
+<td>Codex CLI 사용법, 에이전틱 코딩 특성</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Gemini/Gemini/">Gemini Code Assist &amp; CLI</a></td>
+<td>Gemini Code Assist 플러그인과 CLI — 1M 토큰 활용</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/CodeSight/Code_Sight_Wiki/">CodeSight --wiki</a></td>
+<td>코드베이스 문서화 자동화 CLI 도구</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Clawsweeper/Clawsweeper/">Clawsweeper</a></td>
+<td>데드코드 탐지·정리 AI 정적 분석 CLI 도구</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Ultra_Review/">UltraReview</a></td>
+<td>CI/CD 연동 AI 심층 코드 리뷰 도구</td>
+<td>실무</td>
+</tr>
+</tbody>
+</table>
+<h3 id="gemini--google-ai">Gemini / Google AI<a class="headerlink" href="#gemini--google-ai" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Gemini/Gemini_API/">Gemini API 실무</a></td>
+<td>SDK 인증·기본 호출·멀티모달 입력 기초</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Gemini/Gemini_API_Advanced/">Gemini API 심화</a></td>
+<td>Function Calling·Streaming·Safety·Context Caching</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Gemini/Google_AI_Studio/">Google AI Studio</a></td>
+<td>프로토타이핑 웹 도구 활용과 API 키 발급</td>
+<td>입문</td>
+</tr>
+<tr>
+<td><a href="../../AI/Gemini/Gemini_Troubleshooting/">Gemini 트러블슈팅</a></td>
+<td>429 에러·인증 만료·멀티모달 파일 제한 대응</td>
+<td>실무</td>
+</tr>
+</tbody>
+</table>
+<h3 id="기타-llm-모델">기타 LLM 모델<a class="headerlink" href="#기타-llm-모델" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/GPT/GPT_5_5/">GPT-5.5</a></td>
+<td>GPT-5.5 모델 특성, API 사용, Claude와 비교</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/DeepSeek/Deep_Seek/">DeepSeek</a></td>
+<td>DeepSeek MoE 모델 패밀리, 오픈소스 셀프호스팅</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Qwen/Qwen/">Qwen</a></td>
+<td>Alibaba Qwen 패밀리, DashScope API, 추론 모델 활용</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Grok/Grok/">Grok</a></td>
+<td>xAI Grok, 코딩 보조, API 접근 방법</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Ollama/Ollama/">Ollama</a></td>
+<td>로컬 LLM 서빙 — GGUF, 모델 관리, vLLM 비교</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Unsloth_Qwen3_GGUF/">Unsloth Qwen3 GGUF 로컬 구동</a></td>
+<td>27B GGUF 모델 로컬 구동과 llama.cpp·Ollama 연동</td>
+<td>실무</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ai-업무-활용-및-워크플로우">AI 업무 활용 및 워크플로우<a class="headerlink" href="#ai-업무-활용-및-워크플로우" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>이 문서가 답하는 것</th>
+<th>깊이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../../AI/Concepts/Palantir_AI_Workflow/">팔란티어가 AI로 일하는 방식</a></td>
+<td>Foundry·AIP·온톨로지 기반 엔터프라이즈 AI 운영</td>
+<td>심화</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Karpathy_LLM_Obsidian/">Karpathy LLM + Obsidian 워크플로우</a></td>
+<td>vault를 LLM에 먹여서 지식 관리를 확장하는 방법</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/Concepts/Obsidian/">Obsidian 실무 사용법</a></td>
+<td>vault 구조·플러그인·동기화, AI와 함께 쓸 때 주의사항</td>
+<td>실무</td>
+</tr>
+<tr>
+<td><a href="../../AI/GBrain/G_Brain/">GBrain</a></td>
+<td>국내 엔터프라이즈 AI 지식 관리 도구 GBrain</td>
+<td>입문</td>
+</tr>
+</tbody>
+</table>
+<h2 id="핵심-코드-패턴">핵심 코드 패턴<a class="headerlink" href="#핵심-코드-패턴" title="Permanent link">&para;</a></h2>
+<h3 id="tool-use-기본-호출-anthropic-python-sdk">Tool Use 기본 호출 (Anthropic Python SDK)<a class="headerlink" href="#tool-use-기본-호출-anthropic-python-sdk" title="Permanent link">&para;</a></h3>
+<p>도구 호출은 두 번 왕복한다. 첫 번째 응답에서 <code>stop_reason == "tool_use"</code>가 오면 도구를 실행하고, 결과를 <code>tool_result</code>로 담아 다시 보내야 한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">anthropic</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Anthropic</span><span class="p">()</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">tools</span> <span class="o">=</span> <span class="p">[{</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;get_order_status&quot;</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;주문 번호로 배송 상태를 조회한다&quot;</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;input_schema&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="s2">&quot;order_id&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;ORD- 접두사 포함 전체 문자열&quot;</span><span class="p">}</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="p">},</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;order_id&quot;</span><span class="p">]</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="p">}</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}]</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;ORD-12345 배송 어디까지 왔어?&quot;</span><span class="p">}]</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;claude-opus-4-7&quot;</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">max_tokens</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="p">)</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">stop_reason</span> <span class="o">==</span> <span class="s2">&quot;tool_use&quot;</span><span class="p">:</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="n">tool_block</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;tool_use&quot;</span><span class="p">)</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="c1"># 실제 함수 실행</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">get_order_status</span><span class="p">(</span><span class="o">**</span><span class="n">tool_block</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    <span class="c1"># 대화에 tool_use + tool_result를 쌍으로 붙여야 한다</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">})</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;tool_result&quot;</span><span class="p">,</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>            <span class="s2">&quot;tool_use_id&quot;</span><span class="p">:</span> <span class="n">tool_block</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="p">),</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="p">}]</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>    <span class="p">})</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>    <span class="n">final</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">&quot;claude-opus-4-7&quot;</span><span class="p">,</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>        <span class="n">max_tokens</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>        <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>        <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>    <span class="p">)</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+</span></code></pre></div>
+<p>tool_use 블록 없이 tool_result만 보내면 API 에러가 난다. 짝이 반드시 맞아야 한다.</p>
+<h3 id="mcp-서버-등록-python-fastmcp--claude-code">MCP 서버 등록 (Python FastMCP + Claude Code)<a class="headerlink" href="#mcp-서버-등록-python-fastmcp--claude-code" title="Permanent link">&para;</a></h3>
+<p>로컬에서 stdio 방식으로 MCP 서버를 만들고 Claude Code에 붙이는 최소 패턴이다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># server.py</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mcp.server.fastmcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastMCP</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">mcp</span> <span class="o">=</span> <span class="n">FastMCP</span><span class="p">(</span><span class="s2">&quot;my-dev-tools&quot;</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_user</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;user_id로 사용자 단건 조회. 없으면 None 반환.&quot;&quot;&quot;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">row</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM users WHERE id = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">user_id</span><span class="p">])</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="k">return</span> <span class="n">row</span> <span class="ow">or</span> <span class="p">{}</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_query</span><span class="p">(</span><span class="n">sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;읽기 전용 SELECT만 허용. UPDATE/DELETE는 거부.&quot;&quot;&quot;</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">sql</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;SELECT&quot;</span><span class="p">):</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SELECT만 허용&quot;</span><span class="p">)</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">mcp</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>  <span class="c1"># stdin/stdout으로 JSON-RPC 처리</span>
+</span></code></pre></div>
+<p>Claude Code <code>.claude/settings.json</code>에 서버를 등록한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;mcpServers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&quot;my-dev-tools&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;python&quot;</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">      </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;server.py&quot;</span><span class="p">],</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">      </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="nt">&quot;DATABASE_URL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;postgresql://localhost/mydb&quot;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="p">}</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>등록 후 Claude Code에서 <code>/mcp</code> 명령으로 서버 상태와 사용 가능한 도구 목록을 확인할 수 있다. <code>command</code>에는 절대 경로 또는 가상환경 내 <code>python</code> 경로를 써야 한다. 상대 경로는 Claude Code 실행 위치에 따라 달라진다.</p>
+<h2 id="읽는-순서">읽는 순서<a class="headerlink" href="#읽는-순서" title="Permanent link">&para;</a></h2>
+<h3 id="claude-code를-처음-도입하는-경우">Claude Code를 처음 도입하는 경우<a class="headerlink" href="#claude-code를-처음-도입하는-경우" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Claude Code</strong> — 전체 기능 지형을 먼저 파악한다</li>
+<li><strong>Claude Code 스킬과 룰 시스템</strong> — CLAUDE.md와 Skill을 올바르게 구분해서 세팅한다</li>
+<li><strong>Claude Code 실전 팁</strong> — 빠르게 생산성을 높이는 경험칙을 흡수한다</li>
+<li><strong>Claude Code 플랜모드 실전 활용</strong> — 대형 작업 전 플랜 검증 습관을 들인다</li>
+<li><strong>Claude Code 개발 루틴</strong> — 일상 업무 사이클에 통합하는 방법을 잡는다</li>
+</ol>
+<h3 id="llm-기반-기능을-서비스에-붙이는-경우">LLM 기반 기능을 서비스에 붙이는 경우<a class="headerlink" href="#llm-기반-기능을-서비스에-붙이는-경우" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>LLM 동작 원리와 프로덕션 통합</strong> — LLM 전반 개념을 먼저 잡는다</li>
+<li><strong>프롬프트 엔지니어링</strong> — 기능 품질의 절반은 프롬프트 설계에서 결정된다</li>
+<li><strong>Tool Use / Function Calling</strong> — 외부 시스템 연동을 위한 도구 호출 구조를 익힌다</li>
+<li><strong>Structured Output</strong> — 백엔드 파이프라인이 받을 수 있는 형태로 출력을 강제한다</li>
+<li><strong>RAG 파이프라인 → 텍스트 임베딩 실무 → 벡터 DB 실무 비교</strong> — 문서 검색 기능 구축의 전 과정</li>
+<li><strong>LLM 보안 위협과 대응 → 바이브 코딩 보안 대처법</strong> — 보안 위협을 일찍 차단한다</li>
+</ol>
+<h3 id="멀티-에이전트--오케스트레이션으로-확장하는-경우">멀티 에이전트 / 오케스트레이션으로 확장하는 경우<a class="headerlink" href="#멀티-에이전트--오케스트레이션으로-확장하는-경우" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>LLM 에이전트</strong> — 에이전트 구성 요소 전체를 파악한다</li>
+<li><strong>Claude Code Agent 시스템</strong> — 세션 내 위임 메커니즘을 먼저 이해한다</li>
+<li><strong>Claude Code 오케스트레이션</strong> — 프로세스 레벨 확장으로 넘어간다</li>
+<li><strong>멀티 에이전트 시스템</strong> — A2A 핸드오프·컨텍스트 격리 패턴을 설계한다</li>
+<li><strong>Agent Harness</strong> — 런타임 구조를 깊이 이해해서 하네스를 직접 만들거나 디버깅한다</li>
+<li><strong>MCP 핵심 개념 → MCP 전송 방식</strong> — MCP로 도구를 외부 서버로 분리한다</li>
+</ol>
+<h3 id="llm-인프라를-직접-운영하는-경우">LLM 인프라를 직접 운영하는 경우<a class="headerlink" href="#llm-인프라를-직접-운영하는-경우" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Ollama</strong> — 로컬 서빙 환경을 빠르게 구성한다</li>
+<li><strong>LLM 추론 최적화 심화</strong> — Quantization·KV Cache·PagedAttention으로 비용·속도를 잡는다</li>
+<li><strong>LLM 파인튜닝 실무</strong> — 파인튜닝이 정말 필요한 상황인지 판단하고 실행한다</li>
+<li><strong>LLM 스케일링 법칙 → LLM 사전학습 파이프라인</strong> — 학습 예산 배분과 데이터 파이프라인 이해</li>
+</ol>
+<h2 id="아직-없는-것">아직 없는 것<a class="headerlink" href="#아직-없는-것" title="Permanent link">&para;</a></h2>
+<p><strong>부분 커버됨 — 관련 문서로 대신 참고</strong></p>
+<table>
+<thead>
+<tr>
+<th>주제</th>
+<th>관련 문서</th>
+<th>부족한 부분</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCP 서버 구현 (TypeScript·Python)</td>
+<td><a href="../../AI/MCP/MCP_Server_Implementation/">MCP 서버 직접 구현</a></td>
+<td>OAuth 2.1 인증 흐름 세부 없음</td>
+</tr>
+<tr>
+<td>Prompt Caching 비용 최적화</td>
+<td><a href="../../AI/Concepts/Prompt_Caching/">Prompt Caching</a></td>
+<td>Anthropic·Gemini 동작 원리, TTL별 비용 계산, 무효화 케이스</td>
+</tr>
+<tr>
+<td>AI 코드 리뷰 CI/CD 연동</td>
+<td><a href="../../AI/Concepts/Ultra_Review/">UltraReview</a></td>
+<td>Semgrep + LLM 파이프라인 구성 세부 없음</td>
+</tr>
+<tr>
+<td>Tool Use 루프·병렬 호출</td>
+<td><a href="../../AI/Concepts/Tool_Use/">Tool Use / Function Calling</a></td>
+<td>위의 기본 패턴으로 먼저 돌려볼 수 있음</td>
+</tr>
+</tbody>
+</table>
+<p><strong>문서 없음 — 필요하면 작성</strong></p>
+<ul>
+<li>Claude Code SDK를 이용한 자체 하네스 구현 실전 튜토리얼 (현재 <a href="../../AI/Claude_Code/Claude_Code_Harness/">Claude Code 하네스</a>는 내부 동작 설명 위주)</li>
+<li><del>LangChain / LlamaIndex vs 순수 SDK 선택 기준</del> → <a href="../../AI/Concepts/Lang_Chain_vs_SDK/">LangChain / LlamaIndex vs 순수 SDK</a></li>
+<li><del>RAG 품질 평가 지표(RAGAS, TruLens) 실무 적용</del> → <a href="../../AI/Concepts/RAG_Evaluation/">RAG 품질 평가</a></li>
+<li>A/B 테스트로 프롬프트 버전을 관리하는 실무 패턴</li>
+<li>멀티모달(이미지·PDF·음성) 입력 파이프라인 설계</li>
+<li>OpenAI Assistants API vs Claude Agent SDK 상세 비교</li>
+<li>온프레미스 GPU 클러스터에서 vLLM 운영 실전 가이드</li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../AI/Concepts/LLM/">LLM 동작 원리와 프로덕션 통합</a></li>
+<li><a href="../../AI/Concepts/Lang_Chain_vs_SDK/">LangChain / LlamaIndex vs 순수 SDK</a></li>
+<li><a href="../../AI/Concepts/RAG_for_Code/">RAG for Code (코드 기반 RAG)</a></li>
+<li><a href="../../AI/Concepts/RAG_Evaluation/">RAG 품질 평가 - RAGAS와 TruLens 실무</a></li>
+<li><a href="../../AI/Concepts/Embeddings/">텍스트 임베딩 실무</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../%EA%B4%80%EC%B8%A1%EC%84%B1/" class="md-footer__link md-footer__link--prev" aria-label="이전: 관측성">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                관측성
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../JavaScript_TypeScript/" class="md-footer__link md-footer__link--next" aria-label="다음: JS &amp; TypeScript">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                JS & TypeScript
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/extra.js"></script>
+      
+        <script src="../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

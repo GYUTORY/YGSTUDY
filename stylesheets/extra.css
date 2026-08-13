@@ -35,6 +35,7 @@ body {
   /* 포인트: 스틸 블루 / 보조: 라벤더 */
   --blue:         #7FB3D5;
   --blue-active:  #5A93B8;
+  --blue-text:    #3D6B87;    /* 텍스트 전용 — WCAG AA 약 5.5:1 (크림 배경 기준) */
   --blue-light:   rgba(127, 179, 213, 0.12);
   --sub:         #B8AFC9;
   --sub-active:  #9EA4BE;
@@ -470,7 +471,7 @@ body {
 .md-nav__link {
   font-size: 0.75rem;
   padding: 7px 12px;
-  color: var(--text);
+  color: var(--text) !important;
   transition: color 0.15s ease, background-color 0.15s ease;
   overflow: hidden;
   min-width: 0;
@@ -493,7 +494,7 @@ body {
 }
 .md-nav__link--active,
 .md-nav__item .md-nav__link--active {
-  color: var(--blue-active) !important;
+  color: var(--blue-text) !important;
   font-weight: 600;
   background: var(--blue-light);
   border-left: 3px solid var(--blue);
@@ -671,13 +672,11 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* 모바일에서 1.02rem(=20.4px)이면 390px 화면에 한글이 한 줄에 13자밖에 안 들어간다.
-   읽기 편하라고 키운 글자가 스크롤 마라톤을 만든다. 좁은 화면에서만 줄인다. */
+/* 모바일 본문: 15px 절대값으로 고정 — Material 자체 0.8rem(12.8px) 오버라이드 */
 @media screen and (max-width: 600px) {
-  .md-typeset { font-size: 0.86rem; line-height: 1.68; }
+  .md-typeset { font-size: 15px !important; line-height: 1.7; }
   .md-typeset h1 { font-size: 1.5rem; }
-  /* 표는 가로로 넘치게 두되, 페이지 전체가 아니라 표만 스크롤되게 한다. */
-  .md-typeset__table { overflow-x: auto; }
+  .md-content__inner { padding: 0 0.5rem 1.2rem; }
   .md-typeset table:not([class]) { font-size: 0.78rem; }
 }
 
@@ -888,13 +887,25 @@ body {
   font-family: var(--md-code-font);
 }
 
+/* 코드블록 래퍼가 뷰포트 밖으로 나가지 않도록 */
+.md-typeset .highlight {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* 본문 이미지 반응형 — width 속성이 붙은 <img>도 뷰포트 밖 탈출 방지 */
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* 인라인 코드만 핑크 — 코드블록(pre > code)은 제외 */
 .md-typeset :not(pre) > code {
   font-size: 0.875em;
   padding: 0.16em 0.5em;
   border-radius: var(--radius-xs);
   background: var(--warm-white);
-  color: var(--blue-active);
+  color: var(--blue-text) !important;
   border: none;
   font-weight: 500;
 }
@@ -907,6 +918,8 @@ body {
   border-radius: var(--radius-md);
   border: var(--whisper-border);
   box-shadow: none;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 .md-typeset pre,
 .md-typeset pre code {
@@ -916,6 +929,13 @@ body {
   background: none;
   border: none;
   font-weight: 400;
+}
+
+/* 코드블록 내부 span이 컨테이너를 뚫는 모바일 오버플로 방지 */
+.md-typeset pre > code,
+.md-typeset .highlight pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 [data-md-color-scheme="slate"] .md-typeset pre,
 [data-md-color-scheme="slate"] .md-typeset pre code {
@@ -929,6 +949,17 @@ body {
 /* ================================================
    TABLE
    ================================================ */
+
+/* 표 래퍼 전역 가로 스크롤 — PC·모바일 공통 */
+.md-typeset__table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+}
+.md-typeset__table > table {
+  min-width: max-content;
+}
 
 .md-typeset table:not([class]) {
   border: var(--whisper-border);
@@ -1933,7 +1964,26 @@ body {
 
 /* 모바일/태블릿 — 헤더 내부 패딩 축소 (검색/로고 끼임 방지) */
 @media (max-width: 76.1875em) {
-  .md-header__inner { padding: 0 16px; }
+  .md-header__inner {
+    padding: 0 16px;
+    gap: 8px !important;
+  }
+  /* 로고와 사이트명 사이 72px 간격 제거 (PC 12px 고정이 모바일 오버라이드 없어 벌어짐) */
+  .md-header__title {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+  .md-header__button.md-logo {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+  /* 사이드바 항목 한 줄 말줄임 — 모바일 드로어에서 두 줄 길어짐 방지 */
+  .md-nav__link .md-ellipsis,
+  .md-nav__item .md-ellipsis {
+    -webkit-line-clamp: 1;
+    white-space: nowrap;
+    display: block;
+  }
 
   /* 드로어 안의 사이트명("YGSTUDY") 라벨 모두 숨김
      - 최상단 드로어 헤더, 중첩 nav의 백버튼 라벨, 사이드바 내 site title 모두 제거

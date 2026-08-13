@@ -1,114 +1,2792 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Analytics/Glue/ rel=canonical><link href=../Athena/ rel=prev><link href=../Open_Search/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>AWS Glue (서버리스 ETL) - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#aws-glue-서버리스-etl class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> AWS Glue (서버리스 ETL) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Containers/ class=md-nav__link> <span class=md-ellipsis> Containers </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Database/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_11 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Analytics </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_11_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_11> <span class="md-nav__icon md-icon"></span> Analytics </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=#data-catalog와-crawler class=md-nav__link> <span class=md-ellipsis> Data Catalog와 Crawler </span> </a> <nav class=md-nav aria-label="Data Catalog와 Crawler"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#catalog가-뭘-저장하는가 class=md-nav__link> <span class=md-ellipsis> Catalog가 뭘 저장하는가 </span> </a> </li> <li class=md-nav__item> <a href=#crawler로-스키마-추론 class=md-nav__link> <span class=md-ellipsis> Crawler로 스키마 추론 </span> </a> </li> <li class=md-nav__item> <a href=#crawler를-쓸-때-실제로-겪는-문제 class=md-nav__link> <span class=md-ellipsis> Crawler를 쓸 때 실제로 겪는 문제 </span> </a> </li> <li class=md-nav__item> <a href=#타입-충돌이-났을-때-대처 class=md-nav__link> <span class=md-ellipsis> 타입 충돌이 났을 때 대처 </span> </a> </li> <li class=md-nav__item> <a href=#파티션이-폭증할-때 class=md-nav__link> <span class=md-ellipsis> 파티션이 폭증할 때 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#glue-job-pyspark-작성 class=md-nav__link> <span class=md-ellipsis> Glue Job (PySpark) 작성 </span> </a> <nav class=md-nav aria-label="Glue Job (PySpark) 작성"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#glue-버전과-spark-호환성 class=md-nav__link> <span class=md-ellipsis> Glue 버전과 Spark 호환성 </span> </a> </li> <li class=md-nav__item> <a href=#dynamicframe과-dataframe class=md-nav__link> <span class=md-ellipsis> DynamicFrame과 DataFrame </span> </a> </li> <li class=md-nav__item> <a href=#디버깅이-까다로운-이유 class=md-nav__link> <span class=md-ellipsis> 디버깅이 까다로운 이유 </span> </a> </li> <li class=md-nav__item> <a href=#메모리-부족oom과-셔플-스필-디버깅 class=md-nav__link> <span class=md-ellipsis> 메모리 부족(OOM)과 셔플 스필 디버깅 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#glue-job-운영--동시-실행과-재시도 class=md-nav__link> <span class=md-ellipsis> Glue Job 운영 — 동시 실행과 재시도 </span> </a> <nav class=md-nav aria-label="Glue Job 운영 — 동시 실행과 재시도"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#동시-실행-제한max-concurrency class=md-nav__link> <span class=md-ellipsis> 동시 실행 제한(Max concurrency) </span> </a> </li> <li class=md-nav__item> <a href=#재시도-설정의-함정 class=md-nav__link> <span class=md-ellipsis> 재시도 설정의 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#athenaredshift-연동 class=md-nav__link> <span class=md-ellipsis> Athena·Redshift 연동 </span> </a> <nav class=md-nav aria-label="Athena·Redshift 연동"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#athena class=md-nav__link> <span class=md-ellipsis> Athena </span> </a> </li> <li class=md-nav__item> <a href=#redshift class=md-nav__link> <span class=md-ellipsis> Redshift </span> </a> </li> <li class=md-nav__item> <a href=#redshift-spectrum도-같은-카탈로그를-본다 class=md-nav__link> <span class=md-ellipsis> Redshift Spectrum도 같은 카탈로그를 본다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#lake-formation-권한-충돌 class=md-nav__link> <span class=md-ellipsis> Lake Formation 권한 충돌 </span> </a> </li> <li class=md-nav__item> <a href=#dpu-비용--가장-조심해야-할-부분 class=md-nav__link> <span class=md-ellipsis> DPU 비용 — 가장 조심해야 할 부분 </span> </a> <nav class=md-nav aria-label="DPU 비용 — 가장 조심해야 할 부분"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#dpu를-어떻게-세는가 class=md-nav__link> <span class=md-ellipsis> DPU를 어떻게 세는가 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#job-bookmark--중복-처리-방지 class=md-nav__link> <span class=md-ellipsis> Job Bookmark — 중복 처리 방지 </span> </a> <nav class=md-nav aria-label="Job Bookmark — 중복 처리 방지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#중복-적재가-났던-사례 class=md-nav__link> <span class=md-ellipsis> 중복 적재가 났던 사례 </span> </a> </li> <li class=md-nav__item> <a href=#북마크-쓸-때-주의할-점 class=md-nav__link> <span class=md-ellipsis> 북마크 쓸 때 주의할 점 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>cloud</span> </nav> <h1 id=aws-glue-서버리스-etl>AWS Glue (서버리스 ETL)<a class=headerlink href=#aws-glue-서버리스-etl title="Permanent link">&para;</a></h1> <h2 id=개요>개요<a class=headerlink href=#개요 title="Permanent link">&para;</a></h2> <p>Glue는 S3나 RDB에 있는 데이터를 읽어서 변환하고 다시 어딘가에 적재하는 ETL 작업을 서버 없이 돌리는 서비스다. 직접 Spark 클러스터를 EMR로 띄워본 사람이라면 마스터/워커 노드 사이즈 잡고, 부트스트랩 스크립트 깔고, 작업 끝나면 클러스터 내리는 그 과정을 안 해도 된다는 게 Glue의 핵심이다. Job을 등록하고 실행 버튼을 누르면 AWS가 내부에서 Spark 클러스터를 잡아 코드를 돌리고 끝나면 회수한다.</p> <p>구성 요소가 세 개로 나뉜다. 데이터가 어디에 어떤 스키마로 있는지를 저장하는 Data Catalog, S3 경로를 훑어서 스키마를 자동으로 채워넣는 Crawler, 실제 변환 코드를 돌리는 Glue Job이다. 이 셋이 따로 노는 것처럼 보이지만 실무에서는 Crawler가 Catalog를 채우고 Job이 Catalog를 참조해서 읽는 식으로 엮인다.</p> <p>처음 접할 때 헷갈리는 부분이 Glue와 Athena의 관계다. 둘 다 Glue Data Catalog를 공유한다. Crawler로 S3 데이터의 스키마를 카탈로그에 등록해두면 Athena에서 그 테이블을 바로 SQL로 조회할 수 있다. 즉 Catalog는 Glue 전용이 아니라 Athena, Redshift Spectrum, EMR이 같이 보는 공용 메타데이터 저장소다. 그래서 Glue Crawler 한 번 돌려두면 Athena 쪽에서 <code>CREATE EXTERNAL TABLE</code>을 손으로 안 써도 된다.</p> <h2 id=data-catalog와-crawler>Data Catalog와 Crawler<a class=headerlink href=#data-catalog와-crawler title="Permanent link">&para;</a></h2> <h3 id=catalog가-뭘-저장하는가>Catalog가 뭘 저장하는가<a class=headerlink href=#catalog가-뭘-저장하는가 title="Permanent link">&para;</a></h3> <p>Data Catalog는 데이터베이스(논리적 묶음)와 테이블 메타데이터를 담는다. 테이블에는 컬럼 이름과 타입, S3 위치, 파일 포맷(Parquet/JSON/CSV), 파티션 정보가 들어간다. 실제 데이터는 안 들어간다. Athena 문서에서 본 그 구조와 같다. 테이블을 만들어도 S3 파일은 복사되지 않고 "이 경로에 이런 스키마가 있다"는 정의만 등록된다.</p> <h3 id=crawler로-스키마-추론>Crawler로 스키마 추론<a class=headerlink href=#crawler로-스키마-추론 title="Permanent link">&para;</a></h3> <p>S3에 파일이 수백 개 쌓여 있을 때 컬럼 타입을 일일이 손으로 적기 귀찮다. Crawler를 S3 경로에 걸어두면 파일 일부를 샘플링해서 스키마를 추론하고 카탈로그에 테이블을 만들어준다. 파티션 구조(<code>year=2026/month=06/day=16</code> 같은 Hive 스타일 경로)도 자동으로 인식한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># Crawler가 인식하는 전형적인 S3 파티션 구조</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=n>s3</span><span class=p>:</span><span class=o>//</span><span class=n>my</span><span class=o>-</span><span class=n>bucket</span><span class=o>/</span><span class=n>logs</span><span class=o>/</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>  <span class=n>year</span><span class=o>=</span><span class=mi>2026</span><span class=o>/</span><span class=n>month</span><span class=o>=</span><span class=mi>06</span><span class=o>/</span><span class=n>day</span><span class=o>=</span><span class=mi>15</span><span class=o>/</span><span class=n>part</span><span class=o>-</span><span class=mf>0000.</span><span class=n>parquet</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>  <span class=n>year</span><span class=o>=</span><span class=mi>2026</span><span class=o>/</span><span class=n>month</span><span class=o>=</span><span class=mi>06</span><span class=o>/</span><span class=n>day</span><span class=o>=</span><span class=mi>16</span><span class=o>/</span><span class=n>part</span><span class=o>-</span><span class=mf>0000.</span><span class=n>parquet</span>
-</span></code></pre></div> <p>이렇게 쌓여 있으면 Crawler가 <code>year</code>, <code>month</code>, <code>day</code>를 파티션 컬럼으로 잡는다. Athena에서 <code>WHERE year='2026' AND month='06'</code>으로 거르면 해당 경로만 스캔하니 스캔량이 줄고 비용이 내려간다.</p> <h3 id=crawler를-쓸-때-실제로-겪는-문제>Crawler를 쓸 때 실제로 겪는 문제<a class=headerlink href=#crawler를-쓸-때-실제로-겪는-문제 title="Permanent link">&para;</a></h3> <p>스키마 추론이 항상 맞지 않는다. 자주 겪는 상황들이다.</p> <p>첫째, 타입을 잘못 잡는다. 정수만 들어있는 줄 알았던 컬럼에 어쩌다 문자열이 섞이면 Crawler가 전체를 <code>string</code>으로 잡거나, 반대로 일부 파일만 보고 <code>bigint</code>로 잡았다가 다른 파일에서 깨진다. JSON에서 빈 값이 <code>null</code>로 나오는 컬럼은 타입 추론이 흔들린다. 한번 자동 추론을 맡긴 뒤에는 카탈로그 테이블 정의를 직접 확인하는 습관을 들여야 한다.</p> <p>둘째, 매번 돌리면 스키마를 덮어쓴다. Crawler를 스케줄로 매일 돌리면 새 파일을 보고 기존 스키마를 바꿔버리는 경우가 있다. 이미 안정화된 테이블이라면 Crawler 설정에서 "테이블 스키마 업데이트 안 함, 새 파티션만 추가" 옵션으로 바꿔두는 게 안전하다. 새 파티션이 매일 생기는 로그 테이블은 Crawler 대신 <code>MSCK REPAIR TABLE</code>이나 파티션 프로젝션(Athena 기능)을 쓰는 게 더 깔끔할 때도 있다.</p> <p>셋째, 파일이 너무 많으면 Crawler 자체가 느리고 돈이 든다. Crawler도 DPU 시간으로 과금된다. 수십만 개 작은 파일이 흩어져 있으면 크롤링에 시간이 오래 걸린다. 이 경우 S3 경로를 좁게 지정하거나, 애초에 작은 파일을 합치는 작업을 먼저 하는 게 낫다.</p> <h3 id=타입-충돌이-났을-때-대처>타입 충돌이 났을 때 대처<a class=headerlink href=#타입-충돌이-났을-때-대처 title="Permanent link">&para;</a></h3> <p>같은 컬럼인데 파일마다 타입이 다르면 Crawler가 어쩔 수 없이 <code>string</code>으로 떨어뜨리는 경우가 있다. 한 파일에서 <code>price</code>가 <code>123</code>(int)이고 다른 파일에서 <code>"123.0"</code>(string)으로 들어오면 카탈로그 컬럼이 <code>string</code>이 되고, 그 뒤로 Athena에서 <code>SUM(price)</code>를 하면 캐스팅 에러가 난다. 이건 Crawler 설정을 바꾼다고 풀리지 않는다. 근본 원인이 데이터 쪽에 있기 때문에 두 가지 중 하나로 간다.</p> <p>하나는 적재하는 쪽에서 타입을 고정하는 것이다. Parquet으로 떨어뜨리면 스키마가 파일 자체에 박히니 JSON/CSV처럼 추론이 흔들리지 않는다. 가능하면 raw를 Parquet으로 한 번 정규화한 뒤 그 경로에 Crawler를 거는 게 안전하다.</p> <p>다른 하나는 Crawler가 정한 타입을 사람이 덮어쓰는 것이다. 카탈로그 테이블 컬럼 타입을 직접 수정하고, 다음 Crawler 실행이 다시 덮어쓰지 못하게 막아야 한다. Crawler의 SchemaChangePolicy를 <code>UpdateBehavior=LOG</code>로 두면 변경을 감지만 하고 카탈로그를 건드리지 않는다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=kn>import</span><span class=w> </span><span class=nn>boto3</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=n>glue</span> <span class=o>=</span> <span class=n>boto3</span><span class=o>.</span><span class=n>client</span><span class=p>(</span><span class=s2>&quot;glue&quot;</span><span class=p>)</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=c1># 안정화된 테이블: 스키마는 손대지 말고 새 파티션만 추가</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=n>glue</span><span class=o>.</span><span class=n>update_crawler</span><span class=p>(</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>    <span class=n>Name</span><span class=o>=</span><span class=s2>&quot;access-log-crawler&quot;</span><span class=p>,</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>    <span class=n>SchemaChangePolicy</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>        <span class=s2>&quot;UpdateBehavior&quot;</span><span class=p>:</span> <span class=s2>&quot;LOG&quot;</span><span class=p>,</span>      <span class=c1># 스키마 변경은 로그만 남기고 카탈로그 미반영</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>        <span class=s2>&quot;DeleteBehavior&quot;</span><span class=p>:</span> <span class=s2>&quot;LOG&quot;</span><span class=p>,</span>      <span class=c1># 사라진 파티션도 함부로 지우지 않음</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>    <span class=p>},</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>    <span class=n>Configuration</span><span class=o>=</span><span class=s1>&#39;{&quot;Version&quot;:1.0,&quot;CrawlerOutput&quot;:{&quot;Partitions&quot;:{&quot;AddOrUpdateBehavior&quot;:&quot;InheritFromTable&quot;}}}&#39;</span>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=p>)</span>
-</span></code></pre></div> <p><code>AddOrUpdateBehavior=InheritFromTable</code>은 새 파티션이 테이블 스키마를 그대로 물려받게 한다. 이게 없으면 새 파티션마다 Crawler가 따로 스키마를 추론해서, 같은 테이블인데 파티션별로 컬럼 타입이 제각각인 상황이 생긴다. Athena에서 특정 파티션만 쿼리가 깨지면 십중팔구 이 문제다.</p> <h3 id=파티션이-폭증할-때>파티션이 폭증할 때<a class=headerlink href=#파티션이-폭증할-때 title="Permanent link">&para;</a></h3> <p>파티션 컬럼을 잘못 잡으면 파티션 수가 폭발한다. 카디널리티가 높은 값(<code>user_id</code>, <code>request_id</code>, 타임스탬프 전체)을 경로에 넣어두면 Crawler가 그걸 전부 파티션으로 인식해서 수십만 개가 만들어진다. 카탈로그에는 파티션당 메타데이터가 쌓이고, Athena 쿼리는 파티션 메타데이터를 먼저 읽느라 플래닝 단계에서만 수십 초가 걸린다. 심하면 <code>HIVE_EXCEEDED_PARTITION_LIMIT</code> 같은 에러로 막힌다.</p> <p>경로 설계가 잘못된 거라 Crawler 옵션으로 못 푼다. 파티션 키는 실제 쿼리에서 필터로 쓰는 저카디널리티 컬럼(날짜, 지역, 서비스 코드 정도)만 써야 한다. 이미 폭증한 뒤라면 새 경로 구조로 데이터를 다시 쓰는 게 답이다. 날짜 단위 파티션이 너무 많아 카탈로그가 무거워진 경우엔 Crawler를 빼고 Athena 파티션 프로젝션으로 가는 게 낫다. 파티션을 카탈로그에 물리적으로 등록하지 않고 쿼리 시점에 경로 규칙으로 계산하니 메타데이터가 쌓이지 않는다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>-- 파티션 프로젝션: 카탈로그에 파티션을 안 쌓고 쿼리 때 경로를 계산</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>access_log</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>TBLPROPERTIES</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span><span class=s1>&#39;projection.enabled&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;true&#39;</span><span class=p>,</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>  </span><span class=s1>&#39;projection.dt.type&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;date&#39;</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>  </span><span class=s1>&#39;projection.dt.range&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2024-01-01,NOW&#39;</span><span class=p>,</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>  </span><span class=s1>&#39;projection.dt.format&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;yyyy-MM-dd&#39;</span><span class=p>,</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>  </span><span class=s1>&#39;storage.location.template&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;s3://my-bucket/logs/${dt}/&#39;</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=p>);</span>
-</span></code></pre></div> <h2 id=glue-job-pyspark-작성>Glue Job (PySpark) 작성<a class=headerlink href=#glue-job-pyspark-작성 title="Permanent link">&para;</a></h2> <p>Glue Job은 보통 PySpark로 쓴다. Python 셸 타입도 있지만 대용량 변환은 Spark가 맞다. Glue는 일반 PySpark 위에 자체 추상화인 DynamicFrame을 얹어놨다. 처음엔 그냥 Spark DataFrame을 쓰면 되는데 왜 DynamicFrame이 따로 있나 싶다.</p> <h3 id=glue-버전과-spark-호환성>Glue 버전과 Spark 호환성<a class=headerlink href=#glue-버전과-spark-호환성 title="Permanent link">&para;</a></h3> <p>Job을 만들 때 Glue 버전을 고르는데, 이게 그냥 라벨이 아니라 안에 박혀 있는 Spark와 Python 버전을 결정한다. 대략 이렇다.</p> <table> <thead> <tr> <th>Glue 버전</th> <th>Spark</th> <th>Python</th> </tr> </thead> <tbody> <tr> <td>2.0</td> <td>2.4</td> <td>3.7</td> </tr> <tr> <td>3.0</td> <td>3.1</td> <td>3.7</td> </tr> <tr> <td>4.0</td> <td>3.3</td> <td>3.10</td> </tr> <tr> <td>5.0</td> <td>3.5</td> <td>3.11</td> </tr> </tbody> </table> <p>버전을 올리면 콜드 스타트가 빨라지고 Spark 신기능을 쓸 수 있지만, 코드가 그대로 도는 보장이 없다. 실제로 발목 잡히는 지점들이 있다.</p> <p>Spark 2.x에서 3.x로 올라갈 때 동작이 바뀐 부분이 가장 많이 터진다. 대표적으로 날짜 파싱이다. Spark 3.0부터 datetime 파서가 엄격해져서, 2.4에서 통과하던 <code>to_timestamp</code> 포맷 문자열이 3.x에서는 예외를 던지거나 <code>null</code>을 뱉는다. <code>spark.sql.legacy.timeParserPolicy=LEGACY</code>로 옛 동작을 살릴 수는 있지만, 임시방편이고 언젠가 포맷을 고쳐야 한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># Glue 2.0(Spark 2.4)에서 4.0(Spark 3.3)으로 올린 직후 날짜가 전부 null이 되는 경우</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=c1># 둘 중 하나로 푼다</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=c1># (1) 옛 파서 동작을 강제 — 빠른 응급 처치</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=n>spark</span><span class=o>.</span><span class=n>conf</span><span class=o>.</span><span class=n>set</span><span class=p>(</span><span class=s2>&quot;spark.sql.legacy.timeParserPolicy&quot;</span><span class=p>,</span> <span class=s2>&quot;LEGACY&quot;</span><span class=p>)</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=c1># (2) 포맷 문자열을 새 표준으로 교정 — 권장</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=c1>#   소문자 yyyy/dd는 그대로지만, 주(week) 기반 &#39;YYYY&#39;나 &#39;u&#39; 같은 패턴은 의미가 바뀜</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a><span class=n>df</span> <span class=o>=</span> <span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;ts&quot;</span><span class=p>,</span> <span class=n>to_timestamp</span><span class=p>(</span><span class=n>df</span><span class=p>[</span><span class=s2>&quot;ts_str&quot;</span><span class=p>],</span> <span class=s2>&quot;yyyy-MM-dd HH:mm:ss&quot;</span><span class=p>))</span>
-</span></code></pre></div> <p>또 하나는 라이브러리 버전이다. <code>--additional-python-modules</code>로 pandas나 pyarrow를 올려 쓰는 Job이라면, Glue 버전이 바뀌면서 기본으로 깔린 numpy/pyarrow 버전이 달라져 충돌이 난다. Glue 3.0에서 잘 돌던 pandas 코드가 4.0에서 pyarrow 호환성 에러를 내는 식이다. 버전을 올릴 때는 <code>--additional-python-modules</code>에 버전을 명시적으로 고정(<code>pandas==2.0.3</code>)해서 환경 차이를 줄여야 한다.</p> <p>운영 Job의 버전을 올릴 때는 Job을 복제해서 새 버전으로 만들고, 같은 입력으로 양쪽을 돌려 출력이 일치하는지 비교한 뒤 교체하는 게 안전하다. 콘솔에서 버전 드롭다운만 바꿔 바로 운영에 반영하면, 날짜나 집계가 미묘하게 틀어진 걸 한참 뒤에 발견한다.</p> <h3 id=dynamicframe과-dataframe>DynamicFrame과 DataFrame<a class=headerlink href=#dynamicframe과-dataframe title="Permanent link">&para;</a></h3> <p>DynamicFrame은 스키마가 고정되지 않은 데이터를 다루기 위한 Glue 전용 구조다. 같은 컬럼에 정수와 문자열이 섞여 들어오는 더러운 데이터를 만났을 때 Spark DataFrame은 스키마를 강제하다 깨지지만 DynamicFrame은 <code>choice</code> 타입으로 양쪽을 다 들고 있다가 <code>resolveChoice</code>로 나중에 정리할 수 있다. 카탈로그에서 바로 읽고 쓰는 함수도 DynamicFrame 기준으로 제공된다.</p> <p>실무에서는 카탈로그에서 DynamicFrame으로 읽은 뒤 곧바로 <code>.toDF()</code>로 DataFrame으로 바꿔서 일반 Spark 코드로 변환하고, 적재 직전에 다시 <code>DynamicFrame.fromDF()</code>로 되돌리는 패턴을 많이 쓴다. Spark 문법이 더 익숙하고 자료도 많기 때문이다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=kn>import</span><span class=w> </span><span class=nn>sys</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=kn>from</span><span class=w> </span><span class=nn>awsglue.transforms</span><span class=w> </span><span class=kn>import</span> <span class=o>*</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=kn>from</span><span class=w> </span><span class=nn>awsglue.utils</span><span class=w> </span><span class=kn>import</span> <span class=n>getResolvedOptions</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=kn>from</span><span class=w> </span><span class=nn>pyspark.context</span><span class=w> </span><span class=kn>import</span> <span class=n>SparkContext</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=kn>from</span><span class=w> </span><span class=nn>awsglue.context</span><span class=w> </span><span class=kn>import</span> <span class=n>GlueContext</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=kn>from</span><span class=w> </span><span class=nn>awsglue.job</span><span class=w> </span><span class=kn>import</span> <span class=n>Job</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=kn>from</span><span class=w> </span><span class=nn>awsglue.dynamicframe</span><span class=w> </span><span class=kn>import</span> <span class=n>DynamicFrame</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=n>args</span> <span class=o>=</span> <span class=n>getResolvedOptions</span><span class=p>(</span><span class=n>sys</span><span class=o>.</span><span class=n>argv</span><span class=p>,</span> <span class=p>[</span><span class=s1>&#39;JOB_NAME&#39;</span><span class=p>])</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=n>sc</span> <span class=o>=</span> <span class=n>SparkContext</span><span class=p>()</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=n>glueContext</span> <span class=o>=</span> <span class=n>GlueContext</span><span class=p>(</span><span class=n>sc</span><span class=p>)</span>
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a><span class=n>spark</span> <span class=o>=</span> <span class=n>glueContext</span><span class=o>.</span><span class=n>spark_session</span>
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a><span class=n>job</span> <span class=o>=</span> <span class=n>Job</span><span class=p>(</span><span class=n>glueContext</span><span class=p>)</span>
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a><span class=n>job</span><span class=o>.</span><span class=n>init</span><span class=p>(</span><span class=n>args</span><span class=p>[</span><span class=s1>&#39;JOB_NAME&#39;</span><span class=p>],</span> <span class=n>args</span><span class=p>)</span>
-</span><span id=__span-4-15><a id=__codelineno-4-15 name=__codelineno-4-15 href=#__codelineno-4-15></a>
-</span><span id=__span-4-16><a id=__codelineno-4-16 name=__codelineno-4-16 href=#__codelineno-4-16></a><span class=c1># 카탈로그에서 DynamicFrame으로 읽기 (Crawler가 만든 테이블 참조)</span>
-</span><span id=__span-4-17><a id=__codelineno-4-17 name=__codelineno-4-17 href=#__codelineno-4-17></a><span class=n>dyf</span> <span class=o>=</span> <span class=n>glueContext</span><span class=o>.</span><span class=n>create_dynamic_frame</span><span class=o>.</span><span class=n>from_catalog</span><span class=p>(</span>
-</span><span id=__span-4-18><a id=__codelineno-4-18 name=__codelineno-4-18 href=#__codelineno-4-18></a>    <span class=n>database</span><span class=o>=</span><span class=s2>&quot;raw_logs&quot;</span><span class=p>,</span>
-</span><span id=__span-4-19><a id=__codelineno-4-19 name=__codelineno-4-19 href=#__codelineno-4-19></a>    <span class=n>table_name</span><span class=o>=</span><span class=s2>&quot;access_log&quot;</span><span class=p>,</span>
-</span><span id=__span-4-20><a id=__codelineno-4-20 name=__codelineno-4-20 href=#__codelineno-4-20></a>    <span class=n>transformation_ctx</span><span class=o>=</span><span class=s2>&quot;dyf&quot;</span>  <span class=c1># job bookmark가 이 ctx 이름으로 진행 상태를 기록한다</span>
-</span><span id=__span-4-21><a id=__codelineno-4-21 name=__codelineno-4-21 href=#__codelineno-4-21></a><span class=p>)</span>
-</span><span id=__span-4-22><a id=__codelineno-4-22 name=__codelineno-4-22 href=#__codelineno-4-22></a>
-</span><span id=__span-4-23><a id=__codelineno-4-23 name=__codelineno-4-23 href=#__codelineno-4-23></a><span class=c1># DataFrame으로 바꿔 일반 Spark로 변환</span>
-</span><span id=__span-4-24><a id=__codelineno-4-24 name=__codelineno-4-24 href=#__codelineno-4-24></a><span class=n>df</span> <span class=o>=</span> <span class=n>dyf</span><span class=o>.</span><span class=n>toDF</span><span class=p>()</span>
-</span><span id=__span-4-25><a id=__codelineno-4-25 name=__codelineno-4-25 href=#__codelineno-4-25></a><span class=n>df</span> <span class=o>=</span> <span class=n>df</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>df</span><span class=p>[</span><span class=s2>&quot;status&quot;</span><span class=p>]</span> <span class=o>&gt;=</span> <span class=mi>400</span><span class=p>)</span>  <span class=c1># 에러 응답만 추림</span>
-</span><span id=__span-4-26><a id=__codelineno-4-26 name=__codelineno-4-26 href=#__codelineno-4-26></a><span class=n>df</span> <span class=o>=</span> <span class=n>df</span><span class=o>.</span><span class=n>repartition</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>  <span class=c1># 출력 파일 개수 조절 (작은 파일 폭발 방지)</span>
-</span><span id=__span-4-27><a id=__codelineno-4-27 name=__codelineno-4-27 href=#__codelineno-4-27></a>
-</span><span id=__span-4-28><a id=__codelineno-4-28 name=__codelineno-4-28 href=#__codelineno-4-28></a><span class=c1># 다시 DynamicFrame으로 되돌려 적재</span>
-</span><span id=__span-4-29><a id=__codelineno-4-29 name=__codelineno-4-29 href=#__codelineno-4-29></a><span class=n>out</span> <span class=o>=</span> <span class=n>DynamicFrame</span><span class=o>.</span><span class=n>fromDF</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>glueContext</span><span class=p>,</span> <span class=s2>&quot;out&quot;</span><span class=p>)</span>
-</span><span id=__span-4-30><a id=__codelineno-4-30 name=__codelineno-4-30 href=#__codelineno-4-30></a><span class=n>glueContext</span><span class=o>.</span><span class=n>write_dynamic_frame</span><span class=o>.</span><span class=n>from_options</span><span class=p>(</span>
-</span><span id=__span-4-31><a id=__codelineno-4-31 name=__codelineno-4-31 href=#__codelineno-4-31></a>    <span class=n>frame</span><span class=o>=</span><span class=n>out</span><span class=p>,</span>
-</span><span id=__span-4-32><a id=__codelineno-4-32 name=__codelineno-4-32 href=#__codelineno-4-32></a>    <span class=n>connection_type</span><span class=o>=</span><span class=s2>&quot;s3&quot;</span><span class=p>,</span>
-</span><span id=__span-4-33><a id=__codelineno-4-33 name=__codelineno-4-33 href=#__codelineno-4-33></a>    <span class=n>connection_options</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;path&quot;</span><span class=p>:</span> <span class=s2>&quot;s3://my-bucket/curated/errors/&quot;</span><span class=p>},</span>
-</span><span id=__span-4-34><a id=__codelineno-4-34 name=__codelineno-4-34 href=#__codelineno-4-34></a>    <span class=nb>format</span><span class=o>=</span><span class=s2>&quot;parquet&quot;</span><span class=p>,</span>
-</span><span id=__span-4-35><a id=__codelineno-4-35 name=__codelineno-4-35 href=#__codelineno-4-35></a>    <span class=n>transformation_ctx</span><span class=o>=</span><span class=s2>&quot;out&quot;</span>  <span class=c1># bookmark는 출력 ctx도 추적한다</span>
-</span><span id=__span-4-36><a id=__codelineno-4-36 name=__codelineno-4-36 href=#__codelineno-4-36></a><span class=p>)</span>
-</span><span id=__span-4-37><a id=__codelineno-4-37 name=__codelineno-4-37 href=#__codelineno-4-37></a>
-</span><span id=__span-4-38><a id=__codelineno-4-38 name=__codelineno-4-38 href=#__codelineno-4-38></a><span class=n>job</span><span class=o>.</span><span class=n>commit</span><span class=p>()</span>  <span class=c1># 이 호출이 있어야 bookmark가 진행 상태를 저장한다</span>
-</span></code></pre></div> <p><code>transformation_ctx</code>와 <code>job.commit()</code>은 job bookmark를 쓸 때 필수다. 뒤에서 다시 다룬다.</p> <h3 id=디버깅이-까다로운-이유>디버깅이 까다로운 이유<a class=headerlink href=#디버깅이-까다로운-이유 title="Permanent link">&para;</a></h3> <p>Glue Job 디버깅이 로컬 코드처럼 안 되는 게 가장 답답한 부분이다. 실행하면 클러스터가 떠서 돌고, 에러가 나면 CloudWatch 로그를 뒤져야 한다. 몇 가지 실제로 도움 된 방법들이다.</p> <p>로컬에서 먼저 돌려본다. AWS가 제공하는 Glue 도커 이미지(<code>amazon/aws-glue-libs</code>)를 받아 로컬에서 PySpark 코드를 실행하면 클러스터 띄우는 시간(콜드 스타트가 1분 넘게 걸린다)을 안 기다리고 문법 오류나 로직 오류를 잡을 수 있다. 카탈로그 접근이 필요한 부분만 빼면 대부분 로컬에서 검증된다.</p> <p>작게 잘라서 확인한다. <code>df.show()</code>, <code>df.printSchema()</code>, <code>df.count()</code>를 중간중간 넣어 CloudWatch 로그로 데이터가 어떻게 흐르는지 본다. 다만 <code>count()</code>나 <code>show()</code>는 Spark 액션이라 실제 연산을 트리거하니 운영 Job에는 남기지 않는다.</p> <p>에러 로그는 두 군데를 본다. Glue 콘솔의 Job run 화면에서 Error logs 링크가 드라이버 로그, All logs가 익스큐터까지 포함한 로그다. <code>OutOfMemoryError</code>나 셔플 관련 에러는 익스큐터 로그에 찍히는 경우가 많아서 All logs를 봐야 원인이 나온다.</p> <p>콜드 스타트를 줄이려면 개발용 엔드포인트나 인터랙티브 세션을 쓴다. Glue Interactive Session은 노트북에서 Spark 세션을 한 번 띄워두고 셀 단위로 코드를 붙여가며 테스트할 수 있어서 매번 Job 전체를 재실행하는 것보다 반복 속도가 빠르다.</p> <h3 id=메모리-부족oom과-셔플-스필-디버깅>메모리 부족(OOM)과 셔플 스필 디버깅<a class=headerlink href=#메모리-부족oom과-셔플-스필-디버깅 title="Permanent link">&para;</a></h3> <p>Job이 한참 돌다가 <code>java.lang.OutOfMemoryError</code>나 <code>Container killed by YARN for exceeding memory limits</code>로 죽는 게 PySpark Job에서 가장 흔한 고장이다. OOM은 드라이버에서 날 수도 있고 익스큐터에서 날 수도 있는데, 원인과 처방이 다르다.</p> <p>드라이버 OOM은 결과를 드라이버로 한꺼번에 끌어모을 때 난다. <code>df.collect()</code>, <code>toPandas()</code>, 인자 없는 <code>broadcast</code> 강제 같은 코드가 큰 데이터를 드라이버 메모리로 당기면 바로 터진다. 변환 결과를 코드에서 직접 받아 처리하려 하지 말고 S3로 써서 내보내는 게 원칙이다. 디버깅용으로 데이터를 봐야 하면 <code>collect()</code> 대신 <code>df.limit(20).show()</code>로 일부만 가져온다.</p> <p>익스큐터 OOM은 보통 셔플과 데이터 스큐 때문이다. <code>groupBy</code>, <code>join</code>, <code>repartition</code>은 노드 간에 데이터를 다시 섞는(셔플) 연산인데, 특정 키에 데이터가 쏠려 있으면(스큐) 그 키를 받은 익스큐터 하나가 전체를 떠안고 OOM이 난다. 주문 데이터를 <code>customer_id</code>로 조인하는데 비회원 주문이 전부 <code>customer_id=0</code>으로 들어와 있으면, <code>0</code> 파티션 하나가 비대해져서 그 태스크만 죽는 식이다.</p> <p>먼저 셔플 스필을 확인한다. Spark UI(Glue 콘솔의 Spark UI 링크 또는 활성화한 Spark History Server)의 stage 화면에서 "Shuffle Spill (Memory)"와 "Shuffle Spill (Disk)" 수치가 크면, 메모리에 안 들어가는 데이터를 디스크로 토해내며(스필) 돌고 있다는 뜻이다. 스필이 디스크로 GB 단위로 잡히면 Job이 느려지다 결국 OOM으로 간다.</p> <p>처방은 원인별로 다르다.</p> <p>워커 타입을 메모리가 큰 쪽으로 바꾼다. G.1X(16GB)에서 G.2X(32GB)나 메모리 특화인 R 계열로 올리면 익스큐터당 메모리가 늘어 스필이 줄어든다. 데이터 양보다 워커 수를 늘리는 것보다, 스큐로 한 태스크가 비대한 상황에서는 태스크 하나가 쓸 수 있는 메모리를 키우는 게 효과가 있다.</p> <p>스큐 키는 솔트(salt)로 흩는다. 쏠린 키에 랜덤 접두어를 붙여 인위적으로 파티션을 나눈 뒤 집계하고, 마지막에 접두어를 떼어 다시 합친다. 코드가 번거로워지지만 한 태스크에 몰리는 걸 푸는 직접적인 방법이다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=kn>from</span><span class=w> </span><span class=nn>pyspark.sql</span><span class=w> </span><span class=kn>import</span> <span class=n>functions</span> <span class=k>as</span> <span class=n>F</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=c1># 스큐 키(customer_id=0)를 0~9 솔트로 흩어서 조인 부하를 분산</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=n>n</span> <span class=o>=</span> <span class=mi>10</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=n>left</span> <span class=o>=</span> <span class=n>orders</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;salt&quot;</span><span class=p>,</span> <span class=p>(</span><span class=n>F</span><span class=o>.</span><span class=n>rand</span><span class=p>()</span> <span class=o>*</span> <span class=n>n</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;int&quot;</span><span class=p>))</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=n>right</span> <span class=o>=</span> <span class=n>customers</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>    <span class=s2>&quot;salt_arr&quot;</span><span class=p>,</span> <span class=n>F</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>F</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=p>)</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;salt&quot;</span><span class=p>,</span> <span class=n>F</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;salt_arr&quot;</span><span class=p>))</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=n>joined</span> <span class=o>=</span> <span class=n>left</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>right</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;customer_id&quot;</span><span class=p>,</span> <span class=s2>&quot;salt&quot;</span><span class=p>],</span> <span class=s2>&quot;inner&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;salt&quot;</span><span class=p>,</span> <span class=s2>&quot;salt_arr&quot;</span><span class=p>)</span>
-</span></code></pre></div> <p>셔플 파티션 수를 데이터에 맞춘다. <code>spark.sql.shuffle.partitions</code> 기본값은 200인데, 데이터가 작으면 빈 파티션이 200개 생겨 오버헤드만 늘고, 데이터가 크면 파티션당 데이터가 너무 커서 스필이 난다. 데이터 크기에 맞춰 조정한다. Glue 3.0 이상은 AQE(Adaptive Query Execution)가 켜져 있어 실행 중 파티션 수를 자동으로 합쳐주지만, 그래도 초기값이 터무니없으면 도움이 안 된다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># 셔플 파티션 수와 AQE 설정 (Job 파라미터 --conf로 넘기거나 코드에서)</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=n>spark</span><span class=o>.</span><span class=n>conf</span><span class=o>.</span><span class=n>set</span><span class=p>(</span><span class=s2>&quot;spark.sql.shuffle.partitions&quot;</span><span class=p>,</span> <span class=s2>&quot;64&quot;</span><span class=p>)</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=n>spark</span><span class=o>.</span><span class=n>conf</span><span class=o>.</span><span class=n>set</span><span class=p>(</span><span class=s2>&quot;spark.sql.adaptive.enabled&quot;</span><span class=p>,</span> <span class=s2>&quot;true&quot;</span><span class=p>)</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=n>spark</span><span class=o>.</span><span class=n>conf</span><span class=o>.</span><span class=n>set</span><span class=p>(</span><span class=s2>&quot;spark.sql.adaptive.skewJoin.enabled&quot;</span><span class=p>,</span> <span class=s2>&quot;true&quot;</span><span class=p>)</span>  <span class=c1># 스큐 조인 자동 분할</span>
-</span></code></pre></div> <p>작은 테이블 조인은 브로드캐스트로 셔플 자체를 없앤다. 한쪽 테이블이 수십 MB 수준으로 작으면 그걸 모든 익스큐터에 통째로 복사해서 셔플 없이 조인한다. <code>F.broadcast(small_df)</code>로 명시하거나 <code>spark.sql.autoBroadcastJoinThreshold</code>를 키운다. 다만 브로드캐스트할 테이블이 실제로 작아야 한다. 큰 걸 브로드캐스트하면 이번엔 드라이버와 익스큐터 양쪽에서 OOM이 난다.</p> <h2 id=glue-job-운영--동시-실행과-재시도>Glue Job 운영 — 동시 실행과 재시도<a class=headerlink href=#glue-job-운영--동시-실행과-재시도 title="Permanent link">&para;</a></h2> <p>Job 하나만 손으로 돌릴 때는 안 보이다가 스케줄로 묶이고 트리거가 엮이면 드러나는 문제들이 있다.</p> <h3 id=동시-실행-제한max-concurrency>동시 실행 제한(Max concurrency)<a class=headerlink href=#동시-실행-제한max-concurrency title="Permanent link">&para;</a></h3> <p>Glue Job에는 동시에 몇 개까지 같은 Job을 돌릴지 정하는 Max concurrent runs 설정이 있고 기본값이 1이다. 기본값 그대로면, 앞 실행이 안 끝났는데 다음 스케줄이 돌면 <code>ConcurrentRunsExceededException</code>으로 거절된다. 5분마다 도는 Job이 어쩌다 6분 걸리면 다음 실행이 그냥 실패하는 식이다.</p> <p>여기서 판단이 갈린다. Job이 멱등하지 않다면(같은 데이터를 두 번 처리하면 결과가 깨진다면) 동시 실행을 막는 게 맞으니 1을 유지하고, 대신 실행 주기를 처리 시간보다 넉넉하게 잡거나 앞 실행이 끝났는지 확인하고 트리거하게 만든다. 반대로 입력 파티션이 겹치지 않아 병렬로 돌려도 안전하다면 동시 실행 수를 올린다. 다만 동시에 N개를 돌리면 DPU도 N배로 잡힌다는 걸 잊으면 안 된다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=n>glue</span><span class=o>.</span><span class=n>update_job</span><span class=p>(</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>    <span class=n>JobName</span><span class=o>=</span><span class=s2>&quot;daily-aggregation&quot;</span><span class=p>,</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>    <span class=n>JobUpdate</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>        <span class=s2>&quot;ExecutionProperty&quot;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&quot;MaxConcurrentRuns&quot;</span><span class=p>:</span> <span class=mi>3</span><span class=p>},</span>  <span class=c1># 기본 1 → 3</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>        <span class=s2>&quot;MaxRetries&quot;</span><span class=p>:</span> <span class=mi>1</span><span class=p>,</span>            <span class=c1># 실패 시 1회 자동 재시도</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>        <span class=s2>&quot;Timeout&quot;</span><span class=p>:</span> <span class=mi>60</span><span class=p>,</span>             <span class=c1># 분 단위. 60분 넘으면 강제 종료(DPU 폭주 방지)</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>        <span class=c1># ... Role, Command 등 나머지 필드도 update_job에는 함께 넘겨야 함</span>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>    <span class=p>}</span>
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=p>)</span>
-</span></code></pre></div> <h3 id=재시도-설정의-함정>재시도 설정의 함정<a class=headerlink href=#재시도-설정의-함정 title="Permanent link">&para;</a></h3> <p><code>MaxRetries</code>로 Job 실패 시 자동 재시도를 걸 수 있는데, 여기에 함정이 있다. 재시도는 Job 전체를 처음부터 다시 돌린다. 중간까지 처리하고 적재까지 한 뒤 마지막에 죽었다면, 재시도가 같은 데이터를 또 적재해서 중복을 만든다. job bookmark를 켜뒀더라도 <code>job.commit()</code> 전에 죽었으면 북마크가 진행 상태를 저장하지 않았으니, 재시도가 같은 구간을 다시 읽는다. 즉 재시도와 멱등성은 한 묶음이다. 멱등하지 않은 Job에 <code>MaxRetries</code>만 올려두면 실패할 때마다 중복이 쌓인다.</p> <p>일시적 오류(스팟 회수, 네트워크 순단)에는 재시도가 약이지만, 코드 버그나 잘못된 입력으로 인한 실패는 재시도해봐야 똑같이 죽으면서 DPU만 두 배로 쓴다. 재시도는 1 정도로 낮게 두고, 반복 실패하는 Job은 알람으로 사람이 보게 하는 편이 낫다. CloudWatch에서 <code>glue.driver.aggregate.numFailedTasks</code>나 Job run 상태를 EventBridge로 받아 SNS 알람을 거는 식이다.</p> <h2 id=athenaredshift-연동>Athena·Redshift 연동<a class=headerlink href=#athenaredshift-연동 title="Permanent link">&para;</a></h2> <h3 id=athena>Athena<a class=headerlink href=#athena title="Permanent link">&para;</a></h3> <p>앞에서 말한 대로 Crawler가 카탈로그에 테이블을 등록하면 Athena가 그대로 본다. Glue Job으로 변환한 결과를 Parquet으로 S3에 떨군 뒤 그 경로에 Crawler를 한 번 더 돌리거나, Job 안에서 <code>enableUpdateCatalog</code> 옵션으로 출력 시 카탈로그를 직접 갱신하면 Athena에서 곧바로 조회된다. 원본 JSON/CSV를 Athena로 직접 보면 매 쿼리마다 풀스캔이라 느리고 비싸니, Glue로 Parquet + 파티션 형태로 바꿔두고 Athena가 그걸 보게 하는 흐름이 일반적이다.</p> <h3 id=redshift>Redshift<a class=headerlink href=#redshift title="Permanent link">&para;</a></h3> <p>Glue Job에서 Redshift로 적재하는 경로가 두 가지다. 하나는 Glue가 제공하는 Redshift 커넥션을 써서 <code>write_dynamic_frame</code>으로 직접 쓰는 방법이고, 다른 하나는 S3에 Parquet으로 떨군 뒤 Redshift의 <code>COPY</code> 명령으로 당기는 방법이다. 대량 적재는 두 번째가 빠르다. Glue가 Redshift로 직접 쓸 때도 내부적으로는 S3에 임시 파일을 만든 뒤 <code>COPY</code>를 쓴다. 그래서 Glue Redshift 커넥션 설정에 임시 S3 디렉토리(<code>TempDir</code>) 지정이 들어간다. 이 임시 디렉토리에 파일이 쌓이고 안 지워지는 경우가 있으니 라이프사이클 정책을 걸어두는 게 좋다.</p> <p>VPC 안에 있는 Redshift에 붙을 때는 Glue Job도 같은 VPC의 서브넷으로 들어가야 한다. Glue 커넥션에 VPC/서브넷/보안그룹을 지정하고, 보안그룹은 자기 자신을 참조하는 인바운드 규칙(self-referencing)이 있어야 Glue 익스큐터끼리, 그리고 Redshift와 통신이 된다. 이 self-referencing 규칙을 빼먹어서 연결 타임아웃이 나는 경우가 흔하다.</p> <h3 id=redshift-spectrum도-같은-카탈로그를-본다>Redshift Spectrum도 같은 카탈로그를 본다<a class=headerlink href=#redshift-spectrum도-같은-카탈로그를-본다 title="Permanent link">&para;</a></h3> <p>Redshift Spectrum은 S3에 있는 데이터를 Redshift로 옮기지 않고 외부 테이블로 직접 쿼리하는 기능인데, 이때 참조하는 외부 스키마를 Glue Data Catalog에 연결할 수 있다. <code>CREATE EXTERNAL SCHEMA ... FROM DATA CATALOG</code>로 카탈로그의 데이터베이스를 Spectrum 외부 스키마로 매핑하면, Glue Crawler가 등록한 테이블을 Redshift에서 그대로 조인해 쓸 수 있다. Athena와 Spectrum이 같은 카탈로그 테이블을 동시에 보는 구조가 된다. 편한 만큼 권한 문제가 여기서 터진다.</p> <h2 id=lake-formation-권한-충돌>Lake Formation 권한 충돌<a class=headerlink href=#lake-formation-권한-충돌 title="Permanent link">&para;</a></h2> <p>카탈로그를 Athena, Spectrum, Glue Job이 같이 쓰기 시작하면 권한이 두 겹으로 쌓인다. 원래 카탈로그 접근은 IAM 정책으로 통제했는데, Lake Formation을 켜는 순간 그 위에 Lake Formation 권한이 한 겹 더 얹힌다. 두 겹을 다 통과해야 데이터가 보인다. IAM에서 <code>glue:GetTable</code>, <code>s3:GetObject</code>를 다 열어줬는데도 쿼리가 "권한 없음"으로 막히면, 십중팔구 Lake Formation 쪽 권한이 비어 있는 것이다.</p> <p>증상이 헷갈리는 게, 콘솔에서 테이블 목록은 보이는데 <code>SELECT</code>만 빈 결과나 권한 에러로 막히는 식이다. 테이블 메타데이터 권한과 데이터 권한이 따로 놀기 때문이다. Lake Formation에서 해당 principal(Glue Job의 IAM 역할, Athena를 쓰는 사용자 역할)에 테이블·컬럼 단위 <code>SELECT</code> 권한을 명시적으로 줘야 한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=kn>import</span><span class=w> </span><span class=nn>boto3</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=n>lf</span> <span class=o>=</span> <span class=n>boto3</span><span class=o>.</span><span class=n>client</span><span class=p>(</span><span class=s2>&quot;lakeformation&quot;</span><span class=p>)</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=c1># Glue Job 역할에 특정 테이블의 SELECT 권한을 Lake Formation에서 부여</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=n>lf</span><span class=o>.</span><span class=n>grant_permissions</span><span class=p>(</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>    <span class=n>Principal</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;DataLakePrincipalIdentifier&quot;</span><span class=p>:</span> <span class=s2>&quot;arn:aws:iam::123456789012:role/glue-etl-role&quot;</span><span class=p>},</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>    <span class=n>Resource</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;Table&quot;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&quot;DatabaseName&quot;</span><span class=p>:</span> <span class=s2>&quot;raw_logs&quot;</span><span class=p>,</span> <span class=s2>&quot;Name&quot;</span><span class=p>:</span> <span class=s2>&quot;access_log&quot;</span><span class=p>}},</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a>    <span class=n>Permissions</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;SELECT&quot;</span><span class=p>,</span> <span class=s2>&quot;DESCRIBE&quot;</span><span class=p>],</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=p>)</span>
-</span></code></pre></div> <p>실무에서 자주 막히는 지점들이 있다.</p> <p>Glue Job의 IAM 역할에 Lake Formation 권한을 안 줘서 Job이 카탈로그 읽기에 실패한다. IAM 역할에 <code>lakeformation:GetDataAccess</code>가 있어야 Job이 Lake Formation을 거쳐 S3 데이터에 접근할 수 있고, 그와 별개로 그 역할에 테이블 <code>SELECT</code> 권한도 부여돼 있어야 한다. 둘 중 하나만 있으면 <code>AccessDeniedException</code>이 난다.</p> <p><code>IAMAllowedPrincipals</code>라는 기본 권한이 남아 있어 혼란이 생긴다. Lake Formation을 처음 켜면 기존 IAM 동작과 호환되도록 모든 테이블에 <code>IAMAllowedPrincipals</code> 그랜트가 깔려 있다. 이게 있는 동안은 IAM만 통과하면 데이터가 보여서 Lake Formation이 작동하지 않는 것처럼 느껴진다. 본격적으로 Lake Formation으로 통제하려면 이 기본 그랜트를 떼야 하는데, 떼는 순간 명시적으로 권한을 안 준 모든 Job과 사용자가 한꺼번에 막힌다. 운영 중인 데이터레이크에서 이걸 모르고 제거하면 파이프라인이 줄줄이 멈춘다. 떼기 전에 어떤 역할이 어떤 테이블을 쓰는지 먼저 다 그랜트해두고 마지막에 기본 그랜트를 제거해야 한다.</p> <p>크로스 계정에서 더 까다롭다. 데이터 계정의 카탈로그를 분석 계정의 Athena/Spectrum이 보는 구조면, Lake Formation에서 리소스를 다른 계정에 공유(grant)하고, 받는 계정에서 RAM(Resource Access Manager) 초대를 수락한 뒤, 다시 그 계정 안에서 사용자에게 권한을 재부여하는 단계를 다 거쳐야 한다. 한 단계라도 빠지면 테이블이 안 보이거나 보여도 쿼리가 막힌다. 크로스 계정 카탈로그 공유에서 안 보이는 문제는 거의 이 체인 중 한 칸이 비어 있는 것이다.</p> <p>Glue Job으로 카탈로그에 테이블을 새로 만드는 경우(<code>enableUpdateCatalog</code>)에도 Lake Formation 권한이 필요하다. Job 역할에 데이터베이스 단위 <code>CREATE_TABLE</code>, 테이블 <code>ALTER</code> 권한이 없으면, 변환은 끝났는데 카탈로그 갱신에서 실패해 Job이 마지막에 죽는다. 데이터는 S3에 다 써놓고 카탈로그만 못 만든 어정쩡한 상태가 남는다.</p> <h2 id=dpu-비용--가장-조심해야-할-부분>DPU 비용 — 가장 조심해야 할 부분<a class=headerlink href=#dpu-비용--가장-조심해야-할-부분 title="Permanent link">&para;</a></h2> <p>Glue 과금의 단위는 DPU(Data Processing Unit)다. 1 DPU는 대략 vCPU 4개, 메모리 16GB에 해당한다. 과금은 <code>DPU 개수 × 실행 시간(시간 단위, 초 단위 환산) × 단가</code>로 계산된다. 여기서 비용 폭탄이 터지는 지점들이 있다.</p> <h3 id=dpu를-어떻게-세는가>DPU를 어떻게 세는가<a class=headerlink href=#dpu를-어떻게-세는가 title="Permanent link">&para;</a></h3> <p>콘솔에서는 워커 타입과 워커 수를 고르지 워커 수가 곧 DPU는 아니다. 환산이 들어간다. G.1X는 워커 1개가 1 DPU, G.2X는 워커 1개가 2 DPU다. 여기에 Spark에서 코드를 조율하는 드라이버 몫 1 DPU가 더 붙는다. 그래서 실제 DPU는 이렇게 잡힌다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>G.1X 워커 10개  →  드라이버 1 + 워커 10×1 = 11 DPU
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>G.2X 워커 10개  →  드라이버 1 + 워커 10×2 = 21 DPU
-</span></code></pre></div> <p>비용은 <code>DPU × 실행 시간(시간) × 단가</code>다. G.1X 워커 10개짜리 Job이 12분 돌면 <code>11 DPU × 0.2시간 × 단가</code>다. 청구서에서 "분명 작은 Job인데 왜 이렇게 나오지" 싶을 때, 워커 수만 보고 드라이버 +1과 G.2X의 ×2 환산을 빼먹은 경우가 많다.</p> <p>워커를 많이 잡는다고 빨라지는 것도 아니다. 데이터가 10개 파티션으로만 나뉘는데 워커를 20개 잡으면, 10개는 일하고 10개는 놀면서 DPU만 잡아먹는다. Spark UI에서 익스큐터별 태스크 수를 보고 노는 워커가 많으면 워커 수를 줄여야 한다. Auto Scaling을 켜면(Glue 3.0 이상) 부하에 따라 워커를 자동으로 늘렸다 줄여주니, 데이터 양이 들쭉날쭉한 Job은 고정 워커보다 이쪽이 비용이 덜 든다.</p> <p>기본 워커 수가 생각보다 크다. Glue Job을 만들면 기본 워커 타입과 개수가 잡혀 있는데, G.1X 워커 10개면 10 DPU다. 데이터가 몇 MB밖에 안 되는데 워커 10개를 1시간 돌리면 그만큼 돈이 나간다. 작은 데이터를 다루는 Job은 워커 수를 2~3개로 줄여야 한다. 데이터 양에 맞춰 워커를 잡는 감각이 필요하다.</p> <p>최소 과금 시간이 있다. Glue 2.0 이상은 최소 1분 과금이라 짧은 Job도 어느 정도 비용이 잡힌다(예전 1.0은 최소 10분이라 더 심했다). 그래도 콜드 스타트로 클러스터 뜨는 시간까지 포함되니 아주 짧은 작업을 Glue로 자주 돌리는 건 비효율이다. 가벼운 처리는 Lambda나 Python 셸 Job이 나을 때가 있다.</p> <p>Job이 안 끝나고 매달려 있는다. 무한 루프나 셔플 폭증으로 Job이 멈추지 않고 몇 시간씩 도는 경우 DPU × 시간이 그대로 청구된다. Job 타임아웃을 반드시 설정해둬야 한다. 기본 타임아웃이 길게 잡혀 있으니 처리 시간을 알면 거기에 여유를 더한 값으로 줄여둔다.</p> <p>Crawler도 과금된다는 걸 잊는다. Crawler를 빈번한 스케줄로 돌리면 그것도 DPU 시간으로 쌓인다. 위에서 말한 작은 파일 수십만 개를 매시간 크롤링하면 Job 안 돌려도 비용이 나간다.</p> <p>개발 중 반복 실행이 누적된다. 디버깅하느라 Job을 수십 번 재실행하면 매번 클러스터가 뜨고 콜드 스타트 시간까지 과금된다. 그래서 위에서 말한 로컬 도커나 Interactive Session으로 먼저 검증하고 실제 Job 실행 횟수를 줄이는 게 비용에도 직결된다.</p> <p>비용을 추적하려면 Job마다 태그를 붙이고 Cost Explorer에서 Glue 비용을 Job 단위로 본다. 어느 Job이 DPU를 잡아먹는지 모르면 손을 못 댄다.</p> <h2 id=job-bookmark--중복-처리-방지>Job Bookmark — 중복 처리 방지<a class=headerlink href=#job-bookmark--중복-처리-방지 title="Permanent link">&para;</a></h2> <p>매일 새 데이터가 S3에 쌓이는데 Glue Job이 매번 전체를 다시 읽으면 처리량도 늘고 결과도 중복된다. Job bookmark는 Glue가 "지난번에 어디까지 처리했는지"를 기억해서 이번 실행에는 새로 들어온 데이터만 처리하게 하는 기능이다.</p> <p>동작 방식은 입력 소스의 진행 상태(S3는 객체의 마지막 수정 시각과 경로, JDBC는 기준 컬럼 값)를 북마크에 저장해두는 것이다. 다음 실행 때 그 지점 이후의 데이터만 읽는다. 매일 어제치 로그만 증분 처리하는 파이프라인에서 이게 없으면 중복 적재가 일어난다.</p> <p>쓰려면 세 가지를 맞춰야 한다.</p> <p>첫째, Job 설정에서 북마크를 Enable로 켠다. 기본은 꺼져 있다(Disable).</p> <p>둘째, 코드에서 <code>transformation_ctx</code>를 모든 입출력에 지정한다. 북마크는 이 ctx 이름을 키로 진행 상태를 추적한다. ctx 이름이 없거나 중간에 바뀌면 북마크가 추적을 못 해서 전체를 다시 읽는다. 위 예제에서 <code>from_catalog</code>와 <code>write_dynamic_frame</code> 양쪽에 <code>transformation_ctx</code>를 넣은 이유가 이것이다.</p> <p>셋째, 마지막에 <code>job.commit()</code>을 호출한다. 이 호출이 있어야 이번 실행에서 처리한 지점이 북마크에 저장된다. <code>job.commit()</code>을 안 부르면 다음 실행에서 같은 데이터를 또 읽는다. 디버깅하다가 <code>job.commit()</code>을 빼먹고 돌려놓고는 "북마크를 켰는데 왜 매번 전체를 읽지" 하고 헤매는 일이 자주 있다.</p> <h3 id=중복-적재가-났던-사례>중복 적재가 났던 사례<a class=headerlink href=#중복-적재가-났던-사례 title="Permanent link">&para;</a></h3> <p>북마크를 켜뒀는데도 중복이 쌓인 경우를 몇 번 봤다. 패턴이 정해져 있다.</p> <p><code>transformation_ctx</code>를 출력에만 빼먹은 경우다. 입력 <code>from_catalog</code>에는 ctx를 넣었는데 출력 <code>write_dynamic_frame</code>에는 안 넣었다. 북마크는 입력만 추적해서 새 데이터만 읽기는 하는데, 출력 쪽 ctx가 없으면 Glue가 출력 경로의 상태를 추적하지 못해 일부 시나리오에서 같은 출력을 다시 쓰는 일이 생긴다. 입출력 양쪽 ctx를 다 채워야 한다.</p> <p>리파티션이나 셔플 뒤에서 출력 ctx가 입력과 끊긴 경우도 있다. 입력에서 받은 DynamicFrame을 <code>toDF()</code>로 바꿔 <code>groupBy</code>, <code>join</code>을 거치면 데이터 계보가 한 번 끊긴다. 이 상태에서 출력 ctx만 있다고 북마크가 입력-출력을 자동으로 이어주지 않는다. 변환이 복잡한 파이프라인은 북마크가 입력 증분만 보장한다고 보고, 출력 중복은 적재 단계에서 따로 막아야 한다.</p> <p>가장 흔한 건 동일 파일을 다시 올린 경우다. 데이터 제공 쪽이 어제 파일을 정정해서 같은 경로에 다시 업로드하면, S3 객체의 LastModified가 갱신돼 북마크가 "새 파일"로 보고 다시 읽는다. 원본은 한 번 처리됐는데 정정본이 또 적재되니 그날치가 두 번 들어간다. 이건 북마크의 정상 동작이라 막을 수 없고, 적재를 멱등하게 만들어야 한다. 파티션 단위로 덮어쓰는 방식이면 같은 날짜가 다시 들어와도 그 파티션만 교체되니 중복이 안 쌓인다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1># 파티션 덮어쓰기로 중복 적재를 멱등하게 만든다 (북마크가 헛돌아도 결과는 안 깨짐)</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=n>spark</span><span class=o>.</span><span class=n>conf</span><span class=o>.</span><span class=n>set</span><span class=p>(</span><span class=s2>&quot;spark.sql.sources.partitionOverwriteMode&quot;</span><span class=p>,</span> <span class=s2>&quot;dynamic&quot;</span><span class=p>)</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a><span class=n>df</span><span class=o>.</span><span class=n>write</span> \
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>    <span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=s2>&quot;overwrite&quot;</span><span class=p>)</span> \
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a>    <span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span><span class=s2>&quot;dt&quot;</span><span class=p>)</span> \
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>    <span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=s2>&quot;s3://my-bucket/curated/orders/&quot;</span><span class=p>)</span>
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a><span class=c1># dynamic 모드: 이번에 들어온 dt 파티션만 교체. 안 건드린 과거 파티션은 그대로 둠</span>
-</span></code></pre></div> <p><code>partitionOverwriteMode=dynamic</code>이 없으면 <code>overwrite</code>가 출력 경로 전체를 날려버린다. 어제까지 쌓아둔 모든 파티션이 사라지고 오늘치만 남는 사고가 여기서 난다. 동적 모드를 반드시 같이 켜야 한다.</p> <h3 id=북마크-쓸-때-주의할-점>북마크 쓸 때 주의할 점<a class=headerlink href=#북마크-쓸-때-주의할-점 title="Permanent link">&para;</a></h3> <p>북마크 상태는 콘솔이나 CLI에서 리셋할 수 있다(<code>reset-job-bookmark</code>). 로직을 바꿔서 과거 데이터를 다시 처리해야 할 때 리셋한다. 다만 리셋하면 전체를 처음부터 다시 읽으니 비용과 시간이 든다.</p> <p>S3 소스에서 북마크는 객체의 마지막 수정 시각을 기준으로 한다. 그래서 이미 처리한 파일을 누가 다시 업로드하거나 덮어쓰면 수정 시각이 갱신돼서 다시 처리 대상이 된다. 반대로 과거 날짜로 백필한 파일을 나중에 올리면 수정 시각은 최신이라 잡히지만, 경로 기반 파티션과 어긋나는 상황이 생길 수 있다. 백필을 자주 한다면 북마크만 믿지 말고 결과 쪽에서 중복을 거르는 안전장치(적재 시 멱등성, dedup)를 같이 둬야 한다.</p> <p>JDBC 소스에서 북마크는 지정한 기준 컬럼(보통 자동 증가 ID나 타임스탬프)이 단조 증가해야 정상 동작한다. 기준 컬럼이 중간에 거꾸로 가거나 같은 값이 반복되면 누락이나 중복이 생긴다.</p> <p>북마크는 만능이 아니다. 증분 처리의 정확성을 최종적으로 보장하는 건 적재 단계의 멱등성이다. 북마크로 읽는 양을 줄이되, 같은 데이터가 두 번 적재돼도 결과가 깨지지 않도록 키 기반 upsert나 파티션 덮어쓰기를 같이 설계하는 게 운영에서 사고를 막는 방법이다.</p> <h2 id=정리>정리<a class=headerlink href=#정리 title="Permanent link">&para;</a></h2> <p>Glue는 Spark 클러스터 관리를 떼어낸 ETL 도구다. Catalog는 Athena·Redshift와 공유하는 공용 메타데이터, Crawler는 스키마 자동 등록기, Job은 PySpark 변환 실행기로 보면 된다.</p> <p>실무에서 발목을 잡는 건 코드 문법보다 운영 쪽이다. 워커 수와 드라이버 몫, 실행 시간을 방치해서 나오는 DPU 비용, <code>transformation_ctx</code>와 <code>job.commit()</code>을 빠뜨리거나 동일 파일 재업로드로 헛도는 job bookmark, 버전 올리면서 미묘하게 틀어지는 Spark 동작, 스큐 키 하나로 익스큐터가 OOM으로 죽는 셔플, 카탈로그를 여럿이 공유하면서 한 겹 더 쌓이는 Lake Formation 권한이 반복해서 나온다. 공통점이 하나 있다. 북마크든 재시도든 증분 처리든, 정확성의 마지막 보루는 결국 적재 단계의 멱등성이라는 것이다. 파티션 덮어쓰기나 키 기반 upsert로 같은 데이터가 두 번 들어와도 결과가 안 깨지게 설계해두면, 위쪽 단계가 가끔 헛돌아도 사고로 번지지 않는다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Load_Balancer/ALB_Troubleshooting/ >ALB 5xx 트러블슈팅</a></li> <li><a href=../../Load_Balancer/ALB_Lambda_Target/ >ALB Lambda 타겟 그룹 심화</a></li> <li><a href=../../Network/ALB_ECS_S3_Request_Flow/ >ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li> <li><a href=../../Load_Balancer/ALB_Blue_Green_Deployment/ >ALB 기반 Blue/Green 무중단 배포</a></li> <li><a href=../../Compute/Auto_Scaling_Lifecycle_Hooks/ >ASG 라이프사이클 훅</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Athena/ class="md-footer__link md-footer__link--prev" aria-label="이전: AWS Athena (S3 서버리스 SQL)"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> AWS Athena (S3 서버리스 SQL) </div> </div> </a> <a href=../Open_Search/ class="md-footer__link md-footer__link--next" aria-label="다음: AWS OpenSearch (관리형 검색·로그 분석)"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> AWS OpenSearch (관리형 검색·로그 분석) </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Analytics/Glue/">
+      
+      
+        <link rel="prev" href="../Athena/">
+      
+      
+        <link rel="next" href="../Open_Search/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>AWS Glue (서버리스 ETL) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aws-glue-서버리스-etl" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              AWS Glue (서버리스 ETL)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Containers/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Database/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_11" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Analytics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-catalog와-crawler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Catalog와 Crawler
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Catalog와 Crawler">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#catalog가-뭘-저장하는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalog가 뭘 저장하는가
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crawler로-스키마-추론" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crawler로 스키마 추론
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crawler를-쓸-때-실제로-겪는-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crawler를 쓸 때 실제로 겪는 문제
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#타입-충돌이-났을-때-대처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        타입 충돌이 났을 때 대처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파티션이-폭증할-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파티션이 폭증할 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glue-job-pyspark-작성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glue Job (PySpark) 작성
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Glue Job (PySpark) 작성">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#glue-버전과-spark-호환성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glue 버전과 Spark 호환성
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dynamicframe과-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DynamicFrame과 DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#디버깅이-까다로운-이유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        디버깅이 까다로운 이유
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#메모리-부족oom과-셔플-스필-디버깅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메모리 부족(OOM)과 셔플 스필 디버깅
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glue-job-운영--동시-실행과-재시도" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glue Job 운영 — 동시 실행과 재시도
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Glue Job 운영 — 동시 실행과 재시도">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#동시-실행-제한max-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        동시 실행 제한(Max concurrency)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#재시도-설정의-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        재시도 설정의 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#athenaredshift-연동" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Athena·Redshift 연동
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Athena·Redshift 연동">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#athena" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Athena
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redshift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redshift
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redshift-spectrum도-같은-카탈로그를-본다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redshift Spectrum도 같은 카탈로그를 본다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lake-formation-권한-충돌" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lake Formation 권한 충돌
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dpu-비용--가장-조심해야-할-부분" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DPU 비용 — 가장 조심해야 할 부분
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DPU 비용 — 가장 조심해야 할 부분">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dpu를-어떻게-세는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DPU를 어떻게 세는가
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#job-bookmark--중복-처리-방지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Bookmark — 중복 처리 방지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Job Bookmark — 중복 처리 방지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#중복-적재가-났던-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        중복 적재가 났던 사례
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#북마크-쓸-때-주의할-점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        북마크 쓸 때 주의할 점
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="aws-glue-서버리스-etl">AWS Glue (서버리스 ETL)<a class="headerlink" href="#aws-glue-서버리스-etl" title="Permanent link">&para;</a></h1>
+<h2 id="개요">개요<a class="headerlink" href="#개요" title="Permanent link">&para;</a></h2>
+<p>Glue는 S3나 RDB에 있는 데이터를 읽어서 변환하고 다시 어딘가에 적재하는 ETL 작업을 서버 없이 돌리는 서비스다. 직접 Spark 클러스터를 EMR로 띄워본 사람이라면 마스터/워커 노드 사이즈 잡고, 부트스트랩 스크립트 깔고, 작업 끝나면 클러스터 내리는 그 과정을 안 해도 된다는 게 Glue의 핵심이다. Job을 등록하고 실행 버튼을 누르면 AWS가 내부에서 Spark 클러스터를 잡아 코드를 돌리고 끝나면 회수한다.</p>
+<p>구성 요소가 세 개로 나뉜다. 데이터가 어디에 어떤 스키마로 있는지를 저장하는 Data Catalog, S3 경로를 훑어서 스키마를 자동으로 채워넣는 Crawler, 실제 변환 코드를 돌리는 Glue Job이다. 이 셋이 따로 노는 것처럼 보이지만 실무에서는 Crawler가 Catalog를 채우고 Job이 Catalog를 참조해서 읽는 식으로 엮인다.</p>
+<p>처음 접할 때 헷갈리는 부분이 Glue와 Athena의 관계다. 둘 다 Glue Data Catalog를 공유한다. Crawler로 S3 데이터의 스키마를 카탈로그에 등록해두면 Athena에서 그 테이블을 바로 SQL로 조회할 수 있다. 즉 Catalog는 Glue 전용이 아니라 Athena, Redshift Spectrum, EMR이 같이 보는 공용 메타데이터 저장소다. 그래서 Glue Crawler 한 번 돌려두면 Athena 쪽에서 <code>CREATE EXTERNAL TABLE</code>을 손으로 안 써도 된다.</p>
+<h2 id="data-catalog와-crawler">Data Catalog와 Crawler<a class="headerlink" href="#data-catalog와-crawler" title="Permanent link">&para;</a></h2>
+<h3 id="catalog가-뭘-저장하는가">Catalog가 뭘 저장하는가<a class="headerlink" href="#catalog가-뭘-저장하는가" title="Permanent link">&para;</a></h3>
+<p>Data Catalog는 데이터베이스(논리적 묶음)와 테이블 메타데이터를 담는다. 테이블에는 컬럼 이름과 타입, S3 위치, 파일 포맷(Parquet/JSON/CSV), 파티션 정보가 들어간다. 실제 데이터는 안 들어간다. Athena 문서에서 본 그 구조와 같다. 테이블을 만들어도 S3 파일은 복사되지 않고 "이 경로에 이런 스키마가 있다"는 정의만 등록된다.</p>
+<h3 id="crawler로-스키마-추론">Crawler로 스키마 추론<a class="headerlink" href="#crawler로-스키마-추론" title="Permanent link">&para;</a></h3>
+<p>S3에 파일이 수백 개 쌓여 있을 때 컬럼 타입을 일일이 손으로 적기 귀찮다. Crawler를 S3 경로에 걸어두면 파일 일부를 샘플링해서 스키마를 추론하고 카탈로그에 테이블을 만들어준다. 파티션 구조(<code>year=2026/month=06/day=16</code> 같은 Hive 스타일 경로)도 자동으로 인식한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Crawler가 인식하는 전형적인 S3 파티션 구조</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">s3</span><span class="p">:</span><span class="o">//</span><span class="n">my</span><span class="o">-</span><span class="n">bucket</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  <span class="n">year</span><span class="o">=</span><span class="mi">2026</span><span class="o">/</span><span class="n">month</span><span class="o">=</span><span class="mi">06</span><span class="o">/</span><span class="n">day</span><span class="o">=</span><span class="mi">15</span><span class="o">/</span><span class="n">part</span><span class="o">-</span><span class="mf">0000.</span><span class="n">parquet</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  <span class="n">year</span><span class="o">=</span><span class="mi">2026</span><span class="o">/</span><span class="n">month</span><span class="o">=</span><span class="mi">06</span><span class="o">/</span><span class="n">day</span><span class="o">=</span><span class="mi">16</span><span class="o">/</span><span class="n">part</span><span class="o">-</span><span class="mf">0000.</span><span class="n">parquet</span>
+</span></code></pre></div>
+<p>이렇게 쌓여 있으면 Crawler가 <code>year</code>, <code>month</code>, <code>day</code>를 파티션 컬럼으로 잡는다. Athena에서 <code>WHERE year='2026' AND month='06'</code>으로 거르면 해당 경로만 스캔하니 스캔량이 줄고 비용이 내려간다.</p>
+<h3 id="crawler를-쓸-때-실제로-겪는-문제">Crawler를 쓸 때 실제로 겪는 문제<a class="headerlink" href="#crawler를-쓸-때-실제로-겪는-문제" title="Permanent link">&para;</a></h3>
+<p>스키마 추론이 항상 맞지 않는다. 자주 겪는 상황들이다.</p>
+<p>첫째, 타입을 잘못 잡는다. 정수만 들어있는 줄 알았던 컬럼에 어쩌다 문자열이 섞이면 Crawler가 전체를 <code>string</code>으로 잡거나, 반대로 일부 파일만 보고 <code>bigint</code>로 잡았다가 다른 파일에서 깨진다. JSON에서 빈 값이 <code>null</code>로 나오는 컬럼은 타입 추론이 흔들린다. 한번 자동 추론을 맡긴 뒤에는 카탈로그 테이블 정의를 직접 확인하는 습관을 들여야 한다.</p>
+<p>둘째, 매번 돌리면 스키마를 덮어쓴다. Crawler를 스케줄로 매일 돌리면 새 파일을 보고 기존 스키마를 바꿔버리는 경우가 있다. 이미 안정화된 테이블이라면 Crawler 설정에서 "테이블 스키마 업데이트 안 함, 새 파티션만 추가" 옵션으로 바꿔두는 게 안전하다. 새 파티션이 매일 생기는 로그 테이블은 Crawler 대신 <code>MSCK REPAIR TABLE</code>이나 파티션 프로젝션(Athena 기능)을 쓰는 게 더 깔끔할 때도 있다.</p>
+<p>셋째, 파일이 너무 많으면 Crawler 자체가 느리고 돈이 든다. Crawler도 DPU 시간으로 과금된다. 수십만 개 작은 파일이 흩어져 있으면 크롤링에 시간이 오래 걸린다. 이 경우 S3 경로를 좁게 지정하거나, 애초에 작은 파일을 합치는 작업을 먼저 하는 게 낫다.</p>
+<h3 id="타입-충돌이-났을-때-대처">타입 충돌이 났을 때 대처<a class="headerlink" href="#타입-충돌이-났을-때-대처" title="Permanent link">&para;</a></h3>
+<p>같은 컬럼인데 파일마다 타입이 다르면 Crawler가 어쩔 수 없이 <code>string</code>으로 떨어뜨리는 경우가 있다. 한 파일에서 <code>price</code>가 <code>123</code>(int)이고 다른 파일에서 <code>"123.0"</code>(string)으로 들어오면 카탈로그 컬럼이 <code>string</code>이 되고, 그 뒤로 Athena에서 <code>SUM(price)</code>를 하면 캐스팅 에러가 난다. 이건 Crawler 설정을 바꾼다고 풀리지 않는다. 근본 원인이 데이터 쪽에 있기 때문에 두 가지 중 하나로 간다.</p>
+<p>하나는 적재하는 쪽에서 타입을 고정하는 것이다. Parquet으로 떨어뜨리면 스키마가 파일 자체에 박히니 JSON/CSV처럼 추론이 흔들리지 않는다. 가능하면 raw를 Parquet으로 한 번 정규화한 뒤 그 경로에 Crawler를 거는 게 안전하다.</p>
+<p>다른 하나는 Crawler가 정한 타입을 사람이 덮어쓰는 것이다. 카탈로그 테이블 컬럼 타입을 직접 수정하고, 다음 Crawler 실행이 다시 덮어쓰지 못하게 막아야 한다. Crawler의 SchemaChangePolicy를 <code>UpdateBehavior=LOG</code>로 두면 변경을 감지만 하고 카탈로그를 건드리지 않는다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">glue</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;glue&quot;</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 안정화된 테이블: 스키마는 손대지 말고 새 파티션만 추가</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">glue</span><span class="o">.</span><span class="n">update_crawler</span><span class="p">(</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;access-log-crawler&quot;</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">SchemaChangePolicy</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="s2">&quot;UpdateBehavior&quot;</span><span class="p">:</span> <span class="s2">&quot;LOG&quot;</span><span class="p">,</span>      <span class="c1"># 스키마 변경은 로그만 남기고 카탈로그 미반영</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="s2">&quot;DeleteBehavior&quot;</span><span class="p">:</span> <span class="s2">&quot;LOG&quot;</span><span class="p">,</span>      <span class="c1"># 사라진 파티션도 함부로 지우지 않음</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="p">},</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">Configuration</span><span class="o">=</span><span class="s1">&#39;{&quot;Version&quot;:1.0,&quot;CrawlerOutput&quot;:{&quot;Partitions&quot;:{&quot;AddOrUpdateBehavior&quot;:&quot;InheritFromTable&quot;}}}&#39;</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>AddOrUpdateBehavior=InheritFromTable</code>은 새 파티션이 테이블 스키마를 그대로 물려받게 한다. 이게 없으면 새 파티션마다 Crawler가 따로 스키마를 추론해서, 같은 테이블인데 파티션별로 컬럼 타입이 제각각인 상황이 생긴다. Athena에서 특정 파티션만 쿼리가 깨지면 십중팔구 이 문제다.</p>
+<h3 id="파티션이-폭증할-때">파티션이 폭증할 때<a class="headerlink" href="#파티션이-폭증할-때" title="Permanent link">&para;</a></h3>
+<p>파티션 컬럼을 잘못 잡으면 파티션 수가 폭발한다. 카디널리티가 높은 값(<code>user_id</code>, <code>request_id</code>, 타임스탬프 전체)을 경로에 넣어두면 Crawler가 그걸 전부 파티션으로 인식해서 수십만 개가 만들어진다. 카탈로그에는 파티션당 메타데이터가 쌓이고, Athena 쿼리는 파티션 메타데이터를 먼저 읽느라 플래닝 단계에서만 수십 초가 걸린다. 심하면 <code>HIVE_EXCEEDED_PARTITION_LIMIT</code> 같은 에러로 막힌다.</p>
+<p>경로 설계가 잘못된 거라 Crawler 옵션으로 못 푼다. 파티션 키는 실제 쿼리에서 필터로 쓰는 저카디널리티 컬럼(날짜, 지역, 서비스 코드 정도)만 써야 한다. 이미 폭증한 뒤라면 새 경로 구조로 데이터를 다시 쓰는 게 답이다. 날짜 단위 파티션이 너무 많아 카탈로그가 무거워진 경우엔 Crawler를 빼고 Athena 파티션 프로젝션으로 가는 게 낫다. 파티션을 카탈로그에 물리적으로 등록하지 않고 쿼리 시점에 경로 규칙으로 계산하니 메타데이터가 쌓이지 않는다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- 파티션 프로젝션: 카탈로그에 파티션을 안 쌓고 쿼리 때 경로를 계산</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">access_log</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">TBLPROPERTIES</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="s1">&#39;projection.enabled&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;true&#39;</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="s1">&#39;projection.dt.type&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;date&#39;</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="s1">&#39;projection.dt.range&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2024-01-01,NOW&#39;</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="s1">&#39;projection.dt.format&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;yyyy-MM-dd&#39;</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="s1">&#39;storage.location.template&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;s3://my-bucket/logs/${dt}/&#39;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">);</span>
+</span></code></pre></div>
+<h2 id="glue-job-pyspark-작성">Glue Job (PySpark) 작성<a class="headerlink" href="#glue-job-pyspark-작성" title="Permanent link">&para;</a></h2>
+<p>Glue Job은 보통 PySpark로 쓴다. Python 셸 타입도 있지만 대용량 변환은 Spark가 맞다. Glue는 일반 PySpark 위에 자체 추상화인 DynamicFrame을 얹어놨다. 처음엔 그냥 Spark DataFrame을 쓰면 되는데 왜 DynamicFrame이 따로 있나 싶다.</p>
+<h3 id="glue-버전과-spark-호환성">Glue 버전과 Spark 호환성<a class="headerlink" href="#glue-버전과-spark-호환성" title="Permanent link">&para;</a></h3>
+<p>Job을 만들 때 Glue 버전을 고르는데, 이게 그냥 라벨이 아니라 안에 박혀 있는 Spark와 Python 버전을 결정한다. 대략 이렇다.</p>
+<table>
+<thead>
+<tr>
+<th>Glue 버전</th>
+<th>Spark</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.0</td>
+<td>2.4</td>
+<td>3.7</td>
+</tr>
+<tr>
+<td>3.0</td>
+<td>3.1</td>
+<td>3.7</td>
+</tr>
+<tr>
+<td>4.0</td>
+<td>3.3</td>
+<td>3.10</td>
+</tr>
+<tr>
+<td>5.0</td>
+<td>3.5</td>
+<td>3.11</td>
+</tr>
+</tbody>
+</table>
+<p>버전을 올리면 콜드 스타트가 빨라지고 Spark 신기능을 쓸 수 있지만, 코드가 그대로 도는 보장이 없다. 실제로 발목 잡히는 지점들이 있다.</p>
+<p>Spark 2.x에서 3.x로 올라갈 때 동작이 바뀐 부분이 가장 많이 터진다. 대표적으로 날짜 파싱이다. Spark 3.0부터 datetime 파서가 엄격해져서, 2.4에서 통과하던 <code>to_timestamp</code> 포맷 문자열이 3.x에서는 예외를 던지거나 <code>null</code>을 뱉는다. <code>spark.sql.legacy.timeParserPolicy=LEGACY</code>로 옛 동작을 살릴 수는 있지만, 임시방편이고 언젠가 포맷을 고쳐야 한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Glue 2.0(Spark 2.4)에서 4.0(Spark 3.3)으로 올린 직후 날짜가 전부 null이 되는 경우</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># 둘 중 하나로 푼다</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># (1) 옛 파서 동작을 강제 — 빠른 응급 처치</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;spark.sql.legacy.timeParserPolicy&quot;</span><span class="p">,</span> <span class="s2">&quot;LEGACY&quot;</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># (2) 포맷 문자열을 새 표준으로 교정 — 권장</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1">#   소문자 yyyy/dd는 그대로지만, 주(week) 기반 &#39;YYYY&#39;나 &#39;u&#39; 같은 패턴은 의미가 바뀜</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;ts&quot;</span><span class="p">,</span> <span class="n">to_timestamp</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;ts_str&quot;</span><span class="p">],</span> <span class="s2">&quot;yyyy-MM-dd HH:mm:ss&quot;</span><span class="p">))</span>
+</span></code></pre></div>
+<p>또 하나는 라이브러리 버전이다. <code>--additional-python-modules</code>로 pandas나 pyarrow를 올려 쓰는 Job이라면, Glue 버전이 바뀌면서 기본으로 깔린 numpy/pyarrow 버전이 달라져 충돌이 난다. Glue 3.0에서 잘 돌던 pandas 코드가 4.0에서 pyarrow 호환성 에러를 내는 식이다. 버전을 올릴 때는 <code>--additional-python-modules</code>에 버전을 명시적으로 고정(<code>pandas==2.0.3</code>)해서 환경 차이를 줄여야 한다.</p>
+<p>운영 Job의 버전을 올릴 때는 Job을 복제해서 새 버전으로 만들고, 같은 입력으로 양쪽을 돌려 출력이 일치하는지 비교한 뒤 교체하는 게 안전하다. 콘솔에서 버전 드롭다운만 바꿔 바로 운영에 반영하면, 날짜나 집계가 미묘하게 틀어진 걸 한참 뒤에 발견한다.</p>
+<h3 id="dynamicframe과-dataframe">DynamicFrame과 DataFrame<a class="headerlink" href="#dynamicframe과-dataframe" title="Permanent link">&para;</a></h3>
+<p>DynamicFrame은 스키마가 고정되지 않은 데이터를 다루기 위한 Glue 전용 구조다. 같은 컬럼에 정수와 문자열이 섞여 들어오는 더러운 데이터를 만났을 때 Spark DataFrame은 스키마를 강제하다 깨지지만 DynamicFrame은 <code>choice</code> 타입으로 양쪽을 다 들고 있다가 <code>resolveChoice</code>로 나중에 정리할 수 있다. 카탈로그에서 바로 읽고 쓰는 함수도 DynamicFrame 기준으로 제공된다.</p>
+<p>실무에서는 카탈로그에서 DynamicFrame으로 읽은 뒤 곧바로 <code>.toDF()</code>로 DataFrame으로 바꿔서 일반 Spark 코드로 변환하고, 적재 직전에 다시 <code>DynamicFrame.fromDF()</code>로 되돌리는 패턴을 많이 쓴다. Spark 문법이 더 익숙하고 자료도 많기 때문이다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">getResolvedOptions</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparkContext</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">GlueContext</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.job</span><span class="w"> </span><span class="kn">import</span> <span class="n">Job</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">awsglue.dynamicframe</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynamicFrame</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">args</span> <span class="o">=</span> <span class="n">getResolvedOptions</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;JOB_NAME&#39;</span><span class="p">])</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">sc</span> <span class="o">=</span> <span class="n">SparkContext</span><span class="p">()</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">glueContext</span> <span class="o">=</span> <span class="n">GlueContext</span><span class="p">(</span><span class="n">sc</span><span class="p">)</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">spark</span> <span class="o">=</span> <span class="n">glueContext</span><span class="o">.</span><span class="n">spark_session</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">job</span> <span class="o">=</span> <span class="n">Job</span><span class="p">(</span><span class="n">glueContext</span><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">job</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;JOB_NAME&#39;</span><span class="p">],</span> <span class="n">args</span><span class="p">)</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="c1"># 카탈로그에서 DynamicFrame으로 읽기 (Crawler가 만든 테이블 참조)</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="n">dyf</span> <span class="o">=</span> <span class="n">glueContext</span><span class="o">.</span><span class="n">create_dynamic_frame</span><span class="o">.</span><span class="n">from_catalog</span><span class="p">(</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="n">database</span><span class="o">=</span><span class="s2">&quot;raw_logs&quot;</span><span class="p">,</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;access_log&quot;</span><span class="p">,</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="n">transformation_ctx</span><span class="o">=</span><span class="s2">&quot;dyf&quot;</span>  <span class="c1"># job bookmark가 이 ctx 이름으로 진행 상태를 기록한다</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="p">)</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="c1"># DataFrame으로 바꿔 일반 Spark로 변환</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="n">df</span> <span class="o">=</span> <span class="n">dyf</span><span class="o">.</span><span class="n">toDF</span><span class="p">()</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">400</span><span class="p">)</span>  <span class="c1"># 에러 응답만 추림</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">repartition</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>  <span class="c1"># 출력 파일 개수 조절 (작은 파일 폭발 방지)</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="c1"># 다시 DynamicFrame으로 되돌려 적재</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="n">out</span> <span class="o">=</span> <span class="n">DynamicFrame</span><span class="o">.</span><span class="n">fromDF</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">glueContext</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">)</span>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="n">glueContext</span><span class="o">.</span><span class="n">write_dynamic_frame</span><span class="o">.</span><span class="n">from_options</span><span class="p">(</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>    <span class="n">frame</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>    <span class="n">connection_type</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span>
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>    <span class="n">connection_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;s3://my-bucket/curated/errors/&quot;</span><span class="p">},</span>
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>    <span class="n">transformation_ctx</span><span class="o">=</span><span class="s2">&quot;out&quot;</span>  <span class="c1"># bookmark는 출력 ctx도 추적한다</span>
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="p">)</span>
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="n">job</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>  <span class="c1"># 이 호출이 있어야 bookmark가 진행 상태를 저장한다</span>
+</span></code></pre></div>
+<p><code>transformation_ctx</code>와 <code>job.commit()</code>은 job bookmark를 쓸 때 필수다. 뒤에서 다시 다룬다.</p>
+<h3 id="디버깅이-까다로운-이유">디버깅이 까다로운 이유<a class="headerlink" href="#디버깅이-까다로운-이유" title="Permanent link">&para;</a></h3>
+<p>Glue Job 디버깅이 로컬 코드처럼 안 되는 게 가장 답답한 부분이다. 실행하면 클러스터가 떠서 돌고, 에러가 나면 CloudWatch 로그를 뒤져야 한다. 몇 가지 실제로 도움 된 방법들이다.</p>
+<p>로컬에서 먼저 돌려본다. AWS가 제공하는 Glue 도커 이미지(<code>amazon/aws-glue-libs</code>)를 받아 로컬에서 PySpark 코드를 실행하면 클러스터 띄우는 시간(콜드 스타트가 1분 넘게 걸린다)을 안 기다리고 문법 오류나 로직 오류를 잡을 수 있다. 카탈로그 접근이 필요한 부분만 빼면 대부분 로컬에서 검증된다.</p>
+<p>작게 잘라서 확인한다. <code>df.show()</code>, <code>df.printSchema()</code>, <code>df.count()</code>를 중간중간 넣어 CloudWatch 로그로 데이터가 어떻게 흐르는지 본다. 다만 <code>count()</code>나 <code>show()</code>는 Spark 액션이라 실제 연산을 트리거하니 운영 Job에는 남기지 않는다.</p>
+<p>에러 로그는 두 군데를 본다. Glue 콘솔의 Job run 화면에서 Error logs 링크가 드라이버 로그, All logs가 익스큐터까지 포함한 로그다. <code>OutOfMemoryError</code>나 셔플 관련 에러는 익스큐터 로그에 찍히는 경우가 많아서 All logs를 봐야 원인이 나온다.</p>
+<p>콜드 스타트를 줄이려면 개발용 엔드포인트나 인터랙티브 세션을 쓴다. Glue Interactive Session은 노트북에서 Spark 세션을 한 번 띄워두고 셀 단위로 코드를 붙여가며 테스트할 수 있어서 매번 Job 전체를 재실행하는 것보다 반복 속도가 빠르다.</p>
+<h3 id="메모리-부족oom과-셔플-스필-디버깅">메모리 부족(OOM)과 셔플 스필 디버깅<a class="headerlink" href="#메모리-부족oom과-셔플-스필-디버깅" title="Permanent link">&para;</a></h3>
+<p>Job이 한참 돌다가 <code>java.lang.OutOfMemoryError</code>나 <code>Container killed by YARN for exceeding memory limits</code>로 죽는 게 PySpark Job에서 가장 흔한 고장이다. OOM은 드라이버에서 날 수도 있고 익스큐터에서 날 수도 있는데, 원인과 처방이 다르다.</p>
+<p>드라이버 OOM은 결과를 드라이버로 한꺼번에 끌어모을 때 난다. <code>df.collect()</code>, <code>toPandas()</code>, 인자 없는 <code>broadcast</code> 강제 같은 코드가 큰 데이터를 드라이버 메모리로 당기면 바로 터진다. 변환 결과를 코드에서 직접 받아 처리하려 하지 말고 S3로 써서 내보내는 게 원칙이다. 디버깅용으로 데이터를 봐야 하면 <code>collect()</code> 대신 <code>df.limit(20).show()</code>로 일부만 가져온다.</p>
+<p>익스큐터 OOM은 보통 셔플과 데이터 스큐 때문이다. <code>groupBy</code>, <code>join</code>, <code>repartition</code>은 노드 간에 데이터를 다시 섞는(셔플) 연산인데, 특정 키에 데이터가 쏠려 있으면(스큐) 그 키를 받은 익스큐터 하나가 전체를 떠안고 OOM이 난다. 주문 데이터를 <code>customer_id</code>로 조인하는데 비회원 주문이 전부 <code>customer_id=0</code>으로 들어와 있으면, <code>0</code> 파티션 하나가 비대해져서 그 태스크만 죽는 식이다.</p>
+<p>먼저 셔플 스필을 확인한다. Spark UI(Glue 콘솔의 Spark UI 링크 또는 활성화한 Spark History Server)의 stage 화면에서 "Shuffle Spill (Memory)"와 "Shuffle Spill (Disk)" 수치가 크면, 메모리에 안 들어가는 데이터를 디스크로 토해내며(스필) 돌고 있다는 뜻이다. 스필이 디스크로 GB 단위로 잡히면 Job이 느려지다 결국 OOM으로 간다.</p>
+<p>처방은 원인별로 다르다.</p>
+<p>워커 타입을 메모리가 큰 쪽으로 바꾼다. G.1X(16GB)에서 G.2X(32GB)나 메모리 특화인 R 계열로 올리면 익스큐터당 메모리가 늘어 스필이 줄어든다. 데이터 양보다 워커 수를 늘리는 것보다, 스큐로 한 태스크가 비대한 상황에서는 태스크 하나가 쓸 수 있는 메모리를 키우는 게 효과가 있다.</p>
+<p>스큐 키는 솔트(salt)로 흩는다. 쏠린 키에 랜덤 접두어를 붙여 인위적으로 파티션을 나눈 뒤 집계하고, 마지막에 접두어를 떼어 다시 합친다. 코드가 번거로워지지만 한 태스크에 몰리는 걸 푸는 직접적인 방법이다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># 스큐 키(customer_id=0)를 0~9 솔트로 흩어서 조인 부하를 분산</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">left</span> <span class="o">=</span> <span class="n">orders</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;salt&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">))</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">right</span> <span class="o">=</span> <span class="n">customers</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="s2">&quot;salt_arr&quot;</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">)</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;salt&quot;</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;salt_arr&quot;</span><span class="p">))</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">joined</span> <span class="o">=</span> <span class="n">left</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;customer_id&quot;</span><span class="p">,</span> <span class="s2">&quot;salt&quot;</span><span class="p">],</span> <span class="s2">&quot;inner&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;salt&quot;</span><span class="p">,</span> <span class="s2">&quot;salt_arr&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>셔플 파티션 수를 데이터에 맞춘다. <code>spark.sql.shuffle.partitions</code> 기본값은 200인데, 데이터가 작으면 빈 파티션이 200개 생겨 오버헤드만 늘고, 데이터가 크면 파티션당 데이터가 너무 커서 스필이 난다. 데이터 크기에 맞춰 조정한다. Glue 3.0 이상은 AQE(Adaptive Query Execution)가 켜져 있어 실행 중 파티션 수를 자동으로 합쳐주지만, 그래도 초기값이 터무니없으면 도움이 안 된다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 셔플 파티션 수와 AQE 설정 (Job 파라미터 --conf로 넘기거나 코드에서)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;spark.sql.shuffle.partitions&quot;</span><span class="p">,</span> <span class="s2">&quot;64&quot;</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;spark.sql.adaptive.enabled&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;spark.sql.adaptive.skewJoin.enabled&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>  <span class="c1"># 스큐 조인 자동 분할</span>
+</span></code></pre></div>
+<p>작은 테이블 조인은 브로드캐스트로 셔플 자체를 없앤다. 한쪽 테이블이 수십 MB 수준으로 작으면 그걸 모든 익스큐터에 통째로 복사해서 셔플 없이 조인한다. <code>F.broadcast(small_df)</code>로 명시하거나 <code>spark.sql.autoBroadcastJoinThreshold</code>를 키운다. 다만 브로드캐스트할 테이블이 실제로 작아야 한다. 큰 걸 브로드캐스트하면 이번엔 드라이버와 익스큐터 양쪽에서 OOM이 난다.</p>
+<h2 id="glue-job-운영--동시-실행과-재시도">Glue Job 운영 — 동시 실행과 재시도<a class="headerlink" href="#glue-job-운영--동시-실행과-재시도" title="Permanent link">&para;</a></h2>
+<p>Job 하나만 손으로 돌릴 때는 안 보이다가 스케줄로 묶이고 트리거가 엮이면 드러나는 문제들이 있다.</p>
+<h3 id="동시-실행-제한max-concurrency">동시 실행 제한(Max concurrency)<a class="headerlink" href="#동시-실행-제한max-concurrency" title="Permanent link">&para;</a></h3>
+<p>Glue Job에는 동시에 몇 개까지 같은 Job을 돌릴지 정하는 Max concurrent runs 설정이 있고 기본값이 1이다. 기본값 그대로면, 앞 실행이 안 끝났는데 다음 스케줄이 돌면 <code>ConcurrentRunsExceededException</code>으로 거절된다. 5분마다 도는 Job이 어쩌다 6분 걸리면 다음 실행이 그냥 실패하는 식이다.</p>
+<p>여기서 판단이 갈린다. Job이 멱등하지 않다면(같은 데이터를 두 번 처리하면 결과가 깨진다면) 동시 실행을 막는 게 맞으니 1을 유지하고, 대신 실행 주기를 처리 시간보다 넉넉하게 잡거나 앞 실행이 끝났는지 확인하고 트리거하게 만든다. 반대로 입력 파티션이 겹치지 않아 병렬로 돌려도 안전하다면 동시 실행 수를 올린다. 다만 동시에 N개를 돌리면 DPU도 N배로 잡힌다는 걸 잊으면 안 된다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">glue</span><span class="o">.</span><span class="n">update_job</span><span class="p">(</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">JobName</span><span class="o">=</span><span class="s2">&quot;daily-aggregation&quot;</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">JobUpdate</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="s2">&quot;ExecutionProperty&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;MaxConcurrentRuns&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>  <span class="c1"># 기본 1 → 3</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="s2">&quot;MaxRetries&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>            <span class="c1"># 실패 시 1회 자동 재시도</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="s2">&quot;Timeout&quot;</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>             <span class="c1"># 분 단위. 60분 넘으면 강제 종료(DPU 폭주 방지)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="c1"># ... Role, Command 등 나머지 필드도 update_job에는 함께 넘겨야 함</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="p">}</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="재시도-설정의-함정">재시도 설정의 함정<a class="headerlink" href="#재시도-설정의-함정" title="Permanent link">&para;</a></h3>
+<p><code>MaxRetries</code>로 Job 실패 시 자동 재시도를 걸 수 있는데, 여기에 함정이 있다. 재시도는 Job 전체를 처음부터 다시 돌린다. 중간까지 처리하고 적재까지 한 뒤 마지막에 죽었다면, 재시도가 같은 데이터를 또 적재해서 중복을 만든다. job bookmark를 켜뒀더라도 <code>job.commit()</code> 전에 죽었으면 북마크가 진행 상태를 저장하지 않았으니, 재시도가 같은 구간을 다시 읽는다. 즉 재시도와 멱등성은 한 묶음이다. 멱등하지 않은 Job에 <code>MaxRetries</code>만 올려두면 실패할 때마다 중복이 쌓인다.</p>
+<p>일시적 오류(스팟 회수, 네트워크 순단)에는 재시도가 약이지만, 코드 버그나 잘못된 입력으로 인한 실패는 재시도해봐야 똑같이 죽으면서 DPU만 두 배로 쓴다. 재시도는 1 정도로 낮게 두고, 반복 실패하는 Job은 알람으로 사람이 보게 하는 편이 낫다. CloudWatch에서 <code>glue.driver.aggregate.numFailedTasks</code>나 Job run 상태를 EventBridge로 받아 SNS 알람을 거는 식이다.</p>
+<h2 id="athenaredshift-연동">Athena·Redshift 연동<a class="headerlink" href="#athenaredshift-연동" title="Permanent link">&para;</a></h2>
+<h3 id="athena">Athena<a class="headerlink" href="#athena" title="Permanent link">&para;</a></h3>
+<p>앞에서 말한 대로 Crawler가 카탈로그에 테이블을 등록하면 Athena가 그대로 본다. Glue Job으로 변환한 결과를 Parquet으로 S3에 떨군 뒤 그 경로에 Crawler를 한 번 더 돌리거나, Job 안에서 <code>enableUpdateCatalog</code> 옵션으로 출력 시 카탈로그를 직접 갱신하면 Athena에서 곧바로 조회된다. 원본 JSON/CSV를 Athena로 직접 보면 매 쿼리마다 풀스캔이라 느리고 비싸니, Glue로 Parquet + 파티션 형태로 바꿔두고 Athena가 그걸 보게 하는 흐름이 일반적이다.</p>
+<h3 id="redshift">Redshift<a class="headerlink" href="#redshift" title="Permanent link">&para;</a></h3>
+<p>Glue Job에서 Redshift로 적재하는 경로가 두 가지다. 하나는 Glue가 제공하는 Redshift 커넥션을 써서 <code>write_dynamic_frame</code>으로 직접 쓰는 방법이고, 다른 하나는 S3에 Parquet으로 떨군 뒤 Redshift의 <code>COPY</code> 명령으로 당기는 방법이다. 대량 적재는 두 번째가 빠르다. Glue가 Redshift로 직접 쓸 때도 내부적으로는 S3에 임시 파일을 만든 뒤 <code>COPY</code>를 쓴다. 그래서 Glue Redshift 커넥션 설정에 임시 S3 디렉토리(<code>TempDir</code>) 지정이 들어간다. 이 임시 디렉토리에 파일이 쌓이고 안 지워지는 경우가 있으니 라이프사이클 정책을 걸어두는 게 좋다.</p>
+<p>VPC 안에 있는 Redshift에 붙을 때는 Glue Job도 같은 VPC의 서브넷으로 들어가야 한다. Glue 커넥션에 VPC/서브넷/보안그룹을 지정하고, 보안그룹은 자기 자신을 참조하는 인바운드 규칙(self-referencing)이 있어야 Glue 익스큐터끼리, 그리고 Redshift와 통신이 된다. 이 self-referencing 규칙을 빼먹어서 연결 타임아웃이 나는 경우가 흔하다.</p>
+<h3 id="redshift-spectrum도-같은-카탈로그를-본다">Redshift Spectrum도 같은 카탈로그를 본다<a class="headerlink" href="#redshift-spectrum도-같은-카탈로그를-본다" title="Permanent link">&para;</a></h3>
+<p>Redshift Spectrum은 S3에 있는 데이터를 Redshift로 옮기지 않고 외부 테이블로 직접 쿼리하는 기능인데, 이때 참조하는 외부 스키마를 Glue Data Catalog에 연결할 수 있다. <code>CREATE EXTERNAL SCHEMA ... FROM DATA CATALOG</code>로 카탈로그의 데이터베이스를 Spectrum 외부 스키마로 매핑하면, Glue Crawler가 등록한 테이블을 Redshift에서 그대로 조인해 쓸 수 있다. Athena와 Spectrum이 같은 카탈로그 테이블을 동시에 보는 구조가 된다. 편한 만큼 권한 문제가 여기서 터진다.</p>
+<h2 id="lake-formation-권한-충돌">Lake Formation 권한 충돌<a class="headerlink" href="#lake-formation-권한-충돌" title="Permanent link">&para;</a></h2>
+<p>카탈로그를 Athena, Spectrum, Glue Job이 같이 쓰기 시작하면 권한이 두 겹으로 쌓인다. 원래 카탈로그 접근은 IAM 정책으로 통제했는데, Lake Formation을 켜는 순간 그 위에 Lake Formation 권한이 한 겹 더 얹힌다. 두 겹을 다 통과해야 데이터가 보인다. IAM에서 <code>glue:GetTable</code>, <code>s3:GetObject</code>를 다 열어줬는데도 쿼리가 "권한 없음"으로 막히면, 십중팔구 Lake Formation 쪽 권한이 비어 있는 것이다.</p>
+<p>증상이 헷갈리는 게, 콘솔에서 테이블 목록은 보이는데 <code>SELECT</code>만 빈 결과나 권한 에러로 막히는 식이다. 테이블 메타데이터 권한과 데이터 권한이 따로 놀기 때문이다. Lake Formation에서 해당 principal(Glue Job의 IAM 역할, Athena를 쓰는 사용자 역할)에 테이블·컬럼 단위 <code>SELECT</code> 권한을 명시적으로 줘야 한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">lf</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;lakeformation&quot;</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Glue Job 역할에 특정 테이블의 SELECT 권한을 Lake Formation에서 부여</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">lf</span><span class="o">.</span><span class="n">grant_permissions</span><span class="p">(</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">Principal</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;DataLakePrincipalIdentifier&quot;</span><span class="p">:</span> <span class="s2">&quot;arn:aws:iam::123456789012:role/glue-etl-role&quot;</span><span class="p">},</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">Resource</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Table&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;DatabaseName&quot;</span><span class="p">:</span> <span class="s2">&quot;raw_logs&quot;</span><span class="p">,</span> <span class="s2">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;access_log&quot;</span><span class="p">}},</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">Permissions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;SELECT&quot;</span><span class="p">,</span> <span class="s2">&quot;DESCRIBE&quot;</span><span class="p">],</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>실무에서 자주 막히는 지점들이 있다.</p>
+<p>Glue Job의 IAM 역할에 Lake Formation 권한을 안 줘서 Job이 카탈로그 읽기에 실패한다. IAM 역할에 <code>lakeformation:GetDataAccess</code>가 있어야 Job이 Lake Formation을 거쳐 S3 데이터에 접근할 수 있고, 그와 별개로 그 역할에 테이블 <code>SELECT</code> 권한도 부여돼 있어야 한다. 둘 중 하나만 있으면 <code>AccessDeniedException</code>이 난다.</p>
+<p><code>IAMAllowedPrincipals</code>라는 기본 권한이 남아 있어 혼란이 생긴다. Lake Formation을 처음 켜면 기존 IAM 동작과 호환되도록 모든 테이블에 <code>IAMAllowedPrincipals</code> 그랜트가 깔려 있다. 이게 있는 동안은 IAM만 통과하면 데이터가 보여서 Lake Formation이 작동하지 않는 것처럼 느껴진다. 본격적으로 Lake Formation으로 통제하려면 이 기본 그랜트를 떼야 하는데, 떼는 순간 명시적으로 권한을 안 준 모든 Job과 사용자가 한꺼번에 막힌다. 운영 중인 데이터레이크에서 이걸 모르고 제거하면 파이프라인이 줄줄이 멈춘다. 떼기 전에 어떤 역할이 어떤 테이블을 쓰는지 먼저 다 그랜트해두고 마지막에 기본 그랜트를 제거해야 한다.</p>
+<p>크로스 계정에서 더 까다롭다. 데이터 계정의 카탈로그를 분석 계정의 Athena/Spectrum이 보는 구조면, Lake Formation에서 리소스를 다른 계정에 공유(grant)하고, 받는 계정에서 RAM(Resource Access Manager) 초대를 수락한 뒤, 다시 그 계정 안에서 사용자에게 권한을 재부여하는 단계를 다 거쳐야 한다. 한 단계라도 빠지면 테이블이 안 보이거나 보여도 쿼리가 막힌다. 크로스 계정 카탈로그 공유에서 안 보이는 문제는 거의 이 체인 중 한 칸이 비어 있는 것이다.</p>
+<p>Glue Job으로 카탈로그에 테이블을 새로 만드는 경우(<code>enableUpdateCatalog</code>)에도 Lake Formation 권한이 필요하다. Job 역할에 데이터베이스 단위 <code>CREATE_TABLE</code>, 테이블 <code>ALTER</code> 권한이 없으면, 변환은 끝났는데 카탈로그 갱신에서 실패해 Job이 마지막에 죽는다. 데이터는 S3에 다 써놓고 카탈로그만 못 만든 어정쩡한 상태가 남는다.</p>
+<h2 id="dpu-비용--가장-조심해야-할-부분">DPU 비용 — 가장 조심해야 할 부분<a class="headerlink" href="#dpu-비용--가장-조심해야-할-부분" title="Permanent link">&para;</a></h2>
+<p>Glue 과금의 단위는 DPU(Data Processing Unit)다. 1 DPU는 대략 vCPU 4개, 메모리 16GB에 해당한다. 과금은 <code>DPU 개수 × 실행 시간(시간 단위, 초 단위 환산) × 단가</code>로 계산된다. 여기서 비용 폭탄이 터지는 지점들이 있다.</p>
+<h3 id="dpu를-어떻게-세는가">DPU를 어떻게 세는가<a class="headerlink" href="#dpu를-어떻게-세는가" title="Permanent link">&para;</a></h3>
+<p>콘솔에서는 워커 타입과 워커 수를 고르지 워커 수가 곧 DPU는 아니다. 환산이 들어간다. G.1X는 워커 1개가 1 DPU, G.2X는 워커 1개가 2 DPU다. 여기에 Spark에서 코드를 조율하는 드라이버 몫 1 DPU가 더 붙는다. 그래서 실제 DPU는 이렇게 잡힌다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>G.1X 워커 10개  →  드라이버 1 + 워커 10×1 = 11 DPU
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>G.2X 워커 10개  →  드라이버 1 + 워커 10×2 = 21 DPU
+</span></code></pre></div>
+<p>비용은 <code>DPU × 실행 시간(시간) × 단가</code>다. G.1X 워커 10개짜리 Job이 12분 돌면 <code>11 DPU × 0.2시간 × 단가</code>다. 청구서에서 "분명 작은 Job인데 왜 이렇게 나오지" 싶을 때, 워커 수만 보고 드라이버 +1과 G.2X의 ×2 환산을 빼먹은 경우가 많다.</p>
+<p>워커를 많이 잡는다고 빨라지는 것도 아니다. 데이터가 10개 파티션으로만 나뉘는데 워커를 20개 잡으면, 10개는 일하고 10개는 놀면서 DPU만 잡아먹는다. Spark UI에서 익스큐터별 태스크 수를 보고 노는 워커가 많으면 워커 수를 줄여야 한다. Auto Scaling을 켜면(Glue 3.0 이상) 부하에 따라 워커를 자동으로 늘렸다 줄여주니, 데이터 양이 들쭉날쭉한 Job은 고정 워커보다 이쪽이 비용이 덜 든다.</p>
+<p>기본 워커 수가 생각보다 크다. Glue Job을 만들면 기본 워커 타입과 개수가 잡혀 있는데, G.1X 워커 10개면 10 DPU다. 데이터가 몇 MB밖에 안 되는데 워커 10개를 1시간 돌리면 그만큼 돈이 나간다. 작은 데이터를 다루는 Job은 워커 수를 2~3개로 줄여야 한다. 데이터 양에 맞춰 워커를 잡는 감각이 필요하다.</p>
+<p>최소 과금 시간이 있다. Glue 2.0 이상은 최소 1분 과금이라 짧은 Job도 어느 정도 비용이 잡힌다(예전 1.0은 최소 10분이라 더 심했다). 그래도 콜드 스타트로 클러스터 뜨는 시간까지 포함되니 아주 짧은 작업을 Glue로 자주 돌리는 건 비효율이다. 가벼운 처리는 Lambda나 Python 셸 Job이 나을 때가 있다.</p>
+<p>Job이 안 끝나고 매달려 있는다. 무한 루프나 셔플 폭증으로 Job이 멈추지 않고 몇 시간씩 도는 경우 DPU × 시간이 그대로 청구된다. Job 타임아웃을 반드시 설정해둬야 한다. 기본 타임아웃이 길게 잡혀 있으니 처리 시간을 알면 거기에 여유를 더한 값으로 줄여둔다.</p>
+<p>Crawler도 과금된다는 걸 잊는다. Crawler를 빈번한 스케줄로 돌리면 그것도 DPU 시간으로 쌓인다. 위에서 말한 작은 파일 수십만 개를 매시간 크롤링하면 Job 안 돌려도 비용이 나간다.</p>
+<p>개발 중 반복 실행이 누적된다. 디버깅하느라 Job을 수십 번 재실행하면 매번 클러스터가 뜨고 콜드 스타트 시간까지 과금된다. 그래서 위에서 말한 로컬 도커나 Interactive Session으로 먼저 검증하고 실제 Job 실행 횟수를 줄이는 게 비용에도 직결된다.</p>
+<p>비용을 추적하려면 Job마다 태그를 붙이고 Cost Explorer에서 Glue 비용을 Job 단위로 본다. 어느 Job이 DPU를 잡아먹는지 모르면 손을 못 댄다.</p>
+<h2 id="job-bookmark--중복-처리-방지">Job Bookmark — 중복 처리 방지<a class="headerlink" href="#job-bookmark--중복-처리-방지" title="Permanent link">&para;</a></h2>
+<p>매일 새 데이터가 S3에 쌓이는데 Glue Job이 매번 전체를 다시 읽으면 처리량도 늘고 결과도 중복된다. Job bookmark는 Glue가 "지난번에 어디까지 처리했는지"를 기억해서 이번 실행에는 새로 들어온 데이터만 처리하게 하는 기능이다.</p>
+<p>동작 방식은 입력 소스의 진행 상태(S3는 객체의 마지막 수정 시각과 경로, JDBC는 기준 컬럼 값)를 북마크에 저장해두는 것이다. 다음 실행 때 그 지점 이후의 데이터만 읽는다. 매일 어제치 로그만 증분 처리하는 파이프라인에서 이게 없으면 중복 적재가 일어난다.</p>
+<p>쓰려면 세 가지를 맞춰야 한다.</p>
+<p>첫째, Job 설정에서 북마크를 Enable로 켠다. 기본은 꺼져 있다(Disable).</p>
+<p>둘째, 코드에서 <code>transformation_ctx</code>를 모든 입출력에 지정한다. 북마크는 이 ctx 이름을 키로 진행 상태를 추적한다. ctx 이름이 없거나 중간에 바뀌면 북마크가 추적을 못 해서 전체를 다시 읽는다. 위 예제에서 <code>from_catalog</code>와 <code>write_dynamic_frame</code> 양쪽에 <code>transformation_ctx</code>를 넣은 이유가 이것이다.</p>
+<p>셋째, 마지막에 <code>job.commit()</code>을 호출한다. 이 호출이 있어야 이번 실행에서 처리한 지점이 북마크에 저장된다. <code>job.commit()</code>을 안 부르면 다음 실행에서 같은 데이터를 또 읽는다. 디버깅하다가 <code>job.commit()</code>을 빼먹고 돌려놓고는 "북마크를 켰는데 왜 매번 전체를 읽지" 하고 헤매는 일이 자주 있다.</p>
+<h3 id="중복-적재가-났던-사례">중복 적재가 났던 사례<a class="headerlink" href="#중복-적재가-났던-사례" title="Permanent link">&para;</a></h3>
+<p>북마크를 켜뒀는데도 중복이 쌓인 경우를 몇 번 봤다. 패턴이 정해져 있다.</p>
+<p><code>transformation_ctx</code>를 출력에만 빼먹은 경우다. 입력 <code>from_catalog</code>에는 ctx를 넣었는데 출력 <code>write_dynamic_frame</code>에는 안 넣었다. 북마크는 입력만 추적해서 새 데이터만 읽기는 하는데, 출력 쪽 ctx가 없으면 Glue가 출력 경로의 상태를 추적하지 못해 일부 시나리오에서 같은 출력을 다시 쓰는 일이 생긴다. 입출력 양쪽 ctx를 다 채워야 한다.</p>
+<p>리파티션이나 셔플 뒤에서 출력 ctx가 입력과 끊긴 경우도 있다. 입력에서 받은 DynamicFrame을 <code>toDF()</code>로 바꿔 <code>groupBy</code>, <code>join</code>을 거치면 데이터 계보가 한 번 끊긴다. 이 상태에서 출력 ctx만 있다고 북마크가 입력-출력을 자동으로 이어주지 않는다. 변환이 복잡한 파이프라인은 북마크가 입력 증분만 보장한다고 보고, 출력 중복은 적재 단계에서 따로 막아야 한다.</p>
+<p>가장 흔한 건 동일 파일을 다시 올린 경우다. 데이터 제공 쪽이 어제 파일을 정정해서 같은 경로에 다시 업로드하면, S3 객체의 LastModified가 갱신돼 북마크가 "새 파일"로 보고 다시 읽는다. 원본은 한 번 처리됐는데 정정본이 또 적재되니 그날치가 두 번 들어간다. 이건 북마크의 정상 동작이라 막을 수 없고, 적재를 멱등하게 만들어야 한다. 파티션 단위로 덮어쓰는 방식이면 같은 날짜가 다시 들어와도 그 파티션만 교체되니 중복이 안 쌓인다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 파티션 덮어쓰기로 중복 적재를 멱등하게 만든다 (북마크가 헛돌아도 결과는 안 깨짐)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;spark.sql.sources.partitionOverwriteMode&quot;</span><span class="p">,</span> <span class="s2">&quot;dynamic&quot;</span><span class="p">)</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">df</span><span class="o">.</span><span class="n">write</span> \
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="s2">&quot;overwrite&quot;</span><span class="p">)</span> \
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;dt&quot;</span><span class="p">)</span> \
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="s2">&quot;s3://my-bucket/curated/orders/&quot;</span><span class="p">)</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1"># dynamic 모드: 이번에 들어온 dt 파티션만 교체. 안 건드린 과거 파티션은 그대로 둠</span>
+</span></code></pre></div>
+<p><code>partitionOverwriteMode=dynamic</code>이 없으면 <code>overwrite</code>가 출력 경로 전체를 날려버린다. 어제까지 쌓아둔 모든 파티션이 사라지고 오늘치만 남는 사고가 여기서 난다. 동적 모드를 반드시 같이 켜야 한다.</p>
+<h3 id="북마크-쓸-때-주의할-점">북마크 쓸 때 주의할 점<a class="headerlink" href="#북마크-쓸-때-주의할-점" title="Permanent link">&para;</a></h3>
+<p>북마크 상태는 콘솔이나 CLI에서 리셋할 수 있다(<code>reset-job-bookmark</code>). 로직을 바꿔서 과거 데이터를 다시 처리해야 할 때 리셋한다. 다만 리셋하면 전체를 처음부터 다시 읽으니 비용과 시간이 든다.</p>
+<p>S3 소스에서 북마크는 객체의 마지막 수정 시각을 기준으로 한다. 그래서 이미 처리한 파일을 누가 다시 업로드하거나 덮어쓰면 수정 시각이 갱신돼서 다시 처리 대상이 된다. 반대로 과거 날짜로 백필한 파일을 나중에 올리면 수정 시각은 최신이라 잡히지만, 경로 기반 파티션과 어긋나는 상황이 생길 수 있다. 백필을 자주 한다면 북마크만 믿지 말고 결과 쪽에서 중복을 거르는 안전장치(적재 시 멱등성, dedup)를 같이 둬야 한다.</p>
+<p>JDBC 소스에서 북마크는 지정한 기준 컬럼(보통 자동 증가 ID나 타임스탬프)이 단조 증가해야 정상 동작한다. 기준 컬럼이 중간에 거꾸로 가거나 같은 값이 반복되면 누락이나 중복이 생긴다.</p>
+<p>북마크는 만능이 아니다. 증분 처리의 정확성을 최종적으로 보장하는 건 적재 단계의 멱등성이다. 북마크로 읽는 양을 줄이되, 같은 데이터가 두 번 적재돼도 결과가 깨지지 않도록 키 기반 upsert나 파티션 덮어쓰기를 같이 설계하는 게 운영에서 사고를 막는 방법이다.</p>
+<h2 id="정리">정리<a class="headerlink" href="#정리" title="Permanent link">&para;</a></h2>
+<p>Glue는 Spark 클러스터 관리를 떼어낸 ETL 도구다. Catalog는 Athena·Redshift와 공유하는 공용 메타데이터, Crawler는 스키마 자동 등록기, Job은 PySpark 변환 실행기로 보면 된다.</p>
+<p>실무에서 발목을 잡는 건 코드 문법보다 운영 쪽이다. 워커 수와 드라이버 몫, 실행 시간을 방치해서 나오는 DPU 비용, <code>transformation_ctx</code>와 <code>job.commit()</code>을 빠뜨리거나 동일 파일 재업로드로 헛도는 job bookmark, 버전 올리면서 미묘하게 틀어지는 Spark 동작, 스큐 키 하나로 익스큐터가 OOM으로 죽는 셔플, 카탈로그를 여럿이 공유하면서 한 겹 더 쌓이는 Lake Formation 권한이 반복해서 나온다. 공통점이 하나 있다. 북마크든 재시도든 증분 처리든, 정확성의 마지막 보루는 결국 적재 단계의 멱등성이라는 것이다. 파티션 덮어쓰기나 키 기반 upsert로 같은 데이터가 두 번 들어와도 결과가 안 깨지게 설계해두면, 위쪽 단계가 가끔 헛돌아도 사고로 번지지 않는다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Load_Balancer/ALB_Troubleshooting/">ALB 5xx 트러블슈팅</a></li>
+<li><a href="../../Load_Balancer/ALB_Lambda_Target/">ALB Lambda 타겟 그룹 심화</a></li>
+<li><a href="../../Network/ALB_ECS_S3_Request_Flow/">ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li>
+<li><a href="../../Load_Balancer/ALB_Blue_Green_Deployment/">ALB 기반 Blue/Green 무중단 배포</a></li>
+<li><a href="../../Compute/Auto_Scaling_Lifecycle_Hooks/">ASG 라이프사이클 훅</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Athena/" class="md-footer__link md-footer__link--prev" aria-label="이전: AWS Athena (S3 서버리스 SQL)">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                AWS Athena (S3 서버리스 SQL)
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Open_Search/" class="md-footer__link md-footer__link--next" aria-label="다음: AWS OpenSearch (관리형 검색·로그 분석)">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                AWS OpenSearch (관리형 검색·로그 분석)
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

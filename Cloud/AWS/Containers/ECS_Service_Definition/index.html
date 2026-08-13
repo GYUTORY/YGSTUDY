@@ -1,4 +1,2526 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Containers/ECS_Service_Definition/ rel=canonical><link href=../ECS_Service_Connect/ rel=prev><link href=../ECS_Sidecar_Patterns/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>ECS Service 설정 심화 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#ecs-service-설정-심화 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> ECS Service 설정 심화 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Network/ class=md-nav__link> <span class=md-ellipsis> Network </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Containers </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_5_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_5> <span class="md-nav__icon md-icon"></span> Containers </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Database/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Analytics/ class=md-nav__link> <span class=md-ellipsis> Analytics </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=#service의-본질-desired-state-reconciliation class=md-nav__link> <span class=md-ellipsis> Service의 본질: Desired State Reconciliation </span> </a> </li> <li class=md-nav__item> <a href=#desiredcount class=md-nav__link> <span class=md-ellipsis> desiredCount </span> </a> </li> <li class=md-nav__item> <a href=#deploymentconfiguration class=md-nav__link> <span class=md-ellipsis> deploymentConfiguration </span> </a> <nav class=md-nav aria-label=deploymentConfiguration> <ul class=md-nav__list> <li class=md-nav__item> <a href=#minimumhealthypercent class=md-nav__link> <span class=md-ellipsis> minimumHealthyPercent </span> </a> </li> <li class=md-nav__item> <a href=#maximumpercent class=md-nav__link> <span class=md-ellipsis> maximumPercent </span> </a> </li> <li class=md-nav__item> <a href=#deploymentcircuitbreaker class=md-nav__link> <span class=md-ellipsis> deploymentCircuitBreaker </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#launchtype-vs-capacityproviderstrategy class=md-nav__link> <span class=md-ellipsis> launchType vs capacityProviderStrategy </span> </a> <nav class=md-nav aria-label="launchType vs capacityProviderStrategy"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#launchtype class=md-nav__link> <span class=md-ellipsis> launchType </span> </a> </li> <li class=md-nav__item> <a href=#capacityproviderstrategy class=md-nav__link> <span class=md-ellipsis> capacityProviderStrategy </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#platformversion class=md-nav__link> <span class=md-ellipsis> platformVersion </span> </a> </li> <li class=md-nav__item> <a href=#loadbalancers-alb-타겟-그룹-바인딩 class=md-nav__link> <span class=md-ellipsis> loadBalancers (ALB 타겟 그룹 바인딩) </span> </a> <nav class=md-nav aria-label="loadBalancers (ALB 타겟 그룹 바인딩)"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#변경의-제약 class=md-nav__link> <span class=md-ellipsis> 변경의 제약 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#healthcheckgraceperiodseconds class=md-nav__link> <span class=md-ellipsis> healthCheckGracePeriodSeconds </span> </a> </li> <li class=md-nav__item> <a href=#enableexecutecommand class=md-nav__link> <span class=md-ellipsis> enableExecuteCommand </span> </a> </li> <li class=md-nav__item> <a href=#propagatetags class=md-nav__link> <span class=md-ellipsis> propagateTags </span> </a> </li> <li class=md-nav__item> <a href=#schedulingstrategy class=md-nav__link> <span class=md-ellipsis> schedulingStrategy </span> </a> <nav class=md-nav aria-label=schedulingStrategy> <ul class=md-nav__list> <li class=md-nav__item> <a href=#replica class=md-nav__link> <span class=md-ellipsis> REPLICA </span> </a> </li> <li class=md-nav__item> <a href=#daemon class=md-nav__link> <span class=md-ellipsis> DAEMON </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#placementstrategy--placementconstraints class=md-nav__link> <span class=md-ellipsis> placementStrategy / placementConstraints </span> </a> <nav class=md-nav aria-label="placementStrategy / placementConstraints"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#placementstrategy class=md-nav__link> <span class=md-ellipsis> placementStrategy </span> </a> </li> <li class=md-nav__item> <a href=#placementconstraints class=md-nav__link> <span class=md-ellipsis> placementConstraints </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#networkconfiguration class=md-nav__link> <span class=md-ellipsis> networkConfiguration </span> </a> <nav class=md-nav aria-label=networkConfiguration> <ul class=md-nav__list> <li class=md-nav__item> <a href=#subnets class=md-nav__link> <span class=md-ellipsis> subnets </span> </a> </li> <li class=md-nav__item> <a href=#securitygroups class=md-nav__link> <span class=md-ellipsis> securityGroups </span> </a> </li> <li class=md-nav__item> <a href=#assignpublicip class=md-nav__link> <span class=md-ellipsis> assignPublicIp </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#alb-헬스체크-실패로-인한-무한-재생성-트러블슈팅 class=md-nav__link> <span class=md-ellipsis> ALB 헬스체크 실패로 인한 무한 재생성 트러블슈팅 </span> </a> <nav class=md-nav aria-label="ALB 헬스체크 실패로 인한 무한 재생성 트러블슈팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#1-healthcheckgraceperiodseconds-확인 class=md-nav__link> <span class=md-ellipsis> 1. healthCheckGracePeriodSeconds 확인 </span> </a> </li> <li class=md-nav__item> <a href=#2-alb-헬스체크-경로와-응답-확인 class=md-nav__link> <span class=md-ellipsis> 2. ALB 헬스체크 경로와 응답 확인 </span> </a> </li> <li class=md-nav__item> <a href=#3-보안-그룹-inbound-확인 class=md-nav__link> <span class=md-ellipsis> 3. 보안 그룹 inbound 확인 </span> </a> </li> <li class=md-nav__item> <a href=#4-task-definition-헬스체크와-alb-헬스체크-충돌 class=md-nav__link> <span class=md-ellipsis> 4. Task Definition 헬스체크와 ALB 헬스체크 충돌 </span> </a> </li> <li class=md-nav__item> <a href=#5-메모리-부족으로-oomkilled class=md-nav__link> <span class=md-ellipsis> 5. 메모리 부족으로 OOMKilled </span> </a> </li> <li class=md-nav__item> <a href=#6-deploymentcircuitbreaker로-자동-멈춤 class=md-nav__link> <span class=md-ellipsis> 6. deploymentCircuitBreaker로 자동 멈춤 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> <li class=md-nav__item> <a href=#참고 class=md-nav__link> <span class=md-ellipsis> 참고 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>cloud</span> <span class=md-tag>devops</span> <span class=md-tag>network</span> </nav> <h1 id=ecs-service-설정-심화>ECS Service 설정 심화<a class=headerlink href=#ecs-service-설정-심화 title="Permanent link">&para;</a></h1> <h2 id=개요>개요<a class=headerlink href=#개요 title="Permanent link">&para;</a></h2> <p>ECS에서 Service는 "Task Definition으로 정의한 태스크를 몇 개, 어디에, 어떻게 띄우고 유지할지"를 책임지는 컨트롤 플레인 객체다. Task Definition이 <strong>무엇을 띄울지(what)</strong>를 정의한다면 Service는 <strong>얼마나, 어디에, 어떻게 운영할지(how many / where / how)</strong>를 결정한다. 둘을 분리해 둔 덕분에 같은 Task Definition을 dev/staging/prod에서 다른 desiredCount, 다른 서브넷, 다른 ALB로 돌릴 수 있다.</p> <p>Service를 한 번이라도 운영해본 사람은 안다. desiredCount만 정해두면 알아서 굴러갈 것 같지만, 실제로는 deploymentConfiguration의 퍼센트, ALB 헬스체크 grace period, capacity provider strategy, placementStrategy 같은 파라미터가 서로 얽혀서 한 곳을 잘못 건드리면 배포가 무한 롤링하거나 태스크가 STOPPED → PENDING → STOPPED를 반복한다. 이 문서는 Service 정의의 주요 필드를 실제 운영 관점에서 풀어 본다.</p> <h2 id=service의-본질-desired-state-reconciliation>Service의 본질: Desired State Reconciliation<a class=headerlink href=#service의-본질-desired-state-reconciliation title="Permanent link">&para;</a></h2> <p>Service의 핵심 책임은 단 하나다. <strong>현재 RUNNING 태스크 수를 desiredCount와 일치시키는 것.</strong> 쿠버네티스의 Deployment/ReplicaSet과 같은 패턴이다. ECS Scheduler가 1초 단위에 가까운 주기로 클러스터 상태를 확인하면서 차이를 메운다.</p> <pre class=mermaid-diagram><code>flowchart LR
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Containers/ECS_Service_Definition/">
+      
+      
+        <link rel="prev" href="../ECS_Service_Connect/">
+      
+      
+        <link rel="next" href="../ECS_Sidecar_Patterns/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>ECS Service 설정 심화 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ecs-service-설정-심화" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ECS Service 설정 심화
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Containers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Database/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Analytics/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service의-본질-desired-state-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service의 본질: Desired State Reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#desiredcount" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        desiredCount
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploymentconfiguration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deploymentConfiguration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="deploymentConfiguration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#minimumhealthypercent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        minimumHealthyPercent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maximumpercent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        maximumPercent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deploymentcircuitbreaker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        deploymentCircuitBreaker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#launchtype-vs-capacityproviderstrategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        launchType vs capacityProviderStrategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="launchType vs capacityProviderStrategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#launchtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        launchType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capacityproviderstrategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        capacityProviderStrategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#platformversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        platformVersion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loadbalancers-alb-타겟-그룹-바인딩" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        loadBalancers (ALB 타겟 그룹 바인딩)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="loadBalancers (ALB 타겟 그룹 바인딩)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#변경의-제약" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        변경의 제약
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#healthcheckgraceperiodseconds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        healthCheckGracePeriodSeconds
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enableexecutecommand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        enableExecuteCommand
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#propagatetags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        propagateTags
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schedulingstrategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedulingStrategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="schedulingStrategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#replica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REPLICA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DAEMON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#placementstrategy--placementconstraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        placementStrategy / placementConstraints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="placementStrategy / placementConstraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#placementstrategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        placementStrategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#placementconstraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        placementConstraints
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#networkconfiguration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        networkConfiguration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="networkConfiguration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subnets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        subnets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#securitygroups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        securityGroups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assignpublicip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        assignPublicIp
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alb-헬스체크-실패로-인한-무한-재생성-트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ALB 헬스체크 실패로 인한 무한 재생성 트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ALB 헬스체크 실패로 인한 무한 재생성 트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-healthcheckgraceperiodseconds-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. healthCheckGracePeriodSeconds 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-alb-헬스체크-경로와-응답-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. ALB 헬스체크 경로와 응답 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-보안-그룹-inbound-확인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 보안 그룹 inbound 확인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-task-definition-헬스체크와-alb-헬스체크-충돌" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Task Definition 헬스체크와 ALB 헬스체크 충돌
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-메모리-부족으로-oomkilled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 메모리 부족으로 OOMKilled
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-deploymentcircuitbreaker로-자동-멈춤" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. deploymentCircuitBreaker로 자동 멈춤
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#참고" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        참고
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">devops</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="ecs-service-설정-심화">ECS Service 설정 심화<a class="headerlink" href="#ecs-service-설정-심화" title="Permanent link">&para;</a></h1>
+<h2 id="개요">개요<a class="headerlink" href="#개요" title="Permanent link">&para;</a></h2>
+<p>ECS에서 Service는 "Task Definition으로 정의한 태스크를 몇 개, 어디에, 어떻게 띄우고 유지할지"를 책임지는 컨트롤 플레인 객체다. Task Definition이 <strong>무엇을 띄울지(what)</strong>를 정의한다면 Service는 <strong>얼마나, 어디에, 어떻게 운영할지(how many / where / how)</strong>를 결정한다. 둘을 분리해 둔 덕분에 같은 Task Definition을 dev/staging/prod에서 다른 desiredCount, 다른 서브넷, 다른 ALB로 돌릴 수 있다.</p>
+<p>Service를 한 번이라도 운영해본 사람은 안다. desiredCount만 정해두면 알아서 굴러갈 것 같지만, 실제로는 deploymentConfiguration의 퍼센트, ALB 헬스체크 grace period, capacity provider strategy, placementStrategy 같은 파라미터가 서로 얽혀서 한 곳을 잘못 건드리면 배포가 무한 롤링하거나 태스크가 STOPPED → PENDING → STOPPED를 반복한다. 이 문서는 Service 정의의 주요 필드를 실제 운영 관점에서 풀어 본다.</p>
+<h2 id="service의-본질-desired-state-reconciliation">Service의 본질: Desired State Reconciliation<a class="headerlink" href="#service의-본질-desired-state-reconciliation" title="Permanent link">&para;</a></h2>
+<p>Service의 핵심 책임은 단 하나다. <strong>현재 RUNNING 태스크 수를 desiredCount와 일치시키는 것.</strong> 쿠버네티스의 Deployment/ReplicaSet과 같은 패턴이다. ECS Scheduler가 1초 단위에 가까운 주기로 클러스터 상태를 확인하면서 차이를 메운다.</p>
+<pre class="mermaid-diagram"><code>flowchart LR
     A[Service 정의&lt;br/&gt;desiredCount=4] --&gt; B[ECS Scheduler]
     B --&gt; C{현재 RUNNING&lt;br/&gt;= desiredCount?}
     C --&gt;|적음| D[새 Task 생성&lt;br/&gt;placementStrategy 적용]
@@ -7,11 +2529,36 @@
     D --&gt; G[CapacityProvider /&lt;br/&gt;EC2 가용 용량 확인]
     G --&gt; H[Task RUNNING]
     H --&gt; C
-    E --&gt; C</code></pre> <p>이 reconciliation 루프 때문에 발생하는 현상이 몇 가지 있다.</p> <ul> <li>태스크를 수동으로 <code>aws ecs stop-task</code>로 죽이면 Service가 즉시 새 태스크를 띄운다. 디버깅 목적으로 죽였는데 다시 살아나서 당황하는 경우가 흔하다. 정말 하나만 죽이고 싶으면 desiredCount를 줄여야 한다.</li> <li>태스크가 자체 종료(exit code != 0)되면 Service가 새 태스크로 교체한다. 컨테이너 안에서 SIGTERM 처리를 잘못해서 종료 코드가 0이 안 나오면 무한 재시작 루프에 빠진다.</li> <li>EC2 인스턴스 장애로 태스크가 사라지면 Capacity Provider가 인스턴스를 띄울 때까지 PROVISIONING 상태로 대기한다. 이 사이에 desiredCount 미달이 길어진다.</li> </ul> <p>Task Definition은 "스펙 시트"고 Service는 "운영자"라고 생각하면 둘의 역할 구분이 명확해진다. Task Definition 리비전을 새로 만들어도 Service에서 update-service로 그 리비전을 가리키지 않으면 운영 중인 태스크는 그대로다.</p> <h2 id=desiredcount>desiredCount<a class=headerlink href=#desiredcount title="Permanent link">&para;</a></h2> <p>가장 단순해 보이지만 의외로 신경 쓸 게 많은 필드.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>aws<span class=w> </span>ecs<span class=w> </span>update-service<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=w>  </span>--cluster<span class=w> </span>prod-cluster<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=w>  </span>--service<span class=w> </span>api-service<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=w>  </span>--desired-count<span class=w> </span><span class=m>6</span>
-</span></code></pre></div> <p>명시적으로 <code>update-service --desired-count</code>를 호출하기 전까지 Service의 desiredCount는 변하지 않는다. 그런데 Application Auto Scaling을 붙여 놓으면 외부에서 desiredCount가 자동으로 바뀐다. 이 때문에 IaC(Terraform, CloudFormation)로 Service를 관리하면서 Auto Scaling을 같이 쓰면 desiredCount가 drift(실제 상태와 코드 정의 불일치)를 일으킨다.</p> <p>Terraform에서는 <code>lifecycle { ignore_changes = [desired_count] }</code>로 처리하는 게 정석이다. CloudFormation은 Service Auto Scaling이 desiredCount를 수정해도 스택 업데이트 시 무시하도록 설계돼 있다. 이 동작을 모르고 매번 코드의 desiredCount=2로 강제로 되돌리면 트래픽 폭주 시간대에 용량이 죽는다.</p> <p>desiredCount를 0으로 두면 Service는 살아있지만 태스크는 모두 종료된다. 일시 중단할 때 Service를 삭제하지 않고 desiredCount=0으로 두면 ALB 타겟 그룹 연결이나 Service ARN을 보존할 수 있어 유용하다.</p> <h2 id=deploymentconfiguration>deploymentConfiguration<a class=headerlink href=#deploymentconfiguration title="Permanent link">&para;</a></h2> <p>Rolling Update에서 가장 중요한 두 값이 여기에 있다. 자세한 동작 원리는 <a href=../ECS_Deployment_Strategies/ >ECS Deployment Strategies</a> 문서에 정리해 두었고, 여기서는 Service 설정 관점에서 다시 짚는다.</p> <h3 id=minimumhealthypercent>minimumHealthyPercent<a class=headerlink href=#minimumhealthypercent title="Permanent link">&para;</a></h3> <p>배포 중에 유지해야 하는 RUNNING &amp; HEALTHY 태스크의 <strong>하한선</strong>이다. desiredCount 대비 퍼센트로 표현하고, 계산은 floor(소수점 내림). 기본값은 100.</p> <ul> <li>desiredCount=4, minimumHealthyPercent=100 → 항상 4개 이상 유지. 기존 4개 그대로 두고 새 태스크 4개를 추가로 띄운 뒤 기존 것을 내린다(maximumPercent=200 가정).</li> <li>desiredCount=4, minimumHealthyPercent=50 → floor(4*0.5)=2. 2개까지 동시에 내릴 수 있다. 신버전 2개 띄우고 구버전 2개 내리고를 반복.</li> <li>desiredCount=3, minimumHealthyPercent=50 → floor(3<em>0.5)=1. </em><em>1개만 살아있어도 통과한다.</em>* 이 부분이 함정이다. 50%라고 해서 절반이 보장되는 게 아니다.</li> </ul> <h3 id=maximumpercent>maximumPercent<a class=headerlink href=#maximumpercent title="Permanent link">&para;</a></h3> <p>배포 중에 일시적으로 띄울 수 있는 태스크의 <strong>상한선</strong>. desiredCount 대비 퍼센트, 기본값 200. 이 값이 작으면 새 태스크를 띄울 여유가 없어 배포 자체가 시작되지 않는다.</p> <pre class=mermaid-diagram><code>sequenceDiagram
+    E --&gt; C</code></pre>
+<p>이 reconciliation 루프 때문에 발생하는 현상이 몇 가지 있다.</p>
+<ul>
+<li>태스크를 수동으로 <code>aws ecs stop-task</code>로 죽이면 Service가 즉시 새 태스크를 띄운다. 디버깅 목적으로 죽였는데 다시 살아나서 당황하는 경우가 흔하다. 정말 하나만 죽이고 싶으면 desiredCount를 줄여야 한다.</li>
+<li>태스크가 자체 종료(exit code != 0)되면 Service가 새 태스크로 교체한다. 컨테이너 안에서 SIGTERM 처리를 잘못해서 종료 코드가 0이 안 나오면 무한 재시작 루프에 빠진다.</li>
+<li>EC2 인스턴스 장애로 태스크가 사라지면 Capacity Provider가 인스턴스를 띄울 때까지 PROVISIONING 상태로 대기한다. 이 사이에 desiredCount 미달이 길어진다.</li>
+</ul>
+<p>Task Definition은 "스펙 시트"고 Service는 "운영자"라고 생각하면 둘의 역할 구분이 명확해진다. Task Definition 리비전을 새로 만들어도 Service에서 update-service로 그 리비전을 가리키지 않으면 운영 중인 태스크는 그대로다.</p>
+<h2 id="desiredcount">desiredCount<a class="headerlink" href="#desiredcount" title="Permanent link">&para;</a></h2>
+<p>가장 단순해 보이지만 의외로 신경 쓸 게 많은 필드.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>update-service<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--cluster<span class="w"> </span>prod-cluster<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--service<span class="w"> </span>api-service<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--desired-count<span class="w"> </span><span class="m">6</span>
+</span></code></pre></div>
+<p>명시적으로 <code>update-service --desired-count</code>를 호출하기 전까지 Service의 desiredCount는 변하지 않는다. 그런데 Application Auto Scaling을 붙여 놓으면 외부에서 desiredCount가 자동으로 바뀐다. 이 때문에 IaC(Terraform, CloudFormation)로 Service를 관리하면서 Auto Scaling을 같이 쓰면 desiredCount가 drift(실제 상태와 코드 정의 불일치)를 일으킨다.</p>
+<p>Terraform에서는 <code>lifecycle { ignore_changes = [desired_count] }</code>로 처리하는 게 정석이다. CloudFormation은 Service Auto Scaling이 desiredCount를 수정해도 스택 업데이트 시 무시하도록 설계돼 있다. 이 동작을 모르고 매번 코드의 desiredCount=2로 강제로 되돌리면 트래픽 폭주 시간대에 용량이 죽는다.</p>
+<p>desiredCount를 0으로 두면 Service는 살아있지만 태스크는 모두 종료된다. 일시 중단할 때 Service를 삭제하지 않고 desiredCount=0으로 두면 ALB 타겟 그룹 연결이나 Service ARN을 보존할 수 있어 유용하다.</p>
+<h2 id="deploymentconfiguration">deploymentConfiguration<a class="headerlink" href="#deploymentconfiguration" title="Permanent link">&para;</a></h2>
+<p>Rolling Update에서 가장 중요한 두 값이 여기에 있다. 자세한 동작 원리는 <a href="../ECS_Deployment_Strategies/">ECS Deployment Strategies</a> 문서에 정리해 두었고, 여기서는 Service 설정 관점에서 다시 짚는다.</p>
+<h3 id="minimumhealthypercent">minimumHealthyPercent<a class="headerlink" href="#minimumhealthypercent" title="Permanent link">&para;</a></h3>
+<p>배포 중에 유지해야 하는 RUNNING &amp; HEALTHY 태스크의 <strong>하한선</strong>이다. desiredCount 대비 퍼센트로 표현하고, 계산은 floor(소수점 내림). 기본값은 100.</p>
+<ul>
+<li>desiredCount=4, minimumHealthyPercent=100 → 항상 4개 이상 유지. 기존 4개 그대로 두고 새 태스크 4개를 추가로 띄운 뒤 기존 것을 내린다(maximumPercent=200 가정).</li>
+<li>desiredCount=4, minimumHealthyPercent=50 → floor(4*0.5)=2. 2개까지 동시에 내릴 수 있다. 신버전 2개 띄우고 구버전 2개 내리고를 반복.</li>
+<li>desiredCount=3, minimumHealthyPercent=50 → floor(3<em>0.5)=1. </em><em>1개만 살아있어도 통과한다.</em>* 이 부분이 함정이다. 50%라고 해서 절반이 보장되는 게 아니다.</li>
+</ul>
+<h3 id="maximumpercent">maximumPercent<a class="headerlink" href="#maximumpercent" title="Permanent link">&para;</a></h3>
+<p>배포 중에 일시적으로 띄울 수 있는 태스크의 <strong>상한선</strong>. desiredCount 대비 퍼센트, 기본값 200. 이 값이 작으면 새 태스크를 띄울 여유가 없어 배포 자체가 시작되지 않는다.</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant U as 운영자
     participant S as ECS Service
     participant T as Task Set
@@ -25,70 +2572,241 @@
     S-&gt;&gt;T: api:7 태스크 4개 deregister 시작
     ALB-&gt;&gt;T: connection draining (기본 300초)
     T--&gt;&gt;S: api:7 종료 완료
-    S--&gt;&gt;U: deployment COMPLETED</code></pre> <p>운영 환경에서 자주 쓰는 조합:</p> <ul> <li><strong>100/200</strong>: 가장 안전. 신버전 전부 띄우고 구버전 내림. 일시적으로 리소스가 두 배.</li> <li><strong>100/150</strong>: 절반씩 교체. 리소스 1.5배. 큰 클러스터에서 쓸 만한 절충안.</li> <li><strong>50/100</strong>: 리소스 여유가 없을 때. 배포 중 용량이 절반으로 떨어진다는 점 감안해야 한다.</li> <li><strong>0/100</strong>: 절대 프로덕션에서 쓰지 말 것. 짧은 다운타임이 발생한다.</li> </ul> <h3 id=deploymentcircuitbreaker>deploymentCircuitBreaker<a class=headerlink href=#deploymentcircuitbreaker title="Permanent link">&para;</a></h3> <p><code>deploymentConfiguration.deploymentCircuitBreaker.enable=true</code>로 켜면 배포가 실패할 때 자동으로 이전 리비전으로 롤백한다. <code>rollback=true</code>까지 켜야 자동 롤백이 동작하고, false면 실패 감지만 한다. 새 태스크가 연속으로 STOPPED 상태가 되거나 ALB 헬스체크를 일정 시간 동안 통과하지 못하면 ECS가 배포 실패로 판단한다.</p> <p>이 기능을 켜지 않으면 잘못된 이미지를 배포했을 때 ECS가 끝없이 새 태스크를 띄우고 죽이고를 반복한다. 새 운영 Service라면 무조건 켜는 게 좋다.</p> <h2 id=launchtype-vs-capacityproviderstrategy>launchType vs capacityProviderStrategy<a class=headerlink href=#launchtype-vs-capacityproviderstrategy title="Permanent link">&para;</a></h2> <p>Service를 만들 때 둘 중 하나만 지정해야 한다. 같이 지정하면 API가 거부한다.</p> <h3 id=launchtype>launchType<a class=headerlink href=#launchtype title="Permanent link">&para;</a></h3> <p><code>FARGATE</code>, <code>EC2</code>, <code>EXTERNAL</code> 중 하나를 직접 지정. 단순하고 명시적이지만 캐파시티가 없어도 그냥 PROVISIONING 상태로 대기만 한다. EC2 Launch Type일 때 ASG가 인스턴스를 띄우게 하려면 별도로 ASG의 desired capacity를 늘려야 한다. 즉 ECS가 EC2 용량을 자동으로 키워주지 않는다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=p>{</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=w>  </span><span class=nt>&quot;launchType&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;FARGATE&quot;</span><span class=p>,</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>  </span><span class=nt>&quot;platformVersion&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;LATEST&quot;</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=p>}</span>
-</span></code></pre></div> <h3 id=capacityproviderstrategy>capacityProviderStrategy<a class=headerlink href=#capacityproviderstrategy title="Permanent link">&para;</a></h3> <p>여러 Capacity Provider에 가중치(weight)와 base를 지정해 태스크를 분산한다. EC2 Capacity Provider라면 ECS Managed Scaling이 알아서 ASG 용량까지 조절한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=p>{</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span><span class=nt>&quot;capacityProviderStrategy&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;capacityProvider&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;FARGATE&quot;</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;weight&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;base&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>2</span><span class=w> </span><span class=p>},</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;capacityProvider&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;FARGATE_SPOT&quot;</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;weight&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>4</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;base&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>0</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=p>}</span>
-</span></code></pre></div> <p>위 예시는 "최소 2개는 FARGATE에, 나머지는 FARGATE:FARGATE_SPOT = 1:4 비율로 분산"한다는 뜻이다. base는 절대 개수, weight는 비율이라 의미가 다르다. SPOT 인스턴스가 회수되면 ECS가 자동으로 새 태스크를 다른 Capacity Provider에 띄운다. 비용 최적화를 노린다면 이 패턴이 거의 유일한 답이다.</p> <p>자세한 capacity provider 설정과 managed scaling 동작은 <a href=../ECS_Capacity_Providers/ >ECS Capacity Providers</a> 문서를 참고.</p> <p>선택 기준은 단순하다. <strong>새 Service라면 capacityProviderStrategy를 써라.</strong> launchType은 레거시 호환과 단순한 케이스에만 남겨두는 게 좋다. 한 번 launchType으로 만든 Service를 capacityProviderStrategy로 바꾸려면 Service를 재생성해야 한다는 점도 미리 알아두자.</p> <h2 id=platformversion>platformVersion<a class=headerlink href=#platformversion title="Permanent link">&para;</a></h2> <p>Fargate 전용 필드. <code>LATEST</code>, <code>1.4.0</code>, <code>1.3.0</code> 같은 버전 문자열을 지정한다. 기본값은 <code>LATEST</code>인데, 이게 항상 좋은 건 아니다.</p> <p><code>LATEST</code>는 새 태스크가 생성될 때마다 그 시점의 최신 플랫폼 버전을 쓴다. 즉 배포가 일어나지 않아도 ECS 내부에서 패치가 발생하면 태스크가 다른 버전으로 교체될 수 있다. 1.4.0과 1.3.0은 EFS 지원 여부, ENI 트렁킹, 블록 스토리지 같은 기능 차이가 있다. EFS를 쓰는 Service인데 platformVersion을 명시하지 않았다가 어느 날 1.3.0 호환 태스크가 떠서 마운트 실패하는 사례가 있었다.</p> <p><strong>프로덕션에서는 platformVersion을 명시적으로 고정하는 걸 권장한다.</strong> 변경할 때는 의도적으로 update-service로 바꿔야 한다.</p> <h2 id=loadbalancers-alb-타겟-그룹-바인딩>loadBalancers (ALB 타겟 그룹 바인딩)<a class=headerlink href=#loadbalancers-alb-타겟-그룹-바인딩 title="Permanent link">&para;</a></h2> <p>Service 생성 시점에 ALB 타겟 그룹을 연결하는 부분이다. 한 번 설정하면 <strong>변경이 매우 제한적</strong>이라는 점이 가장 중요하다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=p>{</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span><span class=nt>&quot;loadBalancers&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>    </span><span class=p>{</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>      </span><span class=nt>&quot;targetGroupArn&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;arn:aws:elasticloadbalancing:...:targetgroup/api-tg/abc&quot;</span><span class=p>,</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>      </span><span class=nt>&quot;containerName&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;api&quot;</span><span class=p>,</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>      </span><span class=nt>&quot;containerPort&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>8080</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a><span class=p>}</span>
-</span></code></pre></div> <ul> <li><code>containerName</code>은 Task Definition의 containerDefinitions 안에 있는 이름과 정확히 일치해야 한다.</li> <li><code>containerPort</code>는 Task Definition의 portMappings에 정의된 컨테이너 포트.</li> <li>awsvpc 네트워크 모드면 타겟 그룹 타입이 <code>ip</code>여야 하고, bridge 모드면 <code>instance</code>여야 한다.</li> </ul> <p>ECS가 Service에 등록된 태스크가 RUNNING이 되면 자동으로 이 타겟 그룹에 register하고, 종료될 때 deregister한다. 운영자가 직접 타겟 그룹을 건드릴 일이 없다.</p> <h3 id=변경의-제약>변경의 제약<a class=headerlink href=#변경의-제약 title="Permanent link">&para;</a></h3> <ul> <li>ECS Rolling Update 컨트롤러에서는 loadBalancers 배열 자체를 변경할 수 없다. 타겟 그룹을 바꾸려면 Service를 삭제하고 재생성해야 한다.</li> <li>CodeDeploy(Blue/Green) 컨트롤러를 쓰면 두 개의 타겟 그룹을 미리 등록해 두고 리스너 룰만 바꾼다.</li> <li>ECS 업데이트로 일부 ALB 관련 변경이 가능해졌지만(2022년 이후 일부 기능 제한적으로 풀림), 운영 중인 Service에서 함부로 시도하지 말 것.</li> </ul> <p>새 Service를 만들 때 타겟 그룹을 빠뜨리는 실수도 흔하다. 처음에 internal 호출용으로 ALB 없이 만들었다가 나중에 ALB를 붙이려면 Service를 다시 만들어야 한다. 처음 설계할 때 ALB 연결 가능성이 조금이라도 있으면 빈 타겟 그룹이라도 만들어 붙여 두는 게 안전하다.</p> <p>여러 타겟 그룹에 같은 컨테이너의 다른 포트를 묶는 것도 가능하다. 예를 들어 8080은 public ALB, 9090은 internal ALB에 노출하는 식이다.</p> <h2 id=healthcheckgraceperiodseconds>healthCheckGracePeriodSeconds<a class=headerlink href=#healthcheckgraceperiodseconds title="Permanent link">&para;</a></h2> <p>ALB 타겟 그룹의 헬스체크 결과를 ECS가 무시하는 grace 기간. 0~2147483647초 범위, 기본값 0. <strong>JVM 애플리케이션이나 부팅이 느린 컨테이너에서 이 값을 안 잡으면 무한 롤링 배포 지옥에 빠진다.</strong></p> <p>동작 시나리오:</p> <ol> <li>새 태스크가 RUNNING 상태가 됨</li> <li>타겟 그룹에 register</li> <li>ALB가 헬스체크 시작 (예: 30초마다 호출)</li> <li>컨테이너가 아직 부팅 중이라 응답 못 함 → unhealthy</li> <li>healthCheckGracePeriod 동안은 ECS가 이 unhealthy 상태를 무시</li> <li>grace 기간 끝났는데 여전히 unhealthy → ECS가 태스크 STOPPED, 새 태스크 생성</li> <li>새 태스크도 같은 시간이 걸리니 또 5번으로 → <strong>무한 루프</strong></li> </ol> <p>부팅에 60초 걸리는 Spring Boot 애플리케이션이라면 healthCheckGracePeriodSeconds=120 정도는 줘야 한다. 신중하게 90~180초 사이에서 실측해 정한다. 너무 길게(예: 600초) 잡으면 진짜로 망가진 컨테이너도 10분간 살려두게 되니 적당한 값을 찾아야 한다.</p> <p>이 값은 Service에 ALB가 붙어 있을 때만 의미가 있다. ALB 없는 Service라면 설정해도 동작하지 않는다.</p> <h2 id=enableexecutecommand>enableExecuteCommand<a class=headerlink href=#enableexecutecommand title="Permanent link">&para;</a></h2> <p>ECS Exec 기능을 켤지 말지 결정한다. true로 두면 운영 중인 태스크에 <code>aws ecs execute-command</code>로 SSM 세션을 열어 셸에 들어갈 수 있다. SSH 없이 컨테이너 내부에 접근하는 사실상 유일한 정상적인 방법이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>aws<span class=w> </span>ecs<span class=w> </span>execute-command<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=w>  </span>--cluster<span class=w> </span>prod-cluster<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>  </span>--task<span class=w> </span>&lt;task-arn&gt;<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>  </span>--container<span class=w> </span>api<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span>--interactive<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=w>  </span>--command<span class=w> </span><span class=s2>&quot;/bin/sh&quot;</span>
-</span></code></pre></div> <p>활성화하려면 몇 가지 조건을 다 맞춰야 한다.</p> <ul> <li>Service에서 <code>enableExecuteCommand=true</code></li> <li>Task Role(taskRoleArn)에 SSM Messages 권한(<code>ssmmessages:CreateControlChannel</code>, <code>CreateDataChannel</code>, <code>OpenControlChannel</code>, <code>OpenDataChannel</code>) 부여</li> <li>컨테이너 이미지 안에 <code>/bin/sh</code> 또는 <code>/bin/bash</code>가 존재</li> <li>Fargate면 platformVersion 1.4.0 이상</li> </ul> <p>설정을 enable에서 disable로(또는 그 반대로) 바꿔도 <strong>이미 떠 있는 태스크에는 적용되지 않는다.</strong> Service를 update하고 태스크를 재배포해야 새 설정이 반영된다. 이 점을 모르고 "켰는데 왜 안 되지" 하는 경우가 많다.</p> <p>보안 측면에서는 prod에서 enableExecuteCommand를 항상 켜두는 게 위험할 수 있다는 의견과, 디버깅 도구로 항상 켜두는 게 운영 효율을 높인다는 의견이 갈린다. 실무에서는 켜두되 IAM 정책으로 execute-command 호출 권한을 엄격히 제한하는 방향으로 운영하는 곳이 많다. 모든 호출은 CloudTrail에 기록된다.</p> <h2 id=propagatetags>propagateTags<a class=headerlink href=#propagatetags title="Permanent link">&para;</a></h2> <p>태스크에 적용될 태그의 출처를 결정한다. <code>TASK_DEFINITION</code>, <code>SERVICE</code>, 또는 빈 값. 빈 값이면 태스크에 태그가 안 붙는다.</p> <p>비용 분석을 Cost Allocation Tag로 하는 조직이라면 이 값을 반드시 설정해야 한다. Service 단위로 태그를 관리하고 싶으면 <code>SERVICE</code>, Task Definition에서 관리하고 싶으면 <code>TASK_DEFINITION</code>을 쓴다. 일반적으로는 환경(prod/dev), 팀, 서비스명 같은 메타데이터를 Service에 붙이고 propagateTags=SERVICE로 두는 게 관리하기 편하다.</p> <p>태그 전파는 태스크 생성 시점에 일어난다. Service의 태그를 나중에 바꿔도 이미 떠 있는 태스크의 태그는 바뀌지 않는다.</p> <h2 id=schedulingstrategy>schedulingStrategy<a class=headerlink href=#schedulingstrategy title="Permanent link">&para;</a></h2> <p><code>REPLICA</code>(기본값)와 <code>DAEMON</code> 두 가지가 있다.</p> <h3 id=replica>REPLICA<a class=headerlink href=#replica title="Permanent link">&para;</a></h3> <p>desiredCount만큼의 태스크를 클러스터 어딘가에 분산해서 띄운다. 일반적인 웹 서비스, API 서비스가 모두 여기에 해당한다. placementStrategy로 어디에 띄울지 제어한다.</p> <h3 id=daemon>DAEMON<a class=headerlink href=#daemon title="Permanent link">&para;</a></h3> <p>EC2 Launch Type 전용. <strong>각 EC2 인스턴스마다 정확히 한 개의 태스크</strong>를 띄운다. desiredCount는 무시되고, ECS가 클러스터에 등록된 인스턴스 수에 맞춰 자동으로 태스크 수를 조절한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=p>{</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=w>  </span><span class=nt>&quot;schedulingStrategy&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;DAEMON&quot;</span><span class=p>,</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>  </span><span class=nt>&quot;launchType&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;EC2&quot;</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=p>}</span>
-</span></code></pre></div> <p>쓰는 용도는 거의 정해져 있다.</p> <ul> <li>로그 수집기(Fluent Bit, Datadog Agent 등을 노드별로 1개씩)</li> <li>모니터링 에이전트(CloudWatch Agent, Prometheus node-exporter)</li> <li>노드 레벨 보안 에이전트</li> </ul> <p>DAEMON은 Fargate에서 못 쓴다. Fargate는 인스턴스 개념 자체가 없기 때문이다. Fargate에서 노드 레벨 에이전트를 돌리고 싶다면 사이드카 패턴으로 각 태스크에 같이 띄우는 수밖에 없다.</p> <p>EC2 인스턴스가 클러스터에 등록되는 즉시 DAEMON 태스크가 띄워진다. 인스턴스 종료 시 함께 사라진다. 배포 정책은 자동으로 maximumPercent=100, minimumHealthyPercent=0으로 강제된다. 다른 값을 줘도 무시된다.</p> <h2 id=placementstrategy--placementconstraints>placementStrategy / placementConstraints<a class=headerlink href=#placementstrategy--placementconstraints title="Permanent link">&para;</a></h2> <p>EC2 Launch Type일 때 태스크를 어느 인스턴스에 배치할지 결정하는 규칙. Fargate는 인스턴스 선택 자체가 없으니 이 설정이 적용되지 않는다.</p> <h3 id=placementstrategy>placementStrategy<a class=headerlink href=#placementstrategy title="Permanent link">&para;</a></h3> <p>배치 우선순위를 정한다. 배열에 여러 개를 넣을 수 있고 순서대로 적용된다.</p> <table> <thead> <tr> <th>타입</th> <th>의미</th> <th>일반적 용도</th> </tr> </thead> <tbody> <tr> <td><code>binpack</code></td> <td>CPU 또는 메모리 사용량이 가장 많은 인스턴스부터 채운다</td> <td>인스턴스 수 최소화, 비용 절감</td> </tr> <tr> <td><code>spread</code></td> <td>지정한 attribute 기준으로 균등 분산</td> <td>AZ 분산, 인스턴스 ID 분산</td> </tr> <tr> <td><code>random</code></td> <td>무작위</td> <td>거의 안 씀</td> </tr> </tbody> </table> <p>가장 흔한 조합은 <code>spread by attribute:ecs.availability-zone</code> + <code>spread by instanceId</code>다. AZ에 먼저 균등 분산하고, 그 안에서 인스턴스에 균등 분산한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=p>{</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span><span class=nt>&quot;placementStrategy&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;type&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;spread&quot;</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;field&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;attribute:ecs.availability-zone&quot;</span><span class=w> </span><span class=p>},</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;type&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;spread&quot;</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;field&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;instanceId&quot;</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=p>}</span>
-</span></code></pre></div> <p>binpack은 비용 최적화 클러스터에서 유용하다. 단 binpack을 쓰면 한 인스턴스에 태스크가 몰리니 인스턴스 장애 시 영향이 커진다. AZ 분산이 깨질 수 있어 가용성과 비용 사이 트레이드오프를 의식해야 한다.</p> <h3 id=placementconstraints>placementConstraints<a class=headerlink href=#placementconstraints title="Permanent link">&para;</a></h3> <p>배치 제약. 두 가지 타입이 있다.</p> <ul> <li><code>distinctInstance</code>: 같은 인스턴스에 같은 Service의 태스크가 두 개 이상 못 뜨게 한다. desiredCount &gt; 인스턴스 수면 PROVISIONING 상태로 영원히 대기한다.</li> <li><code>memberOf</code> + Cluster Query Language: <code>attribute:ecs.instance-type =~ m5.*</code> 같은 식으로 특정 인스턴스 타입에만 배치.</li> </ul> <div class="language-json highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=p>{</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>  </span><span class=nt>&quot;placementConstraints&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;type&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;memberOf&quot;</span><span class=p>,</span><span class=w> </span><span class=nt>&quot;expression&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;attribute:env == prod&quot;</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>  </span><span class=p>]</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=p>}</span>
-</span></code></pre></div> <p>distinctInstance를 잘못 쓰면 배포가 안 진행된다. desiredCount=4인데 인스턴스가 4대뿐이면 maximumPercent=200으로 8개를 띄우고 싶어도 distinctInstance 제약 때문에 못 띄운다. 배포 자체가 멈춘다. distinctInstance를 쓰려면 인스턴스 수가 desiredCount의 두 배 이상은 돼야 한다.</p> <h2 id=networkconfiguration>networkConfiguration<a class=headerlink href=#networkconfiguration title="Permanent link">&para;</a></h2> <p>awsvpc 네트워크 모드(Fargate면 무조건 awsvpc)일 때 필수. 서브넷, 보안그룹, public IP 할당 여부를 지정한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=p>{</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=w>  </span><span class=nt>&quot;networkConfiguration&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>    </span><span class=nt>&quot;awsvpcConfiguration&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>      </span><span class=nt>&quot;subnets&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;subnet-aaa&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;subnet-bbb&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;subnet-ccc&quot;</span><span class=p>],</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>      </span><span class=nt>&quot;securityGroups&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;sg-xxx&quot;</span><span class=p>],</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=w>      </span><span class=nt>&quot;assignPublicIp&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;DISABLED&quot;</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a><span class=p>}</span>
-</span></code></pre></div> <h3 id=subnets>subnets<a class=headerlink href=#subnets title="Permanent link">&para;</a></h3> <p>여러 AZ의 서브넷을 넣어두면 ECS가 알아서 AZ 분산해서 태스크를 띄운다. 주의할 점은 <strong>반드시 프라이빗 서브넷을 쓸 것</strong>. 퍼블릭 서브넷에 띄우면 NAT Gateway 비용이 절감되긴 하지만 보안 노출 면적이 커진다. 프라이빗 서브넷에 띄우고 NAT Gateway나 VPC Endpoint를 통해 외부 통신을 처리하는 게 정석이다.</p> <p>서브넷의 IP 풀이 부족해지면 새 태스크가 PROVISIONING에서 멈춘다. /28 같은 작은 서브넷에 awsvpc 모드 태스크를 잔뜩 띄우면 금방 IP가 마른다. ENI 하나당 IP를 하나씩 잡아먹기 때문에 클러스터 규모를 미리 계산해 서브넷을 잡아야 한다. 최소 /24 권장.</p> <h3 id=securitygroups>securityGroups<a class=headerlink href=#securitygroups title="Permanent link">&para;</a></h3> <p>태스크 단위로 보안 그룹이 적용된다. 이게 awsvpc 모드의 가장 큰 장점이다. ALB의 보안 그룹에서 inbound로 80/443을 허용하고, 태스크 보안 그룹은 ALB 보안 그룹으로부터의 8080만 허용하는 식으로 다층 보안을 구성한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>ALB SG: inbound 0.0.0.0/0:443
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>Task SG: inbound from ALB SG :8080
-</span></code></pre></div> <p>DB 보안 그룹에서는 Task SG로부터의 inbound만 허용하면 깔끔하게 정리된다. CIDR 기반으로만 보안 그룹을 짜면 EC2 IP가 바뀔 때마다 갱신해야 하는데, SG 참조를 쓰면 그럴 필요가 없다.</p> <h3 id=assignpublicip>assignPublicIp<a class=headerlink href=#assignpublicip title="Permanent link">&para;</a></h3> <p><code>ENABLED</code> 또는 <code>DISABLED</code>. Fargate에서 ECR에서 이미지를 pull하려면 외부 인터넷 접근이 필요하다. 프라이빗 서브넷에 NAT Gateway나 VPC Endpoint(ECR, S3, CloudWatch Logs용)가 없는 상태에서 <code>assignPublicIp=DISABLED</code>로 두면 이미지 pull이 실패한다.</p> <p>운영 권장사항: <strong>VPC Endpoint를 만들어 두고 assignPublicIp=DISABLED로 운영한다.</strong> 필요한 엔드포인트는 com.amazonaws.{region}.ecr.api, ecr.dkr, s3, logs, secretsmanager, ssmmessages 정도. NAT Gateway만 쓸 수도 있지만 트래픽 비용이 누적되므로 안정적인 대규모 환경이면 VPC Endpoint가 유리하다.</p> <h2 id=alb-헬스체크-실패로-인한-무한-재생성-트러블슈팅>ALB 헬스체크 실패로 인한 무한 재생성 트러블슈팅<a class=headerlink href=#alb-헬스체크-실패로-인한-무한-재생성-트러블슈팅 title="Permanent link">&para;</a></h2> <p>ECS Service 운영하면서 가장 자주 만나는 사고 중 하나. 증상은 보통 이렇게 보인다.</p> <ul> <li><code>aws ecs describe-services</code>로 보면 deployment가 IN_PROGRESS인 채로 끝나지 않음</li> <li><code>aws ecs list-tasks</code>로 보면 RUNNING 태스크가 계속 바뀌고 있음</li> <li>CloudWatch에서 <code>EssentialContainerExited</code> 이벤트가 분당 한두 번씩 찍힘</li> <li>ALB Target Group에서 healthy host count가 0과 1을 오감</li> </ul> <p>진단 순서:</p> <h3 id=1-healthcheckgraceperiodseconds-확인>1. healthCheckGracePeriodSeconds 확인<a class=headerlink href=#1-healthcheckgraceperiodseconds-확인 title="Permanent link">&para;</a></h3> <p>가장 흔한 원인. 컨테이너 부팅 시간이 grace period보다 길면 100% 이 패턴이 발생한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>aws<span class=w> </span>ecs<span class=w> </span>describe-services<span class=w> </span>--cluster<span class=w> </span>&lt;c&gt;<span class=w> </span>--services<span class=w> </span>&lt;s&gt;<span class=w> </span><span class=se>\</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;services[0].healthCheckGracePeriodSeconds&#39;</span>
-</span></code></pre></div> <p>값이 0 또는 너무 작으면 부팅 시간을 측정해서 충분히 늘린다. 임시로 디버깅하려면 ALB 헬스체크 자체를 잠깐 느슨하게(interval=30, threshold=5) 만들어 grace 기간 비슷한 효과를 낼 수도 있다.</p> <h3 id=2-alb-헬스체크-경로와-응답-확인>2. ALB 헬스체크 경로와 응답 확인<a class=headerlink href=#2-alb-헬스체크-경로와-응답-확인 title="Permanent link">&para;</a></h3> <p>태스크는 정상이지만 헬스체크 경로 응답이 잘못된 경우. ALB 타겟 그룹의 헬스체크 path(예: <code>/health</code>)가 실제로 200을 반환하는지 직접 확인한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># ECS Exec로 태스크에 들어가서 직접 호출</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>aws<span class=w> </span>ecs<span class=w> </span>execute-command<span class=w> </span>--cluster<span class=w> </span>&lt;c&gt;<span class=w> </span>--task<span class=w> </span>&lt;t&gt;<span class=w> </span>--container<span class=w> </span>&lt;con&gt;<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a><span class=w>  </span>--interactive<span class=w> </span>--command<span class=w> </span><span class=s2>&quot;/bin/sh&quot;</span>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=c1># 컨테이너 안에서</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>curl<span class=w> </span>-v<span class=w> </span>http://localhost:8080/health
-</span></code></pre></div> <p>종종 헬스체크 path가 인증을 요구하거나(401), 리다이렉트(301)를 반환하거나, content-type 문제로 실패하는 경우가 있다. ALB의 success code를 200,301,302 같은 식으로 넓게 잡거나 헬스체크 전용 경로를 인증 없이 200을 반환하도록 만든다.</p> <h3 id=3-보안-그룹-inbound-확인>3. 보안 그룹 inbound 확인<a class=headerlink href=#3-보안-그룹-inbound-확인 title="Permanent link">&para;</a></h3> <p>ALB가 태스크의 헬스체크 포트로 패킷을 못 보내면 헬스체크는 무조건 실패한다. Task SG의 inbound에 ALB SG로부터의 컨테이너 포트가 열려 있는지 확인한다. awsvpc 모드면 컨테이너 포트와 호스트 포트가 동일하니 그 포트 그대로, bridge 모드 동적 포트면 32768~65535 전체를 ALB SG에 열어줘야 한다.</p> <h3 id=4-task-definition-헬스체크와-alb-헬스체크-충돌>4. Task Definition 헬스체크와 ALB 헬스체크 충돌<a class=headerlink href=#4-task-definition-헬스체크와-alb-헬스체크-충돌 title="Permanent link">&para;</a></h3> <p>Task Definition의 containerDefinitions에 healthCheck가 정의돼 있고, 이 docker 헬스체크가 unhealthy를 반환하면 ECS가 태스크를 STOPPED 처리한다. ALB 헬스체크와 별개로 동작한다. 두 헬스체크가 서로 다른 경로를 쳐서 한쪽이 실패하는 패턴이 의외로 흔하다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>aws<span class=w> </span>ecs<span class=w> </span>describe-task-definition<span class=w> </span>--task-definition<span class=w> </span>&lt;td&gt;<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;taskDefinition.containerDefinitions[].healthCheck&#39;</span>
-</span></code></pre></div> <p>두 헬스체크는 같은 path를 쓰거나, 둘 중 하나로 통일하는 게 운영하기 편하다.</p> <h3 id=5-메모리-부족으로-oomkilled>5. 메모리 부족으로 OOMKilled<a class=headerlink href=#5-메모리-부족으로-oomkilled title="Permanent link">&para;</a></h3> <p><code>describe-tasks</code> 결과의 <code>stoppedReason</code>을 확인한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>aws<span class=w> </span>ecs<span class=w> </span>describe-tasks<span class=w> </span>--cluster<span class=w> </span>&lt;c&gt;<span class=w> </span>--tasks<span class=w> </span>&lt;t&gt;<span class=w> </span><span class=se>\</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;tasks[0].stoppedReason&#39;</span>
-</span></code></pre></div> <p><code>OutOfMemoryError: Container killed due to memory usage</code> 같은 메시지가 나오면 Task Definition의 메모리 한도를 늘려야 한다. ALB 헬스체크와 무관하게 컨테이너가 죽고 있는데 헬스체크 실패처럼 보이는 케이스다.</p> <h3 id=6-deploymentcircuitbreaker로-자동-멈춤>6. deploymentCircuitBreaker로 자동 멈춤<a class=headerlink href=#6-deploymentcircuitbreaker로-자동-멈춤 title="Permanent link">&para;</a></h3> <p><code>deploymentConfiguration.deploymentCircuitBreaker.enable=true</code>가 설정돼 있으면 ECS가 일정 횟수 실패 후 배포를 멈춘다. 이때는 사고 확산을 막는 효과가 있어 좋다. enable이 false면 무한 루프가 진짜로 무한이라 비용도 같이 폭발한다. 운영 Service라면 반드시 켜두자.</p> <pre class=mermaid-diagram><code>flowchart TD
+    S--&gt;&gt;U: deployment COMPLETED</code></pre>
+<p>운영 환경에서 자주 쓰는 조합:</p>
+<ul>
+<li><strong>100/200</strong>: 가장 안전. 신버전 전부 띄우고 구버전 내림. 일시적으로 리소스가 두 배.</li>
+<li><strong>100/150</strong>: 절반씩 교체. 리소스 1.5배. 큰 클러스터에서 쓸 만한 절충안.</li>
+<li><strong>50/100</strong>: 리소스 여유가 없을 때. 배포 중 용량이 절반으로 떨어진다는 점 감안해야 한다.</li>
+<li><strong>0/100</strong>: 절대 프로덕션에서 쓰지 말 것. 짧은 다운타임이 발생한다.</li>
+</ul>
+<h3 id="deploymentcircuitbreaker">deploymentCircuitBreaker<a class="headerlink" href="#deploymentcircuitbreaker" title="Permanent link">&para;</a></h3>
+<p><code>deploymentConfiguration.deploymentCircuitBreaker.enable=true</code>로 켜면 배포가 실패할 때 자동으로 이전 리비전으로 롤백한다. <code>rollback=true</code>까지 켜야 자동 롤백이 동작하고, false면 실패 감지만 한다. 새 태스크가 연속으로 STOPPED 상태가 되거나 ALB 헬스체크를 일정 시간 동안 통과하지 못하면 ECS가 배포 실패로 판단한다.</p>
+<p>이 기능을 켜지 않으면 잘못된 이미지를 배포했을 때 ECS가 끝없이 새 태스크를 띄우고 죽이고를 반복한다. 새 운영 Service라면 무조건 켜는 게 좋다.</p>
+<h2 id="launchtype-vs-capacityproviderstrategy">launchType vs capacityProviderStrategy<a class="headerlink" href="#launchtype-vs-capacityproviderstrategy" title="Permanent link">&para;</a></h2>
+<p>Service를 만들 때 둘 중 하나만 지정해야 한다. 같이 지정하면 API가 거부한다.</p>
+<h3 id="launchtype">launchType<a class="headerlink" href="#launchtype" title="Permanent link">&para;</a></h3>
+<p><code>FARGATE</code>, <code>EC2</code>, <code>EXTERNAL</code> 중 하나를 직접 지정. 단순하고 명시적이지만 캐파시티가 없어도 그냥 PROVISIONING 상태로 대기만 한다. EC2 Launch Type일 때 ASG가 인스턴스를 띄우게 하려면 별도로 ASG의 desired capacity를 늘려야 한다. 즉 ECS가 EC2 용량을 자동으로 키워주지 않는다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;launchType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FARGATE&quot;</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;platformVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;LATEST&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="capacityproviderstrategy">capacityProviderStrategy<a class="headerlink" href="#capacityproviderstrategy" title="Permanent link">&para;</a></h3>
+<p>여러 Capacity Provider에 가중치(weight)와 base를 지정해 태스크를 분산한다. EC2 Capacity Provider라면 ECS Managed Scaling이 알아서 ASG 용량까지 조절한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;capacityProviderStrategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;capacityProvider&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FARGATE&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;weight&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;base&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;capacityProvider&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FARGATE_SPOT&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;weight&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;base&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>위 예시는 "최소 2개는 FARGATE에, 나머지는 FARGATE:FARGATE_SPOT = 1:4 비율로 분산"한다는 뜻이다. base는 절대 개수, weight는 비율이라 의미가 다르다. SPOT 인스턴스가 회수되면 ECS가 자동으로 새 태스크를 다른 Capacity Provider에 띄운다. 비용 최적화를 노린다면 이 패턴이 거의 유일한 답이다.</p>
+<p>자세한 capacity provider 설정과 managed scaling 동작은 <a href="../ECS_Capacity_Providers/">ECS Capacity Providers</a> 문서를 참고.</p>
+<p>선택 기준은 단순하다. <strong>새 Service라면 capacityProviderStrategy를 써라.</strong> launchType은 레거시 호환과 단순한 케이스에만 남겨두는 게 좋다. 한 번 launchType으로 만든 Service를 capacityProviderStrategy로 바꾸려면 Service를 재생성해야 한다는 점도 미리 알아두자.</p>
+<h2 id="platformversion">platformVersion<a class="headerlink" href="#platformversion" title="Permanent link">&para;</a></h2>
+<p>Fargate 전용 필드. <code>LATEST</code>, <code>1.4.0</code>, <code>1.3.0</code> 같은 버전 문자열을 지정한다. 기본값은 <code>LATEST</code>인데, 이게 항상 좋은 건 아니다.</p>
+<p><code>LATEST</code>는 새 태스크가 생성될 때마다 그 시점의 최신 플랫폼 버전을 쓴다. 즉 배포가 일어나지 않아도 ECS 내부에서 패치가 발생하면 태스크가 다른 버전으로 교체될 수 있다. 1.4.0과 1.3.0은 EFS 지원 여부, ENI 트렁킹, 블록 스토리지 같은 기능 차이가 있다. EFS를 쓰는 Service인데 platformVersion을 명시하지 않았다가 어느 날 1.3.0 호환 태스크가 떠서 마운트 실패하는 사례가 있었다.</p>
+<p><strong>프로덕션에서는 platformVersion을 명시적으로 고정하는 걸 권장한다.</strong> 변경할 때는 의도적으로 update-service로 바꿔야 한다.</p>
+<h2 id="loadbalancers-alb-타겟-그룹-바인딩">loadBalancers (ALB 타겟 그룹 바인딩)<a class="headerlink" href="#loadbalancers-alb-타겟-그룹-바인딩" title="Permanent link">&para;</a></h2>
+<p>Service 생성 시점에 ALB 타겟 그룹을 연결하는 부분이다. 한 번 설정하면 <strong>변경이 매우 제한적</strong>이라는 점이 가장 중요하다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;loadBalancers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">&quot;targetGroupArn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:elasticloadbalancing:...:targetgroup/api-tg/abc&quot;</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nt">&quot;containerName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api&quot;</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">&quot;containerPort&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8080</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li><code>containerName</code>은 Task Definition의 containerDefinitions 안에 있는 이름과 정확히 일치해야 한다.</li>
+<li><code>containerPort</code>는 Task Definition의 portMappings에 정의된 컨테이너 포트.</li>
+<li>awsvpc 네트워크 모드면 타겟 그룹 타입이 <code>ip</code>여야 하고, bridge 모드면 <code>instance</code>여야 한다.</li>
+</ul>
+<p>ECS가 Service에 등록된 태스크가 RUNNING이 되면 자동으로 이 타겟 그룹에 register하고, 종료될 때 deregister한다. 운영자가 직접 타겟 그룹을 건드릴 일이 없다.</p>
+<h3 id="변경의-제약">변경의 제약<a class="headerlink" href="#변경의-제약" title="Permanent link">&para;</a></h3>
+<ul>
+<li>ECS Rolling Update 컨트롤러에서는 loadBalancers 배열 자체를 변경할 수 없다. 타겟 그룹을 바꾸려면 Service를 삭제하고 재생성해야 한다.</li>
+<li>CodeDeploy(Blue/Green) 컨트롤러를 쓰면 두 개의 타겟 그룹을 미리 등록해 두고 리스너 룰만 바꾼다.</li>
+<li>ECS 업데이트로 일부 ALB 관련 변경이 가능해졌지만(2022년 이후 일부 기능 제한적으로 풀림), 운영 중인 Service에서 함부로 시도하지 말 것.</li>
+</ul>
+<p>새 Service를 만들 때 타겟 그룹을 빠뜨리는 실수도 흔하다. 처음에 internal 호출용으로 ALB 없이 만들었다가 나중에 ALB를 붙이려면 Service를 다시 만들어야 한다. 처음 설계할 때 ALB 연결 가능성이 조금이라도 있으면 빈 타겟 그룹이라도 만들어 붙여 두는 게 안전하다.</p>
+<p>여러 타겟 그룹에 같은 컨테이너의 다른 포트를 묶는 것도 가능하다. 예를 들어 8080은 public ALB, 9090은 internal ALB에 노출하는 식이다.</p>
+<h2 id="healthcheckgraceperiodseconds">healthCheckGracePeriodSeconds<a class="headerlink" href="#healthcheckgraceperiodseconds" title="Permanent link">&para;</a></h2>
+<p>ALB 타겟 그룹의 헬스체크 결과를 ECS가 무시하는 grace 기간. 0~2147483647초 범위, 기본값 0. <strong>JVM 애플리케이션이나 부팅이 느린 컨테이너에서 이 값을 안 잡으면 무한 롤링 배포 지옥에 빠진다.</strong></p>
+<p>동작 시나리오:</p>
+<ol>
+<li>새 태스크가 RUNNING 상태가 됨</li>
+<li>타겟 그룹에 register</li>
+<li>ALB가 헬스체크 시작 (예: 30초마다 호출)</li>
+<li>컨테이너가 아직 부팅 중이라 응답 못 함 → unhealthy</li>
+<li>healthCheckGracePeriod 동안은 ECS가 이 unhealthy 상태를 무시</li>
+<li>grace 기간 끝났는데 여전히 unhealthy → ECS가 태스크 STOPPED, 새 태스크 생성</li>
+<li>새 태스크도 같은 시간이 걸리니 또 5번으로 → <strong>무한 루프</strong></li>
+</ol>
+<p>부팅에 60초 걸리는 Spring Boot 애플리케이션이라면 healthCheckGracePeriodSeconds=120 정도는 줘야 한다. 신중하게 90~180초 사이에서 실측해 정한다. 너무 길게(예: 600초) 잡으면 진짜로 망가진 컨테이너도 10분간 살려두게 되니 적당한 값을 찾아야 한다.</p>
+<p>이 값은 Service에 ALB가 붙어 있을 때만 의미가 있다. ALB 없는 Service라면 설정해도 동작하지 않는다.</p>
+<h2 id="enableexecutecommand">enableExecuteCommand<a class="headerlink" href="#enableexecutecommand" title="Permanent link">&para;</a></h2>
+<p>ECS Exec 기능을 켤지 말지 결정한다. true로 두면 운영 중인 태스크에 <code>aws ecs execute-command</code>로 SSM 세션을 열어 셸에 들어갈 수 있다. SSH 없이 컨테이너 내부에 접근하는 사실상 유일한 정상적인 방법이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>execute-command<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--cluster<span class="w"> </span>prod-cluster<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--task<span class="w"> </span>&lt;task-arn&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>--container<span class="w"> </span>api<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>--interactive<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>--command<span class="w"> </span><span class="s2">&quot;/bin/sh&quot;</span>
+</span></code></pre></div>
+<p>활성화하려면 몇 가지 조건을 다 맞춰야 한다.</p>
+<ul>
+<li>Service에서 <code>enableExecuteCommand=true</code></li>
+<li>Task Role(taskRoleArn)에 SSM Messages 권한(<code>ssmmessages:CreateControlChannel</code>, <code>CreateDataChannel</code>, <code>OpenControlChannel</code>, <code>OpenDataChannel</code>) 부여</li>
+<li>컨테이너 이미지 안에 <code>/bin/sh</code> 또는 <code>/bin/bash</code>가 존재</li>
+<li>Fargate면 platformVersion 1.4.0 이상</li>
+</ul>
+<p>설정을 enable에서 disable로(또는 그 반대로) 바꿔도 <strong>이미 떠 있는 태스크에는 적용되지 않는다.</strong> Service를 update하고 태스크를 재배포해야 새 설정이 반영된다. 이 점을 모르고 "켰는데 왜 안 되지" 하는 경우가 많다.</p>
+<p>보안 측면에서는 prod에서 enableExecuteCommand를 항상 켜두는 게 위험할 수 있다는 의견과, 디버깅 도구로 항상 켜두는 게 운영 효율을 높인다는 의견이 갈린다. 실무에서는 켜두되 IAM 정책으로 execute-command 호출 권한을 엄격히 제한하는 방향으로 운영하는 곳이 많다. 모든 호출은 CloudTrail에 기록된다.</p>
+<h2 id="propagatetags">propagateTags<a class="headerlink" href="#propagatetags" title="Permanent link">&para;</a></h2>
+<p>태스크에 적용될 태그의 출처를 결정한다. <code>TASK_DEFINITION</code>, <code>SERVICE</code>, 또는 빈 값. 빈 값이면 태스크에 태그가 안 붙는다.</p>
+<p>비용 분석을 Cost Allocation Tag로 하는 조직이라면 이 값을 반드시 설정해야 한다. Service 단위로 태그를 관리하고 싶으면 <code>SERVICE</code>, Task Definition에서 관리하고 싶으면 <code>TASK_DEFINITION</code>을 쓴다. 일반적으로는 환경(prod/dev), 팀, 서비스명 같은 메타데이터를 Service에 붙이고 propagateTags=SERVICE로 두는 게 관리하기 편하다.</p>
+<p>태그 전파는 태스크 생성 시점에 일어난다. Service의 태그를 나중에 바꿔도 이미 떠 있는 태스크의 태그는 바뀌지 않는다.</p>
+<h2 id="schedulingstrategy">schedulingStrategy<a class="headerlink" href="#schedulingstrategy" title="Permanent link">&para;</a></h2>
+<p><code>REPLICA</code>(기본값)와 <code>DAEMON</code> 두 가지가 있다.</p>
+<h3 id="replica">REPLICA<a class="headerlink" href="#replica" title="Permanent link">&para;</a></h3>
+<p>desiredCount만큼의 태스크를 클러스터 어딘가에 분산해서 띄운다. 일반적인 웹 서비스, API 서비스가 모두 여기에 해당한다. placementStrategy로 어디에 띄울지 제어한다.</p>
+<h3 id="daemon">DAEMON<a class="headerlink" href="#daemon" title="Permanent link">&para;</a></h3>
+<p>EC2 Launch Type 전용. <strong>각 EC2 인스턴스마다 정확히 한 개의 태스크</strong>를 띄운다. desiredCount는 무시되고, ECS가 클러스터에 등록된 인스턴스 수에 맞춰 자동으로 태스크 수를 조절한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;schedulingStrategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DAEMON&quot;</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;launchType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;EC2&quot;</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>쓰는 용도는 거의 정해져 있다.</p>
+<ul>
+<li>로그 수집기(Fluent Bit, Datadog Agent 등을 노드별로 1개씩)</li>
+<li>모니터링 에이전트(CloudWatch Agent, Prometheus node-exporter)</li>
+<li>노드 레벨 보안 에이전트</li>
+</ul>
+<p>DAEMON은 Fargate에서 못 쓴다. Fargate는 인스턴스 개념 자체가 없기 때문이다. Fargate에서 노드 레벨 에이전트를 돌리고 싶다면 사이드카 패턴으로 각 태스크에 같이 띄우는 수밖에 없다.</p>
+<p>EC2 인스턴스가 클러스터에 등록되는 즉시 DAEMON 태스크가 띄워진다. 인스턴스 종료 시 함께 사라진다. 배포 정책은 자동으로 maximumPercent=100, minimumHealthyPercent=0으로 강제된다. 다른 값을 줘도 무시된다.</p>
+<h2 id="placementstrategy--placementconstraints">placementStrategy / placementConstraints<a class="headerlink" href="#placementstrategy--placementconstraints" title="Permanent link">&para;</a></h2>
+<p>EC2 Launch Type일 때 태스크를 어느 인스턴스에 배치할지 결정하는 규칙. Fargate는 인스턴스 선택 자체가 없으니 이 설정이 적용되지 않는다.</p>
+<h3 id="placementstrategy">placementStrategy<a class="headerlink" href="#placementstrategy" title="Permanent link">&para;</a></h3>
+<p>배치 우선순위를 정한다. 배열에 여러 개를 넣을 수 있고 순서대로 적용된다.</p>
+<table>
+<thead>
+<tr>
+<th>타입</th>
+<th>의미</th>
+<th>일반적 용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>binpack</code></td>
+<td>CPU 또는 메모리 사용량이 가장 많은 인스턴스부터 채운다</td>
+<td>인스턴스 수 최소화, 비용 절감</td>
+</tr>
+<tr>
+<td><code>spread</code></td>
+<td>지정한 attribute 기준으로 균등 분산</td>
+<td>AZ 분산, 인스턴스 ID 분산</td>
+</tr>
+<tr>
+<td><code>random</code></td>
+<td>무작위</td>
+<td>거의 안 씀</td>
+</tr>
+</tbody>
+</table>
+<p>가장 흔한 조합은 <code>spread by attribute:ecs.availability-zone</code> + <code>spread by instanceId</code>다. AZ에 먼저 균등 분산하고, 그 안에서 인스턴스에 균등 분산한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;placementStrategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spread&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;attribute:ecs.availability-zone&quot;</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spread&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;instanceId&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>binpack은 비용 최적화 클러스터에서 유용하다. 단 binpack을 쓰면 한 인스턴스에 태스크가 몰리니 인스턴스 장애 시 영향이 커진다. AZ 분산이 깨질 수 있어 가용성과 비용 사이 트레이드오프를 의식해야 한다.</p>
+<h3 id="placementconstraints">placementConstraints<a class="headerlink" href="#placementconstraints" title="Permanent link">&para;</a></h3>
+<p>배치 제약. 두 가지 타입이 있다.</p>
+<ul>
+<li><code>distinctInstance</code>: 같은 인스턴스에 같은 Service의 태스크가 두 개 이상 못 뜨게 한다. desiredCount &gt; 인스턴스 수면 PROVISIONING 상태로 영원히 대기한다.</li>
+<li><code>memberOf</code> + Cluster Query Language: <code>attribute:ecs.instance-type =~ m5.*</code> 같은 식으로 특정 인스턴스 타입에만 배치.</li>
+</ul>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;placementConstraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;memberOf&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;attribute:env == prod&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>distinctInstance를 잘못 쓰면 배포가 안 진행된다. desiredCount=4인데 인스턴스가 4대뿐이면 maximumPercent=200으로 8개를 띄우고 싶어도 distinctInstance 제약 때문에 못 띄운다. 배포 자체가 멈춘다. distinctInstance를 쓰려면 인스턴스 수가 desiredCount의 두 배 이상은 돼야 한다.</p>
+<h2 id="networkconfiguration">networkConfiguration<a class="headerlink" href="#networkconfiguration" title="Permanent link">&para;</a></h2>
+<p>awsvpc 네트워크 모드(Fargate면 무조건 awsvpc)일 때 필수. 서브넷, 보안그룹, public IP 할당 여부를 지정한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;networkConfiguration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">&quot;awsvpcConfiguration&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">      </span><span class="nt">&quot;subnets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;subnet-aaa&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;subnet-bbb&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;subnet-ccc&quot;</span><span class="p">],</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">      </span><span class="nt">&quot;securityGroups&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;sg-xxx&quot;</span><span class="p">],</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">      </span><span class="nt">&quot;assignPublicIp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DISABLED&quot;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="subnets">subnets<a class="headerlink" href="#subnets" title="Permanent link">&para;</a></h3>
+<p>여러 AZ의 서브넷을 넣어두면 ECS가 알아서 AZ 분산해서 태스크를 띄운다. 주의할 점은 <strong>반드시 프라이빗 서브넷을 쓸 것</strong>. 퍼블릭 서브넷에 띄우면 NAT Gateway 비용이 절감되긴 하지만 보안 노출 면적이 커진다. 프라이빗 서브넷에 띄우고 NAT Gateway나 VPC Endpoint를 통해 외부 통신을 처리하는 게 정석이다.</p>
+<p>서브넷의 IP 풀이 부족해지면 새 태스크가 PROVISIONING에서 멈춘다. /28 같은 작은 서브넷에 awsvpc 모드 태스크를 잔뜩 띄우면 금방 IP가 마른다. ENI 하나당 IP를 하나씩 잡아먹기 때문에 클러스터 규모를 미리 계산해 서브넷을 잡아야 한다. 최소 /24 권장.</p>
+<h3 id="securitygroups">securityGroups<a class="headerlink" href="#securitygroups" title="Permanent link">&para;</a></h3>
+<p>태스크 단위로 보안 그룹이 적용된다. 이게 awsvpc 모드의 가장 큰 장점이다. ALB의 보안 그룹에서 inbound로 80/443을 허용하고, 태스크 보안 그룹은 ALB 보안 그룹으로부터의 8080만 허용하는 식으로 다층 보안을 구성한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>ALB SG: inbound 0.0.0.0/0:443
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Task SG: inbound from ALB SG :8080
+</span></code></pre></div>
+<p>DB 보안 그룹에서는 Task SG로부터의 inbound만 허용하면 깔끔하게 정리된다. CIDR 기반으로만 보안 그룹을 짜면 EC2 IP가 바뀔 때마다 갱신해야 하는데, SG 참조를 쓰면 그럴 필요가 없다.</p>
+<h3 id="assignpublicip">assignPublicIp<a class="headerlink" href="#assignpublicip" title="Permanent link">&para;</a></h3>
+<p><code>ENABLED</code> 또는 <code>DISABLED</code>. Fargate에서 ECR에서 이미지를 pull하려면 외부 인터넷 접근이 필요하다. 프라이빗 서브넷에 NAT Gateway나 VPC Endpoint(ECR, S3, CloudWatch Logs용)가 없는 상태에서 <code>assignPublicIp=DISABLED</code>로 두면 이미지 pull이 실패한다.</p>
+<p>운영 권장사항: <strong>VPC Endpoint를 만들어 두고 assignPublicIp=DISABLED로 운영한다.</strong> 필요한 엔드포인트는 com.amazonaws.{region}.ecr.api, ecr.dkr, s3, logs, secretsmanager, ssmmessages 정도. NAT Gateway만 쓸 수도 있지만 트래픽 비용이 누적되므로 안정적인 대규모 환경이면 VPC Endpoint가 유리하다.</p>
+<h2 id="alb-헬스체크-실패로-인한-무한-재생성-트러블슈팅">ALB 헬스체크 실패로 인한 무한 재생성 트러블슈팅<a class="headerlink" href="#alb-헬스체크-실패로-인한-무한-재생성-트러블슈팅" title="Permanent link">&para;</a></h2>
+<p>ECS Service 운영하면서 가장 자주 만나는 사고 중 하나. 증상은 보통 이렇게 보인다.</p>
+<ul>
+<li><code>aws ecs describe-services</code>로 보면 deployment가 IN_PROGRESS인 채로 끝나지 않음</li>
+<li><code>aws ecs list-tasks</code>로 보면 RUNNING 태스크가 계속 바뀌고 있음</li>
+<li>CloudWatch에서 <code>EssentialContainerExited</code> 이벤트가 분당 한두 번씩 찍힘</li>
+<li>ALB Target Group에서 healthy host count가 0과 1을 오감</li>
+</ul>
+<p>진단 순서:</p>
+<h3 id="1-healthcheckgraceperiodseconds-확인">1. healthCheckGracePeriodSeconds 확인<a class="headerlink" href="#1-healthcheckgraceperiodseconds-확인" title="Permanent link">&para;</a></h3>
+<p>가장 흔한 원인. 컨테이너 부팅 시간이 grace period보다 길면 100% 이 패턴이 발생한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>describe-services<span class="w"> </span>--cluster<span class="w"> </span>&lt;c&gt;<span class="w"> </span>--services<span class="w"> </span>&lt;s&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;services[0].healthCheckGracePeriodSeconds&#39;</span>
+</span></code></pre></div>
+<p>값이 0 또는 너무 작으면 부팅 시간을 측정해서 충분히 늘린다. 임시로 디버깅하려면 ALB 헬스체크 자체를 잠깐 느슨하게(interval=30, threshold=5) 만들어 grace 기간 비슷한 효과를 낼 수도 있다.</p>
+<h3 id="2-alb-헬스체크-경로와-응답-확인">2. ALB 헬스체크 경로와 응답 확인<a class="headerlink" href="#2-alb-헬스체크-경로와-응답-확인" title="Permanent link">&para;</a></h3>
+<p>태스크는 정상이지만 헬스체크 경로 응답이 잘못된 경우. ALB 타겟 그룹의 헬스체크 path(예: <code>/health</code>)가 실제로 200을 반환하는지 직접 확인한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># ECS Exec로 태스크에 들어가서 직접 호출</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>aws<span class="w"> </span>ecs<span class="w"> </span>execute-command<span class="w"> </span>--cluster<span class="w"> </span>&lt;c&gt;<span class="w"> </span>--task<span class="w"> </span>&lt;t&gt;<span class="w"> </span>--container<span class="w"> </span>&lt;con&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>--interactive<span class="w"> </span>--command<span class="w"> </span><span class="s2">&quot;/bin/sh&quot;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># 컨테이너 안에서</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>curl<span class="w"> </span>-v<span class="w"> </span>http://localhost:8080/health
+</span></code></pre></div>
+<p>종종 헬스체크 path가 인증을 요구하거나(401), 리다이렉트(301)를 반환하거나, content-type 문제로 실패하는 경우가 있다. ALB의 success code를 200,301,302 같은 식으로 넓게 잡거나 헬스체크 전용 경로를 인증 없이 200을 반환하도록 만든다.</p>
+<h3 id="3-보안-그룹-inbound-확인">3. 보안 그룹 inbound 확인<a class="headerlink" href="#3-보안-그룹-inbound-확인" title="Permanent link">&para;</a></h3>
+<p>ALB가 태스크의 헬스체크 포트로 패킷을 못 보내면 헬스체크는 무조건 실패한다. Task SG의 inbound에 ALB SG로부터의 컨테이너 포트가 열려 있는지 확인한다. awsvpc 모드면 컨테이너 포트와 호스트 포트가 동일하니 그 포트 그대로, bridge 모드 동적 포트면 32768~65535 전체를 ALB SG에 열어줘야 한다.</p>
+<h3 id="4-task-definition-헬스체크와-alb-헬스체크-충돌">4. Task Definition 헬스체크와 ALB 헬스체크 충돌<a class="headerlink" href="#4-task-definition-헬스체크와-alb-헬스체크-충돌" title="Permanent link">&para;</a></h3>
+<p>Task Definition의 containerDefinitions에 healthCheck가 정의돼 있고, 이 docker 헬스체크가 unhealthy를 반환하면 ECS가 태스크를 STOPPED 처리한다. ALB 헬스체크와 별개로 동작한다. 두 헬스체크가 서로 다른 경로를 쳐서 한쪽이 실패하는 패턴이 의외로 흔하다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>describe-task-definition<span class="w"> </span>--task-definition<span class="w"> </span>&lt;td&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;taskDefinition.containerDefinitions[].healthCheck&#39;</span>
+</span></code></pre></div>
+<p>두 헬스체크는 같은 path를 쓰거나, 둘 중 하나로 통일하는 게 운영하기 편하다.</p>
+<h3 id="5-메모리-부족으로-oomkilled">5. 메모리 부족으로 OOMKilled<a class="headerlink" href="#5-메모리-부족으로-oomkilled" title="Permanent link">&para;</a></h3>
+<p><code>describe-tasks</code> 결과의 <code>stoppedReason</code>을 확인한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>describe-tasks<span class="w"> </span>--cluster<span class="w"> </span>&lt;c&gt;<span class="w"> </span>--tasks<span class="w"> </span>&lt;t&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;tasks[0].stoppedReason&#39;</span>
+</span></code></pre></div>
+<p><code>OutOfMemoryError: Container killed due to memory usage</code> 같은 메시지가 나오면 Task Definition의 메모리 한도를 늘려야 한다. ALB 헬스체크와 무관하게 컨테이너가 죽고 있는데 헬스체크 실패처럼 보이는 케이스다.</p>
+<h3 id="6-deploymentcircuitbreaker로-자동-멈춤">6. deploymentCircuitBreaker로 자동 멈춤<a class="headerlink" href="#6-deploymentcircuitbreaker로-자동-멈춤" title="Permanent link">&para;</a></h3>
+<p><code>deploymentConfiguration.deploymentCircuitBreaker.enable=true</code>가 설정돼 있으면 ECS가 일정 횟수 실패 후 배포를 멈춘다. 이때는 사고 확산을 막는 효과가 있어 좋다. enable이 false면 무한 루프가 진짜로 무한이라 비용도 같이 폭발한다. 운영 Service라면 반드시 켜두자.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     A[배포 시작] --&gt; B[새 Task 생성]
     B --&gt; C{RUNNING 도달?}
     C --&gt;|No| Z[stoppedReason 확인]
@@ -99,4 +2817,156 @@
     G --&gt;|enabled| H[배포 중단 / 롤백]
     G --&gt;|disabled| B
     E --&gt;|Yes| I[배포 진행]
-    Z --&gt; J[OOM/이미지/권한 등&lt;br/&gt;실제 실패 원인 파악]</code></pre> <h2 id=정리>정리<a class=headerlink href=#정리 title="Permanent link">&para;</a></h2> <p>Service 정의는 한 번 잘 만들어 두면 다시 손댈 일이 적지만, 처음 잘못 잡으면 반복적으로 사고를 부른다. 실무에서 신경 써야 할 핵심을 다시 정리한다.</p> <ul> <li>desiredCount는 Auto Scaling과 함께 쓸 때 IaC drift 처리를 잊지 말 것</li> <li>deploymentConfiguration의 minimumHealthyPercent/maximumPercent는 floor 계산임을 의식하고 클러스터 용량과 함께 검토할 것</li> <li>새 Service는 capacityProviderStrategy + deploymentCircuitBreaker(rollback=true) 조합을 기본으로 가져갈 것</li> <li>platformVersion은 LATEST에 의존하지 말고 명시적으로 고정할 것</li> <li>ALB 타겟 그룹 바인딩은 변경이 어려우니 처음 만들 때 신중히, 미래 확장 가능성을 열어둘 것</li> <li>healthCheckGracePeriodSeconds는 컨테이너 부팅 시간을 실측해서 정할 것. 안 하면 무한 롤링 지옥</li> <li>networkConfiguration은 프라이빗 서브넷 + SG 참조 기반 + VPC Endpoint 조합이 정석</li> <li>placementConstraints의 distinctInstance는 인스턴스 수와 desiredCount 관계를 따져보고 쓸 것</li> </ul> <p>Service는 결국 desired state reconciliation 루프 위에 올라간 옵션 다발이다. 옵션 하나하나의 의미를 알면 장애가 났을 때 어디부터 봐야 할지가 보인다.</p> <h2 id=참고>참고<a class=headerlink href=#참고 title="Permanent link">&para;</a></h2> <ul> <li><a href=../ECS_Task_Definition/ >ECS Task Definition 심화</a></li> <li><a href=../ECS_Deployment_Strategies/ >ECS Deployment Strategies</a></li> <li><a href=../ECS_Capacity_Providers/ >ECS Capacity Providers</a></li> <li><a href=../ECS_Networking_Modes/ >ECS Networking Modes</a></li> <li><a href=../ECS_Service_Auto_Scaling/ >ECS Service Auto Scaling</a></li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Network/ALB_ECS_S3_Request_Flow/ >ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li> <li><a href=../../Load_Balancer/ALB_Blue_Green_Deployment/ >ALB 기반 Blue/Green 무중단 배포</a></li> <li><a href=../../CICD/CodeDeploy/ >AWS CodeDeploy</a></li> <li><a href=../../CICD/CodePipeline/ >AWS CodePipeline</a></li> <li><a href=../../Monitoring/AWS_Config/ >AWS Config</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ECS_Service_Connect/ class="md-footer__link md-footer__link--prev" aria-label="이전: ECS Service Connect 설정"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> ECS Service Connect 설정 </div> </div> </a> <a href=../ECS_Sidecar_Patterns/ class="md-footer__link md-footer__link--next" aria-label="다음: ECS 다중 컨테이너 Sidecar 패턴"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> ECS 다중 컨테이너 Sidecar 패턴 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    Z --&gt; J[OOM/이미지/권한 등&lt;br/&gt;실제 실패 원인 파악]</code></pre>
+<h2 id="정리">정리<a class="headerlink" href="#정리" title="Permanent link">&para;</a></h2>
+<p>Service 정의는 한 번 잘 만들어 두면 다시 손댈 일이 적지만, 처음 잘못 잡으면 반복적으로 사고를 부른다. 실무에서 신경 써야 할 핵심을 다시 정리한다.</p>
+<ul>
+<li>desiredCount는 Auto Scaling과 함께 쓸 때 IaC drift 처리를 잊지 말 것</li>
+<li>deploymentConfiguration의 minimumHealthyPercent/maximumPercent는 floor 계산임을 의식하고 클러스터 용량과 함께 검토할 것</li>
+<li>새 Service는 capacityProviderStrategy + deploymentCircuitBreaker(rollback=true) 조합을 기본으로 가져갈 것</li>
+<li>platformVersion은 LATEST에 의존하지 말고 명시적으로 고정할 것</li>
+<li>ALB 타겟 그룹 바인딩은 변경이 어려우니 처음 만들 때 신중히, 미래 확장 가능성을 열어둘 것</li>
+<li>healthCheckGracePeriodSeconds는 컨테이너 부팅 시간을 실측해서 정할 것. 안 하면 무한 롤링 지옥</li>
+<li>networkConfiguration은 프라이빗 서브넷 + SG 참조 기반 + VPC Endpoint 조합이 정석</li>
+<li>placementConstraints의 distinctInstance는 인스턴스 수와 desiredCount 관계를 따져보고 쓸 것</li>
+</ul>
+<p>Service는 결국 desired state reconciliation 루프 위에 올라간 옵션 다발이다. 옵션 하나하나의 의미를 알면 장애가 났을 때 어디부터 봐야 할지가 보인다.</p>
+<h2 id="참고">참고<a class="headerlink" href="#참고" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../ECS_Task_Definition/">ECS Task Definition 심화</a></li>
+<li><a href="../ECS_Deployment_Strategies/">ECS Deployment Strategies</a></li>
+<li><a href="../ECS_Capacity_Providers/">ECS Capacity Providers</a></li>
+<li><a href="../ECS_Networking_Modes/">ECS Networking Modes</a></li>
+<li><a href="../ECS_Service_Auto_Scaling/">ECS Service Auto Scaling</a></li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Network/ALB_ECS_S3_Request_Flow/">ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li>
+<li><a href="../../Load_Balancer/ALB_Blue_Green_Deployment/">ALB 기반 Blue/Green 무중단 배포</a></li>
+<li><a href="../../CICD/CodeDeploy/">AWS CodeDeploy</a></li>
+<li><a href="../../CICD/CodePipeline/">AWS CodePipeline</a></li>
+<li><a href="../../Monitoring/AWS_Config/">AWS Config</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../ECS_Service_Connect/" class="md-footer__link md-footer__link--prev" aria-label="이전: ECS Service Connect 설정">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                ECS Service Connect 설정
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../ECS_Sidecar_Patterns/" class="md-footer__link md-footer__link--next" aria-label="다음: ECS 다중 컨테이너 Sidecar 패턴">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                ECS 다중 컨테이너 Sidecar 패턴
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

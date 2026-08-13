@@ -1,196 +1,2532 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/WebServer/Caddy/Authentication/ rel=canonical><link href=../SSL_TLS/ rel=prev><link href=../Rate_Limiting/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Caddy 인증 처리 (basic_auth, forward_auth, JWT) - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#caddy-인증-처리-basic_auth-forward_auth-jwt class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Caddy 인증 처리 (basic_auth, forward_auth, JWT) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Cloud </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Web Server </span> </a> <label class="md-nav__link " for=__nav_6_3 id=__nav_6_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_3> <span class="md-nav__icon md-icon"></span> Web Server </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Nginx_vs_Caddy/ class=md-nav__link> <span class=md-ellipsis> Nginx vs Caddy </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Nginx/ class=md-nav__link> <span class=md-ellipsis> Nginx </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Apache/ class=md-nav__link> <span class=md-ellipsis> Apache </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_3_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Caddy </span> </a> <label class="md-nav__link " for=__nav_6_3_5 id=__nav_6_3_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_3_5_label aria-expanded=true> <label class=md-nav__title for=__nav_6_3_5> <span class="md-nav__icon md-icon"></span> Caddy </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Caddy/ class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Caddyfile_Syntax/ class=md-nav__link> <span class=md-ellipsis> 설정 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Reverse_Proxy/ class=md-nav__link> <span class=md-ellipsis> 프록시와 라우팅 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_3_5_5 checked> <label class=md-nav__link for=__nav_6_3_5_5 id=__nav_6_3_5_5_label tabindex=0> <span class=md-ellipsis> 보안 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_3_5_5_label aria-expanded=true> <label class=md-nav__title for=__nav_6_3_5_5> <span class="md-nav__icon md-icon"></span> 보안 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../SSL_TLS/ class=md-nav__link> <span class=md-ellipsis> SSL/TLS 심화 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 인증 처리 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 인증 처리 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#basic_auth-디렉티브의-동작-원리 class=md-nav__link> <span class=md-ellipsis> basic_auth 디렉티브의 동작 원리 </span> </a> <nav class=md-nav aria-label="basic_auth 디렉티브의 동작 원리"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#bcrypt-해시-생성 class=md-nav__link> <span class=md-ellipsis> bcrypt 해시 생성 </span> </a> </li> <li class=md-nav__item> <a href=#basic_auth의-메모리-비용-함정 class=md-nav__link> <span class=md-ellipsis> basic_auth의 메모리 비용 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#보호-경로-매처-패턴 class=md-nav__link> <span class=md-ellipsis> 보호 경로 매처 패턴 </span> </a> <nav class=md-nav aria-label="보호 경로 매처 패턴"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#매처-순서로-인증을-우회당하는-함정 class=md-nav__link> <span class=md-ellipsis> 매처 순서로 인증을 우회당하는 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#forward_auth로-외부-인증-위임 class=md-nav__link> <span class=md-ellipsis> forward_auth로 외부 인증 위임 </span> </a> <nav class=md-nav aria-label="forward_auth로 외부 인증 위임"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#oauth2-proxy-연동 class=md-nav__link> <span class=md-ellipsis> oauth2-proxy 연동 </span> </a> </li> <li class=md-nav__item> <a href=#authelia-연동 class=md-nav__link> <span class=md-ellipsis> Authelia 연동 </span> </a> </li> <li class=md-nav__item> <a href=#forward_auth-사용-시-성능-고려 class=md-nav__link> <span class=md-ellipsis> forward_auth 사용 시 성능 고려 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#jwt-검증-모듈 class=md-nav__link> <span class=md-ellipsis> JWT 검증 모듈 </span> </a> </li> <li class=md-nav__item> <a href=#인증-실패-시-401과-403의-차이 class=md-nav__link> <span class=md-ellipsis> 인증 실패 시 401과 403의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#x-forwarded-user와-식별-헤더-전달 class=md-nav__link> <span class=md-ellipsis> X-Forwarded-User와 식별 헤더 전달 </span> </a> </li> <li class=md-nav__item> <a href=#어떤-인증-방식을-고를-것인가 class=md-nav__link> <span class=md-ellipsis> 어떤 인증 방식을 고를 것인가 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../Rate_Limiting/ class=md-nav__link> <span class=md-ellipsis> Rate Limiting </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Logging_Monitoring/ class=md-nav__link> <span class=md-ellipsis> 운영 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Docker_Caddy/ class=md-nav__link> <span class=md-ellipsis> Docker </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#basic_auth-디렉티브의-동작-원리 class=md-nav__link> <span class=md-ellipsis> basic_auth 디렉티브의 동작 원리 </span> </a> <nav class=md-nav aria-label="basic_auth 디렉티브의 동작 원리"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#bcrypt-해시-생성 class=md-nav__link> <span class=md-ellipsis> bcrypt 해시 생성 </span> </a> </li> <li class=md-nav__item> <a href=#basic_auth의-메모리-비용-함정 class=md-nav__link> <span class=md-ellipsis> basic_auth의 메모리 비용 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#보호-경로-매처-패턴 class=md-nav__link> <span class=md-ellipsis> 보호 경로 매처 패턴 </span> </a> <nav class=md-nav aria-label="보호 경로 매처 패턴"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#매처-순서로-인증을-우회당하는-함정 class=md-nav__link> <span class=md-ellipsis> 매처 순서로 인증을 우회당하는 함정 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#forward_auth로-외부-인증-위임 class=md-nav__link> <span class=md-ellipsis> forward_auth로 외부 인증 위임 </span> </a> <nav class=md-nav aria-label="forward_auth로 외부 인증 위임"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#oauth2-proxy-연동 class=md-nav__link> <span class=md-ellipsis> oauth2-proxy 연동 </span> </a> </li> <li class=md-nav__item> <a href=#authelia-연동 class=md-nav__link> <span class=md-ellipsis> Authelia 연동 </span> </a> </li> <li class=md-nav__item> <a href=#forward_auth-사용-시-성능-고려 class=md-nav__link> <span class=md-ellipsis> forward_auth 사용 시 성능 고려 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#jwt-검증-모듈 class=md-nav__link> <span class=md-ellipsis> JWT 검증 모듈 </span> </a> </li> <li class=md-nav__item> <a href=#인증-실패-시-401과-403의-차이 class=md-nav__link> <span class=md-ellipsis> 인증 실패 시 401과 403의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#x-forwarded-user와-식별-헤더-전달 class=md-nav__link> <span class=md-ellipsis> X-Forwarded-User와 식별 헤더 전달 </span> </a> </li> <li class=md-nav__item> <a href=#어떤-인증-방식을-고를-것인가 class=md-nav__link> <span class=md-ellipsis> 어떤 인증 방식을 고를 것인가 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>auth</span> <span class=md-tag>jwt</span> <span class=md-tag>web-server</span> </nav> <h1 id=caddy-인증-처리-basic_auth-forward_auth-jwt>Caddy 인증 처리 (basic_auth, forward_auth, JWT)<a class=headerlink href=#caddy-인증-처리-basic_auth-forward_auth-jwt title="Permanent link">&para;</a></h1> <p>Caddy로 단순 정적 사이트를 서빙할 때는 인증을 신경 쓸 일이 거의 없다. 문제는 사내 도구를 한두 개 노출시키는 순간부터 시작된다. Grafana, Prometheus, 사내 wiki, 어드민 대시보드. 자체 로그인을 다 만들기엔 과하고 그렇다고 노출시킬 수도 없는 그 애매한 영역에 Caddy의 인증 디렉티브가 들어간다.</p> <p>Caddy가 제공하는 인증 방식은 크게 세 가지다. 내장된 <code>basic_auth</code>, 외부 인증 서버에 위임하는 <code>forward_auth</code>, 그리고 third-party 모듈로 들어가는 JWT 검증이다. 이 셋은 보호 수준도 다르고 운영 비용도 다르다. 잘못 고르면 매번 비밀번호를 다시 입력하게 만들거나, 정작 보호하려던 경로를 매처 순서 때문에 그대로 노출시킨다. 이 문서는 그 세 방식의 동작 원리와 실제로 운영하면서 마주치는 함정을 정리한다.</p> <h2 id=basic_auth-디렉티브의-동작-원리>basic_auth 디렉티브의 동작 원리<a class=headerlink href=#basic_auth-디렉티브의-동작-원리 title="Permanent link">&para;</a></h2> <p><code>basic_auth</code>는 RFC 7617의 HTTP Basic Authentication을 구현한 디렉티브다. 클라이언트가 <code>Authorization: Basic &lt;base64(user:pass)&gt;</code> 헤더를 보내면 Caddy가 base64를 디코딩한 뒤 비밀번호를 bcrypt로 해시해서 저장된 해시와 비교한다. 헤더가 없거나 인증이 실패하면 <code>401 Unauthorized</code>와 함께 <code>WWW-Authenticate: Basic realm="..."</code> 응답을 돌려준다. 브라우저는 이 응답을 받으면 로그인 다이얼로그를 띄운다.</p> <p>여기서 가장 먼저 알아야 할 점은 base64 인코딩이 암호화가 아니라는 것이다. <code>dXNlcjpwYXNz</code> 같은 문자열은 디코딩하면 그대로 <code>user:pass</code>가 나온다. 그래서 basic_auth는 반드시 HTTPS 위에서만 써야 한다. Caddy는 기본적으로 HTTPS를 자동으로 켜주기 때문에 이 부분은 별도로 신경 쓸 일이 거의 없지만, 내부 네트워크에서 평문 HTTP로 노출시키는 경우엔 비밀번호가 그대로 흘러간다는 점을 잊지 말아야 한다.</p> <p>기본 형태는 다음과 같다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>admin.example.com {
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    basic_auth {
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>        ops   $2a$14$x9z8aBcDeFgHiJkLmNoPqrSt3uV4wXyZaBcDeFgHiJkLmNoPqrSt
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>    }
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>    reverse_proxy localhost:3000
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>}
-</span></code></pre></div> <p>여기서 두 번째 컬럼은 평문 비밀번호가 아니라 bcrypt로 해시된 값이다. Caddy는 평문 비밀번호를 받지 않는다. Caddyfile에 평문을 그대로 적어두면 시작할 때 파싱 에러로 죽는다. 이건 의도된 설계인데, 설정 파일이 git에 올라가거나 다른 사람이 보더라도 비밀번호가 그대로 노출되지 않게 하려는 장치다.</p> <h3 id=bcrypt-해시-생성>bcrypt 해시 생성<a class=headerlink href=#bcrypt-해시-생성 title="Permanent link">&para;</a></h3> <p>해시는 <code>caddy hash-password</code> 명령으로 만든다. 인자 없이 실행하면 stdin으로 비밀번호를 받고, 표준 출력으로 해시를 돌려준다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>$<span class=w> </span>caddy<span class=w> </span>hash-password
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>Enter<span class=w> </span>password:
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>Confirm<span class=w> </span>password:
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=nv>$2</span>a<span class=nv>$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT</span>/5qqR7hx4IjWJPDhjvG
-</span></code></pre></div> <p>CI 파이프라인이나 스크립트에서 비대화식으로 해시를 만들고 싶을 때는 플래그를 직접 줘야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>$<span class=w> </span>caddy<span class=w> </span>hash-password<span class=w> </span>--plaintext<span class=w> </span><span class=s2>&quot;my-secret-password&quot;</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=nv>$2</span>a<span class=nv>$14$abcDefGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKlMnOpQrStUvWxYzA</span>
-</span></code></pre></div> <p>다만 이 방법은 비밀번호가 셸 history에 남고 <code>ps</code>로 다른 사용자에게 노출될 위험이 있어서, 진짜 운영 환경에서는 stdin으로 넘기는 게 안전하다.</p> <p>bcrypt cost 값은 기본 14인데, 이 숫자가 보안 수준이자 동시에 운영 비용이다. cost 14는 한 번 해시하는 데 대략 100~300ms 정도 걸린다. CPU 성능에 따라 차이가 크지만, 의도적으로 느리게 만들어서 brute force를 어렵게 하는 게 bcrypt의 설계 목적이다. 이 비용이 곧 다음 절에서 설명할 메모리 함정과 직접 연결된다.</p> <h3 id=basic_auth의-메모리-비용-함정>basic_auth의 메모리 비용 함정<a class=headerlink href=#basic_auth의-메모리-비용-함정 title="Permanent link">&para;</a></h3> <p>basic_auth로 보호된 경로에 요청이 들어올 때마다 Caddy는 클라이언트가 보낸 평문 비밀번호를 bcrypt로 해시해서 비교한다. 매 요청마다 100~300ms씩 CPU를 갉아먹는다는 뜻이다. 이게 단순히 응답이 느려지는 문제로 끝나면 다행이다.</p> <p>문제는 어느 사용자가 사내 모니터링 스크립트를 짜서 5초마다 Grafana를 폴링하기 시작했을 때다. 하나의 워커 고루틴이 100~300ms 동안 CPU를 잡고 있고, 동시에 다른 사용자 50명이 어드민 페이지를 새로고침하면 Caddy 프로세스의 CPU가 순식간에 100%로 치솟는다. 응답 지연이 길어지면 클라이언트가 재시도를 시작하고, 재시도가 또 bcrypt 큐에 쌓이고, 결국 전체 사이트가 먹통이 되는 시나리오를 실제로 본 적이 있다.</p> <p>이 문제를 회피하기 위해 Caddy는 같은 (사용자, 비밀번호) 조합에 대해 검증 결과를 짧게 캐시한다. 하지만 캐시가 영원하지 않고, 또 다른 비밀번호 조합을 brute force로 시도하는 공격이 들어오면 캐시가 무력화된다. 그래서 basic_auth는 사용자가 5명 이하이고 트래픽이 거의 없는 내부 도구에만 쓰는 것을 권장한다. 그 이상 규모가 되면 forward_auth로 세션 기반 인증으로 옮겨가야 한다.</p> <h2 id=보호-경로-매처-패턴>보호 경로 매처 패턴<a class=headerlink href=#보호-경로-매처-패턴 title="Permanent link">&para;</a></h2> <p><code>basic_auth</code>를 사이트 블록의 최상단에 적으면 사이트 전체가 인증으로 보호된다. 하지만 어떤 경로는 공개해야 하고 어떤 경로만 보호해야 하는 경우가 더 흔하다. 헬스체크 엔드포인트(<code>/healthz</code>)나 정적 자산(<code>/static/*</code>)은 인증 없이 통과시키고, <code>/admin/*</code> 경로만 보호하는 식이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>example.com {
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>    basic_auth /admin/* {
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>    }
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a>    reverse_proxy localhost:3000
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a>}
-</span></code></pre></div> <p>이렇게 디렉티브 뒤에 경로 패턴을 직접 적으면 그 경로에 한해서만 인증이 적용된다. <code>*</code>는 와일드카드라 <code>/admin/users</code>, <code>/admin/users/123</code> 모두 매칭한다.</p> <p>여러 경로를 묶거나 더 복잡한 조건이 필요하면 named matcher를 써야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>example.com {
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>    @protected {
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>        path /admin/* /api/internal/*
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>        not path /admin/health
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>    }
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>    basic_auth @protected {
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>    }
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>    reverse_proxy localhost:3000
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>}
-</span></code></pre></div> <p><code>@protected</code> matcher는 <code>/admin/*</code> 또는 <code>/api/internal/*</code> 경로를 보호하면서 <code>/admin/health</code>만 예외로 빼낸다. matcher 안에서 <code>not</code>을 쓰면 그 조건은 부정된다.</p> <p>여기서 가장 무서운 함정이 하나 있다. matcher의 순서와 디렉티브의 순서다.</p> <h3 id=매처-순서로-인증을-우회당하는-함정>매처 순서로 인증을 우회당하는 함정<a class=headerlink href=#매처-순서로-인증을-우회당하는-함정 title="Permanent link">&para;</a></h3> <p>Caddy는 Caddyfile에 적힌 디렉티브를 위에서 아래로 실행하지 않는다. 내부적으로 정해진 디렉티브 우선순위에 따라 재정렬된다. <code>basic_auth</code>는 <code>reverse_proxy</code>보다 먼저 실행되도록 정렬되기 때문에 일반적인 경우엔 문제가 없다. 하지만 <code>handle</code>이나 <code>route</code>로 명시적으로 순서를 잡기 시작하면 얘기가 달라진다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>example.com {
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>    handle /admin/* {
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>        basic_auth {
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>            admin $2a$14$...
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>        }
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>        reverse_proxy localhost:3000
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>    }
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>    handle /api/* {
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>        reverse_proxy localhost:3000
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a>    }
-</span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a>
-</span><span id=__span-5-13><a id=__codelineno-5-13 name=__codelineno-5-13 href=#__codelineno-5-13></a>    handle {
-</span><span id=__span-5-14><a id=__codelineno-5-14 name=__codelineno-5-14 href=#__codelineno-5-14></a>        reverse_proxy localhost:3000
-</span><span id=__span-5-15><a id=__codelineno-5-15 name=__codelineno-5-15 href=#__codelineno-5-15></a>    }
-</span><span id=__span-5-16><a id=__codelineno-5-16 name=__codelineno-5-16 href=#__codelineno-5-16></a>}
-</span></code></pre></div> <p>이 설정은 <code>/admin/*</code>만 인증으로 보호하고 나머지는 모두 인증 없이 백엔드로 보낸다. 의도가 명확해 보이지만, 만약 누군가 <code>/admin/secret-page</code> 같은 경로를 만들고 동시에 백엔드가 <code>/api/admin-bypass</code> 같은 라우트를 노출시키고 있다면, <code>/api/*</code> 매처가 먼저 매칭되면서 인증 없이 그대로 통과한다.</p> <p>더 흔한 함정은 매처 자체를 잘못 짜는 경우다. <code>/admin*</code>과 <code>/admin/*</code>은 비슷해 보이지만 다르다. <code>/admin*</code>는 <code>/administrator</code> 같은 경로도 매칭하는 반면 <code>/admin/*</code>는 <code>/admin/</code>으로 시작하는 경로만 매칭한다. <code>/admin/users</code>만 보호하려고 <code>path /admin*</code>라고 적으면 <code>/administrator-bypass</code> 같은 경로가 의도와 다르게 보호 영역에 들어갈 수도 있고, 반대로 빠질 수도 있다.</p> <p>또 하나는 path 매처가 정확히 매칭되는지 확인할 때다. <code>path /admin</code>은 정확히 <code>/admin</code>만 매칭한다. <code>/admin/</code>(끝에 슬래시)은 매칭되지 않는다. 백엔드가 <code>/admin</code>으로 들어오면 <code>/admin/</code>으로 redirect하는 경우, 첫 요청은 인증을 거쳐도 redirect된 두 번째 요청은 매처에 안 걸려서 그대로 통과한다.</p> <p>이 문제를 디버깅할 때는 Caddy의 access log에서 매처가 어떻게 평가됐는지 추적해야 한다. JSON 로그 포맷에서 <code>request.uri</code> 필드와 실제로 어떤 handle 블록이 실행됐는지를 비교해 보면 매처가 의도대로 동작하는지 알 수 있다.</p> <h2 id=forward_auth로-외부-인증-위임>forward_auth로 외부 인증 위임<a class=headerlink href=#forward_auth로-외부-인증-위임 title="Permanent link">&para;</a></h2> <p>basic_auth가 사용자 5명 이하 환경의 임시 방편이라면, forward_auth는 본격적인 인증 시스템과 Caddy를 연결하는 다리다. 동작 원리는 단순하다. 요청이 들어오면 Caddy가 그 요청을 백엔드로 보내기 전에 인증 서버로 먼저 보낸다. 인증 서버가 <code>2xx</code> 응답을 돌려주면 원래 요청을 백엔드로 통과시키고, <code>401</code>이나 다른 응답을 돌려주면 그대로 클라이언트에게 반환한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>internal.example.com {
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>    forward_auth localhost:4180 {
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>        uri /oauth2/auth
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>        copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Groups
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>    }
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>    reverse_proxy localhost:3000
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>}
-</span></code></pre></div> <p>이 설정은 <code>localhost:4180</code>에서 돌고 있는 oauth2-proxy로 인증을 위임한다. Caddy는 클라이언트의 모든 헤더(특히 <code>Cookie</code>)를 oauth2-proxy로 전달하고, oauth2-proxy는 세션 쿠키를 검증해서 유효하면 사용자 정보가 담긴 헤더와 함께 <code>202 Accepted</code>를 돌려준다. 그러면 Caddy는 그 헤더 중에서 <code>copy_headers</code>로 지정한 것만 골라서 백엔드로 가는 원본 요청에 붙여 보낸다.</p> <p>forward_auth의 진짜 가치는 인증 로직을 Caddy에서 완전히 분리한다는 점이다. Caddy는 "이 요청을 통과시켜도 되냐"만 물어보고, "어떻게 검증할지"는 oauth2-proxy나 Authelia가 알아서 한다. Google OAuth, GitHub OAuth, LDAP, TOTP, WebAuthn을 붙이고 싶을 때 Caddy 설정은 한 줄도 안 바꾸고 인증 서버 쪽만 바꾸면 된다.</p> <h3 id=oauth2-proxy-연동>oauth2-proxy 연동<a class=headerlink href=#oauth2-proxy-연동 title="Permanent link">&para;</a></h3> <p>oauth2-proxy는 OAuth 2.0 / OIDC provider 앞에 세우는 인증 게이트웨이다. Google, GitHub, Keycloak 같은 provider에 위임하고 받아온 사용자 정보를 헤더로 백엔드에 전달한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>{
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>    auto_https on
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>}
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>(oauth_protected) {
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>    forward_auth localhost:4180 {
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>        uri /oauth2/auth
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>        copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Groups
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a>
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a>        @auth_redirect status 401
-</span><span id=__span-7-11><a id=__codelineno-7-11 name=__codelineno-7-11 href=#__codelineno-7-11></a>        handle_response @auth_redirect {
-</span><span id=__span-7-12><a id=__codelineno-7-12 name=__codelineno-7-12 href=#__codelineno-7-12></a>            redir https://auth.example.com/oauth2/sign_in?rd=https://{host}{uri} 302
-</span><span id=__span-7-13><a id=__codelineno-7-13 name=__codelineno-7-13 href=#__codelineno-7-13></a>        }
-</span><span id=__span-7-14><a id=__codelineno-7-14 name=__codelineno-7-14 href=#__codelineno-7-14></a>    }
-</span><span id=__span-7-15><a id=__codelineno-7-15 name=__codelineno-7-15 href=#__codelineno-7-15></a>}
-</span><span id=__span-7-16><a id=__codelineno-7-16 name=__codelineno-7-16 href=#__codelineno-7-16></a>
-</span><span id=__span-7-17><a id=__codelineno-7-17 name=__codelineno-7-17 href=#__codelineno-7-17></a>grafana.example.com {
-</span><span id=__span-7-18><a id=__codelineno-7-18 name=__codelineno-7-18 href=#__codelineno-7-18></a>    import oauth_protected
-</span><span id=__span-7-19><a id=__codelineno-7-19 name=__codelineno-7-19 href=#__codelineno-7-19></a>    reverse_proxy localhost:3000
-</span><span id=__span-7-20><a id=__codelineno-7-20 name=__codelineno-7-20 href=#__codelineno-7-20></a>}
-</span><span id=__span-7-21><a id=__codelineno-7-21 name=__codelineno-7-21 href=#__codelineno-7-21></a>
-</span><span id=__span-7-22><a id=__codelineno-7-22 name=__codelineno-7-22 href=#__codelineno-7-22></a>prometheus.example.com {
-</span><span id=__span-7-23><a id=__codelineno-7-23 name=__codelineno-7-23 href=#__codelineno-7-23></a>    import oauth_protected
-</span><span id=__span-7-24><a id=__codelineno-7-24 name=__codelineno-7-24 href=#__codelineno-7-24></a>    reverse_proxy localhost:9090
-</span><span id=__span-7-25><a id=__codelineno-7-25 name=__codelineno-7-25 href=#__codelineno-7-25></a>}
-</span><span id=__span-7-26><a id=__codelineno-7-26 name=__codelineno-7-26 href=#__codelineno-7-26></a>
-</span><span id=__span-7-27><a id=__codelineno-7-27 name=__codelineno-7-27 href=#__codelineno-7-27></a># oauth2-proxy 자체는 별도 호스트로 노출
-</span><span id=__span-7-28><a id=__codelineno-7-28 name=__codelineno-7-28 href=#__codelineno-7-28></a>auth.example.com {
-</span><span id=__span-7-29><a id=__codelineno-7-29 name=__codelineno-7-29 href=#__codelineno-7-29></a>    reverse_proxy localhost:4180
-</span><span id=__span-7-30><a id=__codelineno-7-30 name=__codelineno-7-30 href=#__codelineno-7-30></a>}
-</span></code></pre></div> <p>여기서 핵심은 <code>handle_response</code> 블록이다. 인증되지 않은 사용자가 보호된 경로에 접근하면 oauth2-proxy가 <code>401</code>을 돌려주는데, 그대로 클라이언트에 보내면 브라우저는 그냥 흰 화면만 본다. <code>handle_response</code>로 <code>401</code> 응답을 가로채서 oauth2-proxy의 sign-in 페이지로 redirect 시켜야 사용자가 로그인 흐름을 탈 수 있다. <code>rd</code> 쿼리 파라미터에 원래 URL을 담아서 로그인 후 원래 페이지로 돌아오게 만든다.</p> <p>oauth2-proxy의 cookie domain 설정과 Caddy의 호스트가 정확히 일치하지 않으면 무한 redirect 루프에 빠진다. oauth2-proxy가 <code>auth.example.com</code>에서 쿠키를 굽고, 보호된 사이트가 <code>grafana.example.com</code>이라면 oauth2-proxy의 cookie domain은 <code>.example.com</code>(앞에 점)으로 설정해야 한다. 이걸 빼먹으면 로그인은 되는데 grafana로 redirect되는 순간 다시 로그인 페이지로 튕긴다.</p> <h3 id=authelia-연동>Authelia 연동<a class=headerlink href=#authelia-연동 title="Permanent link">&para;</a></h3> <p>Authelia는 oauth2-proxy보다 한 단계 더 나아간 SSO 솔루션이다. 자체 사용자 DB와 RBAC, 2FA, Duo push 같은 기능을 제공한다. forward_auth 연동 방식은 oauth2-proxy와 거의 같다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>(authelia) {
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>    forward_auth authelia:9091 {
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>        uri /api/verify?rd=https://auth.example.com
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a>        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a>    }
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a>}
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a>nextcloud.example.com {
-</span><span id=__span-8-9><a id=__codelineno-8-9 name=__codelineno-8-9 href=#__codelineno-8-9></a>    import authelia
-</span><span id=__span-8-10><a id=__codelineno-8-10 name=__codelineno-8-10 href=#__codelineno-8-10></a>    reverse_proxy nextcloud:80
-</span><span id=__span-8-11><a id=__codelineno-8-11 name=__codelineno-8-11 href=#__codelineno-8-11></a>}
-</span><span id=__span-8-12><a id=__codelineno-8-12 name=__codelineno-8-12 href=#__codelineno-8-12></a>
-</span><span id=__span-8-13><a id=__codelineno-8-13 name=__codelineno-8-13 href=#__codelineno-8-13></a>vault.example.com {
-</span><span id=__span-8-14><a id=__codelineno-8-14 name=__codelineno-8-14 href=#__codelineno-8-14></a>    import authelia
-</span><span id=__span-8-15><a id=__codelineno-8-15 name=__codelineno-8-15 href=#__codelineno-8-15></a>    reverse_proxy vault:8200
-</span><span id=__span-8-16><a id=__codelineno-8-16 name=__codelineno-8-16 href=#__codelineno-8-16></a>}
-</span><span id=__span-8-17><a id=__codelineno-8-17 name=__codelineno-8-17 href=#__codelineno-8-17></a>
-</span><span id=__span-8-18><a id=__codelineno-8-18 name=__codelineno-8-18 href=#__codelineno-8-18></a>auth.example.com {
-</span><span id=__span-8-19><a id=__codelineno-8-19 name=__codelineno-8-19 href=#__codelineno-8-19></a>    reverse_proxy authelia:9091
-</span><span id=__span-8-20><a id=__codelineno-8-20 name=__codelineno-8-20 href=#__codelineno-8-20></a>}
-</span></code></pre></div> <p>Authelia가 돌려주는 헤더 이름이 oauth2-proxy와 다르다는 점만 주의하면 된다. <code>Remote-User</code>, <code>Remote-Groups</code>, <code>Remote-Name</code>, <code>Remote-Email</code>이 표준이다. 백엔드 애플리케이션이 어떤 헤더에서 사용자 정보를 읽는지에 따라 Caddy에서 헤더 이름을 다시 매핑해 주는 경우도 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>nextcloud.example.com {
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>    forward_auth authelia:9091 {
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>        uri /api/verify
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>        copy_headers Remote-User&gt;X-Forwarded-User Remote-Email&gt;X-Forwarded-Email
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>    }
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>    reverse_proxy nextcloud:80
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>}
-</span></code></pre></div> <p><code>Remote-User&gt;X-Forwarded-User</code>는 인증 서버가 <code>Remote-User</code>라는 이름으로 돌려준 헤더를 백엔드에는 <code>X-Forwarded-User</code>로 이름을 바꿔서 전달하라는 의미다.</p> <h3 id=forward_auth-사용-시-성능-고려>forward_auth 사용 시 성능 고려<a class=headerlink href=#forward_auth-사용-시-성능-고려 title="Permanent link">&para;</a></h3> <p>forward_auth의 장점은 인증 로직이 분리된다는 것이지만, 단점은 모든 요청마다 추가로 인증 서버에 한 번 더 hop이 발생한다는 것이다. oauth2-proxy나 Authelia가 같은 호스트의 localhost에 떠 있다면 추가 latency가 1ms 이하로 미미하지만, Kubernetes에서 별도 pod로 돌고 있으면 5~20ms씩 더 걸린다. 정적 자산까지 매번 forward_auth를 거치면 페이지 로딩이 눈에 띄게 느려진다.</p> <p>이 문제는 정적 자산은 매처로 빼고 인증이 필요한 경로만 forward_auth를 거치게 하면 풀린다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>app.example.com {
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>    @assets path /static/* /favicon.ico /robots.txt
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>    handle @assets {
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>        reverse_proxy localhost:3000
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>    }
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>    handle {
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>        forward_auth localhost:4180 {
-</span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a>            uri /oauth2/auth
-</span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a>            copy_headers X-Auth-Request-User X-Auth-Request-Email
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a>        }
-</span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a>        reverse_proxy localhost:3000
-</span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a>    }
-</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a>}
-</span></code></pre></div> <p>다만 이 패턴을 쓸 때는 정적 자산 경로가 정말 인증 없이 노출돼도 되는지 한 번 더 확인해야 한다. <code>/static/internal-doc.pdf</code> 같은 게 섞여 있으면 우회 통로가 된다.</p> <h2 id=jwt-검증-모듈>JWT 검증 모듈<a class=headerlink href=#jwt-검증-모듈 title="Permanent link">&para;</a></h2> <p>forward_auth는 매 요청마다 인증 서버에 물어보는 방식이라 한계가 있다. 인증 정보를 토큰에 담아서 stateless하게 검증하고 싶으면 JWT를 써야 한다. Caddy 코어에는 JWT 검증 기능이 없고 third-party 모듈을 써야 한다. 대표적인 게 <code>caddy-security</code>(구 <code>caddy-auth-jwt</code>)다.</p> <p>이 모듈을 쓰려면 Caddy 바이너리를 새로 빌드해야 한다. <code>xcaddy</code>로 빌드한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>xcaddy<span class=w> </span>build<span class=w> </span><span class=se>\</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=w>  </span>--with<span class=w> </span>github.com/greenpau/caddy-security
-</span></code></pre></div> <p>빌드된 바이너리로 다음과 같이 설정한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>{
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>    order authenticate before respond
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>    order authorize before reverse_proxy
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>    security {
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>        jwt {
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>            token_secret &quot;my-very-long-and-random-secret-key&quot;
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>            token_lifetime 3600
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a>        }
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a>
-</span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a>        authentication portal myportal {
-</span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a>            crypto key sign-verify from env JWT_SHARED_KEY
-</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a>            cookie domain example.com
-</span><span id=__span-12-14><a id=__codelineno-12-14 name=__codelineno-12-14 href=#__codelineno-12-14></a>            backends {
-</span><span id=__span-12-15><a id=__codelineno-12-15 name=__codelineno-12-15 href=#__codelineno-12-15></a>                local_backend {
-</span><span id=__span-12-16><a id=__codelineno-12-16 name=__codelineno-12-16 href=#__codelineno-12-16></a>                    method local
-</span><span id=__span-12-17><a id=__codelineno-12-17 name=__codelineno-12-17 href=#__codelineno-12-17></a>                    path /etc/caddy/users.json
-</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a>                    realm local
-</span><span id=__span-12-19><a id=__codelineno-12-19 name=__codelineno-12-19 href=#__codelineno-12-19></a>                }
-</span><span id=__span-12-20><a id=__codelineno-12-20 name=__codelineno-12-20 href=#__codelineno-12-20></a>            }
-</span><span id=__span-12-21><a id=__codelineno-12-21 name=__codelineno-12-21 href=#__codelineno-12-21></a>        }
-</span><span id=__span-12-22><a id=__codelineno-12-22 name=__codelineno-12-22 href=#__codelineno-12-22></a>
-</span><span id=__span-12-23><a id=__codelineno-12-23 name=__codelineno-12-23 href=#__codelineno-12-23></a>        authorization policy mypolicy {
-</span><span id=__span-12-24><a id=__codelineno-12-24 name=__codelineno-12-24 href=#__codelineno-12-24></a>            set auth url https://auth.example.com/login
-</span><span id=__span-12-25><a id=__codelineno-12-25 name=__codelineno-12-25 href=#__codelineno-12-25></a>            allow roles authp/admin authp/user
-</span><span id=__span-12-26><a id=__codelineno-12-26 name=__codelineno-12-26 href=#__codelineno-12-26></a>            crypto key verify from env JWT_SHARED_KEY
-</span><span id=__span-12-27><a id=__codelineno-12-27 name=__codelineno-12-27 href=#__codelineno-12-27></a>        }
-</span><span id=__span-12-28><a id=__codelineno-12-28 name=__codelineno-12-28 href=#__codelineno-12-28></a>    }
-</span><span id=__span-12-29><a id=__codelineno-12-29 name=__codelineno-12-29 href=#__codelineno-12-29></a>}
-</span><span id=__span-12-30><a id=__codelineno-12-30 name=__codelineno-12-30 href=#__codelineno-12-30></a>
-</span><span id=__span-12-31><a id=__codelineno-12-31 name=__codelineno-12-31 href=#__codelineno-12-31></a>api.example.com {
-</span><span id=__span-12-32><a id=__codelineno-12-32 name=__codelineno-12-32 href=#__codelineno-12-32></a>    authorize with mypolicy
-</span><span id=__span-12-33><a id=__codelineno-12-33 name=__codelineno-12-33 href=#__codelineno-12-33></a>    reverse_proxy localhost:8080
-</span><span id=__span-12-34><a id=__codelineno-12-34 name=__codelineno-12-34 href=#__codelineno-12-34></a>}
-</span><span id=__span-12-35><a id=__codelineno-12-35 name=__codelineno-12-35 href=#__codelineno-12-35></a>
-</span><span id=__span-12-36><a id=__codelineno-12-36 name=__codelineno-12-36 href=#__codelineno-12-36></a>auth.example.com {
-</span><span id=__span-12-37><a id=__codelineno-12-37 name=__codelineno-12-37 href=#__codelineno-12-37></a>    authenticate with myportal
-</span><span id=__span-12-38><a id=__codelineno-12-38 name=__codelineno-12-38 href=#__codelineno-12-38></a>}
-</span></code></pre></div> <p>여기서 핵심은 <code>authorize</code> 디렉티브다. 보호하려는 경로에 이 디렉티브를 걸면 caddy-security가 요청의 <code>Authorization: Bearer &lt;jwt&gt;</code> 헤더 또는 cookie에서 토큰을 꺼내서 검증한다. 서명이 유효하지 않거나 토큰이 만료됐으면 인증 실패 처리한다.</p> <p>JWT 검증의 장점은 stateless라는 점이다. 인증 서버에 매번 물어볼 필요 없이 토큰의 서명만 검증하면 된다. 단점은 토큰을 무효화하기 어렵다는 점이다. 사용자가 로그아웃해도 그 토큰은 만료될 때까지 유효하다. 이걸 해결하려면 별도의 blacklist를 운영해야 하는데, 그러면 다시 stateful이 된다. JWT는 짧은 lifetime(15분~1시간)에 refresh token으로 갱신하는 패턴으로 운영하는 게 일반적이다.</p> <p>caddy-security 모듈이 forward_auth보다 무거운 만큼, JWT를 굳이 Caddy 레이어에서 검증할 필요가 있는지는 한 번 따져봐야 한다. 백엔드 애플리케이션이 어차피 JWT를 검증한다면 Caddy는 그냥 통과시키고 백엔드에 맡기는 게 운영 부담이 적다. Caddy에서 JWT를 검증하는 게 의미 있는 경우는 백엔드가 여러 마이크로서비스로 쪼개져 있고 각각이 같은 인증 로직을 중복 구현하기 싫을 때, 또는 인증되지 않은 요청이 백엔드에 아예 도달하지 않게 하고 싶을 때다.</p> <h2 id=인증-실패-시-401과-403의-차이>인증 실패 시 401과 403의 차이<a class=headerlink href=#인증-실패-시-401과-403의-차이 title="Permanent link">&para;</a></h2> <p>인증 관련 작업을 하다 보면 401과 403을 자주 헷갈린다. 표면적으로는 둘 다 "접근 거부"지만 의미가 다르고 클라이언트의 동작도 달라진다.</p> <p><code>401 Unauthorized</code>는 "당신이 누구인지 모르겠다"는 뜻이다. 인증 정보(credentials)가 없거나 잘못됐을 때 돌려준다. RFC에 따르면 401 응답에는 반드시 <code>WWW-Authenticate</code> 헤더가 함께 와야 한다. 브라우저는 이 헤더를 보고 어떤 인증 방식이 필요한지 판단한다. <code>WWW-Authenticate: Basic realm="Admin"</code>이 오면 로그인 다이얼로그를 띄우고, <code>Bearer</code> 같은 게 오면 자체적인 처리는 하지 않는다.</p> <p><code>403 Forbidden</code>은 "당신이 누구인지는 알겠는데 이 리소스에 접근할 권한이 없다"는 뜻이다. 인증은 됐지만 인가(authorization)가 안 된 경우다. 예를 들어 일반 사용자로 로그인한 사람이 <code>/admin/*</code> 경로에 접근하면 401이 아니라 403을 돌려줘야 맞다.</p> <p>Caddy의 <code>basic_auth</code>는 인증 실패 시 401을 돌려준다. <code>WWW-Authenticate: Basic realm="restricted"</code> 헤더를 함께 보내기 때문에 브라우저가 로그인 다이얼로그를 자동으로 띄운다. 만약 API 클라이언트라면 401을 받으면 토큰을 갱신하거나 재로그인 흐름을 타게 만들어야 한다.</p> <p>forward_auth의 경우 401 vs 403은 인증 서버가 결정한다. oauth2-proxy는 보통 401을 돌려주고 Caddy의 <code>handle_response</code>로 sign-in 페이지로 redirect하는 패턴을 쓴다. Authelia도 비슷하다. 인가 정책에 걸려서 거부되는 경우엔 403을 돌려주는 게 정석인데, 이건 클라이언트가 재로그인해도 해결되지 않으니 사용자에게 "권한이 없다"는 메시지를 보여줘야 한다.</p> <p>가끔 보는 잘못된 패턴은 모든 인증 실패를 403으로 돌려주는 경우다. 그러면 토큰이 만료됐을 뿐인데 클라이언트가 "권한 없음"으로 처리해서 재로그인 시도조차 안 하는 일이 생긴다. 401과 403은 의미상 분명히 다르고, 클라이언트 SDK들도 보통 이 둘을 구분해서 처리하기 때문에 정확히 돌려주는 게 중요하다.</p> <h2 id=x-forwarded-user와-식별-헤더-전달>X-Forwarded-User와 식별 헤더 전달<a class=headerlink href=#x-forwarded-user와-식별-헤더-전달 title="Permanent link">&para;</a></h2> <p>forward_auth로 인증된 요청을 백엔드로 보낼 때, 백엔드는 누가 요청을 보냈는지 어떻게 알까. 답은 헤더다. Caddy가 인증 서버로부터 받은 사용자 정보를 헤더로 백엔드에 전달하면 백엔드는 그 헤더를 신뢰하고 사용자를 식별한다.</p> <p>가장 흔한 헤더 이름은 <code>X-Forwarded-User</code>(또는 <code>X-Auth-User</code>, <code>Remote-User</code>)다. 인증 서버에 따라 이름이 다르다. oauth2-proxy는 <code>X-Auth-Request-User</code>, Authelia는 <code>Remote-User</code>다. 백엔드가 기대하는 이름이 따로 있다면 Caddy에서 매핑해 줘야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>internal.example.com {
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>    forward_auth localhost:4180 {
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>        uri /oauth2/auth
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>        copy_headers X-Auth-Request-User&gt;X-Forwarded-User \
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>                     X-Auth-Request-Email&gt;X-Forwarded-Email \
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a>                     X-Auth-Request-Groups&gt;X-Forwarded-Groups
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a>    }
-</span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a>
-</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a>    reverse_proxy localhost:3000 {
-</span><span id=__span-13-10><a id=__codelineno-13-10 name=__codelineno-13-10 href=#__codelineno-13-10></a>        header_up X-Forwarded-User {http.request.header.X-Forwarded-User}
-</span><span id=__span-13-11><a id=__codelineno-13-11 name=__codelineno-13-11 href=#__codelineno-13-11></a>        header_up X-Forwarded-Email {http.request.header.X-Forwarded-Email}
-</span><span id=__span-13-12><a id=__codelineno-13-12 name=__codelineno-13-12 href=#__codelineno-13-12></a>    }
-</span><span id=__span-13-13><a id=__codelineno-13-13 name=__codelineno-13-13 href=#__codelineno-13-13></a>}
-</span></code></pre></div> <p>여기서 한 가지 절대 잊으면 안 되는 보안 원칙이 있다. 백엔드가 <code>X-Forwarded-User</code> 헤더를 신뢰한다면, 클라이언트가 그 헤더를 직접 보낼 수 없도록 Caddy가 항상 덮어써야 한다는 점이다. 만약 클라이언트가 보낸 <code>X-Forwarded-User: admin</code> 헤더가 그대로 백엔드까지 도달한다면, 인증 자체를 우회하고 다른 사용자로 행세할 수 있다.</p> <p>Caddy의 <code>reverse_proxy</code>는 기본적으로 클라이언트 헤더를 백엔드로 그대로 전달한다. forward_auth가 설정해 주는 헤더는 인증된 요청에 한해 덮어쓰지만, 클라이언트가 같은 이름의 헤더를 미리 보냈을 때 그게 어떻게 처리되는지는 항상 확인해야 한다. 안전하게 가려면 <code>header_up</code>으로 인증되지 않은 헤더를 명시적으로 제거한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>internal.example.com {
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>    # 들어오는 클라이언트 헤더 제거
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>    request_header -X-Forwarded-User
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>    request_header -X-Forwarded-Email
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>    request_header -X-Forwarded-Groups
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a>
-</span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a>    forward_auth localhost:4180 {
-</span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a>        uri /oauth2/auth
-</span><span id=__span-14-9><a id=__codelineno-14-9 name=__codelineno-14-9 href=#__codelineno-14-9></a>        copy_headers X-Auth-Request-User&gt;X-Forwarded-User \
-</span><span id=__span-14-10><a id=__codelineno-14-10 name=__codelineno-14-10 href=#__codelineno-14-10></a>                     X-Auth-Request-Email&gt;X-Forwarded-Email
-</span><span id=__span-14-11><a id=__codelineno-14-11 name=__codelineno-14-11 href=#__codelineno-14-11></a>    }
-</span><span id=__span-14-12><a id=__codelineno-14-12 name=__codelineno-14-12 href=#__codelineno-14-12></a>
-</span><span id=__span-14-13><a id=__codelineno-14-13 name=__codelineno-14-13 href=#__codelineno-14-13></a>    reverse_proxy localhost:3000
-</span><span id=__span-14-14><a id=__codelineno-14-14 name=__codelineno-14-14 href=#__codelineno-14-14></a>}
-</span></code></pre></div> <p><code>request_header -X-Forwarded-User</code>는 클라이언트가 보낸 그 헤더를 무조건 제거한다. 그 다음에 forward_auth가 인증된 사용자 정보로 새 헤더를 박는다. 이 순서가 보장돼야 헤더 spoofing 공격을 막을 수 있다.</p> <p>또 하나 자주 빠뜨리는 부분은 <code>X-Forwarded-For</code>와 <code>X-Real-IP</code> 같은 클라이언트 IP 헤더다. Caddy의 <code>reverse_proxy</code>는 기본적으로 이 두 헤더를 자동으로 채워준다. 하지만 Caddy 앞에 또 다른 reverse proxy(예: AWS ALB)가 있다면 <code>trusted_proxies</code> 설정을 통해 어디까지 신뢰할지 명시해야 한다. 그렇지 않으면 클라이언트가 위조한 <code>X-Forwarded-For</code> 헤더를 그대로 받아서 누가 진짜 요청자인지 모르게 된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a>{
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>    servers {
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>        trusted_proxies static private_ranges 10.0.0.0/8
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>    }
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>}
-</span></code></pre></div> <p><code>trusted_proxies</code>로 신뢰할 수 있는 프록시 IP 대역을 명시하면 그 대역에서 들어오는 요청의 <code>X-Forwarded-*</code> 헤더는 신뢰하고, 그 외에는 무시한다.</p> <h2 id=어떤-인증-방식을-고를-것인가>어떤 인증 방식을 고를 것인가<a class=headerlink href=#어떤-인증-방식을-고를-것인가 title="Permanent link">&para;</a></h2> <p>세 가지 방식을 정리하면 선택 기준이 보인다.</p> <p>basic_auth는 사용자 5명 이하, 트래픽 거의 없음, 임시 보호용. 사내 wiki나 staging 환경에 빠르게 자물쇠를 거는 용도다. 이 이상으로 가면 bcrypt CPU 비용이 발목을 잡는다.</p> <p>forward_auth는 본격적인 인증이 필요한 모든 경우. oauth2-proxy나 Authelia를 한 번 세팅해 두면 사이트별로 디렉티브 한 줄만 추가하면 된다. SSO, 2FA, OIDC 같은 요구사항이 모두 인증 서버 쪽에서 처리된다. 운영 부담은 인증 서버를 추가로 운영해야 한다는 점인데, 이미 사내에 Keycloak이나 Okta가 있다면 그 앞에 oauth2-proxy만 붙이면 된다.</p> <p>JWT 모듈은 마이크로서비스 환경에서 인증 로직을 게이트웨이에 통합하고 싶을 때. Caddy 빌드를 커스텀해야 하는 부담이 있고 토큰 무효화 문제가 항상 남아 있다. 백엔드가 어차피 JWT를 검증한다면 Caddy 레이어에서 중복 검증할 이유가 별로 없다.</p> <p>마지막으로 매처 순서로 인한 우회는 어느 방식을 쓰든 항상 따라다니는 함정이다. 보호하려는 경로의 매처를 짠 뒤에는 반드시 의도한 경로만 보호되는지, 의도하지 않은 경로가 통과하지 않는지를 실제 요청을 보내서 확인해야 한다. <code>curl -v</code>로 401이 떨어지는지 200이 떨어지는지 한 번씩 찔러보는 게, 운영에 올린 뒤에 우회 사고를 보는 것보다 훨씬 싸게 먹힌다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../Cloud/AWS/Load_Balancer/ALB_Authentication/ >ALB 내장 인증 — OIDC·Cognito</a></li> <li><a href=../../../Backend/API/API_Security_Patterns/ >API 인증/인가 실무 패턴</a></li> <li><a href=../../../Cloud/AWS/Security/Cognito/ >AWS Cognito</a></li> <li><a href=../../../Cloud/AWS/Security/Cognito_Deep_Dive/ >AWS Cognito 심화</a></li> <li><a href=../../../Security/JWKS_Endpoint/ >JWKS URL (JWK Set Endpoint)</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../SSL_TLS/ class="md-footer__link md-footer__link--prev" aria-label="이전: SSL/TLS 심화"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> SSL/TLS 심화 </div> </div> </a> <a href=../Rate_Limiting/ class="md-footer__link md-footer__link--next" aria-label="다음: Rate Limiting"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> Rate Limiting </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/WebServer/Caddy/Authentication/">
+      
+      
+        <link rel="prev" href="../SSL_TLS/">
+      
+      
+        <link rel="next" href="../Rate_Limiting/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Caddy 인증 처리 (basic_auth, forward_auth, JWT) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#caddy-인증-처리-basic_auth-forward_auth-jwt" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Caddy 인증 처리 (basic_auth, forward_auth, JWT)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web Server
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Nginx_vs_Caddy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nginx vs Caddy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Nginx/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nginx
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Apache/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caddy
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_3_5" id="__nav_6_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Caddy
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Caddy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Caddyfile_Syntax/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    설정
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Reverse_Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프록시와 라우팅
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_5_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6_3_5_5" id="__nav_6_3_5_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_3_5_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3_5_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    보안
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SSL_TLS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL/TLS 심화
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증 처리
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증 처리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic_auth-디렉티브의-동작-원리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        basic_auth 디렉티브의 동작 원리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="basic_auth 디렉티브의 동작 원리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bcrypt-해시-생성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bcrypt 해시 생성
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic_auth의-메모리-비용-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        basic_auth의 메모리 비용 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#보호-경로-매처-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        보호 경로 매처 패턴
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="보호 경로 매처 패턴">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#매처-순서로-인증을-우회당하는-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매처 순서로 인증을 우회당하는 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#forward_auth로-외부-인증-위임" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forward_auth로 외부 인증 위임
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="forward_auth로 외부 인증 위임">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oauth2-proxy-연동" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oauth2-proxy 연동
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authelia-연동" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authelia 연동
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forward_auth-사용-시-성능-고려" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forward_auth 사용 시 성능 고려
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-검증-모듈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT 검증 모듈
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인증-실패-시-401과-403의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증 실패 시 401과 403의 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#x-forwarded-user와-식별-헤더-전달" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        X-Forwarded-User와 식별 헤더 전달
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#어떤-인증-방식을-고를-것인가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        어떤 인증 방식을 고를 것인가
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Rate_Limiting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rate Limiting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Logging_Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Docker_Caddy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic_auth-디렉티브의-동작-원리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        basic_auth 디렉티브의 동작 원리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="basic_auth 디렉티브의 동작 원리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bcrypt-해시-생성" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bcrypt 해시 생성
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic_auth의-메모리-비용-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        basic_auth의 메모리 비용 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#보호-경로-매처-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        보호 경로 매처 패턴
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="보호 경로 매처 패턴">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#매처-순서로-인증을-우회당하는-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매처 순서로 인증을 우회당하는 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#forward_auth로-외부-인증-위임" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forward_auth로 외부 인증 위임
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="forward_auth로 외부 인증 위임">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oauth2-proxy-연동" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oauth2-proxy 연동
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authelia-연동" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authelia 연동
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forward_auth-사용-시-성능-고려" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forward_auth 사용 시 성능 고려
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-검증-모듈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT 검증 모듈
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인증-실패-시-401과-403의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증 실패 시 401과 403의 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#x-forwarded-user와-식별-헤더-전달" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        X-Forwarded-User와 식별 헤더 전달
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#어떤-인증-방식을-고를-것인가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        어떤 인증 방식을 고를 것인가
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">auth</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">jwt</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">web-server</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="caddy-인증-처리-basic_auth-forward_auth-jwt">Caddy 인증 처리 (basic_auth, forward_auth, JWT)<a class="headerlink" href="#caddy-인증-처리-basic_auth-forward_auth-jwt" title="Permanent link">&para;</a></h1>
+<p>Caddy로 단순 정적 사이트를 서빙할 때는 인증을 신경 쓸 일이 거의 없다. 문제는 사내 도구를 한두 개 노출시키는 순간부터 시작된다. Grafana, Prometheus, 사내 wiki, 어드민 대시보드. 자체 로그인을 다 만들기엔 과하고 그렇다고 노출시킬 수도 없는 그 애매한 영역에 Caddy의 인증 디렉티브가 들어간다.</p>
+<p>Caddy가 제공하는 인증 방식은 크게 세 가지다. 내장된 <code>basic_auth</code>, 외부 인증 서버에 위임하는 <code>forward_auth</code>, 그리고 third-party 모듈로 들어가는 JWT 검증이다. 이 셋은 보호 수준도 다르고 운영 비용도 다르다. 잘못 고르면 매번 비밀번호를 다시 입력하게 만들거나, 정작 보호하려던 경로를 매처 순서 때문에 그대로 노출시킨다. 이 문서는 그 세 방식의 동작 원리와 실제로 운영하면서 마주치는 함정을 정리한다.</p>
+<h2 id="basic_auth-디렉티브의-동작-원리">basic_auth 디렉티브의 동작 원리<a class="headerlink" href="#basic_auth-디렉티브의-동작-원리" title="Permanent link">&para;</a></h2>
+<p><code>basic_auth</code>는 RFC 7617의 HTTP Basic Authentication을 구현한 디렉티브다. 클라이언트가 <code>Authorization: Basic &lt;base64(user:pass)&gt;</code> 헤더를 보내면 Caddy가 base64를 디코딩한 뒤 비밀번호를 bcrypt로 해시해서 저장된 해시와 비교한다. 헤더가 없거나 인증이 실패하면 <code>401 Unauthorized</code>와 함께 <code>WWW-Authenticate: Basic realm="..."</code> 응답을 돌려준다. 브라우저는 이 응답을 받으면 로그인 다이얼로그를 띄운다.</p>
+<p>여기서 가장 먼저 알아야 할 점은 base64 인코딩이 암호화가 아니라는 것이다. <code>dXNlcjpwYXNz</code> 같은 문자열은 디코딩하면 그대로 <code>user:pass</code>가 나온다. 그래서 basic_auth는 반드시 HTTPS 위에서만 써야 한다. Caddy는 기본적으로 HTTPS를 자동으로 켜주기 때문에 이 부분은 별도로 신경 쓸 일이 거의 없지만, 내부 네트워크에서 평문 HTTP로 노출시키는 경우엔 비밀번호가 그대로 흘러간다는 점을 잊지 말아야 한다.</p>
+<p>기본 형태는 다음과 같다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>admin.example.com {
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    basic_auth {
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        ops   $2a$14$x9z8aBcDeFgHiJkLmNoPqrSt3uV4wXyZaBcDeFgHiJkLmNoPqrSt
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    }
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    reverse_proxy localhost:3000
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>}
+</span></code></pre></div>
+<p>여기서 두 번째 컬럼은 평문 비밀번호가 아니라 bcrypt로 해시된 값이다. Caddy는 평문 비밀번호를 받지 않는다. Caddyfile에 평문을 그대로 적어두면 시작할 때 파싱 에러로 죽는다. 이건 의도된 설계인데, 설정 파일이 git에 올라가거나 다른 사람이 보더라도 비밀번호가 그대로 노출되지 않게 하려는 장치다.</p>
+<h3 id="bcrypt-해시-생성">bcrypt 해시 생성<a class="headerlink" href="#bcrypt-해시-생성" title="Permanent link">&para;</a></h3>
+<p>해시는 <code>caddy hash-password</code> 명령으로 만든다. 인자 없이 실행하면 stdin으로 비밀번호를 받고, 표준 출력으로 해시를 돌려준다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>caddy<span class="w"> </span>hash-password
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Enter<span class="w"> </span>password:
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Confirm<span class="w"> </span>password:
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nv">$2</span>a<span class="nv">$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT</span>/5qqR7hx4IjWJPDhjvG
+</span></code></pre></div>
+<p>CI 파이프라인이나 스크립트에서 비대화식으로 해시를 만들고 싶을 때는 플래그를 직접 줘야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>caddy<span class="w"> </span>hash-password<span class="w"> </span>--plaintext<span class="w"> </span><span class="s2">&quot;my-secret-password&quot;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">$2</span>a<span class="nv">$14$abcDefGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKlMnOpQrStUvWxYzA</span>
+</span></code></pre></div>
+<p>다만 이 방법은 비밀번호가 셸 history에 남고 <code>ps</code>로 다른 사용자에게 노출될 위험이 있어서, 진짜 운영 환경에서는 stdin으로 넘기는 게 안전하다.</p>
+<p>bcrypt cost 값은 기본 14인데, 이 숫자가 보안 수준이자 동시에 운영 비용이다. cost 14는 한 번 해시하는 데 대략 100~300ms 정도 걸린다. CPU 성능에 따라 차이가 크지만, 의도적으로 느리게 만들어서 brute force를 어렵게 하는 게 bcrypt의 설계 목적이다. 이 비용이 곧 다음 절에서 설명할 메모리 함정과 직접 연결된다.</p>
+<h3 id="basic_auth의-메모리-비용-함정">basic_auth의 메모리 비용 함정<a class="headerlink" href="#basic_auth의-메모리-비용-함정" title="Permanent link">&para;</a></h3>
+<p>basic_auth로 보호된 경로에 요청이 들어올 때마다 Caddy는 클라이언트가 보낸 평문 비밀번호를 bcrypt로 해시해서 비교한다. 매 요청마다 100~300ms씩 CPU를 갉아먹는다는 뜻이다. 이게 단순히 응답이 느려지는 문제로 끝나면 다행이다.</p>
+<p>문제는 어느 사용자가 사내 모니터링 스크립트를 짜서 5초마다 Grafana를 폴링하기 시작했을 때다. 하나의 워커 고루틴이 100~300ms 동안 CPU를 잡고 있고, 동시에 다른 사용자 50명이 어드민 페이지를 새로고침하면 Caddy 프로세스의 CPU가 순식간에 100%로 치솟는다. 응답 지연이 길어지면 클라이언트가 재시도를 시작하고, 재시도가 또 bcrypt 큐에 쌓이고, 결국 전체 사이트가 먹통이 되는 시나리오를 실제로 본 적이 있다.</p>
+<p>이 문제를 회피하기 위해 Caddy는 같은 (사용자, 비밀번호) 조합에 대해 검증 결과를 짧게 캐시한다. 하지만 캐시가 영원하지 않고, 또 다른 비밀번호 조합을 brute force로 시도하는 공격이 들어오면 캐시가 무력화된다. 그래서 basic_auth는 사용자가 5명 이하이고 트래픽이 거의 없는 내부 도구에만 쓰는 것을 권장한다. 그 이상 규모가 되면 forward_auth로 세션 기반 인증으로 옮겨가야 한다.</p>
+<h2 id="보호-경로-매처-패턴">보호 경로 매처 패턴<a class="headerlink" href="#보호-경로-매처-패턴" title="Permanent link">&para;</a></h2>
+<p><code>basic_auth</code>를 사이트 블록의 최상단에 적으면 사이트 전체가 인증으로 보호된다. 하지만 어떤 경로는 공개해야 하고 어떤 경로만 보호해야 하는 경우가 더 흔하다. 헬스체크 엔드포인트(<code>/healthz</code>)나 정적 자산(<code>/static/*</code>)은 인증 없이 통과시키고, <code>/admin/*</code> 경로만 보호하는 식이다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>example.com {
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    basic_auth /admin/* {
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    }
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    reverse_proxy localhost:3000
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>}
+</span></code></pre></div>
+<p>이렇게 디렉티브 뒤에 경로 패턴을 직접 적으면 그 경로에 한해서만 인증이 적용된다. <code>*</code>는 와일드카드라 <code>/admin/users</code>, <code>/admin/users/123</code> 모두 매칭한다.</p>
+<p>여러 경로를 묶거나 더 복잡한 조건이 필요하면 named matcher를 써야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>example.com {
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    @protected {
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        path /admin/* /api/internal/*
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        not path /admin/health
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    }
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    basic_auth @protected {
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    }
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    reverse_proxy localhost:3000
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>}
+</span></code></pre></div>
+<p><code>@protected</code> matcher는 <code>/admin/*</code> 또는 <code>/api/internal/*</code> 경로를 보호하면서 <code>/admin/health</code>만 예외로 빼낸다. matcher 안에서 <code>not</code>을 쓰면 그 조건은 부정된다.</p>
+<p>여기서 가장 무서운 함정이 하나 있다. matcher의 순서와 디렉티브의 순서다.</p>
+<h3 id="매처-순서로-인증을-우회당하는-함정">매처 순서로 인증을 우회당하는 함정<a class="headerlink" href="#매처-순서로-인증을-우회당하는-함정" title="Permanent link">&para;</a></h3>
+<p>Caddy는 Caddyfile에 적힌 디렉티브를 위에서 아래로 실행하지 않는다. 내부적으로 정해진 디렉티브 우선순위에 따라 재정렬된다. <code>basic_auth</code>는 <code>reverse_proxy</code>보다 먼저 실행되도록 정렬되기 때문에 일반적인 경우엔 문제가 없다. 하지만 <code>handle</code>이나 <code>route</code>로 명시적으로 순서를 잡기 시작하면 얘기가 달라진다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>example.com {
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    handle /admin/* {
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        basic_auth {
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>            admin $2a$14$...
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        }
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        reverse_proxy localhost:3000
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    }
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    handle /api/* {
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        reverse_proxy localhost:3000
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    }
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    handle {
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        reverse_proxy localhost:3000
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    }
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>}
+</span></code></pre></div>
+<p>이 설정은 <code>/admin/*</code>만 인증으로 보호하고 나머지는 모두 인증 없이 백엔드로 보낸다. 의도가 명확해 보이지만, 만약 누군가 <code>/admin/secret-page</code> 같은 경로를 만들고 동시에 백엔드가 <code>/api/admin-bypass</code> 같은 라우트를 노출시키고 있다면, <code>/api/*</code> 매처가 먼저 매칭되면서 인증 없이 그대로 통과한다.</p>
+<p>더 흔한 함정은 매처 자체를 잘못 짜는 경우다. <code>/admin*</code>과 <code>/admin/*</code>은 비슷해 보이지만 다르다. <code>/admin*</code>는 <code>/administrator</code> 같은 경로도 매칭하는 반면 <code>/admin/*</code>는 <code>/admin/</code>으로 시작하는 경로만 매칭한다. <code>/admin/users</code>만 보호하려고 <code>path /admin*</code>라고 적으면 <code>/administrator-bypass</code> 같은 경로가 의도와 다르게 보호 영역에 들어갈 수도 있고, 반대로 빠질 수도 있다.</p>
+<p>또 하나는 path 매처가 정확히 매칭되는지 확인할 때다. <code>path /admin</code>은 정확히 <code>/admin</code>만 매칭한다. <code>/admin/</code>(끝에 슬래시)은 매칭되지 않는다. 백엔드가 <code>/admin</code>으로 들어오면 <code>/admin/</code>으로 redirect하는 경우, 첫 요청은 인증을 거쳐도 redirect된 두 번째 요청은 매처에 안 걸려서 그대로 통과한다.</p>
+<p>이 문제를 디버깅할 때는 Caddy의 access log에서 매처가 어떻게 평가됐는지 추적해야 한다. JSON 로그 포맷에서 <code>request.uri</code> 필드와 실제로 어떤 handle 블록이 실행됐는지를 비교해 보면 매처가 의도대로 동작하는지 알 수 있다.</p>
+<h2 id="forward_auth로-외부-인증-위임">forward_auth로 외부 인증 위임<a class="headerlink" href="#forward_auth로-외부-인증-위임" title="Permanent link">&para;</a></h2>
+<p>basic_auth가 사용자 5명 이하 환경의 임시 방편이라면, forward_auth는 본격적인 인증 시스템과 Caddy를 연결하는 다리다. 동작 원리는 단순하다. 요청이 들어오면 Caddy가 그 요청을 백엔드로 보내기 전에 인증 서버로 먼저 보낸다. 인증 서버가 <code>2xx</code> 응답을 돌려주면 원래 요청을 백엔드로 통과시키고, <code>401</code>이나 다른 응답을 돌려주면 그대로 클라이언트에게 반환한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>internal.example.com {
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    forward_auth localhost:4180 {
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        uri /oauth2/auth
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>        copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Groups
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    }
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    reverse_proxy localhost:3000
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>}
+</span></code></pre></div>
+<p>이 설정은 <code>localhost:4180</code>에서 돌고 있는 oauth2-proxy로 인증을 위임한다. Caddy는 클라이언트의 모든 헤더(특히 <code>Cookie</code>)를 oauth2-proxy로 전달하고, oauth2-proxy는 세션 쿠키를 검증해서 유효하면 사용자 정보가 담긴 헤더와 함께 <code>202 Accepted</code>를 돌려준다. 그러면 Caddy는 그 헤더 중에서 <code>copy_headers</code>로 지정한 것만 골라서 백엔드로 가는 원본 요청에 붙여 보낸다.</p>
+<p>forward_auth의 진짜 가치는 인증 로직을 Caddy에서 완전히 분리한다는 점이다. Caddy는 "이 요청을 통과시켜도 되냐"만 물어보고, "어떻게 검증할지"는 oauth2-proxy나 Authelia가 알아서 한다. Google OAuth, GitHub OAuth, LDAP, TOTP, WebAuthn을 붙이고 싶을 때 Caddy 설정은 한 줄도 안 바꾸고 인증 서버 쪽만 바꾸면 된다.</p>
+<h3 id="oauth2-proxy-연동">oauth2-proxy 연동<a class="headerlink" href="#oauth2-proxy-연동" title="Permanent link">&para;</a></h3>
+<p>oauth2-proxy는 OAuth 2.0 / OIDC provider 앞에 세우는 인증 게이트웨이다. Google, GitHub, Keycloak 같은 provider에 위임하고 받아온 사용자 정보를 헤더로 백엔드에 전달한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>{
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    auto_https on
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>}
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>(oauth_protected) {
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    forward_auth localhost:4180 {
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        uri /oauth2/auth
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Groups
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        @auth_redirect status 401
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        handle_response @auth_redirect {
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>            redir https://auth.example.com/oauth2/sign_in?rd=https://{host}{uri} 302
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        }
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    }
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>}
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>grafana.example.com {
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    import oauth_protected
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    reverse_proxy localhost:3000
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>}
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>prometheus.example.com {
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>    import oauth_protected
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>    reverse_proxy localhost:9090
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>}
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a># oauth2-proxy 자체는 별도 호스트로 노출
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>auth.example.com {
+</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>    reverse_proxy localhost:4180
+</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>}
+</span></code></pre></div>
+<p>여기서 핵심은 <code>handle_response</code> 블록이다. 인증되지 않은 사용자가 보호된 경로에 접근하면 oauth2-proxy가 <code>401</code>을 돌려주는데, 그대로 클라이언트에 보내면 브라우저는 그냥 흰 화면만 본다. <code>handle_response</code>로 <code>401</code> 응답을 가로채서 oauth2-proxy의 sign-in 페이지로 redirect 시켜야 사용자가 로그인 흐름을 탈 수 있다. <code>rd</code> 쿼리 파라미터에 원래 URL을 담아서 로그인 후 원래 페이지로 돌아오게 만든다.</p>
+<p>oauth2-proxy의 cookie domain 설정과 Caddy의 호스트가 정확히 일치하지 않으면 무한 redirect 루프에 빠진다. oauth2-proxy가 <code>auth.example.com</code>에서 쿠키를 굽고, 보호된 사이트가 <code>grafana.example.com</code>이라면 oauth2-proxy의 cookie domain은 <code>.example.com</code>(앞에 점)으로 설정해야 한다. 이걸 빼먹으면 로그인은 되는데 grafana로 redirect되는 순간 다시 로그인 페이지로 튕긴다.</p>
+<h3 id="authelia-연동">Authelia 연동<a class="headerlink" href="#authelia-연동" title="Permanent link">&para;</a></h3>
+<p>Authelia는 oauth2-proxy보다 한 단계 더 나아간 SSO 솔루션이다. 자체 사용자 DB와 RBAC, 2FA, Duo push 같은 기능을 제공한다. forward_auth 연동 방식은 oauth2-proxy와 거의 같다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>(authelia) {
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    forward_auth authelia:9091 {
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>        uri /api/verify?rd=https://auth.example.com
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    }
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>}
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>nextcloud.example.com {
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    import authelia
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    reverse_proxy nextcloud:80
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>}
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>vault.example.com {
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    import authelia
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    reverse_proxy vault:8200
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>}
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>auth.example.com {
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>    reverse_proxy authelia:9091
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>}
+</span></code></pre></div>
+<p>Authelia가 돌려주는 헤더 이름이 oauth2-proxy와 다르다는 점만 주의하면 된다. <code>Remote-User</code>, <code>Remote-Groups</code>, <code>Remote-Name</code>, <code>Remote-Email</code>이 표준이다. 백엔드 애플리케이션이 어떤 헤더에서 사용자 정보를 읽는지에 따라 Caddy에서 헤더 이름을 다시 매핑해 주는 경우도 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>nextcloud.example.com {
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    forward_auth authelia:9091 {
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        uri /api/verify
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>        copy_headers Remote-User&gt;X-Forwarded-User Remote-Email&gt;X-Forwarded-Email
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    }
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    reverse_proxy nextcloud:80
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>}
+</span></code></pre></div>
+<p><code>Remote-User&gt;X-Forwarded-User</code>는 인증 서버가 <code>Remote-User</code>라는 이름으로 돌려준 헤더를 백엔드에는 <code>X-Forwarded-User</code>로 이름을 바꿔서 전달하라는 의미다.</p>
+<h3 id="forward_auth-사용-시-성능-고려">forward_auth 사용 시 성능 고려<a class="headerlink" href="#forward_auth-사용-시-성능-고려" title="Permanent link">&para;</a></h3>
+<p>forward_auth의 장점은 인증 로직이 분리된다는 것이지만, 단점은 모든 요청마다 추가로 인증 서버에 한 번 더 hop이 발생한다는 것이다. oauth2-proxy나 Authelia가 같은 호스트의 localhost에 떠 있다면 추가 latency가 1ms 이하로 미미하지만, Kubernetes에서 별도 pod로 돌고 있으면 5~20ms씩 더 걸린다. 정적 자산까지 매번 forward_auth를 거치면 페이지 로딩이 눈에 띄게 느려진다.</p>
+<p>이 문제는 정적 자산은 매처로 빼고 인증이 필요한 경로만 forward_auth를 거치게 하면 풀린다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>app.example.com {
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    @assets path /static/* /favicon.ico /robots.txt
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    handle @assets {
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>        reverse_proxy localhost:3000
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    }
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    handle {
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>        forward_auth localhost:4180 {
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>            uri /oauth2/auth
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>            copy_headers X-Auth-Request-User X-Auth-Request-Email
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>        }
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>        reverse_proxy localhost:3000
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    }
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>}
+</span></code></pre></div>
+<p>다만 이 패턴을 쓸 때는 정적 자산 경로가 정말 인증 없이 노출돼도 되는지 한 번 더 확인해야 한다. <code>/static/internal-doc.pdf</code> 같은 게 섞여 있으면 우회 통로가 된다.</p>
+<h2 id="jwt-검증-모듈">JWT 검증 모듈<a class="headerlink" href="#jwt-검증-모듈" title="Permanent link">&para;</a></h2>
+<p>forward_auth는 매 요청마다 인증 서버에 물어보는 방식이라 한계가 있다. 인증 정보를 토큰에 담아서 stateless하게 검증하고 싶으면 JWT를 써야 한다. Caddy 코어에는 JWT 검증 기능이 없고 third-party 모듈을 써야 한다. 대표적인 게 <code>caddy-security</code>(구 <code>caddy-auth-jwt</code>)다.</p>
+<p>이 모듈을 쓰려면 Caddy 바이너리를 새로 빌드해야 한다. <code>xcaddy</code>로 빌드한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>xcaddy<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--with<span class="w"> </span>github.com/greenpau/caddy-security
+</span></code></pre></div>
+<p>빌드된 바이너리로 다음과 같이 설정한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    order authenticate before respond
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    order authorize before reverse_proxy
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    security {
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        jwt {
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            token_secret &quot;my-very-long-and-random-secret-key&quot;
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>            token_lifetime 3600
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        }
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>        authentication portal myportal {
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>            crypto key sign-verify from env JWT_SHARED_KEY
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            cookie domain example.com
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>            backends {
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>                local_backend {
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>                    method local
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>                    path /etc/caddy/users.json
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>                    realm local
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>                }
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>            }
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>        }
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>        authorization policy mypolicy {
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>            set auth url https://auth.example.com/login
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>            allow roles authp/admin authp/user
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>            crypto key verify from env JWT_SHARED_KEY
+</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>        }
+</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>    }
+</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>}
+</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>
+</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>api.example.com {
+</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>    authorize with mypolicy
+</span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>    reverse_proxy localhost:8080
+</span><span id="__span-12-34"><a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>}
+</span><span id="__span-12-35"><a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a>
+</span><span id="__span-12-36"><a id="__codelineno-12-36" name="__codelineno-12-36" href="#__codelineno-12-36"></a>auth.example.com {
+</span><span id="__span-12-37"><a id="__codelineno-12-37" name="__codelineno-12-37" href="#__codelineno-12-37"></a>    authenticate with myportal
+</span><span id="__span-12-38"><a id="__codelineno-12-38" name="__codelineno-12-38" href="#__codelineno-12-38"></a>}
+</span></code></pre></div>
+<p>여기서 핵심은 <code>authorize</code> 디렉티브다. 보호하려는 경로에 이 디렉티브를 걸면 caddy-security가 요청의 <code>Authorization: Bearer &lt;jwt&gt;</code> 헤더 또는 cookie에서 토큰을 꺼내서 검증한다. 서명이 유효하지 않거나 토큰이 만료됐으면 인증 실패 처리한다.</p>
+<p>JWT 검증의 장점은 stateless라는 점이다. 인증 서버에 매번 물어볼 필요 없이 토큰의 서명만 검증하면 된다. 단점은 토큰을 무효화하기 어렵다는 점이다. 사용자가 로그아웃해도 그 토큰은 만료될 때까지 유효하다. 이걸 해결하려면 별도의 blacklist를 운영해야 하는데, 그러면 다시 stateful이 된다. JWT는 짧은 lifetime(15분~1시간)에 refresh token으로 갱신하는 패턴으로 운영하는 게 일반적이다.</p>
+<p>caddy-security 모듈이 forward_auth보다 무거운 만큼, JWT를 굳이 Caddy 레이어에서 검증할 필요가 있는지는 한 번 따져봐야 한다. 백엔드 애플리케이션이 어차피 JWT를 검증한다면 Caddy는 그냥 통과시키고 백엔드에 맡기는 게 운영 부담이 적다. Caddy에서 JWT를 검증하는 게 의미 있는 경우는 백엔드가 여러 마이크로서비스로 쪼개져 있고 각각이 같은 인증 로직을 중복 구현하기 싫을 때, 또는 인증되지 않은 요청이 백엔드에 아예 도달하지 않게 하고 싶을 때다.</p>
+<h2 id="인증-실패-시-401과-403의-차이">인증 실패 시 401과 403의 차이<a class="headerlink" href="#인증-실패-시-401과-403의-차이" title="Permanent link">&para;</a></h2>
+<p>인증 관련 작업을 하다 보면 401과 403을 자주 헷갈린다. 표면적으로는 둘 다 "접근 거부"지만 의미가 다르고 클라이언트의 동작도 달라진다.</p>
+<p><code>401 Unauthorized</code>는 "당신이 누구인지 모르겠다"는 뜻이다. 인증 정보(credentials)가 없거나 잘못됐을 때 돌려준다. RFC에 따르면 401 응답에는 반드시 <code>WWW-Authenticate</code> 헤더가 함께 와야 한다. 브라우저는 이 헤더를 보고 어떤 인증 방식이 필요한지 판단한다. <code>WWW-Authenticate: Basic realm="Admin"</code>이 오면 로그인 다이얼로그를 띄우고, <code>Bearer</code> 같은 게 오면 자체적인 처리는 하지 않는다.</p>
+<p><code>403 Forbidden</code>은 "당신이 누구인지는 알겠는데 이 리소스에 접근할 권한이 없다"는 뜻이다. 인증은 됐지만 인가(authorization)가 안 된 경우다. 예를 들어 일반 사용자로 로그인한 사람이 <code>/admin/*</code> 경로에 접근하면 401이 아니라 403을 돌려줘야 맞다.</p>
+<p>Caddy의 <code>basic_auth</code>는 인증 실패 시 401을 돌려준다. <code>WWW-Authenticate: Basic realm="restricted"</code> 헤더를 함께 보내기 때문에 브라우저가 로그인 다이얼로그를 자동으로 띄운다. 만약 API 클라이언트라면 401을 받으면 토큰을 갱신하거나 재로그인 흐름을 타게 만들어야 한다.</p>
+<p>forward_auth의 경우 401 vs 403은 인증 서버가 결정한다. oauth2-proxy는 보통 401을 돌려주고 Caddy의 <code>handle_response</code>로 sign-in 페이지로 redirect하는 패턴을 쓴다. Authelia도 비슷하다. 인가 정책에 걸려서 거부되는 경우엔 403을 돌려주는 게 정석인데, 이건 클라이언트가 재로그인해도 해결되지 않으니 사용자에게 "권한이 없다"는 메시지를 보여줘야 한다.</p>
+<p>가끔 보는 잘못된 패턴은 모든 인증 실패를 403으로 돌려주는 경우다. 그러면 토큰이 만료됐을 뿐인데 클라이언트가 "권한 없음"으로 처리해서 재로그인 시도조차 안 하는 일이 생긴다. 401과 403은 의미상 분명히 다르고, 클라이언트 SDK들도 보통 이 둘을 구분해서 처리하기 때문에 정확히 돌려주는 게 중요하다.</p>
+<h2 id="x-forwarded-user와-식별-헤더-전달">X-Forwarded-User와 식별 헤더 전달<a class="headerlink" href="#x-forwarded-user와-식별-헤더-전달" title="Permanent link">&para;</a></h2>
+<p>forward_auth로 인증된 요청을 백엔드로 보낼 때, 백엔드는 누가 요청을 보냈는지 어떻게 알까. 답은 헤더다. Caddy가 인증 서버로부터 받은 사용자 정보를 헤더로 백엔드에 전달하면 백엔드는 그 헤더를 신뢰하고 사용자를 식별한다.</p>
+<p>가장 흔한 헤더 이름은 <code>X-Forwarded-User</code>(또는 <code>X-Auth-User</code>, <code>Remote-User</code>)다. 인증 서버에 따라 이름이 다르다. oauth2-proxy는 <code>X-Auth-Request-User</code>, Authelia는 <code>Remote-User</code>다. 백엔드가 기대하는 이름이 따로 있다면 Caddy에서 매핑해 줘야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>internal.example.com {
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    forward_auth localhost:4180 {
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>        uri /oauth2/auth
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>        copy_headers X-Auth-Request-User&gt;X-Forwarded-User \
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>                     X-Auth-Request-Email&gt;X-Forwarded-Email \
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>                     X-Auth-Request-Groups&gt;X-Forwarded-Groups
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    }
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    reverse_proxy localhost:3000 {
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>        header_up X-Forwarded-User {http.request.header.X-Forwarded-User}
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>        header_up X-Forwarded-Email {http.request.header.X-Forwarded-Email}
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>    }
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>}
+</span></code></pre></div>
+<p>여기서 한 가지 절대 잊으면 안 되는 보안 원칙이 있다. 백엔드가 <code>X-Forwarded-User</code> 헤더를 신뢰한다면, 클라이언트가 그 헤더를 직접 보낼 수 없도록 Caddy가 항상 덮어써야 한다는 점이다. 만약 클라이언트가 보낸 <code>X-Forwarded-User: admin</code> 헤더가 그대로 백엔드까지 도달한다면, 인증 자체를 우회하고 다른 사용자로 행세할 수 있다.</p>
+<p>Caddy의 <code>reverse_proxy</code>는 기본적으로 클라이언트 헤더를 백엔드로 그대로 전달한다. forward_auth가 설정해 주는 헤더는 인증된 요청에 한해 덮어쓰지만, 클라이언트가 같은 이름의 헤더를 미리 보냈을 때 그게 어떻게 처리되는지는 항상 확인해야 한다. 안전하게 가려면 <code>header_up</code>으로 인증되지 않은 헤더를 명시적으로 제거한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>internal.example.com {
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    # 들어오는 클라이언트 헤더 제거
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    request_header -X-Forwarded-User
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    request_header -X-Forwarded-Email
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    request_header -X-Forwarded-Groups
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    forward_auth localhost:4180 {
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>        uri /oauth2/auth
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>        copy_headers X-Auth-Request-User&gt;X-Forwarded-User \
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>                     X-Auth-Request-Email&gt;X-Forwarded-Email
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>    }
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>    reverse_proxy localhost:3000
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>}
+</span></code></pre></div>
+<p><code>request_header -X-Forwarded-User</code>는 클라이언트가 보낸 그 헤더를 무조건 제거한다. 그 다음에 forward_auth가 인증된 사용자 정보로 새 헤더를 박는다. 이 순서가 보장돼야 헤더 spoofing 공격을 막을 수 있다.</p>
+<p>또 하나 자주 빠뜨리는 부분은 <code>X-Forwarded-For</code>와 <code>X-Real-IP</code> 같은 클라이언트 IP 헤더다. Caddy의 <code>reverse_proxy</code>는 기본적으로 이 두 헤더를 자동으로 채워준다. 하지만 Caddy 앞에 또 다른 reverse proxy(예: AWS ALB)가 있다면 <code>trusted_proxies</code> 설정을 통해 어디까지 신뢰할지 명시해야 한다. 그렇지 않으면 클라이언트가 위조한 <code>X-Forwarded-For</code> 헤더를 그대로 받아서 누가 진짜 요청자인지 모르게 된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>{
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    servers {
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>        trusted_proxies static private_ranges 10.0.0.0/8
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    }
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>}
+</span></code></pre></div>
+<p><code>trusted_proxies</code>로 신뢰할 수 있는 프록시 IP 대역을 명시하면 그 대역에서 들어오는 요청의 <code>X-Forwarded-*</code> 헤더는 신뢰하고, 그 외에는 무시한다.</p>
+<h2 id="어떤-인증-방식을-고를-것인가">어떤 인증 방식을 고를 것인가<a class="headerlink" href="#어떤-인증-방식을-고를-것인가" title="Permanent link">&para;</a></h2>
+<p>세 가지 방식을 정리하면 선택 기준이 보인다.</p>
+<p>basic_auth는 사용자 5명 이하, 트래픽 거의 없음, 임시 보호용. 사내 wiki나 staging 환경에 빠르게 자물쇠를 거는 용도다. 이 이상으로 가면 bcrypt CPU 비용이 발목을 잡는다.</p>
+<p>forward_auth는 본격적인 인증이 필요한 모든 경우. oauth2-proxy나 Authelia를 한 번 세팅해 두면 사이트별로 디렉티브 한 줄만 추가하면 된다. SSO, 2FA, OIDC 같은 요구사항이 모두 인증 서버 쪽에서 처리된다. 운영 부담은 인증 서버를 추가로 운영해야 한다는 점인데, 이미 사내에 Keycloak이나 Okta가 있다면 그 앞에 oauth2-proxy만 붙이면 된다.</p>
+<p>JWT 모듈은 마이크로서비스 환경에서 인증 로직을 게이트웨이에 통합하고 싶을 때. Caddy 빌드를 커스텀해야 하는 부담이 있고 토큰 무효화 문제가 항상 남아 있다. 백엔드가 어차피 JWT를 검증한다면 Caddy 레이어에서 중복 검증할 이유가 별로 없다.</p>
+<p>마지막으로 매처 순서로 인한 우회는 어느 방식을 쓰든 항상 따라다니는 함정이다. 보호하려는 경로의 매처를 짠 뒤에는 반드시 의도한 경로만 보호되는지, 의도하지 않은 경로가 통과하지 않는지를 실제 요청을 보내서 확인해야 한다. <code>curl -v</code>로 401이 떨어지는지 200이 떨어지는지 한 번씩 찔러보는 게, 운영에 올린 뒤에 우회 사고를 보는 것보다 훨씬 싸게 먹힌다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../Cloud/AWS/Load_Balancer/ALB_Authentication/">ALB 내장 인증 — OIDC·Cognito</a></li>
+<li><a href="../../../Backend/API/API_Security_Patterns/">API 인증/인가 실무 패턴</a></li>
+<li><a href="../../../Cloud/AWS/Security/Cognito/">AWS Cognito</a></li>
+<li><a href="../../../Cloud/AWS/Security/Cognito_Deep_Dive/">AWS Cognito 심화</a></li>
+<li><a href="../../../Security/JWKS_Endpoint/">JWKS URL (JWK Set Endpoint)</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../SSL_TLS/" class="md-footer__link md-footer__link--prev" aria-label="이전: SSL/TLS 심화">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                SSL/TLS 심화
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Rate_Limiting/" class="md-footer__link md-footer__link--next" aria-label="다음: Rate Limiting">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                Rate Limiting
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

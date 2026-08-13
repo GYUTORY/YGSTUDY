@@ -1,88 +1,2551 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Architecture/OMO/OMO_%EC%9A%B4%EC%98%81_%EC%8B%A4%EB%AC%B4/ rel=canonical><link href=../Online_Merge_Offline/ rel=prev><link href=../../DDD/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>OMO 운영 실무 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#omo-운영-실무 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> OMO 운영 실무 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4 checked> <label class=md-nav__link for=__nav_4 id=__nav_4_label tabindex=0> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_4_label aria-expanded=true> <label class=md-nav__title for=__nav_4> <span class="md-nav__icon md-icon"></span> Backend </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Framework </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Backend/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_3 checked> <label class=md-nav__link for=__nav_4_3 id=__nav_4_3_label tabindex=0> <span class=md-ellipsis> Architecture </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_4_3_label aria-expanded=true> <label class=md-nav__title for=__nav_4_3> <span class="md-nav__icon md-icon"></span> Architecture </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Clean_Architecture/ class=md-nav__link> <span class=md-ellipsis> 클린 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../../MVP/ class=md-nav__link> <span class=md-ellipsis> MVP </span> </a> </li> <li class=md-nav__item> <a href=../../MVVM/ class=md-nav__link> <span class=md-ellipsis> MVVM </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%B0%8F_%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%ED%8C%A8%ED%84%B4/ class=md-nav__link> <span class=md-ellipsis> 시스템 설계 및 아키텍처 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../../%EC%9D%BD%EA%B8%B0_%EA%B2%BD%EB%A1%9C/ class=md-nav__link> <span class=md-ellipsis> 읽기 경로 </span> </a> </li> <li class=md-nav__item> <a href=../../Backend_Layout/ class=md-nav__link> <span class=md-ellipsis> 백엔드 레이아웃 </span> </a> </li> <li class=md-nav__item> <a href=../../CQRS_Pattern/ class=md-nav__link> <span class=md-ellipsis> CQRS 패턴 </span> </a> </li> <li class=md-nav__item> <a href=../../Event_Driven_Architecture/ class=md-nav__link> <span class=md-ellipsis> 이벤트 기반 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../../Hexagonal_Architecture/ class=md-nav__link> <span class=md-ellipsis> 헥사고날 아키텍처 </span> </a> </li> <li class=md-nav__item> <a href=../../%EB%B6%84%EC%82%B0_%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EC%B8%A1%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 분산 시스템 관측성 </span> </a> </li> <li class=md-nav__item> <a href=../../Multi_Tenancy/ class=md-nav__link> <span class=md-ellipsis> 멀티테넌시 </span> </a> </li> <li class=md-nav__item> <a href=../../Tenant_Network_Isolation/ class=md-nav__link> <span class=md-ellipsis> 테넌트 네트워크 격리 </span> </a> </li> <li class=md-nav__item> <a href=../../Noisy_Neighbor/ class=md-nav__link> <span class=md-ellipsis> Noisy Neighbor </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Design%20Pattern/ class=md-nav__link> <span class=md-ellipsis> Design Pattern </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../MSA/ class=md-nav__link> <span class=md-ellipsis> MSA </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_3_16 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> OMO </span> </a> <label class="md-nav__link " for=__nav_4_3_16 id=__nav_4_3_16_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_4_3_16_label aria-expanded=true> <label class=md-nav__title for=__nav_4_3_16> <span class="md-nav__icon md-icon"></span> OMO </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Online_Merge_Offline/ class=md-nav__link> <span class=md-ellipsis> 아키텍처 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 운영 실무 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 운영 실무 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-omo란 class=md-nav__link> <span class=md-ellipsis> 1. OMO란 </span> </a> </li> <li class=md-nav__item> <a href=#2-재고-동기화 class=md-nav__link> <span class=md-ellipsis> 2. 재고 동기화 </span> </a> <nav class=md-nav aria-label="2. 재고 동기화"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#21-채널-분리-구조의-문제 class=md-nav__link> <span class=md-ellipsis> 2.1 채널 분리 구조의 문제 </span> </a> </li> <li class=md-nav__item> <a href=#22-선차감과-확정-차감 class=md-nav__link> <span class=md-ellipsis> 2.2 선차감과 확정 차감 </span> </a> </li> <li class=md-nav__item> <a href=#23-pos-오프라인-동기화 class=md-nav__link> <span class=md-ellipsis> 2.3 POS 오프라인 동기화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-주문-라우팅 class=md-nav__link> <span class=md-ellipsis> 3. 주문 라우팅 </span> </a> <nav class=md-nav aria-label="3. 주문 라우팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-라우팅-결정-구조 class=md-nav__link> <span class=md-ellipsis> 3.1 라우팅 결정 구조 </span> </a> </li> <li class=md-nav__item> <a href=#32-bopis-buy-online-pick-up-in-store class=md-nav__link> <span class=md-ellipsis> 3.2 BOPIS (Buy Online, Pick-up In Store) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-고객-식별-통합 class=md-nav__link> <span class=md-ellipsis> 4. 고객 식별 통합 </span> </a> <nav class=md-nav aria-label="4. 고객 식별 통합"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#41-채널별-id-불일치 class=md-nav__link> <span class=md-ellipsis> 4.1 채널별 ID 불일치 </span> </a> </li> <li class=md-nav__item> <a href=#42-매핑-테이블-구조 class=md-nav__link> <span class=md-ellipsis> 4.2 매핑 테이블 구조 </span> </a> </li> <li class=md-nav__item> <a href=#43-중복-고객-처리 class=md-nav__link> <span class=md-ellipsis> 4.3 중복 고객 처리 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#5-트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 5. 트러블슈팅 </span> </a> <nav class=md-nav aria-label="5. 트러블슈팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-재고-불일치 class=md-nav__link> <span class=md-ellipsis> 5.1 재고 불일치 </span> </a> </li> <li class=md-nav__item> <a href=#52-이벤트-유실 class=md-nav__link> <span class=md-ellipsis> 5.2 이벤트 유실 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#관련-문서 class=md-nav__link> <span class=md-ellipsis> 관련 문서 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../DDD/ class=md-nav__link> <span class=md-ellipsis> DDD </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-omo란 class=md-nav__link> <span class=md-ellipsis> 1. OMO란 </span> </a> </li> <li class=md-nav__item> <a href=#2-재고-동기화 class=md-nav__link> <span class=md-ellipsis> 2. 재고 동기화 </span> </a> <nav class=md-nav aria-label="2. 재고 동기화"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#21-채널-분리-구조의-문제 class=md-nav__link> <span class=md-ellipsis> 2.1 채널 분리 구조의 문제 </span> </a> </li> <li class=md-nav__item> <a href=#22-선차감과-확정-차감 class=md-nav__link> <span class=md-ellipsis> 2.2 선차감과 확정 차감 </span> </a> </li> <li class=md-nav__item> <a href=#23-pos-오프라인-동기화 class=md-nav__link> <span class=md-ellipsis> 2.3 POS 오프라인 동기화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-주문-라우팅 class=md-nav__link> <span class=md-ellipsis> 3. 주문 라우팅 </span> </a> <nav class=md-nav aria-label="3. 주문 라우팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-라우팅-결정-구조 class=md-nav__link> <span class=md-ellipsis> 3.1 라우팅 결정 구조 </span> </a> </li> <li class=md-nav__item> <a href=#32-bopis-buy-online-pick-up-in-store class=md-nav__link> <span class=md-ellipsis> 3.2 BOPIS (Buy Online, Pick-up In Store) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-고객-식별-통합 class=md-nav__link> <span class=md-ellipsis> 4. 고객 식별 통합 </span> </a> <nav class=md-nav aria-label="4. 고객 식별 통합"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#41-채널별-id-불일치 class=md-nav__link> <span class=md-ellipsis> 4.1 채널별 ID 불일치 </span> </a> </li> <li class=md-nav__item> <a href=#42-매핑-테이블-구조 class=md-nav__link> <span class=md-ellipsis> 4.2 매핑 테이블 구조 </span> </a> </li> <li class=md-nav__item> <a href=#43-중복-고객-처리 class=md-nav__link> <span class=md-ellipsis> 4.3 중복 고객 처리 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#5-트러블슈팅 class=md-nav__link> <span class=md-ellipsis> 5. 트러블슈팅 </span> </a> <nav class=md-nav aria-label="5. 트러블슈팅"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-재고-불일치 class=md-nav__link> <span class=md-ellipsis> 5.1 재고 불일치 </span> </a> </li> <li class=md-nav__item> <a href=#52-이벤트-유실 class=md-nav__link> <span class=md-ellipsis> 5.2 이벤트 유실 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#관련-문서 class=md-nav__link> <span class=md-ellipsis> 관련 문서 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>architecture</span> <span class=md-tag>backend</span> </nav> <h1 id=omo-운영-실무>OMO 운영 실무<a class=headerlink href=#omo-운영-실무 title="Permanent link">&para;</a></h1> <h2 id=1-omo란>1. OMO란<a class=headerlink href=#1-omo란 title="Permanent link">&para;</a></h2> <p>OMO는 온라인과 오프라인 채널을 하나의 구매 흐름으로 합치는 리테일 운영 방식이다. "앱에서 주문하고 매장에서 픽업", "매장에서 재고를 확인하고 앱으로 결제", "온라인 쿠폰을 오프라인 매장에서 사용"이 전형적인 시나리오다.</p> <p>프론트엔드에서 이 흐름을 만드는 건 어렵지 않다. 문제는 백엔드에서 재고, 주문, 고객 데이터를 단일한 진실로 수렴시키는 부분이다. 온라인 몰 DB와 POS 시스템이 서로 다른 재고를 바라보고 있으면, 화면에서는 통합처럼 보여도 내부는 이미 충돌 상태다.</p> <p>백엔드 관점에서 OMO 구현의 핵심 문제는 세 가지로 압축된다. 재고 동기화, 주문 라우팅, 고객 식별 통합이다. 셋 모두 "온라인에서 발생한 사건이 오프라인에도 즉시 반영되어야 하고, 그 반대도 마찬가지"라는 요구에서 비롯된다.</p> <h2 id=2-재고-동기화>2. 재고 동기화<a class=headerlink href=#2-재고-동기화 title="Permanent link">&para;</a></h2> <h3 id=21-채널-분리-구조의-문제>2.1 채널 분리 구조의 문제<a class=headerlink href=#21-채널-분리-구조의-문제 title="Permanent link">&para;</a></h3> <p>오프라인 매장 재고는 POS가 관리하고, 온라인 주문 재고는 별도 서비스가 잡고 있는 구조가 기존 레거시에서 흔하다. 두 채널이 같은 SKU를 팔 때 차감을 각자 처리하면 oversell이 난다. 매장에서 마지막 한 개를 팔았는데 온라인에서도 주문이 성공하는 상황이다.</p> <p>기본 해결 방향은 재고 원장을 단일 서비스로 모으고, 두 채널이 모두 이 서비스에 차감을 요청하는 구조다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>온라인 주문 ─┐
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>              ├──▶ 재고 서비스 ──▶ DB (단일 원장)
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>POS 판매   ──┘
-</span></code></pre></div> <p>POS가 직접 DB를 건드리는 구조라면 마이그레이션이 필요하다. POS 벤더가 외부 API 연동을 지원하지 않는 경우, POS DB 변경을 CDC(Change Data Capture)로 감지해서 재고 서비스로 이벤트를 흘리는 방식을 우회책으로 쓰기도 한다.</p> <h3 id=22-선차감과-확정-차감>2.2 선차감과 확정 차감<a class=headerlink href=#22-선차감과-확정-차감 title="Permanent link">&para;</a></h3> <p>재고 차감을 단순히 주문 확정 시점에 한 번만 하면 결제 실패 후 롤백이 복잡해진다. 보통 선차감(reservation)과 확정 차감(commit)을 분리한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>주문 생성 요청
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>    │
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>    ▼
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>재고 선차감 (available → reserved)
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>    │
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>    ├── 성공 → 주문 확정 → 재고 확정 차감 (reserved → sold)
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>    │
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>    └── 실패 (재고 부족) → 주문 거절
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>            결제 실패 → 선차감 롤백 (reserved → available)
-</span></code></pre></div> <p>재고 상태를 <code>available</code>, <code>reserved</code>, <code>sold</code>로 구분하면 동시 주문에서 충돌을 줄일 수 있다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=nd>@Transactional</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=kd>public</span><span class=w> </span><span class=n>ReservationResult</span><span class=w> </span><span class=nf>reserve</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>sku</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>qty</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>orderId</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>    </span><span class=n>Stock</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stockRepository</span><span class=p>.</span><span class=na>findBySkuForUpdate</span><span class=p>(</span><span class=n>sku</span><span class=p>);</span><span class=w> </span><span class=c1>// SELECT FOR UPDATE</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>stock</span><span class=p>.</span><span class=na>getAvailable</span><span class=p>()</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>qty</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=n>ReservationResult</span><span class=p>.</span><span class=na>insufficient</span><span class=p>();</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>    </span><span class=n>stock</span><span class=p>.</span><span class=na>reserve</span><span class=p>(</span><span class=n>qty</span><span class=p>,</span><span class=w> </span><span class=n>orderId</span><span class=p>);</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=w>    </span><span class=n>stockRepository</span><span class=p>.</span><span class=na>save</span><span class=p>(</span><span class=n>stock</span><span class=p>);</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>ReservationResult</span><span class=p>.</span><span class=na>success</span><span class=p>();</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=p>}</span>
-</span></code></pre></div> <p><code>SELECT FOR UPDATE</code>로 행 잠금을 잡는 방식은 구현이 단순하다. 단, 매장 수가 많고 인기 SKU에 트래픽이 몰리면 잠금 경합이 심해진다. 이 경우 매장별 재고 버킷을 분리해서 경합 범위를 좁히거나, 낙관적 락과 재시도로 전환한다.</p> <h3 id=23-pos-오프라인-동기화>2.3 POS 오프라인 동기화<a class=headerlink href=#23-pos-오프라인-동기화 title="Permanent link">&para;</a></h3> <p>오프라인 매장 POS는 네트워크 상태가 불안정한 환경에서 돌아간다. POS가 실시간으로 재고 서비스를 호출하지 못하는 경우를 위해 로컬 캐시를 두고 나중에 일괄 동기화하는 패턴을 쓴다.</p> <p>문제는 POS 오프라인 시간 동안 온라인이 같은 재고를 소진했을 때다. POS는 재고가 있다고 보고 판매했는데, 동기화하면 이미 없는 상황이 된다.</p> <p>대응 방향은 두 가지다. 재고를 음수로 허용하고 후처리로 보상하거나, 매장 전용 재고 버킷을 따로 잡아서 온라인과 충돌하지 않도록 격리한다. 음수 허용 방식은 구현이 단순하지만 재고 불일치 리포트가 지저분해진다. 버킷 분리 방식은 버킷 간 재고 이동 로직이 추가로 필요하다. 매장 수가 많으면 버킷 분리가 더 안정적이다.</p> <h2 id=3-주문-라우팅>3. 주문 라우팅<a class=headerlink href=#3-주문-라우팅 title="Permanent link">&para;</a></h2> <h3 id=31-라우팅-결정-구조>3.1 라우팅 결정 구조<a class=headerlink href=#31-라우팅-결정-구조 title="Permanent link">&para;</a></h3> <p>온라인 주문이 들어왔을 때 어느 물류 거점에서 처리할지 결정하는 것이 주문 라우팅이다. 물류 거점 후보는 중앙 물류 창고, 인근 매장, 지역 배송 허브로 나뉜다.</p> <p>라우팅 결정에 필요한 정보는 다음과 같다.</p> <ul> <li>거점별 해당 SKU 가용 재고 수량</li> <li>배송지까지 예상 배송 시간</li> <li>주문 유형(배송, 매장 픽업)</li> <li>거점 운영 상태와 현재 처리 작업량</li> </ul> <div class="language-java highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=kd>public</span><span class=w> </span><span class=n>FulfillmentCenter</span><span class=w> </span><span class=nf>route</span><span class=p>(</span><span class=n>Order</span><span class=w> </span><span class=n>order</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>    </span><span class=n>List</span><span class=o>&lt;</span><span class=n>FulfillmentCenter</span><span class=o>&gt;</span><span class=w> </span><span class=n>candidates</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>centerRepository</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>        </span><span class=p>.</span><span class=na>findCandidates</span><span class=p>(</span><span class=n>order</span><span class=p>.</span><span class=na>getItems</span><span class=p>(),</span><span class=w> </span><span class=n>order</span><span class=p>.</span><span class=na>getDeliveryAddress</span><span class=p>());</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>candidates</span><span class=p>.</span><span class=na>stream</span><span class=p>()</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>        </span><span class=p>.</span><span class=na>filter</span><span class=p>(</span><span class=n>c</span><span class=w> </span><span class=o>-&gt;</span><span class=w> </span><span class=n>c</span><span class=p>.</span><span class=na>hasStock</span><span class=p>(</span><span class=n>order</span><span class=p>.</span><span class=na>getItems</span><span class=p>()))</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=w>        </span><span class=p>.</span><span class=na>filter</span><span class=p>(</span><span class=n>c</span><span class=w> </span><span class=o>-&gt;</span><span class=w> </span><span class=n>c</span><span class=p>.</span><span class=na>isOperational</span><span class=p>())</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=w>        </span><span class=p>.</span><span class=na>min</span><span class=p>(</span><span class=n>Comparator</span><span class=p>.</span><span class=na>comparingInt</span><span class=p>(</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a><span class=w>            </span><span class=n>c</span><span class=w> </span><span class=o>-&gt;</span><span class=w> </span><span class=n>c</span><span class=p>.</span><span class=na>estimatedDeliveryHours</span><span class=p>(</span><span class=n>order</span><span class=p>.</span><span class=na>getDeliveryAddress</span><span class=p>())))</span>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=w>        </span><span class=p>.</span><span class=na>orElseThrow</span><span class=p>(()</span><span class=w> </span><span class=o>-&gt;</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>NoAvailableCenterException</span><span class=p>(</span><span class=n>order</span><span class=p>.</span><span class=na>getId</span><span class=p>()));</span>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a><span class=p>}</span>
-</span></code></pre></div> <p>매장 재고를 온라인 주문에 무제한으로 열면 오프라인 고객이 매장에서 재고를 못 보는 상황이 생긴다. 매장 재고는 일정 임계값 이상일 때만 온라인 라우팅 대상에 포함시킨다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=p>.</span><span class=na>filter</span><span class=p>(</span><span class=n>c</span><span class=w> </span><span class=o>-&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>c</span><span class=p>.</span><span class=na>getType</span><span class=p>()</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>CenterType</span><span class=p>.</span><span class=na>STORE</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=n>c</span><span class=p>.</span><span class=na>getAvailableStock</span><span class=p>(</span><span class=n>sku</span><span class=p>)</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>STORE_ONLINE_ROUTING_THRESHOLD</span><span class=p>;</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=kc>true</span><span class=p>;</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=p>})</span>
-</span></code></pre></div> <p>임계값 설정은 매장 카테고리마다 다르게 가져간다. 회전율이 높은 식품은 넉넉하게 잡고, 장기 전시가 필요한 가구나 가전은 낮게 잡는다.</p> <h3 id=32-bopis-buy-online-pick-up-in-store>3.2 BOPIS (Buy Online, Pick-up In Store)<a class=headerlink href=#32-bopis-buy-online-pick-up-in-store title="Permanent link">&para;</a></h3> <p>고객이 온라인으로 주문하고 매장에서 직접 수령하는 방식이다. 배송 시간이 없어서 당일 처리가 가능하고, 물류비가 줄어드는 대신 픽업 전 고객 알림과 미수령 처리 로직이 필요하다.</p> <p>주문 상태 흐름:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>주문 확정 → PENDING_STORE
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>매장 수령 확인 → PREPARING
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>준비 완료 → READY_FOR_PICKUP  (→ 고객 알림 발송)
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>고객 수령 → COMPLETED
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>n일 미수령 → CANCELLED  (→ 재고 롤백)
-</span></code></pre></div> <p>미수령 자동 취소 처리가 빠지면 재고가 reserved 상태로 무기한 묶인다. 스케줄러로 n일 경과 BOPIS 주문을 주기적으로 조회해서 자동 취소하고 재고를 돌려놓는 로직이 반드시 있어야 한다.</p> <h2 id=4-고객-식별-통합>4. 고객 식별 통합<a class=headerlink href=#4-고객-식별-통합 title="Permanent link">&para;</a></h2> <h3 id=41-채널별-id-불일치>4.1 채널별 ID 불일치<a class=headerlink href=#41-채널별-id-불일치 title="Permanent link">&para;</a></h3> <p>온라인 시스템에는 회원 ID가 있고, 오프라인 POS CRM에는 전화번호나 멤버십 카드 번호 기반 레코드가 있다. 같은 고객인데 두 시스템에서 다른 ID로 존재한다.</p> <p>통합하지 않으면 구매 이력, 포인트, 쿠폰이 채널마다 따로 쌓인다. 앱에서 적립한 포인트를 매장에서 사용하려면 두 시스템이 같은 사람을 인식해야 한다.</p> <h3 id=42-매핑-테이블-구조>4.2 매핑 테이블 구조<a class=headerlink href=#42-매핑-테이블-구조 title="Permanent link">&para;</a></h3> <p>가장 단순한 방법은 식별자 매핑 테이블을 별도로 두는 것이다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>customer_identity_mapping</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>    </span><span class=n>id</span><span class=w>          </span><span class=nb>BIGINT</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=n>AUTO_INCREMENT</span><span class=p>,</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span><span class=n>online_id</span><span class=w>   </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>64</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>    </span><span class=n>offline_id</span><span class=w>  </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>64</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span><span class=n>matched_at</span><span class=w>  </span><span class=k>TIMESTAMP</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>    </span><span class=n>match_type</span><span class=w>  </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>  </span><span class=c1>-- PHONE, EMAIL, MANUAL</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=w>    </span><span class=n>confidence</span><span class=w>  </span><span class=nb>DECIMAL</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w> </span><span class=c1>-- 0.00 ~ 1.00</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a><span class=w>    </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_online</span><span class=w> </span><span class=p>(</span><span class=n>online_id</span><span class=p>),</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=w>    </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_offline</span><span class=w> </span><span class=p>(</span><span class=n>offline_id</span><span class=p>),</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a><span class=w>    </span><span class=k>UNIQUE</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=n>uq_pair</span><span class=w> </span><span class=p>(</span><span class=n>online_id</span><span class=p>,</span><span class=w> </span><span class=n>offline_id</span><span class=p>)</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a><span class=p>);</span>
-</span></code></pre></div> <p><code>confidence</code>는 자동 매핑과 수동 매핑을 구분하고, 매핑의 신뢰도에 따라 사용 범위를 제한하기 위해 둔다. 전화번호 정확히 일치는 1.0, 이름+생년월일 일치는 0.8, 수동 연결은 0.95로 관리하는 식이다. confidence가 낮은 매핑은 주문 이력 조회에는 쓰더라도 포인트 합산에는 사용하지 않는 정책을 두기도 한다.</p> <h3 id=43-중복-고객-처리>4.3 중복 고객 처리<a class=headerlink href=#43-중복-고객-처리 title="Permanent link">&para;</a></h3> <p>고객 한 명이 온라인에 여러 계정을 가지거나, POS에 전화번호를 다르게 입력해서 레코드가 여러 개인 경우가 있다. 자동 매핑에 중복 감지 로직이 없으면 매핑이 N:1이나 1:N으로 오염된다.</p> <p>매핑 삽입 전에 기존 매핑과 충돌하는지 확인하고, 충돌 시 자동 처리하지 않고 검토 큐에 넣는 방식이 안전하다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>mapIdentities</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>onlineId</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>offlineId</span><span class=p>,</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>                          </span><span class=n>MatchType</span><span class=w> </span><span class=n>type</span><span class=p>,</span><span class=w> </span><span class=kt>double</span><span class=w> </span><span class=n>confidence</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>    </span><span class=kt>boolean</span><span class=w> </span><span class=n>hasConflict</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>mappingRepository</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>        </span><span class=p>.</span><span class=na>existsConflict</span><span class=p>(</span><span class=n>onlineId</span><span class=p>,</span><span class=w> </span><span class=n>offlineId</span><span class=p>);</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>hasConflict</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=w>        </span><span class=n>conflictQueue</span><span class=p>.</span><span class=na>enqueue</span><span class=p>(</span><span class=k>new</span><span class=w> </span><span class=n>IdentityConflict</span><span class=p>(</span><span class=n>onlineId</span><span class=p>,</span><span class=w> </span><span class=n>offlineId</span><span class=p>,</span><span class=w> </span><span class=n>type</span><span class=p>));</span>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=w>        </span><span class=k>return</span><span class=p>;</span>
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a>
-</span><span id=__span-7-11><a id=__codelineno-7-11 name=__codelineno-7-11 href=#__codelineno-7-11></a><span class=w>    </span><span class=n>mappingRepository</span><span class=p>.</span><span class=na>save</span><span class=p>(</span>
-</span><span id=__span-7-12><a id=__codelineno-7-12 name=__codelineno-7-12 href=#__codelineno-7-12></a><span class=w>        </span><span class=k>new</span><span class=w> </span><span class=n>CustomerIdentityMapping</span><span class=p>(</span><span class=n>onlineId</span><span class=p>,</span><span class=w> </span><span class=n>offlineId</span><span class=p>,</span><span class=w> </span><span class=n>type</span><span class=p>,</span><span class=w> </span><span class=n>confidence</span><span class=p>));</span>
-</span><span id=__span-7-13><a id=__codelineno-7-13 name=__codelineno-7-13 href=#__codelineno-7-13></a><span class=p>}</span>
-</span></code></pre></div> <p>자동으로 다 합치다가 실제로 다른 두 사람의 포인트를 합산하는 사고가 나면 복구가 매우 어렵다. 자동 매핑은 confidence 0.95 이상에만 적용하고, 나머지는 CS팀이 수동 처리하도록 큐에 쌓아두는 방식을 쓰는 편이 낫다.</p> <h2 id=5-트러블슈팅>5. 트러블슈팅<a class=headerlink href=#5-트러블슈팅 title="Permanent link">&para;</a></h2> <h3 id=51-재고-불일치>5.1 재고 불일치<a class=headerlink href=#51-재고-불일치 title="Permanent link">&para;</a></h3> <p>OMO 시스템에서 가장 자주 터지는 장애는 채널마다 재고 숫자가 다른 상황이다. 원인 패턴은 거의 정해져 있다.</p> <p><strong>이벤트 중복 처리</strong>: 재고 차감 이벤트가 두 번 소비되어 재고가 두 번 빠진다. Kafka 컨슈머에서 멱등성 처리가 없으면 재시도 시 중복 차감이 발생한다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=nd>@KafkaListener</span><span class=p>(</span><span class=n>topics</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&quot;stock-deduction&quot;</span><span class=p>)</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>consumeDeduction</span><span class=p>(</span><span class=n>StockDeductionEvent</span><span class=w> </span><span class=n>event</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>deductionLogRepository</span><span class=p>.</span><span class=na>existsByEventId</span><span class=p>(</span><span class=n>event</span><span class=p>.</span><span class=na>getEventId</span><span class=p>()))</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>        </span><span class=k>return</span><span class=p>;</span><span class=w> </span><span class=c1>// 멱등 처리</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=w>    </span><span class=n>stockService</span><span class=p>.</span><span class=na>deduct</span><span class=p>(</span><span class=n>event</span><span class=p>.</span><span class=na>getSku</span><span class=p>(),</span><span class=w> </span><span class=n>event</span><span class=p>.</span><span class=na>getQty</span><span class=p>());</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=w>    </span><span class=n>deductionLogRepository</span><span class=p>.</span><span class=na>save</span><span class=p>(</span><span class=k>new</span><span class=w> </span><span class=n>DeductionLog</span><span class=p>(</span><span class=n>event</span><span class=p>.</span><span class=na>getEventId</span><span class=p>()));</span>
-</span><span id=__span-8-8><a id=__codelineno-8-8 name=__codelineno-8-8 href=#__codelineno-8-8></a><span class=p>}</span>
-</span></code></pre></div> <p><strong>트랜잭션 경계 오류</strong>: 재고 차감과 이벤트 발행이 같은 트랜잭션 안에 없으면, 차감은 커밋됐는데 이벤트가 발행 안 된 상태나 반대 상황이 생긴다. Transactional Outbox 패턴으로 이벤트를 DB에 먼저 저장하고 별도 릴레이 프로세스가 발행하게 하면 이 문제를 막는다.</p> <p><strong>POS 동기화 실패 후 미재처리</strong>: POS가 오프라인 중 기록한 판매 이력을 동기화할 때 실패하면, 재시도 없이 버려지는 경우가 있다. Dead Letter Queue에 넣고 알람을 보내서 반드시 후처리하는 구조가 필요하다.</p> <p>재고 불일치가 의심될 때 가장 먼저 하는 건 채널별 차감 로그를 같은 시간대로 붙여보는 것이다. 재고 서비스 차감 합계와 POS 판매 합계를 시간대별로 비교하는 배치를 돌리면 불일치가 언제부터 시작됐는지 좁힐 수 있다.</p> <h3 id=52-이벤트-유실>5.2 이벤트 유실<a class=headerlink href=#52-이벤트-유실 title="Permanent link">&para;</a></h3> <p>재고 차감, 주문 상태 변경, 픽업 준비 완료 알림이 유실되면 데이터가 틀어지고 사용자 경험이 망가진다.</p> <p>Kafka 프로듀서가 <code>acks=0</code> 또는 <code>acks=1</code>로 설정되어 있으면, 브로커 장애 시 메시지가 유실된다. 재고와 주문에 직결된 이벤트는 <code>acks=all</code>에 <code>min.insync.replicas=2</code> 이상으로 설정한다.</p> <p>컨슈머가 처리 전에 오프셋을 먼저 커밋하면(<code>enable.auto.commit=true</code>), 처리 중 장애가 나도 오프셋이 이미 앞으로 이동해서 해당 메시지를 다시 읽지 않는다. 수동 커밋으로 처리 완료 후에만 커밋해야 한다.</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=nd>@KafkaListener</span><span class=p>(</span><span class=n>topics</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s>&quot;order-events&quot;</span><span class=p>)</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=kd>public</span><span class=w> </span><span class=kt>void</span><span class=w> </span><span class=nf>consume</span><span class=p>(</span><span class=n>ConsumerRecord</span><span class=o>&lt;</span><span class=n>String</span><span class=p>,</span><span class=w> </span><span class=n>OrderEvent</span><span class=o>&gt;</span><span class=w> </span><span class=n>record</span><span class=p>,</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=w>                    </span><span class=n>Acknowledgment</span><span class=w> </span><span class=n>acknowledgment</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=w>    </span><span class=k>try</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=w>        </span><span class=n>orderService</span><span class=p>.</span><span class=na>process</span><span class=p>(</span><span class=n>record</span><span class=p>.</span><span class=na>value</span><span class=p>());</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=w>        </span><span class=n>acknowledgment</span><span class=p>.</span><span class=na>acknowledge</span><span class=p>();</span><span class=w> </span><span class=c1>// 처리 완료 후 커밋</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=w>    </span><span class=p>}</span><span class=w> </span><span class=k>catch</span><span class=w> </span><span class=p>(</span><span class=n>Exception</span><span class=w> </span><span class=n>e</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=w>        </span><span class=c1>// 미커밋 → 재시도</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=w>        </span><span class=k>throw</span><span class=w> </span><span class=n>e</span><span class=p>;</span>
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a><span class=p>}</span>
-</span></code></pre></div> <p>이벤트 유실 감지는 이벤트 ID 기반 시퀀스 추적으로 한다. 주문 이벤트에 단조 증가하는 시퀀스 번호를 붙이고, 컨슈머 쪽에서 마지막 처리 시퀀스와 수신 시퀀스 간 gap을 모니터링한다. Gap이 임계값을 넘으면 알람을 보낸다.</p> <p>POS 동기화 이벤트는 별도 배치로 보정한다. POS DB와 재고 서비스 DB를 주기적으로 비교해서 불일치 항목을 찾아 수동 검토 큐에 넣는다. 자동 보정은 양방향 충돌 시 어느 쪽이 진실인지 판단하기 어려워서, 정상 데이터를 덮어쓰는 사고가 날 수 있다. 자동 보정 범위는 단방향으로 명확히 틀린 경우에만 제한하고, 나머지는 사람이 검토한다.</p> <h2 id=관련-문서>관련 문서<a class=headerlink href=#관련-문서 title="Permanent link">&para;</a></h2> <ul> <li><a href=../../Event_Driven_Architecture/ >이벤트 기반 아키텍처</a></li> <li><a href=../../../DataBase/RDBMS/Distributed_Transaction/ >분산 트랜잭션</a></li> <li><a href=../../MSA/Saga_%ED%8C%A8%ED%84%B4_%EB%B0%8F_%EB%B6%84%EC%82%B0_%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98/ >Saga 패턴 및 분산 트랜잭션</a></li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../MSA/API_%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC/ >API 버전 관리</a></li> <li><a href=../../Design%20Pattern/Builder_Pattern/ >Builder Pattern (빌더 패턴)</a></li> <li><a href=../../CQRS_Pattern/ >CQRS 패턴</a></li> <li><a href=../../MSA/%EB%8D%B0%EC%9D%B4%ED%84%B0_%EA%B4%80%EB%A6%AC_%ED%8C%A8%ED%84%B4/ >MSA 데이터 관리 패턴</a></li> <li><a href=../../MVP/ >MVP (Minimum Viable Product)</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Online_Merge_Offline/ class="md-footer__link md-footer__link--prev" aria-label="이전: 아키텍처"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 아키텍처 </div> </div> </a> <a href=../../DDD/ class="md-footer__link md-footer__link--next" aria-label="다음: 개요"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 개요 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Architecture/OMO/OMO_%EC%9A%B4%EC%98%81_%EC%8B%A4%EB%AC%B4/">
+      
+      
+        <link rel="prev" href="../Online_Merge_Offline/">
+      
+      
+        <link rel="next" href="../../DDD/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>OMO 운영 실무 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#omo-운영-실무" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              OMO 운영 실무
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Backend/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Clean_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    클린 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MVP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MVP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../MVVM/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MVVM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%B0%8F_%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%ED%8C%A8%ED%84%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시스템 설계 및 아키텍처 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%9D%BD%EA%B8%B0_%EA%B2%BD%EB%A1%9C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    읽기 경로
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Backend_Layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    백엔드 레이아웃
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CQRS_Pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CQRS 패턴
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Event_Driven_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이벤트 기반 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Hexagonal_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    헥사고날 아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EB%B6%84%EC%82%B0_%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EC%B8%A1%EC%84%B1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 시스템 관측성
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Multi_Tenancy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    멀티테넌시
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Tenant_Network_Isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테넌트 네트워크 격리
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Noisy_Neighbor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Noisy Neighbor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Design%20Pattern/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Pattern
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../MSA/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MSA
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3_16" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OMO
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_3_16" id="__nav_4_3_16_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_3_16_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_3_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OMO
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Online_Merge_Offline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영 실무
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영 실무
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-omo란" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. OMO란
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-재고-동기화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 재고 동기화
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 재고 동기화">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-채널-분리-구조의-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 채널 분리 구조의 문제
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-선차감과-확정-차감" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 선차감과 확정 차감
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-pos-오프라인-동기화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 POS 오프라인 동기화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-주문-라우팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 주문 라우팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 주문 라우팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-라우팅-결정-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 라우팅 결정 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-bopis-buy-online-pick-up-in-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 BOPIS (Buy Online, Pick-up In Store)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-고객-식별-통합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 고객 식별 통합
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 고객 식별 통합">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-채널별-id-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 채널별 ID 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-매핑-테이블-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 매핑 테이블 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-중복-고객-처리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 중복 고객 처리
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-재고-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 재고 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-이벤트-유실" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 이벤트 유실
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#관련-문서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        관련 문서
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../DDD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-omo란" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. OMO란
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-재고-동기화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 재고 동기화
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 재고 동기화">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-채널-분리-구조의-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 채널 분리 구조의 문제
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-선차감과-확정-차감" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 선차감과 확정 차감
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-pos-오프라인-동기화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 POS 오프라인 동기화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-주문-라우팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 주문 라우팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 주문 라우팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-라우팅-결정-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 라우팅 결정 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-bopis-buy-online-pick-up-in-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 BOPIS (Buy Online, Pick-up In Store)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-고객-식별-통합" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 고객 식별 통합
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 고객 식별 통합">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-채널별-id-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 채널별 ID 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-매핑-테이블-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 매핑 테이블 구조
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-중복-고객-처리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 중복 고객 처리
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-트러블슈팅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 트러블슈팅
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 트러블슈팅">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-재고-불일치" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 재고 불일치
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-이벤트-유실" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 이벤트 유실
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#관련-문서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        관련 문서
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">architecture</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">backend</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="omo-운영-실무">OMO 운영 실무<a class="headerlink" href="#omo-운영-실무" title="Permanent link">&para;</a></h1>
+<h2 id="1-omo란">1. OMO란<a class="headerlink" href="#1-omo란" title="Permanent link">&para;</a></h2>
+<p>OMO는 온라인과 오프라인 채널을 하나의 구매 흐름으로 합치는 리테일 운영 방식이다. "앱에서 주문하고 매장에서 픽업", "매장에서 재고를 확인하고 앱으로 결제", "온라인 쿠폰을 오프라인 매장에서 사용"이 전형적인 시나리오다.</p>
+<p>프론트엔드에서 이 흐름을 만드는 건 어렵지 않다. 문제는 백엔드에서 재고, 주문, 고객 데이터를 단일한 진실로 수렴시키는 부분이다. 온라인 몰 DB와 POS 시스템이 서로 다른 재고를 바라보고 있으면, 화면에서는 통합처럼 보여도 내부는 이미 충돌 상태다.</p>
+<p>백엔드 관점에서 OMO 구현의 핵심 문제는 세 가지로 압축된다. 재고 동기화, 주문 라우팅, 고객 식별 통합이다. 셋 모두 "온라인에서 발생한 사건이 오프라인에도 즉시 반영되어야 하고, 그 반대도 마찬가지"라는 요구에서 비롯된다.</p>
+<h2 id="2-재고-동기화">2. 재고 동기화<a class="headerlink" href="#2-재고-동기화" title="Permanent link">&para;</a></h2>
+<h3 id="21-채널-분리-구조의-문제">2.1 채널 분리 구조의 문제<a class="headerlink" href="#21-채널-분리-구조의-문제" title="Permanent link">&para;</a></h3>
+<p>오프라인 매장 재고는 POS가 관리하고, 온라인 주문 재고는 별도 서비스가 잡고 있는 구조가 기존 레거시에서 흔하다. 두 채널이 같은 SKU를 팔 때 차감을 각자 처리하면 oversell이 난다. 매장에서 마지막 한 개를 팔았는데 온라인에서도 주문이 성공하는 상황이다.</p>
+<p>기본 해결 방향은 재고 원장을 단일 서비스로 모으고, 두 채널이 모두 이 서비스에 차감을 요청하는 구조다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>온라인 주문 ─┐
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>              ├──▶ 재고 서비스 ──▶ DB (단일 원장)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>POS 판매   ──┘
+</span></code></pre></div>
+<p>POS가 직접 DB를 건드리는 구조라면 마이그레이션이 필요하다. POS 벤더가 외부 API 연동을 지원하지 않는 경우, POS DB 변경을 CDC(Change Data Capture)로 감지해서 재고 서비스로 이벤트를 흘리는 방식을 우회책으로 쓰기도 한다.</p>
+<h3 id="22-선차감과-확정-차감">2.2 선차감과 확정 차감<a class="headerlink" href="#22-선차감과-확정-차감" title="Permanent link">&para;</a></h3>
+<p>재고 차감을 단순히 주문 확정 시점에 한 번만 하면 결제 실패 후 롤백이 복잡해진다. 보통 선차감(reservation)과 확정 차감(commit)을 분리한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>주문 생성 요청
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    │
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    ▼
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>재고 선차감 (available → reserved)
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    │
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    ├── 성공 → 주문 확정 → 재고 확정 차감 (reserved → sold)
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    │
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    └── 실패 (재고 부족) → 주문 거절
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            결제 실패 → 선차감 롤백 (reserved → available)
+</span></code></pre></div>
+<p>재고 상태를 <code>available</code>, <code>reserved</code>, <code>sold</code>로 구분하면 동시 주문에서 충돌을 줄일 수 있다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@Transactional</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">public</span><span class="w"> </span><span class="n">ReservationResult</span><span class="w"> </span><span class="nf">reserve</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">sku</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">qty</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">orderId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="n">Stock</span><span class="w"> </span><span class="n">stock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stockRepository</span><span class="p">.</span><span class="na">findBySkuForUpdate</span><span class="p">(</span><span class="n">sku</span><span class="p">);</span><span class="w"> </span><span class="c1">// SELECT FOR UPDATE</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">stock</span><span class="p">.</span><span class="na">getAvailable</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">qty</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ReservationResult</span><span class="p">.</span><span class="na">insufficient</span><span class="p">();</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="n">stock</span><span class="p">.</span><span class="na">reserve</span><span class="p">(</span><span class="n">qty</span><span class="p">,</span><span class="w"> </span><span class="n">orderId</span><span class="p">);</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="n">stockRepository</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="n">stock</span><span class="p">);</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">ReservationResult</span><span class="p">.</span><span class="na">success</span><span class="p">();</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>SELECT FOR UPDATE</code>로 행 잠금을 잡는 방식은 구현이 단순하다. 단, 매장 수가 많고 인기 SKU에 트래픽이 몰리면 잠금 경합이 심해진다. 이 경우 매장별 재고 버킷을 분리해서 경합 범위를 좁히거나, 낙관적 락과 재시도로 전환한다.</p>
+<h3 id="23-pos-오프라인-동기화">2.3 POS 오프라인 동기화<a class="headerlink" href="#23-pos-오프라인-동기화" title="Permanent link">&para;</a></h3>
+<p>오프라인 매장 POS는 네트워크 상태가 불안정한 환경에서 돌아간다. POS가 실시간으로 재고 서비스를 호출하지 못하는 경우를 위해 로컬 캐시를 두고 나중에 일괄 동기화하는 패턴을 쓴다.</p>
+<p>문제는 POS 오프라인 시간 동안 온라인이 같은 재고를 소진했을 때다. POS는 재고가 있다고 보고 판매했는데, 동기화하면 이미 없는 상황이 된다.</p>
+<p>대응 방향은 두 가지다. 재고를 음수로 허용하고 후처리로 보상하거나, 매장 전용 재고 버킷을 따로 잡아서 온라인과 충돌하지 않도록 격리한다. 음수 허용 방식은 구현이 단순하지만 재고 불일치 리포트가 지저분해진다. 버킷 분리 방식은 버킷 간 재고 이동 로직이 추가로 필요하다. 매장 수가 많으면 버킷 분리가 더 안정적이다.</p>
+<h2 id="3-주문-라우팅">3. 주문 라우팅<a class="headerlink" href="#3-주문-라우팅" title="Permanent link">&para;</a></h2>
+<h3 id="31-라우팅-결정-구조">3.1 라우팅 결정 구조<a class="headerlink" href="#31-라우팅-결정-구조" title="Permanent link">&para;</a></h3>
+<p>온라인 주문이 들어왔을 때 어느 물류 거점에서 처리할지 결정하는 것이 주문 라우팅이다. 물류 거점 후보는 중앙 물류 창고, 인근 매장, 지역 배송 허브로 나뉜다.</p>
+<p>라우팅 결정에 필요한 정보는 다음과 같다.</p>
+<ul>
+<li>거점별 해당 SKU 가용 재고 수량</li>
+<li>배송지까지 예상 배송 시간</li>
+<li>주문 유형(배송, 매장 픽업)</li>
+<li>거점 운영 상태와 현재 처리 작업량</li>
+</ul>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">public</span><span class="w"> </span><span class="n">FulfillmentCenter</span><span class="w"> </span><span class="nf">route</span><span class="p">(</span><span class="n">Order</span><span class="w"> </span><span class="n">order</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="n">List</span><span class="o">&lt;</span><span class="n">FulfillmentCenter</span><span class="o">&gt;</span><span class="w"> </span><span class="n">candidates</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">centerRepository</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">        </span><span class="p">.</span><span class="na">findCandidates</span><span class="p">(</span><span class="n">order</span><span class="p">.</span><span class="na">getItems</span><span class="p">(),</span><span class="w"> </span><span class="n">order</span><span class="p">.</span><span class="na">getDeliveryAddress</span><span class="p">());</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">candidates</span><span class="p">.</span><span class="na">stream</span><span class="p">()</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">        </span><span class="p">.</span><span class="na">filter</span><span class="p">(</span><span class="n">c</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">c</span><span class="p">.</span><span class="na">hasStock</span><span class="p">(</span><span class="n">order</span><span class="p">.</span><span class="na">getItems</span><span class="p">()))</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">        </span><span class="p">.</span><span class="na">filter</span><span class="p">(</span><span class="n">c</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">c</span><span class="p">.</span><span class="na">isOperational</span><span class="p">())</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">        </span><span class="p">.</span><span class="na">min</span><span class="p">(</span><span class="n">Comparator</span><span class="p">.</span><span class="na">comparingInt</span><span class="p">(</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">            </span><span class="n">c</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">c</span><span class="p">.</span><span class="na">estimatedDeliveryHours</span><span class="p">(</span><span class="n">order</span><span class="p">.</span><span class="na">getDeliveryAddress</span><span class="p">())))</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="p">.</span><span class="na">orElseThrow</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">NoAvailableCenterException</span><span class="p">(</span><span class="n">order</span><span class="p">.</span><span class="na">getId</span><span class="p">()));</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>매장 재고를 온라인 주문에 무제한으로 열면 오프라인 고객이 매장에서 재고를 못 보는 상황이 생긴다. 매장 재고는 일정 임계값 이상일 때만 온라인 라우팅 대상에 포함시킨다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">.</span><span class="na">filter</span><span class="p">(</span><span class="n">c</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="na">getType</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">CenterType</span><span class="p">.</span><span class="na">STORE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">c</span><span class="p">.</span><span class="na">getAvailableStock</span><span class="p">(</span><span class="n">sku</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">STORE_ONLINE_ROUTING_THRESHOLD</span><span class="p">;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">})</span>
+</span></code></pre></div>
+<p>임계값 설정은 매장 카테고리마다 다르게 가져간다. 회전율이 높은 식품은 넉넉하게 잡고, 장기 전시가 필요한 가구나 가전은 낮게 잡는다.</p>
+<h3 id="32-bopis-buy-online-pick-up-in-store">3.2 BOPIS (Buy Online, Pick-up In Store)<a class="headerlink" href="#32-bopis-buy-online-pick-up-in-store" title="Permanent link">&para;</a></h3>
+<p>고객이 온라인으로 주문하고 매장에서 직접 수령하는 방식이다. 배송 시간이 없어서 당일 처리가 가능하고, 물류비가 줄어드는 대신 픽업 전 고객 알림과 미수령 처리 로직이 필요하다.</p>
+<p>주문 상태 흐름:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>주문 확정 → PENDING_STORE
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>매장 수령 확인 → PREPARING
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>준비 완료 → READY_FOR_PICKUP  (→ 고객 알림 발송)
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>고객 수령 → COMPLETED
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>n일 미수령 → CANCELLED  (→ 재고 롤백)
+</span></code></pre></div>
+<p>미수령 자동 취소 처리가 빠지면 재고가 reserved 상태로 무기한 묶인다. 스케줄러로 n일 경과 BOPIS 주문을 주기적으로 조회해서 자동 취소하고 재고를 돌려놓는 로직이 반드시 있어야 한다.</p>
+<h2 id="4-고객-식별-통합">4. 고객 식별 통합<a class="headerlink" href="#4-고객-식별-통합" title="Permanent link">&para;</a></h2>
+<h3 id="41-채널별-id-불일치">4.1 채널별 ID 불일치<a class="headerlink" href="#41-채널별-id-불일치" title="Permanent link">&para;</a></h3>
+<p>온라인 시스템에는 회원 ID가 있고, 오프라인 POS CRM에는 전화번호나 멤버십 카드 번호 기반 레코드가 있다. 같은 고객인데 두 시스템에서 다른 ID로 존재한다.</p>
+<p>통합하지 않으면 구매 이력, 포인트, 쿠폰이 채널마다 따로 쌓인다. 앱에서 적립한 포인트를 매장에서 사용하려면 두 시스템이 같은 사람을 인식해야 한다.</p>
+<h3 id="42-매핑-테이블-구조">4.2 매핑 테이블 구조<a class="headerlink" href="#42-매핑-테이블-구조" title="Permanent link">&para;</a></h3>
+<p>가장 단순한 방법은 식별자 매핑 테이블을 별도로 두는 것이다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">customer_identity_mapping</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="n">id</span><span class="w">          </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTO_INCREMENT</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="n">online_id</span><span class="w">   </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="n">offline_id</span><span class="w">  </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="n">matched_at</span><span class="w">  </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="n">match_type</span><span class="w">  </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">  </span><span class="c1">-- PHONE, EMAIL, MANUAL</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="n">confidence</span><span class="w">  </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w"> </span><span class="c1">-- 0.00 ~ 1.00</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_online</span><span class="w"> </span><span class="p">(</span><span class="n">online_id</span><span class="p">),</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_offline</span><span class="w"> </span><span class="p">(</span><span class="n">offline_id</span><span class="p">),</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="k">UNIQUE</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">uq_pair</span><span class="w"> </span><span class="p">(</span><span class="n">online_id</span><span class="p">,</span><span class="w"> </span><span class="n">offline_id</span><span class="p">)</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">);</span>
+</span></code></pre></div>
+<p><code>confidence</code>는 자동 매핑과 수동 매핑을 구분하고, 매핑의 신뢰도에 따라 사용 범위를 제한하기 위해 둔다. 전화번호 정확히 일치는 1.0, 이름+생년월일 일치는 0.8, 수동 연결은 0.95로 관리하는 식이다. confidence가 낮은 매핑은 주문 이력 조회에는 쓰더라도 포인트 합산에는 사용하지 않는 정책을 두기도 한다.</p>
+<h3 id="43-중복-고객-처리">4.3 중복 고객 처리<a class="headerlink" href="#43-중복-고객-처리" title="Permanent link">&para;</a></h3>
+<p>고객 한 명이 온라인에 여러 계정을 가지거나, POS에 전화번호를 다르게 입력해서 레코드가 여러 개인 경우가 있다. 자동 매핑에 중복 감지 로직이 없으면 매핑이 N:1이나 1:N으로 오염된다.</p>
+<p>매핑 삽입 전에 기존 매핑과 충돌하는지 확인하고, 충돌 시 자동 처리하지 않고 검토 큐에 넣는 방식이 안전하다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">mapIdentities</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">onlineId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">offlineId</span><span class="p">,</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">                          </span><span class="n">MatchType</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">confidence</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="kt">boolean</span><span class="w"> </span><span class="n">hasConflict</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mappingRepository</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">        </span><span class="p">.</span><span class="na">existsConflict</span><span class="p">(</span><span class="n">onlineId</span><span class="p">,</span><span class="w"> </span><span class="n">offlineId</span><span class="p">);</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hasConflict</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">        </span><span class="n">conflictQueue</span><span class="p">.</span><span class="na">enqueue</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">IdentityConflict</span><span class="p">(</span><span class="n">onlineId</span><span class="p">,</span><span class="w"> </span><span class="n">offlineId</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="p">));</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">        </span><span class="k">return</span><span class="p">;</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="n">mappingRepository</span><span class="p">.</span><span class="na">save</span><span class="p">(</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">        </span><span class="k">new</span><span class="w"> </span><span class="n">CustomerIdentityMapping</span><span class="p">(</span><span class="n">onlineId</span><span class="p">,</span><span class="w"> </span><span class="n">offlineId</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">confidence</span><span class="p">));</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>자동으로 다 합치다가 실제로 다른 두 사람의 포인트를 합산하는 사고가 나면 복구가 매우 어렵다. 자동 매핑은 confidence 0.95 이상에만 적용하고, 나머지는 CS팀이 수동 처리하도록 큐에 쌓아두는 방식을 쓰는 편이 낫다.</p>
+<h2 id="5-트러블슈팅">5. 트러블슈팅<a class="headerlink" href="#5-트러블슈팅" title="Permanent link">&para;</a></h2>
+<h3 id="51-재고-불일치">5.1 재고 불일치<a class="headerlink" href="#51-재고-불일치" title="Permanent link">&para;</a></h3>
+<p>OMO 시스템에서 가장 자주 터지는 장애는 채널마다 재고 숫자가 다른 상황이다. 원인 패턴은 거의 정해져 있다.</p>
+<p><strong>이벤트 중복 처리</strong>: 재고 차감 이벤트가 두 번 소비되어 재고가 두 번 빠진다. Kafka 컨슈머에서 멱등성 처리가 없으면 재시도 시 중복 차감이 발생한다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@KafkaListener</span><span class="p">(</span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;stock-deduction&quot;</span><span class="p">)</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consumeDeduction</span><span class="p">(</span><span class="n">StockDeductionEvent</span><span class="w"> </span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">deductionLogRepository</span><span class="p">.</span><span class="na">existsByEventId</span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="na">getEventId</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="k">return</span><span class="p">;</span><span class="w"> </span><span class="c1">// 멱등 처리</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="n">stockService</span><span class="p">.</span><span class="na">deduct</span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="na">getSku</span><span class="p">(),</span><span class="w"> </span><span class="n">event</span><span class="p">.</span><span class="na">getQty</span><span class="p">());</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="n">deductionLogRepository</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">DeductionLog</span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="na">getEventId</span><span class="p">()));</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>트랜잭션 경계 오류</strong>: 재고 차감과 이벤트 발행이 같은 트랜잭션 안에 없으면, 차감은 커밋됐는데 이벤트가 발행 안 된 상태나 반대 상황이 생긴다. Transactional Outbox 패턴으로 이벤트를 DB에 먼저 저장하고 별도 릴레이 프로세스가 발행하게 하면 이 문제를 막는다.</p>
+<p><strong>POS 동기화 실패 후 미재처리</strong>: POS가 오프라인 중 기록한 판매 이력을 동기화할 때 실패하면, 재시도 없이 버려지는 경우가 있다. Dead Letter Queue에 넣고 알람을 보내서 반드시 후처리하는 구조가 필요하다.</p>
+<p>재고 불일치가 의심될 때 가장 먼저 하는 건 채널별 차감 로그를 같은 시간대로 붙여보는 것이다. 재고 서비스 차감 합계와 POS 판매 합계를 시간대별로 비교하는 배치를 돌리면 불일치가 언제부터 시작됐는지 좁힐 수 있다.</p>
+<h3 id="52-이벤트-유실">5.2 이벤트 유실<a class="headerlink" href="#52-이벤트-유실" title="Permanent link">&para;</a></h3>
+<p>재고 차감, 주문 상태 변경, 픽업 준비 완료 알림이 유실되면 데이터가 틀어지고 사용자 경험이 망가진다.</p>
+<p>Kafka 프로듀서가 <code>acks=0</code> 또는 <code>acks=1</code>로 설정되어 있으면, 브로커 장애 시 메시지가 유실된다. 재고와 주문에 직결된 이벤트는 <code>acks=all</code>에 <code>min.insync.replicas=2</code> 이상으로 설정한다.</p>
+<p>컨슈머가 처리 전에 오프셋을 먼저 커밋하면(<code>enable.auto.commit=true</code>), 처리 중 장애가 나도 오프셋이 이미 앞으로 이동해서 해당 메시지를 다시 읽지 않는다. 수동 커밋으로 처리 완료 후에만 커밋해야 한다.</p>
+<div class="language-java highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@KafkaListener</span><span class="p">(</span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;order-events&quot;</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">consume</span><span class="p">(</span><span class="n">ConsumerRecord</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">OrderEvent</span><span class="o">&gt;</span><span class="w"> </span><span class="n">record</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">                    </span><span class="n">Acknowledgment</span><span class="w"> </span><span class="n">acknowledgment</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">        </span><span class="n">orderService</span><span class="p">.</span><span class="na">process</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">value</span><span class="p">());</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">        </span><span class="n">acknowledgment</span><span class="p">.</span><span class="na">acknowledge</span><span class="p">();</span><span class="w"> </span><span class="c1">// 처리 완료 후 커밋</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">Exception</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">        </span><span class="c1">// 미커밋 → 재시도</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>이벤트 유실 감지는 이벤트 ID 기반 시퀀스 추적으로 한다. 주문 이벤트에 단조 증가하는 시퀀스 번호를 붙이고, 컨슈머 쪽에서 마지막 처리 시퀀스와 수신 시퀀스 간 gap을 모니터링한다. Gap이 임계값을 넘으면 알람을 보낸다.</p>
+<p>POS 동기화 이벤트는 별도 배치로 보정한다. POS DB와 재고 서비스 DB를 주기적으로 비교해서 불일치 항목을 찾아 수동 검토 큐에 넣는다. 자동 보정은 양방향 충돌 시 어느 쪽이 진실인지 판단하기 어려워서, 정상 데이터를 덮어쓰는 사고가 날 수 있다. 자동 보정 범위는 단방향으로 명확히 틀린 경우에만 제한하고, 나머지는 사람이 검토한다.</p>
+<h2 id="관련-문서">관련 문서<a class="headerlink" href="#관련-문서" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../Event_Driven_Architecture/">이벤트 기반 아키텍처</a></li>
+<li><a href="../../../DataBase/RDBMS/Distributed_Transaction/">분산 트랜잭션</a></li>
+<li><a href="../../MSA/Saga_%ED%8C%A8%ED%84%B4_%EB%B0%8F_%EB%B6%84%EC%82%B0_%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98/">Saga 패턴 및 분산 트랜잭션</a></li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../MSA/API_%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC/">API 버전 관리</a></li>
+<li><a href="../../Design%20Pattern/Builder_Pattern/">Builder Pattern (빌더 패턴)</a></li>
+<li><a href="../../CQRS_Pattern/">CQRS 패턴</a></li>
+<li><a href="../../MSA/%EB%8D%B0%EC%9D%B4%ED%84%B0_%EA%B4%80%EB%A6%AC_%ED%8C%A8%ED%84%B4/">MSA 데이터 관리 패턴</a></li>
+<li><a href="../../MVP/">MVP (Minimum Viable Product)</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Online_Merge_Offline/" class="md-footer__link md-footer__link--prev" aria-label="이전: 아키텍처">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                아키텍처
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../DDD/" class="md-footer__link md-footer__link--next" aria-label="다음: 개요">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                개요
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,146 +1,3345 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/DevOps/Linux/%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/%EB%A7%A4%EB%89%B4%EC%96%BC_%EB%B0%8F_%EB%8F%84%EC%9B%80%EB%A7%90/ rel=canonical><link href=../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/ rel=prev><link href=../%EB%AA%85%EB%A0%B9%EC%96%B4_%EB%8B%A8%EC%B6%95%ED%82%A4_%EB%B0%8F_%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC_%ED%99%95%EC%9E%A5/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>매뉴얼 및 도움말 찾기 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#매뉴얼-및-도움말-찾기 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 매뉴얼 및 도움말 찾기 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Cloud </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> DevOps </span> </a> <label class="md-nav__link " for=__nav_6_2 id=__nav_6_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_2> <span class="md-nav__icon md-icon"></span> DevOps </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../CI_CD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GitOps/ class=md-nav__link> <span class=md-ellipsis> GitOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Infrastructure_as_Code/ class=md-nav__link> <span class=md-ellipsis> Infrastructure as Code </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Kubernetes/ class=md-nav__link> <span class=md-ellipsis> Kubernetes </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Service_Mesh/ class=md-nav__link> <span class=md-ellipsis> Service Mesh </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Service_Discovery/ class=md-nav__link> <span class=md-ellipsis> Service Discovery </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Coordination/ class=md-nav__link> <span class=md-ellipsis> Coordination </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Principles/ class=md-nav__link> <span class=md-ellipsis> Principles </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Git/ class=md-nav__link> <span class=md-ellipsis> Git </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_2_13 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Linux </span> </a> <label class="md-nav__link " for=__nav_6_2_13 id=__nav_6_2_13_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_2_13_label aria-expanded=true> <label class=md-nav__title for=__nav_6_2_13> <span class="md-nav__icon md-icon"></span> Linux </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Linux_%EB%B0%B0%ED%8F%AC%ED%8C%90_%EA%B3%84%EC%97%B4/ class=md-nav__link> <span class=md-ellipsis> 배포판 계열 </span> </a> </li> <li class=md-nav__item> <a href=../../SA__PSACCT/ class=md-nav__link> <span class=md-ellipsis> SA와 PSACCT 모니터링 도구 </span> </a> </li> <li class=md-nav__item> <a href=../../WSL/ class=md-nav__link> <span class=md-ellipsis> WSL2 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_2_13_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 기본 명령어 </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_2_13_5_label aria-expanded=true> <label class=md-nav__title for=__nav_6_2_13_5> <span class="md-nav__icon md-icon"></span> 기본 명령어 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/ class=md-nav__link> <span class=md-ellipsis> 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%B3%B4%EC%95%88/ class=md-nav__link> <span class=md-ellipsis> 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%89%98/ class=md-nav__link> <span class=md-ellipsis> 셸 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 시스템 관리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%8C%8C%EC%9D%BC_%EC%8B%9C%EC%8A%A4%ED%85%9C/ class=md-nav__link> <span class=md-ellipsis> 파일 시스템 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%8C%A8%ED%82%A4%EC%A7%80/ class=md-nav__link> <span class=md-ellipsis> 패키지 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4/ class=md-nav__link> <span class=md-ellipsis> 프로세스 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%82%AC%EC%9A%A9%EC%9E%90_%EA%B4%80%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 사용자 관리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%85%8D%EC%8A%A4%ED%8A%B8_%EC%B2%98%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 텍스트 처리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Container_Registry/ class=md-nav__link> <span class=md-ellipsis> Container Registry </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Secrets/ class=md-nav__link> <span class=md-ellipsis> Secrets </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Testing/ class=md-nav__link> <span class=md-ellipsis> Testing </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=#man-페이지의-구조 class=md-nav__link> <span class=md-ellipsis> man 페이지의 구조 </span> </a> <nav class=md-nav aria-label="man 페이지의 구조"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#섹션-번호-의미 class=md-nav__link> <span class=md-ellipsis> 섹션 번호 의미 </span> </a> </li> <li class=md-nav__item> <a href=#man-페이지-내부-탐색 class=md-nav__link> <span class=md-ellipsis> man 페이지 내부 탐색 </span> </a> </li> <li class=md-nav__item> <a href=#man-페이지-구조-이해 class=md-nav__link> <span class=md-ellipsis> man 페이지 구조 이해 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#info-시스템 class=md-nav__link> <span class=md-ellipsis> info 시스템 </span> </a> </li> <li class=md-nav__item> <a href=#--help-옵션 class=md-nav__link> <span class=md-ellipsis> --help 옵션 </span> </a> </li> <li class=md-nav__item> <a href=#명령어를-거꾸로-찾기-apropos-whatis class=md-nav__link> <span class=md-ellipsis> 명령어를 거꾸로 찾기: apropos, whatis </span> </a> <nav class=md-nav aria-label="명령어를 거꾸로 찾기: apropos, whatis"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#apropos class=md-nav__link> <span class=md-ellipsis> apropos </span> </a> </li> <li class=md-nav__item> <a href=#whatis class=md-nav__link> <span class=md-ellipsis> whatis </span> </a> </li> <li class=md-nav__item> <a href=#mandb class=md-nav__link> <span class=md-ellipsis> mandb </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#명령어의-실체-확인-type-which-command--v class=md-nav__link> <span class=md-ellipsis> 명령어의 실체 확인: type, which, command -v </span> </a> <nav class=md-nav aria-label="명령어의 실체 확인: type, which, command -v"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#셋의-차이 class=md-nav__link> <span class=md-ellipsis> 셋의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#빌트인-명령어-도움말 class=md-nav__link> <span class=md-ellipsis> 빌트인 명령어 도움말 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#sudo의-매뉴얼 class=md-nav__link> <span class=md-ellipsis> sudo의 매뉴얼 </span> </a> </li> <li class=md-nav__item> <a href=#usrsharedoc-활용 class=md-nav__link> <span class=md-ellipsis> /usr/share/doc 활용 </span> </a> </li> <li class=md-nav__item> <a href=#외부-도구-tldr-cheat class=md-nav__link> <span class=md-ellipsis> 외부 도구: tldr, cheat </span> </a> <nav class=md-nav aria-label="외부 도구: tldr, cheat"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#tldr class=md-nav__link> <span class=md-ellipsis> tldr </span> </a> </li> <li class=md-nav__item> <a href=#cheat class=md-nav__link> <span class=md-ellipsis> cheat </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#실무에서-옵션-찾는-흐름 class=md-nav__link> <span class=md-ellipsis> 실무에서 옵션 찾는 흐름 </span> </a> </li> <li class=md-nav__item> <a href=#자주-쓰는-매뉴얼-단축-패턴 class=md-nav__link> <span class=md-ellipsis> 자주 쓰는 매뉴얼 단축 패턴 </span> </a> </li> <li class=md-nav__item> <a href=#매뉴얼-출력-저장과-검색 class=md-nav__link> <span class=md-ellipsis> 매뉴얼 출력 저장과 검색 </span> </a> </li> <li class=md-nav__item> <a href=#자주-만나는-문제 class=md-nav__link> <span class=md-ellipsis> 자주 만나는 문제 </span> </a> <nav class=md-nav aria-label="자주 만나는 문제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#매뉴얼이-없다고-나올-때 class=md-nav__link> <span class=md-ellipsis> 매뉴얼이 없다고 나올 때 </span> </a> </li> <li class=md-nav__item> <a href=#한국어-매뉴얼 class=md-nav__link> <span class=md-ellipsis> 한국어 매뉴얼 </span> </a> </li> <li class=md-nav__item> <a href=#매뉴얼이-짧거나-부실할-때 class=md-nav__link> <span class=md-ellipsis> 매뉴얼이 짧거나 부실할 때 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>devops</span> <span class=md-tag>linux</span> </nav> <h1 id=매뉴얼-및-도움말-찾기>매뉴얼 및 도움말 찾기<a class=headerlink href=#매뉴얼-및-도움말-찾기 title="Permanent link">&para;</a></h1> <h2 id=개요>개요<a class=headerlink href=#개요 title="Permanent link">&para;</a></h2> <p>실무에서 명령어 옵션을 모두 외우는 사람은 없다. <code>tar</code>만 해도 옵션이 100개가 넘고, <code>find</code>는 표현식이 따로 있는 수준이라 그때그때 찾아 쓰는 게 정상이다. 문제는 어디서 어떻게 찾느냐다. 신입 시절에는 무조건 구글링부터 하는 경우가 많은데, 실제로는 로컬에 있는 매뉴얼이 가장 정확하고 빠르다. 운영 서버에서 인터넷이 막혀 있는 경우도 흔하기 때문에 <code>man</code>과 <code>--help</code>만 잘 다뤄도 큰 문제는 거의 다 해결된다.</p> <p>문서 시스템은 크게 세 갈래로 나뉜다. 전통적인 <code>man</code> 페이지, GNU 프로젝트가 밀던 <code>info</code>, 그리고 명령어 자체가 제공하는 <code>--help</code>다. 여기에 키워드로 명령어를 거꾸로 찾는 <code>apropos</code>, 명령어의 실체를 확인하는 <code>type</code>/<code>which</code>, 그리고 요즘 많이 쓰이는 <code>tldr</code> 같은 외부 도구가 더해진다. 각 도구가 어떤 상황에서 빛을 발하는지 알아야 시간을 낭비하지 않는다.</p> <h2 id=man-페이지의-구조>man 페이지의 구조<a class=headerlink href=#man-페이지의-구조 title="Permanent link">&para;</a></h2> <p><code>man</code>은 manual의 줄임말이고, 1971년 유닉스 초창기부터 있던 시스템이다. 모든 매뉴얼은 섹션으로 구분되어 있는데, 이게 처음 보면 헷갈린다. <code>man passwd</code>를 입력했을 때 명령어 매뉴얼이 나오는지 설정 파일 매뉴얼이 나오는지가 섹션에 따라 다르다.</p> <h3 id=섹션-번호-의미>섹션 번호 의미<a class=headerlink href=#섹션-번호-의미 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>섹션</th> <th>내용</th> <th>예시</th> </tr> </thead> <tbody> <tr> <td>1</td> <td>일반 사용자 명령어</td> <td><code>ls</code>, <code>cp</code>, <code>grep</code></td> </tr> <tr> <td>2</td> <td>시스템 콜</td> <td><code>open</code>, <code>read</code>, <code>fork</code></td> </tr> <tr> <td>3</td> <td>라이브러리 함수</td> <td><code>printf</code>, <code>malloc</code></td> </tr> <tr> <td>4</td> <td>디바이스 파일</td> <td><code>tty</code>, <code>null</code></td> </tr> <tr> <td>5</td> <td>파일 포맷, 설정 파일</td> <td><code>passwd</code>, <code>fstab</code>, <code>crontab</code></td> </tr> <tr> <td>6</td> <td>게임</td> <td><code>fortune</code></td> </tr> <tr> <td>7</td> <td>기타 (프로토콜, 규약)</td> <td><code>signal</code>, <code>regex</code></td> </tr> <tr> <td>8</td> <td>시스템 관리자 명령어</td> <td><code>mount</code>, <code>iptables</code></td> </tr> <tr> <td>9</td> <td>커널 루틴 (비표준)</td> <td>-</td> </tr> </tbody> </table> <p>여기서 자주 부딪히는 게 같은 이름이 여러 섹션에 있는 경우다. <code>passwd</code>가 대표적인데, 섹션 1은 비밀번호 변경 명령어, 섹션 5는 <code>/etc/passwd</code> 파일 포맷이다. 그냥 <code>man passwd</code>를 치면 1번 섹션이 먼저 나오고, 파일 포맷이 보고 싶으면 <code>man 5 passwd</code>로 섹션을 명시해야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># 섹션 1 (명령어)</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>man<span class=w> </span>passwd
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=c1># 섹션 5 (파일 포맷)</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>man<span class=w> </span><span class=m>5</span><span class=w> </span>passwd
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=c1># 모든 섹션에 있는 같은 이름의 매뉴얼 찾기</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>man<span class=w> </span>-a<span class=w> </span>passwd
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a><span class=c1># Enter로 다음 섹션 이동, q로 종료</span>
-</span></code></pre></div> <p><code>man -a</code>는 같은 이름의 매뉴얼을 차례대로 다 보여준다. 평소엔 잘 안 쓰지만 디버깅할 때 유용하다. 시스템 콜과 라이브러리 함수가 같은 이름인 경우가 많아서 C 코드 디버깅 시 <code>man 2 read</code>와 <code>man 3 read</code>를 구분해야 할 때가 있다.</p> <h3 id=man-페이지-내부-탐색>man 페이지 내부 탐색<a class=headerlink href=#man-페이지-내부-탐색 title="Permanent link">&para;</a></h3> <p><code>man</code>은 기본적으로 <code>less</code> 페이저로 열린다. 이걸 모르면 매뉴얼을 띄워놓고 마우스로 스크롤하다가 시간을 다 쓰게 된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1># man 페이지 안에서 사용하는 키</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>/keyword<span class=w>     </span><span class=c1># 키워드 검색 (앞으로)</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>?keyword<span class=w>     </span><span class=c1># 키워드 검색 (뒤로)</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>n<span class=w>            </span><span class=c1># 다음 검색 결과</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>N<span class=w>            </span><span class=c1># 이전 검색 결과</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>g<span class=w>            </span><span class=c1># 문서 처음으로</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>G<span class=w>            </span><span class=c1># 문서 끝으로</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>h<span class=w>            </span><span class=c1># 도움말</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>q<span class=w>            </span><span class=c1># 종료</span>
-</span></code></pre></div> <p>긴 매뉴얼에서 특정 옵션을 빨리 찾으려면 <code>/--옵션이름</code>으로 검색하는 게 가장 빠르다. 예를 들어 <code>man tar</code>를 띄우고 <code>/--exclude</code>를 치면 해당 옵션 설명 부분으로 바로 이동한다.</p> <h3 id=man-페이지-구조-이해>man 페이지 구조 이해<a class=headerlink href=#man-페이지-구조-이해 title="Permanent link">&para;</a></h3> <p>man 페이지는 정형화된 섹션으로 구성된다.</p> <ul> <li>NAME: 명령어 이름과 한 줄 설명</li> <li>SYNOPSIS: 사용법 요약</li> <li>DESCRIPTION: 상세 설명</li> <li>OPTIONS: 옵션 목록</li> <li>EXAMPLES: 예시 (없는 경우도 많음)</li> <li>FILES: 관련 파일</li> <li>SEE ALSO: 관련 매뉴얼</li> <li>BUGS: 알려진 버그</li> </ul> <p>실무에서 가장 먼저 보는 건 SYNOPSIS다. 대괄호 <code>[]</code>로 감싼 건 선택, 파이프 <code>|</code>는 OR, <code>...</code>은 반복 가능을 뜻한다. 이 표기법만 익혀도 90%는 읽힌다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>SYNOPSIS
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>       grep [OPTIONS] PATTERN [FILE...]
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>       grep [OPTIONS] -e PATTERN ... [FILE...]
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>       grep [OPTIONS] -f FILE ... [FILE...]
-</span></code></pre></div> <p>여기서 <code>[FILE...]</code>는 파일 인자가 0개 이상이라는 뜻이고, <code>-e PATTERN ...</code>은 <code>-e</code>와 패턴이 여러 번 올 수 있다는 의미다.</p> <h2 id=info-시스템>info 시스템<a class=headerlink href=#info-시스템 title="Permanent link">&para;</a></h2> <p><code>info</code>는 GNU 프로젝트가 <code>man</code>을 대체하려고 만든 시스템이다. 결과적으로는 대체에 실패했고, 지금은 GNU 도구들(<code>coreutils</code>, <code>bash</code>, <code>gcc</code> 등)의 상세 매뉴얼을 보는 용도로 주로 쓰인다. <code>man ls</code>보다 <code>info ls</code>가 훨씬 자세한 경우가 많다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># info 진입</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>info<span class=w> </span>ls
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>info<span class=w> </span>bash
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a>info<span class=w> </span>coreutils
-</span></code></pre></div> <p>문제는 <code>info</code>가 하이퍼텍스트 기반이라 탐색이 직관적이지 않다는 점이다. 노드(node) 단위로 구성되어 있고, 키 바인딩이 Emacs 스타일이라 처음 보면 당황스럽다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1># info 안에서</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>n<span class=w>            </span><span class=c1># 다음 노드</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>p<span class=w>            </span><span class=c1># 이전 노드</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>u<span class=w>            </span><span class=c1># 상위 노드</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>Tab<span class=w>          </span><span class=c1># 다음 링크</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>Enter<span class=w>        </span><span class=c1># 링크 따라가기</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>l<span class=w>            </span><span class=c1># 이전에 보던 노드로 (브라우저 뒤로가기)</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>q<span class=w>            </span><span class=c1># 종료</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>s<span class=w> </span>keyword<span class=w>    </span><span class=c1># 키워드 검색</span>
-</span></code></pre></div> <p>평소에는 <code>man</code>만 써도 되지만, GNU 도구의 고급 기능을 알아야 할 때는 <code>info</code>가 답이다. 예를 들어 <code>info '(coreutils) ls invocation'</code> 같은 식으로 특정 노드를 직접 지정해서 들어갈 수도 있다.</p> <p>GNU의 <code>make</code>, <code>gcc</code>, <code>gdb</code> 같은 도구들은 사실상 info 매뉴얼이 공식 문서다. 회사에서 빌드 시스템이나 컴파일러 옵션 디버깅할 때 한 번씩 마주친다.</p> <h2 id=--help-옵션>--help 옵션<a class=headerlink href=#--help-옵션 title="Permanent link">&para;</a></h2> <p>대부분의 명령어는 <code>--help</code> 또는 <code>-h</code> 옵션을 지원한다. 이게 가장 빠른 방법이다. <code>man</code>을 띄우는 것보다 시작 속도가 비교가 안 될 정도로 빠르고, 옵션 요약만 필요할 때는 <code>--help</code>면 충분하다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>ls<span class=w> </span>--help
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>grep<span class=w> </span>--help
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>tar<span class=w> </span>--help
-</span></code></pre></div> <p>다만 일관성이 없다. BSD 계열 도구들(macOS의 기본 도구 다수)은 <code>--help</code>를 지원하지 않고 <code>-h</code>만 받거나, 둘 다 지원하지 않고 <code>usage</code>만 출력하는 경우도 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># Linux GNU</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>df<span class=w> </span>--help
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=c1># macOS BSD</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>df<span class=w> </span>-h<span class=w>        </span><span class=c1># 이건 --human-readable, --help가 아님</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>df<span class=w> </span>--help<span class=w>    </span><span class=c1># illegal option 에러</span>
-</span></code></pre></div> <p>macOS에서 GNU 도구를 쓰려면 <code>brew install coreutils</code>로 설치하고 <code>gls</code>, <code>gdf</code> 같은 g 접두사로 호출하거나, PATH 앞에 GNU 도구 경로를 추가해야 한다. 이걸 모르고 macOS에서 작성한 셸 스크립트가 리눅스 서버에서 동작 안 하는 경우가 자주 있다.</p> <p><code>busybox</code> 환경(알파인 리눅스, 도커 슬림 이미지)에서는 더 심하다. 명령어들이 기능 축소판이라 <code>--help</code>도 짧고 옵션도 다르다. 컨테이너 디버깅할 때 한 번쯤 겪는다.</p> <h2 id=명령어를-거꾸로-찾기-apropos-whatis>명령어를 거꾸로 찾기: apropos, whatis<a class=headerlink href=#명령어를-거꾸로-찾기-apropos-whatis title="Permanent link">&para;</a></h2> <p>옵션은 알겠는데 명령어 이름이 기억 안 날 때가 있다. "디스크 사용량 보는 명령어가 뭐였더라" 같은 상황이다. 이때 쓰는 게 <code>apropos</code>와 <code>whatis</code>다.</p> <h3 id=apropos>apropos<a class=headerlink href=#apropos title="Permanent link">&para;</a></h3> <p><code>apropos</code>는 NAME 섹션에서 키워드를 검색해서 관련 매뉴얼을 다 찾아준다. <code>man -k</code>와 같다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>apropos<span class=w> </span>disk
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=c1># df (1)               - report file system disk space usage</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=c1># du (1)               - estimate file space usage</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=c1># fdisk (8)            - manipulation of disk partition tables</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=c1># ...</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>man<span class=w> </span>-k<span class=w> </span>disk<span class=w>    </span><span class=c1># apropos와 동일</span>
-</span></code></pre></div> <p>키워드를 여러 개 쓰면 OR 검색이 된다. AND로 좁히려면 정규식이나 grep을 써야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>apropos<span class=w> </span>disk<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-i<span class=w> </span>partition
-</span></code></pre></div> <p>신입 시절에 가장 도움 된 명령어 중 하나다. 명령어 이름은 모르는데 뭘 하고 싶은지는 아는 상황에서 검색 엔진보다 빠르다.</p> <h3 id=whatis>whatis<a class=headerlink href=#whatis title="Permanent link">&para;</a></h3> <p><code>whatis</code>는 매뉴얼의 한 줄 요약(NAME 섹션)만 출력한다. 명령어가 정확히 뭘 하는 건지 빠르게 확인할 때 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>whatis<span class=w> </span>ls
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=c1># ls (1)               - list directory contents</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>whatis<span class=w> </span>ls<span class=w> </span>cp<span class=w> </span>mv
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=c1># ls (1)               - list directory contents</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=c1># cp (1)               - copy files and directories</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=c1># mv (1)               - move (rename) files</span>
-</span></code></pre></div> <p><code>apropos</code>와 달리 정확한 이름 매칭이라 키워드 검색은 안 된다.</p> <h3 id=mandb>mandb<a class=headerlink href=#mandb title="Permanent link">&para;</a></h3> <p><code>apropos</code>와 <code>whatis</code>는 매뉴얼 데이터베이스를 미리 만들어둬야 동작한다. 새로 설치한 시스템이나 패키지 추가 후에는 데이터베이스를 갱신해야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>sudo<span class=w> </span>mandb
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=c1># Processing manual pages under /usr/share/man...</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=c1># ...</span>
-</span></code></pre></div> <p>대부분의 배포판은 <code>cron</code>으로 주기적으로 실행하지만, 컨테이너 환경에서는 직접 실행해야 할 때가 있다. <code>apropos</code>가 결과를 안 내놓으면 <code>mandb</code>부터 의심하면 된다.</p> <h2 id=명령어의-실체-확인-type-which-command--v>명령어의 실체 확인: type, which, command -v<a class=headerlink href=#명령어의-실체-확인-type-which-command--v title="Permanent link">&para;</a></h2> <p>이건 도움말 시스템은 아니지만 도움말을 찾기 전에 거치는 단계다. 어떤 명령어를 실행했을 때 도대체 어떤 파일이 실행되는지 확인하는 작업이다. 이걸 안 해서 디버깅이 꼬이는 경우가 흔하다.</p> <h3 id=셋의-차이>셋의 차이<a class=headerlink href=#셋의-차이 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1># which: PATH에서 실행 파일을 찾음 (외부 명령어만)</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>which<span class=w> </span>ls
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a><span class=c1># /usr/bin/ls</span>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=c1># type: 셸이 명령어를 어떻게 해석하는지 알려줌 (내장, 함수, alias 포함)</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=nb>type</span><span class=w> </span>ls
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=c1># ls is aliased to `ls --color=auto&#39;</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>
-</span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=nb>type</span><span class=w> </span><span class=nb>cd</span>
-</span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=c1># cd is a shell builtin</span>
-</span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>
-</span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a><span class=c1># command -v: 스크립트에서 안전하게 쓸 수 있는 POSIX 표준</span>
-</span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a><span class=nb>command</span><span class=w> </span>-v<span class=w> </span>ls
-</span><span id=__span-11-14><a id=__codelineno-11-14 name=__codelineno-11-14 href=#__codelineno-11-14></a><span class=c1># alias ls=&#39;ls --color=auto&#39;</span>
-</span></code></pre></div> <p><code>which</code>는 alias나 셸 빌트인을 인식 못 한다. 그래서 <code>which cd</code>를 치면 결과가 안 나오거나 <code>/usr/bin/cd</code>가 나오는데, 실제로 셸에서 <code>cd</code>를 입력하면 빌트인이 실행된다. 이걸 모르면 "왜 <code>cd</code>에는 <code>--help</code>가 없지?" 같은 데서 막힌다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># cd는 빌트인이라 별도 매뉴얼이 없음</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>man<span class=w> </span><span class=nb>cd</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=c1># No manual entry for cd</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=c1># 빌트인 도움말은 help 명령어로</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=nb>help</span><span class=w> </span><span class=nb>cd</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a><span class=c1># 또는 bash 매뉴얼에서 SHELL BUILTIN COMMANDS 섹션</span>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a>man<span class=w> </span>bash
-</span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a><span class=c1># /SHELL BUILTIN COMMANDS</span>
-</span></code></pre></div> <h3 id=빌트인-명령어-도움말>빌트인 명령어 도움말<a class=headerlink href=#빌트인-명령어-도움말 title="Permanent link">&para;</a></h3> <p><code>cd</code>, <code>pwd</code>, <code>echo</code>, <code>export</code>, <code>alias</code>, <code>kill</code>, <code>set</code>, <code>unset</code> 같은 셸 빌트인은 <code>man</code>이 안 통한다. 별도 실행 파일이 없으니 매뉴얼도 없다. 대신 셸이 자체 도움말을 제공한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1># bash/sh 빌트인 도움말</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=nb>help</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=nb>help</span><span class=w> </span><span class=nb>cd</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=nb>help</span><span class=w> </span><span class=nb>export</span>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=c1># zsh</span>
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a>run-help<span class=w> </span><span class=nb>cd</span>
-</span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a>
-</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a><span class=c1># 셸 종류와 무관하게 bash 매뉴얼 보기</span>
-</span><span id=__span-13-10><a id=__codelineno-13-10 name=__codelineno-13-10 href=#__codelineno-13-10></a>man<span class=w> </span>bash
-</span></code></pre></div> <p><code>echo</code> 같은 건 빌트인과 외부 명령어가 둘 다 있어서 동작이 미묘하게 다른 경우가 있다. <code>/bin/echo --help</code>는 GNU echo의 도움말을 보여주지만, 셸에서 그냥 <code>echo --help</code>를 치면 빌트인이 실행되어 <code>--help</code>가 그대로 출력된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a><span class=nb>echo</span><span class=w> </span>--help
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=c1># --help</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>/bin/echo<span class=w> </span>--help
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a><span class=c1># Usage: /bin/echo [SHORT-OPTION]... [STRING]...</span>
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a><span class=c1># ...</span>
-</span></code></pre></div> <p>이건 실제로 셸 스크립트 디버깅할 때 자주 만나는 함정이다.</p> <h2 id=sudo의-매뉴얼>sudo의 매뉴얼<a class=headerlink href=#sudo의-매뉴얼 title="Permanent link">&para;</a></h2> <p><code>sudo</code>는 자주 쓰는데 매뉴얼이 의외로 분산되어 있다. 명령어 자체는 <code>man sudo</code>지만, 설정 파일은 다른 매뉴얼이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a>man<span class=w> </span>sudo<span class=w>            </span><span class=c1># sudo 명령어 사용법</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>man<span class=w> </span>sudoers<span class=w>         </span><span class=c1># /etc/sudoers 설정 파일 (섹션 5)</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>man<span class=w> </span>visudo<span class=w>          </span><span class=c1># sudoers 편집기</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>man<span class=w> </span>sudo.conf<span class=w>       </span><span class=c1># sudo 자체 설정</span>
-</span></code></pre></div> <p>운영하다 보면 <code>sudoers</code> 매뉴얼을 가장 많이 본다. <code>NOPASSWD</code>, <code>Cmnd_Alias</code>, <code>Defaults</code> 같은 키워드를 검색해서 권한 위임 정책을 짤 때 참고한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=c1># sudoers 안에서 자주 보는 부분</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>man<span class=w> </span><span class=m>5</span><span class=w> </span>sudoers
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a><span class=c1># /SUDOERS FILE FORMAT</span>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a><span class=c1># /User_Spec</span>
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a><span class=c1># /NOPASSWD</span>
-</span></code></pre></div> <p>sudo로 명령어 실행 시 매뉴얼 보는 것도 알아두면 좋다. 일반 사용자가 못 보는 매뉴얼(예: 일부 시스템 관리 도구)은 <code>sudo man &lt;명령어&gt;</code>로 봐야 할 때가 있다. 거의 없는 경우지만 가끔 만난다.</p> <h2 id=usrsharedoc-활용>/usr/share/doc 활용<a class=headerlink href=#usrsharedoc-활용 title="Permanent link">&para;</a></h2> <p>패키지 설치 시 함께 들어오는 문서가 <code>/usr/share/doc/&lt;패키지명&gt;/</code> 아래에 깔린다. man 페이지에 없는 README, CHANGELOG, 예제 설정 파일 같은 게 여기 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a>ls<span class=w> </span>/usr/share/doc/<span class=w> </span><span class=p>|</span><span class=w> </span>head
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=c1># adduser</span>
-</span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=c1># apt</span>
-</span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=c1># bash</span>
-</span><span id=__span-17-5><a id=__codelineno-17-5 name=__codelineno-17-5 href=#__codelineno-17-5></a><span class=c1># ...</span>
-</span><span id=__span-17-6><a id=__codelineno-17-6 name=__codelineno-17-6 href=#__codelineno-17-6></a>
-</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a>ls<span class=w> </span>/usr/share/doc/nginx/
-</span><span id=__span-17-8><a id=__codelineno-17-8 name=__codelineno-17-8 href=#__codelineno-17-8></a><span class=c1># changelog.Debian.gz</span>
-</span><span id=__span-17-9><a id=__codelineno-17-9 name=__codelineno-17-9 href=#__codelineno-17-9></a><span class=c1># copyright</span>
-</span><span id=__span-17-10><a id=__codelineno-17-10 name=__codelineno-17-10 href=#__codelineno-17-10></a><span class=c1># examples</span>
-</span><span id=__span-17-11><a id=__codelineno-17-11 name=__codelineno-17-11 href=#__codelineno-17-11></a><span class=c1># README.md</span>
-</span></code></pre></div> <p>특히 <code>examples</code> 디렉토리에 실제 동작하는 설정 파일이 있는 경우가 많다. nginx, postfix, rsyslog 같은 데몬 설정할 때 처음부터 짜는 게 아니라 여기 있는 예제부터 시작하면 빠르다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a><span class=c1># nginx 설정 예제</span>
-</span><span id=__span-18-2><a id=__codelineno-18-2 name=__codelineno-18-2 href=#__codelineno-18-2></a>ls<span class=w> </span>/usr/share/doc/nginx-doc/examples/
-</span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a>
-</span><span id=__span-18-4><a id=__codelineno-18-4 name=__codelineno-18-4 href=#__codelineno-18-4></a><span class=c1># 압축된 changelog</span>
-</span><span id=__span-18-5><a id=__codelineno-18-5 name=__codelineno-18-5 href=#__codelineno-18-5></a>zless<span class=w> </span>/usr/share/doc/nginx/changelog.Debian.gz
-</span></code></pre></div> <p>데비안/우분투는 라이센스 정보가 <code>copyright</code> 파일에 있고, 레드햇 계열은 <code>LICENSE</code> 파일이다. 라이센스 감사할 때 한 번씩 본다.</p> <h2 id=외부-도구-tldr-cheat>외부 도구: tldr, cheat<a class=headerlink href=#외부-도구-tldr-cheat title="Permanent link">&para;</a></h2> <p>전통적인 매뉴얼 시스템의 약점은 예제가 부족하다는 것이다. <code>man tar</code>를 봐도 옵션 설명만 나오고 "어떤 상황에 어떻게 쓰는지"는 거의 안 나온다. 이걸 보완하려고 만들어진 게 <code>tldr</code>과 <code>cheat</code>다.</p> <h3 id=tldr>tldr<a class=headerlink href=#tldr title="Permanent link">&para;</a></h3> <p><code>tldr</code>은 커뮤니티가 작성한 짧은 예제 모음이다. 옵션 설명이 아니라 자주 쓰이는 명령어 패턴을 보여준다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a><span class=c1># 설치 (npm 또는 pip)</span>
-</span><span id=__span-19-2><a id=__codelineno-19-2 name=__codelineno-19-2 href=#__codelineno-19-2></a>npm<span class=w> </span>install<span class=w> </span>-g<span class=w> </span>tldr
-</span><span id=__span-19-3><a id=__codelineno-19-3 name=__codelineno-19-3 href=#__codelineno-19-3></a><span class=c1># 또는</span>
-</span><span id=__span-19-4><a id=__codelineno-19-4 name=__codelineno-19-4 href=#__codelineno-19-4></a>pip<span class=w> </span>install<span class=w> </span>tldr
-</span><span id=__span-19-5><a id=__codelineno-19-5 name=__codelineno-19-5 href=#__codelineno-19-5></a>
-</span><span id=__span-19-6><a id=__codelineno-19-6 name=__codelineno-19-6 href=#__codelineno-19-6></a><span class=c1># 사용</span>
-</span><span id=__span-19-7><a id=__codelineno-19-7 name=__codelineno-19-7 href=#__codelineno-19-7></a>tldr<span class=w> </span>tar
-</span><span id=__span-19-8><a id=__codelineno-19-8 name=__codelineno-19-8 href=#__codelineno-19-8></a><span class=c1># Archive a directory:</span>
-</span><span id=__span-19-9><a id=__codelineno-19-9 name=__codelineno-19-9 href=#__codelineno-19-9></a><span class=c1>#   tar cf target.tar source_directory</span>
-</span><span id=__span-19-10><a id=__codelineno-19-10 name=__codelineno-19-10 href=#__codelineno-19-10></a><span class=c1># Extract a tar file:</span>
-</span><span id=__span-19-11><a id=__codelineno-19-11 name=__codelineno-19-11 href=#__codelineno-19-11></a><span class=c1>#   tar xf source.tar</span>
-</span><span id=__span-19-12><a id=__codelineno-19-12 name=__codelineno-19-12 href=#__codelineno-19-12></a><span class=c1># ...</span>
-</span></code></pre></div> <p><code>man tar</code>로 30분 헤맬 걸 <code>tldr tar</code>로 1분에 끝낼 때가 많다. 다만 예제가 너무 단순한 경우도 있어서, 복잡한 옵션 조합이 필요하면 결국 <code>man</code>으로 돌아가야 한다.</p> <p>오프라인 캐시도 지원해서 인터넷 안 되는 환경에서도 쓸 수 있다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-20-1><a id=__codelineno-20-1 name=__codelineno-20-1 href=#__codelineno-20-1></a>tldr<span class=w> </span>--update<span class=w>    </span><span class=c1># 캐시 갱신</span>
-</span></code></pre></div> <h3 id=cheat>cheat<a class=headerlink href=#cheat title="Permanent link">&para;</a></h3> <p><code>cheat</code>은 <code>tldr</code>과 비슷한데 자체 치트시트를 추가할 수 있다는 게 다르다. 팀에서 자주 쓰는 명령어 패턴을 공유하는 용도로 좋다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a>cheat<span class=w> </span>tar
-</span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a>cheat<span class=w> </span>-e<span class=w> </span>tar<span class=w>     </span><span class=c1># 직접 편집</span>
-</span></code></pre></div> <p>회사 내에서 자주 쓰는 운영 명령어를 cheat로 정리해두면 신입 온보딩 자료로도 쓸 수 있다.</p> <h2 id=실무에서-옵션-찾는-흐름>실무에서 옵션 찾는 흐름<a class=headerlink href=#실무에서-옵션-찾는-흐름 title="Permanent link">&para;</a></h2> <p>5년차쯤 되면 자기만의 패턴이 생긴다. 보통 이런 순서로 찾는다.</p> <pre class=mermaid-diagram><code>flowchart TD
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/DevOps/Linux/%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/%EB%A7%A4%EB%89%B4%EC%96%BC_%EB%B0%8F_%EB%8F%84%EC%9B%80%EB%A7%90/">
+      
+      
+        <link rel="prev" href="../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/">
+      
+      
+        <link rel="next" href="../%EB%AA%85%EB%A0%B9%EC%96%B4_%EB%8B%A8%EC%B6%95%ED%82%A4_%EB%B0%8F_%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC_%ED%99%95%EC%9E%A5/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>매뉴얼 및 도움말 찾기 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#매뉴얼-및-도움말-찾기" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              매뉴얼 및 도움말 찾기
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    DevOps
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../CI_CD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GitOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Infrastructure_as_Code/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infrastructure as Code
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Kubernetes/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Service_Mesh/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Mesh
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Service_Discovery/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Discovery
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Coordination/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coordination
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Principles/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Principles
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Git/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_13" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_2_13" id="__nav_6_2_13_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_13_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Linux
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Linux_%EB%B0%B0%ED%8F%AC%ED%8C%90_%EA%B3%84%EC%97%B4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    배포판 계열
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SA__PSACCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SA와 PSACCT 모니터링 도구
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../WSL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WSL2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_13_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기본 명령어
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_2_13_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_2_13_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    기본 명령어
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%B3%B4%EC%95%88/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%89%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    셸
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%8B%9C%EC%8A%A4%ED%85%9C_%EA%B4%80%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    시스템 관리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%8C%8C%EC%9D%BC_%EC%8B%9C%EC%8A%A4%ED%85%9C/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    파일 시스템
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%8C%A8%ED%82%A4%EC%A7%80/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    패키지
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로세스
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%82%AC%EC%9A%A9%EC%9E%90_%EA%B4%80%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    사용자 관리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%85%8D%EC%8A%A4%ED%8A%B8_%EC%B2%98%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    텍스트 처리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Container_Registry/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Container Registry
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Secrets/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Testing/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#man-페이지의-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        man 페이지의 구조
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="man 페이지의 구조">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#섹션-번호-의미" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        섹션 번호 의미
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#man-페이지-내부-탐색" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        man 페이지 내부 탐색
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#man-페이지-구조-이해" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        man 페이지 구조 이해
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#info-시스템" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        info 시스템
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#--help-옵션" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        --help 옵션
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#명령어를-거꾸로-찾기-apropos-whatis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        명령어를 거꾸로 찾기: apropos, whatis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="명령어를 거꾸로 찾기: apropos, whatis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#apropos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        apropos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#whatis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        whatis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mandb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mandb
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#명령어의-실체-확인-type-which-command--v" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        명령어의 실체 확인: type, which, command -v
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="명령어의 실체 확인: type, which, command -v">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#셋의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        셋의 차이
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#빌트인-명령어-도움말" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        빌트인 명령어 도움말
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sudo의-매뉴얼" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sudo의 매뉴얼
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usrsharedoc-활용" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /usr/share/doc 활용
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#외부-도구-tldr-cheat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        외부 도구: tldr, cheat
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="외부 도구: tldr, cheat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tldr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tldr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cheat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cheat
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-옵션-찾는-흐름" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 옵션 찾는 흐름
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#자주-쓰는-매뉴얼-단축-패턴" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자주 쓰는 매뉴얼 단축 패턴
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#매뉴얼-출력-저장과-검색" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매뉴얼 출력 저장과 검색
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#자주-만나는-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자주 만나는 문제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="자주 만나는 문제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#매뉴얼이-없다고-나올-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매뉴얼이 없다고 나올 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#한국어-매뉴얼" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        한국어 매뉴얼
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#매뉴얼이-짧거나-부실할-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매뉴얼이 짧거나 부실할 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">devops</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">linux</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="매뉴얼-및-도움말-찾기">매뉴얼 및 도움말 찾기<a class="headerlink" href="#매뉴얼-및-도움말-찾기" title="Permanent link">&para;</a></h1>
+<h2 id="개요">개요<a class="headerlink" href="#개요" title="Permanent link">&para;</a></h2>
+<p>실무에서 명령어 옵션을 모두 외우는 사람은 없다. <code>tar</code>만 해도 옵션이 100개가 넘고, <code>find</code>는 표현식이 따로 있는 수준이라 그때그때 찾아 쓰는 게 정상이다. 문제는 어디서 어떻게 찾느냐다. 신입 시절에는 무조건 구글링부터 하는 경우가 많은데, 실제로는 로컬에 있는 매뉴얼이 가장 정확하고 빠르다. 운영 서버에서 인터넷이 막혀 있는 경우도 흔하기 때문에 <code>man</code>과 <code>--help</code>만 잘 다뤄도 큰 문제는 거의 다 해결된다.</p>
+<p>문서 시스템은 크게 세 갈래로 나뉜다. 전통적인 <code>man</code> 페이지, GNU 프로젝트가 밀던 <code>info</code>, 그리고 명령어 자체가 제공하는 <code>--help</code>다. 여기에 키워드로 명령어를 거꾸로 찾는 <code>apropos</code>, 명령어의 실체를 확인하는 <code>type</code>/<code>which</code>, 그리고 요즘 많이 쓰이는 <code>tldr</code> 같은 외부 도구가 더해진다. 각 도구가 어떤 상황에서 빛을 발하는지 알아야 시간을 낭비하지 않는다.</p>
+<h2 id="man-페이지의-구조">man 페이지의 구조<a class="headerlink" href="#man-페이지의-구조" title="Permanent link">&para;</a></h2>
+<p><code>man</code>은 manual의 줄임말이고, 1971년 유닉스 초창기부터 있던 시스템이다. 모든 매뉴얼은 섹션으로 구분되어 있는데, 이게 처음 보면 헷갈린다. <code>man passwd</code>를 입력했을 때 명령어 매뉴얼이 나오는지 설정 파일 매뉴얼이 나오는지가 섹션에 따라 다르다.</p>
+<h3 id="섹션-번호-의미">섹션 번호 의미<a class="headerlink" href="#섹션-번호-의미" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>섹션</th>
+<th>내용</th>
+<th>예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>일반 사용자 명령어</td>
+<td><code>ls</code>, <code>cp</code>, <code>grep</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>시스템 콜</td>
+<td><code>open</code>, <code>read</code>, <code>fork</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>라이브러리 함수</td>
+<td><code>printf</code>, <code>malloc</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>디바이스 파일</td>
+<td><code>tty</code>, <code>null</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>파일 포맷, 설정 파일</td>
+<td><code>passwd</code>, <code>fstab</code>, <code>crontab</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>게임</td>
+<td><code>fortune</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>기타 (프로토콜, 규약)</td>
+<td><code>signal</code>, <code>regex</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>시스템 관리자 명령어</td>
+<td><code>mount</code>, <code>iptables</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>커널 루틴 (비표준)</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>여기서 자주 부딪히는 게 같은 이름이 여러 섹션에 있는 경우다. <code>passwd</code>가 대표적인데, 섹션 1은 비밀번호 변경 명령어, 섹션 5는 <code>/etc/passwd</code> 파일 포맷이다. 그냥 <code>man passwd</code>를 치면 1번 섹션이 먼저 나오고, 파일 포맷이 보고 싶으면 <code>man 5 passwd</code>로 섹션을 명시해야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 섹션 1 (명령어)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>man<span class="w"> </span>passwd
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 섹션 5 (파일 포맷)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>man<span class="w"> </span><span class="m">5</span><span class="w"> </span>passwd
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># 모든 섹션에 있는 같은 이름의 매뉴얼 찾기</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>man<span class="w"> </span>-a<span class="w"> </span>passwd
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Enter로 다음 섹션 이동, q로 종료</span>
+</span></code></pre></div>
+<p><code>man -a</code>는 같은 이름의 매뉴얼을 차례대로 다 보여준다. 평소엔 잘 안 쓰지만 디버깅할 때 유용하다. 시스템 콜과 라이브러리 함수가 같은 이름인 경우가 많아서 C 코드 디버깅 시 <code>man 2 read</code>와 <code>man 3 read</code>를 구분해야 할 때가 있다.</p>
+<h3 id="man-페이지-내부-탐색">man 페이지 내부 탐색<a class="headerlink" href="#man-페이지-내부-탐색" title="Permanent link">&para;</a></h3>
+<p><code>man</code>은 기본적으로 <code>less</code> 페이저로 열린다. 이걸 모르면 매뉴얼을 띄워놓고 마우스로 스크롤하다가 시간을 다 쓰게 된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># man 페이지 안에서 사용하는 키</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>/keyword<span class="w">     </span><span class="c1"># 키워드 검색 (앞으로)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>?keyword<span class="w">     </span><span class="c1"># 키워드 검색 (뒤로)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>n<span class="w">            </span><span class="c1"># 다음 검색 결과</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>N<span class="w">            </span><span class="c1"># 이전 검색 결과</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>g<span class="w">            </span><span class="c1"># 문서 처음으로</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>G<span class="w">            </span><span class="c1"># 문서 끝으로</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>h<span class="w">            </span><span class="c1"># 도움말</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>q<span class="w">            </span><span class="c1"># 종료</span>
+</span></code></pre></div>
+<p>긴 매뉴얼에서 특정 옵션을 빨리 찾으려면 <code>/--옵션이름</code>으로 검색하는 게 가장 빠르다. 예를 들어 <code>man tar</code>를 띄우고 <code>/--exclude</code>를 치면 해당 옵션 설명 부분으로 바로 이동한다.</p>
+<h3 id="man-페이지-구조-이해">man 페이지 구조 이해<a class="headerlink" href="#man-페이지-구조-이해" title="Permanent link">&para;</a></h3>
+<p>man 페이지는 정형화된 섹션으로 구성된다.</p>
+<ul>
+<li>NAME: 명령어 이름과 한 줄 설명</li>
+<li>SYNOPSIS: 사용법 요약</li>
+<li>DESCRIPTION: 상세 설명</li>
+<li>OPTIONS: 옵션 목록</li>
+<li>EXAMPLES: 예시 (없는 경우도 많음)</li>
+<li>FILES: 관련 파일</li>
+<li>SEE ALSO: 관련 매뉴얼</li>
+<li>BUGS: 알려진 버그</li>
+</ul>
+<p>실무에서 가장 먼저 보는 건 SYNOPSIS다. 대괄호 <code>[]</code>로 감싼 건 선택, 파이프 <code>|</code>는 OR, <code>...</code>은 반복 가능을 뜻한다. 이 표기법만 익혀도 90%는 읽힌다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>SYNOPSIS
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>       grep [OPTIONS] PATTERN [FILE...]
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>       grep [OPTIONS] -e PATTERN ... [FILE...]
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       grep [OPTIONS] -f FILE ... [FILE...]
+</span></code></pre></div>
+<p>여기서 <code>[FILE...]</code>는 파일 인자가 0개 이상이라는 뜻이고, <code>-e PATTERN ...</code>은 <code>-e</code>와 패턴이 여러 번 올 수 있다는 의미다.</p>
+<h2 id="info-시스템">info 시스템<a class="headerlink" href="#info-시스템" title="Permanent link">&para;</a></h2>
+<p><code>info</code>는 GNU 프로젝트가 <code>man</code>을 대체하려고 만든 시스템이다. 결과적으로는 대체에 실패했고, 지금은 GNU 도구들(<code>coreutils</code>, <code>bash</code>, <code>gcc</code> 등)의 상세 매뉴얼을 보는 용도로 주로 쓰인다. <code>man ls</code>보다 <code>info ls</code>가 훨씬 자세한 경우가 많다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># info 진입</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>info<span class="w"> </span>ls
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>info<span class="w"> </span>bash
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>info<span class="w"> </span>coreutils
+</span></code></pre></div>
+<p>문제는 <code>info</code>가 하이퍼텍스트 기반이라 탐색이 직관적이지 않다는 점이다. 노드(node) 단위로 구성되어 있고, 키 바인딩이 Emacs 스타일이라 처음 보면 당황스럽다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># info 안에서</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>n<span class="w">            </span><span class="c1"># 다음 노드</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>p<span class="w">            </span><span class="c1"># 이전 노드</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>u<span class="w">            </span><span class="c1"># 상위 노드</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>Tab<span class="w">          </span><span class="c1"># 다음 링크</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>Enter<span class="w">        </span><span class="c1"># 링크 따라가기</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>l<span class="w">            </span><span class="c1"># 이전에 보던 노드로 (브라우저 뒤로가기)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>q<span class="w">            </span><span class="c1"># 종료</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>s<span class="w"> </span>keyword<span class="w">    </span><span class="c1"># 키워드 검색</span>
+</span></code></pre></div>
+<p>평소에는 <code>man</code>만 써도 되지만, GNU 도구의 고급 기능을 알아야 할 때는 <code>info</code>가 답이다. 예를 들어 <code>info '(coreutils) ls invocation'</code> 같은 식으로 특정 노드를 직접 지정해서 들어갈 수도 있다.</p>
+<p>GNU의 <code>make</code>, <code>gcc</code>, <code>gdb</code> 같은 도구들은 사실상 info 매뉴얼이 공식 문서다. 회사에서 빌드 시스템이나 컴파일러 옵션 디버깅할 때 한 번씩 마주친다.</p>
+<h2 id="--help-옵션">--help 옵션<a class="headerlink" href="#--help-옵션" title="Permanent link">&para;</a></h2>
+<p>대부분의 명령어는 <code>--help</code> 또는 <code>-h</code> 옵션을 지원한다. 이게 가장 빠른 방법이다. <code>man</code>을 띄우는 것보다 시작 속도가 비교가 안 될 정도로 빠르고, 옵션 요약만 필요할 때는 <code>--help</code>면 충분하다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ls<span class="w"> </span>--help
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>grep<span class="w"> </span>--help
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>tar<span class="w"> </span>--help
+</span></code></pre></div>
+<p>다만 일관성이 없다. BSD 계열 도구들(macOS의 기본 도구 다수)은 <code>--help</code>를 지원하지 않고 <code>-h</code>만 받거나, 둘 다 지원하지 않고 <code>usage</code>만 출력하는 경우도 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Linux GNU</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>df<span class="w"> </span>--help
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># macOS BSD</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>df<span class="w"> </span>-h<span class="w">        </span><span class="c1"># 이건 --human-readable, --help가 아님</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>df<span class="w"> </span>--help<span class="w">    </span><span class="c1"># illegal option 에러</span>
+</span></code></pre></div>
+<p>macOS에서 GNU 도구를 쓰려면 <code>brew install coreutils</code>로 설치하고 <code>gls</code>, <code>gdf</code> 같은 g 접두사로 호출하거나, PATH 앞에 GNU 도구 경로를 추가해야 한다. 이걸 모르고 macOS에서 작성한 셸 스크립트가 리눅스 서버에서 동작 안 하는 경우가 자주 있다.</p>
+<p><code>busybox</code> 환경(알파인 리눅스, 도커 슬림 이미지)에서는 더 심하다. 명령어들이 기능 축소판이라 <code>--help</code>도 짧고 옵션도 다르다. 컨테이너 디버깅할 때 한 번쯤 겪는다.</p>
+<h2 id="명령어를-거꾸로-찾기-apropos-whatis">명령어를 거꾸로 찾기: apropos, whatis<a class="headerlink" href="#명령어를-거꾸로-찾기-apropos-whatis" title="Permanent link">&para;</a></h2>
+<p>옵션은 알겠는데 명령어 이름이 기억 안 날 때가 있다. "디스크 사용량 보는 명령어가 뭐였더라" 같은 상황이다. 이때 쓰는 게 <code>apropos</code>와 <code>whatis</code>다.</p>
+<h3 id="apropos">apropos<a class="headerlink" href="#apropos" title="Permanent link">&para;</a></h3>
+<p><code>apropos</code>는 NAME 섹션에서 키워드를 검색해서 관련 매뉴얼을 다 찾아준다. <code>man -k</code>와 같다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>apropos<span class="w"> </span>disk
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># df (1)               - report file system disk space usage</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># du (1)               - estimate file space usage</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># fdisk (8)            - manipulation of disk partition tables</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># ...</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>man<span class="w"> </span>-k<span class="w"> </span>disk<span class="w">    </span><span class="c1"># apropos와 동일</span>
+</span></code></pre></div>
+<p>키워드를 여러 개 쓰면 OR 검색이 된다. AND로 좁히려면 정규식이나 grep을 써야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>apropos<span class="w"> </span>disk<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>partition
+</span></code></pre></div>
+<p>신입 시절에 가장 도움 된 명령어 중 하나다. 명령어 이름은 모르는데 뭘 하고 싶은지는 아는 상황에서 검색 엔진보다 빠르다.</p>
+<h3 id="whatis">whatis<a class="headerlink" href="#whatis" title="Permanent link">&para;</a></h3>
+<p><code>whatis</code>는 매뉴얼의 한 줄 요약(NAME 섹션)만 출력한다. 명령어가 정확히 뭘 하는 건지 빠르게 확인할 때 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>whatis<span class="w"> </span>ls
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># ls (1)               - list directory contents</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>whatis<span class="w"> </span>ls<span class="w"> </span>cp<span class="w"> </span>mv
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># ls (1)               - list directory contents</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># cp (1)               - copy files and directories</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># mv (1)               - move (rename) files</span>
+</span></code></pre></div>
+<p><code>apropos</code>와 달리 정확한 이름 매칭이라 키워드 검색은 안 된다.</p>
+<h3 id="mandb">mandb<a class="headerlink" href="#mandb" title="Permanent link">&para;</a></h3>
+<p><code>apropos</code>와 <code>whatis</code>는 매뉴얼 데이터베이스를 미리 만들어둬야 동작한다. 새로 설치한 시스템이나 패키지 추가 후에는 데이터베이스를 갱신해야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>sudo<span class="w"> </span>mandb
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># Processing manual pages under /usr/share/man...</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># ...</span>
+</span></code></pre></div>
+<p>대부분의 배포판은 <code>cron</code>으로 주기적으로 실행하지만, 컨테이너 환경에서는 직접 실행해야 할 때가 있다. <code>apropos</code>가 결과를 안 내놓으면 <code>mandb</code>부터 의심하면 된다.</p>
+<h2 id="명령어의-실체-확인-type-which-command--v">명령어의 실체 확인: type, which, command -v<a class="headerlink" href="#명령어의-실체-확인-type-which-command--v" title="Permanent link">&para;</a></h2>
+<p>이건 도움말 시스템은 아니지만 도움말을 찾기 전에 거치는 단계다. 어떤 명령어를 실행했을 때 도대체 어떤 파일이 실행되는지 확인하는 작업이다. 이걸 안 해서 디버깅이 꼬이는 경우가 흔하다.</p>
+<h3 id="셋의-차이">셋의 차이<a class="headerlink" href="#셋의-차이" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># which: PATH에서 실행 파일을 찾음 (외부 명령어만)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>which<span class="w"> </span>ls
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># /usr/bin/ls</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># type: 셸이 명령어를 어떻게 해석하는지 알려줌 (내장, 함수, alias 포함)</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">type</span><span class="w"> </span>ls
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># ls is aliased to `ls --color=auto&#39;</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nb">type</span><span class="w"> </span><span class="nb">cd</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="c1"># cd is a shell builtin</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="c1"># command -v: 스크립트에서 안전하게 쓸 수 있는 POSIX 표준</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>ls
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="c1"># alias ls=&#39;ls --color=auto&#39;</span>
+</span></code></pre></div>
+<p><code>which</code>는 alias나 셸 빌트인을 인식 못 한다. 그래서 <code>which cd</code>를 치면 결과가 안 나오거나 <code>/usr/bin/cd</code>가 나오는데, 실제로 셸에서 <code>cd</code>를 입력하면 빌트인이 실행된다. 이걸 모르면 "왜 <code>cd</code>에는 <code>--help</code>가 없지?" 같은 데서 막힌다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># cd는 빌트인이라 별도 매뉴얼이 없음</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>man<span class="w"> </span><span class="nb">cd</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># No manual entry for cd</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="c1"># 빌트인 도움말은 help 명령어로</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">help</span><span class="w"> </span><span class="nb">cd</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="c1"># 또는 bash 매뉴얼에서 SHELL BUILTIN COMMANDS 섹션</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>man<span class="w"> </span>bash
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># /SHELL BUILTIN COMMANDS</span>
+</span></code></pre></div>
+<h3 id="빌트인-명령어-도움말">빌트인 명령어 도움말<a class="headerlink" href="#빌트인-명령어-도움말" title="Permanent link">&para;</a></h3>
+<p><code>cd</code>, <code>pwd</code>, <code>echo</code>, <code>export</code>, <code>alias</code>, <code>kill</code>, <code>set</code>, <code>unset</code> 같은 셸 빌트인은 <code>man</code>이 안 통한다. 별도 실행 파일이 없으니 매뉴얼도 없다. 대신 셸이 자체 도움말을 제공한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># bash/sh 빌트인 도움말</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nb">help</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nb">help</span><span class="w"> </span><span class="nb">cd</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nb">help</span><span class="w"> </span><span class="nb">export</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># zsh</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>run-help<span class="w"> </span><span class="nb">cd</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="c1"># 셸 종류와 무관하게 bash 매뉴얼 보기</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>man<span class="w"> </span>bash
+</span></code></pre></div>
+<p><code>echo</code> 같은 건 빌트인과 외부 명령어가 둘 다 있어서 동작이 미묘하게 다른 경우가 있다. <code>/bin/echo --help</code>는 GNU echo의 도움말을 보여주지만, 셸에서 그냥 <code>echo --help</code>를 치면 빌트인이 실행되어 <code>--help</code>가 그대로 출력된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">echo</span><span class="w"> </span>--help
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="c1"># --help</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>/bin/echo<span class="w"> </span>--help
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># Usage: /bin/echo [SHORT-OPTION]... [STRING]...</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1"># ...</span>
+</span></code></pre></div>
+<p>이건 실제로 셸 스크립트 디버깅할 때 자주 만나는 함정이다.</p>
+<h2 id="sudo의-매뉴얼">sudo의 매뉴얼<a class="headerlink" href="#sudo의-매뉴얼" title="Permanent link">&para;</a></h2>
+<p><code>sudo</code>는 자주 쓰는데 매뉴얼이 의외로 분산되어 있다. 명령어 자체는 <code>man sudo</code>지만, 설정 파일은 다른 매뉴얼이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>man<span class="w"> </span>sudo<span class="w">            </span><span class="c1"># sudo 명령어 사용법</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>man<span class="w"> </span>sudoers<span class="w">         </span><span class="c1"># /etc/sudoers 설정 파일 (섹션 5)</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>man<span class="w"> </span>visudo<span class="w">          </span><span class="c1"># sudoers 편집기</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>man<span class="w"> </span>sudo.conf<span class="w">       </span><span class="c1"># sudo 자체 설정</span>
+</span></code></pre></div>
+<p>운영하다 보면 <code>sudoers</code> 매뉴얼을 가장 많이 본다. <code>NOPASSWD</code>, <code>Cmnd_Alias</code>, <code>Defaults</code> 같은 키워드를 검색해서 권한 위임 정책을 짤 때 참고한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># sudoers 안에서 자주 보는 부분</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>man<span class="w"> </span><span class="m">5</span><span class="w"> </span>sudoers
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="c1"># /SUDOERS FILE FORMAT</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># /User_Spec</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="c1"># /NOPASSWD</span>
+</span></code></pre></div>
+<p>sudo로 명령어 실행 시 매뉴얼 보는 것도 알아두면 좋다. 일반 사용자가 못 보는 매뉴얼(예: 일부 시스템 관리 도구)은 <code>sudo man &lt;명령어&gt;</code>로 봐야 할 때가 있다. 거의 없는 경우지만 가끔 만난다.</p>
+<h2 id="usrsharedoc-활용">/usr/share/doc 활용<a class="headerlink" href="#usrsharedoc-활용" title="Permanent link">&para;</a></h2>
+<p>패키지 설치 시 함께 들어오는 문서가 <code>/usr/share/doc/&lt;패키지명&gt;/</code> 아래에 깔린다. man 페이지에 없는 README, CHANGELOG, 예제 설정 파일 같은 게 여기 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ls<span class="w"> </span>/usr/share/doc/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c1"># adduser</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="c1"># apt</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1"># bash</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="c1"># ...</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>ls<span class="w"> </span>/usr/share/doc/nginx/
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="c1"># changelog.Debian.gz</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="c1"># copyright</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="c1"># examples</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="c1"># README.md</span>
+</span></code></pre></div>
+<p>특히 <code>examples</code> 디렉토리에 실제 동작하는 설정 파일이 있는 경우가 많다. nginx, postfix, rsyslog 같은 데몬 설정할 때 처음부터 짜는 게 아니라 여기 있는 예제부터 시작하면 빠르다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># nginx 설정 예제</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>ls<span class="w"> </span>/usr/share/doc/nginx-doc/examples/
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># 압축된 changelog</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>zless<span class="w"> </span>/usr/share/doc/nginx/changelog.Debian.gz
+</span></code></pre></div>
+<p>데비안/우분투는 라이센스 정보가 <code>copyright</code> 파일에 있고, 레드햇 계열은 <code>LICENSE</code> 파일이다. 라이센스 감사할 때 한 번씩 본다.</p>
+<h2 id="외부-도구-tldr-cheat">외부 도구: tldr, cheat<a class="headerlink" href="#외부-도구-tldr-cheat" title="Permanent link">&para;</a></h2>
+<p>전통적인 매뉴얼 시스템의 약점은 예제가 부족하다는 것이다. <code>man tar</code>를 봐도 옵션 설명만 나오고 "어떤 상황에 어떻게 쓰는지"는 거의 안 나온다. 이걸 보완하려고 만들어진 게 <code>tldr</code>과 <code>cheat</code>다.</p>
+<h3 id="tldr">tldr<a class="headerlink" href="#tldr" title="Permanent link">&para;</a></h3>
+<p><code>tldr</code>은 커뮤니티가 작성한 짧은 예제 모음이다. 옵션 설명이 아니라 자주 쓰이는 명령어 패턴을 보여준다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 설치 (npm 또는 pip)</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>tldr
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="c1"># 또는</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>pip<span class="w"> </span>install<span class="w"> </span>tldr
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="c1"># 사용</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>tldr<span class="w"> </span>tar
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="c1"># Archive a directory:</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="c1">#   tar cf target.tar source_directory</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="c1"># Extract a tar file:</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="c1">#   tar xf source.tar</span>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="c1"># ...</span>
+</span></code></pre></div>
+<p><code>man tar</code>로 30분 헤맬 걸 <code>tldr tar</code>로 1분에 끝낼 때가 많다. 다만 예제가 너무 단순한 경우도 있어서, 복잡한 옵션 조합이 필요하면 결국 <code>man</code>으로 돌아가야 한다.</p>
+<p>오프라인 캐시도 지원해서 인터넷 안 되는 환경에서도 쓸 수 있다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>tldr<span class="w"> </span>--update<span class="w">    </span><span class="c1"># 캐시 갱신</span>
+</span></code></pre></div>
+<h3 id="cheat">cheat<a class="headerlink" href="#cheat" title="Permanent link">&para;</a></h3>
+<p><code>cheat</code>은 <code>tldr</code>과 비슷한데 자체 치트시트를 추가할 수 있다는 게 다르다. 팀에서 자주 쓰는 명령어 패턴을 공유하는 용도로 좋다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>cheat<span class="w"> </span>tar
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>cheat<span class="w"> </span>-e<span class="w"> </span>tar<span class="w">     </span><span class="c1"># 직접 편집</span>
+</span></code></pre></div>
+<p>회사 내에서 자주 쓰는 운영 명령어를 cheat로 정리해두면 신입 온보딩 자료로도 쓸 수 있다.</p>
+<h2 id="실무에서-옵션-찾는-흐름">실무에서 옵션 찾는 흐름<a class="headerlink" href="#실무에서-옵션-찾는-흐름" title="Permanent link">&para;</a></h2>
+<p>5년차쯤 되면 자기만의 패턴이 생긴다. 보통 이런 순서로 찾는다.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     A[옵션 기억 안 남] --&gt; B{명령어 이름 기억나나?}
     B --&gt;|아니오| C[apropos 키워드]
     B --&gt;|예| D{대충 옵션 형태 기억나나?}
@@ -152,50 +3351,209 @@
     H --&gt;|아니오| E
     F --&gt; I
     E --&gt; J["/--옵션이름 검색"]
-    J --&gt; I</code></pre> <p>핵심은 <code>--help | grep</code>이다. man 페이지를 열어서 페이저로 검색하는 것보다 <code>--help</code> 출력에 <code>grep</code>을 거는 게 빠를 때가 많다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-22-1><a id=__codelineno-22-1 name=__codelineno-22-1 href=#__codelineno-22-1></a><span class=c1># tar에서 exclude 관련 옵션만 보기</span>
-</span><span id=__span-22-2><a id=__codelineno-22-2 name=__codelineno-22-2 href=#__codelineno-22-2></a>tar<span class=w> </span>--help<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-A<span class=w> </span><span class=m>1</span><span class=w> </span>exclude
-</span><span id=__span-22-3><a id=__codelineno-22-3 name=__codelineno-22-3 href=#__codelineno-22-3></a>
-</span><span id=__span-22-4><a id=__codelineno-22-4 name=__codelineno-22-4 href=#__codelineno-22-4></a><span class=c1># rsync에서 delete 관련 옵션</span>
-</span><span id=__span-22-5><a id=__codelineno-22-5 name=__codelineno-22-5 href=#__codelineno-22-5></a>rsync<span class=w> </span>--help<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-i<span class=w> </span>delete
-</span><span id=__span-22-6><a id=__codelineno-22-6 name=__codelineno-22-6 href=#__codelineno-22-6></a>
-</span><span id=__span-22-7><a id=__codelineno-22-7 name=__codelineno-22-7 href=#__codelineno-22-7></a><span class=c1># find에서 mtime 관련 옵션</span>
-</span><span id=__span-22-8><a id=__codelineno-22-8 name=__codelineno-22-8 href=#__codelineno-22-8></a>find<span class=w> </span>--help<span class=w> </span><span class=m>2</span>&gt;<span class=p>&amp;</span><span class=m>1</span><span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-A<span class=w> </span><span class=m>2</span><span class=w> </span>mtime
-</span></code></pre></div> <p><code>find</code> 같은 일부 명령어는 <code>--help</code>를 지원 안 하거나 출력이 stderr로 나가는 경우가 있어서 <code>2&gt;&amp;1</code>로 합쳐줘야 한다.</p> <h2 id=자주-쓰는-매뉴얼-단축-패턴>자주 쓰는 매뉴얼 단축 패턴<a class=headerlink href=#자주-쓰는-매뉴얼-단축-패턴 title="Permanent link">&para;</a></h2> <p>운영 중에 매뉴얼 자주 보는 명령어들은 단축 패턴을 외워두면 좋다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-23-1><a id=__codelineno-23-1 name=__codelineno-23-1 href=#__codelineno-23-1></a><span class=c1># bash 빌트인 전체 목록</span>
-</span><span id=__span-23-2><a id=__codelineno-23-2 name=__codelineno-23-2 href=#__codelineno-23-2></a><span class=nb>help</span>
-</span><span id=__span-23-3><a id=__codelineno-23-3 name=__codelineno-23-3 href=#__codelineno-23-3></a>
-</span><span id=__span-23-4><a id=__codelineno-23-4 name=__codelineno-23-4 href=#__codelineno-23-4></a><span class=c1># 시그널 번호 확인</span>
-</span><span id=__span-23-5><a id=__codelineno-23-5 name=__codelineno-23-5 href=#__codelineno-23-5></a>man<span class=w> </span><span class=m>7</span><span class=w> </span>signal
-</span><span id=__span-23-6><a id=__codelineno-23-6 name=__codelineno-23-6 href=#__codelineno-23-6></a><span class=nb>kill</span><span class=w> </span>-l
-</span><span id=__span-23-7><a id=__codelineno-23-7 name=__codelineno-23-7 href=#__codelineno-23-7></a>
-</span><span id=__span-23-8><a id=__codelineno-23-8 name=__codelineno-23-8 href=#__codelineno-23-8></a><span class=c1># 정규식 매뉴얼</span>
-</span><span id=__span-23-9><a id=__codelineno-23-9 name=__codelineno-23-9 href=#__codelineno-23-9></a>man<span class=w> </span><span class=m>7</span><span class=w> </span>regex
-</span><span id=__span-23-10><a id=__codelineno-23-10 name=__codelineno-23-10 href=#__codelineno-23-10></a>
-</span><span id=__span-23-11><a id=__codelineno-23-11 name=__codelineno-23-11 href=#__codelineno-23-11></a><span class=c1># 시스템 콜 에러 코드</span>
-</span><span id=__span-23-12><a id=__codelineno-23-12 name=__codelineno-23-12 href=#__codelineno-23-12></a>man<span class=w> </span><span class=m>3</span><span class=w> </span>errno
-</span><span id=__span-23-13><a id=__codelineno-23-13 name=__codelineno-23-13 href=#__codelineno-23-13></a>
-</span><span id=__span-23-14><a id=__codelineno-23-14 name=__codelineno-23-14 href=#__codelineno-23-14></a><span class=c1># 파일 권한 비트 의미</span>
-</span><span id=__span-23-15><a id=__codelineno-23-15 name=__codelineno-23-15 href=#__codelineno-23-15></a>man<span class=w> </span><span class=m>2</span><span class=w> </span>stat<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-A<span class=w> </span><span class=m>30</span><span class=w> </span><span class=s2>&quot;S_IFMT&quot;</span>
-</span><span id=__span-23-16><a id=__codelineno-23-16 name=__codelineno-23-16 href=#__codelineno-23-16></a>
-</span><span id=__span-23-17><a id=__codelineno-23-17 name=__codelineno-23-17 href=#__codelineno-23-17></a><span class=c1># 환경 변수 매뉴얼</span>
-</span><span id=__span-23-18><a id=__codelineno-23-18 name=__codelineno-23-18 href=#__codelineno-23-18></a>man<span class=w> </span><span class=m>7</span><span class=w> </span>environ
-</span></code></pre></div> <p>특히 <code>man 7 signal</code>은 코어덤프 분석할 때, <code>man 3 errno</code>는 시스템 콜 에러 디버깅할 때 자주 본다.</p> <h2 id=매뉴얼-출력-저장과-검색>매뉴얼 출력 저장과 검색<a class=headerlink href=#매뉴얼-출력-저장과-검색 title="Permanent link">&para;</a></h2> <p>긴 매뉴얼을 텍스트로 저장해두고 grep을 거는 패턴도 자주 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-24-1><a id=__codelineno-24-1 name=__codelineno-24-1 href=#__codelineno-24-1></a><span class=c1># man 페이지를 텍스트 파일로 저장</span>
-</span><span id=__span-24-2><a id=__codelineno-24-2 name=__codelineno-24-2 href=#__codelineno-24-2></a>man<span class=w> </span>tar<span class=w> </span><span class=p>|</span><span class=w> </span>col<span class=w> </span>-b<span class=w> </span>&gt;<span class=w> </span>tar-manual.txt
-</span><span id=__span-24-3><a id=__codelineno-24-3 name=__codelineno-24-3 href=#__codelineno-24-3></a>
-</span><span id=__span-24-4><a id=__codelineno-24-4 name=__codelineno-24-4 href=#__codelineno-24-4></a><span class=c1># PDF로 변환 (Linux)</span>
-</span><span id=__span-24-5><a id=__codelineno-24-5 name=__codelineno-24-5 href=#__codelineno-24-5></a>man<span class=w> </span>-t<span class=w> </span>tar<span class=w> </span><span class=p>|</span><span class=w> </span>ps2pdf<span class=w> </span>-<span class=w> </span>tar-manual.pdf
-</span><span id=__span-24-6><a id=__codelineno-24-6 name=__codelineno-24-6 href=#__codelineno-24-6></a>
-</span><span id=__span-24-7><a id=__codelineno-24-7 name=__codelineno-24-7 href=#__codelineno-24-7></a><span class=c1># HTML로 변환</span>
-</span><span id=__span-24-8><a id=__codelineno-24-8 name=__codelineno-24-8 href=#__codelineno-24-8></a>man<span class=w> </span>--html<span class=o>=</span>cat<span class=w> </span>tar<span class=w> </span>&gt;<span class=w> </span>tar-manual.html
-</span></code></pre></div> <p><code>col -b</code>는 백스페이스 문자(굵은 글씨용)를 제거한다. 이걸 안 하면 텍스트 파일에 이상한 제어 문자가 섞여서 grep 결과가 깨진다.</p> <p>운영 서버에서 인터넷 안 되는 환경이라면 자주 쓰는 매뉴얼을 미리 텍스트로 뽑아서 따로 보관하는 것도 한 방법이다.</p> <h2 id=자주-만나는-문제>자주 만나는 문제<a class=headerlink href=#자주-만나는-문제 title="Permanent link">&para;</a></h2> <h3 id=매뉴얼이-없다고-나올-때>매뉴얼이 없다고 나올 때<a class=headerlink href=#매뉴얼이-없다고-나올-때 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-25-1><a id=__codelineno-25-1 name=__codelineno-25-1 href=#__codelineno-25-1></a>man<span class=w> </span>tar
-</span><span id=__span-25-2><a id=__codelineno-25-2 name=__codelineno-25-2 href=#__codelineno-25-2></a><span class=c1># No manual entry for tar</span>
-</span></code></pre></div> <p>대부분 매뉴얼 패키지가 설치 안 된 경우다. 도커 슬림 이미지나 최소 설치 시스템에서 흔하다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-26-1><a id=__codelineno-26-1 name=__codelineno-26-1 href=#__codelineno-26-1></a><span class=c1># 데비안/우분투</span>
-</span><span id=__span-26-2><a id=__codelineno-26-2 name=__codelineno-26-2 href=#__codelineno-26-2></a>apt<span class=w> </span>install<span class=w> </span>man-db<span class=w> </span>manpages
-</span><span id=__span-26-3><a id=__codelineno-26-3 name=__codelineno-26-3 href=#__codelineno-26-3></a>
-</span><span id=__span-26-4><a id=__codelineno-26-4 name=__codelineno-26-4 href=#__codelineno-26-4></a><span class=c1># 레드햇/CentOS</span>
-</span><span id=__span-26-5><a id=__codelineno-26-5 name=__codelineno-26-5 href=#__codelineno-26-5></a>yum<span class=w> </span>install<span class=w> </span>man-pages
-</span><span id=__span-26-6><a id=__codelineno-26-6 name=__codelineno-26-6 href=#__codelineno-26-6></a>
-</span><span id=__span-26-7><a id=__codelineno-26-7 name=__codelineno-26-7 href=#__codelineno-26-7></a><span class=c1># 알파인</span>
-</span><span id=__span-26-8><a id=__codelineno-26-8 name=__codelineno-26-8 href=#__codelineno-26-8></a>apk<span class=w> </span>add<span class=w> </span>man-pages<span class=w> </span>mandoc
-</span></code></pre></div> <p>알파인은 기본적으로 <code>man</code>이 없다. <code>mandoc</code>이나 <code>man-db</code>를 따로 설치해야 한다.</p> <h3 id=한국어-매뉴얼>한국어 매뉴얼<a class=headerlink href=#한국어-매뉴얼 title="Permanent link">&para;</a></h3> <p>영어 매뉴얼이 부담스러울 때 한국어 매뉴얼을 깔 수 있긴 한데 추천하지 않는다. 번역 품질이 들쭉날쭉하고 업데이트가 느려서 옵션이 누락된 경우가 많다. 영어 매뉴얼이 어려우면 차라리 <code>tldr</code>로 예제 위주로 보는 게 낫다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-27-1><a id=__codelineno-27-1 name=__codelineno-27-1 href=#__codelineno-27-1></a><span class=c1># 한국어 매뉴얼 (선택사항)</span>
-</span><span id=__span-27-2><a id=__codelineno-27-2 name=__codelineno-27-2 href=#__codelineno-27-2></a>apt<span class=w> </span>install<span class=w> </span>manpages-ko
-</span></code></pre></div> <h3 id=매뉴얼이-짧거나-부실할-때>매뉴얼이 짧거나 부실할 때<a class=headerlink href=#매뉴얼이-짧거나-부실할-때 title="Permanent link">&para;</a></h3> <p><code>busybox</code>나 임베디드 환경에서 <code>--help</code>를 쳤는데 옵션 한 줄만 나오는 경우가 있다. 이때는 GNU 버전의 매뉴얼을 다른 시스템에서 보는 게 빠르다.</p> <p>온라인 매뉴얼 사이트들도 알아두면 좋다. - <code>man7.org</code>: 리눅스 man 페이지 공식 미러 - <code>manned.org</code>: 여러 배포판 매뉴얼 비교 - <code>explainshell.com</code>: 명령어를 입력하면 옵션을 분해해서 설명</p> <p>운영 서버에서는 안 되지만 로컬에서 빠르게 확인할 때 유용하다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../Infrastructure_as_Code/Ansible/ >Ansible</a></li> <li><a href=../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/ >Linux 기본 명령어</a></li> <li><a href=../../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/Network_Management_Deep_Dive/ >Linux 네트워크 관리 심화</a></li> <li><a href=../../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC_%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85/ >Linux 네트워크 트러블슈팅</a></li> <li><a href=../../Linux_%EB%B0%B0%ED%8F%AC%ED%8C%90_%EA%B3%84%EC%97%B4/ >Linux 배포판 계열</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 9일 03:18:22 UTC">2026년 8월 9일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/ class="md-footer__link md-footer__link--prev" aria-label="이전: Linux 기본 명령어"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Linux 기본 명령어 </div> </div> </a> <a href=../%EB%AA%85%EB%A0%B9%EC%96%B4_%EB%8B%A8%EC%B6%95%ED%82%A4_%EB%B0%8F_%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC_%ED%99%95%EC%9E%A5/ class="md-footer__link md-footer__link--next" aria-label="다음: 명령어 단축키 및 히스토리 확장"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> 명령어 단축키 및 히스토리 확장 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    J --&gt; I</code></pre>
+<p>핵심은 <code>--help | grep</code>이다. man 페이지를 열어서 페이저로 검색하는 것보다 <code>--help</code> 출력에 <code>grep</code>을 거는 게 빠를 때가 많다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># tar에서 exclude 관련 옵션만 보기</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>tar<span class="w"> </span>--help<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-A<span class="w"> </span><span class="m">1</span><span class="w"> </span>exclude
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="c1"># rsync에서 delete 관련 옵션</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>rsync<span class="w"> </span>--help<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>delete
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="c1"># find에서 mtime 관련 옵션</span>
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>find<span class="w"> </span>--help<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-A<span class="w"> </span><span class="m">2</span><span class="w"> </span>mtime
+</span></code></pre></div>
+<p><code>find</code> 같은 일부 명령어는 <code>--help</code>를 지원 안 하거나 출력이 stderr로 나가는 경우가 있어서 <code>2&gt;&amp;1</code>로 합쳐줘야 한다.</p>
+<h2 id="자주-쓰는-매뉴얼-단축-패턴">자주 쓰는 매뉴얼 단축 패턴<a class="headerlink" href="#자주-쓰는-매뉴얼-단축-패턴" title="Permanent link">&para;</a></h2>
+<p>운영 중에 매뉴얼 자주 보는 명령어들은 단축 패턴을 외워두면 좋다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># bash 빌트인 전체 목록</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nb">help</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># 시그널 번호 확인</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>man<span class="w"> </span><span class="m">7</span><span class="w"> </span>signal
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="nb">kill</span><span class="w"> </span>-l
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="c1"># 정규식 매뉴얼</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>man<span class="w"> </span><span class="m">7</span><span class="w"> </span>regex
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="c1"># 시스템 콜 에러 코드</span>
+</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>man<span class="w"> </span><span class="m">3</span><span class="w"> </span>errno
+</span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>
+</span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="c1"># 파일 권한 비트 의미</span>
+</span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>man<span class="w"> </span><span class="m">2</span><span class="w"> </span>stat<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-A<span class="w"> </span><span class="m">30</span><span class="w"> </span><span class="s2">&quot;S_IFMT&quot;</span>
+</span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>
+</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="c1"># 환경 변수 매뉴얼</span>
+</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>man<span class="w"> </span><span class="m">7</span><span class="w"> </span>environ
+</span></code></pre></div>
+<p>특히 <code>man 7 signal</code>은 코어덤프 분석할 때, <code>man 3 errno</code>는 시스템 콜 에러 디버깅할 때 자주 본다.</p>
+<h2 id="매뉴얼-출력-저장과-검색">매뉴얼 출력 저장과 검색<a class="headerlink" href="#매뉴얼-출력-저장과-검색" title="Permanent link">&para;</a></h2>
+<p>긴 매뉴얼을 텍스트로 저장해두고 grep을 거는 패턴도 자주 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># man 페이지를 텍스트 파일로 저장</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>man<span class="w"> </span>tar<span class="w"> </span><span class="p">|</span><span class="w"> </span>col<span class="w"> </span>-b<span class="w"> </span>&gt;<span class="w"> </span>tar-manual.txt
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># PDF로 변환 (Linux)</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>man<span class="w"> </span>-t<span class="w"> </span>tar<span class="w"> </span><span class="p">|</span><span class="w"> </span>ps2pdf<span class="w"> </span>-<span class="w"> </span>tar-manual.pdf
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="c1"># HTML로 변환</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>man<span class="w"> </span>--html<span class="o">=</span>cat<span class="w"> </span>tar<span class="w"> </span>&gt;<span class="w"> </span>tar-manual.html
+</span></code></pre></div>
+<p><code>col -b</code>는 백스페이스 문자(굵은 글씨용)를 제거한다. 이걸 안 하면 텍스트 파일에 이상한 제어 문자가 섞여서 grep 결과가 깨진다.</p>
+<p>운영 서버에서 인터넷 안 되는 환경이라면 자주 쓰는 매뉴얼을 미리 텍스트로 뽑아서 따로 보관하는 것도 한 방법이다.</p>
+<h2 id="자주-만나는-문제">자주 만나는 문제<a class="headerlink" href="#자주-만나는-문제" title="Permanent link">&para;</a></h2>
+<h3 id="매뉴얼이-없다고-나올-때">매뉴얼이 없다고 나올 때<a class="headerlink" href="#매뉴얼이-없다고-나올-때" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>man<span class="w"> </span>tar
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="c1"># No manual entry for tar</span>
+</span></code></pre></div>
+<p>대부분 매뉴얼 패키지가 설치 안 된 경우다. 도커 슬림 이미지나 최소 설치 시스템에서 흔하다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># 데비안/우분투</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>apt<span class="w"> </span>install<span class="w"> </span>man-db<span class="w"> </span>manpages
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># 레드햇/CentOS</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>yum<span class="w"> </span>install<span class="w"> </span>man-pages
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="c1"># 알파인</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>apk<span class="w"> </span>add<span class="w"> </span>man-pages<span class="w"> </span>mandoc
+</span></code></pre></div>
+<p>알파인은 기본적으로 <code>man</code>이 없다. <code>mandoc</code>이나 <code>man-db</code>를 따로 설치해야 한다.</p>
+<h3 id="한국어-매뉴얼">한국어 매뉴얼<a class="headerlink" href="#한국어-매뉴얼" title="Permanent link">&para;</a></h3>
+<p>영어 매뉴얼이 부담스러울 때 한국어 매뉴얼을 깔 수 있긴 한데 추천하지 않는다. 번역 품질이 들쭉날쭉하고 업데이트가 느려서 옵션이 누락된 경우가 많다. 영어 매뉴얼이 어려우면 차라리 <code>tldr</code>로 예제 위주로 보는 게 낫다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># 한국어 매뉴얼 (선택사항)</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>apt<span class="w"> </span>install<span class="w"> </span>manpages-ko
+</span></code></pre></div>
+<h3 id="매뉴얼이-짧거나-부실할-때">매뉴얼이 짧거나 부실할 때<a class="headerlink" href="#매뉴얼이-짧거나-부실할-때" title="Permanent link">&para;</a></h3>
+<p><code>busybox</code>나 임베디드 환경에서 <code>--help</code>를 쳤는데 옵션 한 줄만 나오는 경우가 있다. 이때는 GNU 버전의 매뉴얼을 다른 시스템에서 보는 게 빠르다.</p>
+<p>온라인 매뉴얼 사이트들도 알아두면 좋다.
+- <code>man7.org</code>: 리눅스 man 페이지 공식 미러
+- <code>manned.org</code>: 여러 배포판 매뉴얼 비교
+- <code>explainshell.com</code>: 명령어를 입력하면 옵션을 분해해서 설명</p>
+<p>운영 서버에서는 안 되지만 로컬에서 빠르게 확인할 때 유용하다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../Infrastructure_as_Code/Ansible/">Ansible</a></li>
+<li><a href="../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/">Linux 기본 명령어</a></li>
+<li><a href="../../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/Network_Management_Deep_Dive/">Linux 네트워크 관리 심화</a></li>
+<li><a href="../../%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC/%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC_%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85/">Linux 네트워크 트러블슈팅</a></li>
+<li><a href="../../Linux_%EB%B0%B0%ED%8F%AC%ED%8C%90_%EA%B3%84%EC%97%B4/">Linux 배포판 계열</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../%EA%B8%B0%EB%B3%B8_%EB%AA%85%EB%A0%B9%EC%96%B4/" class="md-footer__link md-footer__link--prev" aria-label="이전: Linux 기본 명령어">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Linux 기본 명령어
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../%EB%AA%85%EB%A0%B9%EC%96%B4_%EB%8B%A8%EC%B6%95%ED%82%A4_%EB%B0%8F_%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC_%ED%99%95%EC%9E%A5/" class="md-footer__link md-footer__link--next" aria-label="다음: 명령어 단축키 및 히스토리 확장">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                명령어 단축키 및 히스토리 확장
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

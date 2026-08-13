@@ -1,25 +1,3029 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/Domain/DNS_over_HTTPS_Do_H/ rel=canonical><link href=../DNS%20Lookup/ rel=prev><link href=../DNSSEC/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>DNS over HTTPS (DoH) - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#dns-over-https-doh class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> DNS over HTTPS (DoH) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../7%20Layer/ class=md-nav__link> <span class=md-ellipsis> OSI 7계층 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_9 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Domain </span> </a> <label class="md-nav__link " for=__nav_7_1_9 id=__nav_7_1_9_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_9_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_9> <span class="md-nav__icon md-icon"></span> Domain </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../CNAME/ class=md-nav__link> <span class=md-ellipsis> CNAME </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_9_3 checked> <label class=md-nav__link for=__nav_7_1_9_3 id=__nav_7_1_9_3_label tabindex=0> <span class=md-ellipsis> DNS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_7_1_9_3_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_9_3> <span class="md-nav__icon md-icon"></span> DNS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../DNS/ class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=../DNS%20Lookup/ class=md-nav__link> <span class=md-ellipsis> Lookup </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> DNS over HTTPS (DoH) </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> DNS over HTTPS (DoH) </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#왜-평문-dns가-문제였나 class=md-nav__link> <span class=md-ellipsis> 왜 평문 DNS가 문제였나 </span> </a> </li> <li class=md-nav__item> <a href=#dot와-doh의-차이 class=md-nav__link> <span class=md-ellipsis> DoT와 DoH의 차이 </span> </a> <nav class=md-nav aria-label="DoT와 DoH의 차이"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#dns-over-tls-dot--853-포트 class=md-nav__link> <span class=md-ellipsis> DNS over TLS (DoT) — 853 포트 </span> </a> </li> <li class=md-nav__item> <a href=#dns-over-https-doh--443-포트 class=md-nav__link> <span class=md-ellipsis> DNS over HTTPS (DoH) — 443 포트 </span> </a> </li> <li class=md-nav__item> <a href=#853-vs-443--이-포트-차이가-전부다 class=md-nav__link> <span class=md-ellipsis> 853 vs 443 — 이 포트 차이가 전부다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#동작-방식--첫-질의의-닭-달걀-문제 class=md-nav__link> <span class=md-ellipsis> 동작 방식 — 첫 질의의 닭-달걀 문제 </span> </a> </li> <li class=md-nav__item> <a href=#사내망에서-터지는-진짜-문제 class=md-nav__link> <span class=md-ellipsis> 사내망에서 터지는 진짜 문제 </span> </a> <nav class=md-nav aria-label="사내망에서 터지는 진짜 문제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#내부-도메인이-안-풀린다 class=md-nav__link> <span class=md-ellipsis> 내부 도메인이 안 풀린다 </span> </a> </li> <li class=md-nav__item> <a href=#보안-필터링이-무력화된다 class=md-nav__link> <span class=md-ellipsis> 보안 필터링이 무력화된다 </span> </a> </li> <li class=md-nav__item> <a href=#망-관리자가-대응하는-방법 class=md-nav__link> <span class=md-ellipsis> 망 관리자가 대응하는 방법 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#브라우저--os-설정 class=md-nav__link> <span class=md-ellipsis> 브라우저 / OS 설정 </span> </a> <nav class=md-nav aria-label="브라우저 / OS 설정"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#크롬--엣지 class=md-nav__link> <span class=md-ellipsis> 크롬 / 엣지 </span> </a> </li> <li class=md-nav__item> <a href=#파이어폭스 class=md-nav__link> <span class=md-ellipsis> 파이어폭스 </span> </a> </li> <li class=md-nav__item> <a href=#os-레벨 class=md-nav__link> <span class=md-ellipsis> OS 레벨 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#캐시-동작-차이 class=md-nav__link> <span class=md-ellipsis> 캐시 동작 차이 </span> </a> </li> <li class=md-nav__item> <a href=#언제-쓰고-언제-막나 class=md-nav__link> <span class=md-ellipsis> 언제 쓰고 언제 막나 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../DNSSEC/ class=md-nav__link> <span class=md-ellipsis> DNSSEC </span> </a> </li> <li class=md-nav__item> <a href=../Domain_Registration_Lifecycle/ class=md-nav__link> <span class=md-ellipsis> 도메인 등록과 라이프사이클 </span> </a> </li> <li class=md-nav__item> <a href=../Duck_DNS/ class=md-nav__link> <span class=md-ellipsis> DuckDNS 동적 DNS 서비스 </span> </a> </li> <li class=md-nav__item> <a href=../Subdomain/ class=md-nav__link> <span class=md-ellipsis> 서브도메인 (Subdomain) </span> </a> </li> <li class=md-nav__item> <a href=../Web_Communication_Flow/ class=md-nav__link> <span class=md-ellipsis> 웹 통신의 흐름 </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#왜-평문-dns가-문제였나 class=md-nav__link> <span class=md-ellipsis> 왜 평문 DNS가 문제였나 </span> </a> </li> <li class=md-nav__item> <a href=#dot와-doh의-차이 class=md-nav__link> <span class=md-ellipsis> DoT와 DoH의 차이 </span> </a> <nav class=md-nav aria-label="DoT와 DoH의 차이"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#dns-over-tls-dot--853-포트 class=md-nav__link> <span class=md-ellipsis> DNS over TLS (DoT) — 853 포트 </span> </a> </li> <li class=md-nav__item> <a href=#dns-over-https-doh--443-포트 class=md-nav__link> <span class=md-ellipsis> DNS over HTTPS (DoH) — 443 포트 </span> </a> </li> <li class=md-nav__item> <a href=#853-vs-443--이-포트-차이가-전부다 class=md-nav__link> <span class=md-ellipsis> 853 vs 443 — 이 포트 차이가 전부다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#동작-방식--첫-질의의-닭-달걀-문제 class=md-nav__link> <span class=md-ellipsis> 동작 방식 — 첫 질의의 닭-달걀 문제 </span> </a> </li> <li class=md-nav__item> <a href=#사내망에서-터지는-진짜-문제 class=md-nav__link> <span class=md-ellipsis> 사내망에서 터지는 진짜 문제 </span> </a> <nav class=md-nav aria-label="사내망에서 터지는 진짜 문제"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#내부-도메인이-안-풀린다 class=md-nav__link> <span class=md-ellipsis> 내부 도메인이 안 풀린다 </span> </a> </li> <li class=md-nav__item> <a href=#보안-필터링이-무력화된다 class=md-nav__link> <span class=md-ellipsis> 보안 필터링이 무력화된다 </span> </a> </li> <li class=md-nav__item> <a href=#망-관리자가-대응하는-방법 class=md-nav__link> <span class=md-ellipsis> 망 관리자가 대응하는 방법 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#브라우저--os-설정 class=md-nav__link> <span class=md-ellipsis> 브라우저 / OS 설정 </span> </a> <nav class=md-nav aria-label="브라우저 / OS 설정"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#크롬--엣지 class=md-nav__link> <span class=md-ellipsis> 크롬 / 엣지 </span> </a> </li> <li class=md-nav__item> <a href=#파이어폭스 class=md-nav__link> <span class=md-ellipsis> 파이어폭스 </span> </a> </li> <li class=md-nav__item> <a href=#os-레벨 class=md-nav__link> <span class=md-ellipsis> OS 레벨 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#캐시-동작-차이 class=md-nav__link> <span class=md-ellipsis> 캐시 동작 차이 </span> </a> </li> <li class=md-nav__item> <a href=#언제-쓰고-언제-막나 class=md-nav__link> <span class=md-ellipsis> 언제 쓰고 언제 막나 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>architecture</span> <span class=md-tag>dns</span> <span class=md-tag>encryption</span> <span class=md-tag>network</span> </nav> <h1 id=dns-over-https-doh>DNS over HTTPS (DoH)<a class=headerlink href=#dns-over-https-doh title="Permanent link">&para;</a></h1> <h2 id=왜-평문-dns가-문제였나>왜 평문 DNS가 문제였나<a class=headerlink href=#왜-평문-dns가-문제였나 title="Permanent link">&para;</a></h2> <p>기존 DNS는 UDP 53번 포트로 평문을 그대로 주고받는다. <code>dig example.com</code> 한 번 날리면 중간 경로의 누구든 그 패킷을 읽는다. 카페 와이파이, ISP, 회사 게이트웨이 어디서든 "이 사람이 지금 어떤 도메인을 풀고 있는지"가 다 보인다.</p> <p>문제는 두 가지다. 첫째는 도청이다. HTTPS로 본문은 암호화돼도 어떤 사이트에 접속하려는지는 DNS 질의에서 노출된다. 둘째는 변조다. 평문이니까 중간에서 응답을 바꿔치기할 수 있다. 공공 와이파이에서 가짜 응답을 끼워넣어 피싱 사이트로 보내거나, ISP가 특정 도메인 응답을 NXDOMAIN으로 바꿔 차단하는 식이다.</p> <p>DoT와 DoH는 이 DNS 질의/응답 구간을 TLS로 감싸서 중간자가 못 읽고 못 바꾸게 만들었다. 이름은 비슷하지만 운영 입장에서 둘은 성격이 꽤 다르다.</p> <h2 id=dot와-doh의-차이>DoT와 DoH의 차이<a class=headerlink href=#dot와-doh의-차이 title="Permanent link">&para;</a></h2> <h3 id=dns-over-tls-dot--853-포트>DNS over TLS (DoT) — 853 포트<a class=headerlink href=#dns-over-tls-dot--853-포트 title="Permanent link">&para;</a></h3> <p>DoT는 RFC 7858로 정의됐다. 동작은 단순하다. 평문 DNS를 TLS 세션 안에 그대로 넣는다. DNS 와이어 포맷(평소 53번에서 쓰던 그 바이너리)을 TLS 위에 얹어서 보낸다. 포트만 853번으로 바뀐다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>[클라이언트] --- TLS handshake (853) ---&gt; [리졸버]
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>[클라이언트] --- DNS query (TLS 안) ---&gt; [리졸버]
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>[클라이언트] &lt;-- DNS response (TLS 안) -- [리졸버]
-</span></code></pre></div> <p>핵심은 전용 포트 853을 쓴다는 점이다. 네트워크 관리자 입장에서 853번 트래픽은 "이건 DoT다"라고 바로 식별된다. 막고 싶으면 853 포트를 차단하면 끝이다. 그러면 클라이언트는 보통 평문 53번으로 fallback 한다.</p> <h3 id=dns-over-https-doh--443-포트>DNS over HTTPS (DoH) — 443 포트<a class=headerlink href=#dns-over-https-doh--443-포트 title="Permanent link">&para;</a></h3> <p>DoH는 RFC 8484로 정의됐다. DNS 질의를 HTTPS 요청 본문에 실어 보낸다. 일반 웹 트래픽과 똑같은 443번 포트를 쓴다. 이게 DoT와 갈리는 결정적 지점이다.</p> <p>HTTP 메서드는 GET이나 POST 둘 다 가능하다. GET이면 base64url로 인코딩한 DNS 메시지를 쿼리 파라미터로 붙이고, POST면 본문에 바이너리로 넣는다.</p> <div class="language-http highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=nf>GET</span> <span class=nn>/dns-query?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB</span> <span class=kr>HTTP</span><span class=o>/</span><span class=m>2</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=na>Host</span><span class=o>:</span> <span class=l>dns.google</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=na>Accept</span><span class=o>:</span> <span class=l>application/dns-message</span>
-</span></code></pre></div> <div class="language-http highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=nf>POST</span> <span class=nn>/dns-query</span> <span class=kr>HTTP</span><span class=o>/</span><span class=m>2</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=na>Host</span><span class=o>:</span> <span class=l>cloudflare-dns.com</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=na>Content-Type</span><span class=o>:</span> <span class=l>application/dns-message</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=na>Content-Length</span><span class=o>:</span> <span class=l>33</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>(바이너리 DNS 메시지)
-</span></code></pre></div> <p>응답도 <code>application/dns-message</code> 콘텐츠 타입으로 바이너리 DNS 응답이 그대로 온다.</p> <h3 id=853-vs-443--이-포트-차이가-전부다>853 vs 443 — 이 포트 차이가 전부다<a class=headerlink href=#853-vs-443--이-포트-차이가-전부다 title="Permanent link">&para;</a></h3> <p>기술적으로 둘 다 TLS로 DNS를 감싸는 건 같다. 차이는 식별 가능성이다.</p> <table> <thead> <tr> <th></th> <th>DoT</th> <th>DoH</th> </tr> </thead> <tbody> <tr> <td>포트</td> <td>853 (전용)</td> <td>443 (HTTPS와 공유)</td> </tr> <tr> <td>식별</td> <td>포트만 봐도 DNS인 줄 안다</td> <td>일반 HTTPS와 구분 안 됨</td> </tr> <tr> <td>차단</td> <td>853 막으면 끝</td> <td>막으려면 SNI/IP 단위로 막아야 함</td> </tr> <tr> <td>표준</td> <td>RFC 7858</td> <td>RFC 8484</td> </tr> <tr> <td>와이어 포맷</td> <td>DNS 그대로</td> <td>HTTP 안에 DNS</td> </tr> </tbody> </table> <p>DoT는 853이라는 깃발을 들고 다닌다. 그래서 기업/통신사가 통제하기 쉽다. DoH는 443에 섞여 들어가서 HTTPS 트래픽과 구분이 안 된다. 패킷만 봐서는 누가 구글에 접속하는 건지 구글 DNS에 질의하는 건지 알 수 없다. 이 "구분 안 됨"이 DoH의 프라이버시 장점이자, 동시에 망 관리자에게는 골칫거리가 된다.</p> <h2 id=동작-방식--첫-질의의-닭-달걀-문제>동작 방식 — 첫 질의의 닭-달걀 문제<a class=headerlink href=#동작-방식--첫-질의의-닭-달걀-문제 title="Permanent link">&para;</a></h2> <p>DoH/DoT를 쓸 때 한 가지 짚고 넘어갈 게 있다. 리졸버 주소를 도메인으로 지정하면 그 도메인은 어떻게 푸느냐다.</p> <p><code>https://dns.google/dns-query</code>로 DoH를 쓴다고 하자. <code>dns.google</code>을 IP로 풀어야 접속할 텐데, 그걸 풀려면 DNS가 필요하다. 그래서 DoH 클라이언트는 보통 부트스트랩 IP를 하드코딩하거나 설정에 IP를 직접 받는다. 구글은 <code>8.8.8.8</code>, 클라우드플레어는 <code>1.1.1.1</code>을 부트스트랩으로 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>1. 부트스트랩: 8.8.8.8 (하드코딩된 IP)로 먼저 TLS 연결
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>2. dns.google 인증서 검증 (SAN에 dns.google 포함 확인)
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>3. 이후 모든 DNS 질의를 이 연결로 처리
-</span></code></pre></div> <p>인증서 검증이 중요하다. 평문 DNS는 응답 출처를 검증할 방법이 없었지만, DoH/DoT는 TLS 인증서로 "내가 지금 진짜 클라우드플레어와 말하는 게 맞는지"를 확인한다. 중간자가 가짜 리졸버로 가로채면 인증서 검증에서 막힌다.</p> <h2 id=사내망에서-터지는-진짜-문제>사내망에서 터지는 진짜 문제<a class=headerlink href=#사내망에서-터지는-진짜-문제 title="Permanent link">&para;</a></h2> <p>여기가 운영하는 사람 입장에서 제일 골치 아픈 부분이다. DoH는 내부 DNS 인프라를 통째로 우회한다.</p> <h3 id=내부-도메인이-안-풀린다>내부 도메인이 안 풀린다<a class=headerlink href=#내부-도메인이-안-풀린다 title="Permanent link">&para;</a></h3> <p>회사 내부망에는 보통 <code>intra.company.local</code>, <code>git.internal</code> 같은 내부 전용 도메인이 있다. 이건 사내 DNS 서버만 알고, 외부 공용 리졸버(8.8.8.8, 1.1.1.1)는 모른다.</p> <p>직원이 브라우저에서 DoH를 켜면 브라우저가 OS DNS 설정을 무시하고 직접 클라우드플레어로 질의를 보낸다. 그러면 <code>git.internal</code> 같은 내부 도메인은 외부 리졸버가 NXDOMAIN을 돌려주고, 사내 서비스 접속이 안 된다. 헬프데스크에 "VPN 켰는데 깃랩이 안 들어가져요" 문의가 들어오면 십중팔구 브라우저 DoH가 범인이다.</p> <h3 id=보안-필터링이-무력화된다>보안 필터링이 무력화된다<a class=headerlink href=#보안-필터링이-무력화된다 title="Permanent link">&para;</a></h3> <p>많은 회사가 DNS 단에서 악성 도메인, 피싱, C2 서버 도메인을 차단한다. 사내 DNS가 블랙리스트에 걸린 도메인을 NXDOMAIN으로 막는 방식이다. DNS 기반 차단은 구축이 싸고 전사 적용이 쉬워서 널리 쓰인다.</p> <p>DoH가 켜지면 이 차단이 그냥 무시된다. 질의가 사내 DNS를 안 거치고 443번 HTTPS에 섞여 외부로 나가버리니까 방화벽에서 "DNS 질의"로 잡아낼 수도 없다. 보안팀 입장에서는 가시성이 사라진다. 어떤 직원 PC가 어떤 악성 도메인을 풀고 있는지 로그조차 안 남는다.</p> <h3 id=망-관리자가-대응하는-방법>망 관리자가 대응하는 방법<a class=headerlink href=#망-관리자가-대응하는-방법 title="Permanent link">&para;</a></h3> <p>업무망에서 DoH를 막는 방법이 몇 가지 있다.</p> <p>Canary 도메인 차단. 파이어폭스는 <code>use-application-dns.net</code>이라는 특수 도메인을 먼저 조회한다. 이 도메인이 NXDOMAIN을 돌려주면 "이 네트워크는 DoH를 원하지 않는다"로 해석하고 DoH를 끈다. 사내 DNS에서 이 도메인을 NXDOMAIN 처리하면 파이어폭스 DoH가 자동으로 비활성화된다. 단, 이건 파이어폭스에만 통하고 크롬/엣지에는 안 먹힌다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>; 사내 DNS zone에 추가
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>use-application-dns.net. IN  CNAME  .   ; 또는 NXDOMAIN 응답
-</span></code></pre></div> <p>알려진 DoH 서버 IP/도메인 차단. 방화벽에서 <code>1.1.1.1</code>, <code>8.8.8.8</code>, <code>dns.google</code>, <code>cloudflare-dns.com</code> 같은 공개 DoH 제공자의 IP와 SNI를 막는다. 문제는 목록이 계속 늘어난다는 점이다. 새 DoH 제공자가 끝없이 생기고, 일부는 일반 CDN IP를 공유해서 막으면 멀쩡한 서비스까지 같이 죽는다.</p> <p>그룹 정책으로 강제. 가장 확실한 건 관리하는 단말에 정책을 박는 것이다. 크롬/엣지는 <code>DnsOverHttpsMode</code>를 <code>off</code>로 강제하면 사용자가 못 켠다. 윈도우 도메인 환경이면 GPO로 일괄 배포한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>; Chrome/Edge 정책 (관리 단말)
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>DnsOverHttpsMode = &quot;off&quot;
-</span></code></pre></div> <p>관리 안 되는 BYOD 단말은 이 정책이 안 먹히니까 결국 망 분리나 NAC로 가는 수밖에 없다.</p> <h2 id=브라우저--os-설정>브라우저 / OS 설정<a class=headerlink href=#브라우저--os-설정 title="Permanent link">&para;</a></h2> <h3 id=크롬--엣지>크롬 / 엣지<a class=headerlink href=#크롬--엣지 title="Permanent link">&para;</a></h3> <p><code>설정 → 개인정보 및 보안 → 보안 → 보안 DNS 사용</code>에서 켠다. 기본값은 "현재 서비스 제공업체"인데, 이건 OS에 설정된 DNS가 DoH를 지원하면 자동으로 업그레이드하는 모드다. 직접 제공자를 고르면(<code>Google</code>, <code>Cloudflare</code> 등) OS 설정을 무시하고 그 제공자로 직행한다.</p> <p>크롬의 "자동 업그레이드" 모드는 그나마 덜 위험하다. OS에 설정된 리졸버가 DoH도 지원하는 경우에만 암호화로 올리기 때문에, 사내 DNS를 쓰면 사내 DNS의 DoH 엔드포인트로 ��다(있다면). 사내 DNS가 DoH를 지원 안 하면 평문 그대로 둔다. 문제는 사용자가 수동으로 제공자를 박아버릴 때다.</p> <h3 id=파이어폭스>파이어폭스<a class=headerlink href=#파이어폭스 title="Permanent link">&para;</a></h3> <p>파이어폭스가 제일 공격적이다. 일부 지역에서는 DoH가 기본 켜져 있고, 클라우드플레어가 기본 제공자다. <code>설정 → 개인정보 및 보안 → DNS over HTTPS</code>에서 본다. 위에 말한 canary 도메인을 존중하는 게 그나마 다행이다.</p> <p>보호 수준이 세 단계 있다. 기본(Default), 강화(Increased), 최대(Max). Max로 두면 DoH 실패 시 평문 fallback 없이 그냥 실패시킨다. 보안은 세지만 내부망에서 쓰면 내부 도메인이 다 깨진다.</p> <h3 id=os-레벨>OS 레벨<a class=headerlink href=#os-레벨 title="Permanent link">&para;</a></h3> <p>윈도우 11은 OS 차원에서 DoH를 지원한다. <code>설정 → 네트워크 → 어댑터 속성 → DNS 서버 할당</code>에서 암호화를 켤 수 있다. OS 레벨로 켜면 브라우저뿐 아니라 모든 앱의 DNS가 암호화된다.</p> <p>리눅스는 <code>systemd-resolved</code>가 DoT를 지원한다. DoH는 기본 지원이 약해서 보통 별도 데몬을 쓴다.</p> <div class="language-ini highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># /etc/systemd/resolved.conf</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=k>[Resolve]</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=na>DNS</span><span class=o>=</span><span class=s>1.1.1.1</span><span class=c1>#cloudflare-dns.com</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=na>DNSOverTLS</span><span class=o>=</span><span class=s>yes</span>
-</span></code></pre></div> <p><code>#cloudflare-dns.com</code>은 인증서 검증에 쓸 호스트명이다. 이걸 빼면 IP만 맞으면 통과시켜서 중간자 검증이 약해진다.</p> <p>안드로이드는 9 이상에서 "비공개 DNS"(Private DNS)로 DoT를 지원한다. 호스트명만 넣으면 된다. 안드로이드는 DoH가 아니라 DoT를 쓴다는 점을 헷갈리지 말아야 한다.</p> <h2 id=캐시-동작-차이>캐시 동작 차이<a class=headerlink href=#캐시-동작-차이 title="Permanent link">&para;</a></h2> <p>평문 DNS에서는 OS 리졸버 캐시(<code>nscd</code>, 윈도우 DNS Client 서비스)가 시스템 전체 질의를 한곳에 모아 캐싱했다. <code>ipconfig /flushdns</code> 한 방이면 전부 비워졌다.</p> <p>브라우저 DoH를 켜면 이 그림이 깨진다. 브라우저가 자체 DNS 캐시를 따로 들고 돈다. OS 캐시와 브라우저 캐시가 따로 노는 상태가 된다.</p> <p>이게 트러블슈팅할 때 사람을 헷갈리게 한다. 레코드를 바꿨는데 <code>nslookup</code>(OS 리졸버 사용)에서는 새 값이 나오고 브라우저에서는 옛날 값이 잡히는 경우가 있다. OS 캐시 플러시해도 안 바뀐다. 브라우저가 DoH로 독자 캐시를 굴리니까 그렇다.</p> <p>크롬은 <code>chrome://net-internals/#dns</code>에서 자체 DNS 캐시를 보고 비울 수 있다. 브라우저 DNS 문제를 의심하면 OS 캐시가 아니라 여기를 먼저 봐야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>chrome://net-internals/#dns  → &quot;Clear host cache&quot;
-</span></code></pre></div> <p>캐시 키 단위도 다르다. OS 캐시는 시스템 전역이라 모든 프로세스가 공유하지만, 브라우저 DoH 캐시는 브라우저 프로세스 안에 갇혀 있다. 같은 PC에서 <code>curl</code>로 풀면 OS 리졸버를 타고, 크롬으로 풀면 DoH 캐시를 타서, 둘이 다른 IP를 잡는 상황도 생긴다. 마이그레이션 직후 "어떤 앱은 신규 서버 보고 어떤 앱은 구 서버 본다"는 현상의 흔한 원인이다.</p> <p>TTL 해석도 미묘하게 다르다. DoH 응답에도 DNS와 똑같이 TTL이 실려 오지만, 브라우저가 자체 정책으로 최소/최대 TTL을 클램핑하는 경우가 있다. 권한 서버에서 TTL 30초로 줘도 브라우저가 60초 밑으로 안 내려가게 묶어버리면, 빠른 페일오버를 기대하고 짧은 TTL을 박아둔 게 안 먹힌다.</p> <h2 id=언제-쓰고-언제-막나>언제 쓰고 언제 막나<a class=headerlink href=#언제-쓰고-언제-막나 title="Permanent link">&para;</a></h2> <p>개인 단말, 카페 와이파이, 검열 회피 같은 환경에서 DoH는 분명히 쓸 값어치가 있다. 도청과 변조를 막아주고, 망 사업자의 DNS 조작에서 벗어난다.</p> <p>반대로 회사 업무망 관리자 입장에서 DoH는 통제 밖으로 빠져나가는 트래픽이다. 내부 도메인 해석이 깨지고, DNS 기반 보안 필터가 무력화되고, 로그 가시성이 사라진다. 관리 단말은 그룹 정책으로 DoH를 끄고, 사내 DNS 자체를 DoT/DoH 지원으로 올려서 "암호화는 하되 경로는 사내를 거치게" 만드는 쪽이 현실적인 절충이다.</p> <p>기억할 핵심은 853과 443의 차이다. DoT는 막기 쉽고 DoH는 막기 어렵다. 그 한 줄이 이 기술을 둘러싼 거의 모든 운영 논쟁의 출발점이다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../CNAME/ >CNAME (Canonical Name Record)</a></li> <li><a href=../DNS/ >DNS (Domain Name System)</a></li> <li><a href=../DNSSEC/ >DNSSEC (DNS Security Extensions)</a></li> <li><a href=../Duck_DNS/ >DuckDNS 동적 DNS 서비스</a></li> <li><a href=../../7%20Layer/Network%20Flow/ >네트워크 플로우 (Network Flow)</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 9일 10:47:43 UTC">2026년 8월 9일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../DNS%20Lookup/ class="md-footer__link md-footer__link--prev" aria-label="이전: Lookup"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Lookup </div> </div> </a> <a href=../DNSSEC/ class="md-footer__link md-footer__link--next" aria-label="다음: DNSSEC"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> DNSSEC </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/Domain/DNS_over_HTTPS_Do_H/">
+      
+      
+        <link rel="prev" href="../DNS%20Lookup/">
+      
+      
+        <link rel="next" href="../DNSSEC/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>DNS over HTTPS (DoH) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#dns-over-https-doh" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              DNS over HTTPS (DoH)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../7%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_9" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_9" id="__nav_7_1_9_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Domain
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CNAME/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CNAME
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_9_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_1_9_3" id="__nav_7_1_9_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_7_1_9_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_9_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    DNS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DNS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개요
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DNS%20Lookup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lookup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNS over HTTPS (DoH)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNS over HTTPS (DoH)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#왜-평문-dns가-문제였나" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 평문 DNS가 문제였나
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dot와-doh의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DoT와 DoH의 차이
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DoT와 DoH의 차이">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dns-over-tls-dot--853-포트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS over TLS (DoT) — 853 포트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dns-over-https-doh--443-포트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS over HTTPS (DoH) — 443 포트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#853-vs-443--이-포트-차이가-전부다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        853 vs 443 — 이 포트 차이가 전부다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#동작-방식--첫-질의의-닭-달걀-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        동작 방식 — 첫 질의의 닭-달걀 문제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#사내망에서-터지는-진짜-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        사내망에서 터지는 진짜 문제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="사내망에서 터지는 진짜 문제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#내부-도메인이-안-풀린다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        내부 도메인이 안 풀린다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#보안-필터링이-무력화된다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        보안 필터링이 무력화된다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#망-관리자가-대응하는-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        망 관리자가 대응하는 방법
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#브라우저--os-설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        브라우저 / OS 설정
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="브라우저 / OS 설정">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#크롬--엣지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        크롬 / 엣지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파이어폭스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파이어폭스
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#os-레벨" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OS 레벨
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#캐시-동작-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캐시 동작 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#언제-쓰고-언제-막나" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        언제 쓰고 언제 막나
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DNSSEC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNSSEC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Domain_Registration_Lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    도메인 등록과 라이프사이클
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Duck_DNS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DuckDNS 동적 DNS 서비스
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Subdomain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    서브도메인 (Subdomain)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Web_Communication_Flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 통신의 흐름
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#왜-평문-dns가-문제였나" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 평문 DNS가 문제였나
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dot와-doh의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DoT와 DoH의 차이
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DoT와 DoH의 차이">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dns-over-tls-dot--853-포트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS over TLS (DoT) — 853 포트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dns-over-https-doh--443-포트" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DNS over HTTPS (DoH) — 443 포트
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#853-vs-443--이-포트-차이가-전부다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        853 vs 443 — 이 포트 차이가 전부다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#동작-방식--첫-질의의-닭-달걀-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        동작 방식 — 첫 질의의 닭-달걀 문제
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#사내망에서-터지는-진짜-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        사내망에서 터지는 진짜 문제
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="사내망에서 터지는 진짜 문제">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#내부-도메인이-안-풀린다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        내부 도메인이 안 풀린다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#보안-필터링이-무력화된다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        보안 필터링이 무력화된다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#망-관리자가-대응하는-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        망 관리자가 대응하는 방법
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#브라우저--os-설정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        브라우저 / OS 설정
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="브라우저 / OS 설정">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#크롬--엣지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        크롬 / 엣지
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#파이어폭스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파이어폭스
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#os-레벨" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OS 레벨
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#캐시-동작-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캐시 동작 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#언제-쓰고-언제-막나" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        언제 쓰고 언제 막나
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">architecture</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">dns</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">encryption</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="dns-over-https-doh">DNS over HTTPS (DoH)<a class="headerlink" href="#dns-over-https-doh" title="Permanent link">&para;</a></h1>
+<h2 id="왜-평문-dns가-문제였나">왜 평문 DNS가 문제였나<a class="headerlink" href="#왜-평문-dns가-문제였나" title="Permanent link">&para;</a></h2>
+<p>기존 DNS는 UDP 53번 포트로 평문을 그대로 주고받는다. <code>dig example.com</code> 한 번 날리면 중간 경로의 누구든 그 패킷을 읽는다. 카페 와이파이, ISP, 회사 게이트웨이 어디서든 "이 사람이 지금 어떤 도메인을 풀고 있는지"가 다 보인다.</p>
+<p>문제는 두 가지다. 첫째는 도청이다. HTTPS로 본문은 암호화돼도 어떤 사이트에 접속하려는지는 DNS 질의에서 노출된다. 둘째는 변조다. 평문이니까 중간에서 응답을 바꿔치기할 수 있다. 공공 와이파이에서 가짜 응답을 끼워넣어 피싱 사이트로 보내거나, ISP가 특정 도메인 응답을 NXDOMAIN으로 바꿔 차단하는 식이다.</p>
+<p>DoT와 DoH는 이 DNS 질의/응답 구간을 TLS로 감싸서 중간자가 못 읽고 못 바꾸게 만들었다. 이름은 비슷하지만 운영 입장에서 둘은 성격이 꽤 다르다.</p>
+<h2 id="dot와-doh의-차이">DoT와 DoH의 차이<a class="headerlink" href="#dot와-doh의-차이" title="Permanent link">&para;</a></h2>
+<h3 id="dns-over-tls-dot--853-포트">DNS over TLS (DoT) — 853 포트<a class="headerlink" href="#dns-over-tls-dot--853-포트" title="Permanent link">&para;</a></h3>
+<p>DoT는 RFC 7858로 정의됐다. 동작은 단순하다. 평문 DNS를 TLS 세션 안에 그대로 넣는다. DNS 와이어 포맷(평소 53번에서 쓰던 그 바이너리)을 TLS 위에 얹어서 보낸다. 포트만 853번으로 바뀐다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>[클라이언트] --- TLS handshake (853) ---&gt; [리졸버]
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>[클라이언트] --- DNS query (TLS 안) ---&gt; [리졸버]
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>[클라이언트] &lt;-- DNS response (TLS 안) -- [리졸버]
+</span></code></pre></div>
+<p>핵심은 전용 포트 853을 쓴다는 점이다. 네트워크 관리자 입장에서 853번 트래픽은 "이건 DoT다"라고 바로 식별된다. 막고 싶으면 853 포트를 차단하면 끝이다. 그러면 클라이언트는 보통 평문 53번으로 fallback 한다.</p>
+<h3 id="dns-over-https-doh--443-포트">DNS over HTTPS (DoH) — 443 포트<a class="headerlink" href="#dns-over-https-doh--443-포트" title="Permanent link">&para;</a></h3>
+<p>DoH는 RFC 8484로 정의됐다. DNS 질의를 HTTPS 요청 본문에 실어 보낸다. 일반 웹 트래픽과 똑같은 443번 포트를 쓴다. 이게 DoT와 갈리는 결정적 지점이다.</p>
+<p>HTTP 메서드는 GET이나 POST 둘 다 가능하다. GET이면 base64url로 인코딩한 DNS 메시지를 쿼리 파라미터로 붙이고, POST면 본문에 바이너리로 넣는다.</p>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nf">GET</span> <span class="nn">/dns-query?dns=AAABAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">2</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">dns.google</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="na">Accept</span><span class="o">:</span> <span class="l">application/dns-message</span>
+</span></code></pre></div>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nf">POST</span> <span class="nn">/dns-query</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">2</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">cloudflare-dns.com</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/dns-message</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="na">Content-Length</span><span class="o">:</span> <span class="l">33</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>(바이너리 DNS 메시지)
+</span></code></pre></div>
+<p>응답도 <code>application/dns-message</code> 콘텐츠 타입으로 바이너리 DNS 응답이 그대로 온다.</p>
+<h3 id="853-vs-443--이-포트-차이가-전부다">853 vs 443 — 이 포트 차이가 전부다<a class="headerlink" href="#853-vs-443--이-포트-차이가-전부다" title="Permanent link">&para;</a></h3>
+<p>기술적으로 둘 다 TLS로 DNS를 감싸는 건 같다. 차이는 식별 가능성이다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>DoT</th>
+<th>DoH</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>포트</td>
+<td>853 (전용)</td>
+<td>443 (HTTPS와 공유)</td>
+</tr>
+<tr>
+<td>식별</td>
+<td>포트만 봐도 DNS인 줄 안다</td>
+<td>일반 HTTPS와 구분 안 됨</td>
+</tr>
+<tr>
+<td>차단</td>
+<td>853 막으면 끝</td>
+<td>막으려면 SNI/IP 단위로 막아야 함</td>
+</tr>
+<tr>
+<td>표준</td>
+<td>RFC 7858</td>
+<td>RFC 8484</td>
+</tr>
+<tr>
+<td>와이어 포맷</td>
+<td>DNS 그대로</td>
+<td>HTTP 안에 DNS</td>
+</tr>
+</tbody>
+</table>
+<p>DoT는 853이라는 깃발을 들고 다닌다. 그래서 기업/통신사가 통제하기 쉽다. DoH는 443에 섞여 들어가서 HTTPS 트래픽과 구분이 안 된다. 패킷만 봐서는 누가 구글에 접속하는 건지 구글 DNS에 질의하는 건지 알 수 없다. 이 "구분 안 됨"이 DoH의 프라이버시 장점이자, 동시에 망 관리자에게는 골칫거리가 된다.</p>
+<h2 id="동작-방식--첫-질의의-닭-달걀-문제">동작 방식 — 첫 질의의 닭-달걀 문제<a class="headerlink" href="#동작-방식--첫-질의의-닭-달걀-문제" title="Permanent link">&para;</a></h2>
+<p>DoH/DoT를 쓸 때 한 가지 짚고 넘어갈 게 있다. 리졸버 주소를 도메인으로 지정하면 그 도메인은 어떻게 푸느냐다.</p>
+<p><code>https://dns.google/dns-query</code>로 DoH를 쓴다고 하자. <code>dns.google</code>을 IP로 풀어야 접속할 텐데, 그걸 풀려면 DNS가 필요하다. 그래서 DoH 클라이언트는 보통 부트스트랩 IP를 하드코딩하거나 설정에 IP를 직접 받는다. 구글은 <code>8.8.8.8</code>, 클라우드플레어는 <code>1.1.1.1</code>을 부트스트랩으로 쓴다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>1. 부트스트랩: 8.8.8.8 (하드코딩된 IP)로 먼저 TLS 연결
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>2. dns.google 인증서 검증 (SAN에 dns.google 포함 확인)
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>3. 이후 모든 DNS 질의를 이 연결로 처리
+</span></code></pre></div>
+<p>인증서 검증이 중요하다. 평문 DNS는 응답 출처를 검증할 방법이 없었지만, DoH/DoT는 TLS 인증서로 "내가 지금 진짜 클라우드플레어와 말하는 게 맞는지"를 확인한다. 중간자가 가짜 리졸버로 가로채면 인증서 검증에서 막힌다.</p>
+<h2 id="사내망에서-터지는-진짜-문제">사내망에서 터지는 진짜 문제<a class="headerlink" href="#사내망에서-터지는-진짜-문제" title="Permanent link">&para;</a></h2>
+<p>여기가 운영하는 사람 입장에서 제일 골치 아픈 부분이다. DoH는 내부 DNS 인프라를 통째로 우회한다.</p>
+<h3 id="내부-도메인이-안-풀린다">내부 도메인이 안 풀린다<a class="headerlink" href="#내부-도메인이-안-풀린다" title="Permanent link">&para;</a></h3>
+<p>회사 내부망에는 보통 <code>intra.company.local</code>, <code>git.internal</code> 같은 내부 전용 도메인이 있다. 이건 사내 DNS 서버만 알고, 외부 공용 리졸버(8.8.8.8, 1.1.1.1)는 모른다.</p>
+<p>직원이 브라우저에서 DoH를 켜면 브라우저가 OS DNS 설정을 무시하고 직접 클라우드플레어로 질의를 보낸다. 그러면 <code>git.internal</code> 같은 내부 도메인은 외부 리졸버가 NXDOMAIN을 돌려주고, 사내 서비스 접속이 안 된다. 헬프데스크에 "VPN 켰는데 깃랩이 안 들어가져요" 문의가 들어오면 십중팔구 브라우저 DoH가 범인이다.</p>
+<h3 id="보안-필터링이-무력화된다">보안 필터링이 무력화된다<a class="headerlink" href="#보안-필터링이-무력화된다" title="Permanent link">&para;</a></h3>
+<p>많은 회사가 DNS 단에서 악성 도메인, 피싱, C2 서버 도메인을 차단한다. 사내 DNS가 블랙리스트에 걸린 도메인을 NXDOMAIN으로 막는 방식이다. DNS 기반 차단은 구축이 싸고 전사 적용이 쉬워서 널리 쓰인다.</p>
+<p>DoH가 켜지면 이 차단이 그냥 무시된다. 질의가 사내 DNS를 안 거치고 443번 HTTPS에 섞여 외부로 나가버리니까 방화벽에서 "DNS 질의"로 잡아낼 수도 없다. 보안팀 입장에서는 가시성이 사라진다. 어떤 직원 PC가 어떤 악성 도메인을 풀고 있는지 로그조차 안 남는다.</p>
+<h3 id="망-관리자가-대응하는-방법">망 관리자가 대응하는 방법<a class="headerlink" href="#망-관리자가-대응하는-방법" title="Permanent link">&para;</a></h3>
+<p>업무망에서 DoH를 막는 방법이 몇 가지 있다.</p>
+<p>Canary 도메인 차단. 파이어폭스는 <code>use-application-dns.net</code>이라는 특수 도메인을 먼저 조회한다. 이 도메인이 NXDOMAIN을 돌려주면 "이 네트워크는 DoH를 원하지 않는다"로 해석하고 DoH를 끈다. 사내 DNS에서 이 도메인을 NXDOMAIN 처리하면 파이어폭스 DoH가 자동으로 비활성화된다. 단, 이건 파이어폭스에만 통하고 크롬/엣지에는 안 먹힌다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>; 사내 DNS zone에 추가
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>use-application-dns.net. IN  CNAME  .   ; 또는 NXDOMAIN 응답
+</span></code></pre></div>
+<p>알려진 DoH 서버 IP/도메인 차단. 방화벽에서 <code>1.1.1.1</code>, <code>8.8.8.8</code>, <code>dns.google</code>, <code>cloudflare-dns.com</code> 같은 공개 DoH 제공자의 IP와 SNI를 막는다. 문제는 목록이 계속 늘어난다는 점이다. 새 DoH 제공자가 끝없이 생기고, 일부는 일반 CDN IP를 공유해서 막으면 멀쩡한 서비스까지 같이 죽는다.</p>
+<p>그룹 정책으로 강제. 가장 확실한 건 관리하는 단말에 정책을 박는 것이다. 크롬/엣지는 <code>DnsOverHttpsMode</code>를 <code>off</code>로 강제하면 사용자가 못 켠다. 윈도우 도메인 환경이면 GPO로 일괄 배포한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>; Chrome/Edge 정책 (관리 단말)
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>DnsOverHttpsMode = &quot;off&quot;
+</span></code></pre></div>
+<p>관리 안 되는 BYOD 단말은 이 정책이 안 먹히니까 결국 망 분리나 NAC로 가는 수밖에 없다.</p>
+<h2 id="브라우저--os-설정">브라우저 / OS 설정<a class="headerlink" href="#브라우저--os-설정" title="Permanent link">&para;</a></h2>
+<h3 id="크롬--엣지">크롬 / 엣지<a class="headerlink" href="#크롬--엣지" title="Permanent link">&para;</a></h3>
+<p><code>설정 → 개인정보 및 보안 → 보안 → 보안 DNS 사용</code>에서 켠다. 기본값은 "현재 서비스 제공업체"인데, 이건 OS에 설정된 DNS가 DoH를 지원하면 자동으로 업그레이드하는 모드다. 직접 제공자를 고르면(<code>Google</code>, <code>Cloudflare</code> 등) OS 설정을 무시하고 그 제공자로 직행한다.</p>
+<p>크롬의 "자동 업그레이드" 모드는 그나마 덜 위험하다. OS에 설정된 리졸버가 DoH도 지원하는 경우에만 암호화로 올리기 때문에, 사내 DNS를 쓰면 사내 DNS의 DoH 엔드포인트로 ��다(있다면). 사내 DNS가 DoH를 지원 안 하면 평문 그대로 둔다. 문제는 사용자가 수동으로 제공자를 박아버릴 때다.</p>
+<h3 id="파이어폭스">파이어폭스<a class="headerlink" href="#파이어폭스" title="Permanent link">&para;</a></h3>
+<p>파이어폭스가 제일 공격적이다. 일부 지역에서는 DoH가 기본 켜져 있고, 클라우드플레어가 기본 제공자다. <code>설정 → 개인정보 및 보안 → DNS over HTTPS</code>에서 본다. 위에 말한 canary 도메인을 존중하는 게 그나마 다행이다.</p>
+<p>보호 수준이 세 단계 있다. 기본(Default), 강화(Increased), 최대(Max). Max로 두면 DoH 실패 시 평문 fallback 없이 그냥 실패시킨다. 보안은 세지만 내부망에서 쓰면 내부 도메인이 다 깨진다.</p>
+<h3 id="os-레벨">OS 레벨<a class="headerlink" href="#os-레벨" title="Permanent link">&para;</a></h3>
+<p>윈도우 11은 OS 차원에서 DoH를 지원한다. <code>설정 → 네트워크 → 어댑터 속성 → DNS 서버 할당</code>에서 암호화를 켤 수 있다. OS 레벨로 켜면 브라우저뿐 아니라 모든 앱의 DNS가 암호화된다.</p>
+<p>리눅스는 <code>systemd-resolved</code>가 DoT를 지원한다. DoH는 기본 지원이 약해서 보통 별도 데몬을 쓴다.</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># /etc/systemd/resolved.conf</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">[Resolve]</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">DNS</span><span class="o">=</span><span class="s">1.1.1.1</span><span class="c1">#cloudflare-dns.com</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">DNSOverTLS</span><span class="o">=</span><span class="s">yes</span>
+</span></code></pre></div>
+<p><code>#cloudflare-dns.com</code>은 인증서 검증에 쓸 호스트명이다. 이걸 빼면 IP만 맞으면 통과시켜서 중간자 검증이 약해진다.</p>
+<p>안드로이드는 9 이상에서 "비공개 DNS"(Private DNS)로 DoT를 지원한다. 호스트명만 넣으면 된다. 안드로이드는 DoH가 아니라 DoT를 쓴다는 점을 헷갈리지 말아야 한다.</p>
+<h2 id="캐시-동작-차이">캐시 동작 차이<a class="headerlink" href="#캐시-동작-차이" title="Permanent link">&para;</a></h2>
+<p>평문 DNS에서는 OS 리졸버 캐시(<code>nscd</code>, 윈도우 DNS Client 서비스)가 시스템 전체 질의를 한곳에 모아 캐싱했다. <code>ipconfig /flushdns</code> 한 방이면 전부 비워졌다.</p>
+<p>브라우저 DoH를 켜면 이 그림이 깨진다. 브라우저가 자체 DNS 캐시를 따로 들고 돈다. OS 캐시와 브라우저 캐시가 따로 노는 상태가 된다.</p>
+<p>이게 트러블슈팅할 때 사람을 헷갈리게 한다. 레코드를 바꿨는데 <code>nslookup</code>(OS 리졸버 사용)에서는 새 값이 나오고 브라우저에서는 옛날 값이 잡히는 경우가 있다. OS 캐시 플러시해도 안 바뀐다. 브라우저가 DoH로 독자 캐시를 굴리니까 그렇다.</p>
+<p>크롬은 <code>chrome://net-internals/#dns</code>에서 자체 DNS 캐시를 보고 비울 수 있다. 브라우저 DNS 문제를 의심하면 OS 캐시가 아니라 여기를 먼저 봐야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>chrome://net-internals/#dns  → &quot;Clear host cache&quot;
+</span></code></pre></div>
+<p>캐시 키 단위도 다르다. OS 캐시는 시스템 전역이라 모든 프로세스가 공유하지만, 브라우저 DoH 캐시는 브라우저 프로세스 안에 갇혀 있다. 같은 PC에서 <code>curl</code>로 풀면 OS 리졸버를 타고, 크롬으로 풀면 DoH 캐시를 타서, 둘이 다른 IP를 잡는 상황도 생긴다. 마이그레이션 직후 "어떤 앱은 신규 서버 보고 어떤 앱은 구 서버 본다"는 현상의 흔한 원인이다.</p>
+<p>TTL 해석도 미묘하게 다르다. DoH 응답에도 DNS와 똑같이 TTL이 실려 오지만, 브라우저가 자체 정책으로 최소/최대 TTL을 클램핑하는 경우가 있다. 권한 서버에서 TTL 30초로 줘도 브라우저가 60초 밑으로 안 내려가게 묶어버리면, 빠른 페일오버를 기대하고 짧은 TTL을 박아둔 게 안 먹힌다.</p>
+<h2 id="언제-쓰고-언제-막나">언제 쓰고 언제 막나<a class="headerlink" href="#언제-쓰고-언제-막나" title="Permanent link">&para;</a></h2>
+<p>개인 단말, 카페 와이파이, 검열 회피 같은 환경에서 DoH는 분명히 쓸 값어치가 있다. 도청과 변조를 막아주고, 망 사업자의 DNS 조작에서 벗어난다.</p>
+<p>반대로 회사 업무망 관리자 입장에서 DoH는 통제 밖으로 빠져나가는 트래픽이다. 내부 도메인 해석이 깨지고, DNS 기반 보안 필터가 무력화되고, 로그 가시성이 사라진다. 관리 단말은 그룹 정책으로 DoH를 끄고, 사내 DNS 자체를 DoT/DoH 지원으로 올려서 "암호화는 하되 경로는 사내를 거치게" 만드는 쪽이 현실적인 절충이다.</p>
+<p>기억할 핵심은 853과 443의 차이다. DoT는 막기 쉽고 DoH는 막기 어렵다. 그 한 줄이 이 기술을 둘러싼 거의 모든 운영 논쟁의 출발점이다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../CNAME/">CNAME (Canonical Name Record)</a></li>
+<li><a href="../DNS/">DNS (Domain Name System)</a></li>
+<li><a href="../DNSSEC/">DNSSEC (DNS Security Extensions)</a></li>
+<li><a href="../Duck_DNS/">DuckDNS 동적 DNS 서비스</a></li>
+<li><a href="../../7%20Layer/Network%20Flow/">네트워크 플로우 (Network Flow)</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../DNS%20Lookup/" class="md-footer__link md-footer__link--prev" aria-label="이전: Lookup">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Lookup
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../DNSSEC/" class="md-footer__link md-footer__link--next" aria-label="다음: DNSSEC">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                DNSSEC
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

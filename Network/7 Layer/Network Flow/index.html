@@ -1,13 +1,3253 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Flow/ rel=canonical><link href=../GSLB/ rel=prev><link href=../OSI_7_Layer_Model/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>네트워크 플로우 (Network Flow) - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#네트워크-플로우 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> 네트워크 플로우 (Network Flow) </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7 checked> <label class=md-nav__link for=__nav_7 id=__nav_7_label tabindex=0> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7> <span class="md-nav__icon md-icon"></span> CS </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> <label class="md-nav__link " for=__nav_7_1 id=__nav_7_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_7_1_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Networking_Fundamentals/ class=md-nav__link> <span class=md-ellipsis> 기초 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NAT/ class=md-nav__link> <span class=md-ellipsis> 주소 변환과 연결 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CORS/ class=md-nav__link> <span class=md-ellipsis> 웹 전송 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../P2P/ class=md-nav__link> <span class=md-ellipsis> 분산 네트워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Observability/Packet_Capture_tcpdump.md class=md-nav__link> <span class=md-ellipsis> 관측 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_7_1_7 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> OSI 7계층 </span> </a> <label class="md-nav__link " for=__nav_7_1_7 id=__nav_7_1_7_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_7_1_7_label aria-expanded=true> <label class=md-nav__title for=__nav_7_1_7> <span class="md-nav__icon md-icon"></span> OSI 7계층 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../DHCP/ class=md-nav__link> <span class=md-ellipsis> DHCP </span> </a> </li> <li class=md-nav__item> <a href=../GSLB/ class=md-nav__link> <span class=md-ellipsis> GSLB </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> 네트워크 플로우 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> 네트워크 플로우 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#전체-그림 class=md-nav__link> <span class=md-ellipsis> 전체 그림 </span> </a> </li> <li class=md-nav__item> <a href=#1-url-파싱 class=md-nav__link> <span class=md-ellipsis> 1. URL 파싱 </span> </a> </li> <li class=md-nav__item> <a href=#2-dns-조회 class=md-nav__link> <span class=md-ellipsis> 2. DNS 조회 </span> </a> <nav class=md-nav aria-label="2. DNS 조회"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#캐시-계층 class=md-nav__link> <span class=md-ellipsis> 캐시 계층 </span> </a> </li> <li class=md-nav__item> <a href=#실제-캡처 class=md-nav__link> <span class=md-ellipsis> 실제 캡처 </span> </a> </li> <li class=md-nav__item> <a href=#흔히-마주치는-문제 class=md-nav__link> <span class=md-ellipsis> 흔히 마주치는 문제 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-tcp-3-way-handshake class=md-nav__link> <span class=md-ellipsis> 3. TCP 3-way Handshake </span> </a> <nav class=md-nav aria-label="3. TCP 3-way Handshake"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#핸드셰이크-시퀀스 class=md-nav__link> <span class=md-ellipsis> 핸드셰이크 시퀀스 </span> </a> </li> <li class=md-nav__item> <a href=#실제-캡처_1 class=md-nav__link> <span class=md-ellipsis> 실제 캡처 </span> </a> </li> <li class=md-nav__item> <a href=#syn이-사라지면 class=md-nav__link> <span class=md-ellipsis> SYN이 사라지면 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-tls-handshake class=md-nav__link> <span class=md-ellipsis> 4. TLS Handshake </span> </a> <nav class=md-nav aria-label="4. TLS Handshake"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#tls-13-풀-핸드셰이크 class=md-nav__link> <span class=md-ellipsis> TLS 1.3 풀 핸드셰이크 </span> </a> </li> <li class=md-nav__item> <a href=#tls-12와의-비교 class=md-nav__link> <span class=md-ellipsis> TLS 1.2와의 비교 </span> </a> </li> <li class=md-nav__item> <a href=#인증서-검증 class=md-nav__link> <span class=md-ellipsis> 인증서 검증 </span> </a> </li> <li class=md-nav__item> <a href=#실제-핸드셰이크-캡처 class=md-nav__link> <span class=md-ellipsis> 실제 핸드셰이크 캡처 </span> </a> </li> <li class=md-nav__item> <a href=#자주-보는-에러 class=md-nav__link> <span class=md-ellipsis> 자주 보는 에러 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#5-http-요청과-응답 class=md-nav__link> <span class=md-ellipsis> 5. HTTP 요청과 응답 </span> </a> <nav class=md-nav aria-label="5. HTTP 요청과 응답"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#http11-요청-라인 class=md-nav__link> <span class=md-ellipsis> HTTP/1.1 요청 라인 </span> </a> </li> <li class=md-nav__item> <a href=#http2의-변화 class=md-nav__link> <span class=md-ellipsis> HTTP/2의 변화 </span> </a> </li> <li class=md-nav__item> <a href=#http3 class=md-nav__link> <span class=md-ellipsis> HTTP/3 </span> </a> </li> <li class=md-nav__item> <a href=#curl로-본-응답 class=md-nav__link> <span class=md-ellipsis> curl로 본 응답 </span> </a> </li> <li class=md-nav__item> <a href=#응답-상태-코드의-실무-의미 class=md-nav__link> <span class=md-ellipsis> 응답 상태 코드의 실무 의미 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-응답-처리와-연결-종료 class=md-nav__link> <span class=md-ellipsis> 6. 응답 처리와 연결 종료 </span> </a> <nav class=md-nav aria-label="6. 응답 처리와 연결 종료"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#keep-alive class=md-nav__link> <span class=md-ellipsis> Keep-Alive </span> </a> </li> <li class=md-nav__item> <a href=#tcp-종료 class=md-nav__link> <span class=md-ellipsis> TCP 종료 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#단계별-지연-분리 class=md-nav__link> <span class=md-ellipsis> 단계별 지연 분리 </span> </a> </li> <li class=md-nav__item> <a href=#캡처를-파일로-떠서-보기 class=md-nav__link> <span class=md-ellipsis> 캡처를 파일로 떠서 보기 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅-사례 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 사례 </span> </a> <nav class=md-nav aria-label="트러블슈팅 사례"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#가끔-첫-요청이-5초씩-느려진다 class=md-nav__link> <span class=md-ellipsis> 가끔 첫 요청이 5초씩 느려진다 </span> </a> </li> <li class=md-nav__item> <a href=#프록시-뒤에서만-ssl-에러가-난다 class=md-nav__link> <span class=md-ellipsis> 프록시 뒤에서만 SSL 에러가 난다 </span> </a> </li> <li class=md-nav__item> <a href=#post가-get으로-바뀐다 class=md-nav__link> <span class=md-ellipsis> POST가 GET으로 바뀐다 </span> </a> </li> <li class=md-nav__item> <a href=#time_wait가-만-단위로-쌓인다 class=md-nav__link> <span class=md-ellipsis> TIME_WAIT가 만 단위로 쌓인다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#참고자료 class=md-nav__link> <span class=md-ellipsis> 참고자료 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../OSI_7_Layer_Model/ class=md-nav__link> <span class=md-ellipsis> OSI 7 계층 모델 </span> </a> </li> <li class=md-nav__item> <a href=../Qo_S_Traffic_Shaping/ class=md-nav__link> <span class=md-ellipsis> QoS와 트래픽 셰이핑 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Application%20Layer/ class=md-nav__link> <span class=md-ellipsis> Application Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Data%20Link%20Layer/ class=md-nav__link> <span class=md-ellipsis> 데이터 링크 계층 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Network%20Layer/ class=md-nav__link> <span class=md-ellipsis> Network Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Transport%20Layer/ class=md-nav__link> <span class=md-ellipsis> Transport Layer </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Protocol/ class=md-nav__link> <span class=md-ellipsis> Protocol </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Domain/ class=md-nav__link> <span class=md-ellipsis> Domain </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../GateWay/ class=md-nav__link> <span class=md-ellipsis> Gateway </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Proxy/ class=md-nav__link> <span class=md-ellipsis> Proxy </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../IO/ class=md-nav__link> <span class=md-ellipsis> IO </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Observability/ class=md-nav__link> <span class=md-ellipsis> Observability </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../OS/ class=md-nav__link> <span class=md-ellipsis> OS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Algorithm/ class=md-nav__link> <span class=md-ellipsis> Algorithm </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#전체-그림 class=md-nav__link> <span class=md-ellipsis> 전체 그림 </span> </a> </li> <li class=md-nav__item> <a href=#1-url-파싱 class=md-nav__link> <span class=md-ellipsis> 1. URL 파싱 </span> </a> </li> <li class=md-nav__item> <a href=#2-dns-조회 class=md-nav__link> <span class=md-ellipsis> 2. DNS 조회 </span> </a> <nav class=md-nav aria-label="2. DNS 조회"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#캐시-계층 class=md-nav__link> <span class=md-ellipsis> 캐시 계층 </span> </a> </li> <li class=md-nav__item> <a href=#실제-캡처 class=md-nav__link> <span class=md-ellipsis> 실제 캡처 </span> </a> </li> <li class=md-nav__item> <a href=#흔히-마주치는-문제 class=md-nav__link> <span class=md-ellipsis> 흔히 마주치는 문제 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-tcp-3-way-handshake class=md-nav__link> <span class=md-ellipsis> 3. TCP 3-way Handshake </span> </a> <nav class=md-nav aria-label="3. TCP 3-way Handshake"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#핸드셰이크-시퀀스 class=md-nav__link> <span class=md-ellipsis> 핸드셰이크 시퀀스 </span> </a> </li> <li class=md-nav__item> <a href=#실제-캡처_1 class=md-nav__link> <span class=md-ellipsis> 실제 캡처 </span> </a> </li> <li class=md-nav__item> <a href=#syn이-사라지면 class=md-nav__link> <span class=md-ellipsis> SYN이 사라지면 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-tls-handshake class=md-nav__link> <span class=md-ellipsis> 4. TLS Handshake </span> </a> <nav class=md-nav aria-label="4. TLS Handshake"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#tls-13-풀-핸드셰이크 class=md-nav__link> <span class=md-ellipsis> TLS 1.3 풀 핸드셰이크 </span> </a> </li> <li class=md-nav__item> <a href=#tls-12와의-비교 class=md-nav__link> <span class=md-ellipsis> TLS 1.2와의 비교 </span> </a> </li> <li class=md-nav__item> <a href=#인증서-검증 class=md-nav__link> <span class=md-ellipsis> 인증서 검증 </span> </a> </li> <li class=md-nav__item> <a href=#실제-핸드셰이크-캡처 class=md-nav__link> <span class=md-ellipsis> 실제 핸드셰이크 캡처 </span> </a> </li> <li class=md-nav__item> <a href=#자주-보는-에러 class=md-nav__link> <span class=md-ellipsis> 자주 보는 에러 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#5-http-요청과-응답 class=md-nav__link> <span class=md-ellipsis> 5. HTTP 요청과 응답 </span> </a> <nav class=md-nav aria-label="5. HTTP 요청과 응답"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#http11-요청-라인 class=md-nav__link> <span class=md-ellipsis> HTTP/1.1 요청 라인 </span> </a> </li> <li class=md-nav__item> <a href=#http2의-변화 class=md-nav__link> <span class=md-ellipsis> HTTP/2의 변화 </span> </a> </li> <li class=md-nav__item> <a href=#http3 class=md-nav__link> <span class=md-ellipsis> HTTP/3 </span> </a> </li> <li class=md-nav__item> <a href=#curl로-본-응답 class=md-nav__link> <span class=md-ellipsis> curl로 본 응답 </span> </a> </li> <li class=md-nav__item> <a href=#응답-상태-코드의-실무-의미 class=md-nav__link> <span class=md-ellipsis> 응답 상태 코드의 실무 의미 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-응답-처리와-연결-종료 class=md-nav__link> <span class=md-ellipsis> 6. 응답 처리와 연결 종료 </span> </a> <nav class=md-nav aria-label="6. 응답 처리와 연결 종료"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#keep-alive class=md-nav__link> <span class=md-ellipsis> Keep-Alive </span> </a> </li> <li class=md-nav__item> <a href=#tcp-종료 class=md-nav__link> <span class=md-ellipsis> TCP 종료 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#단계별-지연-분리 class=md-nav__link> <span class=md-ellipsis> 단계별 지연 분리 </span> </a> </li> <li class=md-nav__item> <a href=#캡처를-파일로-떠서-보기 class=md-nav__link> <span class=md-ellipsis> 캡처를 파일로 떠서 보기 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅-사례 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 사례 </span> </a> <nav class=md-nav aria-label="트러블슈팅 사례"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#가끔-첫-요청이-5초씩-느려진다 class=md-nav__link> <span class=md-ellipsis> 가끔 첫 요청이 5초씩 느려진다 </span> </a> </li> <li class=md-nav__item> <a href=#프록시-뒤에서만-ssl-에러가-난다 class=md-nav__link> <span class=md-ellipsis> 프록시 뒤에서만 SSL 에러가 난다 </span> </a> </li> <li class=md-nav__item> <a href=#post가-get으로-바뀐다 class=md-nav__link> <span class=md-ellipsis> POST가 GET으로 바뀐다 </span> </a> </li> <li class=md-nav__item> <a href=#time_wait가-만-단위로-쌓인다 class=md-nav__link> <span class=md-ellipsis> TIME_WAIT가 만 단위로 쌓인다 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#참고자료 class=md-nav__link> <span class=md-ellipsis> 참고자료 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>dns</span> <span class=md-tag>encryption</span> <span class=md-tag>network</span> <span class=md-tag>tcp</span> </nav> <h1 id=네트워크-플로우>네트워크 플로우<a class=headerlink href=#네트워크-플로우 title="Permanent link">&para;</a></h1> <p>브라우저 주소창에 URL을 입력하고 Enter를 누른 순간부터 화면에 페이지가 그려지기까지 패킷 단위로 무슨 일이 벌어지는지 정리한 문서. 단계마다 실제 캡처 예시를 함께 본다.</p> <hr> <h2 id=전체-그림>전체 그림<a class=headerlink href=#전체-그림 title="Permanent link">&para;</a></h2> <p><code>curl https://example.com</code> 한 줄이 끝나기까지 거치는 단계는 6개다.</p> <ol> <li>URL 파싱 — 브라우저 또는 OS가 URL을 구성 요소로 분해</li> <li>DNS 조회 — 도메인을 IP로 변환</li> <li>TCP 3-way handshake — 신뢰성 있는 연결 수립</li> <li>TLS handshake — 암호화 채널 협상</li> <li>HTTP 요청/응답 — 실제 데이터 교환</li> <li>연결 종료 또는 keep-alive 유지</li> </ol> <p>각 단계는 curl의 타이밍 변수로 측정한다. 실제 호출 결과는 보통 이렇게 나온다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>$<span class=w> </span>curl<span class=w> </span>-o<span class=w> </span>/dev/null<span class=w> </span>-s<span class=w> </span>-w<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=w>  </span><span class=s2>&quot;dns: %{time_namelookup}\ntcp: %{time_connect}\ntls: %{time_appconnect}\nttfb: %{time_starttransfer}\ntotal: %{time_total}\n&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=w>  </span>https://example.com
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>dns:<span class=w>   </span><span class=m>0</span>.012
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>tcp:<span class=w>   </span><span class=m>0</span>.028<span class=w>   </span><span class=c1># dns + tcp handshake</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>tls:<span class=w>   </span><span class=m>0</span>.082<span class=w>   </span><span class=c1># + tls handshake</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>ttfb:<span class=w>  </span><span class=m>0</span>.143<span class=w>   </span><span class=c1># + http 요청 전송 및 첫 바이트 수신</span>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>total:<span class=w> </span><span class=m>0</span>.144
-</span></code></pre></div> <p>누적값에서 앞 단계를 빼면 단계별 순수 소요 시간이 나온다. tcp - dns = 16ms (TCP 핸드셰이크 RTT 한 번), tls - tcp = 54ms (TLS 1.2 기준 RTT 2회 분량), ttfb - tls = 61ms (서버 처리 + 첫 바이트 도달).</p> <pre class=mermaid-diagram><code>sequenceDiagram
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Network/7%20Layer/Network%20Flow/">
+      
+      
+        <link rel="prev" href="../GSLB/">
+      
+      
+        <link rel="next" href="../OSI_7_Layer_Model/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>네트워크 플로우 (Network Flow) - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#네트워크-플로우" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              네트워크 플로우 (Network Flow)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1" id="__nav_7_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Networking_Fundamentals/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    기초
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NAT/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    주소 변환과 연결
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CORS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    웹 전송
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../P2P/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    분산 네트워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Observability/Packet_Capture_tcpdump.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    관측
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_1_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7계층
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_1_7" id="__nav_7_1_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_1_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OSI 7계층
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DHCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DHCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GSLB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GSLB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 플로우
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    네트워크 플로우
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#전체-그림" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        전체 그림
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-url-파싱" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. URL 파싱
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-dns-조회" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. DNS 조회
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. DNS 조회">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#캐시-계층" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캐시 계층
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실제-캡처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실제 캡처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#흔히-마주치는-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        흔히 마주치는 문제
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-tcp-3-way-handshake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. TCP 3-way Handshake
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. TCP 3-way Handshake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#핸드셰이크-시퀀스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핸드셰이크 시퀀스
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실제-캡처_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실제 캡처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syn이-사라지면" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SYN이 사라지면
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-tls-handshake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. TLS Handshake
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. TLS Handshake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tls-13-풀-핸드셰이크" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS 1.3 풀 핸드셰이크
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tls-12와의-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS 1.2와의 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#인증서-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증서 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실제-핸드셰이크-캡처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실제 핸드셰이크 캡처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#자주-보는-에러" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자주 보는 에러
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-http-요청과-응답" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. HTTP 요청과 응답
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. HTTP 요청과 응답">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#http11-요청-라인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/1.1 요청 라인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2의-변화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/2의 변화
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curl로-본-응답" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        curl로 본 응답
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#응답-상태-코드의-실무-의미" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        응답 상태 코드의 실무 의미
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-응답-처리와-연결-종료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 응답 처리와 연결 종료
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 응답 처리와 연결 종료">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keep-alive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep-Alive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcp-종료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TCP 종료
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#단계별-지연-분리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단계별 지연 분리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#캡처를-파일로-떠서-보기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캡처를 파일로 떠서 보기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅 사례
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅 사례">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#가끔-첫-요청이-5초씩-느려진다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        가끔 첫 요청이 5초씩 느려진다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#프록시-뒤에서만-ssl-에러가-난다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        프록시 뒤에서만 SSL 에러가 난다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post가-get으로-바뀐다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST가 GET으로 바뀐다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time_wait가-만-단위로-쌓인다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TIME_WAIT가 만 단위로 쌓인다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#참고자료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        참고자료
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../OSI_7_Layer_Model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSI 7 계층 모델
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Qo_S_Traffic_Shaping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QoS와 트래픽 셰이핑
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Application%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Data%20Link%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 링크 계층
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Network%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Transport%20Layer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transport Layer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Protocol/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Domain/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../GateWay/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Proxy/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proxy
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../IO/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IO
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Observability/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../OS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Algorithm/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#전체-그림" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        전체 그림
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-url-파싱" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. URL 파싱
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-dns-조회" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. DNS 조회
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. DNS 조회">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#캐시-계층" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캐시 계층
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실제-캡처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실제 캡처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#흔히-마주치는-문제" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        흔히 마주치는 문제
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-tcp-3-way-handshake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. TCP 3-way Handshake
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. TCP 3-way Handshake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#핸드셰이크-시퀀스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        핸드셰이크 시퀀스
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실제-캡처_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실제 캡처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syn이-사라지면" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SYN이 사라지면
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-tls-handshake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. TLS Handshake
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. TLS Handshake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tls-13-풀-핸드셰이크" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS 1.3 풀 핸드셰이크
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tls-12와의-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS 1.2와의 비교
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#인증서-검증" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증서 검증
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#실제-핸드셰이크-캡처" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실제 핸드셰이크 캡처
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#자주-보는-에러" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자주 보는 에러
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-http-요청과-응답" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. HTTP 요청과 응답
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. HTTP 요청과 응답">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#http11-요청-라인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/1.1 요청 라인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http2의-변화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/2의 변화
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP/3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curl로-본-응답" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        curl로 본 응답
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#응답-상태-코드의-실무-의미" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        응답 상태 코드의 실무 의미
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-응답-처리와-연결-종료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 응답 처리와 연결 종료
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. 응답 처리와 연결 종료">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keep-alive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep-Alive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcp-종료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TCP 종료
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#단계별-지연-분리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        단계별 지연 분리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#캡처를-파일로-떠서-보기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캡처를 파일로 떠서 보기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅 사례
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅 사례">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#가끔-첫-요청이-5초씩-느려진다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        가끔 첫 요청이 5초씩 느려진다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#프록시-뒤에서만-ssl-에러가-난다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        프록시 뒤에서만 SSL 에러가 난다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post가-get으로-바뀐다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST가 GET으로 바뀐다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#time_wait가-만-단위로-쌓인다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TIME_WAIT가 만 단위로 쌓인다
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#참고자료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        참고자료
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">dns</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">encryption</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">tcp</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="네트워크-플로우">네트워크 플로우<a class="headerlink" href="#네트워크-플로우" title="Permanent link">&para;</a></h1>
+<p>브라우저 주소창에 URL을 입력하고 Enter를 누른 순간부터 화면에 페이지가 그려지기까지 패킷 단위로 무슨 일이 벌어지는지 정리한 문서. 단계마다 실제 캡처 예시를 함께 본다.</p>
+<hr />
+<h2 id="전체-그림">전체 그림<a class="headerlink" href="#전체-그림" title="Permanent link">&para;</a></h2>
+<p><code>curl https://example.com</code> 한 줄이 끝나기까지 거치는 단계는 6개다.</p>
+<ol>
+<li>URL 파싱 — 브라우저 또는 OS가 URL을 구성 요소로 분해</li>
+<li>DNS 조회 — 도메인을 IP로 변환</li>
+<li>TCP 3-way handshake — 신뢰성 있는 연결 수립</li>
+<li>TLS handshake — 암호화 채널 협상</li>
+<li>HTTP 요청/응답 — 실제 데이터 교환</li>
+<li>연결 종료 또는 keep-alive 유지</li>
+</ol>
+<p>각 단계는 curl의 타이밍 변수로 측정한다. 실제 호출 결과는 보통 이렇게 나온다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>curl<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-s<span class="w"> </span>-w<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="s2">&quot;dns: %{time_namelookup}\ntcp: %{time_connect}\ntls: %{time_appconnect}\nttfb: %{time_starttransfer}\ntotal: %{time_total}\n&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>https://example.com
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>dns:<span class="w">   </span><span class="m">0</span>.012
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>tcp:<span class="w">   </span><span class="m">0</span>.028<span class="w">   </span><span class="c1"># dns + tcp handshake</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>tls:<span class="w">   </span><span class="m">0</span>.082<span class="w">   </span><span class="c1"># + tls handshake</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>ttfb:<span class="w">  </span><span class="m">0</span>.143<span class="w">   </span><span class="c1"># + http 요청 전송 및 첫 바이트 수신</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>total:<span class="w"> </span><span class="m">0</span>.144
+</span></code></pre></div>
+<p>누적값에서 앞 단계를 빼면 단계별 순수 소요 시간이 나온다. tcp - dns = 16ms (TCP 핸드셰이크 RTT 한 번), tls - tcp = 54ms (TLS 1.2 기준 RTT 2회 분량), ttfb - tls = 61ms (서버 처리 + 첫 바이트 도달).</p>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant U as Browser
     participant R as DNS Resolver
     participant S as Origin Server
@@ -19,84 +3259,386 @@
     U-&gt;&gt;S: TLS ClientHello
     S--&gt;&gt;U: ServerHello + Cert + Finished
     U-&gt;&gt;S: ClientFinished + HTTP GET /
-    S--&gt;&gt;U: HTTP 200 OK</code></pre> <hr> <h2 id=1-url-파싱>1. URL 파싱<a class=headerlink href=#1-url-파싱 title="Permanent link">&para;</a></h2> <p><code>https://api.example.com:8443/users/42?tab=profile#bio</code> 라는 문자열은 브라우저 내부에서 6개 필드로 분해된다.</p> <ul> <li>scheme: <code>https</code></li> <li>host: <code>api.example.com</code></li> <li>port: <code>8443</code> (생략 시 scheme 기본값 — http=80, https=443)</li> <li>path: <code>/users/42</code></li> <li>query: <code>tab=profile</code></li> <li>fragment: <code>bio</code> — 서버로 전송되지 않음</li> </ul> <p>fragment는 클라이언트 전용이다. 서버 액세스 로그에서 <code>#</code> 뒷부분을 보려는 시도는 의미가 없다. 라우터 단에서 fragment 기반 라우팅을 하려고 시간을 쓴 적이 있는데, 브라우저가 애초에 그 부분을 전송하지 않는다는 사실을 확인하고 한 번에 정리됐다.</p> <p>스킴이 <code>https</code>면 TLS 단계가 들어가고, <code>http</code>면 평문 TCP로 바로 진행된다. <code>wss</code>는 HTTP 업그레이드를 거쳐 WebSocket으로 전환되는 흐름이라 핸드셰이크는 HTTPS와 동일하다.</p> <hr> <h2 id=2-dns-조회>2. DNS 조회<a class=headerlink href=#2-dns-조회 title="Permanent link">&para;</a></h2> <p>브라우저는 OS에 호스트명만 넘기고, 실제 조회는 OS의 stub resolver와 그 뒤의 recursive resolver가 처리한다. 단계마다 캐시가 끼어든다.</p> <h3 id=캐시-계층>캐시 계층<a class=headerlink href=#캐시-계층 title="Permanent link">&para;</a></h3> <ol> <li>브라우저 내장 DNS 캐시 — Chrome은 <code>chrome://net-internals/#dns</code> 에서 확인. TTL 60초 내외로 짧게 잡힌다.</li> <li>OS resolver 캐시 — macOS는 <code>sudo dscacheutil -flushcache</code> 와 <code>sudo killall -HUP mDNSResponder</code>, Linux는 <code>systemd-resolve --statistics</code>.</li> <li>recursive resolver 캐시 — ISP, 8.8.8.8, 1.1.1.1 같은 외부 resolver가 들고 있는 캐시.</li> <li>authoritative 응답 — 캐시 미스가 끝까지 내려갔을 때 도메인 소유자가 운영하는 네임서버가 답한다.</li> </ol> <p>캐시가 한 번도 안 맞을 때의 풀 쿼리는 root → TLD(.com) → authoritative 순으로 3홉이 일어난다. iterative 모드로 보면 이렇다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>$<span class=w> </span>dig<span class=w> </span>+trace<span class=w> </span>example.com
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=p>;;</span><span class=w> </span>.<span class=w>                       </span><span class=m>518400</span><span class=w>  </span>IN<span class=w>  </span>NS<span class=w>  </span>a.root-servers.net.<span class=w>   </span><span class=c1># root에 질의</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=p>;;</span><span class=w> </span>com.<span class=w>                    </span><span class=m>172800</span><span class=w>  </span>IN<span class=w>  </span>NS<span class=w>  </span>a.gtld-servers.net.<span class=w>   </span><span class=c1># TLD가 .com 네임서버 응답</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=p>;;</span><span class=w> </span>example.com.<span class=w>            </span><span class=m>172800</span><span class=w>  </span>IN<span class=w>  </span>NS<span class=w>  </span>a.iana-servers.net.<span class=w>   </span><span class=c1># authoritative 위임</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=p>;;</span><span class=w> </span>example.com.<span class=w>            </span><span class=m>86400</span><span class=w>   </span>IN<span class=w>  </span>A<span class=w>   </span><span class=m>93</span>.184.216.34<span class=w>         </span><span class=c1># 최종 A 레코드</span>
-</span></code></pre></div> <h3 id=실제-캡처>실제 캡처<a class=headerlink href=#실제-캡처 title="Permanent link">&para;</a></h3> <p><code>tcpdump</code>로 53/UDP를 잡으면 질의와 응답 한 쌍이 보인다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>$<span class=w> </span>sudo<span class=w> </span>tcpdump<span class=w> </span>-i<span class=w> </span>en0<span class=w> </span>-n<span class=w> </span>port<span class=w> </span><span class=m>53</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=m>15</span>:02:11.123<span class=w> </span>IP<span class=w> </span><span class=m>192</span>.168.0.10.54123<span class=w> </span>&gt;<span class=w> </span><span class=m>1</span>.1.1.1.53:<span class=w> </span><span class=m>47120</span>+<span class=w> </span>A?<span class=w> </span>example.com.<span class=w> </span><span class=o>(</span><span class=m>29</span><span class=o>)</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=m>15</span>:02:11.139<span class=w> </span>IP<span class=w> </span><span class=m>1</span>.1.1.1.53<span class=w> </span>&gt;<span class=w> </span><span class=m>192</span>.168.0.10.54123:<span class=w> </span><span class=m>47120</span><span class=w> </span><span class=m>1</span>/0/0<span class=w> </span>A<span class=w> </span><span class=m>93</span>.184.216.34<span class=w> </span><span class=o>(</span><span class=m>45</span><span class=o>)</span>
-</span></code></pre></div> <p>47120은 트랜잭션 ID. 응답의 ID가 요청과 같아야 매칭된다. UDP는 무상태라 ID 매칭이 유일한 신원 확인 수단이다. 이게 DNS 캐시 포이즈닝의 공격 표면이 되어 0x20 인코딩이나 DNSSEC, DoT/DoH 같은 보완책이 나왔다.</p> <h3 id=흔히-마주치는-문제>흔히 마주치는 문제<a class=headerlink href=#흔히-마주치는-문제 title="Permanent link">&para;</a></h3> <p>응답이 512바이트를 넘으면 UDP가 잘려서 TC 비트가 켜진 채 돌아오고, 클라이언트는 같은 질의를 TCP/53으로 다시 보낸다. 방화벽이 TCP/53을 막아둔 환경에서 DNSSEC 응답이 안 와서 한참 디버깅한 적이 있다.</p> <p>TTL이 5분인 레코드를 60초 뒤에 바꾸면 전 세계 resolver 캐시가 정리되기까지 최대 5분에 클라이언트 캐시까지 더해진다. 배포 직전 DNS TTL을 30초로 줄여놓는 습관이 도움된다.</p> <p><code>/etc/hosts</code> 가 모든 resolver보다 우선한다. 로컬에서 DNS가 이상하면 hosts 파일부터 본다.</p> <hr> <h2 id=3-tcp-3-way-handshake>3. TCP 3-way Handshake<a class=headerlink href=#3-tcp-3-way-handshake title="Permanent link">&para;</a></h2> <p>DNS로 받은 IP에 대고 TCP 연결을 연다. 표면적으로는 SYN → SYN-ACK → ACK 세 패킷이지만, 안에서 협상되는 항목이 의외로 많다.</p> <h3 id=핸드셰이크-시퀀스>핸드셰이크 시퀀스<a class=headerlink href=#핸드셰이크-시퀀스 title="Permanent link">&para;</a></h3> <pre class=mermaid-diagram><code>sequenceDiagram
+    S--&gt;&gt;U: HTTP 200 OK</code></pre>
+<hr />
+<h2 id="1-url-파싱">1. URL 파싱<a class="headerlink" href="#1-url-파싱" title="Permanent link">&para;</a></h2>
+<p><code>https://api.example.com:8443/users/42?tab=profile#bio</code> 라는 문자열은 브라우저 내부에서 6개 필드로 분해된다.</p>
+<ul>
+<li>scheme: <code>https</code></li>
+<li>host: <code>api.example.com</code></li>
+<li>port: <code>8443</code> (생략 시 scheme 기본값 — http=80, https=443)</li>
+<li>path: <code>/users/42</code></li>
+<li>query: <code>tab=profile</code></li>
+<li>fragment: <code>bio</code> — 서버로 전송되지 않음</li>
+</ul>
+<p>fragment는 클라이언트 전용이다. 서버 액세스 로그에서 <code>#</code> 뒷부분을 보려는 시도는 의미가 없다. 라우터 단에서 fragment 기반 라우팅을 하려고 시간을 쓴 적이 있는데, 브라우저가 애초에 그 부분을 전송하지 않는다는 사실을 확인하고 한 번에 정리됐다.</p>
+<p>스킴이 <code>https</code>면 TLS 단계가 들어가고, <code>http</code>면 평문 TCP로 바로 진행된다. <code>wss</code>는 HTTP 업그레이드를 거쳐 WebSocket으로 전환되는 흐름이라 핸드셰이크는 HTTPS와 동일하다.</p>
+<hr />
+<h2 id="2-dns-조회">2. DNS 조회<a class="headerlink" href="#2-dns-조회" title="Permanent link">&para;</a></h2>
+<p>브라우저는 OS에 호스트명만 넘기고, 실제 조회는 OS의 stub resolver와 그 뒤의 recursive resolver가 처리한다. 단계마다 캐시가 끼어든다.</p>
+<h3 id="캐시-계층">캐시 계층<a class="headerlink" href="#캐시-계층" title="Permanent link">&para;</a></h3>
+<ol>
+<li>브라우저 내장 DNS 캐시 — Chrome은 <code>chrome://net-internals/#dns</code> 에서 확인. TTL 60초 내외로 짧게 잡힌다.</li>
+<li>OS resolver 캐시 — macOS는 <code>sudo dscacheutil -flushcache</code> 와 <code>sudo killall -HUP mDNSResponder</code>, Linux는 <code>systemd-resolve --statistics</code>.</li>
+<li>recursive resolver 캐시 — ISP, 8.8.8.8, 1.1.1.1 같은 외부 resolver가 들고 있는 캐시.</li>
+<li>authoritative 응답 — 캐시 미스가 끝까지 내려갔을 때 도메인 소유자가 운영하는 네임서버가 답한다.</li>
+</ol>
+<p>캐시가 한 번도 안 맞을 때의 풀 쿼리는 root → TLD(.com) → authoritative 순으로 3홉이 일어난다. iterative 모드로 보면 이렇다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>dig<span class="w"> </span>+trace<span class="w"> </span>example.com
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">;;</span><span class="w"> </span>.<span class="w">                       </span><span class="m">518400</span><span class="w">  </span>IN<span class="w">  </span>NS<span class="w">  </span>a.root-servers.net.<span class="w">   </span><span class="c1"># root에 질의</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">;;</span><span class="w"> </span>com.<span class="w">                    </span><span class="m">172800</span><span class="w">  </span>IN<span class="w">  </span>NS<span class="w">  </span>a.gtld-servers.net.<span class="w">   </span><span class="c1"># TLD가 .com 네임서버 응답</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">;;</span><span class="w"> </span>example.com.<span class="w">            </span><span class="m">172800</span><span class="w">  </span>IN<span class="w">  </span>NS<span class="w">  </span>a.iana-servers.net.<span class="w">   </span><span class="c1"># authoritative 위임</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">;;</span><span class="w"> </span>example.com.<span class="w">            </span><span class="m">86400</span><span class="w">   </span>IN<span class="w">  </span>A<span class="w">   </span><span class="m">93</span>.184.216.34<span class="w">         </span><span class="c1"># 최종 A 레코드</span>
+</span></code></pre></div>
+<h3 id="실제-캡처">실제 캡처<a class="headerlink" href="#실제-캡처" title="Permanent link">&para;</a></h3>
+<p><code>tcpdump</code>로 53/UDP를 잡으면 질의와 응답 한 쌍이 보인다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-i<span class="w"> </span>en0<span class="w"> </span>-n<span class="w"> </span>port<span class="w"> </span><span class="m">53</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="m">15</span>:02:11.123<span class="w"> </span>IP<span class="w"> </span><span class="m">192</span>.168.0.10.54123<span class="w"> </span>&gt;<span class="w"> </span><span class="m">1</span>.1.1.1.53:<span class="w"> </span><span class="m">47120</span>+<span class="w"> </span>A?<span class="w"> </span>example.com.<span class="w"> </span><span class="o">(</span><span class="m">29</span><span class="o">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="m">15</span>:02:11.139<span class="w"> </span>IP<span class="w"> </span><span class="m">1</span>.1.1.1.53<span class="w"> </span>&gt;<span class="w"> </span><span class="m">192</span>.168.0.10.54123:<span class="w"> </span><span class="m">47120</span><span class="w"> </span><span class="m">1</span>/0/0<span class="w"> </span>A<span class="w"> </span><span class="m">93</span>.184.216.34<span class="w"> </span><span class="o">(</span><span class="m">45</span><span class="o">)</span>
+</span></code></pre></div>
+<p>47120은 트랜잭션 ID. 응답의 ID가 요청과 같아야 매칭된다. UDP는 무상태라 ID 매칭이 유일한 신원 확인 수단이다. 이게 DNS 캐시 포이즈닝의 공격 표면이 되어 0x20 인코딩이나 DNSSEC, DoT/DoH 같은 보완책이 나왔다.</p>
+<h3 id="흔히-마주치는-문제">흔히 마주치는 문제<a class="headerlink" href="#흔히-마주치는-문제" title="Permanent link">&para;</a></h3>
+<p>응답이 512바이트를 넘으면 UDP가 잘려서 TC 비트가 켜진 채 돌아오고, 클라이언트는 같은 질의를 TCP/53으로 다시 보낸다. 방화벽이 TCP/53을 막아둔 환경에서 DNSSEC 응답이 안 와서 한참 디버깅한 적이 있다.</p>
+<p>TTL이 5분인 레코드를 60초 뒤에 바꾸면 전 세계 resolver 캐시가 정리되기까지 최대 5분에 클라이언트 캐시까지 더해진다. 배포 직전 DNS TTL을 30초로 줄여놓는 습관이 도움된다.</p>
+<p><code>/etc/hosts</code> 가 모든 resolver보다 우선한다. 로컬에서 DNS가 이상하면 hosts 파일부터 본다.</p>
+<hr />
+<h2 id="3-tcp-3-way-handshake">3. TCP 3-way Handshake<a class="headerlink" href="#3-tcp-3-way-handshake" title="Permanent link">&para;</a></h2>
+<p>DNS로 받은 IP에 대고 TCP 연결을 연다. 표면적으로는 SYN → SYN-ACK → ACK 세 패킷이지만, 안에서 협상되는 항목이 의외로 많다.</p>
+<h3 id="핸드셰이크-시퀀스">핸드셰이크 시퀀스<a class="headerlink" href="#핸드셰이크-시퀀스" title="Permanent link">&para;</a></h3>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant C as Client
     participant S as Server
     C-&gt;&gt;S: SYN seq=x, options [mss, sack, wscale, ts]
     S--&gt;&gt;C: SYN-ACK seq=y ack=x+1, options
-    C-&gt;&gt;S: ACK seq=x+1 ack=y+1</code></pre> <p>SYN에 실리는 옵션을 보면 이 연결의 성격이 잡힌다.</p> <ul> <li>MSS — 한 세그먼트에 담을 수 있는 최대 페이로드. 이더넷 기본은 1460이지만 VPN/터널 환경에서는 더 작게 광고된다. 작은 MSS는 TLS 핸드셰이크 메시지가 여러 세그먼트로 쪼개지는 원인이다.</li> <li>Window Scale — 64KB 윈도 제한을 푸는 스케일 인자. 양쪽이 광고해야 적용된다. 한쪽이 옵션을 제거하면 윈도가 64KB로 고정된다.</li> <li>SACK permitted — 손실 구간만 선택 재전송할지 합의.</li> <li>Timestamps — RTT 측정과 PAWS(시퀀스 랩어라운드 방어) 용.</li> </ul> <h3 id=실제-캡처_1>실제 캡처<a class=headerlink href=#실제-캡처_1 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>$<span class=w> </span>sudo<span class=w> </span>tcpdump<span class=w> </span>-i<span class=w> </span>en0<span class=w> </span>-n<span class=w> </span>-S<span class=w> </span><span class=s1>&#39;host 93.184.216.34 and port 443&#39;</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=m>15</span>:02:11.200<span class=w> </span><span class=m>192</span>.168.0.10.55001<span class=w> </span>&gt;<span class=w> </span><span class=m>93</span>.184.216.34.443:<span class=w> </span>Flags<span class=w> </span><span class=o>[</span>S<span class=o>]</span>,<span class=w> </span>seq<span class=w> </span><span class=m>1000</span>,<span class=w> </span>win<span class=w> </span><span class=m>65535</span>,
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>    </span>options<span class=w> </span><span class=o>[</span>mss<span class=w> </span><span class=m>1460</span>,sackOK,TS<span class=w> </span>val<span class=w> </span><span class=m>1</span><span class=w> </span>ecr<span class=w> </span><span class=m>0</span>,nop,wscale<span class=w> </span><span class=m>7</span><span class=o>]</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=m>15</span>:02:11.220<span class=w> </span><span class=m>93</span>.184.216.34.443<span class=w> </span>&gt;<span class=w> </span><span class=m>192</span>.168.0.10.55001:<span class=w> </span>Flags<span class=w> </span><span class=o>[</span>S.<span class=o>]</span>,<span class=w> </span>seq<span class=w> </span><span class=m>9000</span>,<span class=w> </span>ack<span class=w> </span><span class=m>1001</span>,<span class=w> </span>win<span class=w> </span><span class=m>65535</span>,
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>    </span>options<span class=w> </span><span class=o>[</span>mss<span class=w> </span><span class=m>1452</span>,sackOK,TS<span class=w> </span>val<span class=w> </span><span class=m>9</span><span class=w> </span>ecr<span class=w> </span><span class=m>1</span>,nop,wscale<span class=w> </span><span class=m>8</span><span class=o>]</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=m>15</span>:02:11.220<span class=w> </span><span class=m>192</span>.168.0.10.55001<span class=w> </span>&gt;<span class=w> </span><span class=m>93</span>.184.216.34.443:<span class=w> </span>Flags<span class=w> </span><span class=o>[</span>.<span class=o>]</span>,<span class=w> </span>ack<span class=w> </span><span class=m>9001</span>,<span class=w> </span>win<span class=w> </span><span class=m>65535</span>
-</span></code></pre></div> <p><code>-S</code> 옵션이 시퀀스 번호를 상대값이 아닌 절대값으로 보여준다. SYN 한 번에 seq+1, SYN-ACK 한 번에 ack+1 이 되는 것을 직접 확인할 수 있다.</p> <h3 id=syn이-사라지면>SYN이 사라지면<a class=headerlink href=#syn이-사라지면 title="Permanent link">&para;</a></h3> <p>방화벽이 drop 하면 SYN-ACK가 안 와서 클라이언트는 1초, 3초, 7초… 식으로 지수 backoff로 재전송한다. 끝까지 응답이 없으면 보통 <code>connect: timed out</code> 으로 끝난다.</p> <p>RST가 돌아오는 경우는 포트는 열려 있는데 프로세스가 죽었거나 listen queue가 가득 찼다. <code>ss -lnt</code> 의 <code>Send-Q</code> 가 listen backlog 한도, <code>Recv-Q</code> 가 현재 대기 중인 SYN 수다. backlog 부족은 트래픽 스파이크 때 502가 튀는 흔한 원인이다.</p> <hr> <h2 id=4-tls-handshake>4. TLS Handshake<a class=headerlink href=#4-tls-handshake title="Permanent link">&para;</a></h2> <p>TCP가 연결되면 그 위에서 TLS 협상이 일어난다. 1.2와 1.3은 RTT 수가 다르다. 1.2는 풀 핸드셰이크에 2 RTT, 1.3은 1 RTT, 세션 재개면 0-RTT까지 내려간다.</p> <h3 id=tls-13-풀-핸드셰이크>TLS 1.3 풀 핸드셰이크<a class=headerlink href=#tls-13-풀-핸드셰이크 title="Permanent link">&para;</a></h3> <pre class=mermaid-diagram><code>sequenceDiagram
+    C-&gt;&gt;S: ACK seq=x+1 ack=y+1</code></pre>
+<p>SYN에 실리는 옵션을 보면 이 연결의 성격이 잡힌다.</p>
+<ul>
+<li>MSS — 한 세그먼트에 담을 수 있는 최대 페이로드. 이더넷 기본은 1460이지만 VPN/터널 환경에서는 더 작게 광고된다. 작은 MSS는 TLS 핸드셰이크 메시지가 여러 세그먼트로 쪼개지는 원인이다.</li>
+<li>Window Scale — 64KB 윈도 제한을 푸는 스케일 인자. 양쪽이 광고해야 적용된다. 한쪽이 옵션을 제거하면 윈도가 64KB로 고정된다.</li>
+<li>SACK permitted — 손실 구간만 선택 재전송할지 합의.</li>
+<li>Timestamps — RTT 측정과 PAWS(시퀀스 랩어라운드 방어) 용.</li>
+</ul>
+<h3 id="실제-캡처_1">실제 캡처<a class="headerlink" href="#실제-캡처_1" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-i<span class="w"> </span>en0<span class="w"> </span>-n<span class="w"> </span>-S<span class="w"> </span><span class="s1">&#39;host 93.184.216.34 and port 443&#39;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="m">15</span>:02:11.200<span class="w"> </span><span class="m">192</span>.168.0.10.55001<span class="w"> </span>&gt;<span class="w"> </span><span class="m">93</span>.184.216.34.443:<span class="w"> </span>Flags<span class="w"> </span><span class="o">[</span>S<span class="o">]</span>,<span class="w"> </span>seq<span class="w"> </span><span class="m">1000</span>,<span class="w"> </span>win<span class="w"> </span><span class="m">65535</span>,
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span>options<span class="w"> </span><span class="o">[</span>mss<span class="w"> </span><span class="m">1460</span>,sackOK,TS<span class="w"> </span>val<span class="w"> </span><span class="m">1</span><span class="w"> </span>ecr<span class="w"> </span><span class="m">0</span>,nop,wscale<span class="w"> </span><span class="m">7</span><span class="o">]</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="m">15</span>:02:11.220<span class="w"> </span><span class="m">93</span>.184.216.34.443<span class="w"> </span>&gt;<span class="w"> </span><span class="m">192</span>.168.0.10.55001:<span class="w"> </span>Flags<span class="w"> </span><span class="o">[</span>S.<span class="o">]</span>,<span class="w"> </span>seq<span class="w"> </span><span class="m">9000</span>,<span class="w"> </span>ack<span class="w"> </span><span class="m">1001</span>,<span class="w"> </span>win<span class="w"> </span><span class="m">65535</span>,
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span>options<span class="w"> </span><span class="o">[</span>mss<span class="w"> </span><span class="m">1452</span>,sackOK,TS<span class="w"> </span>val<span class="w"> </span><span class="m">9</span><span class="w"> </span>ecr<span class="w"> </span><span class="m">1</span>,nop,wscale<span class="w"> </span><span class="m">8</span><span class="o">]</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="m">15</span>:02:11.220<span class="w"> </span><span class="m">192</span>.168.0.10.55001<span class="w"> </span>&gt;<span class="w"> </span><span class="m">93</span>.184.216.34.443:<span class="w"> </span>Flags<span class="w"> </span><span class="o">[</span>.<span class="o">]</span>,<span class="w"> </span>ack<span class="w"> </span><span class="m">9001</span>,<span class="w"> </span>win<span class="w"> </span><span class="m">65535</span>
+</span></code></pre></div>
+<p><code>-S</code> 옵션이 시퀀스 번호를 상대값이 아닌 절대값으로 보여준다. SYN 한 번에 seq+1, SYN-ACK 한 번에 ack+1 이 되는 것을 직접 확인할 수 있다.</p>
+<h3 id="syn이-사라지면">SYN이 사라지면<a class="headerlink" href="#syn이-사라지면" title="Permanent link">&para;</a></h3>
+<p>방화벽이 drop 하면 SYN-ACK가 안 와서 클라이언트는 1초, 3초, 7초… 식으로 지수 backoff로 재전송한다. 끝까지 응답이 없으면 보통 <code>connect: timed out</code> 으로 끝난다.</p>
+<p>RST가 돌아오는 경우는 포트는 열려 있는데 프로세스가 죽었거나 listen queue가 가득 찼다. <code>ss -lnt</code> 의 <code>Send-Q</code> 가 listen backlog 한도, <code>Recv-Q</code> 가 현재 대기 중인 SYN 수다. backlog 부족은 트래픽 스파이크 때 502가 튀는 흔한 원인이다.</p>
+<hr />
+<h2 id="4-tls-handshake">4. TLS Handshake<a class="headerlink" href="#4-tls-handshake" title="Permanent link">&para;</a></h2>
+<p>TCP가 연결되면 그 위에서 TLS 협상이 일어난다. 1.2와 1.3은 RTT 수가 다르다. 1.2는 풀 핸드셰이크에 2 RTT, 1.3은 1 RTT, 세션 재개면 0-RTT까지 내려간다.</p>
+<h3 id="tls-13-풀-핸드셰이크">TLS 1.3 풀 핸드셰이크<a class="headerlink" href="#tls-13-풀-핸드셰이크" title="Permanent link">&para;</a></h3>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant C as Client
     participant S as Server
     C-&gt;&gt;S: ClientHello (key_share, SNI, ALPN, supported_versions)
     S--&gt;&gt;C: ServerHello + EncryptedExtensions + Certificate + CertificateVerify + Finished
-    C-&gt;&gt;S: Finished + 첫 application data</code></pre> <p>ClientHello가 평문이라서 SNI에 들어 있는 도메인은 그대로 노출된다. 사내 프록시가 SNI만 보고 도메인 기반 차단을 거는 이유이고, ECH(Encrypted Client Hello)가 도입되는 배경이다.</p> <h3 id=tls-12와의-비교>TLS 1.2와의 비교<a class=headerlink href=#tls-12와의-비교 title="Permanent link">&para;</a></h3> <p>1.2는 ClientHello → ServerHello/Certificate → ClientKeyExchange → ChangeCipherSpec/Finished → ChangeCipherSpec/Finished 로 RTT 두 번이 든다. 53ms RTT 환경에서 풀 핸드셰이크가 110ms 가까이 걸리던 게 1.3으로 가면 절반이 된다.</p> <p>세션 재개는 1.2의 Session ID/Ticket, 1.3의 PSK 모드가 있다. PSK + early_data 조합이면 첫 application data가 ClientHello에 동봉되어 RTT 0으로 들어간다. 멱등하지 않은 요청에 early_data를 쓰면 재생 공격에 노출되니 GET만 허용하는 게 보통이다.</p> <h3 id=인증서-검증>인증서 검증<a class=headerlink href=#인증서-검증 title="Permanent link">&para;</a></h3> <p>서버가 보낸 Certificate 체인은 클라이언트 측에서 다음 순서로 검증된다.</p> <ol> <li>서명 체인을 따라 트러스트 스토어의 루트까지 도달하는가</li> <li>SAN(또는 CN)에 요청 호스트가 들어 있는가</li> <li>notBefore ≤ 현재 시간 ≤ notAfter</li> <li>OCSP 또는 CRL로 폐기 여부 확인</li> </ol> <p>OCSP stapling이 켜진 서버는 ServerHello 시점에 OCSP 응답을 같이 묶어준다. stapling이 없으면 클라이언트가 별도 HTTP 요청으로 OCSP responder에 다녀와야 해서 추가 RTT가 든다.</p> <h3 id=실제-핸드셰이크-캡처>실제 핸드셰이크 캡처<a class=headerlink href=#실제-핸드셰이크-캡처 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>$<span class=w> </span>openssl<span class=w> </span>s_client<span class=w> </span>-connect<span class=w> </span>example.com:443<span class=w> </span>-servername<span class=w> </span>example.com<span class=w> </span>-tls1_3<span class=w> </span>-msg
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>&gt;&gt;&gt;<span class=w> </span>TLS<span class=w> </span><span class=m>1</span>.3<span class=w> </span><span class=o>[</span>length<span class=w> </span>005a<span class=o>]</span>,<span class=w> </span>Handshake
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>    </span><span class=m>01</span><span class=w> </span><span class=m>00</span><span class=w> </span><span class=m>00</span><span class=w> </span><span class=m>56</span><span class=w> </span><span class=m>03</span><span class=w> </span><span class=m>03</span><span class=w> </span>...<span class=w> </span>ClientHello
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=o>&lt;&lt;&lt;</span><span class=w> </span>TLS<span class=w> </span><span class=m>1</span>.3<span class=w> </span><span class=o>[</span>length<span class=w> </span>007a<span class=o>]</span>,<span class=w> </span>Handshake
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=w>    </span><span class=m>02</span><span class=w> </span><span class=m>00</span><span class=w> </span><span class=m>00</span><span class=w> </span><span class=m>76</span><span class=w> </span><span class=m>03</span><span class=w> </span><span class=m>03</span><span class=w> </span>...<span class=w> </span>ServerHello
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=o>&lt;&lt;&lt;</span><span class=w> </span>TLS<span class=w> </span><span class=m>1</span>.3<span class=w> </span><span class=o>[</span>length<span class=w> </span><span class=m>0017</span><span class=o>]</span>,<span class=w> </span>ChangeCipherSpec
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a><span class=o>&lt;&lt;&lt;</span><span class=w> </span>TLS<span class=w> </span><span class=m>1</span>.3<span class=w> </span><span class=o>[</span>length<span class=w> </span>09e6<span class=o>]</span>,<span class=w> </span>Handshake
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=w>    </span><span class=m>08</span><span class=w> </span>...<span class=w> </span>EncryptedExtensions
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=w>    </span>0b<span class=w> </span>...<span class=w> </span>Certificate
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=w>    </span>0f<span class=w> </span>...<span class=w> </span>CertificateVerify
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a><span class=w>    </span><span class=m>14</span><span class=w> </span>...<span class=w> </span>Finished
-</span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a>&gt;&gt;&gt;<span class=w> </span>TLS<span class=w> </span><span class=m>1</span>.3<span class=w> </span><span class=o>[</span>length<span class=w> </span><span class=m>0035</span><span class=o>]</span>,<span class=w> </span>Handshake
-</span><span id=__span-4-14><a id=__codelineno-4-14 name=__codelineno-4-14 href=#__codelineno-4-14></a><span class=w>    </span><span class=m>14</span><span class=w> </span>...<span class=w> </span>Finished
-</span></code></pre></div> <p>핸드셰이크 메시지 타입을 외워두면 캡처가 빨리 읽힌다. 01=ClientHello, 02=ServerHello, 0b=Certificate, 0f=CertificateVerify, 14=Finished.</p> <h3 id=자주-보는-에러>자주 보는 에러<a class=headerlink href=#자주-보는-에러 title="Permanent link">&para;</a></h3> <p><code>tlsv1 alert handshake failure</code> — 클라이언트와 서버의 지원 cipher 교집합이 없다. 구형 안드로이드가 새 TLS만 켠 서버에 붙으려고 할 때 나온다.</p> <p><code>certificate verify failed: unable to get local issuer certificate</code> — 중간 인증서가 체인에 빠져 있다. <code>openssl s_client -showcerts</code> 로 서버가 보내는 체인을 직접 확인하면 된다.</p> <p><code>SSL_ERROR_SYSCALL</code> 직후 즉시 연결 끊김 — 보통 SNI 기반 라우팅에서 매칭되는 vhost가 없을 때 발생한다.</p> <hr> <h2 id=5-http-요청과-응답>5. HTTP 요청과 응답<a class=headerlink href=#5-http-요청과-응답 title="Permanent link">&para;</a></h2> <p>TLS 채널이 열리면 그 위로 HTTP 메시지가 흐른다. HTTP/1.1, HTTP/2, HTTP/3에 따라 와이어 포맷이 다르지만 의미상 메시지는 같다.</p> <h3 id=http11-요청-라인>HTTP/1.1 요청 라인<a class=headerlink href=#http11-요청-라인 title="Permanent link">&para;</a></h3> <div class="language-http highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=nf>GET</span> <span class=nn>/users/42?tab=profile</span> <span class=kr>HTTP</span><span class=o>/</span><span class=m>1.1</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=na>Host</span><span class=o>:</span> <span class=l>api.example.com</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=na>User-Agent</span><span class=o>:</span> <span class=l>curl/8.4.0</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=na>Accept</span><span class=o>:</span> <span class=l>*/*</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=na>Cookie</span><span class=o>:</span> <span class=l>session=abc123</span>
-</span></code></pre></div> <p>요청 라인 + 헤더 + 빈 줄 + 바디. 헤더 끝을 <code>\r\n\r\n</code> 으로 구분한다. Host 헤더는 1.1에서 필수다. 가상 호스트 라우팅이 이 한 줄로 결정된다.</p> <h3 id=http2의-변화>HTTP/2의 변화<a class=headerlink href=#http2의-변화 title="Permanent link">&para;</a></h3> <p>요청은 같은 의미지만 와이어 포맷은 바이너리 프레임이다. 헤더는 HPACK으로 압축되고, 한 TCP 연결 위에서 stream ID로 다중화된다. 같은 TLS 세션 안에서 동시에 100개 이상 요청이 진행되는 게 보통이다.</p> <p>ALPN에서 <code>h2</code> 가 협상되어야 HTTP/2로 진입한다. ClientHello의 ALPN 확장에 <code>h2, http/1.1</code> 을 광고하고 서버가 <code>h2</code> 를 고르면 그 위로 HTTP/2 프레임이 흐른다.</p> <h3 id=http3>HTTP/3<a class=headerlink href=#http3 title="Permanent link">&para;</a></h3> <p>전송이 TCP가 아니라 UDP 위의 QUIC다. TLS가 QUIC에 내장되어 있어서 별도 핸드셰이크가 아니라 QUIC 초기 패킷에 ClientHello가 실린다. 0-RTT 재개가 표준화되어 있고, head-of-line blocking이 stream 단위로 격리된다.</p> <h3 id=curl로-본-응답>curl로 본 응답<a class=headerlink href=#curl로-본-응답 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>$<span class=w> </span>curl<span class=w> </span>-v<span class=w> </span>https://example.com<span class=w> </span><span class=m>2</span>&gt;<span class=p>&amp;</span><span class=m>1</span><span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-E<span class=w> </span><span class=s1>&#39;^(&gt;|&lt;|\*)&#39;</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>*<span class=w> </span>Connected<span class=w> </span>to<span class=w> </span>example.com<span class=w> </span><span class=o>(</span><span class=m>93</span>.184.216.34<span class=o>)</span><span class=w> </span>port<span class=w> </span><span class=m>443</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>*<span class=w> </span>ALPN:<span class=w> </span>server<span class=w> </span>accepted<span class=w> </span>h2
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>*<span class=w> </span>SSL<span class=w> </span>connection<span class=w> </span>using<span class=w> </span>TLSv1.3<span class=w> </span>/<span class=w> </span>TLS_AES_128_GCM_SHA256
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>&gt;<span class=w> </span>GET<span class=w> </span>/<span class=w> </span>HTTP/2
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>&gt;<span class=w> </span>Host:<span class=w> </span>example.com
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>&gt;<span class=w> </span>User-Agent:<span class=w> </span>curl/8.4.0
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>&gt;<span class=w> </span>Accept:<span class=w> </span>*/*
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>&gt;
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a>&lt;<span class=w> </span>HTTP/2<span class=w> </span><span class=m>200</span>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a>&lt;<span class=w> </span>content-type:<span class=w> </span>text/html<span class=p>;</span><span class=w> </span><span class=nv>charset</span><span class=o>=</span>UTF-8
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a>&lt;<span class=w> </span>date:<span class=w> </span>Mon,<span class=w> </span><span class=m>03</span><span class=w> </span>Jun<span class=w> </span><span class=m>2026</span><span class=w> </span><span class=m>06</span>:02:12<span class=w> </span>GMT
-</span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a>&lt;<span class=w> </span>server:<span class=w> </span>ECS<span class=w> </span><span class=o>(</span>dcb/7F50<span class=o>)</span>
-</span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a>&lt;<span class=w> </span>content-length:<span class=w> </span><span class=m>1256</span>
-</span></code></pre></div> <p><code>&gt;</code> 는 송신, <code>&lt;</code> 는 수신, <code>*</code> 는 libcurl의 메타 로그. 디버깅할 때 이 세 기호만 구분해도 흐름이 잡힌다.</p> <h3 id=응답-상태-코드의-실무-의미>응답 상태 코드의 실무 의미<a class=headerlink href=#응답-상태-코드의-실무-의미 title="Permanent link">&para;</a></h3> <ul> <li>1xx — 100 Continue는 큰 PUT/POST를 보낼 때 <code>Expect: 100-continue</code> 와 짝지어 쓴다. 본문을 보내기 전에 서버가 받을 의향이 있는지 확인하는 절차.</li> <li>2xx — 200, 201, 204. 204(No Content)는 응답 바디가 없다는 약속이라 클라이언트가 바디를 읽지 않는다. JSON을 담으면 파싱 단에서 깨진다.</li> <li>3xx — 301과 308은 영구, 302와 307은 일시 리다이렉트. 301/302는 메서드를 GET으로 바꿔도 되는 반면 307/308은 원래 메서드를 유지한다. POST 리다이렉트가 GET으로 변하는 버그는 거의 다 이걸 잘못 쓴 경우다.</li> <li>4xx — 클라이언트 측 문제. 429는 Retry-After 헤더와 짝이고, 401은 WWW-Authenticate 헤더가 따라온다.</li> <li>5xx — 서버 측. 502는 게이트웨이 뒤쪽 업스트림 실패, 503은 서버 자신이 의도적 거절, 504는 게이트웨이 timeout.</li> </ul> <hr> <h2 id=6-응답-처리와-연결-종료>6. 응답 처리와 연결 종료<a class=headerlink href=#6-응답-처리와-연결-종료 title="Permanent link">&para;</a></h2> <p>서버가 바디까지 다 보내면 클라이언트는 Content-Length 또는 Transfer-Encoding: chunked 로 끝을 안다. chunked는 마지막에 0 길이 청크가 오는 시점이 끝이다.</p> <h3 id=keep-alive>Keep-Alive<a class=headerlink href=#keep-alive title="Permanent link">&para;</a></h3> <p>HTTP/1.1은 기본이 keep-alive다. 응답이 끝나도 TCP 연결은 살려두고 다음 요청에 재사용한다. 서버가 <code>Connection: close</code> 를 보내거나 idle timeout을 넘기면 연결이 닫힌다. 한 페이지가 수십 개의 리소스를 불러올 때 keep-alive가 없으면 매번 TCP+TLS 핸드셰이크가 다시 일어난다.</p> <h3 id=tcp-종료>TCP 종료<a class=headerlink href=#tcp-종료 title="Permanent link">&para;</a></h3> <pre class=mermaid-diagram><code>sequenceDiagram
+    C-&gt;&gt;S: Finished + 첫 application data</code></pre>
+<p>ClientHello가 평문이라서 SNI에 들어 있는 도메인은 그대로 노출된다. 사내 프록시가 SNI만 보고 도메인 기반 차단을 거는 이유이고, ECH(Encrypted Client Hello)가 도입되는 배경이다.</p>
+<h3 id="tls-12와의-비교">TLS 1.2와의 비교<a class="headerlink" href="#tls-12와의-비교" title="Permanent link">&para;</a></h3>
+<p>1.2는 ClientHello → ServerHello/Certificate → ClientKeyExchange → ChangeCipherSpec/Finished → ChangeCipherSpec/Finished 로 RTT 두 번이 든다. 53ms RTT 환경에서 풀 핸드셰이크가 110ms 가까이 걸리던 게 1.3으로 가면 절반이 된다.</p>
+<p>세션 재개는 1.2의 Session ID/Ticket, 1.3의 PSK 모드가 있다. PSK + early_data 조합이면 첫 application data가 ClientHello에 동봉되어 RTT 0으로 들어간다. 멱등하지 않은 요청에 early_data를 쓰면 재생 공격에 노출되니 GET만 허용하는 게 보통이다.</p>
+<h3 id="인증서-검증">인증서 검증<a class="headerlink" href="#인증서-검증" title="Permanent link">&para;</a></h3>
+<p>서버가 보낸 Certificate 체인은 클라이언트 측에서 다음 순서로 검증된다.</p>
+<ol>
+<li>서명 체인을 따라 트러스트 스토어의 루트까지 도달하는가</li>
+<li>SAN(또는 CN)에 요청 호스트가 들어 있는가</li>
+<li>notBefore ≤ 현재 시간 ≤ notAfter</li>
+<li>OCSP 또는 CRL로 폐기 여부 확인</li>
+</ol>
+<p>OCSP stapling이 켜진 서버는 ServerHello 시점에 OCSP 응답을 같이 묶어준다. stapling이 없으면 클라이언트가 별도 HTTP 요청으로 OCSP responder에 다녀와야 해서 추가 RTT가 든다.</p>
+<h3 id="실제-핸드셰이크-캡처">실제 핸드셰이크 캡처<a class="headerlink" href="#실제-핸드셰이크-캡처" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>openssl<span class="w"> </span>s_client<span class="w"> </span>-connect<span class="w"> </span>example.com:443<span class="w"> </span>-servername<span class="w"> </span>example.com<span class="w"> </span>-tls1_3<span class="w"> </span>-msg
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>&gt;&gt;&gt;<span class="w"> </span>TLS<span class="w"> </span><span class="m">1</span>.3<span class="w"> </span><span class="o">[</span>length<span class="w"> </span>005a<span class="o">]</span>,<span class="w"> </span>Handshake
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="m">01</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">56</span><span class="w"> </span><span class="m">03</span><span class="w"> </span><span class="m">03</span><span class="w"> </span>...<span class="w"> </span>ClientHello
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="o">&lt;&lt;&lt;</span><span class="w"> </span>TLS<span class="w"> </span><span class="m">1</span>.3<span class="w"> </span><span class="o">[</span>length<span class="w"> </span>007a<span class="o">]</span>,<span class="w"> </span>Handshake
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="m">02</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">76</span><span class="w"> </span><span class="m">03</span><span class="w"> </span><span class="m">03</span><span class="w"> </span>...<span class="w"> </span>ServerHello
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="o">&lt;&lt;&lt;</span><span class="w"> </span>TLS<span class="w"> </span><span class="m">1</span>.3<span class="w"> </span><span class="o">[</span>length<span class="w"> </span><span class="m">0017</span><span class="o">]</span>,<span class="w"> </span>ChangeCipherSpec
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="o">&lt;&lt;&lt;</span><span class="w"> </span>TLS<span class="w"> </span><span class="m">1</span>.3<span class="w"> </span><span class="o">[</span>length<span class="w"> </span>09e6<span class="o">]</span>,<span class="w"> </span>Handshake
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="m">08</span><span class="w"> </span>...<span class="w"> </span>EncryptedExtensions
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span>0b<span class="w"> </span>...<span class="w"> </span>Certificate
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span>0f<span class="w"> </span>...<span class="w"> </span>CertificateVerify
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="m">14</span><span class="w"> </span>...<span class="w"> </span>Finished
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>&gt;&gt;&gt;<span class="w"> </span>TLS<span class="w"> </span><span class="m">1</span>.3<span class="w"> </span><span class="o">[</span>length<span class="w"> </span><span class="m">0035</span><span class="o">]</span>,<span class="w"> </span>Handshake
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="m">14</span><span class="w"> </span>...<span class="w"> </span>Finished
+</span></code></pre></div>
+<p>핸드셰이크 메시지 타입을 외워두면 캡처가 빨리 읽힌다. 01=ClientHello, 02=ServerHello, 0b=Certificate, 0f=CertificateVerify, 14=Finished.</p>
+<h3 id="자주-보는-에러">자주 보는 에러<a class="headerlink" href="#자주-보는-에러" title="Permanent link">&para;</a></h3>
+<p><code>tlsv1 alert handshake failure</code> — 클라이언트와 서버의 지원 cipher 교집합이 없다. 구형 안드로이드가 새 TLS만 켠 서버에 붙으려고 할 때 나온다.</p>
+<p><code>certificate verify failed: unable to get local issuer certificate</code> — 중간 인증서가 체인에 빠져 있다. <code>openssl s_client -showcerts</code> 로 서버가 보내는 체인을 직접 확인하면 된다.</p>
+<p><code>SSL_ERROR_SYSCALL</code> 직후 즉시 연결 끊김 — 보통 SNI 기반 라우팅에서 매칭되는 vhost가 없을 때 발생한다.</p>
+<hr />
+<h2 id="5-http-요청과-응답">5. HTTP 요청과 응답<a class="headerlink" href="#5-http-요청과-응답" title="Permanent link">&para;</a></h2>
+<p>TLS 채널이 열리면 그 위로 HTTP 메시지가 흐른다. HTTP/1.1, HTTP/2, HTTP/3에 따라 와이어 포맷이 다르지만 의미상 메시지는 같다.</p>
+<h3 id="http11-요청-라인">HTTP/1.1 요청 라인<a class="headerlink" href="#http11-요청-라인" title="Permanent link">&para;</a></h3>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nf">GET</span> <span class="nn">/users/42?tab=profile</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">Host</span><span class="o">:</span> <span class="l">api.example.com</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="na">User-Agent</span><span class="o">:</span> <span class="l">curl/8.4.0</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="na">Accept</span><span class="o">:</span> <span class="l">*/*</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="na">Cookie</span><span class="o">:</span> <span class="l">session=abc123</span>
+</span></code></pre></div>
+<p>요청 라인 + 헤더 + 빈 줄 + 바디. 헤더 끝을 <code>\r\n\r\n</code> 으로 구분한다. Host 헤더는 1.1에서 필수다. 가상 호스트 라우팅이 이 한 줄로 결정된다.</p>
+<h3 id="http2의-변화">HTTP/2의 변화<a class="headerlink" href="#http2의-변화" title="Permanent link">&para;</a></h3>
+<p>요청은 같은 의미지만 와이어 포맷은 바이너리 프레임이다. 헤더는 HPACK으로 압축되고, 한 TCP 연결 위에서 stream ID로 다중화된다. 같은 TLS 세션 안에서 동시에 100개 이상 요청이 진행되는 게 보통이다.</p>
+<p>ALPN에서 <code>h2</code> 가 협상되어야 HTTP/2로 진입한다. ClientHello의 ALPN 확장에 <code>h2, http/1.1</code> 을 광고하고 서버가 <code>h2</code> 를 고르면 그 위로 HTTP/2 프레임이 흐른다.</p>
+<h3 id="http3">HTTP/3<a class="headerlink" href="#http3" title="Permanent link">&para;</a></h3>
+<p>전송이 TCP가 아니라 UDP 위의 QUIC다. TLS가 QUIC에 내장되어 있어서 별도 핸드셰이크가 아니라 QUIC 초기 패킷에 ClientHello가 실린다. 0-RTT 재개가 표준화되어 있고, head-of-line blocking이 stream 단위로 격리된다.</p>
+<h3 id="curl로-본-응답">curl로 본 응답<a class="headerlink" href="#curl로-본-응답" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$<span class="w"> </span>curl<span class="w"> </span>-v<span class="w"> </span>https://example.com<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^(&gt;|&lt;|\*)&#39;</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>*<span class="w"> </span>Connected<span class="w"> </span>to<span class="w"> </span>example.com<span class="w"> </span><span class="o">(</span><span class="m">93</span>.184.216.34<span class="o">)</span><span class="w"> </span>port<span class="w"> </span><span class="m">443</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>*<span class="w"> </span>ALPN:<span class="w"> </span>server<span class="w"> </span>accepted<span class="w"> </span>h2
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>*<span class="w"> </span>SSL<span class="w"> </span>connection<span class="w"> </span>using<span class="w"> </span>TLSv1.3<span class="w"> </span>/<span class="w"> </span>TLS_AES_128_GCM_SHA256
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>&gt;<span class="w"> </span>GET<span class="w"> </span>/<span class="w"> </span>HTTP/2
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>&gt;<span class="w"> </span>Host:<span class="w"> </span>example.com
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>&gt;<span class="w"> </span>User-Agent:<span class="w"> </span>curl/8.4.0
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>&gt;<span class="w"> </span>Accept:<span class="w"> </span>*/*
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>&gt;
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>&lt;<span class="w"> </span>HTTP/2<span class="w"> </span><span class="m">200</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>&lt;<span class="w"> </span>content-type:<span class="w"> </span>text/html<span class="p">;</span><span class="w"> </span><span class="nv">charset</span><span class="o">=</span>UTF-8
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>&lt;<span class="w"> </span>date:<span class="w"> </span>Mon,<span class="w"> </span><span class="m">03</span><span class="w"> </span>Jun<span class="w"> </span><span class="m">2026</span><span class="w"> </span><span class="m">06</span>:02:12<span class="w"> </span>GMT
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>&lt;<span class="w"> </span>server:<span class="w"> </span>ECS<span class="w"> </span><span class="o">(</span>dcb/7F50<span class="o">)</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>&lt;<span class="w"> </span>content-length:<span class="w"> </span><span class="m">1256</span>
+</span></code></pre></div>
+<p><code>&gt;</code> 는 송신, <code>&lt;</code> 는 수신, <code>*</code> 는 libcurl의 메타 로그. 디버깅할 때 이 세 기호만 구분해도 흐름이 잡힌다.</p>
+<h3 id="응답-상태-코드의-실무-의미">응답 상태 코드의 실무 의미<a class="headerlink" href="#응답-상태-코드의-실무-의미" title="Permanent link">&para;</a></h3>
+<ul>
+<li>1xx — 100 Continue는 큰 PUT/POST를 보낼 때 <code>Expect: 100-continue</code> 와 짝지어 쓴다. 본문을 보내기 전에 서버가 받을 의향이 있는지 확인하는 절차.</li>
+<li>2xx — 200, 201, 204. 204(No Content)는 응답 바디가 없다는 약속이라 클라이언트가 바디를 읽지 않는다. JSON을 담으면 파싱 단에서 깨진다.</li>
+<li>3xx — 301과 308은 영구, 302와 307은 일시 리다이렉트. 301/302는 메서드를 GET으로 바꿔도 되는 반면 307/308은 원래 메서드를 유지한다. POST 리다이렉트가 GET으로 변하는 버그는 거의 다 이걸 잘못 쓴 경우다.</li>
+<li>4xx — 클라이언트 측 문제. 429는 Retry-After 헤더와 짝이고, 401은 WWW-Authenticate 헤더가 따라온다.</li>
+<li>5xx — 서버 측. 502는 게이트웨이 뒤쪽 업스트림 실패, 503은 서버 자신이 의도적 거절, 504는 게이트웨이 timeout.</li>
+</ul>
+<hr />
+<h2 id="6-응답-처리와-연결-종료">6. 응답 처리와 연결 종료<a class="headerlink" href="#6-응답-처리와-연결-종료" title="Permanent link">&para;</a></h2>
+<p>서버가 바디까지 다 보내면 클라이언트는 Content-Length 또는 Transfer-Encoding: chunked 로 끝을 안다. chunked는 마지막에 0 길이 청크가 오는 시점이 끝이다.</p>
+<h3 id="keep-alive">Keep-Alive<a class="headerlink" href="#keep-alive" title="Permanent link">&para;</a></h3>
+<p>HTTP/1.1은 기본이 keep-alive다. 응답이 끝나도 TCP 연결은 살려두고 다음 요청에 재사용한다. 서버가 <code>Connection: close</code> 를 보내거나 idle timeout을 넘기면 연결이 닫힌다. 한 페이지가 수십 개의 리소스를 불러올 때 keep-alive가 없으면 매번 TCP+TLS 핸드셰이크가 다시 일어난다.</p>
+<h3 id="tcp-종료">TCP 종료<a class="headerlink" href="#tcp-종료" title="Permanent link">&para;</a></h3>
+<pre class="mermaid-diagram"><code>sequenceDiagram
     participant C as Client
     participant S as Server
     C-&gt;&gt;S: FIN
     S--&gt;&gt;C: ACK
     S--&gt;&gt;C: FIN
-    C-&gt;&gt;S: ACK</code></pre> <p>FIN을 먼저 보낸 쪽이 TIME_WAIT 상태로 60초가량 머무른다. 정상 종료라면 양쪽에 시퀀스 번호 재사용 보호를 위해 이 상태가 필요하다. 짧은 시간에 새 연결을 대량으로 여닫는 서버에서 TIME_WAIT가 쌓이면 ephemeral port가 고갈된다. <code>ss -tan state time-wait | wc -l</code> 로 모니터링한다.</p> <hr> <h2 id=단계별-지연-분리>단계별 지연 분리<a class=headerlink href=#단계별-지연-분리 title="Permanent link">&para;</a></h2> <p>성능 문제가 들어왔을 때 어느 단계가 느린지 분리해야 다음 조치가 정해진다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>$<span class=w> </span>curl<span class=w> </span>-o<span class=w> </span>/dev/null<span class=w> </span>-s<span class=w> </span>-w<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>  </span><span class=s2>&quot;namelookup:    %{time_namelookup}\nconnect:       %{time_connect}\nappconnect:    %{time_appconnect}\npretransfer:   %{time_pretransfer}\nstarttransfer: %{time_starttransfer}\ntotal:         %{time_total}\n&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>  </span>https://example.com
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>namelookup:<span class=w>    </span><span class=m>0</span>.012
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a>connect:<span class=w>       </span><span class=m>0</span>.028
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a>appconnect:<span class=w>    </span><span class=m>0</span>.082
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a>pretransfer:<span class=w>   </span><span class=m>0</span>.082
-</span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a>starttransfer:<span class=w> </span><span class=m>0</span>.143
-</span><span id=__span-7-10><a id=__codelineno-7-10 name=__codelineno-7-10 href=#__codelineno-7-10></a>total:<span class=w>         </span><span class=m>0</span>.144
-</span></code></pre></div> <p>각 변수는 누적 시간이다. 단계별로 빼야 순수값이 나온다.</p> <table> <thead> <tr> <th>단계</th> <th>계산</th> <th>의미</th> </tr> </thead> <tbody> <tr> <td>DNS</td> <td>namelookup</td> <td>도메인 → IP</td> </tr> <tr> <td>TCP</td> <td>connect - namelookup</td> <td>3-way handshake RTT 한 번</td> </tr> <tr> <td>TLS</td> <td>appconnect - connect</td> <td>핸드셰이크 RTT (1.2면 2회, 1.3이면 1회)</td> </tr> <tr> <td>서버 처리 + 첫 바이트</td> <td>starttransfer - appconnect</td> <td>서버 응답 생성 시간이 사실상 여기에 들어간다</td> </tr> <tr> <td>본문 다운로드</td> <td>total - starttransfer</td> <td>바디 크기와 대역폭에 비례</td> </tr> </tbody> </table> <p>ttfb가 길고 나머지가 짧으면 서버 측 처리(쿼리, 외부 API, 락 대기)가 범인이다. tls 단계만 길면 인증서 체인 검증, OCSP, 핸드셰이크 협상 실패 후 재시도를 의심한다. tcp만 길면 패킷 손실에 따른 SYN 재전송, 또는 라우팅 우회.</p> <hr> <h2 id=캡처를-파일로-떠서-보기>캡처를 파일로 떠서 보기<a class=headerlink href=#캡처를-파일로-떠서-보기 title="Permanent link">&para;</a></h2> <p>실시간 tcpdump는 빠르고, Wireshark는 단계 디코딩이 풍부하다. 둘을 같이 쓴다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>$<span class=w> </span>sudo<span class=w> </span>tcpdump<span class=w> </span>-i<span class=w> </span>en0<span class=w> </span>-n<span class=w> </span>-w<span class=w> </span>session.pcap<span class=w> </span><span class=s1>&#39;host example.com&#39;</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=c1># 트래픽 발생 후 Ctrl-C</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>$<span class=w> </span>wireshark<span class=w> </span>session.pcap
-</span></code></pre></div> <p>Wireshark 안에서 Statistics → Conversations 로 가면 이 연결이 RTT 몇 번이 들었는지, 재전송이 얼마나 있었는지가 표로 나온다. TLS는 키 자료가 있어야 복호화가 되는데, <code>SSLKEYLOGFILE</code> 환경변수를 설정하고 브라우저나 curl을 실행하면 세션 키가 로그로 떨어진다. Wireshark의 TLS 설정에 이 파일 경로를 넣으면 응답 바디까지 평문으로 보인다.</p> <hr> <h2 id=트러블슈팅-사례>트러블슈팅 사례<a class=headerlink href=#트러블슈팅-사례 title="Permanent link">&para;</a></h2> <h3 id=가끔-첫-요청이-5초씩-느려진다>가끔 첫 요청이 5초씩 느려진다<a class=headerlink href=#가끔-첫-요청이-5초씩-느려진다 title="Permanent link">&para;</a></h3> <p>curl 타이밍을 측정해보면 namelookup이 5초로 튄다. resolver 한 곳이 응답을 안 주고, 5초 타임아웃 후 다음 resolver로 fallback 한 것이다. <code>/etc/resolv.conf</code> 의 <code>options timeout:1 attempts:2</code> 같은 설정으로 fallback을 빠르게 만든다. systemd-resolved 환경이면 <code>resolvectl statistics</code> 로 어느 서버가 실패하는지 보인다.</p> <h3 id=프록시-뒤에서만-ssl-에러가-난다>프록시 뒤에서만 SSL 에러가 난다<a class=headerlink href=#프록시-뒤에서만-ssl-에러가-난다 title="Permanent link">&para;</a></h3> <p>대부분 SNI를 안 보내는 구형 클라이언트가 vhost를 못 찾는 경우다. <code>curl -vk --resolve example.com:443:1.2.3.4 https://example.com</code> 으로 SNI를 명시해서 재현해본다. 다른 케이스는 사내 MITM 프록시가 발급한 자체 서명 인증서가 OS 트러스트 스토어에 없는 경우.</p> <h3 id=post가-get으로-바뀐다>POST가 GET으로 바뀐다<a class=headerlink href=#post가-get으로-바뀐다 title="Permanent link">&para;</a></h3> <p>리다이렉트 응답이 301 또는 302인데 클라이언트가 RFC 권고를 따라 메서드를 GET으로 변경했다. 메서드 보존이 필요하면 서버가 307/308을 보내야 한다.</p> <h3 id=time_wait가-만-단위로-쌓인다>TIME_WAIT가 만 단위로 쌓인다<a class=headerlink href=#time_wait가-만-단위로-쌓인다 title="Permanent link">&para;</a></h3> <p>요청마다 새 connection을 여는 클라이언트(또는 keep-alive를 꺼둔 HTTP 라이브러리)가 범인이다. 클라이언트 측에서 connection pool을 켜고, 서버는 <code>tcp_tw_reuse</code> 또는 라우팅 단의 LB로 분산. <code>net.ipv4.ip_local_port_range</code> 를 넓혀 ephemeral 포트 풀을 늘리는 것이 단기 처방.</p> <hr> <h2 id=참고자료>참고자료<a class=headerlink href=#참고자료 title="Permanent link">&para;</a></h2> <blockquote> <p>[1] <a href=https://www.rfc-editor.org/rfc/rfc9110>RFC 9110 — HTTP Semantics</a></p> <p>[2] <a href=https://www.rfc-editor.org/rfc/rfc8446>RFC 8446 — TLS 1.3</a></p> <p>[3] <a href=https://www.rfc-editor.org/rfc/rfc1035>RFC 1035 — Domain Names</a></p> <p>[4] <a href=https://hpbn.co/ >High Performance Browser Networking</a></p> </blockquote> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Domain/DNS_over_HTTPS_Do_H/ >DNS over HTTPS (DoH)</a></li> <li><a href=../Transport%20Layer/TCP/TCP_vs_UDP/ >TCP vs UDP - 실무 선택 기준</a></li> <li><a href=../Transport%20Layer/TCP/TCP%EC%99%80%20OSI%207%20%EA%B3%84%EC%B8%B5/ >TCP와 OSI 7 계층</a></li> <li><a href=../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/ >AMQP vs MQTT 비교 분석</a></li> <li><a href=../../Domain/CNAME/ >CNAME (Canonical Name Record)</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../GSLB/ class="md-footer__link md-footer__link--prev" aria-label="이전: GSLB"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> GSLB </div> </div> </a> <a href=../OSI_7_Layer_Model/ class="md-footer__link md-footer__link--next" aria-label="다음: OSI 7 계층 모델"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> OSI 7 계층 모델 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+    C-&gt;&gt;S: ACK</code></pre>
+<p>FIN을 먼저 보낸 쪽이 TIME_WAIT 상태로 60초가량 머무른다. 정상 종료라면 양쪽에 시퀀스 번호 재사용 보호를 위해 이 상태가 필요하다. 짧은 시간에 새 연결을 대량으로 여닫는 서버에서 TIME_WAIT가 쌓이면 ephemeral port가 고갈된다. <code>ss -tan state time-wait | wc -l</code> 로 모니터링한다.</p>
+<hr />
+<h2 id="단계별-지연-분리">단계별 지연 분리<a class="headerlink" href="#단계별-지연-분리" title="Permanent link">&para;</a></h2>
+<p>성능 문제가 들어왔을 때 어느 단계가 느린지 분리해야 다음 조치가 정해진다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>$<span class="w"> </span>curl<span class="w"> </span>-o<span class="w"> </span>/dev/null<span class="w"> </span>-s<span class="w"> </span>-w<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="s2">&quot;namelookup:    %{time_namelookup}\nconnect:       %{time_connect}\nappconnect:    %{time_appconnect}\npretransfer:   %{time_pretransfer}\nstarttransfer: %{time_starttransfer}\ntotal:         %{time_total}\n&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>https://example.com
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>namelookup:<span class="w">    </span><span class="m">0</span>.012
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>connect:<span class="w">       </span><span class="m">0</span>.028
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>appconnect:<span class="w">    </span><span class="m">0</span>.082
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>pretransfer:<span class="w">   </span><span class="m">0</span>.082
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>starttransfer:<span class="w"> </span><span class="m">0</span>.143
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>total:<span class="w">         </span><span class="m">0</span>.144
+</span></code></pre></div>
+<p>각 변수는 누적 시간이다. 단계별로 빼야 순수값이 나온다.</p>
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>계산</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DNS</td>
+<td>namelookup</td>
+<td>도메인 → IP</td>
+</tr>
+<tr>
+<td>TCP</td>
+<td>connect - namelookup</td>
+<td>3-way handshake RTT 한 번</td>
+</tr>
+<tr>
+<td>TLS</td>
+<td>appconnect - connect</td>
+<td>핸드셰이크 RTT (1.2면 2회, 1.3이면 1회)</td>
+</tr>
+<tr>
+<td>서버 처리 + 첫 바이트</td>
+<td>starttransfer - appconnect</td>
+<td>서버 응답 생성 시간이 사실상 여기에 들어간다</td>
+</tr>
+<tr>
+<td>본문 다운로드</td>
+<td>total - starttransfer</td>
+<td>바디 크기와 대역폭에 비례</td>
+</tr>
+</tbody>
+</table>
+<p>ttfb가 길고 나머지가 짧으면 서버 측 처리(쿼리, 외부 API, 락 대기)가 범인이다. tls 단계만 길면 인증서 체인 검증, OCSP, 핸드셰이크 협상 실패 후 재시도를 의심한다. tcp만 길면 패킷 손실에 따른 SYN 재전송, 또는 라우팅 우회.</p>
+<hr />
+<h2 id="캡처를-파일로-떠서-보기">캡처를 파일로 떠서 보기<a class="headerlink" href="#캡처를-파일로-떠서-보기" title="Permanent link">&para;</a></h2>
+<p>실시간 tcpdump는 빠르고, Wireshark는 단계 디코딩이 풍부하다. 둘을 같이 쓴다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$<span class="w"> </span>sudo<span class="w"> </span>tcpdump<span class="w"> </span>-i<span class="w"> </span>en0<span class="w"> </span>-n<span class="w"> </span>-w<span class="w"> </span>session.pcap<span class="w"> </span><span class="s1">&#39;host example.com&#39;</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># 트래픽 발생 후 Ctrl-C</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>$<span class="w"> </span>wireshark<span class="w"> </span>session.pcap
+</span></code></pre></div>
+<p>Wireshark 안에서 Statistics → Conversations 로 가면 이 연결이 RTT 몇 번이 들었는지, 재전송이 얼마나 있었는지가 표로 나온다. TLS는 키 자료가 있어야 복호화가 되는데, <code>SSLKEYLOGFILE</code> 환경변수를 설정하고 브라우저나 curl을 실행하면 세션 키가 로그로 떨어진다. Wireshark의 TLS 설정에 이 파일 경로를 넣으면 응답 바디까지 평문으로 보인다.</p>
+<hr />
+<h2 id="트러블슈팅-사례">트러블슈팅 사례<a class="headerlink" href="#트러블슈팅-사례" title="Permanent link">&para;</a></h2>
+<h3 id="가끔-첫-요청이-5초씩-느려진다">가끔 첫 요청이 5초씩 느려진다<a class="headerlink" href="#가끔-첫-요청이-5초씩-느려진다" title="Permanent link">&para;</a></h3>
+<p>curl 타이밍을 측정해보면 namelookup이 5초로 튄다. resolver 한 곳이 응답을 안 주고, 5초 타임아웃 후 다음 resolver로 fallback 한 것이다. <code>/etc/resolv.conf</code> 의 <code>options timeout:1 attempts:2</code> 같은 설정으로 fallback을 빠르게 만든다. systemd-resolved 환경이면 <code>resolvectl statistics</code> 로 어느 서버가 실패하는지 보인다.</p>
+<h3 id="프록시-뒤에서만-ssl-에러가-난다">프록시 뒤에서만 SSL 에러가 난다<a class="headerlink" href="#프록시-뒤에서만-ssl-에러가-난다" title="Permanent link">&para;</a></h3>
+<p>대부분 SNI를 안 보내는 구형 클라이언트가 vhost를 못 찾는 경우다. <code>curl -vk --resolve example.com:443:1.2.3.4 https://example.com</code> 으로 SNI를 명시해서 재현해본다. 다른 케이스는 사내 MITM 프록시가 발급한 자체 서명 인증서가 OS 트러스트 스토어에 없는 경우.</p>
+<h3 id="post가-get으로-바뀐다">POST가 GET으로 바뀐다<a class="headerlink" href="#post가-get으로-바뀐다" title="Permanent link">&para;</a></h3>
+<p>리다이렉트 응답이 301 또는 302인데 클라이언트가 RFC 권고를 따라 메서드를 GET으로 변경했다. 메서드 보존이 필요하면 서버가 307/308을 보내야 한다.</p>
+<h3 id="time_wait가-만-단위로-쌓인다">TIME_WAIT가 만 단위로 쌓인다<a class="headerlink" href="#time_wait가-만-단위로-쌓인다" title="Permanent link">&para;</a></h3>
+<p>요청마다 새 connection을 여는 클라이언트(또는 keep-alive를 꺼둔 HTTP 라이브러리)가 범인이다. 클라이언트 측에서 connection pool을 켜고, 서버는 <code>tcp_tw_reuse</code> 또는 라우팅 단의 LB로 분산. <code>net.ipv4.ip_local_port_range</code> 를 넓혀 ephemeral 포트 풀을 늘리는 것이 단기 처방.</p>
+<hr />
+<h2 id="참고자료">참고자료<a class="headerlink" href="#참고자료" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>[1] <a href="https://www.rfc-editor.org/rfc/rfc9110">RFC 9110 — HTTP Semantics</a></p>
+<p>[2] <a href="https://www.rfc-editor.org/rfc/rfc8446">RFC 8446 — TLS 1.3</a></p>
+<p>[3] <a href="https://www.rfc-editor.org/rfc/rfc1035">RFC 1035 — Domain Names</a></p>
+<p>[4] <a href="https://hpbn.co/">High Performance Browser Networking</a></p>
+</blockquote>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Domain/DNS_over_HTTPS_Do_H/">DNS over HTTPS (DoH)</a></li>
+<li><a href="../Transport%20Layer/TCP/TCP_vs_UDP/">TCP vs UDP - 실무 선택 기준</a></li>
+<li><a href="../Transport%20Layer/TCP/TCP%EC%99%80%20OSI%207%20%EA%B3%84%EC%B8%B5/">TCP와 OSI 7 계층</a></li>
+<li><a href="../Transport%20Layer/TCP/Mqtt/AMQP%20vs%20MQTT/">AMQP vs MQTT 비교 분석</a></li>
+<li><a href="../../Domain/CNAME/">CNAME (Canonical Name Record)</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../GSLB/" class="md-footer__link md-footer__link--prev" aria-label="이전: GSLB">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                GSLB
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../OSI_7_Layer_Model/" class="md-footer__link md-footer__link--next" aria-label="다음: OSI 7 계층 모델">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                OSI 7 계층 모델
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

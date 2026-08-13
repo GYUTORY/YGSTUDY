@@ -1,113 +1,2699 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Network/VPC_Flow_Logs/ rel=canonical><link href=../VPC_Endpoints/ rel=prev><link href=../VPC_IPAM/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>VPC Flow Logs - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#vpc-flow-logs class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> VPC Flow Logs </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_3 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_3> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Containers/ class=md-nav__link> <span class=md-ellipsis> Containers </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Database/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Analytics/ class=md-nav__link> <span class=md-ellipsis> Analytics </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#개요 class=md-nav__link> <span class=md-ellipsis> 개요 </span> </a> </li> <li class=md-nav__item> <a href=#캡처-범위--eni--서브넷--vpc class=md-nav__link> <span class=md-ellipsis> 캡처 범위 — ENI / 서브넷 / VPC </span> </a> </li> <li class=md-nav__item> <a href=#전송-대상별-트레이드오프 class=md-nav__link> <span class=md-ellipsis> 전송 대상별 트레이드오프 </span> </a> <nav class=md-nav aria-label="전송 대상별 트레이드오프"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#s3 class=md-nav__link> <span class=md-ellipsis> S3 </span> </a> </li> <li class=md-nav__item> <a href=#cloudwatch-logs class=md-nav__link> <span class=md-ellipsis> CloudWatch Logs </span> </a> </li> <li class=md-nav__item> <a href=#kinesis-data-firehose class=md-nav__link> <span class=md-ellipsis> Kinesis Data Firehose </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#로그-포맷--default-vs-custom class=md-nav__link> <span class=md-ellipsis> 로그 포맷 — default vs custom </span> </a> <nav class=md-nav aria-label="로그 포맷 — default vs custom"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#pkt-srcaddr--pkt-dstaddr--nat-뒤-진짜-출발지-보기 class=md-nav__link> <span class=md-ellipsis> pkt-srcaddr / pkt-dstaddr — NAT 뒤 진짜 출발지 보기 </span> </a> </li> <li class=md-nav__item> <a href=#traffic-path--트래픽이-어느-게이트웨이로-나갔는가 class=md-nav__link> <span class=md-ellipsis> traffic-path — 트래픽이 어느 게이트웨이로 나갔는가 </span> </a> </li> <li class=md-nav__item> <a href=#flow-direction--ingress인가-egress인가 class=md-nav__link> <span class=md-ellipsis> flow-direction — ingress인가 egress인가 </span> </a> </li> <li class=md-nav__item> <a href=#그-외-자주-켜는-필드 class=md-nav__link> <span class=md-ellipsis> 그 외 자주 켜는 필드 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#accept--reject-필터-실수 class=md-nav__link> <span class=md-ellipsis> ACCEPT / REJECT 필터 실수 </span> </a> </li> <li class=md-nav__item> <a href=#athena-테이블-정의 class=md-nav__link> <span class=md-ellipsis> Athena 테이블 정의 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅용-athena-쿼리 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅용 Athena 쿼리 </span> </a> <nav class=md-nav aria-label="트러블슈팅용 Athena 쿼리"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#특정-eni로-들어온-거부-트래픽-추적 class=md-nav__link> <span class=md-ellipsis> 특정 ENI로 들어온 거부 트래픽 추적 </span> </a> </li> <li class=md-nav__item> <a href=#nat-gateway-비용-폭증-원인-파악 class=md-nav__link> <span class=md-ellipsis> NAT Gateway 비용 폭증 원인 파악 </span> </a> </li> <li class=md-nav__item> <a href=#의심-외부-ip와의-통신-전체-추출 class=md-nav__link> <span class=md-ellipsis> 의심 외부 IP와의 통신 전체 추출 </span> </a> </li> <li class=md-nav__item> <a href=#top-talker-일별-추출 class=md-nav__link> <span class=md-ellipsis> TOP talker 일별 추출 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#transit-gateway-flow-logs와의-차이 class=md-nav__link> <span class=md-ellipsis> Transit Gateway Flow Logs와의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#데이터-양-폭증-주의사항 class=md-nav__link> <span class=md-ellipsis> 데이터 양 폭증 주의사항 </span> </a> </li> <li class=md-nav__item> <a href=#실무에서-자주-만나는-함정 class=md-nav__link> <span class=md-ellipsis> 실무에서 자주 만나는 함정 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>network</span> <span class=md-tag>observability</span> <span class=md-tag>vpc</span> </nav> <h1 id=vpc-flow-logs>VPC Flow Logs<a class=headerlink href=#vpc-flow-logs title="Permanent link">&para;</a></h1> <h2 id=개요>개요<a class=headerlink href=#개요 title="Permanent link">&para;</a></h2> <p>VPC Flow Logs는 VPC 안의 ENI를 드나드는 IP 트래픽 메타데이터를 캡처하는 기능이다. 페이로드는 잡지 않는다. 출발지/목적지 IP, 포트, 프로토콜, 패킷·바이트 수, ACCEPT/REJECT 결과, 시간 구간 같은 5튜플 기반 요약만 남긴다. 패킷 캡처가 필요하면 Traffic Mirroring을 따로 켜야 한다.</p> <p>운영하다 보면 "이 RDS로 누가 붙는 거지?", "NAT Gateway 처리 바이트가 왜 어제부터 5배 뛰었지?", "보안 그룹이 막은 트래픽이 도대체 어디서 오는 거야?" 같은 질문이 매주 한 번씩 온다. Flow Logs를 미리 켜두지 않았으면 그 시점의 트래픽을 재현할 방법이 없다. 그래서 신규 VPC 만들 때는 일단 켜놓는 편이 낫다.</p> <p>다만 켜는 순간 데이터 양이 즉시 늘어난다. 샘플링 옵션이 없어서 1:1 캡처고, S3/CloudWatch Logs 비용이 따라붙는다. "그냥 켜두면 되겠지" 라는 생각으로 모든 VPC에 CloudWatch Logs로 떨궜다가 월말 청구서 보고 놀라는 경우가 많다.</p> <h2 id=캡처-범위--eni--서브넷--vpc>캡처 범위 — ENI / 서브넷 / VPC<a class=headerlink href=#캡처-범위--eni--서브넷--vpc title="Permanent link">&para;</a></h2> <p>Flow Logs는 세 가지 단위로 켤 수 있다. 어느 쪽이든 결과 레코드 형식은 동일하지만 캡처 대상이 달라진다.</p> <ul> <li><strong>ENI 단위</strong>: 특정 네트워크 인터페이스 하나만 본다. 문제 인스턴스 한 대만 디버깅할 때 쓴다. 가장 좁은 범위, 가장 적은 데이터.</li> <li><strong>서브넷 단위</strong>: 그 서브넷 안의 모든 ENI를 캡처한다. 서브넷에 EC2를 새로 띄우면 자동으로 따라잡힌다.</li> <li><strong>VPC 단위</strong>: VPC 안의 모든 ENI를 캡처한다. 보통 운영 환경에서는 이걸 켠다. 신규 서브넷·신규 인스턴스를 사람이 잊고 누락시킬 일이 없다.</li> </ul> <p>세 단위를 동시에 켜면 같은 트래픽이 중복 기록된다. VPC 단위로 켜둔 상태에서 ENI 단위를 또 켜면 동일 패킷이 두 로그에 모두 찍히고 저장 비용도 두 배가 된다. 디버깅이 끝났는데 ENI 단위 로그를 끄는 걸 깜빡하는 경우가 진짜 자주 있다. 분기 한 번씩 정리하는 게 좋다.</p> <p>캡처 대상에서 빠지는 트래픽도 정해져 있다. Amazon DNS(169.254.169.253), 메타데이터 서비스(169.254.169.254), Windows 라이선스 활성화, DHCP, 미러링된 트래픽, AWS 예약 IP 대역과의 일부 통신은 Flow Logs에 안 찍힌다. "분명 DNS를 쓰는데 왜 안 보이지" 라는 질문이 나오는 이유다.</p> <h2 id=전송-대상별-트레이드오프>전송 대상별 트레이드오프<a class=headerlink href=#전송-대상별-트레이드오프 title="Permanent link">&para;</a></h2> <p>전송 대상은 세 가지다. S3, CloudWatch Logs, Kinesis Data Firehose. 각각 비용·지연·후속 처리 방식이 다르다.</p> <h3 id=s3>S3<a class=headerlink href=#s3 title="Permanent link">&para;</a></h3> <ul> <li><strong>비용</strong>: 가장 싸다. 데이터 인입(ingest) 비용 + S3 저장 비용만 든다. CloudWatch Logs 대비 보통 1/4~1/5 수준.</li> <li><strong>지연</strong>: 5분 간격으로 객체가 떨어진다. 실시간 분석은 못 한다.</li> <li><strong>포맷</strong>: Parquet 선택 가능. Athena 쿼리할 거면 처음부터 Parquet으로 떨구는 게 맞다. plain text로 쌓다가 나중에 변환하면 같은 데이터를 두 번 저장하게 된다.</li> <li><strong>파티셔닝</strong>: Hive 호환 파티셔닝(<code>year=YYYY/month=MM/day=DD/hour=HH</code>)을 켤 수 있다. Athena에서 파티션 프루닝이 먹어서 스캔 비용이 크게 줄어든다. 안 켜면 매번 풀 스캔이라 쿼리 한 번에 수 GB씩 나간다.</li> <li><strong>추천 시점</strong>: 장기 보관, 사후 분석, 감사 용도. 99%의 운영 케이스가 여기에 해당한다.</li> </ul> <h3 id=cloudwatch-logs>CloudWatch Logs<a class=headerlink href=#cloudwatch-logs title="Permanent link">&para;</a></h3> <ul> <li><strong>비용</strong>: 인입 비용이 GB당 0.5~0.76 USD 수준이라 비싸다. 트래픽 많은 VPC에 켜면 한 달에 수천 달러 우습게 나간다.</li> <li><strong>지연</strong>: 수십 초~분 단위. S3보다는 빠르지만 "실시간"이라고 부르긴 애매하다.</li> <li><strong>장점</strong>: CloudWatch Logs Insights로 바로 쿼리할 수 있다. 메트릭 필터를 걸어서 알람도 만들 수 있다. "REJECT가 분당 1만 건 넘으면 알람" 같은 룰을 거기서 바로 짠다.</li> <li><strong>추천 시점</strong>: 알람·실시간 모니터링이 필요한 핵심 VPC. 그것도 전체가 아니라 의심 구간 디버깅용으로 한시적으로 켜는 편이 비용상 안전하다.</li> </ul> <h3 id=kinesis-data-firehose>Kinesis Data Firehose<a class=headerlink href=#kinesis-data-firehose title="Permanent link">&para;</a></h3> <ul> <li><strong>비용</strong>: Firehose 인입 비용 + 최종 대상(S3/OpenSearch/Splunk) 비용.</li> <li><strong>지연</strong>: 버퍼링 설정에 따라 60초~몇 분.</li> <li><strong>추천 시점</strong>: OpenSearch나 Datadog·Splunk 같은 SIEM에 실시간으로 흘려보낼 때. S3로 직접 떨굴 거면 굳이 Firehose를 끼울 이유가 없다.</li> </ul> <p>실무에서는 보통 "S3 + Parquet + Hive 파티셔닝 + Athena" 조합을 기본으로 두고, 알람 필요한 곳만 CloudWatch Logs를 추가로 켠다. 같은 트래픽을 두 군데로 보내려면 Flow Log 정의를 두 개 만들면 된다. AWS 콘솔에서는 "Flow log destination"을 두 번 설정한다는 뜻이다.</p> <h2 id=로그-포맷--default-vs-custom>로그 포맷 — default vs custom<a class=headerlink href=#로그-포맷--default-vs-custom title="Permanent link">&para;</a></h2> <p>기본 포맷 14개 필드는 다음 정도가 들어 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>version account-id interface-id srcaddr dstaddr srcport dstport protocol
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>packets bytes start end action log-status
-</span></code></pre></div> <p>처음 켜면 이걸로 시작하지만, 디버깅하다 보면 곧 부족함을 느낀다. 특히 다음 세 상황에서.</p> <h3 id=pkt-srcaddr--pkt-dstaddr--nat-뒤-진짜-출발지-보기>pkt-srcaddr / pkt-dstaddr — NAT 뒤 진짜 출발지 보기<a class=headerlink href=#pkt-srcaddr--pkt-dstaddr--nat-뒤-진짜-출발지-보기 title="Permanent link">&para;</a></h3> <p><code>srcaddr</code>/<code>dstaddr</code>는 ENI 관점의 IP다. NAT Gateway 뒤에 있는 프라이빗 인스턴스가 외부로 나갈 때 Flow Log의 <code>srcaddr</code>는 NAT Gateway의 ENI IP로 찍힌다. "어느 인스턴스가 외부 IP X로 트래픽을 보냈는가" 를 추적하려면 <code>pkt-srcaddr</code>(실제 패킷의 출발지 IP)가 필요하다.</p> <p>기본 포맷에는 없다. custom format으로 켜야 한다. NAT Gateway가 끼는 VPC에서는 사실상 필수다.</p> <h3 id=traffic-path--트래픽이-어느-게이트웨이로-나갔는가>traffic-path — 트래픽이 어느 게이트웨이로 나갔는가<a class=headerlink href=#traffic-path--트래픽이-어느-게이트웨이로-나갔는가 title="Permanent link">&para;</a></h3> <p><code>traffic-path</code>는 송신 트래픽이 어떤 경로로 VPC를 빠져나갔는지 정수 코드로 알려준다. 1=같은 VPC 내, 2=IGW/Egress-Only IGW, 3=VGW, 4=VPC Peering, 5=Transit Gateway, 6=Local Gateway, 7=Gateway Endpoint, 8=PrivateLink Interface Endpoint 등.</p> <p>라우팅이 복잡한 VPC에서 "이 트래픽 도대체 어디로 나간 거지?" 를 정답으로 알려주는 유일한 필드다. NAT Gateway 비용 폭증 원인 파악할 때 <code>traffic-path = 2</code>(IGW로 나간 것) 와 NAT Gateway ENI로 들어온 트래픽을 비교하면 어느 인스턴스가 외부 통신을 일으켰는지 빠르게 좁힌다.</p> <h3 id=flow-direction--ingress인가-egress인가>flow-direction — ingress인가 egress인가<a class=headerlink href=#flow-direction--ingress인가-egress인가 title="Permanent link">&para;</a></h3> <p><code>flow-direction</code>은 ENI 기준으로 트래픽이 들어오는지(<code>ingress</code>) 나가는지(<code>egress</code>)를 명시한다. <code>srcaddr</code>/<code>dstaddr</code>만 보고도 추정은 가능하지만 같은 VPC 내부 통신이나 PrivateLink 트래픽에서는 헷갈리는 경우가 있다. 이 필드를 켜두면 Athena에서 <code>WHERE flow_direction = 'egress'</code> 한 줄로 정확히 골라낸다.</p> <h3 id=그-외-자주-켜는-필드>그 외 자주 켜는 필드<a class=headerlink href=#그-외-자주-켜는-필드 title="Permanent link">&para;</a></h3> <ul> <li><code>vpc-id</code>, <code>subnet-id</code>, <code>instance-id</code>: 멀티 VPC 환경에서 여러 로그를 한 테이블로 묶어 보고 싶을 때.</li> <li><code>tcp-flags</code>: SYN만 폭주하는지(스캐닝/DDoS) 정상 세션인지 구분할 때.</li> <li><code>region</code>, <code>az-id</code>: 여러 리전 로그를 한 버킷에 모을 때.</li> <li><code>sublocation-type</code>, <code>sublocation-id</code>: Wavelength·Outposts·Local Zones 사용 시.</li> </ul> <p>custom format은 한번 정해두면 나중에 필드 추가가 까다롭다. Flow Log 정의를 새로 만들고 기존 것을 지우는 식이라 Athena 테이블 스키마도 재정의해야 한다. 신규 VPC 만들 때 처음부터 <code>pkt-srcaddr</code>, <code>pkt-dstaddr</code>, <code>traffic-path</code>, <code>flow-direction</code>, <code>vpc-id</code>, <code>subnet-id</code>, <code>instance-id</code> 까지 넣는 걸 권장한다. 데이터 한 줄당 몇십 바이트 더 늘어나는 비용보다 트러블슈팅할 때 못 보는 비용이 훨씬 크다.</p> <h2 id=accept--reject-필터-실수>ACCEPT / REJECT 필터 실수<a class=headerlink href=#accept--reject-필터-실수 title="Permanent link">&para;</a></h2> <p>Flow Log를 만들 때 traffic type을 ACCEPT / REJECT / ALL 중에 고른다. 여기서 실수가 잘 나온다.</p> <ul> <li><strong>REJECT만 켠 경우</strong>: 보안 그룹·NACL이 막은 트래픽만 본다. "차단된 게 누가 어디서 왔는가" 를 빠르게 본다는 점에서 보안용으로는 합리적이지만, 운영 트러블슈팅에는 거의 무용지물이다. "내 ALB에서 백엔드로 가는 트래픽이 끊겼다" 류의 문제는 ACCEPT 로그가 있어야 추적된다.</li> <li><strong>ACCEPT만 켠 경우</strong>: 보안 그룹이 막아서 안 들어온 트래픽은 영영 모른다. 보안 사고 조사할 때 가장 답답한 상태.</li> <li><strong>ALL이 정답</strong>: 데이터 양이 늘어나는 게 부담이지만 대부분의 경우 ALL이 맞다. REJECT/ACCEPT를 따로 켜는 건 정말 비용 문제가 심각할 때만.</li> </ul> <p>특히 헷갈리는 케이스 — NACL이 막은 트래픽은 <code>action = REJECT</code>로 찍히지만, 보안 그룹이 outbound로 막은 트래픽은 SG가 stateful이라 응답 패킷 자체가 안 생긴다. 그래서 "내 EC2가 응답을 안 한다"는 상황에서 ingress REJECT만 찾으면 영영 못 찾고, ingress ACCEPT는 찍혀 있는데 egress가 없는 패턴을 봐야 답이 나온다. ALL을 켜야 보이는 패턴이다.</p> <p><code>log-status</code> 필드도 같이 본다. <code>OK</code>면 정상, <code>NODATA</code>는 캡처 구간에 트래픽이 없었음, <code>SKIPDATA</code>는 캡처 한도 초과로 일부 레코드가 빠졌다는 뜻이다. SKIPDATA가 자주 보이면 트래픽이 너무 많아서 일부 손실되고 있다는 신호라 분석 결과가 부정확할 수 있다.</p> <h2 id=athena-테이블-정의>Athena 테이블 정의<a class=headerlink href=#athena-테이블-정의 title="Permanent link">&para;</a></h2> <p>S3에 Parquet으로 떨군다고 가정하고 Athena 테이블을 만든다. Hive 파티셔닝을 켰다고 가정한 예시.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=k>CREATE</span><span class=w> </span><span class=k>EXTERNAL</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>vpc_flow_logs</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=w>  </span><span class=k>version</span><span class=w> </span><span class=nb>int</span><span class=p>,</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>  </span><span class=n>account_id</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>  </span><span class=n>interface_id</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=w>  </span><span class=n>srcaddr</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=w>  </span><span class=n>dstaddr</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a><span class=w>  </span><span class=n>srcport</span><span class=w> </span><span class=nb>int</span><span class=p>,</span>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=w>  </span><span class=n>dstport</span><span class=w> </span><span class=nb>int</span><span class=p>,</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=w>  </span><span class=n>protocol</span><span class=w> </span><span class=nb>bigint</span><span class=p>,</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=w>  </span><span class=n>packets</span><span class=w> </span><span class=nb>bigint</span><span class=p>,</span>
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a><span class=w>  </span><span class=n>bytes</span><span class=w> </span><span class=nb>bigint</span><span class=p>,</span>
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a><span class=w>  </span><span class=n>start_time</span><span class=w> </span><span class=nb>bigint</span><span class=p>,</span>
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a><span class=w>  </span><span class=n>end_time</span><span class=w> </span><span class=nb>bigint</span><span class=p>,</span>
-</span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a><span class=w>  </span><span class=n>action</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-15><a id=__codelineno-1-15 name=__codelineno-1-15 href=#__codelineno-1-15></a><span class=w>  </span><span class=n>log_status</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-16><a id=__codelineno-1-16 name=__codelineno-1-16 href=#__codelineno-1-16></a><span class=w>  </span><span class=n>vpc_id</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-17><a id=__codelineno-1-17 name=__codelineno-1-17 href=#__codelineno-1-17></a><span class=w>  </span><span class=n>subnet_id</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-18><a id=__codelineno-1-18 name=__codelineno-1-18 href=#__codelineno-1-18></a><span class=w>  </span><span class=n>instance_id</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-19><a id=__codelineno-1-19 name=__codelineno-1-19 href=#__codelineno-1-19></a><span class=w>  </span><span class=n>pkt_srcaddr</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-20><a id=__codelineno-1-20 name=__codelineno-1-20 href=#__codelineno-1-20></a><span class=w>  </span><span class=n>pkt_dstaddr</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-21><a id=__codelineno-1-21 name=__codelineno-1-21 href=#__codelineno-1-21></a><span class=w>  </span><span class=n>traffic_path</span><span class=w> </span><span class=nb>int</span><span class=p>,</span>
-</span><span id=__span-1-22><a id=__codelineno-1-22 name=__codelineno-1-22 href=#__codelineno-1-22></a><span class=w>  </span><span class=n>flow_direction</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-23><a id=__codelineno-1-23 name=__codelineno-1-23 href=#__codelineno-1-23></a><span class=w>  </span><span class=n>tcp_flags</span><span class=w> </span><span class=nb>int</span>
-</span><span id=__span-1-24><a id=__codelineno-1-24 name=__codelineno-1-24 href=#__codelineno-1-24></a><span class=p>)</span>
-</span><span id=__span-1-25><a id=__codelineno-1-25 name=__codelineno-1-25 href=#__codelineno-1-25></a><span class=n>PARTITIONED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-1-26><a id=__codelineno-1-26 name=__codelineno-1-26 href=#__codelineno-1-26></a><span class=w>  </span><span class=o>`</span><span class=n>aws</span><span class=o>-</span><span class=n>account</span><span class=o>-</span><span class=n>id</span><span class=o>`</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-27><a id=__codelineno-1-27 name=__codelineno-1-27 href=#__codelineno-1-27></a><span class=w>  </span><span class=o>`</span><span class=n>aws</span><span class=o>-</span><span class=n>service</span><span class=o>`</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-28><a id=__codelineno-1-28 name=__codelineno-1-28 href=#__codelineno-1-28></a><span class=w>  </span><span class=o>`</span><span class=n>aws</span><span class=o>-</span><span class=n>region</span><span class=o>`</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-29><a id=__codelineno-1-29 name=__codelineno-1-29 href=#__codelineno-1-29></a><span class=w>  </span><span class=k>year</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-30><a id=__codelineno-1-30 name=__codelineno-1-30 href=#__codelineno-1-30></a><span class=w>  </span><span class=k>month</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-31><a id=__codelineno-1-31 name=__codelineno-1-31 href=#__codelineno-1-31></a><span class=w>  </span><span class=k>day</span><span class=w> </span><span class=n>string</span><span class=p>,</span>
-</span><span id=__span-1-32><a id=__codelineno-1-32 name=__codelineno-1-32 href=#__codelineno-1-32></a><span class=w>  </span><span class=n>hour</span><span class=w> </span><span class=n>string</span>
-</span><span id=__span-1-33><a id=__codelineno-1-33 name=__codelineno-1-33 href=#__codelineno-1-33></a><span class=p>)</span>
-</span><span id=__span-1-34><a id=__codelineno-1-34 name=__codelineno-1-34 href=#__codelineno-1-34></a><span class=n>STORED</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>PARQUET</span>
-</span><span id=__span-1-35><a id=__codelineno-1-35 name=__codelineno-1-35 href=#__codelineno-1-35></a><span class=k>LOCATION</span><span class=w> </span><span class=s1>&#39;s3://my-flow-logs-bucket/AWSLogs/&#39;</span>
-</span><span id=__span-1-36><a id=__codelineno-1-36 name=__codelineno-1-36 href=#__codelineno-1-36></a><span class=n>TBLPROPERTIES</span><span class=w> </span><span class=p>(</span>
-</span><span id=__span-1-37><a id=__codelineno-1-37 name=__codelineno-1-37 href=#__codelineno-1-37></a><span class=w>  </span><span class=s1>&#39;projection.enabled&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;true&#39;</span><span class=p>,</span>
-</span><span id=__span-1-38><a id=__codelineno-1-38 name=__codelineno-1-38 href=#__codelineno-1-38></a><span class=w>  </span><span class=s1>&#39;projection.year.type&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;integer&#39;</span><span class=p>,</span>
-</span><span id=__span-1-39><a id=__codelineno-1-39 name=__codelineno-1-39 href=#__codelineno-1-39></a><span class=w>  </span><span class=s1>&#39;projection.year.range&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2024,2030&#39;</span><span class=p>,</span>
-</span><span id=__span-1-40><a id=__codelineno-1-40 name=__codelineno-1-40 href=#__codelineno-1-40></a><span class=w>  </span><span class=s1>&#39;projection.month.type&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;integer&#39;</span><span class=p>,</span>
-</span><span id=__span-1-41><a id=__codelineno-1-41 name=__codelineno-1-41 href=#__codelineno-1-41></a><span class=w>  </span><span class=s1>&#39;projection.month.range&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;1,12&#39;</span><span class=p>,</span>
-</span><span id=__span-1-42><a id=__codelineno-1-42 name=__codelineno-1-42 href=#__codelineno-1-42></a><span class=w>  </span><span class=s1>&#39;projection.month.digits&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2&#39;</span><span class=p>,</span>
-</span><span id=__span-1-43><a id=__codelineno-1-43 name=__codelineno-1-43 href=#__codelineno-1-43></a><span class=w>  </span><span class=s1>&#39;projection.day.type&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;integer&#39;</span><span class=p>,</span>
-</span><span id=__span-1-44><a id=__codelineno-1-44 name=__codelineno-1-44 href=#__codelineno-1-44></a><span class=w>  </span><span class=s1>&#39;projection.day.range&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;1,31&#39;</span><span class=p>,</span>
-</span><span id=__span-1-45><a id=__codelineno-1-45 name=__codelineno-1-45 href=#__codelineno-1-45></a><span class=w>  </span><span class=s1>&#39;projection.day.digits&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2&#39;</span><span class=p>,</span>
-</span><span id=__span-1-46><a id=__codelineno-1-46 name=__codelineno-1-46 href=#__codelineno-1-46></a><span class=w>  </span><span class=s1>&#39;projection.hour.type&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;integer&#39;</span><span class=p>,</span>
-</span><span id=__span-1-47><a id=__codelineno-1-47 name=__codelineno-1-47 href=#__codelineno-1-47></a><span class=w>  </span><span class=s1>&#39;projection.hour.range&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;0,23&#39;</span><span class=p>,</span>
-</span><span id=__span-1-48><a id=__codelineno-1-48 name=__codelineno-1-48 href=#__codelineno-1-48></a><span class=w>  </span><span class=s1>&#39;projection.hour.digits&#39;</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2&#39;</span>
-</span><span id=__span-1-49><a id=__codelineno-1-49 name=__codelineno-1-49 href=#__codelineno-1-49></a><span class=p>);</span>
-</span></code></pre></div> <p>Partition projection을 쓰면 <code>MSCK REPAIR TABLE</code>을 주기적으로 돌릴 필요가 없다. 새 파티션이 자동으로 인식된다.</p> <h2 id=트러블슈팅용-athena-쿼리>트러블슈팅용 Athena 쿼리<a class=headerlink href=#트러블슈팅용-athena-쿼리 title="Permanent link">&para;</a></h2> <h3 id=특정-eni로-들어온-거부-트래픽-추적>특정 ENI로 들어온 거부 트래픽 추적<a class=headerlink href=#특정-eni로-들어온-거부-트래픽-추적 title="Permanent link">&para;</a></h3> <p>보안팀에서 "최근 24시간 동안 우리 RDS ENI에 거부된 접속 시도가 어디서 왔는지 보고 싶다" 라는 요청이 자주 들어온다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=k>SELECT</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span><span class=n>srcaddr</span><span class=p>,</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span><span class=n>dstport</span><span class=p>,</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>  </span><span class=n>protocol</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>  </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>attempts</span><span class=p>,</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>  </span><span class=k>SUM</span><span class=p>(</span><span class=n>packets</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_packets</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=k>FROM</span><span class=w> </span><span class=n>vpc_flow_logs</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=k>WHERE</span><span class=w> </span><span class=k>year</span><span class=o>=</span><span class=s1>&#39;2026&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>month</span><span class=o>=</span><span class=s1>&#39;05&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>day</span><span class=w> </span><span class=k>BETWEEN</span><span class=w> </span><span class=s1>&#39;19&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=s1>&#39;20&#39;</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>interface_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;eni-0abcd1234ef567890&#39;</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>action</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;REJECT&#39;</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>flow_direction</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;ingress&#39;</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>srcaddr</span><span class=p>,</span><span class=w> </span><span class=n>dstport</span><span class=p>,</span><span class=w> </span><span class=n>protocol</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>attempts</span><span class=w> </span><span class=k>DESC</span>
-</span><span id=__span-2-14><a id=__codelineno-2-14 name=__codelineno-2-14 href=#__codelineno-2-14></a><span class=k>LIMIT</span><span class=w> </span><span class=mi>50</span><span class=p>;</span>
-</span></code></pre></div> <p><code>srcaddr</code> 상위 N개를 보면 보통 패턴이 드러난다. 한 IP에서 다양한 포트로 들어오면 포트 스캐닝, 여러 IP에서 같은 포트로 들어오면 의도된 트래픽이 보안 그룹에 빠진 케이스.</p> <h3 id=nat-gateway-비용-폭증-원인-파악>NAT Gateway 비용 폭증 원인 파악<a class=headerlink href=#nat-gateway-비용-폭증-원인-파악 title="Permanent link">&para;</a></h3> <p>NAT Gateway는 처리 바이트당 과금이라 어느 인스턴스가 외부로 많이 나가는지 찾으면 비용이 잡힌다. NAT Gateway의 ENI ID를 먼저 확인하고 그 ENI를 통과한 트래픽 중 <code>pkt-srcaddr</code>(실제 출발 인스턴스 IP) 기준으로 집계한다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=k>SELECT</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span><span class=n>pkt_srcaddr</span><span class=p>,</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span><span class=n>pkt_dstaddr</span><span class=p>,</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span><span class=n>dstport</span><span class=p>,</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span><span class=k>SUM</span><span class=p>(</span><span class=n>bytes</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>gb_transferred</span><span class=p>,</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>flow_count</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=k>FROM</span><span class=w> </span><span class=n>vpc_flow_logs</span>
-</span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=k>WHERE</span><span class=w> </span><span class=k>year</span><span class=o>=</span><span class=s1>&#39;2026&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>month</span><span class=o>=</span><span class=s1>&#39;05&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>day</span><span class=o>=</span><span class=s1>&#39;20&#39;</span>
-</span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>interface_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;eni-natgw-0abc...&#39;</span>
-</span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>flow_direction</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;egress&#39;</span>
-</span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>action</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;ACCEPT&#39;</span>
-</span><span id=__span-3-12><a id=__codelineno-3-12 name=__codelineno-3-12 href=#__codelineno-3-12></a><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>pkt_srcaddr</span><span class=p>,</span><span class=w> </span><span class=n>pkt_dstaddr</span><span class=p>,</span><span class=w> </span><span class=n>dstport</span>
-</span><span id=__span-3-13><a id=__codelineno-3-13 name=__codelineno-3-13 href=#__codelineno-3-13></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>gb_transferred</span><span class=w> </span><span class=k>DESC</span>
-</span><span id=__span-3-14><a id=__codelineno-3-14 name=__codelineno-3-14 href=#__codelineno-3-14></a><span class=k>LIMIT</span><span class=w> </span><span class=mi>30</span><span class=p>;</span>
-</span></code></pre></div> <p><code>pkt_srcaddr</code>가 같은 인스턴스가 상위에 몰려 있으면 그 인스턴스의 외부 통신을 줄이거나, 가능하면 VPC Endpoint(S3·DynamoDB는 Gateway Endpoint, 나머지는 Interface Endpoint)로 전환한다. S3·ECR·Secrets Manager 트래픽이 NAT를 타고 있는 경우가 가장 흔하다. Endpoint로 빼면 NAT 처리 비용과 데이터 전송 비용이 동시에 떨어진다.</p> <p><code>traffic_path</code> 필드를 켜뒀으면 더 빠르다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=k>SELECT</span><span class=w> </span><span class=n>pkt_srcaddr</span><span class=p>,</span><span class=w> </span><span class=k>SUM</span><span class=p>(</span><span class=n>bytes</span><span class=p>)</span><span class=o>/</span><span class=mi>1024</span><span class=o>/</span><span class=mi>1024</span><span class=o>/</span><span class=mi>1024</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>gb</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=k>FROM</span><span class=w> </span><span class=n>vpc_flow_logs</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=k>WHERE</span><span class=w> </span><span class=k>year</span><span class=o>=</span><span class=s1>&#39;2026&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>month</span><span class=o>=</span><span class=s1>&#39;05&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>day</span><span class=o>=</span><span class=s1>&#39;20&#39;</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>traffic_path</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>2</span><span class=w>  </span><span class=c1>-- IGW로 나간 트래픽</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>flow_direction</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;egress&#39;</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>pkt_srcaddr</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>gb</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span>
-</span></code></pre></div> <h3 id=의심-외부-ip와의-통신-전체-추출>의심 외부 IP와의 통신 전체 추출<a class=headerlink href=#의심-외부-ip와의-통신-전체-추출 title="Permanent link">&para;</a></h3> <div class="language-sql highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=k>SELECT</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=w>  </span><span class=n>from_unixtime</span><span class=p>(</span><span class=n>start_time</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>started_at</span><span class=p>,</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>  </span><span class=n>interface_id</span><span class=p>,</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>  </span><span class=n>pkt_srcaddr</span><span class=p>,</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>  </span><span class=n>pkt_dstaddr</span><span class=p>,</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=w>  </span><span class=n>srcport</span><span class=p>,</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>  </span><span class=n>dstport</span><span class=p>,</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>  </span><span class=n>action</span><span class=p>,</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>  </span><span class=n>bytes</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=k>FROM</span><span class=w> </span><span class=n>vpc_flow_logs</span>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a><span class=k>WHERE</span><span class=w> </span><span class=k>year</span><span class=o>=</span><span class=s1>&#39;2026&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>month</span><span class=o>=</span><span class=s1>&#39;05&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>day</span><span class=o>=</span><span class=s1>&#39;20&#39;</span>
-</span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=p>(</span><span class=n>srcaddr</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;203.0.113.45&#39;</span><span class=w> </span><span class=k>OR</span><span class=w> </span><span class=n>dstaddr</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;203.0.113.45&#39;</span><span class=p>)</span>
-</span><span id=__span-5-13><a id=__codelineno-5-13 name=__codelineno-5-13 href=#__codelineno-5-13></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>started_at</span><span class=p>;</span>
-</span></code></pre></div> <h3 id=top-talker-일별-추출>TOP talker 일별 추출<a class=headerlink href=#top-talker-일별-추출 title="Permanent link">&para;</a></h3> <div class="language-sql highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=k>SELECT</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span><span class=k>day</span><span class=p>,</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>  </span><span class=n>pkt_srcaddr</span><span class=p>,</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>  </span><span class=n>pkt_dstaddr</span><span class=p>,</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>  </span><span class=k>SUM</span><span class=p>(</span><span class=n>bytes</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_bytes</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=k>FROM</span><span class=w> </span><span class=n>vpc_flow_logs</span>
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a><span class=k>WHERE</span><span class=w> </span><span class=k>year</span><span class=o>=</span><span class=s1>&#39;2026&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>month</span><span class=o>=</span><span class=s1>&#39;05&#39;</span>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>flow_direction</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;egress&#39;</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w> </span><span class=n>pkt_srcaddr</span><span class=p>,</span><span class=w> </span><span class=n>pkt_dstaddr</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w> </span><span class=n>total_bytes</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span>
-</span></code></pre></div> <h2 id=transit-gateway-flow-logs와의-차이>Transit Gateway Flow Logs와의 차이<a class=headerlink href=#transit-gateway-flow-logs와의-차이 title="Permanent link">&para;</a></h2> <p>Transit Gateway에 붙는 트래픽은 VPC Flow Logs로 어느 정도 보이지만, TGW 내부의 어느 attachment를 거쳤는지, 어느 라우팅 테이블이 매칭됐는지는 안 보인다. 그래서 TGW 전용 Flow Logs가 따로 있다.</p> <p>차이점은 다음과 같다.</p> <ul> <li><strong>캡처 대상</strong>: VPC Flow Logs는 ENI 트래픽, TGW Flow Logs는 Transit Gateway를 거치는 모든 트래픽.</li> <li><strong>추가 필드</strong>: TGW Flow Logs는 <code>tgw-id</code>, <code>tgw-attachment-id</code>, <code>tgw-src-vpc-account-id</code>, <code>tgw-dst-vpc-account-id</code>, <code>tgw-src-vpc-id</code>, <code>tgw-dst-vpc-id</code>, <code>tgw-src-subnet-id</code>, <code>tgw-dst-subnet-id</code>, <code>tgw-src-eni</code>, <code>tgw-dst-eni</code>, <code>resource-type</code>, <code>packets-lost-no-route</code> 등이 추가된다. 어느 VPC가 어느 VPC로 흘려보냈는지 한 줄에 다 들어 있다.</li> <li><strong>REJECT 의미</strong>: TGW에서 REJECT는 라우팅 테이블에 경로가 없거나 attachment가 association되지 않아 드롭된 경우다. 보안 그룹과는 무관하다. <code>packets-lost-no-route</code>로 따로 카운트된다.</li> <li><strong>전송 대상</strong>: S3, CloudWatch Logs, Firehose 동일.</li> <li><strong>비용 구조</strong>: VPC Flow Logs와 동일하게 처리량 기반. 다만 TGW를 지나는 트래픽은 보통 멀티 VPC를 합친 것이라 한 곳에 모이는 데이터 양이 더 크다.</li> </ul> <p>여러 VPC가 TGW로 연결된 환경에서는 VPC Flow Logs와 TGW Flow Logs를 둘 다 켜는 게 일반적이다. VPC 안의 ENI 단위 디버깅은 VPC 로그, "VPC A의 어느 서브넷이 VPC B로 얼마나 보냈는가" 같은 cross-VPC 분석은 TGW 로그가 답한다.</p> <h2 id=데이터-양-폭증-주의사항>데이터 양 폭증 주의사항<a class=headerlink href=#데이터-양-폭증-주의사항 title="Permanent link">&para;</a></h2> <p>Flow Logs는 샘플링이 없다. 100% 캡처다. 이게 가장 자주 발 등을 찍는 부분이다.</p> <ul> <li><strong>트래픽이 많으면 로그가 폭증한다</strong>: 처리량 1 Gbps짜리 VPC에 ALL 트래픽 Flow Log를 켜면 하루에 수십 GB~수백 GB가 쌓인다. CloudWatch Logs로 보내면 월말 청구서가 EC2 비용보다 커지는 일이 진짜로 일어난다.</li> <li><strong>aggregation interval 조정</strong>: 기본 600초(10분), 옵션으로 60초까지 줄일 수 있다. 60초로 줄이면 같은 트래픽이라도 레코드 수가 5~10배 늘어난다. 정밀 분석이 필요한 짧은 구간에만 60초를 쓰고, 평시에는 600초가 합리적이다.</li> <li><strong>VPC 전체에 켜기 전 한 번 추산</strong>: VPC FlowLogs metric (<code>AWS/Logs:IncomingBytes</code>나 <code>AWS/Usage</code>)으로 일 단위 양을 먼저 본다. 추산 없이 켜고 한 달 뒤에 보면 늦다.</li> <li><strong>로그 자체가 만드는 트래픽</strong>: CloudWatch Logs 전송은 AWS 내부 트래픽이라 데이터 전송 요금은 안 붙지만, S3로 떨궈도 같은 리전 안이면 추가 비용이 없다. 다만 cross-region으로 보내면 데이터 전송 요금이 붙는다. 로그 버킷은 같은 리전에 두는 게 맞다.</li> <li><strong>보관 정책</strong>: S3 Lifecycle로 30일 후 IA, 90일 후 Glacier로 옮긴다. CloudWatch Logs는 retention을 명시적으로 걸지 않으면 영구 보관이라 비용이 누적된다. 의도가 아니라면 보통 14~30일로 자른다.</li> <li><strong>불필요한 Flow Log 정의 중복</strong>: 앞서 말한 것처럼 ENI/서브넷/VPC 단위로 여러 번 켜져 있으면 같은 트래픽이 여러 번 기록된다. 분기마다 <code>describe-flow-logs</code>로 전체 목록을 한 번 본다.</li> </ul> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>aws<span class=w> </span>ec2<span class=w> </span>describe-flow-logs<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;FlowLogs[].[FlowLogId,ResourceId,LogDestination,TrafficType,LogFormat]&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>  </span>--output<span class=w> </span>table
-</span></code></pre></div> <p>이 명령으로 계정 안의 모든 Flow Log 정의를 훑어보고, 의도치 않은 중복이나 잊혀진 정의가 있으면 정리한다. 특히 사라진 ENI나 삭제된 서브넷에 매달려 있던 정의가 남아 있는 경우가 있다.</p> <h2 id=실무에서-자주-만나는-함정>실무에서 자주 만나는 함정<a class=headerlink href=#실무에서-자주-만나는-함정 title="Permanent link">&para;</a></h2> <ul> <li><strong>Flow Logs는 만든 시점 이후 트래픽만 잡는다</strong>. 사고가 터지고 나서 켜면 그 시점 이전 트래픽은 영영 못 본다. 운영 VPC는 처음부터 켜둔다.</li> <li><strong>REJECT가 안 보인다고 안전한 게 아니다</strong>. SG는 stateful이라 outbound로 막힌 트래픽은 응답이 안 가는 형태로 나타날 뿐 REJECT로 안 찍힌다.</li> <li><strong>Athena 비용도 같이 본다</strong>. 파티션 프루닝 없이 한 달치를 풀스캔하면 한 쿼리에 수십 GB 스캔되어 비용이 나온다. <code>WHERE year/month/day</code> 조건을 반드시 넣는 습관을 들인다.</li> <li><strong>계정 간 통합</strong>: 멀티 계정 조직에서는 Organizations 차원에서 모든 계정의 Flow Logs를 중앙 S3 버킷으로 모은다. 계정마다 따로 분석하면 cross-account 트래픽이 짤린다.</li> <li><strong>개인정보</strong>: Flow Logs는 IP·포트 메타데이터지만 그 자체로 식별정보가 될 수 있다. 외부 공유나 장기 보관 시 컴플라이언스 검토가 필요한 경우가 있다.</li> <li><strong>VPC 삭제 시</strong>: VPC를 지우기 전에 Flow Log 정의를 먼저 지운다. VPC 삭제하면 자동으로 따라 사라지긴 하지만, S3에 누적된 로그는 그대로 남아 있다는 점을 잊기 쉽다.</li> </ul> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../VPC_Reachability_Analyzer/ >VPC Reachability Analyzer</a></li> <li><a href=../ALB_ECS_S3_Request_Flow/ >ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li> <li><a href=../Internet_Gateway/ >AWS Internet Gateway</a></li> <li><a href=../Nat_Gateway/ >AWS NAT Gateway</a></li> <li><a href=../PrivateLink/ >AWS PrivateLink</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../VPC_Endpoints/ class="md-footer__link md-footer__link--prev" aria-label="이전: VPC Endpoints"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> VPC Endpoints </div> </div> </a> <a href=../VPC_IPAM/ class="md-footer__link md-footer__link--next" aria-label="다음: AWS VPC IPAM"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> AWS VPC IPAM </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Network/VPC_Flow_Logs/">
+      
+      
+        <link rel="prev" href="../VPC_Endpoints/">
+      
+      
+        <link rel="next" href="../VPC_IPAM/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>VPC Flow Logs - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#vpc-flow-logs" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              VPC Flow Logs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Containers/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Database/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Analytics/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#개요" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        개요
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#캡처-범위--eni--서브넷--vpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        캡처 범위 — ENI / 서브넷 / VPC
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#전송-대상별-트레이드오프" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        전송 대상별 트레이드오프
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="전송 대상별 트레이드오프">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloudwatch-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CloudWatch Logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kinesis-data-firehose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kinesis Data Firehose
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#로그-포맷--default-vs-custom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그 포맷 — default vs custom
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="로그 포맷 — default vs custom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pkt-srcaddr--pkt-dstaddr--nat-뒤-진짜-출발지-보기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pkt-srcaddr / pkt-dstaddr — NAT 뒤 진짜 출발지 보기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#traffic-path--트래픽이-어느-게이트웨이로-나갔는가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        traffic-path — 트래픽이 어느 게이트웨이로 나갔는가
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow-direction--ingress인가-egress인가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        flow-direction — ingress인가 egress인가
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#그-외-자주-켜는-필드" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        그 외 자주 켜는 필드
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accept--reject-필터-실수" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ACCEPT / REJECT 필터 실수
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#athena-테이블-정의" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Athena 테이블 정의
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅용-athena-쿼리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅용 Athena 쿼리
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅용 Athena 쿼리">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#특정-eni로-들어온-거부-트래픽-추적" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        특정 ENI로 들어온 거부 트래픽 추적
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nat-gateway-비용-폭증-원인-파악" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NAT Gateway 비용 폭증 원인 파악
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#의심-외부-ip와의-통신-전체-추출" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        의심 외부 IP와의 통신 전체 추출
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#top-talker-일별-추출" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOP talker 일별 추출
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transit-gateway-flow-logs와의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transit Gateway Flow Logs와의 차이
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#데이터-양-폭증-주의사항" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        데이터 양 폭증 주의사항
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#실무에서-자주-만나는-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        실무에서 자주 만나는 함정
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">observability</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">vpc</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="vpc-flow-logs">VPC Flow Logs<a class="headerlink" href="#vpc-flow-logs" title="Permanent link">&para;</a></h1>
+<h2 id="개요">개요<a class="headerlink" href="#개요" title="Permanent link">&para;</a></h2>
+<p>VPC Flow Logs는 VPC 안의 ENI를 드나드는 IP 트래픽 메타데이터를 캡처하는 기능이다. 페이로드는 잡지 않는다. 출발지/목적지 IP, 포트, 프로토콜, 패킷·바이트 수, ACCEPT/REJECT 결과, 시간 구간 같은 5튜플 기반 요약만 남긴다. 패킷 캡처가 필요하면 Traffic Mirroring을 따로 켜야 한다.</p>
+<p>운영하다 보면 "이 RDS로 누가 붙는 거지?", "NAT Gateway 처리 바이트가 왜 어제부터 5배 뛰었지?", "보안 그룹이 막은 트래픽이 도대체 어디서 오는 거야?" 같은 질문이 매주 한 번씩 온다. Flow Logs를 미리 켜두지 않았으면 그 시점의 트래픽을 재현할 방법이 없다. 그래서 신규 VPC 만들 때는 일단 켜놓는 편이 낫다.</p>
+<p>다만 켜는 순간 데이터 양이 즉시 늘어난다. 샘플링 옵션이 없어서 1:1 캡처고, S3/CloudWatch Logs 비용이 따라붙는다. "그냥 켜두면 되겠지" 라는 생각으로 모든 VPC에 CloudWatch Logs로 떨궜다가 월말 청구서 보고 놀라는 경우가 많다.</p>
+<h2 id="캡처-범위--eni--서브넷--vpc">캡처 범위 — ENI / 서브넷 / VPC<a class="headerlink" href="#캡처-범위--eni--서브넷--vpc" title="Permanent link">&para;</a></h2>
+<p>Flow Logs는 세 가지 단위로 켤 수 있다. 어느 쪽이든 결과 레코드 형식은 동일하지만 캡처 대상이 달라진다.</p>
+<ul>
+<li><strong>ENI 단위</strong>: 특정 네트워크 인터페이스 하나만 본다. 문제 인스턴스 한 대만 디버깅할 때 쓴다. 가장 좁은 범위, 가장 적은 데이터.</li>
+<li><strong>서브넷 단위</strong>: 그 서브넷 안의 모든 ENI를 캡처한다. 서브넷에 EC2를 새로 띄우면 자동으로 따라잡힌다.</li>
+<li><strong>VPC 단위</strong>: VPC 안의 모든 ENI를 캡처한다. 보통 운영 환경에서는 이걸 켠다. 신규 서브넷·신규 인스턴스를 사람이 잊고 누락시킬 일이 없다.</li>
+</ul>
+<p>세 단위를 동시에 켜면 같은 트래픽이 중복 기록된다. VPC 단위로 켜둔 상태에서 ENI 단위를 또 켜면 동일 패킷이 두 로그에 모두 찍히고 저장 비용도 두 배가 된다. 디버깅이 끝났는데 ENI 단위 로그를 끄는 걸 깜빡하는 경우가 진짜 자주 있다. 분기 한 번씩 정리하는 게 좋다.</p>
+<p>캡처 대상에서 빠지는 트래픽도 정해져 있다. Amazon DNS(169.254.169.253), 메타데이터 서비스(169.254.169.254), Windows 라이선스 활성화, DHCP, 미러링된 트래픽, AWS 예약 IP 대역과의 일부 통신은 Flow Logs에 안 찍힌다. "분명 DNS를 쓰는데 왜 안 보이지" 라는 질문이 나오는 이유다.</p>
+<h2 id="전송-대상별-트레이드오프">전송 대상별 트레이드오프<a class="headerlink" href="#전송-대상별-트레이드오프" title="Permanent link">&para;</a></h2>
+<p>전송 대상은 세 가지다. S3, CloudWatch Logs, Kinesis Data Firehose. 각각 비용·지연·후속 처리 방식이 다르다.</p>
+<h3 id="s3">S3<a class="headerlink" href="#s3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>비용</strong>: 가장 싸다. 데이터 인입(ingest) 비용 + S3 저장 비용만 든다. CloudWatch Logs 대비 보통 1/4~1/5 수준.</li>
+<li><strong>지연</strong>: 5분 간격으로 객체가 떨어진다. 실시간 분석은 못 한다.</li>
+<li><strong>포맷</strong>: Parquet 선택 가능. Athena 쿼리할 거면 처음부터 Parquet으로 떨구는 게 맞다. plain text로 쌓다가 나중에 변환하면 같은 데이터를 두 번 저장하게 된다.</li>
+<li><strong>파티셔닝</strong>: Hive 호환 파티셔닝(<code>year=YYYY/month=MM/day=DD/hour=HH</code>)을 켤 수 있다. Athena에서 파티션 프루닝이 먹어서 스캔 비용이 크게 줄어든다. 안 켜면 매번 풀 스캔이라 쿼리 한 번에 수 GB씩 나간다.</li>
+<li><strong>추천 시점</strong>: 장기 보관, 사후 분석, 감사 용도. 99%의 운영 케이스가 여기에 해당한다.</li>
+</ul>
+<h3 id="cloudwatch-logs">CloudWatch Logs<a class="headerlink" href="#cloudwatch-logs" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>비용</strong>: 인입 비용이 GB당 0.5~0.76 USD 수준이라 비싸다. 트래픽 많은 VPC에 켜면 한 달에 수천 달러 우습게 나간다.</li>
+<li><strong>지연</strong>: 수십 초~분 단위. S3보다는 빠르지만 "실시간"이라고 부르긴 애매하다.</li>
+<li><strong>장점</strong>: CloudWatch Logs Insights로 바로 쿼리할 수 있다. 메트릭 필터를 걸어서 알람도 만들 수 있다. "REJECT가 분당 1만 건 넘으면 알람" 같은 룰을 거기서 바로 짠다.</li>
+<li><strong>추천 시점</strong>: 알람·실시간 모니터링이 필요한 핵심 VPC. 그것도 전체가 아니라 의심 구간 디버깅용으로 한시적으로 켜는 편이 비용상 안전하다.</li>
+</ul>
+<h3 id="kinesis-data-firehose">Kinesis Data Firehose<a class="headerlink" href="#kinesis-data-firehose" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>비용</strong>: Firehose 인입 비용 + 최종 대상(S3/OpenSearch/Splunk) 비용.</li>
+<li><strong>지연</strong>: 버퍼링 설정에 따라 60초~몇 분.</li>
+<li><strong>추천 시점</strong>: OpenSearch나 Datadog·Splunk 같은 SIEM에 실시간으로 흘려보낼 때. S3로 직접 떨굴 거면 굳이 Firehose를 끼울 이유가 없다.</li>
+</ul>
+<p>실무에서는 보통 "S3 + Parquet + Hive 파티셔닝 + Athena" 조합을 기본으로 두고, 알람 필요한 곳만 CloudWatch Logs를 추가로 켠다. 같은 트래픽을 두 군데로 보내려면 Flow Log 정의를 두 개 만들면 된다. AWS 콘솔에서는 "Flow log destination"을 두 번 설정한다는 뜻이다.</p>
+<h2 id="로그-포맷--default-vs-custom">로그 포맷 — default vs custom<a class="headerlink" href="#로그-포맷--default-vs-custom" title="Permanent link">&para;</a></h2>
+<p>기본 포맷 14개 필드는 다음 정도가 들어 있다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>version account-id interface-id srcaddr dstaddr srcport dstport protocol
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>packets bytes start end action log-status
+</span></code></pre></div>
+<p>처음 켜면 이걸로 시작하지만, 디버깅하다 보면 곧 부족함을 느낀다. 특히 다음 세 상황에서.</p>
+<h3 id="pkt-srcaddr--pkt-dstaddr--nat-뒤-진짜-출발지-보기">pkt-srcaddr / pkt-dstaddr — NAT 뒤 진짜 출발지 보기<a class="headerlink" href="#pkt-srcaddr--pkt-dstaddr--nat-뒤-진짜-출발지-보기" title="Permanent link">&para;</a></h3>
+<p><code>srcaddr</code>/<code>dstaddr</code>는 ENI 관점의 IP다. NAT Gateway 뒤에 있는 프라이빗 인스턴스가 외부로 나갈 때 Flow Log의 <code>srcaddr</code>는 NAT Gateway의 ENI IP로 찍힌다. "어느 인스턴스가 외부 IP X로 트래픽을 보냈는가" 를 추적하려면 <code>pkt-srcaddr</code>(실제 패킷의 출발지 IP)가 필요하다.</p>
+<p>기본 포맷에는 없다. custom format으로 켜야 한다. NAT Gateway가 끼는 VPC에서는 사실상 필수다.</p>
+<h3 id="traffic-path--트래픽이-어느-게이트웨이로-나갔는가">traffic-path — 트래픽이 어느 게이트웨이로 나갔는가<a class="headerlink" href="#traffic-path--트래픽이-어느-게이트웨이로-나갔는가" title="Permanent link">&para;</a></h3>
+<p><code>traffic-path</code>는 송신 트래픽이 어떤 경로로 VPC를 빠져나갔는지 정수 코드로 알려준다. 1=같은 VPC 내, 2=IGW/Egress-Only IGW, 3=VGW, 4=VPC Peering, 5=Transit Gateway, 6=Local Gateway, 7=Gateway Endpoint, 8=PrivateLink Interface Endpoint 등.</p>
+<p>라우팅이 복잡한 VPC에서 "이 트래픽 도대체 어디로 나간 거지?" 를 정답으로 알려주는 유일한 필드다. NAT Gateway 비용 폭증 원인 파악할 때 <code>traffic-path = 2</code>(IGW로 나간 것) 와 NAT Gateway ENI로 들어온 트래픽을 비교하면 어느 인스턴스가 외부 통신을 일으켰는지 빠르게 좁힌다.</p>
+<h3 id="flow-direction--ingress인가-egress인가">flow-direction — ingress인가 egress인가<a class="headerlink" href="#flow-direction--ingress인가-egress인가" title="Permanent link">&para;</a></h3>
+<p><code>flow-direction</code>은 ENI 기준으로 트래픽이 들어오는지(<code>ingress</code>) 나가는지(<code>egress</code>)를 명시한다. <code>srcaddr</code>/<code>dstaddr</code>만 보고도 추정은 가능하지만 같은 VPC 내부 통신이나 PrivateLink 트래픽에서는 헷갈리는 경우가 있다. 이 필드를 켜두면 Athena에서 <code>WHERE flow_direction = 'egress'</code> 한 줄로 정확히 골라낸다.</p>
+<h3 id="그-외-자주-켜는-필드">그 외 자주 켜는 필드<a class="headerlink" href="#그-외-자주-켜는-필드" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>vpc-id</code>, <code>subnet-id</code>, <code>instance-id</code>: 멀티 VPC 환경에서 여러 로그를 한 테이블로 묶어 보고 싶을 때.</li>
+<li><code>tcp-flags</code>: SYN만 폭주하는지(스캐닝/DDoS) 정상 세션인지 구분할 때.</li>
+<li><code>region</code>, <code>az-id</code>: 여러 리전 로그를 한 버킷에 모을 때.</li>
+<li><code>sublocation-type</code>, <code>sublocation-id</code>: Wavelength·Outposts·Local Zones 사용 시.</li>
+</ul>
+<p>custom format은 한번 정해두면 나중에 필드 추가가 까다롭다. Flow Log 정의를 새로 만들고 기존 것을 지우는 식이라 Athena 테이블 스키마도 재정의해야 한다. 신규 VPC 만들 때 처음부터 <code>pkt-srcaddr</code>, <code>pkt-dstaddr</code>, <code>traffic-path</code>, <code>flow-direction</code>, <code>vpc-id</code>, <code>subnet-id</code>, <code>instance-id</code> 까지 넣는 걸 권장한다. 데이터 한 줄당 몇십 바이트 더 늘어나는 비용보다 트러블슈팅할 때 못 보는 비용이 훨씬 크다.</p>
+<h2 id="accept--reject-필터-실수">ACCEPT / REJECT 필터 실수<a class="headerlink" href="#accept--reject-필터-실수" title="Permanent link">&para;</a></h2>
+<p>Flow Log를 만들 때 traffic type을 ACCEPT / REJECT / ALL 중에 고른다. 여기서 실수가 잘 나온다.</p>
+<ul>
+<li><strong>REJECT만 켠 경우</strong>: 보안 그룹·NACL이 막은 트래픽만 본다. "차단된 게 누가 어디서 왔는가" 를 빠르게 본다는 점에서 보안용으로는 합리적이지만, 운영 트러블슈팅에는 거의 무용지물이다. "내 ALB에서 백엔드로 가는 트래픽이 끊겼다" 류의 문제는 ACCEPT 로그가 있어야 추적된다.</li>
+<li><strong>ACCEPT만 켠 경우</strong>: 보안 그룹이 막아서 안 들어온 트래픽은 영영 모른다. 보안 사고 조사할 때 가장 답답한 상태.</li>
+<li><strong>ALL이 정답</strong>: 데이터 양이 늘어나는 게 부담이지만 대부분의 경우 ALL이 맞다. REJECT/ACCEPT를 따로 켜는 건 정말 비용 문제가 심각할 때만.</li>
+</ul>
+<p>특히 헷갈리는 케이스 — NACL이 막은 트래픽은 <code>action = REJECT</code>로 찍히지만, 보안 그룹이 outbound로 막은 트래픽은 SG가 stateful이라 응답 패킷 자체가 안 생긴다. 그래서 "내 EC2가 응답을 안 한다"는 상황에서 ingress REJECT만 찾으면 영영 못 찾고, ingress ACCEPT는 찍혀 있는데 egress가 없는 패턴을 봐야 답이 나온다. ALL을 켜야 보이는 패턴이다.</p>
+<p><code>log-status</code> 필드도 같이 본다. <code>OK</code>면 정상, <code>NODATA</code>는 캡처 구간에 트래픽이 없었음, <code>SKIPDATA</code>는 캡처 한도 초과로 일부 레코드가 빠졌다는 뜻이다. SKIPDATA가 자주 보이면 트래픽이 너무 많아서 일부 손실되고 있다는 신호라 분석 결과가 부정확할 수 있다.</p>
+<h2 id="athena-테이블-정의">Athena 테이블 정의<a class="headerlink" href="#athena-테이블-정의" title="Permanent link">&para;</a></h2>
+<p>S3에 Parquet으로 떨군다고 가정하고 Athena 테이블을 만든다. Hive 파티셔닝을 켰다고 가정한 예시.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">EXTERNAL</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">vpc_flow_logs</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="k">version</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="n">account_id</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="n">interface_id</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="n">srcaddr</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="n">dstaddr</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="n">srcport</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="n">dstport</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="n">protocol</span><span class="w"> </span><span class="nb">bigint</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="n">packets</span><span class="w"> </span><span class="nb">bigint</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="n">bytes</span><span class="w"> </span><span class="nb">bigint</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="n">start_time</span><span class="w"> </span><span class="nb">bigint</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="n">end_time</span><span class="w"> </span><span class="nb">bigint</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="n">action</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="n">log_status</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="n">vpc_id</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="n">subnet_id</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="n">instance_id</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="n">pkt_srcaddr</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">  </span><span class="n">pkt_dstaddr</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">  </span><span class="n">traffic_path</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">  </span><span class="n">flow_direction</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">  </span><span class="n">tcp_flags</span><span class="w"> </span><span class="nb">int</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="p">)</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">PARTITIONED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">  </span><span class="o">`</span><span class="n">aws</span><span class="o">-</span><span class="n">account</span><span class="o">-</span><span class="n">id</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">  </span><span class="o">`</span><span class="n">aws</span><span class="o">-</span><span class="n">service</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">  </span><span class="o">`</span><span class="n">aws</span><span class="o">-</span><span class="n">region</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">  </span><span class="k">year</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">  </span><span class="k">month</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">  </span><span class="k">day</span><span class="w"> </span><span class="n">string</span><span class="p">,</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">  </span><span class="n">hour</span><span class="w"> </span><span class="n">string</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="p">)</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="n">STORED</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">PARQUET</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="k">LOCATION</span><span class="w"> </span><span class="s1">&#39;s3://my-flow-logs-bucket/AWSLogs/&#39;</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="n">TBLPROPERTIES</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">  </span><span class="s1">&#39;projection.enabled&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;true&#39;</span><span class="p">,</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">  </span><span class="s1">&#39;projection.year.type&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;integer&#39;</span><span class="p">,</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">  </span><span class="s1">&#39;projection.year.range&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2024,2030&#39;</span><span class="p">,</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">  </span><span class="s1">&#39;projection.month.type&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;integer&#39;</span><span class="p">,</span>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">  </span><span class="s1">&#39;projection.month.range&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;1,12&#39;</span><span class="p">,</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">  </span><span class="s1">&#39;projection.month.digits&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2&#39;</span><span class="p">,</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="w">  </span><span class="s1">&#39;projection.day.type&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;integer&#39;</span><span class="p">,</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="w">  </span><span class="s1">&#39;projection.day.range&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;1,31&#39;</span><span class="p">,</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="w">  </span><span class="s1">&#39;projection.day.digits&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2&#39;</span><span class="p">,</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">  </span><span class="s1">&#39;projection.hour.type&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;integer&#39;</span><span class="p">,</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="w">  </span><span class="s1">&#39;projection.hour.range&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;0,23&#39;</span><span class="p">,</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">  </span><span class="s1">&#39;projection.hour.digits&#39;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;2&#39;</span>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="p">);</span>
+</span></code></pre></div>
+<p>Partition projection을 쓰면 <code>MSCK REPAIR TABLE</code>을 주기적으로 돌릴 필요가 없다. 새 파티션이 자동으로 인식된다.</p>
+<h2 id="트러블슈팅용-athena-쿼리">트러블슈팅용 Athena 쿼리<a class="headerlink" href="#트러블슈팅용-athena-쿼리" title="Permanent link">&para;</a></h2>
+<h3 id="특정-eni로-들어온-거부-트래픽-추적">특정 ENI로 들어온 거부 트래픽 추적<a class="headerlink" href="#특정-eni로-들어온-거부-트래픽-추적" title="Permanent link">&para;</a></h3>
+<p>보안팀에서 "최근 24시간 동안 우리 RDS ENI에 거부된 접속 시도가 어디서 왔는지 보고 싶다" 라는 요청이 자주 들어온다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">SELECT</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="n">srcaddr</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="n">dstport</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="n">protocol</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">attempts</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="k">SUM</span><span class="p">(</span><span class="n">packets</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">total_packets</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">FROM</span><span class="w"> </span><span class="n">vpc_flow_logs</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">year</span><span class="o">=</span><span class="s1">&#39;2026&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">month</span><span class="o">=</span><span class="s1">&#39;05&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">day</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="s1">&#39;19&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="s1">&#39;20&#39;</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">interface_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;eni-0abcd1234ef567890&#39;</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;REJECT&#39;</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">flow_direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;ingress&#39;</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">srcaddr</span><span class="p">,</span><span class="w"> </span><span class="n">dstport</span><span class="p">,</span><span class="w"> </span><span class="n">protocol</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">attempts</span><span class="w"> </span><span class="k">DESC</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">LIMIT</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+</span></code></pre></div>
+<p><code>srcaddr</code> 상위 N개를 보면 보통 패턴이 드러난다. 한 IP에서 다양한 포트로 들어오면 포트 스캐닝, 여러 IP에서 같은 포트로 들어오면 의도된 트래픽이 보안 그룹에 빠진 케이스.</p>
+<h3 id="nat-gateway-비용-폭증-원인-파악">NAT Gateway 비용 폭증 원인 파악<a class="headerlink" href="#nat-gateway-비용-폭증-원인-파악" title="Permanent link">&para;</a></h3>
+<p>NAT Gateway는 처리 바이트당 과금이라 어느 인스턴스가 외부로 많이 나가는지 찾으면 비용이 잡힌다. NAT Gateway의 ENI ID를 먼저 확인하고 그 ENI를 통과한 트래픽 중 <code>pkt-srcaddr</code>(실제 출발 인스턴스 IP) 기준으로 집계한다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">SELECT</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="n">pkt_srcaddr</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="n">pkt_dstaddr</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="n">dstport</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="k">SUM</span><span class="p">(</span><span class="n">bytes</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">gb_transferred</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">flow_count</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">FROM</span><span class="w"> </span><span class="n">vpc_flow_logs</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">year</span><span class="o">=</span><span class="s1">&#39;2026&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">month</span><span class="o">=</span><span class="s1">&#39;05&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">day</span><span class="o">=</span><span class="s1">&#39;20&#39;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">interface_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;eni-natgw-0abc...&#39;</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">flow_direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;egress&#39;</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;ACCEPT&#39;</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">pkt_srcaddr</span><span class="p">,</span><span class="w"> </span><span class="n">pkt_dstaddr</span><span class="p">,</span><span class="w"> </span><span class="n">dstport</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">gb_transferred</span><span class="w"> </span><span class="k">DESC</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="k">LIMIT</span><span class="w"> </span><span class="mi">30</span><span class="p">;</span>
+</span></code></pre></div>
+<p><code>pkt_srcaddr</code>가 같은 인스턴스가 상위에 몰려 있으면 그 인스턴스의 외부 통신을 줄이거나, 가능하면 VPC Endpoint(S3·DynamoDB는 Gateway Endpoint, 나머지는 Interface Endpoint)로 전환한다. S3·ECR·Secrets Manager 트래픽이 NAT를 타고 있는 경우가 가장 흔하다. Endpoint로 빼면 NAT 처리 비용과 데이터 전송 비용이 동시에 떨어진다.</p>
+<p><code>traffic_path</code> 필드를 켜뒀으면 더 빠르다.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">pkt_srcaddr</span><span class="p">,</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">bytes</span><span class="p">)</span><span class="o">/</span><span class="mi">1024</span><span class="o">/</span><span class="mi">1024</span><span class="o">/</span><span class="mi">1024</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">gb</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">vpc_flow_logs</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">year</span><span class="o">=</span><span class="s1">&#39;2026&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">month</span><span class="o">=</span><span class="s1">&#39;05&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">day</span><span class="o">=</span><span class="s1">&#39;20&#39;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">traffic_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w">  </span><span class="c1">-- IGW로 나간 트래픽</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">flow_direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;egress&#39;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">pkt_srcaddr</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">gb</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="의심-외부-ip와의-통신-전체-추출">의심 외부 IP와의 통신 전체 추출<a class="headerlink" href="#의심-외부-ip와의-통신-전체-추출" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">SELECT</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="n">from_unixtime</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">started_at</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="n">interface_id</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="n">pkt_srcaddr</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="n">pkt_dstaddr</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="n">srcport</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="n">dstport</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="n">action</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="n">bytes</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="k">FROM</span><span class="w"> </span><span class="n">vpc_flow_logs</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">year</span><span class="o">=</span><span class="s1">&#39;2026&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">month</span><span class="o">=</span><span class="s1">&#39;05&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">day</span><span class="o">=</span><span class="s1">&#39;20&#39;</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="p">(</span><span class="n">srcaddr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;203.0.113.45&#39;</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">dstaddr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;203.0.113.45&#39;</span><span class="p">)</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">started_at</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="top-talker-일별-추출">TOP talker 일별 추출<a class="headerlink" href="#top-talker-일별-추출" title="Permanent link">&para;</a></h3>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">SELECT</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="k">day</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="n">pkt_srcaddr</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="n">pkt_dstaddr</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="k">SUM</span><span class="p">(</span><span class="n">bytes</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">total_bytes</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">FROM</span><span class="w"> </span><span class="n">vpc_flow_logs</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">year</span><span class="o">=</span><span class="s1">&#39;2026&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">month</span><span class="o">=</span><span class="s1">&#39;05&#39;</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">flow_direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;egress&#39;</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="n">pkt_srcaddr</span><span class="p">,</span><span class="w"> </span><span class="n">pkt_dstaddr</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="n">total_bytes</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</span></code></pre></div>
+<h2 id="transit-gateway-flow-logs와의-차이">Transit Gateway Flow Logs와의 차이<a class="headerlink" href="#transit-gateway-flow-logs와의-차이" title="Permanent link">&para;</a></h2>
+<p>Transit Gateway에 붙는 트래픽은 VPC Flow Logs로 어느 정도 보이지만, TGW 내부의 어느 attachment를 거쳤는지, 어느 라우팅 테이블이 매칭됐는지는 안 보인다. 그래서 TGW 전용 Flow Logs가 따로 있다.</p>
+<p>차이점은 다음과 같다.</p>
+<ul>
+<li><strong>캡처 대상</strong>: VPC Flow Logs는 ENI 트래픽, TGW Flow Logs는 Transit Gateway를 거치는 모든 트래픽.</li>
+<li><strong>추가 필드</strong>: TGW Flow Logs는 <code>tgw-id</code>, <code>tgw-attachment-id</code>, <code>tgw-src-vpc-account-id</code>, <code>tgw-dst-vpc-account-id</code>, <code>tgw-src-vpc-id</code>, <code>tgw-dst-vpc-id</code>, <code>tgw-src-subnet-id</code>, <code>tgw-dst-subnet-id</code>, <code>tgw-src-eni</code>, <code>tgw-dst-eni</code>, <code>resource-type</code>, <code>packets-lost-no-route</code> 등이 추가된다. 어느 VPC가 어느 VPC로 흘려보냈는지 한 줄에 다 들어 있다.</li>
+<li><strong>REJECT 의미</strong>: TGW에서 REJECT는 라우팅 테이블에 경로가 없거나 attachment가 association되지 않아 드롭된 경우다. 보안 그룹과는 무관하다. <code>packets-lost-no-route</code>로 따로 카운트된다.</li>
+<li><strong>전송 대상</strong>: S3, CloudWatch Logs, Firehose 동일.</li>
+<li><strong>비용 구조</strong>: VPC Flow Logs와 동일하게 처리량 기반. 다만 TGW를 지나는 트래픽은 보통 멀티 VPC를 합친 것이라 한 곳에 모이는 데이터 양이 더 크다.</li>
+</ul>
+<p>여러 VPC가 TGW로 연결된 환경에서는 VPC Flow Logs와 TGW Flow Logs를 둘 다 켜는 게 일반적이다. VPC 안의 ENI 단위 디버깅은 VPC 로그, "VPC A의 어느 서브넷이 VPC B로 얼마나 보냈는가" 같은 cross-VPC 분석은 TGW 로그가 답한다.</p>
+<h2 id="데이터-양-폭증-주의사항">데이터 양 폭증 주의사항<a class="headerlink" href="#데이터-양-폭증-주의사항" title="Permanent link">&para;</a></h2>
+<p>Flow Logs는 샘플링이 없다. 100% 캡처다. 이게 가장 자주 발 등을 찍는 부분이다.</p>
+<ul>
+<li><strong>트래픽이 많으면 로그가 폭증한다</strong>: 처리량 1 Gbps짜리 VPC에 ALL 트래픽 Flow Log를 켜면 하루에 수십 GB~수백 GB가 쌓인다. CloudWatch Logs로 보내면 월말 청구서가 EC2 비용보다 커지는 일이 진짜로 일어난다.</li>
+<li><strong>aggregation interval 조정</strong>: 기본 600초(10분), 옵션으로 60초까지 줄일 수 있다. 60초로 줄이면 같은 트래픽이라도 레코드 수가 5~10배 늘어난다. 정밀 분석이 필요한 짧은 구간에만 60초를 쓰고, 평시에는 600초가 합리적이다.</li>
+<li><strong>VPC 전체에 켜기 전 한 번 추산</strong>: VPC FlowLogs metric (<code>AWS/Logs:IncomingBytes</code>나 <code>AWS/Usage</code>)으로 일 단위 양을 먼저 본다. 추산 없이 켜고 한 달 뒤에 보면 늦다.</li>
+<li><strong>로그 자체가 만드는 트래픽</strong>: CloudWatch Logs 전송은 AWS 내부 트래픽이라 데이터 전송 요금은 안 붙지만, S3로 떨궈도 같은 리전 안이면 추가 비용이 없다. 다만 cross-region으로 보내면 데이터 전송 요금이 붙는다. 로그 버킷은 같은 리전에 두는 게 맞다.</li>
+<li><strong>보관 정책</strong>: S3 Lifecycle로 30일 후 IA, 90일 후 Glacier로 옮긴다. CloudWatch Logs는 retention을 명시적으로 걸지 않으면 영구 보관이라 비용이 누적된다. 의도가 아니라면 보통 14~30일로 자른다.</li>
+<li><strong>불필요한 Flow Log 정의 중복</strong>: 앞서 말한 것처럼 ENI/서브넷/VPC 단위로 여러 번 켜져 있으면 같은 트래픽이 여러 번 기록된다. 분기마다 <code>describe-flow-logs</code>로 전체 목록을 한 번 본다.</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-flow-logs<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;FlowLogs[].[FlowLogId,ResourceId,LogDestination,TrafficType,LogFormat]&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--output<span class="w"> </span>table
+</span></code></pre></div>
+<p>이 명령으로 계정 안의 모든 Flow Log 정의를 훑어보고, 의도치 않은 중복이나 잊혀진 정의가 있으면 정리한다. 특히 사라진 ENI나 삭제된 서브넷에 매달려 있던 정의가 남아 있는 경우가 있다.</p>
+<h2 id="실무에서-자주-만나는-함정">실무에서 자주 만나는 함정<a class="headerlink" href="#실무에서-자주-만나는-함정" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Flow Logs는 만든 시점 이후 트래픽만 잡는다</strong>. 사고가 터지고 나서 켜면 그 시점 이전 트래픽은 영영 못 본다. 운영 VPC는 처음부터 켜둔다.</li>
+<li><strong>REJECT가 안 보인다고 안전한 게 아니다</strong>. SG는 stateful이라 outbound로 막힌 트래픽은 응답이 안 가는 형태로 나타날 뿐 REJECT로 안 찍힌다.</li>
+<li><strong>Athena 비용도 같이 본다</strong>. 파티션 프루닝 없이 한 달치를 풀스캔하면 한 쿼리에 수십 GB 스캔되어 비용이 나온다. <code>WHERE year/month/day</code> 조건을 반드시 넣는 습관을 들인다.</li>
+<li><strong>계정 간 통합</strong>: 멀티 계정 조직에서는 Organizations 차원에서 모든 계정의 Flow Logs를 중앙 S3 버킷으로 모은다. 계정마다 따로 분석하면 cross-account 트래픽이 짤린다.</li>
+<li><strong>개인정보</strong>: Flow Logs는 IP·포트 메타데이터지만 그 자체로 식별정보가 될 수 있다. 외부 공유나 장기 보관 시 컴플라이언스 검토가 필요한 경우가 있다.</li>
+<li><strong>VPC 삭제 시</strong>: VPC를 지우기 전에 Flow Log 정의를 먼저 지운다. VPC 삭제하면 자동으로 따라 사라지긴 하지만, S3에 누적된 로그는 그대로 남아 있다는 점을 잊기 쉽다.</li>
+</ul>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../VPC_Reachability_Analyzer/">VPC Reachability Analyzer</a></li>
+<li><a href="../ALB_ECS_S3_Request_Flow/">ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li>
+<li><a href="../Internet_Gateway/">AWS Internet Gateway</a></li>
+<li><a href="../Nat_Gateway/">AWS NAT Gateway</a></li>
+<li><a href="../PrivateLink/">AWS PrivateLink</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../VPC_Endpoints/" class="md-footer__link md-footer__link--prev" aria-label="이전: VPC Endpoints">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                VPC Endpoints
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../VPC_IPAM/" class="md-footer__link md-footer__link--next" aria-label="다음: AWS VPC IPAM">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                AWS VPC IPAM
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

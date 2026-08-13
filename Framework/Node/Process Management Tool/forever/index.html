@@ -1,88 +1,3297 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Framework/Node/Process%20Management%20Tool/forever/ rel=canonical><link href=../ rel=prev><link href=../pm2/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Node.js Forever 프로세스 관리 도구 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#nodejs-forever-프로세스-관리-도구 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Node.js Forever 프로세스 관리 도구 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4 checked> <label class=md-nav__link for=__nav_4 id=__nav_4_label tabindex=0> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_4_label aria-expanded=true> <label class=md-nav__title for=__nav_4> <span class="md-nav__icon md-icon"></span> Backend </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Framework </span> </a> <label class="md-nav__link " for=__nav_4_1 id=__nav_4_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_4_1_label aria-expanded=true> <label class=md-nav__title for=__nav_4_1> <span class="md-nav__icon md-icon"></span> Framework </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> Node.js </span> </a> <label class="md-nav__link " for=__nav_4_1_2 id=__nav_4_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_4_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_4_1_2> <span class="md-nav__icon md-icon"></span> Node.js </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../Node_Framework_Index/ class=md-nav__link> <span class=md-ellipsis> 프레임워크 문서 인덱스 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Nodejs_Framework_Overview/ class=md-nav__link> <span class=md-ellipsis> 프레임워크 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../HTTP_Module/ class=md-nav__link> <span class=md-ellipsis> 코어 모듈 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%95%A8%EC%88%98%ED%98%95%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D/ class=md-nav__link> <span class=md-ellipsis> 함수형 프로그래밍 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Error_Handling/ class=md-nav__link> <span class=md-ellipsis> 운영 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../API/ class=md-nav__link> <span class=md-ellipsis> API </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../NestJS/ class=md-nav__link> <span class=md-ellipsis> NestJS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Nodejs%EC%9D%98%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EC%9E%91%EB%8F%99%20%EC%9B%90%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 런타임 구조 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_4_1_2_10 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 프로세스 관리 </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_4_1_2_10_label aria-expanded=true> <label class=md-nav__title for=__nav_4_1_2_10> <span class="md-nav__icon md-icon"></span> 프로세스 관리 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Testing/ class=md-nav__link> <span class=md-ellipsis> 테스트 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4/ class=md-nav__link> <span class=md-ellipsis> 데이터베이스 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%AA%A8%EB%93%88%20%EC%8B%9C%EC%8A%A4%ED%85%9C/ class=md-nav__link> <span class=md-ellipsis> 모듈 시스템 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98/ class=md-nav__link> <span class=md-ellipsis> 아키텍처 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%BA%90%EC%8B%B1/ class=md-nav__link> <span class=md-ellipsis> 캐싱 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Performance/ class=md-nav__link> <span class=md-ellipsis> Performance </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../View_Engine/ class=md-nav__link> <span class=md-ellipsis> View Engine </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%B2%98%EB%A6%AC%20%EB%B0%8F%20%ED%86%B5%EC%8B%A0/ class=md-nav__link> <span class=md-ellipsis> 데이터 처리 및 통신 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%A1%9C%EA%B9%85/ class=md-nav__link> <span class=md-ellipsis> 로깅 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81/ class=md-nav__link> <span class=md-ellipsis> 모니터링 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%B0%B1%EA%B7%B8%EB%9D%BC%EC%9A%B4%EB%93%9C_%EC%9E%91%EC%97%85/ class=md-nav__link> <span class=md-ellipsis> 백그라운드 작업 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EB%B3%B4%EC%95%88/ class=md-nav__link> <span class=md-ellipsis> 보안 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%84%B1%EB%8A%A5/ class=md-nav__link> <span class=md-ellipsis> 성능 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%97%90%EB%9F%AC_%ED%95%B8%EB%93%A4%EB%A7%81/ class=md-nav__link> <span class=md-ellipsis> 에러 핸들링 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%EC%9D%B8%EC%A6%9D/ class=md-nav__link> <span class=md-ellipsis> 인증 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%8C%8C%EC%9D%BC_%EC%B2%98%EB%A6%AC/ class=md-nav__link> <span class=md-ellipsis> 파일 처리 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Java/ class=md-nav__link> <span class=md-ellipsis> Java </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Backend/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Architecture/Clean_Architecture/ class=md-nav__link> <span class=md-ellipsis> Architecture </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#들어가며 class=md-nav__link> <span class=md-ellipsis> 들어가며 </span> </a> </li> <li class=md-nav__item> <a href=#forever를-쓰면-안-되는-이유 class=md-nav__link> <span class=md-ellipsis> forever를 쓰면 안 되는 이유 </span> </a> <nav class=md-nav aria-label="forever를 쓰면 안 되는 이유"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#유지보수-사실상-중단 class=md-nav__link> <span class=md-ellipsis> 유지보수 사실상 중단 </span> </a> </li> <li class=md-nav__item> <a href=#클러스터-모드-부재 class=md-nav__link> <span class=md-ellipsis> 클러스터 모드 부재 </span> </a> </li> <li class=md-nav__item> <a href=#무중단-배포-불가 class=md-nav__link> <span class=md-ellipsis> 무중단 배포 불가 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#forever-nohup-pm2-systemd class=md-nav__link> <span class=md-ellipsis> forever, nohup, pm2, systemd </span> </a> </li> <li class=md-nav__item> <a href=#그래도-forever를-써야-한다면 class=md-nav__link> <span class=md-ellipsis> 그래도 forever를 써야 한다면 </span> </a> <nav class=md-nav aria-label="그래도 forever를 써야 한다면"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#설치와-실행 class=md-nav__link> <span class=md-ellipsis> 설치와 실행 </span> </a> </li> <li class=md-nav__item> <a href=#foreverjson-pm2-ecosystemjson과-헷갈리지-말-것 class=md-nav__link> <span class=md-ellipsis> forever.json (PM2 ecosystem.json과 헷갈리지 말 것) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#자동-재시작-무한-루프-방지 class=md-nav__link> <span class=md-ellipsis> 자동 재시작 무한 루프 방지 </span> </a> <nav class=md-nav aria-label="자동 재시작 무한 루프 방지"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#시작-직후-크래시의-대표-원인 class=md-nav__link> <span class=md-ellipsis> 시작 직후 크래시의 대표 원인 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#로그-회전 class=md-nav__link> <span class=md-ellipsis> 로그 회전 </span> </a> </li> <li class=md-nav__item> <a href=#메모리-임계-재시작 class=md-nav__link> <span class=md-ellipsis> 메모리 임계 재시작 </span> </a> </li> <li class=md-nav__item> <a href=#환경별-프로파일링 class=md-nav__link> <span class=md-ellipsis> 환경별 프로파일링 </span> </a> </li> <li class=md-nav__item> <a href=#트러블슈팅-사례 class=md-nav__link> <span class=md-ellipsis> 트러블슈팅 사례 </span> </a> <nav class=md-nav aria-label="트러블슈팅 사례"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#list에는-보이는데-실제로는-죽어-있는-경우 class=md-nav__link> <span class=md-ellipsis> list에는 보이는데 실제로는 죽어 있는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#child_processspawn-사용-시-좀비-누적 class=md-nav__link> <span class=md-ellipsis> child_process.spawn 사용 시 좀비 누적 </span> </a> </li> <li class=md-nav__item> <a href=#로그가-갑자기-끊기는-경우 class=md-nav__link> <span class=md-ellipsis> 로그가 갑자기 끊기는 경우 </span> </a> </li> <li class=md-nav__item> <a href=#로컬에서는-잘-도는데-서버에서-즉시-종료 class=md-nav__link> <span class=md-ellipsis> 로컬에서는 잘 도는데 서버에서 즉시 종료 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#systemd로-옮기는-최소-예시 class=md-nav__link> <span class=md-ellipsis> systemd로 옮기는 최소 예시 </span> </a> </li> <li class=md-nav__item> <a href=#정리 class=md-nav__link> <span class=md-ellipsis> 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>nodejs</span> </nav> <h1 id=nodejs-forever-프로세스-관리-도구>Node.js Forever 프로세스 관리 도구<a class=headerlink href=#nodejs-forever-프로세스-관리-도구 title="Permanent link">&para;</a></h1> <h2 id=들어가며>들어가며<a class=headerlink href=#들어가며 title="Permanent link">&para;</a></h2> <p>forever는 Node.js 프로세스를 데몬으로 띄우고 죽으면 다시 살리는 단순한 도구다. 2010년대 초반 Nodejitsu에서 만들었고, 한때 Express 앱을 운영서버에 올릴 때 표준처럼 쓰였다. 지금 새로 시스템을 짠다면 굳이 forever를 고를 이유가 없다. 그래도 레거시 환경에서 마주칠 일이 적지 않고, "forever로 잘 돌고 있었는데 갑자기 메모리가 새요" 같은 트러블슈팅 요청은 여전히 들어온다.</p> <p>이 문서는 forever를 그대로 쓰는 방법보다, 왜 지금은 권장되지 않는지와 옮겨가야 할 때 어떤 점을 챙겨야 하는지에 무게를 둔다.</p> <h2 id=forever를-쓰면-안-되는-이유>forever를 쓰면 안 되는 이유<a class=headerlink href=#forever를-쓰면-안-되는-이유 title="Permanent link">&para;</a></h2> <h3 id=유지보수-사실상-중단>유지보수 사실상 중단<a class=headerlink href=#유지보수-사실상-중단 title="Permanent link">&para;</a></h3> <p>GitHub 저장소(foreverjs/forever)는 2019년 이후 의미 있는 커밋이 없다. README에도 "actively maintained alternatives" 운운하며 PM2나 systemd로 가라는 안내가 붙어 있다. 의존성 트리가 오래되어 npm install 단계에서 deprecated 경고와 audit 취약점이 무더기로 뜨는데, 이걸 패치할 사람이 없다. Node.js 18 이후로는 v8 디버거 옵션 변경 같은 사소한 변화에도 forever 내부가 종종 깨진다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>$<span class=w> </span>npm<span class=w> </span>install<span class=w> </span>-g<span class=w> </span>forever
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>npm<span class=w> </span>warn<span class=w> </span>deprecated<span class=w> </span>coffee-script@1.7.1:<span class=w> </span>...
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>npm<span class=w> </span>warn<span class=w> </span>deprecated<span class=w> </span>request@2.88.2:<span class=w> </span>...
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=c1># 매번 이런 경고를 보면서 운영 환경을 유지할 수는 없다</span>
-</span></code></pre></div> <p>운영 환경에서 보안 패치가 멈춘 도구를 쓰는 건 그 자체로 위험이다. 사내 보안팀이 SCA 스캔을 돌리는 순간 forever 의존성이 빨간 불부터 띄운다.</p> <h3 id=클러스터-모드-부재>클러스터 모드 부재<a class=headerlink href=#클러스터-모드-부재 title="Permanent link">&para;</a></h3> <p>forever는 단일 프로세스를 띄우고 감시할 뿐이다. 멀티 코어를 활용하려면 직접 cluster 모듈로 워커를 포크해야 하는데, 그러면 forever가 마스터만 감시하고 워커가 죽어도 모른다. PM2의 <code>instances: 'max'</code> 한 줄이면 끝나는 일을 forever에서는 직접 짜야 한다. 8코어 머신에서 1코어만 쓰면서 "왜 이렇게 느리지" 하는 상황을 자주 본다.</p> <h3 id=무중단-배포-불가>무중단 배포 불가<a class=headerlink href=#무중단-배포-불가 title="Permanent link">&para;</a></h3> <p>forever restart는 그냥 SIGKILL 후 재시작이다. 새 프로세스가 listen할 때까지 수 초 동안 ECONNREFUSED가 난다. 앞단에 nginx upstream이나 ALB가 있어도 health check 실패 처리에 시간이 걸려서 503이 노출된다. PM2의 reload(graceful)나 systemd의 socket activation 같은 대안이 없다.</p> <h2 id=forever-nohup-pm2-systemd>forever, nohup, pm2, systemd<a class=headerlink href=#forever-nohup-pm2-systemd title="Permanent link">&para;</a></h2> <p>작은 차이라고 보일 수 있지만 운영 시 결과는 완전히 갈린다.</p> <table> <thead> <tr> <th>항목</th> <th>nohup</th> <th>forever</th> <th>PM2</th> <th>systemd</th> </tr> </thead> <tbody> <tr> <td>자동 재시작</td> <td>없음</td> <td>있음</td> <td>있음</td> <td>있음 (Restart=)</td> </tr> <tr> <td>클러스터</td> <td>없음</td> <td>없음</td> <td>있음</td> <td>사용자 구성</td> </tr> <tr> <td>로그 분리</td> <td>stdout 리다이렉트만</td> <td>out/err 분리</td> <td>일자별 회전 옵션</td> <td>journald 통합</td> </tr> <tr> <td>부팅 시 자동 시작</td> <td>별도 작업 필요</td> <td>startup 스크립트 별도</td> <td>pm2 startup 명령</td> <td>기본</td> </tr> <tr> <td>무중단 배포</td> <td>없음</td> <td>없음</td> <td>reload 지원</td> <td>socket activation</td> </tr> <tr> <td>OS 통합</td> <td>단순</td> <td>약함</td> <td>약함</td> <td>강함</td> </tr> <tr> <td>의존성</td> <td>셸 기본</td> <td>npm 패키지</td> <td>npm 패키지</td> <td>OS 기본</td> </tr> </tbody> </table> <p>nohup은 정말 단순한 임시 실행에만 적합하다. 터미널 닫고 나가도 죽지 않는 정도지, 프로세스가 OOM으로 죽으면 그대로 끝이다. 그래서 forever가 등장했지만, 지금은 PM2나 systemd가 그 자리를 가져갔다.</p> <p>운영 환경 추천 순서는 명확하다. 컨테이너 환경이면 PM2조차 빼고 Node 프로세스를 PID 1로 두거나 tini를 쓰는 쪽이 표준이다. 베어메탈이나 VM이라면 systemd 유닛 파일 하나가 가장 안정적이다. PM2는 기능이 많지만 Node 버전 업그레이드 시 PM2 자체 업그레이드도 챙겨야 하는 부담이 있다. forever는 이 셋 중 어느 자리에도 맞지 않는다.</p> <h2 id=그래도-forever를-써야-한다면>그래도 forever를 써야 한다면<a class=headerlink href=#그래도-forever를-써야-한다면 title="Permanent link">&para;</a></h2> <p>기존 시스템을 당장 옮길 수 없거나, 짧게 임시 운영하는 경우를 위한 최소한의 가이드다.</p> <h3 id=설치와-실행>설치와 실행<a class=headerlink href=#설치와-실행 title="Permanent link">&para;</a></h3> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>npm<span class=w> </span>install<span class=w> </span>-g<span class=w> </span>forever@4.0.3
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>forever<span class=w> </span>--version
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>forever<span class=w> </span>start<span class=w> </span>-a<span class=w> </span>-l<span class=w> </span>forever.log<span class=w> </span>-o<span class=w> </span>out.log<span class=w> </span>-e<span class=w> </span>err.log<span class=w> </span>--uid<span class=w> </span><span class=s2>&quot;api&quot;</span><span class=w> </span>server.js
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>forever<span class=w> </span>list
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>forever<span class=w> </span>stop<span class=w> </span>api
-</span></code></pre></div> <p><code>-a</code>는 append, 즉 로그를 덮어쓰지 않고 이어 쓰게 하는 플래그다. 이걸 빼면 재시작할 때마다 로그가 날아간다. <code>--uid</code>는 인덱스(0, 1, 2…) 대신 이름으로 프로세스를 식별하게 해주는데, 운영에서는 인덱스로 stop/restart하다가 다른 프로세스를 잘못 건드리는 사고가 흔하다. uid를 항상 붙이는 습관을 들여야 한다.</p> <h3 id=foreverjson-pm2-ecosystemjson과-헷갈리지-말-것>forever.json (PM2 ecosystem.json과 헷갈리지 말 것)<a class=headerlink href=#foreverjson-pm2-ecosystemjson과-헷갈리지-말-것 title="Permanent link">&para;</a></h3> <p><code>ecosystem.json</code>이라는 이름은 PM2 규약이다. forever는 자체 JSON 포맷을 쓴다. 둘이 비슷해 보여서 옮길 때 그대로 복사했다가 안 먹는 경우가 있다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=p>{</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span><span class=nt>&quot;uid&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;api&quot;</span><span class=p>,</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span><span class=nt>&quot;append&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=w>  </span><span class=nt>&quot;watch&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=w>  </span><span class=nt>&quot;script&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;server.js&quot;</span><span class=p>,</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=w>  </span><span class=nt>&quot;sourceDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;/srv/api&quot;</span><span class=p>,</span>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=w>  </span><span class=nt>&quot;args&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;--harmony&quot;</span><span class=p>],</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a><span class=w>  </span><span class=nt>&quot;logFile&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;/var/log/api/forever.log&quot;</span><span class=p>,</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a><span class=w>  </span><span class=nt>&quot;outFile&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;/var/log/api/out.log&quot;</span><span class=p>,</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a><span class=w>  </span><span class=nt>&quot;errFile&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;/var/log/api/err.log&quot;</span><span class=p>,</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a><span class=w>  </span><span class=nt>&quot;killTree&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a><span class=w>  </span><span class=nt>&quot;minUptime&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>5000</span><span class=p>,</span>
-</span><span id=__span-2-13><a id=__codelineno-2-13 name=__codelineno-2-13 href=#__codelineno-2-13></a><span class=w>  </span><span class=nt>&quot;spinSleepTime&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>2000</span><span class=p>,</span>
-</span><span id=__span-2-14><a id=__codelineno-2-14 name=__codelineno-2-14 href=#__codelineno-2-14></a><span class=w>  </span><span class=nt>&quot;env&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-2-15><a id=__codelineno-2-15 name=__codelineno-2-15 href=#__codelineno-2-15></a><span class=w>    </span><span class=nt>&quot;NODE_ENV&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;production&quot;</span><span class=p>,</span>
-</span><span id=__span-2-16><a id=__codelineno-2-16 name=__codelineno-2-16 href=#__codelineno-2-16></a><span class=w>    </span><span class=nt>&quot;PORT&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;3000&quot;</span>
-</span><span id=__span-2-17><a id=__codelineno-2-17 name=__codelineno-2-17 href=#__codelineno-2-17></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-2-18><a id=__codelineno-2-18 name=__codelineno-2-18 href=#__codelineno-2-18></a><span class=p>}</span>
-</span></code></pre></div> <p>여기서 가장 중요한 두 키가 <code>minUptime</code>과 <code>spinSleepTime</code>이다. 이 둘이 자동 재시작 무한 루프를 막아준다.</p> <h2 id=자동-재시작-무한-루프-방지>자동 재시작 무한 루프 방지<a class=headerlink href=#자동-재시작-무한-루프-방지 title="Permanent link">&para;</a></h2> <p>forever 운영하면서 가장 흔하게 겪는 사고가 무한 재시작 루프다. 시작 직후 예외가 나서 즉시 죽으면, forever는 곧바로 다시 띄우고, 또 죽고, 또 띄우고… 1초에 수십 번 재시작이 반복되면서 CPU가 100%로 튀고 로그 파티션이 가득 찬다. 새벽에 디스크 풀 알람을 받고 들어가서 보면 forever 로그만 50GB 쌓여 있는 식이다.</p> <p>기본값으로는 이 보호장치가 약하기 때문에 반드시 명시해야 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>forever<span class=w> </span>start<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span>--minUptime<span class=w> </span><span class=m>5000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span>--spinSleepTime<span class=w> </span><span class=m>2000</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span>--max<span class=w> </span><span class=m>5</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span>--uid<span class=w> </span>api<span class=w> </span>server.js
-</span></code></pre></div> <ul> <li><code>minUptime</code>: 이 시간(ms) 안에 죽으면 "정상적인 실행이 아니다"로 간주한다. 5초 미만에 죽었다면 부팅 자체에 실패했다는 뜻이다.</li> <li><code>spinSleepTime</code>: minUptime 안에 죽었을 때 재시작 전 대기 시간(ms). 2초씩 기다리게 하면 최소한 디스크가 가득 차지는 않는다.</li> <li><code>--max N</code>: minUptime 미달 재시작이 N번 누적되면 forever 자체가 종료한다. 무한 루프 차단.</li> </ul> <p><code>--max</code> 옵션을 빼고 운영하다가 사고를 한 번 본 다음부터는 무조건 넣는다. forever가 죽으면 외부에서 알림이 오게 (예: monit, systemd watchdog, 또는 별도 헬스체크) 같이 두는 편이 안전하다.</p> <h3 id=시작-직후-크래시의-대표-원인>시작 직후 크래시의 대표 원인<a class=headerlink href=#시작-직후-크래시의-대표-원인 title="Permanent link">&para;</a></h3> <p>다섯 번 중 네 번은 환경변수다. forever가 보는 환경과 셸 환경이 다르다. 특히 sudo로 띄울 때 PATH나 NODE_ENV가 빠져 있어서 require 단계부터 터진다. systemd라면 <code>EnvironmentFile=</code>로 명시할 텐데, forever에서는 forever.json의 <code>env</code>에 직접 박거나 셸 스크립트로 export해서 넣어야 한다.</p> <h2 id=로그-회전>로그 회전<a class=headerlink href=#로그-회전 title="Permanent link">&para;</a></h2> <p>forever는 자체 로그 회전이 없다. 한 파일이 무한히 커진다. 운영 며칠만 지나면 로그 파일이 GB 단위로 부풀고, vi로 열다가 서버가 멈춘다.</p> <p>OS의 logrotate에 맡기는 게 표준 답이다. forever는 SIGHUP을 받아도 파일 핸들을 다시 열지 않으므로, copytruncate를 써야 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a># /etc/logrotate.d/forever-api
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>/var/log/api/*.log {
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>    daily
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>    rotate 14
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>    compress
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>    delaycompress
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>    missingok
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>    notifempty
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>    copytruncate
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>    size 100M
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>}
-</span></code></pre></div> <p><code>copytruncate</code>는 원본 파일을 복사한 뒤 truncate하는 방식이라 forever가 들고 있는 파일 디스크립터가 그대로 유지된다. 회전 직후 짧은 시간 동안 로그가 두 곳에 잠깐 쓰일 수 있다는 단점은 있지만, forever 환경에서는 이게 거의 유일한 선택지다. PM2였으면 <code>pm2-logrotate</code> 모듈로 SIGUSR2 기반 회전이 되는데, forever에는 그런 메커니즘이 없다.</p> <h2 id=메모리-임계-재시작>메모리 임계 재시작<a class=headerlink href=#메모리-임계-재시작 title="Permanent link">&para;</a></h2> <p>Node 앱은 GC가 잘 돌아가도 결국 누수가 쌓이는 일이 잦다. 특히 keep-alive 연결, 외부 API 클라이언트의 내부 캐시, 이벤트 리스너 누락이 흔한 원인이다. 메모리가 일정 수준을 넘으면 차라리 재시작하는 쪽이 안전하다.</p> <p>forever에는 PM2의 <code>max_memory_restart</code> 같은 내장 옵션이 없다. 직접 감시 로직을 붙여야 한다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=kd>const</span><span class=w> </span><span class=nx>MAX_RSS_MB</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>1024</span><span class=p>;</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=kd>const</span><span class=w> </span><span class=nx>CHECK_INTERVAL_MS</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mf>60</span><span class=nx>_000</span><span class=p>;</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=nx>setInterval</span><span class=p>(()</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>  </span><span class=kd>const</span><span class=w> </span><span class=nx>rssMb</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>process</span><span class=p>.</span><span class=nx>memoryUsage</span><span class=p>().</span><span class=nx>rss</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mf>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mf>1024</span><span class=p>;</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=w>  </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=nx>rssMb</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=nx>MAX_RSS_MB</span><span class=p>)</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>    </span><span class=nx>console</span><span class=p>.</span><span class=nx>warn</span><span class=p>(</span><span class=sb>`rss=</span><span class=si>${</span><span class=nx>rssMb</span><span class=p>.</span><span class=nx>toFixed</span><span class=p>(</span><span class=mf>0</span><span class=p>)</span><span class=si>}</span><span class=sb>MB exceeded, exiting for restart`</span><span class=p>);</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>    </span><span class=nx>server</span><span class=p>.</span><span class=nx>close</span><span class=p>(()</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mf>0</span><span class=p>));</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a><span class=w>    </span><span class=nx>setTimeout</span><span class=p>(()</span><span class=w> </span><span class=p>=&gt;</span><span class=w> </span><span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mf>1</span><span class=p>),</span><span class=w> </span><span class=mf>10</span><span class=nx>_000</span><span class=p>).</span><span class=nx>unref</span><span class=p>();</span>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a><span class=p>},</span><span class=w> </span><span class=nx>CHECK_INTERVAL_MS</span><span class=p>);</span>
-</span></code></pre></div> <p>핵심은 <code>server.close()</code>로 진행 중인 요청을 마무리하고 <code>process.exit(0)</code>으로 끊는 것이다. forever는 정상 종료(exit code 0)도 재시작 대상으로 본다. 다만 worker 큐에 무거운 작업이 걸려 있으면 close가 매달릴 수 있어 10초 타임아웃을 강제 종료로 둔다.</p> <p><code>--max-old-space-size</code>는 GC가 더 자주 돌도록 V8 힙 상한을 정하는 옵션이지, forever가 알아서 재시작해주는 옵션이 아니다. 둘을 헷갈리는 사람이 많다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>forever<span class=w> </span>start<span class=w> </span>--killSignal<span class=w> </span>SIGTERM<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span>-c<span class=w> </span><span class=s2>&quot;node --max-old-space-size=1024&quot;</span><span class=w> </span>server.js
-</span></code></pre></div> <p><code>--killSignal SIGTERM</code>도 중요하다. 기본값이 SIGKILL이라 graceful shutdown 코드를 짜둬도 동작하지 않는다.</p> <h2 id=환경별-프로파일링>환경별 프로파일링<a class=headerlink href=#환경별-프로파일링 title="Permanent link">&para;</a></h2> <p>개발에서는 watch 옵션을 켜고, 운영에서는 절대 끄는 게 정석이다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># dev</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>forever<span class=w> </span>start<span class=w> </span>--watch<span class=w> </span>--watchDirectory<span class=w> </span>./src<span class=w> </span>--watchIgnore<span class=w> </span><span class=s2>&quot;*.log&quot;</span><span class=w> </span>server.js
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=c1># prod</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a>forever<span class=w> </span>start<span class=w> </span>--uid<span class=w> </span>api<span class=w> </span>--append<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=w>  </span>--minUptime<span class=w> </span><span class=m>5000</span><span class=w> </span>--spinSleepTime<span class=w> </span><span class=m>2000</span><span class=w> </span>--max<span class=w> </span><span class=m>10</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=w>  </span>-l<span class=w> </span>/var/log/api/forever.log<span class=w> </span>-o<span class=w> </span>/var/log/api/out.log<span class=w> </span>-e<span class=w> </span>/var/log/api/err.log<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=w>  </span>server.js
-</span></code></pre></div> <p>watch가 켜진 상태로 운영에 올라간 사례를 한두 번 본 게 아니다. 빌드 산출물이나 로그 파일 변경에 반응해서 무한히 재시작한다. 옵션을 환경별로 분리하고, 배포 스크립트가 forever 인자를 명시적으로 만들도록 해야 한다.</p> <p>NODE_ENV는 forever 옵션이 아니라 환경변수로 들어가야 한다. <code>--env production</code> 같은 플래그가 forever에는 없다. 있어도 무시된다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=nv>NODE_ENV</span><span class=o>=</span>production<span class=w> </span>forever<span class=w> </span>start<span class=w> </span>--uid<span class=w> </span>api<span class=w> </span>server.js
-</span></code></pre></div> <h2 id=트러블슈팅-사례>트러블슈팅 사례<a class=headerlink href=#트러블슈팅-사례 title="Permanent link">&para;</a></h2> <h3 id=list에는-보이는데-실제로는-죽어-있는-경우>list에는 보이는데 실제로는 죽어 있는 경우<a class=headerlink href=#list에는-보이는데-실제로는-죽어-있는-경우 title="Permanent link">&para;</a></h3> <p><code>forever list</code>가 STOPPED를 보여주지 않고 RUNNING으로 표시되는데, ps로 보면 PID가 없다. forever의 상태 파일(<code>~/.forever/sock</code> 또는 <code>/tmp/forever</code>)이 깨졌을 때다. <code>forever stopall</code> 후 <code>~/.forever</code>를 비우고 다시 띄워야 한다. 같은 호스트에서 여러 사용자가 forever를 돌리면 sock 충돌이 일어나기도 한다.</p> <h3 id=child_processspawn-사용-시-좀비-누적>child_process.spawn 사용 시 좀비 누적<a class=headerlink href=#child_processspawn-사용-시-좀비-누적 title="Permanent link">&para;</a></h3> <p>앱 안에서 <code>child_process.spawn</code>으로 외부 바이너리를 호출하는데, 부모가 재시작될 때 자식이 정리되지 않아 좀비가 누적되는 경우가 있다. forever.json에 <code>"killTree": true</code>를 켜야 한다. 기본값으로 두면 forever는 직속 자식만 죽인다.</p> <h3 id=로그가-갑자기-끊기는-경우>로그가 갑자기 끊기는 경우<a class=headerlink href=#로그가-갑자기-끊기는-경우 title="Permanent link">&para;</a></h3> <p>logrotate가 copytruncate 없이 동작하거나, 누군가 수동으로 mv 후 새 파일을 만든 경우다. forever는 mv된 파일에 계속 쓰다가, 그 파일이 삭제되면 그 이후 로그를 어디에도 남기지 않는다. 재시작하기 전까지는 stdout이 사라진 상태로 운영된다. 이 상황은 디스크가 안 늘어나서 모니터링에서도 잡히지 않는다. 회전 정책을 처음에 잘 잡아야 한다.</p> <h3 id=로컬에서는-잘-도는데-서버에서-즉시-종료>로컬에서는 잘 도는데 서버에서 즉시 종료<a class=headerlink href=#로컬에서는-잘-도는데-서버에서-즉시-종료 title="Permanent link">&para;</a></h3> <p>거의 항상 NODE_ENV, PORT, 그리고 uid/euid 권한 문제다. forever를 root로 띄우고 앱이 1024 미만 포트를 listen하면 잘 도는데, 일반 사용자로 바꾸는 순간 EACCES가 난다. authbind나 setcap이 필요하다. systemd라면 <code>AmbientCapabilities=CAP_NET_BIND_SERVICE</code> 한 줄로 끝나는 일이다. 이런 자잘한 차이가 쌓이면서 결국 systemd로 옮기게 된다.</p> <h2 id=systemd로-옮기는-최소-예시>systemd로 옮기는 최소 예시<a class=headerlink href=#systemd로-옮기는-최소-예시 title="Permanent link">&para;</a></h2> <p>forever를 걷어내고 systemd로 옮기는 게 운영 측면에서 가장 깔끔하다. 단순한 유닛 파일 하나면 forever가 하던 일의 90%가 끝난다.</p> <div class="language-ini highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=c1># /etc/systemd/system/api.service</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=k>[Unit]</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a><span class=na>Description</span><span class=o>=</span><span class=s>API server</span>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=na>After</span><span class=o>=</span><span class=s>network.target</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=k>[Service]</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=na>Type</span><span class=o>=</span><span class=s>simple</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=na>User</span><span class=o>=</span><span class=s>app</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=na>WorkingDirectory</span><span class=o>=</span><span class=s>/srv/api</span>
-</span><span id=__span-9-10><a id=__codelineno-9-10 name=__codelineno-9-10 href=#__codelineno-9-10></a><span class=na>EnvironmentFile</span><span class=o>=</span><span class=s>/etc/api.env</span>
-</span><span id=__span-9-11><a id=__codelineno-9-11 name=__codelineno-9-11 href=#__codelineno-9-11></a><span class=na>ExecStart</span><span class=o>=</span><span class=s>/usr/bin/node --max-old-space-size=1024 server.js</span>
-</span><span id=__span-9-12><a id=__codelineno-9-12 name=__codelineno-9-12 href=#__codelineno-9-12></a><span class=na>Restart</span><span class=o>=</span><span class=s>on-failure</span>
-</span><span id=__span-9-13><a id=__codelineno-9-13 name=__codelineno-9-13 href=#__codelineno-9-13></a><span class=na>RestartSec</span><span class=o>=</span><span class=s>2</span>
-</span><span id=__span-9-14><a id=__codelineno-9-14 name=__codelineno-9-14 href=#__codelineno-9-14></a><span class=na>StartLimitIntervalSec</span><span class=o>=</span><span class=s>60</span>
-</span><span id=__span-9-15><a id=__codelineno-9-15 name=__codelineno-9-15 href=#__codelineno-9-15></a><span class=na>StartLimitBurst</span><span class=o>=</span><span class=s>5</span>
-</span><span id=__span-9-16><a id=__codelineno-9-16 name=__codelineno-9-16 href=#__codelineno-9-16></a><span class=na>MemoryMax</span><span class=o>=</span><span class=s>1500M</span>
-</span><span id=__span-9-17><a id=__codelineno-9-17 name=__codelineno-9-17 href=#__codelineno-9-17></a><span class=na>StandardOutput</span><span class=o>=</span><span class=s>journal</span>
-</span><span id=__span-9-18><a id=__codelineno-9-18 name=__codelineno-9-18 href=#__codelineno-9-18></a><span class=na>StandardError</span><span class=o>=</span><span class=s>journal</span>
-</span><span id=__span-9-19><a id=__codelineno-9-19 name=__codelineno-9-19 href=#__codelineno-9-19></a>
-</span><span id=__span-9-20><a id=__codelineno-9-20 name=__codelineno-9-20 href=#__codelineno-9-20></a><span class=k>[Install]</span>
-</span><span id=__span-9-21><a id=__codelineno-9-21 name=__codelineno-9-21 href=#__codelineno-9-21></a><span class=na>WantedBy</span><span class=o>=</span><span class=s>multi-user.target</span>
-</span></code></pre></div> <p><code>StartLimitIntervalSec</code>/<code>StartLimitBurst</code>가 forever의 <code>minUptime</code>/<code>max</code> 역할을 한다. <code>MemoryMax</code>는 cgroup 한계라 단순한 임계 재시작과는 다르지만, OOM kill로 자연스럽게 재시작이 된다. 로그는 journald가 자동으로 회전한다. forever에서 구현하려면 코드와 설정을 한참 짜야 하는 것들이 systemd 유닛 십수 줄로 정리된다.</p> <h2 id=정리>정리<a class=headerlink href=#정리 title="Permanent link">&para;</a></h2> <p>forever는 2010년대 표준이었지만 지금은 그 자리에 있을 이유가 사라졌다. 새 프로젝트면 systemd, 컨테이너면 PID 1 패턴, 굳이 Node 생태계 도구가 필요하면 PM2를 고른다. 기존 시스템에 forever가 박혀 있다면 minUptime/spinSleepTime/max 세 옵션으로 무한 루프부터 막고, logrotate copytruncate로 디스크부터 지키고, 메모리 임계 재시작은 앱 코드에 직접 심어야 한다. 그러고 나면 다음 분기에 옮겨갈 계획을 세우는 편이 운영 부담을 줄인다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Testing/API_E2E_%ED%85%8C%EC%8A%A4%ED%8A%B8_%ED%8C%A8%ED%84%B4/ >API E2E 테스트 패턴</a></li> <li><a href=../../API/API_%EC%84%A4%EA%B3%84_%EC%9B%90%EC%B9%99/ >API 설계 원칙 및 고급 패턴</a></li> <li><a href=../../Abort_Controller/ >AbortController로 비동기 작업 취소하기</a></li> <li><a href=../../Nodejs%EC%9D%98%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EC%9E%91%EB%8F%99%20%EC%9B%90%EB%A6%AC/Async_Local_Storage/ >AsyncLocalStorage (요청 단위 컨텍스트 전파)</a></li> <li><a href=../../%EB%AA%A8%EB%93%88%20%EC%8B%9C%EC%8A%A4%ED%85%9C/CommonJS%20vs%20ESM/ >CommonJS vs ESM (ECMAScript Modules)</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ class="md-footer__link md-footer__link--prev" aria-label="이전: Process Management Tool 전체 보기"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Process Management Tool 전체 보기 </div> </div> </a> <a href=../pm2/ class="md-footer__link md-footer__link--next" aria-label="다음: pm2 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> pm2 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Framework/Node/Process%20Management%20Tool/forever/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../pm2/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Node.js Forever 프로세스 관리 도구 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#nodejs-forever-프로세스-관리-도구" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Node.js Forever 프로세스 관리 도구
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node.js
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_1_2" id="__nav_4_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Node.js
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Node_Framework_Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프레임워크 문서 인덱스
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Nodejs_Framework_Overview/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프레임워크
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../HTTP_Module/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    코어 모듈
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%95%A8%EC%88%98%ED%98%95%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    함수형 프로그래밍
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Error_Handling/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    운영
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../API/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../NestJS/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NestJS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Nodejs%EC%9D%98%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EC%9E%91%EB%8F%99%20%EC%9B%90%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    런타임 구조
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1_2_10" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로세스 관리
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_1_2_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_1_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    프로세스 관리
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Testing/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    테스트
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터베이스
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%AA%A8%EB%93%88%20%EC%8B%9C%EC%8A%A4%ED%85%9C/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    모듈 시스템
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    아키텍처
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%BA%90%EC%8B%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    캐싱
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Performance/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../View_Engine/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    View Engine
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%B2%98%EB%A6%AC%20%EB%B0%8F%20%ED%86%B5%EC%8B%A0/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    데이터 처리 및 통신
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%A1%9C%EA%B9%85/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    로깅
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    모니터링
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%B0%B1%EA%B7%B8%EB%9D%BC%EC%9A%B4%EB%93%9C_%EC%9E%91%EC%97%85/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    백그라운드 작업
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EB%B3%B4%EC%95%88/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    보안
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%84%B1%EB%8A%A5/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    성능
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%97%90%EB%9F%AC_%ED%95%B8%EB%93%A4%EB%A7%81/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    에러 핸들링
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%EC%9D%B8%EC%A6%9D/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    인증
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%8C%8C%EC%9D%BC_%EC%B2%98%EB%A6%AC/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    파일 처리
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Java/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Backend/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Architecture/Clean_Architecture/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#들어가며" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        들어가며
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#forever를-쓰면-안-되는-이유" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forever를 쓰면 안 되는 이유
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="forever를 쓰면 안 되는 이유">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#유지보수-사실상-중단" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        유지보수 사실상 중단
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#클러스터-모드-부재" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        클러스터 모드 부재
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#무중단-배포-불가" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        무중단 배포 불가
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#forever-nohup-pm2-systemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forever, nohup, pm2, systemd
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#그래도-forever를-써야-한다면" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        그래도 forever를 써야 한다면
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="그래도 forever를 써야 한다면">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#설치와-실행" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        설치와 실행
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#foreverjson-pm2-ecosystemjson과-헷갈리지-말-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        forever.json (PM2 ecosystem.json과 헷갈리지 말 것)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#자동-재시작-무한-루프-방지" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        자동 재시작 무한 루프 방지
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="자동 재시작 무한 루프 방지">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#시작-직후-크래시의-대표-원인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        시작 직후 크래시의 대표 원인
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#로그-회전" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그 회전
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#메모리-임계-재시작" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        메모리 임계 재시작
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#환경별-프로파일링" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        환경별 프로파일링
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#트러블슈팅-사례" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        트러블슈팅 사례
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="트러블슈팅 사례">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#list에는-보이는데-실제로는-죽어-있는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list에는 보이는데 실제로는 죽어 있는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#child_processspawn-사용-시-좀비-누적" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        child_process.spawn 사용 시 좀비 누적
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#로그가-갑자기-끊기는-경우" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로그가 갑자기 끊기는 경우
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#로컬에서는-잘-도는데-서버에서-즉시-종료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        로컬에서는 잘 도는데 서버에서 즉시 종료
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#systemd로-옮기는-최소-예시" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        systemd로 옮기는 최소 예시
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">nodejs</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="nodejs-forever-프로세스-관리-도구">Node.js Forever 프로세스 관리 도구<a class="headerlink" href="#nodejs-forever-프로세스-관리-도구" title="Permanent link">&para;</a></h1>
+<h2 id="들어가며">들어가며<a class="headerlink" href="#들어가며" title="Permanent link">&para;</a></h2>
+<p>forever는 Node.js 프로세스를 데몬으로 띄우고 죽으면 다시 살리는 단순한 도구다. 2010년대 초반 Nodejitsu에서 만들었고, 한때 Express 앱을 운영서버에 올릴 때 표준처럼 쓰였다. 지금 새로 시스템을 짠다면 굳이 forever를 고를 이유가 없다. 그래도 레거시 환경에서 마주칠 일이 적지 않고, "forever로 잘 돌고 있었는데 갑자기 메모리가 새요" 같은 트러블슈팅 요청은 여전히 들어온다.</p>
+<p>이 문서는 forever를 그대로 쓰는 방법보다, 왜 지금은 권장되지 않는지와 옮겨가야 할 때 어떤 점을 챙겨야 하는지에 무게를 둔다.</p>
+<h2 id="forever를-쓰면-안-되는-이유">forever를 쓰면 안 되는 이유<a class="headerlink" href="#forever를-쓰면-안-되는-이유" title="Permanent link">&para;</a></h2>
+<h3 id="유지보수-사실상-중단">유지보수 사실상 중단<a class="headerlink" href="#유지보수-사실상-중단" title="Permanent link">&para;</a></h3>
+<p>GitHub 저장소(foreverjs/forever)는 2019년 이후 의미 있는 커밋이 없다. README에도 "actively maintained alternatives" 운운하며 PM2나 systemd로 가라는 안내가 붙어 있다. 의존성 트리가 오래되어 npm install 단계에서 deprecated 경고와 audit 취약점이 무더기로 뜨는데, 이걸 패치할 사람이 없다. Node.js 18 이후로는 v8 디버거 옵션 변경 같은 사소한 변화에도 forever 내부가 종종 깨진다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>forever
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>npm<span class="w"> </span>warn<span class="w"> </span>deprecated<span class="w"> </span>coffee-script@1.7.1:<span class="w"> </span>...
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>npm<span class="w"> </span>warn<span class="w"> </span>deprecated<span class="w"> </span>request@2.88.2:<span class="w"> </span>...
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 매번 이런 경고를 보면서 운영 환경을 유지할 수는 없다</span>
+</span></code></pre></div>
+<p>운영 환경에서 보안 패치가 멈춘 도구를 쓰는 건 그 자체로 위험이다. 사내 보안팀이 SCA 스캔을 돌리는 순간 forever 의존성이 빨간 불부터 띄운다.</p>
+<h3 id="클러스터-모드-부재">클러스터 모드 부재<a class="headerlink" href="#클러스터-모드-부재" title="Permanent link">&para;</a></h3>
+<p>forever는 단일 프로세스를 띄우고 감시할 뿐이다. 멀티 코어를 활용하려면 직접 cluster 모듈로 워커를 포크해야 하는데, 그러면 forever가 마스터만 감시하고 워커가 죽어도 모른다. PM2의 <code>instances: 'max'</code> 한 줄이면 끝나는 일을 forever에서는 직접 짜야 한다. 8코어 머신에서 1코어만 쓰면서 "왜 이렇게 느리지" 하는 상황을 자주 본다.</p>
+<h3 id="무중단-배포-불가">무중단 배포 불가<a class="headerlink" href="#무중단-배포-불가" title="Permanent link">&para;</a></h3>
+<p>forever restart는 그냥 SIGKILL 후 재시작이다. 새 프로세스가 listen할 때까지 수 초 동안 ECONNREFUSED가 난다. 앞단에 nginx upstream이나 ALB가 있어도 health check 실패 처리에 시간이 걸려서 503이 노출된다. PM2의 reload(graceful)나 systemd의 socket activation 같은 대안이 없다.</p>
+<h2 id="forever-nohup-pm2-systemd">forever, nohup, pm2, systemd<a class="headerlink" href="#forever-nohup-pm2-systemd" title="Permanent link">&para;</a></h2>
+<p>작은 차이라고 보일 수 있지만 운영 시 결과는 완전히 갈린다.</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>nohup</th>
+<th>forever</th>
+<th>PM2</th>
+<th>systemd</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>자동 재시작</td>
+<td>없음</td>
+<td>있음</td>
+<td>있음</td>
+<td>있음 (Restart=)</td>
+</tr>
+<tr>
+<td>클러스터</td>
+<td>없음</td>
+<td>없음</td>
+<td>있음</td>
+<td>사용자 구성</td>
+</tr>
+<tr>
+<td>로그 분리</td>
+<td>stdout 리다이렉트만</td>
+<td>out/err 분리</td>
+<td>일자별 회전 옵션</td>
+<td>journald 통합</td>
+</tr>
+<tr>
+<td>부팅 시 자동 시작</td>
+<td>별도 작업 필요</td>
+<td>startup 스크립트 별도</td>
+<td>pm2 startup 명령</td>
+<td>기본</td>
+</tr>
+<tr>
+<td>무중단 배포</td>
+<td>없음</td>
+<td>없음</td>
+<td>reload 지원</td>
+<td>socket activation</td>
+</tr>
+<tr>
+<td>OS 통합</td>
+<td>단순</td>
+<td>약함</td>
+<td>약함</td>
+<td>강함</td>
+</tr>
+<tr>
+<td>의존성</td>
+<td>셸 기본</td>
+<td>npm 패키지</td>
+<td>npm 패키지</td>
+<td>OS 기본</td>
+</tr>
+</tbody>
+</table>
+<p>nohup은 정말 단순한 임시 실행에만 적합하다. 터미널 닫고 나가도 죽지 않는 정도지, 프로세스가 OOM으로 죽으면 그대로 끝이다. 그래서 forever가 등장했지만, 지금은 PM2나 systemd가 그 자리를 가져갔다.</p>
+<p>운영 환경 추천 순서는 명확하다. 컨테이너 환경이면 PM2조차 빼고 Node 프로세스를 PID 1로 두거나 tini를 쓰는 쪽이 표준이다. 베어메탈이나 VM이라면 systemd 유닛 파일 하나가 가장 안정적이다. PM2는 기능이 많지만 Node 버전 업그레이드 시 PM2 자체 업그레이드도 챙겨야 하는 부담이 있다. forever는 이 셋 중 어느 자리에도 맞지 않는다.</p>
+<h2 id="그래도-forever를-써야-한다면">그래도 forever를 써야 한다면<a class="headerlink" href="#그래도-forever를-써야-한다면" title="Permanent link">&para;</a></h2>
+<p>기존 시스템을 당장 옮길 수 없거나, 짧게 임시 운영하는 경우를 위한 최소한의 가이드다.</p>
+<h3 id="설치와-실행">설치와 실행<a class="headerlink" href="#설치와-실행" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>forever@4.0.3
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>forever<span class="w"> </span>--version
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>forever<span class="w"> </span>start<span class="w"> </span>-a<span class="w"> </span>-l<span class="w"> </span>forever.log<span class="w"> </span>-o<span class="w"> </span>out.log<span class="w"> </span>-e<span class="w"> </span>err.log<span class="w"> </span>--uid<span class="w"> </span><span class="s2">&quot;api&quot;</span><span class="w"> </span>server.js
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>forever<span class="w"> </span>list
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>forever<span class="w"> </span>stop<span class="w"> </span>api
+</span></code></pre></div>
+<p><code>-a</code>는 append, 즉 로그를 덮어쓰지 않고 이어 쓰게 하는 플래그다. 이걸 빼면 재시작할 때마다 로그가 날아간다. <code>--uid</code>는 인덱스(0, 1, 2…) 대신 이름으로 프로세스를 식별하게 해주는데, 운영에서는 인덱스로 stop/restart하다가 다른 프로세스를 잘못 건드리는 사고가 흔하다. uid를 항상 붙이는 습관을 들여야 한다.</p>
+<h3 id="foreverjson-pm2-ecosystemjson과-헷갈리지-말-것">forever.json (PM2 ecosystem.json과 헷갈리지 말 것)<a class="headerlink" href="#foreverjson-pm2-ecosystemjson과-헷갈리지-말-것" title="Permanent link">&para;</a></h3>
+<p><code>ecosystem.json</code>이라는 이름은 PM2 규약이다. forever는 자체 JSON 포맷을 쓴다. 둘이 비슷해 보여서 옮길 때 그대로 복사했다가 안 먹는 경우가 있다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;uid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api&quot;</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;append&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;watch&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;script&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;server.js&quot;</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;sourceDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/srv/api&quot;</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;--harmony&quot;</span><span class="p">],</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;logFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/var/log/api/forever.log&quot;</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">&quot;outFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/var/log/api/out.log&quot;</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="nt">&quot;errFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/var/log/api/err.log&quot;</span><span class="p">,</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="nt">&quot;killTree&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="nt">&quot;minUptime&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span><span class="nt">&quot;spinSleepTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2000</span><span class="p">,</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="nt">&quot;env&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">&quot;NODE_ENV&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;production&quot;</span><span class="p">,</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="nt">&quot;PORT&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;3000&quot;</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>여기서 가장 중요한 두 키가 <code>minUptime</code>과 <code>spinSleepTime</code>이다. 이 둘이 자동 재시작 무한 루프를 막아준다.</p>
+<h2 id="자동-재시작-무한-루프-방지">자동 재시작 무한 루프 방지<a class="headerlink" href="#자동-재시작-무한-루프-방지" title="Permanent link">&para;</a></h2>
+<p>forever 운영하면서 가장 흔하게 겪는 사고가 무한 재시작 루프다. 시작 직후 예외가 나서 즉시 죽으면, forever는 곧바로 다시 띄우고, 또 죽고, 또 띄우고… 1초에 수십 번 재시작이 반복되면서 CPU가 100%로 튀고 로그 파티션이 가득 찬다. 새벽에 디스크 풀 알람을 받고 들어가서 보면 forever 로그만 50GB 쌓여 있는 식이다.</p>
+<p>기본값으로는 이 보호장치가 약하기 때문에 반드시 명시해야 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>forever<span class="w"> </span>start<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--minUptime<span class="w"> </span><span class="m">5000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--spinSleepTime<span class="w"> </span><span class="m">2000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--max<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>--uid<span class="w"> </span>api<span class="w"> </span>server.js
+</span></code></pre></div>
+<ul>
+<li><code>minUptime</code>: 이 시간(ms) 안에 죽으면 "정상적인 실행이 아니다"로 간주한다. 5초 미만에 죽었다면 부팅 자체에 실패했다는 뜻이다.</li>
+<li><code>spinSleepTime</code>: minUptime 안에 죽었을 때 재시작 전 대기 시간(ms). 2초씩 기다리게 하면 최소한 디스크가 가득 차지는 않는다.</li>
+<li><code>--max N</code>: minUptime 미달 재시작이 N번 누적되면 forever 자체가 종료한다. 무한 루프 차단.</li>
+</ul>
+<p><code>--max</code> 옵션을 빼고 운영하다가 사고를 한 번 본 다음부터는 무조건 넣는다. forever가 죽으면 외부에서 알림이 오게 (예: monit, systemd watchdog, 또는 별도 헬스체크) 같이 두는 편이 안전하다.</p>
+<h3 id="시작-직후-크래시의-대표-원인">시작 직후 크래시의 대표 원인<a class="headerlink" href="#시작-직후-크래시의-대표-원인" title="Permanent link">&para;</a></h3>
+<p>다섯 번 중 네 번은 환경변수다. forever가 보는 환경과 셸 환경이 다르다. 특히 sudo로 띄울 때 PATH나 NODE_ENV가 빠져 있어서 require 단계부터 터진다. systemd라면 <code>EnvironmentFile=</code>로 명시할 텐데, forever에서는 forever.json의 <code>env</code>에 직접 박거나 셸 스크립트로 export해서 넣어야 한다.</p>
+<h2 id="로그-회전">로그 회전<a class="headerlink" href="#로그-회전" title="Permanent link">&para;</a></h2>
+<p>forever는 자체 로그 회전이 없다. 한 파일이 무한히 커진다. 운영 며칠만 지나면 로그 파일이 GB 단위로 부풀고, vi로 열다가 서버가 멈춘다.</p>
+<p>OS의 logrotate에 맡기는 게 표준 답이다. forever는 SIGHUP을 받아도 파일 핸들을 다시 열지 않으므로, copytruncate를 써야 한다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a># /etc/logrotate.d/forever-api
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>/var/log/api/*.log {
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    daily
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    rotate 14
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    compress
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    delaycompress
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    missingok
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    notifempty
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    copytruncate
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    size 100M
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>}
+</span></code></pre></div>
+<p><code>copytruncate</code>는 원본 파일을 복사한 뒤 truncate하는 방식이라 forever가 들고 있는 파일 디스크립터가 그대로 유지된다. 회전 직후 짧은 시간 동안 로그가 두 곳에 잠깐 쓰일 수 있다는 단점은 있지만, forever 환경에서는 이게 거의 유일한 선택지다. PM2였으면 <code>pm2-logrotate</code> 모듈로 SIGUSR2 기반 회전이 되는데, forever에는 그런 메커니즘이 없다.</p>
+<h2 id="메모리-임계-재시작">메모리 임계 재시작<a class="headerlink" href="#메모리-임계-재시작" title="Permanent link">&para;</a></h2>
+<p>Node 앱은 GC가 잘 돌아가도 결국 누수가 쌓이는 일이 잦다. 특히 keep-alive 연결, 외부 API 클라이언트의 내부 캐시, 이벤트 리스너 누락이 흔한 원인이다. 메모리가 일정 수준을 넘으면 차라리 재시작하는 쪽이 안전하다.</p>
+<p>forever에는 PM2의 <code>max_memory_restart</code> 같은 내장 옵션이 없다. 직접 감시 로직을 붙여야 한다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">MAX_RSS_MB</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1024</span><span class="p">;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">CHECK_INTERVAL_MS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">;</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nx">setInterval</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">rssMb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">memoryUsage</span><span class="p">().</span><span class="nx">rss</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1024</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1024</span><span class="p">;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">rssMb</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nx">MAX_RSS_MB</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="nx">console</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="sb">`rss=</span><span class="si">${</span><span class="nx">rssMb</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">0</span><span class="p">)</span><span class="si">}</span><span class="sb">MB exceeded, exiting for restart`</span><span class="p">);</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="nx">server</span><span class="p">.</span><span class="nx">close</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">exit</span><span class="p">(</span><span class="mf">0</span><span class="p">));</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="nx">setTimeout</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">exit</span><span class="p">(</span><span class="mf">1</span><span class="p">),</span><span class="w"> </span><span class="mf">10</span><span class="nx">_000</span><span class="p">).</span><span class="nx">unref</span><span class="p">();</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">},</span><span class="w"> </span><span class="nx">CHECK_INTERVAL_MS</span><span class="p">);</span>
+</span></code></pre></div>
+<p>핵심은 <code>server.close()</code>로 진행 중인 요청을 마무리하고 <code>process.exit(0)</code>으로 끊는 것이다. forever는 정상 종료(exit code 0)도 재시작 대상으로 본다. 다만 worker 큐에 무거운 작업이 걸려 있으면 close가 매달릴 수 있어 10초 타임아웃을 강제 종료로 둔다.</p>
+<p><code>--max-old-space-size</code>는 GC가 더 자주 돌도록 V8 힙 상한을 정하는 옵션이지, forever가 알아서 재시작해주는 옵션이 아니다. 둘을 헷갈리는 사람이 많다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>forever<span class="w"> </span>start<span class="w"> </span>--killSignal<span class="w"> </span>SIGTERM<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-c<span class="w"> </span><span class="s2">&quot;node --max-old-space-size=1024&quot;</span><span class="w"> </span>server.js
+</span></code></pre></div>
+<p><code>--killSignal SIGTERM</code>도 중요하다. 기본값이 SIGKILL이라 graceful shutdown 코드를 짜둬도 동작하지 않는다.</p>
+<h2 id="환경별-프로파일링">환경별 프로파일링<a class="headerlink" href="#환경별-프로파일링" title="Permanent link">&para;</a></h2>
+<p>개발에서는 watch 옵션을 켜고, 운영에서는 절대 끄는 게 정석이다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># dev</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>forever<span class="w"> </span>start<span class="w"> </span>--watch<span class="w"> </span>--watchDirectory<span class="w"> </span>./src<span class="w"> </span>--watchIgnore<span class="w"> </span><span class="s2">&quot;*.log&quot;</span><span class="w"> </span>server.js
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># prod</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>forever<span class="w"> </span>start<span class="w"> </span>--uid<span class="w"> </span>api<span class="w"> </span>--append<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span>--minUptime<span class="w"> </span><span class="m">5000</span><span class="w"> </span>--spinSleepTime<span class="w"> </span><span class="m">2000</span><span class="w"> </span>--max<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-l<span class="w"> </span>/var/log/api/forever.log<span class="w"> </span>-o<span class="w"> </span>/var/log/api/out.log<span class="w"> </span>-e<span class="w"> </span>/var/log/api/err.log<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span>server.js
+</span></code></pre></div>
+<p>watch가 켜진 상태로 운영에 올라간 사례를 한두 번 본 게 아니다. 빌드 산출물이나 로그 파일 변경에 반응해서 무한히 재시작한다. 옵션을 환경별로 분리하고, 배포 스크립트가 forever 인자를 명시적으로 만들도록 해야 한다.</p>
+<p>NODE_ENV는 forever 옵션이 아니라 환경변수로 들어가야 한다. <code>--env production</code> 같은 플래그가 forever에는 없다. 있어도 무시된다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">NODE_ENV</span><span class="o">=</span>production<span class="w"> </span>forever<span class="w"> </span>start<span class="w"> </span>--uid<span class="w"> </span>api<span class="w"> </span>server.js
+</span></code></pre></div>
+<h2 id="트러블슈팅-사례">트러블슈팅 사례<a class="headerlink" href="#트러블슈팅-사례" title="Permanent link">&para;</a></h2>
+<h3 id="list에는-보이는데-실제로는-죽어-있는-경우">list에는 보이는데 실제로는 죽어 있는 경우<a class="headerlink" href="#list에는-보이는데-실제로는-죽어-있는-경우" title="Permanent link">&para;</a></h3>
+<p><code>forever list</code>가 STOPPED를 보여주지 않고 RUNNING으로 표시되는데, ps로 보면 PID가 없다. forever의 상태 파일(<code>~/.forever/sock</code> 또는 <code>/tmp/forever</code>)이 깨졌을 때다. <code>forever stopall</code> 후 <code>~/.forever</code>를 비우고 다시 띄워야 한다. 같은 호스트에서 여러 사용자가 forever를 돌리면 sock 충돌이 일어나기도 한다.</p>
+<h3 id="child_processspawn-사용-시-좀비-누적">child_process.spawn 사용 시 좀비 누적<a class="headerlink" href="#child_processspawn-사용-시-좀비-누적" title="Permanent link">&para;</a></h3>
+<p>앱 안에서 <code>child_process.spawn</code>으로 외부 바이너리를 호출하는데, 부모가 재시작될 때 자식이 정리되지 않아 좀비가 누적되는 경우가 있다. forever.json에 <code>"killTree": true</code>를 켜야 한다. 기본값으로 두면 forever는 직속 자식만 죽인다.</p>
+<h3 id="로그가-갑자기-끊기는-경우">로그가 갑자기 끊기는 경우<a class="headerlink" href="#로그가-갑자기-끊기는-경우" title="Permanent link">&para;</a></h3>
+<p>logrotate가 copytruncate 없이 동작하거나, 누군가 수동으로 mv 후 새 파일을 만든 경우다. forever는 mv된 파일에 계속 쓰다가, 그 파일이 삭제되면 그 이후 로그를 어디에도 남기지 않는다. 재시작하기 전까지는 stdout이 사라진 상태로 운영된다. 이 상황은 디스크가 안 늘어나서 모니터링에서도 잡히지 않는다. 회전 정책을 처음에 잘 잡아야 한다.</p>
+<h3 id="로컬에서는-잘-도는데-서버에서-즉시-종료">로컬에서는 잘 도는데 서버에서 즉시 종료<a class="headerlink" href="#로컬에서는-잘-도는데-서버에서-즉시-종료" title="Permanent link">&para;</a></h3>
+<p>거의 항상 NODE_ENV, PORT, 그리고 uid/euid 권한 문제다. forever를 root로 띄우고 앱이 1024 미만 포트를 listen하면 잘 도는데, 일반 사용자로 바꾸는 순간 EACCES가 난다. authbind나 setcap이 필요하다. systemd라면 <code>AmbientCapabilities=CAP_NET_BIND_SERVICE</code> 한 줄로 끝나는 일이다. 이런 자잘한 차이가 쌓이면서 결국 systemd로 옮기게 된다.</p>
+<h2 id="systemd로-옮기는-최소-예시">systemd로 옮기는 최소 예시<a class="headerlink" href="#systemd로-옮기는-최소-예시" title="Permanent link">&para;</a></h2>
+<p>forever를 걷어내고 systemd로 옮기는 게 운영 측면에서 가장 깔끔하다. 단순한 유닛 파일 하나면 forever가 하던 일의 90%가 끝난다.</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># /etc/systemd/system/api.service</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">[Unit]</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="na">Description</span><span class="o">=</span><span class="s">API server</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="na">After</span><span class="o">=</span><span class="s">network.target</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">[Service]</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="na">Type</span><span class="o">=</span><span class="s">simple</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="na">User</span><span class="o">=</span><span class="s">app</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="na">WorkingDirectory</span><span class="o">=</span><span class="s">/srv/api</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="na">EnvironmentFile</span><span class="o">=</span><span class="s">/etc/api.env</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/bin/node --max-old-space-size=1024 server.js</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="na">Restart</span><span class="o">=</span><span class="s">on-failure</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="na">RestartSec</span><span class="o">=</span><span class="s">2</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="na">StartLimitIntervalSec</span><span class="o">=</span><span class="s">60</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="na">StartLimitBurst</span><span class="o">=</span><span class="s">5</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="na">MemoryMax</span><span class="o">=</span><span class="s">1500M</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="na">StandardOutput</span><span class="o">=</span><span class="s">journal</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="na">StandardError</span><span class="o">=</span><span class="s">journal</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="k">[Install]</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></code></pre></div>
+<p><code>StartLimitIntervalSec</code>/<code>StartLimitBurst</code>가 forever의 <code>minUptime</code>/<code>max</code> 역할을 한다. <code>MemoryMax</code>는 cgroup 한계라 단순한 임계 재시작과는 다르지만, OOM kill로 자연스럽게 재시작이 된다. 로그는 journald가 자동으로 회전한다. forever에서 구현하려면 코드와 설정을 한참 짜야 하는 것들이 systemd 유닛 십수 줄로 정리된다.</p>
+<h2 id="정리">정리<a class="headerlink" href="#정리" title="Permanent link">&para;</a></h2>
+<p>forever는 2010년대 표준이었지만 지금은 그 자리에 있을 이유가 사라졌다. 새 프로젝트면 systemd, 컨테이너면 PID 1 패턴, 굳이 Node 생태계 도구가 필요하면 PM2를 고른다. 기존 시스템에 forever가 박혀 있다면 minUptime/spinSleepTime/max 세 옵션으로 무한 루프부터 막고, logrotate copytruncate로 디스크부터 지키고, 메모리 임계 재시작은 앱 코드에 직접 심어야 한다. 그러고 나면 다음 분기에 옮겨갈 계획을 세우는 편이 운영 부담을 줄인다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Testing/API_E2E_%ED%85%8C%EC%8A%A4%ED%8A%B8_%ED%8C%A8%ED%84%B4/">API E2E 테스트 패턴</a></li>
+<li><a href="../../API/API_%EC%84%A4%EA%B3%84_%EC%9B%90%EC%B9%99/">API 설계 원칙 및 고급 패턴</a></li>
+<li><a href="../../Abort_Controller/">AbortController로 비동기 작업 취소하기</a></li>
+<li><a href="../../Nodejs%EC%9D%98%20%EA%B5%AC%EC%A1%B0%20%EB%B0%8F%20%EC%9E%91%EB%8F%99%20%EC%9B%90%EB%A6%AC/Async_Local_Storage/">AsyncLocalStorage (요청 단위 컨텍스트 전파)</a></li>
+<li><a href="../../%EB%AA%A8%EB%93%88%20%EC%8B%9C%EC%8A%A4%ED%85%9C/CommonJS%20vs%20ESM/">CommonJS vs ESM (ECMAScript Modules)</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="이전: Process Management Tool 전체 보기">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                Process Management Tool 전체 보기
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../pm2/" class="md-footer__link md-footer__link--next" aria-label="다음: pm2 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                pm2 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,41 +1,2742 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Cloud/AWS/Network/Elastic_Network_Interface/ rel=canonical><link href=../Direct_Connect/ rel=prev><link href=../Global_Accelerator/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다 - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#enielastic-network-interface class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6 checked> <label class=md-nav__link for=__nav_6 id=__nav_6_label tabindex=0> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_6_label aria-expanded=true> <label class=md-nav__title for=__nav_6> <span class="md-nav__icon md-icon"></span> Infra </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Cloud </span> </a> <label class="md-nav__link " for=__nav_6_1 id=__nav_6_1_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1> <span class="md-nav__icon md-icon"></span> Cloud </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AWS </span> </a> <label class="md-nav__link " for=__nav_6_1_2 id=__nav_6_1_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_6_1_2_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2> <span class="md-nav__icon md-icon"></span> AWS </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/ class=md-nav__link> <span class=md-ellipsis> 스토리지 서비스 비교 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_6_1_2_3 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> Network </span> </a> </div> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_6_1_2_3_label aria-expanded=true> <label class=md-nav__title for=__nav_6_1_2_3> <span class="md-nav__icon md-icon"></span> Network </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Compute/ class=md-nav__link> <span class=md-ellipsis> Compute </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Containers/ class=md-nav__link> <span class=md-ellipsis> Containers </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Storage/ class=md-nav__link> <span class=md-ellipsis> Storage </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Database/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Security/ class=md-nav__link> <span class=md-ellipsis> Security </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Load_Balancer/ class=md-nav__link> <span class=md-ellipsis> Load Balancer </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Application_Integration/ class=md-nav__link> <span class=md-ellipsis> App 연동 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Analytics/ class=md-nav__link> <span class=md-ellipsis> Analytics </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Monitoring/ class=md-nav__link> <span class=md-ellipsis> Monitoring </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Management/ class=md-nav__link> <span class=md-ellipsis> Management </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../CICD/ class=md-nav__link> <span class=md-ellipsis> CI/CD </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cost/ class=md-nav__link> <span class=md-ellipsis> Cost </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GCP/ class=md-nav__link> <span class=md-ellipsis> GCP </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DevOps/ class=md-nav__link> <span class=md-ellipsis> DevOps </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../WebServer/ class=md-nav__link> <span class=md-ellipsis> Web Server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#왜-eni를-따로-알아야-하나 class=md-nav__link> <span class=md-ellipsis> 왜 ENI를 따로 알아야 하나 </span> </a> </li> <li class=md-nav__item> <a href=#eni가-가지는-것들 class=md-nav__link> <span class=md-ellipsis> ENI가 가지는 것들 </span> </a> </li> <li class=md-nav__item> <a href=#primary-eni와-secondary-eni class=md-nav__link> <span class=md-ellipsis> Primary ENI와 Secondary ENI </span> </a> </li> <li class=md-nav__item> <a href=#secondary-ip--alb-target-typeip와-ecs-awsvpc의-비밀 class=md-nav__link> <span class=md-ellipsis> Secondary IP — ALB target type=ip와 ECS awsvpc의 비밀 </span> </a> <nav class=md-nav aria-label="Secondary IP — ALB target type=ip와 ECS awsvpc의 비밀"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#alb-target-typeip class=md-nav__link> <span class=md-ellipsis> ALB target type=ip </span> </a> </li> <li class=md-nav__item> <a href=#ecs-awsvpc-네트워크-모드 class=md-nav__link> <span class=md-ellipsis> ECS awsvpc 네트워크 모드 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#인스턴스-타입별-eniip-한계 class=md-nav__link> <span class=md-ellipsis> 인스턴스 타입별 ENI/IP 한계 </span> </a> </li> <li class=md-nav__item> <a href=#eni-trunking으로-ecs-태스크-밀도-늘리기 class=md-nav__link> <span class=md-ellipsis> ENI Trunking으로 ECS 태스크 밀도 늘리기 </span> </a> </li> <li class=md-nav__item> <a href=#lambda-in-vpc와-hyperplane-eni class=md-nav__link> <span class=md-ellipsis> Lambda-in-VPC와 Hyperplane ENI </span> </a> </li> <li class=md-nav__item> <a href=#매니지드-서비스의-eni를-description으로-찾기 class=md-nav__link> <span class=md-ellipsis> 매니지드 서비스의 ENI를 description으로 찾기 </span> </a> </li> <li class=md-nav__item> <a href=#eni-분리-실패--가장-짜증나는-운영-이슈 class=md-nav__link> <span class=md-ellipsis> ENI 분리 실패 — 가장 짜증나는 운영 이슈 </span> </a> <nav class=md-nav aria-label="ENI 분리 실패 — 가장 짜증나는 운영 이슈"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#원인 class=md-nav__link> <span class=md-ellipsis> 원인 </span> </a> </li> <li class=md-nav__item> <a href=#해결-순서 class=md-nav__link> <span class=md-ellipsis> 해결 순서 </span> </a> </li> <li class=md-nav__item> <a href=#force-detach의-함정 class=md-nav__link> <span class=md-ellipsis> Force detach의 함정 </span> </a> </li> <li class=md-nav__item> <a href=#network-interface-is-currently-in-use-에러 class=md-nav__link> <span class=md-ellipsis> "Network interface is currently in use" 에러 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#eni-상태-머신 class=md-nav__link> <span class=md-ellipsis> ENI 상태 머신 </span> </a> </li> <li class=md-nav__item> <a href=#eni와-보안-그룹의-미묘한-관계 class=md-nav__link> <span class=md-ellipsis> ENI와 보안 그룹의 미묘한 관계 </span> </a> </li> <li class=md-nav__item> <a href=#정리하면서--실무에서-마주치는-eni-관련-사고 class=md-nav__link> <span class=md-ellipsis> 정리하면서 — 실무에서 마주치는 ENI 관련 사고 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>aws</span> <span class=md-tag>cloud</span> <span class=md-tag>network</span> <span class=md-tag>vpc</span> </nav> <h1 id=enielastic-network-interface>ENI(Elastic Network Interface)<a class=headerlink href=#enielastic-network-interface title="Permanent link">&para;</a></h1> <h2 id=왜-eni를-따로-알아야-하나>왜 ENI를 따로 알아야 하나<a class=headerlink href=#왜-eni를-따로-알아야-하나 title="Permanent link">&para;</a></h2> <p>EC2를 만들면 자동으로 IP가 붙는다. RDS를 만들면 엔드포인트 DNS가 IP로 풀린다. NAT 게이트웨이도 IP를 가진다. ALB도 마찬가지다. 이 IP들은 어디서 오는가. 답은 전부 ENI다.</p> <p>ENI는 VPC 안에서 IP를 가지는 모든 리소스의 실제 네트워크 진입점이다. EC2 콘솔에서 인스턴스를 봤을 때 보이는 "Private IP"는 ENI가 가진 IP일 뿐이다. RDS 엔드포인트가 가리키는 그 IP도, 사실 RDS 서비스가 너의 VPC에 만들어 둔 ENI의 IP다. NAT 게이트웨이를 만들면 AWS 매니지드 영역에 NAT 인스턴스가 떠 있는 게 아니라, 너의 서브넷에 NAT용 ENI가 꽂혀 있는 거다.</p> <p>이걸 알아야 하는 이유는 IP 고갈, ENI 한계, 서브넷 크기 계산 같은 실무 문제가 전부 ENI 수준에서 발생하기 때문이다. /28 서브넷에 ECS Fargate 태스크 20개를 띄우려고 시도하다가 IP가 모자라 배포가 멈춘 적이 있다면, 그건 ECS의 awsvpc 모드가 태스크당 ENI를 1개씩 잡아서 그렇다.</p> <h2 id=eni가-가지는-것들>ENI가 가지는 것들<a class=headerlink href=#eni가-가지는-것들 title="Permanent link">&para;</a></h2> <p>ENI 하나에는 다음이 매달려 있다.</p> <ul> <li>Primary Private IPv4 주소 1개 (변경 불가)</li> <li>Secondary Private IPv4 주소 N개 (인스턴스 타입에 따라 한계)</li> <li>Elastic IP 1개 (Primary 또는 Secondary에 매핑)</li> <li>Public IPv4 (auto-assign 켰을 때, ENI 분리 후 재부착하면 사라짐)</li> <li>IPv6 주소 N개</li> <li>MAC 주소 (ENI 생성 시 고정, 라이선스 체크에 종종 활용됨)</li> <li>Security Group N개 (인스턴스가 아니라 ENI에 붙는다)</li> <li>소스/대상 검사(Source/Dest Check) 플래그</li> <li>설명(Description) 필드 — 이게 누가 만든 ENI인지 추적할 때 결정적이다</li> </ul> <p>EC2 인스턴스의 "보안 그룹"이 사실 인스턴스가 아니라 그 인스턴스의 ENI에 붙어 있다는 점이 처음엔 헷갈린다. 인스턴스에 ENI를 두 개 붙이면 각 ENI마다 별도의 보안 그룹을 가질 수 있다. 한 인스턴스가 DMZ와 내부망에 동시에 발을 걸치는 구성이 가능한 이유다.</p> <h2 id=primary-eni와-secondary-eni>Primary ENI와 Secondary ENI<a class=headerlink href=#primary-eni와-secondary-eni title="Permanent link">&para;</a></h2> <p>EC2 인스턴스를 만들면 eth0에 해당하는 Primary ENI가 자동으로 생긴다. 이 Primary ENI는 인스턴스와 운명을 같이한다.</p> <ul> <li>인스턴스 종료 시 같이 삭제된다 (delete on termination 기본값 true)</li> <li>인스턴스에서 분리(detach) 불가능</li> <li>Primary Private IP 변경 불가</li> </ul> <p>Secondary ENI는 사람이 명시적으로 만들어서 붙이는 ENI다.</p> <ul> <li>인스턴스에서 자유롭게 분리/재부착 가능</li> <li>인스턴스 종료해도 ENI는 남길 수 있다 (delete on termination 기본값 false)</li> <li>IP가 보존된다 — Floating IP 패턴에 쓴다</li> </ul> <p>전형적인 활용은 이렇다. 라이선스를 MAC 주소나 IP에 묶어둔 레거시 소프트웨어를 EC2에 띄울 때, Secondary ENI를 만들어서 거기에 라이선스용 IP를 올린다. 인스턴스를 교체할 때 Secondary ENI만 뽑아서 새 인스턴스에 꽂으면 IP와 MAC이 그대로 따라간다. 라이선스 재발급 없이 인스턴스 교체가 끝난다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=c1># Secondary ENI 만들기</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>aws<span class=w> </span>ec2<span class=w> </span>create-network-interface<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=w>  </span>--subnet-id<span class=w> </span>subnet-0a1b2c3d<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=w>  </span>--description<span class=w> </span><span class=s2>&quot;license-floating-eni&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a><span class=w>  </span>--groups<span class=w> </span>sg-0123456789<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=w>  </span>--private-ip-address<span class=w> </span><span class=m>10</span>.0.1.50
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=c1># 인스턴스에 부착 (device-index 1번 = eth1)</span>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>aws<span class=w> </span>ec2<span class=w> </span>attach-network-interface<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a><span class=w>  </span>--network-interface-id<span class=w> </span>eni-aabbccdd<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a><span class=w>  </span>--instance-id<span class=w> </span>i-0123456789<span class=w> </span><span class=se>\</span>
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a><span class=w>  </span>--device-index<span class=w> </span><span class=m>1</span>
-</span></code></pre></div> <h2 id=secondary-ip--alb-target-typeip와-ecs-awsvpc의-비밀>Secondary IP — ALB target type=ip와 ECS awsvpc의 비밀<a class=headerlink href=#secondary-ip--alb-target-typeip와-ecs-awsvpc의-비밀 title="Permanent link">&para;</a></h2> <p>ENI 하나는 IP를 여러 개 가질 수 있다. 이걸 Secondary IP라고 한다. ENI에 IP를 추가로 할당하면 그 IP들은 같은 ENI를 통해 흐른다.</p> <p>이 메커니즘이 두 가지 흔한 패턴의 기반이다.</p> <h3 id=alb-target-typeip>ALB target type=ip<a class=headerlink href=#alb-target-typeip title="Permanent link">&para;</a></h3> <p>ALB 타겟 그룹의 target type을 <code>instance</code>가 아니라 <code>ip</code>로 만들면, 타겟이 인스턴스 ID가 아닌 IP 주소가 된다. 이때 ALB는 그 IP가 같은 VPC 안의 ENI 어딘가에 있다고 가정하고 라우팅한다. 한 인스턴스에서 여러 컨테이너를 돌리면서 각 컨테이너에 Secondary IP를 부여하면, ALB가 인스턴스가 아니라 컨테이너 단위로 트래픽을 보낼 수 있다.</p> <h3 id=ecs-awsvpc-네트워크-모드>ECS awsvpc 네트워크 모드<a class=headerlink href=#ecs-awsvpc-네트워크-모드 title="Permanent link">&para;</a></h3> <p>ECS의 awsvpc 모드는 태스크마다 전용 ENI를 부여한다. 정확히는 태스크의 각 컨테이너가 호스트 ENI의 Secondary IP를 빌려 쓰는 게 아니라, 태스크 단위로 새 ENI를 통째로 받는다. 그래서 태스크마다 보안 그룹을 다르게 줄 수 있고, VPC Flow Logs에 태스크 단위 IP가 그대로 찍힌다.</p> <p>이게 편한 대신 비용이 있다. /24 서브넷(가용 IP 약 251개)에 ECS Fargate 태스크를 251개까지밖에 못 띄운다. ALB target type=ip로 ECS를 붙이는 구성에서는 서브넷 크기 산정이 처음부터 빠듯하게 잡혀야 한다. 운영 중 스케일 아웃 시점에 "DescribeNetworkInterfaces 응답에 ENI가 안 보임 + 태스크가 PENDING에서 멈춤"이 나오면 90% 확률로 서브넷 IP 고갈이다.</p> <h2 id=인스턴스-타입별-eniip-한계>인스턴스 타입별 ENI/IP 한계<a class=headerlink href=#인스턴스-타입별-eniip-한계 title="Permanent link">&para;</a></h2> <p>이게 실무에서 가장 자주 부딪히는 벽이다. ENI 개수와 ENI당 IP 개수가 인스턴스 타입마다 다르다.</p> <table> <thead> <tr> <th>인스턴스 타입</th> <th>최대 ENI</th> <th>ENI당 IPv4</th> <th>총 IPv4</th> </tr> </thead> <tbody> <tr> <td>t3.nano</td> <td>2</td> <td>2</td> <td>4</td> </tr> <tr> <td>t3.micro</td> <td>2</td> <td>2</td> <td>4</td> </tr> <tr> <td>t3.small</td> <td>3</td> <td>4</td> <td>12</td> </tr> <tr> <td>t3.medium</td> <td>3</td> <td>6</td> <td>18</td> </tr> <tr> <td>t3.large</td> <td>3</td> <td>12</td> <td>36</td> </tr> <tr> <td>t3.xlarge</td> <td>4</td> <td>15</td> <td>60</td> </tr> <tr> <td>m5.large</td> <td>3</td> <td>10</td> <td>30</td> </tr> <tr> <td>m5.xlarge</td> <td>4</td> <td>15</td> <td>60</td> </tr> <tr> <td>m5.2xlarge</td> <td>4</td> <td>15</td> <td>60</td> </tr> <tr> <td>m5.4xlarge</td> <td>8</td> <td>30</td> <td>240</td> </tr> <tr> <td>c5.large</td> <td>3</td> <td>10</td> <td>30</td> </tr> <tr> <td>c5.xlarge</td> <td>4</td> <td>15</td> <td>60</td> </tr> <tr> <td>c5.4xlarge</td> <td>8</td> <td>30</td> <td>240</td> </tr> </tbody> </table> <p>표를 보면 같은 vCPU/메모리 대역인데도 t3 계열이 c5/m5 계열보다 ENI와 IP 한계가 빡빡하다. 비용 줄이려고 t3.small에 ECS EC2 모드로 awsvpc 태스크를 띄우려 하면, 태스크 2개(태스크 ENI 2개) 띄우자마자 한계에 닿는다. ECS는 호스트 자체 ENI 1개도 점유하니까 실제로는 더 빠르게 차오른다.</p> <p>ECS EC2 모드를 진지하게 운영할 거면 m5/c5 계열 또는 더 큰 인스턴스가 답이다. 아니면 다음에 나올 ENI Trunking을 켠다.</p> <p>확인은 다음 명령으로 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>aws<span class=w> </span>ec2<span class=w> </span>describe-instance-types<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=w>  </span>--instance-types<span class=w> </span>t3.medium<span class=w> </span>m5.large<span class=w> </span>c5.large<span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;InstanceTypes[].[InstanceType,NetworkInfo.MaximumNetworkInterfaces,NetworkInfo.Ipv4AddressesPerInterface]&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a><span class=w>  </span>--output<span class=w> </span>table
-</span></code></pre></div> <h2 id=eni-trunking으로-ecs-태스크-밀도-늘리기>ENI Trunking으로 ECS 태스크 밀도 늘리기<a class=headerlink href=#eni-trunking으로-ecs-태스크-밀도-늘리기 title="Permanent link">&para;</a></h2> <p>ENI Trunking은 ECS EC2 런치 타입에서 한 인스턴스에 태스크 ENI를 더 많이 꽂을 수 있게 해주는 기능이다. 일반 모드에서는 awsvpc 태스크 하나가 ENI 한 슬롯을 통째로 먹지만, Trunking을 켜면 트렁크 ENI 1개에 여러 개의 브랜치 ENI를 가상으로 매단다.</p> <p>m5.large 기준으로 비교하면 이렇다.</p> <ul> <li>Trunking 비활성: 태스크 ENI 2개 → 태스크 2개 한계 (호스트 ENI 1개 점유)</li> <li>Trunking 활성: 브랜치 ENI 10개 → 태스크 10개 한계</li> </ul> <p>활성화는 ECS 계정 설정에서 한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a>aws<span class=w> </span>ecs<span class=w> </span>put-account-setting<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=w>  </span>--name<span class=w> </span>awsvpcTrunking<span class=w> </span><span class=se>\</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=w>  </span>--value<span class=w> </span>enabled
-</span></code></pre></div> <p>주의할 점이 있다. Trunking 지원 인스턴스 타입이 제한된다. 너모브 새로 만들어진 nitro 기반 인스턴스(c5/m5/r5 이상, t3는 제외)만 지원한다. 그리고 계정 설정을 켠 뒤 새로 띄우는 인스턴스부터 적용된다. 기존에 떠 있던 EC2는 재기동해야 트렁크 ENI가 생긴다.</p> <p>운영 중에 "왜 Trunking을 켰는데 여전히 태스크가 한계에서 멈추지" 하면 보통 다음 중 하나다.</p> <ul> <li>인스턴스가 Trunking 활성화 이전에 떠 있던 것</li> <li>인스턴스 타입이 미지원 (t3 계열에서 자주 겪는다)</li> <li>ECS 에이전트 버전이 낮음</li> </ul> <h2 id=lambda-in-vpc와-hyperplane-eni>Lambda-in-VPC와 Hyperplane ENI<a class=headerlink href=#lambda-in-vpc와-hyperplane-eni title="Permanent link">&para;</a></h2> <p>Lambda를 VPC에 붙이는 구성을 한 번이라도 운영해본 사람은 옛날의 콜드 스타트 악몽을 기억할 거다. 2019년 이전에는 Lambda가 VPC에 붙을 때 호출 시점에 ENI를 만들고 거기 attach하는 구조였다. ENI 생성 자체가 수십 초가 걸리는 작업이라 첫 호출이 10초가 넘어가는 게 흔했다.</p> <p>지금은 hyperplane ENI로 바뀌었다. Lambda 함수가 VPC에 처음 붙을 때 AWS 내부에서 공유 ENI(hyperplane)를 함수의 VPC/서브넷/보안 그룹 조합당 하나 만들어둔다. 함수가 호출되면 이 공유 ENI를 통해 트래픽이 흐른다. 함수당 ENI가 아니라 (VPC × 서브넷 × 보안 그룹) 조합당 ENI다.</p> <p>실무에서 이 변화의 의미는 두 가지다.</p> <ul> <li>콜드 스타트가 일반 Lambda 수준으로 회복됐다. ENI 생성을 호출 경로에서 빼냈으니까.</li> <li>같은 VPC/서브넷/SG를 공유하는 Lambda 함수들이 ENI를 공유한다. 함수 100개를 같은 구성으로 띄워도 ENI는 손에 꼽는다.</li> </ul> <p>부작용도 있다. VPC 안에서 Lambda가 호출하는 트래픽이 어떤 ENI에서 오는지 정확히 매칭하기 어려워졌다. VPC Flow Logs에 잡히는 IP가 "이 Lambda 함수의 IP"가 아니라 "이 VPC×서브넷×SG 조합 hyperplane ENI의 IP"여서, 누가 호출한 트래픽인지 함수 단위로 식별이 안 된다. 추적이 필요하면 Lambda 안에서 X-Ray나 컨텍스트 로깅으로 푼다.</p> <p>확인 방법.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>aws<span class=w> </span>ec2<span class=w> </span>describe-network-interfaces<span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span>--filters<span class=w> </span><span class=s2>&quot;Name=description,Values=AWS Lambda VPC ENI*&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;NetworkInterfaces[].[NetworkInterfaceId,Description,PrivateIpAddress]&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=w>  </span>--output<span class=w> </span>table
-</span></code></pre></div> <h2 id=매니지드-서비스의-eni를-description으로-찾기>매니지드 서비스의 ENI를 description으로 찾기<a class=headerlink href=#매니지드-서비스의-eni를-description으로-찾기 title="Permanent link">&para;</a></h2> <p>AWS 매니지드 서비스가 VPC에 만든 ENI는 보통 description 필드에 일관된 문자열이 들어간다. IP 고갈 디버깅이나 "이 ENI 누가 쓰는 거지" 같은 상황에서 결정적인 단서다.</p> <table> <thead> <tr> <th>서비스</th> <th>Description 패턴</th> </tr> </thead> <tbody> <tr> <td>RDS</td> <td><code>RDSNetworkInterface</code></td> </tr> <tr> <td>ElastiCache</td> <td><code>ElastiCache &lt;cluster-name&gt;</code></td> </tr> <tr> <td>Lambda</td> <td><code>AWS Lambda VPC ENI-&lt;function&gt;</code></td> </tr> <tr> <td>NAT Gateway</td> <td><code>Interface for NAT Gateway nat-xxxxxxxx</code></td> </tr> <tr> <td>VPC Endpoint (Interface)</td> <td><code>VPC Endpoint Interface vpce-xxxxxxxx</code></td> </tr> <tr> <td>Transit Gateway</td> <td><code>Network interface for Transit Gateway Attachment tgw-attach-xxxxxxxx</code></td> </tr> <tr> <td>ECS Fargate</td> <td><code>arn:aws:ecs:...:task/...</code> (description이 태스크 ARN을 포함)</td> </tr> <tr> <td>EFS</td> <td><code>EFS mount target for fs-xxxxxxxx</code></td> </tr> <tr> <td>WorkSpaces</td> <td><code>WorkSpaces</code></td> </tr> <tr> <td>ALB/NLB</td> <td><code>ELB app/&lt;name&gt;</code> 또는 <code>ELB net/&lt;name&gt;</code></td> </tr> </tbody> </table> <p>서브넷 IP가 어디로 새고 있는지 확인할 때 자주 쓰는 쿼리.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1># 특정 서브넷에서 누가 ENI를 점유하고 있는지</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>aws<span class=w> </span>ec2<span class=w> </span>describe-network-interfaces<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>  </span>--filters<span class=w> </span><span class=s2>&quot;Name=subnet-id,Values=subnet-0a1b2c3d&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;NetworkInterfaces[].[NetworkInterfaceId,Description,Status,PrivateIpAddress,InterfaceType]&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span>--output<span class=w> </span>table
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a><span class=c1># description으로 매니지드 서비스 ENI만 추리기</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>aws<span class=w> </span>ec2<span class=w> </span>describe-network-interfaces<span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a><span class=w>  </span>--filters<span class=w> </span><span class=s2>&quot;Name=description,Values=*NAT Gateway*&quot;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a><span class=w>  </span>--query<span class=w> </span><span class=s1>&#39;NetworkInterfaces[].[NetworkInterfaceId,Description,SubnetId]&#39;</span>
-</span></code></pre></div> <p>InterfaceType 필드도 유용하다. 값은 <code>interface</code>, <code>natGateway</code>, <code>efa</code>, <code>trunk</code>, <code>branch</code>, <code>gateway_load_balancer</code>, <code>gateway_load_balancer_endpoint</code>, <code>vpc_endpoint</code>, <code>lambda</code> 등이 있다. <code>branch</code>로 필터링하면 ECS Trunking으로 만들어진 ENI만 따로 볼 수 있다.</p> <h2 id=eni-분리-실패--가장-짜증나는-운영-이슈>ENI 분리 실패 — 가장 짜증나는 운영 이슈<a class=headerlink href=#eni-분리-실패--가장-짜증나는-운영-이슈 title="Permanent link">&para;</a></h2> <p>ENI 작업 중 가장 골치 아픈 경우는 분리(detach)가 안 될 때다. 시나리오는 보통 이렇다. 인스턴스를 종료하려는데 Secondary ENI의 delete-on-termination이 false라 ENI가 남는다. 다른 인스턴스에 붙이려고 detach 시도하면 응답은 성공인데 status가 <code>detaching</code>에서 멈춘 채 몇 분이 지나도 <code>available</code>로 안 떨어진다.</p> <h3 id=원인>원인<a class=headerlink href=#원인 title="Permanent link">&para;</a></h3> <ul> <li>인스턴스 OS에서 ENI 디바이스를 잡고 있는 프로세스가 있음</li> <li>ENI에 매달린 Elastic IP가 어딘가에서 활성 트래픽을 처리 중</li> <li>인스턴스가 stop 상태가 아니라 running인데 ENI가 부팅 시 자동 설정된 인터페이스라 OS가 놓지 않음</li> <li>AWS 백엔드 자체 지연 (드물지만 있음)</li> </ul> <h3 id=해결-순서>해결 순서<a class=headerlink href=#해결-순서 title="Permanent link">&para;</a></h3> <ol> <li>인스턴스에서 OS 레벨로 인터페이스 내리기</li> </ol> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1># 인스턴스 안에서</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>sudo<span class=w> </span>ip<span class=w> </span>link<span class=w> </span><span class=nb>set</span><span class=w> </span>dev<span class=w> </span>eth1<span class=w> </span>down
-</span></code></pre></div> <ol> <li>다시 detach 시도</li> </ol> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a>aws<span class=w> </span>ec2<span class=w> </span>detach-network-interface<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span>--attachment-id<span class=w> </span>eni-attach-xxxxxxxx
-</span></code></pre></div> <ol> <li>그래도 안 되면 force detach</li> </ol> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>aws<span class=w> </span>ec2<span class=w> </span>detach-network-interface<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>  </span>--attachment-id<span class=w> </span>eni-attach-xxxxxxxx<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>  </span>--force
-</span></code></pre></div> <h3 id=force-detach의-함정>Force detach의 함정<a class=headerlink href=#force-detach의-함정 title="Permanent link">&para;</a></h3> <p><code>--force</code>를 쓰면 무조건 떨어지긴 한다. 다만 운영 환경에서 함부로 쓰면 안 되는 이유가 있다.</p> <ul> <li>인스턴스 OS는 ENI가 사라진 걸 모른다. 그 인터페이스를 통해 통신하던 프로세스는 행이 걸리거나 SIGPIPE를 받는다.</li> <li>인스턴스의 네트워크 스택이 깨질 수 있다. 특히 eth0(Primary ENI)을 force detach 시도하면 AWS가 막지만, eth1 이상의 Secondary ENI를 force detach하면 OS 입장에서는 디바이스가 갑자기 사라진 거라 ifconfig/ip 명령이 한동안 응답하지 않는 경우가 있다.</li> <li>결과적으로 인스턴스 재기동이 필요한 경우가 많다. force detach로 ENI를 빼냈는데 인스턴스 자체가 정상 동작하지 않으면 결국 EC2를 stop/start 해야 한다.</li> </ul> <p>운영 중인 인스턴스에서 force detach는 마지막 수단이다. 보통은 1) OS 안에서 인터페이스를 먼저 내리고 2) detach 시도하는 순서를 지킨다. 정 안 되면 인스턴스를 stop한 뒤 detach한다. stop된 인스턴스의 ENI는 거의 항상 깨끗하게 떨어진다.</p> <h3 id=network-interface-is-currently-in-use-에러>"Network interface is currently in use" 에러<a class=headerlink href=#network-interface-is-currently-in-use-에러 title="Permanent link">&para;</a></h3> <p>ENI를 삭제하려는데 위 에러가 뜨는 경우가 있다. 십중팔구 매니지드 서비스가 잡고 있다. RDS를 삭제했는데 RDS ENI가 남아 있거나, VPC Endpoint를 지웠는데 ENI는 남는 경우. AWS 측에서 정리하는 데 5~15분 정도 걸리는 게 정상이다. 그래도 안 사라지면 description으로 어떤 서비스인지 확인하고, 해당 서비스 콘솔에서 의존성을 정리해야 한다.</p> <p>가장 흔한 경우: ALB/NLB를 삭제했는데 ELB ENI가 남는다. 이건 ELB가 비동기로 정리되니까 10분 정도 기다리면 자동으로 사라진다. 안 사라지면 보안 그룹이나 EIP 같은 의존성이 남아 있을 가능성이 높다.</p> <h2 id=eni-상태-머신>ENI 상태 머신<a class=headerlink href=#eni-상태-머신 title="Permanent link">&para;</a></h2> <p>ENI의 상태 값은 운영 중 자주 본다.</p> <ul> <li><code>available</code> — 분리되어 있고 부착 가능한 상태</li> <li><code>attaching</code> — 부착 중</li> <li><code>in-use</code> — 인스턴스/서비스에 부착된 상태</li> <li><code>detaching</code> — 분리 중. 이 상태에서 오래 머물면 위에서 다룬 문제다.</li> </ul> <p>상태 전환 중에는 보안 그룹 변경 같은 일부 작업이 막힌다. CloudFormation/Terraform으로 ENI 관련 변경을 자동화할 때 <code>detaching</code> 상태에서 실패하는 경우가 종종 있어서, 재시도 로직을 넣어두는 게 안전하다.</p> <h2 id=eni와-보안-그룹의-미묘한-관계>ENI와 보안 그룹의 미묘한 관계<a class=headerlink href=#eni와-보안-그룹의-미묘한-관계 title="Permanent link">&para;</a></h2> <p>보안 그룹은 ENI 단위로 붙는다. 한 ENI에 최대 5개의 보안 그룹을 붙일 수 있다(쿼터 상향 가능). 한 인스턴스에 ENI가 2개 있고 각각 다른 SG가 붙으면, 그 인스턴스는 사실상 두 개의 다른 방화벽 규칙을 동시에 가지는 거다.</p> <p>특이한 케이스 하나. ECS awsvpc 모드에서는 태스크 정의의 networkConfiguration에 보안 그룹을 지정하는데, 이 보안 그룹은 태스크 ENI에 붙는다. 호스트 EC2의 보안 그룹과는 완전히 분리된다. 그래서 호스트 EC2에는 ECS 에이전트가 통신하는 데 필요한 outbound만 열고, 실제 애플리케이션의 inbound는 태스크 ENI 단의 SG에서 제어하는 게 표준 구성이다.</p> <h2 id=정리하면서--실무에서-마주치는-eni-관련-사고>정리하면서 — 실무에서 마주치는 ENI 관련 사고<a class=headerlink href=#정리하면서--실무에서-마주치는-eni-관련-사고 title="Permanent link">&para;</a></h2> <p>마지막으로 자주 보는 사고 유형을 압축해서 적어둔다.</p> <p>서브넷 IP 고갈로 ECS 태스크가 PENDING에서 멈춘다. 이건 거의 100% 서브넷 크기 부족이다. <code>aws ec2 describe-subnets</code>로 <code>AvailableIpAddressCount</code>를 확인한다. 빠른 처방은 다른 서브넷을 ECS 서비스에 추가하는 거고, 근본 처방은 /24 이상으로 서브넷을 다시 자르는 거다.</p> <p>인스턴스 타입을 t3에서 m5로 바꿨는데 ENI 한계가 늘어난 건지 모르겠다. <code>describe-instance-types</code>로 확인한다. 사양표를 외울 필요 없다.</p> <p>NAT 게이트웨이를 삭제했는데 ENI가 안 사라진다. 보통 10분 안에 정리된다. 그 이상 남아 있으면 NAT 게이트웨이 상태가 <code>deleting</code>에서 멈춘 거다. 이때는 CloudFormation/Terraform 스택에서 의존성이 남아 있는 경우가 많다.</p> <p>Lambda VPC 함수의 IP가 매번 달라 보인다. hyperplane ENI가 여러 개일 수 있다. (VPC × 서브넷 × SG) 조합마다 하나, 그리고 부하가 늘면 같은 조합 내에서도 추가 ENI가 만들어진다. 화이트리스트 기반 외부 호출이 필요하면 NAT 게이트웨이 + EIP로 송신 IP를 고정하는 게 정석이다.</p> <p>ENI는 보이지 않는 인프라처럼 다뤄지지만, VPC 안에서 IP가 흐르는 모든 길이 ENI에서 시작한다. IP가 모자라거나, 보안 그룹이 의도대로 안 먹거나, 인스턴스가 detach 안 되거나 하는 문제는 결국 ENI 한 칸 한 칸을 들여다봐야 풀린다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../ALB_ECS_S3_Request_Flow/ >ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li> <li><a href=../Internet_Gateway/ >AWS Internet Gateway</a></li> <li><a href=../Nat_Gateway/ >AWS NAT Gateway</a></li> <li><a href=../Transit_Gateway/ >AWS Transit Gateway</a></li> <li><a href=../VPC_Peering/ >AWS VPC Peering</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Direct_Connect/ class="md-footer__link md-footer__link--prev" aria-label="이전: AWS Direct Connect"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> AWS Direct Connect </div> </div> </a> <a href=../Global_Accelerator/ class="md-footer__link md-footer__link--next" aria-label="다음: AWS Global Accelerator"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> AWS Global Accelerator </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Cloud/AWS/Network/Elastic_Network_Interface/">
+      
+      
+        <link rel="prev" href="../Direct_Connect/">
+      
+      
+        <link rel="next" href="../Global_Accelerator/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#enielastic-network-interface" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infra
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AWS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%A7%80_%EC%84%9C%EB%B9%84%EC%8A%A4_%EB%B9%84%EA%B5%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    스토리지 서비스 비교
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_6_1_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_1_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Network
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Compute/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Containers/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Storage/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Database/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Security/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Load_Balancer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancer
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Application_Integration/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App 연동
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Analytics/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analytics
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Monitoring/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Management/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Management
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../CICD/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Cost/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cost
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GCP/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DevOps/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevOps
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../WebServer/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Server
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#왜-eni를-따로-알아야-하나" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        왜 ENI를 따로 알아야 하나
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eni가-가지는-것들" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENI가 가지는 것들
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#primary-eni와-secondary-eni" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Primary ENI와 Secondary ENI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secondary-ip--alb-target-typeip와-ecs-awsvpc의-비밀" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secondary IP — ALB target type=ip와 ECS awsvpc의 비밀
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secondary IP — ALB target type=ip와 ECS awsvpc의 비밀">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alb-target-typeip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ALB target type=ip
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ecs-awsvpc-네트워크-모드" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ECS awsvpc 네트워크 모드
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#인스턴스-타입별-eniip-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인스턴스 타입별 ENI/IP 한계
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eni-trunking으로-ecs-태스크-밀도-늘리기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENI Trunking으로 ECS 태스크 밀도 늘리기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lambda-in-vpc와-hyperplane-eni" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lambda-in-VPC와 Hyperplane ENI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#매니지드-서비스의-eni를-description으로-찾기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        매니지드 서비스의 ENI를 description으로 찾기
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eni-분리-실패--가장-짜증나는-운영-이슈" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENI 분리 실패 — 가장 짜증나는 운영 이슈
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ENI 분리 실패 — 가장 짜증나는 운영 이슈">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#원인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        원인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#해결-순서" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        해결 순서
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-detach의-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force detach의 함정
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-interface-is-currently-in-use-에러" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Network interface is currently in use" 에러
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eni-상태-머신" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENI 상태 머신
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eni와-보안-그룹의-미묘한-관계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENI와 보안 그룹의 미묘한 관계
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#정리하면서--실무에서-마주치는-eni-관련-사고" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        정리하면서 — 실무에서 마주치는 ENI 관련 사고
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">aws</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">cloud</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">network</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">vpc</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="enielastic-network-interface">ENI(Elastic Network Interface)<a class="headerlink" href="#enielastic-network-interface" title="Permanent link">&para;</a></h1>
+<h2 id="왜-eni를-따로-알아야-하나">왜 ENI를 따로 알아야 하나<a class="headerlink" href="#왜-eni를-따로-알아야-하나" title="Permanent link">&para;</a></h2>
+<p>EC2를 만들면 자동으로 IP가 붙는다. RDS를 만들면 엔드포인트 DNS가 IP로 풀린다. NAT 게이트웨이도 IP를 가진다. ALB도 마찬가지다. 이 IP들은 어디서 오는가. 답은 전부 ENI다.</p>
+<p>ENI는 VPC 안에서 IP를 가지는 모든 리소스의 실제 네트워크 진입점이다. EC2 콘솔에서 인스턴스를 봤을 때 보이는 "Private IP"는 ENI가 가진 IP일 뿐이다. RDS 엔드포인트가 가리키는 그 IP도, 사실 RDS 서비스가 너의 VPC에 만들어 둔 ENI의 IP다. NAT 게이트웨이를 만들면 AWS 매니지드 영역에 NAT 인스턴스가 떠 있는 게 아니라, 너의 서브넷에 NAT용 ENI가 꽂혀 있는 거다.</p>
+<p>이걸 알아야 하는 이유는 IP 고갈, ENI 한계, 서브넷 크기 계산 같은 실무 문제가 전부 ENI 수준에서 발생하기 때문이다. /28 서브넷에 ECS Fargate 태스크 20개를 띄우려고 시도하다가 IP가 모자라 배포가 멈춘 적이 있다면, 그건 ECS의 awsvpc 모드가 태스크당 ENI를 1개씩 잡아서 그렇다.</p>
+<h2 id="eni가-가지는-것들">ENI가 가지는 것들<a class="headerlink" href="#eni가-가지는-것들" title="Permanent link">&para;</a></h2>
+<p>ENI 하나에는 다음이 매달려 있다.</p>
+<ul>
+<li>Primary Private IPv4 주소 1개 (변경 불가)</li>
+<li>Secondary Private IPv4 주소 N개 (인스턴스 타입에 따라 한계)</li>
+<li>Elastic IP 1개 (Primary 또는 Secondary에 매핑)</li>
+<li>Public IPv4 (auto-assign 켰을 때, ENI 분리 후 재부착하면 사라짐)</li>
+<li>IPv6 주소 N개</li>
+<li>MAC 주소 (ENI 생성 시 고정, 라이선스 체크에 종종 활용됨)</li>
+<li>Security Group N개 (인스턴스가 아니라 ENI에 붙는다)</li>
+<li>소스/대상 검사(Source/Dest Check) 플래그</li>
+<li>설명(Description) 필드 — 이게 누가 만든 ENI인지 추적할 때 결정적이다</li>
+</ul>
+<p>EC2 인스턴스의 "보안 그룹"이 사실 인스턴스가 아니라 그 인스턴스의 ENI에 붙어 있다는 점이 처음엔 헷갈린다. 인스턴스에 ENI를 두 개 붙이면 각 ENI마다 별도의 보안 그룹을 가질 수 있다. 한 인스턴스가 DMZ와 내부망에 동시에 발을 걸치는 구성이 가능한 이유다.</p>
+<h2 id="primary-eni와-secondary-eni">Primary ENI와 Secondary ENI<a class="headerlink" href="#primary-eni와-secondary-eni" title="Permanent link">&para;</a></h2>
+<p>EC2 인스턴스를 만들면 eth0에 해당하는 Primary ENI가 자동으로 생긴다. 이 Primary ENI는 인스턴스와 운명을 같이한다.</p>
+<ul>
+<li>인스턴스 종료 시 같이 삭제된다 (delete on termination 기본값 true)</li>
+<li>인스턴스에서 분리(detach) 불가능</li>
+<li>Primary Private IP 변경 불가</li>
+</ul>
+<p>Secondary ENI는 사람이 명시적으로 만들어서 붙이는 ENI다.</p>
+<ul>
+<li>인스턴스에서 자유롭게 분리/재부착 가능</li>
+<li>인스턴스 종료해도 ENI는 남길 수 있다 (delete on termination 기본값 false)</li>
+<li>IP가 보존된다 — Floating IP 패턴에 쓴다</li>
+</ul>
+<p>전형적인 활용은 이렇다. 라이선스를 MAC 주소나 IP에 묶어둔 레거시 소프트웨어를 EC2에 띄울 때, Secondary ENI를 만들어서 거기에 라이선스용 IP를 올린다. 인스턴스를 교체할 때 Secondary ENI만 뽑아서 새 인스턴스에 꽂으면 IP와 MAC이 그대로 따라간다. 라이선스 재발급 없이 인스턴스 교체가 끝난다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Secondary ENI 만들기</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>aws<span class="w"> </span>ec2<span class="w"> </span>create-network-interface<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--subnet-id<span class="w"> </span>subnet-0a1b2c3d<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--description<span class="w"> </span><span class="s2">&quot;license-floating-eni&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>--groups<span class="w"> </span>sg-0123456789<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--private-ip-address<span class="w"> </span><span class="m">10</span>.0.1.50
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># 인스턴스에 부착 (device-index 1번 = eth1)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>aws<span class="w"> </span>ec2<span class="w"> </span>attach-network-interface<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>--network-interface-id<span class="w"> </span>eni-aabbccdd<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span>--instance-id<span class="w"> </span>i-0123456789<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span>--device-index<span class="w"> </span><span class="m">1</span>
+</span></code></pre></div>
+<h2 id="secondary-ip--alb-target-typeip와-ecs-awsvpc의-비밀">Secondary IP — ALB target type=ip와 ECS awsvpc의 비밀<a class="headerlink" href="#secondary-ip--alb-target-typeip와-ecs-awsvpc의-비밀" title="Permanent link">&para;</a></h2>
+<p>ENI 하나는 IP를 여러 개 가질 수 있다. 이걸 Secondary IP라고 한다. ENI에 IP를 추가로 할당하면 그 IP들은 같은 ENI를 통해 흐른다.</p>
+<p>이 메커니즘이 두 가지 흔한 패턴의 기반이다.</p>
+<h3 id="alb-target-typeip">ALB target type=ip<a class="headerlink" href="#alb-target-typeip" title="Permanent link">&para;</a></h3>
+<p>ALB 타겟 그룹의 target type을 <code>instance</code>가 아니라 <code>ip</code>로 만들면, 타겟이 인스턴스 ID가 아닌 IP 주소가 된다. 이때 ALB는 그 IP가 같은 VPC 안의 ENI 어딘가에 있다고 가정하고 라우팅한다. 한 인스턴스에서 여러 컨테이너를 돌리면서 각 컨테이너에 Secondary IP를 부여하면, ALB가 인스턴스가 아니라 컨테이너 단위로 트래픽을 보낼 수 있다.</p>
+<h3 id="ecs-awsvpc-네트워크-모드">ECS awsvpc 네트워크 모드<a class="headerlink" href="#ecs-awsvpc-네트워크-모드" title="Permanent link">&para;</a></h3>
+<p>ECS의 awsvpc 모드는 태스크마다 전용 ENI를 부여한다. 정확히는 태스크의 각 컨테이너가 호스트 ENI의 Secondary IP를 빌려 쓰는 게 아니라, 태스크 단위로 새 ENI를 통째로 받는다. 그래서 태스크마다 보안 그룹을 다르게 줄 수 있고, VPC Flow Logs에 태스크 단위 IP가 그대로 찍힌다.</p>
+<p>이게 편한 대신 비용이 있다. /24 서브넷(가용 IP 약 251개)에 ECS Fargate 태스크를 251개까지밖에 못 띄운다. ALB target type=ip로 ECS를 붙이는 구성에서는 서브넷 크기 산정이 처음부터 빠듯하게 잡혀야 한다. 운영 중 스케일 아웃 시점에 "DescribeNetworkInterfaces 응답에 ENI가 안 보임 + 태스크가 PENDING에서 멈춤"이 나오면 90% 확률로 서브넷 IP 고갈이다.</p>
+<h2 id="인스턴스-타입별-eniip-한계">인스턴스 타입별 ENI/IP 한계<a class="headerlink" href="#인스턴스-타입별-eniip-한계" title="Permanent link">&para;</a></h2>
+<p>이게 실무에서 가장 자주 부딪히는 벽이다. ENI 개수와 ENI당 IP 개수가 인스턴스 타입마다 다르다.</p>
+<table>
+<thead>
+<tr>
+<th>인스턴스 타입</th>
+<th>최대 ENI</th>
+<th>ENI당 IPv4</th>
+<th>총 IPv4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>t3.nano</td>
+<td>2</td>
+<td>2</td>
+<td>4</td>
+</tr>
+<tr>
+<td>t3.micro</td>
+<td>2</td>
+<td>2</td>
+<td>4</td>
+</tr>
+<tr>
+<td>t3.small</td>
+<td>3</td>
+<td>4</td>
+<td>12</td>
+</tr>
+<tr>
+<td>t3.medium</td>
+<td>3</td>
+<td>6</td>
+<td>18</td>
+</tr>
+<tr>
+<td>t3.large</td>
+<td>3</td>
+<td>12</td>
+<td>36</td>
+</tr>
+<tr>
+<td>t3.xlarge</td>
+<td>4</td>
+<td>15</td>
+<td>60</td>
+</tr>
+<tr>
+<td>m5.large</td>
+<td>3</td>
+<td>10</td>
+<td>30</td>
+</tr>
+<tr>
+<td>m5.xlarge</td>
+<td>4</td>
+<td>15</td>
+<td>60</td>
+</tr>
+<tr>
+<td>m5.2xlarge</td>
+<td>4</td>
+<td>15</td>
+<td>60</td>
+</tr>
+<tr>
+<td>m5.4xlarge</td>
+<td>8</td>
+<td>30</td>
+<td>240</td>
+</tr>
+<tr>
+<td>c5.large</td>
+<td>3</td>
+<td>10</td>
+<td>30</td>
+</tr>
+<tr>
+<td>c5.xlarge</td>
+<td>4</td>
+<td>15</td>
+<td>60</td>
+</tr>
+<tr>
+<td>c5.4xlarge</td>
+<td>8</td>
+<td>30</td>
+<td>240</td>
+</tr>
+</tbody>
+</table>
+<p>표를 보면 같은 vCPU/메모리 대역인데도 t3 계열이 c5/m5 계열보다 ENI와 IP 한계가 빡빡하다. 비용 줄이려고 t3.small에 ECS EC2 모드로 awsvpc 태스크를 띄우려 하면, 태스크 2개(태스크 ENI 2개) 띄우자마자 한계에 닿는다. ECS는 호스트 자체 ENI 1개도 점유하니까 실제로는 더 빠르게 차오른다.</p>
+<p>ECS EC2 모드를 진지하게 운영할 거면 m5/c5 계열 또는 더 큰 인스턴스가 답이다. 아니면 다음에 나올 ENI Trunking을 켠다.</p>
+<p>확인은 다음 명령으로 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-instance-types<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>--instance-types<span class="w"> </span>t3.medium<span class="w"> </span>m5.large<span class="w"> </span>c5.large<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;InstanceTypes[].[InstanceType,NetworkInfo.MaximumNetworkInterfaces,NetworkInfo.Ipv4AddressesPerInterface]&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>--output<span class="w"> </span>table
+</span></code></pre></div>
+<h2 id="eni-trunking으로-ecs-태스크-밀도-늘리기">ENI Trunking으로 ECS 태스크 밀도 늘리기<a class="headerlink" href="#eni-trunking으로-ecs-태스크-밀도-늘리기" title="Permanent link">&para;</a></h2>
+<p>ENI Trunking은 ECS EC2 런치 타입에서 한 인스턴스에 태스크 ENI를 더 많이 꽂을 수 있게 해주는 기능이다. 일반 모드에서는 awsvpc 태스크 하나가 ENI 한 슬롯을 통째로 먹지만, Trunking을 켜면 트렁크 ENI 1개에 여러 개의 브랜치 ENI를 가상으로 매단다.</p>
+<p>m5.large 기준으로 비교하면 이렇다.</p>
+<ul>
+<li>Trunking 비활성: 태스크 ENI 2개 → 태스크 2개 한계 (호스트 ENI 1개 점유)</li>
+<li>Trunking 활성: 브랜치 ENI 10개 → 태스크 10개 한계</li>
+</ul>
+<p>활성화는 ECS 계정 설정에서 한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aws<span class="w"> </span>ecs<span class="w"> </span>put-account-setting<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--name<span class="w"> </span>awsvpcTrunking<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--value<span class="w"> </span>enabled
+</span></code></pre></div>
+<p>주의할 점이 있다. Trunking 지원 인스턴스 타입이 제한된다. 너모브 새로 만들어진 nitro 기반 인스턴스(c5/m5/r5 이상, t3는 제외)만 지원한다. 그리고 계정 설정을 켠 뒤 새로 띄우는 인스턴스부터 적용된다. 기존에 떠 있던 EC2는 재기동해야 트렁크 ENI가 생긴다.</p>
+<p>운영 중에 "왜 Trunking을 켰는데 여전히 태스크가 한계에서 멈추지" 하면 보통 다음 중 하나다.</p>
+<ul>
+<li>인스턴스가 Trunking 활성화 이전에 떠 있던 것</li>
+<li>인스턴스 타입이 미지원 (t3 계열에서 자주 겪는다)</li>
+<li>ECS 에이전트 버전이 낮음</li>
+</ul>
+<h2 id="lambda-in-vpc와-hyperplane-eni">Lambda-in-VPC와 Hyperplane ENI<a class="headerlink" href="#lambda-in-vpc와-hyperplane-eni" title="Permanent link">&para;</a></h2>
+<p>Lambda를 VPC에 붙이는 구성을 한 번이라도 운영해본 사람은 옛날의 콜드 스타트 악몽을 기억할 거다. 2019년 이전에는 Lambda가 VPC에 붙을 때 호출 시점에 ENI를 만들고 거기 attach하는 구조였다. ENI 생성 자체가 수십 초가 걸리는 작업이라 첫 호출이 10초가 넘어가는 게 흔했다.</p>
+<p>지금은 hyperplane ENI로 바뀌었다. Lambda 함수가 VPC에 처음 붙을 때 AWS 내부에서 공유 ENI(hyperplane)를 함수의 VPC/서브넷/보안 그룹 조합당 하나 만들어둔다. 함수가 호출되면 이 공유 ENI를 통해 트래픽이 흐른다. 함수당 ENI가 아니라 (VPC × 서브넷 × 보안 그룹) 조합당 ENI다.</p>
+<p>실무에서 이 변화의 의미는 두 가지다.</p>
+<ul>
+<li>콜드 스타트가 일반 Lambda 수준으로 회복됐다. ENI 생성을 호출 경로에서 빼냈으니까.</li>
+<li>같은 VPC/서브넷/SG를 공유하는 Lambda 함수들이 ENI를 공유한다. 함수 100개를 같은 구성으로 띄워도 ENI는 손에 꼽는다.</li>
+</ul>
+<p>부작용도 있다. VPC 안에서 Lambda가 호출하는 트래픽이 어떤 ENI에서 오는지 정확히 매칭하기 어려워졌다. VPC Flow Logs에 잡히는 IP가 "이 Lambda 함수의 IP"가 아니라 "이 VPC×서브넷×SG 조합 hyperplane ENI의 IP"여서, 누가 호출한 트래픽인지 함수 단위로 식별이 안 된다. 추적이 필요하면 Lambda 안에서 X-Ray나 컨텍스트 로깅으로 푼다.</p>
+<p>확인 방법.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-network-interfaces<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--filters<span class="w"> </span><span class="s2">&quot;Name=description,Values=AWS Lambda VPC ENI*&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;NetworkInterfaces[].[NetworkInterfaceId,Description,PrivateIpAddress]&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--output<span class="w"> </span>table
+</span></code></pre></div>
+<h2 id="매니지드-서비스의-eni를-description으로-찾기">매니지드 서비스의 ENI를 description으로 찾기<a class="headerlink" href="#매니지드-서비스의-eni를-description으로-찾기" title="Permanent link">&para;</a></h2>
+<p>AWS 매니지드 서비스가 VPC에 만든 ENI는 보통 description 필드에 일관된 문자열이 들어간다. IP 고갈 디버깅이나 "이 ENI 누가 쓰는 거지" 같은 상황에서 결정적인 단서다.</p>
+<table>
+<thead>
+<tr>
+<th>서비스</th>
+<th>Description 패턴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDS</td>
+<td><code>RDSNetworkInterface</code></td>
+</tr>
+<tr>
+<td>ElastiCache</td>
+<td><code>ElastiCache &lt;cluster-name&gt;</code></td>
+</tr>
+<tr>
+<td>Lambda</td>
+<td><code>AWS Lambda VPC ENI-&lt;function&gt;</code></td>
+</tr>
+<tr>
+<td>NAT Gateway</td>
+<td><code>Interface for NAT Gateway nat-xxxxxxxx</code></td>
+</tr>
+<tr>
+<td>VPC Endpoint (Interface)</td>
+<td><code>VPC Endpoint Interface vpce-xxxxxxxx</code></td>
+</tr>
+<tr>
+<td>Transit Gateway</td>
+<td><code>Network interface for Transit Gateway Attachment tgw-attach-xxxxxxxx</code></td>
+</tr>
+<tr>
+<td>ECS Fargate</td>
+<td><code>arn:aws:ecs:...:task/...</code> (description이 태스크 ARN을 포함)</td>
+</tr>
+<tr>
+<td>EFS</td>
+<td><code>EFS mount target for fs-xxxxxxxx</code></td>
+</tr>
+<tr>
+<td>WorkSpaces</td>
+<td><code>WorkSpaces</code></td>
+</tr>
+<tr>
+<td>ALB/NLB</td>
+<td><code>ELB app/&lt;name&gt;</code> 또는 <code>ELB net/&lt;name&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>서브넷 IP가 어디로 새고 있는지 확인할 때 자주 쓰는 쿼리.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># 특정 서브넷에서 누가 ENI를 점유하고 있는지</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-network-interfaces<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--filters<span class="w"> </span><span class="s2">&quot;Name=subnet-id,Values=subnet-0a1b2c3d&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;NetworkInterfaces[].[NetworkInterfaceId,Description,Status,PrivateIpAddress,InterfaceType]&#39;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>--output<span class="w"> </span>table
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># description으로 매니지드 서비스 ENI만 추리기</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>aws<span class="w"> </span>ec2<span class="w"> </span>describe-network-interfaces<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>--filters<span class="w"> </span><span class="s2">&quot;Name=description,Values=*NAT Gateway*&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>--query<span class="w"> </span><span class="s1">&#39;NetworkInterfaces[].[NetworkInterfaceId,Description,SubnetId]&#39;</span>
+</span></code></pre></div>
+<p>InterfaceType 필드도 유용하다. 값은 <code>interface</code>, <code>natGateway</code>, <code>efa</code>, <code>trunk</code>, <code>branch</code>, <code>gateway_load_balancer</code>, <code>gateway_load_balancer_endpoint</code>, <code>vpc_endpoint</code>, <code>lambda</code> 등이 있다. <code>branch</code>로 필터링하면 ECS Trunking으로 만들어진 ENI만 따로 볼 수 있다.</p>
+<h2 id="eni-분리-실패--가장-짜증나는-운영-이슈">ENI 분리 실패 — 가장 짜증나는 운영 이슈<a class="headerlink" href="#eni-분리-실패--가장-짜증나는-운영-이슈" title="Permanent link">&para;</a></h2>
+<p>ENI 작업 중 가장 골치 아픈 경우는 분리(detach)가 안 될 때다. 시나리오는 보통 이렇다. 인스턴스를 종료하려는데 Secondary ENI의 delete-on-termination이 false라 ENI가 남는다. 다른 인스턴스에 붙이려고 detach 시도하면 응답은 성공인데 status가 <code>detaching</code>에서 멈춘 채 몇 분이 지나도 <code>available</code>로 안 떨어진다.</p>
+<h3 id="원인">원인<a class="headerlink" href="#원인" title="Permanent link">&para;</a></h3>
+<ul>
+<li>인스턴스 OS에서 ENI 디바이스를 잡고 있는 프로세스가 있음</li>
+<li>ENI에 매달린 Elastic IP가 어딘가에서 활성 트래픽을 처리 중</li>
+<li>인스턴스가 stop 상태가 아니라 running인데 ENI가 부팅 시 자동 설정된 인터페이스라 OS가 놓지 않음</li>
+<li>AWS 백엔드 자체 지연 (드물지만 있음)</li>
+</ul>
+<h3 id="해결-순서">해결 순서<a class="headerlink" href="#해결-순서" title="Permanent link">&para;</a></h3>
+<ol>
+<li>인스턴스에서 OS 레벨로 인터페이스 내리기</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 인스턴스 안에서</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>sudo<span class="w"> </span>ip<span class="w"> </span>link<span class="w"> </span><span class="nb">set</span><span class="w"> </span>dev<span class="w"> </span>eth1<span class="w"> </span>down
+</span></code></pre></div>
+<ol>
+<li>다시 detach 시도</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>detach-network-interface<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>--attachment-id<span class="w"> </span>eni-attach-xxxxxxxx
+</span></code></pre></div>
+<ol>
+<li>그래도 안 되면 force detach</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>aws<span class="w"> </span>ec2<span class="w"> </span>detach-network-interface<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--attachment-id<span class="w"> </span>eni-attach-xxxxxxxx<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--force
+</span></code></pre></div>
+<h3 id="force-detach의-함정">Force detach의 함정<a class="headerlink" href="#force-detach의-함정" title="Permanent link">&para;</a></h3>
+<p><code>--force</code>를 쓰면 무조건 떨어지긴 한다. 다만 운영 환경에서 함부로 쓰면 안 되는 이유가 있다.</p>
+<ul>
+<li>인스턴스 OS는 ENI가 사라진 걸 모른다. 그 인터페이스를 통해 통신하던 프로세스는 행이 걸리거나 SIGPIPE를 받는다.</li>
+<li>인스턴스의 네트워크 스택이 깨질 수 있다. 특히 eth0(Primary ENI)을 force detach 시도하면 AWS가 막지만, eth1 이상의 Secondary ENI를 force detach하면 OS 입장에서는 디바이스가 갑자기 사라진 거라 ifconfig/ip 명령이 한동안 응답하지 않는 경우가 있다.</li>
+<li>결과적으로 인스턴스 재기동이 필요한 경우가 많다. force detach로 ENI를 빼냈는데 인스턴스 자체가 정상 동작하지 않으면 결국 EC2를 stop/start 해야 한다.</li>
+</ul>
+<p>운영 중인 인스턴스에서 force detach는 마지막 수단이다. 보통은 1) OS 안에서 인터페이스를 먼저 내리고 2) detach 시도하는 순서를 지킨다. 정 안 되면 인스턴스를 stop한 뒤 detach한다. stop된 인스턴스의 ENI는 거의 항상 깨끗하게 떨어진다.</p>
+<h3 id="network-interface-is-currently-in-use-에러">"Network interface is currently in use" 에러<a class="headerlink" href="#network-interface-is-currently-in-use-에러" title="Permanent link">&para;</a></h3>
+<p>ENI를 삭제하려는데 위 에러가 뜨는 경우가 있다. 십중팔구 매니지드 서비스가 잡고 있다. RDS를 삭제했는데 RDS ENI가 남아 있거나, VPC Endpoint를 지웠는데 ENI는 남는 경우. AWS 측에서 정리하는 데 5~15분 정도 걸리는 게 정상이다. 그래도 안 사라지면 description으로 어떤 서비스인지 확인하고, 해당 서비스 콘솔에서 의존성을 정리해야 한다.</p>
+<p>가장 흔한 경우: ALB/NLB를 삭제했는데 ELB ENI가 남는다. 이건 ELB가 비동기로 정리되니까 10분 정도 기다리면 자동으로 사라진다. 안 사라지면 보안 그룹이나 EIP 같은 의존성이 남아 있을 가능성이 높다.</p>
+<h2 id="eni-상태-머신">ENI 상태 머신<a class="headerlink" href="#eni-상태-머신" title="Permanent link">&para;</a></h2>
+<p>ENI의 상태 값은 운영 중 자주 본다.</p>
+<ul>
+<li><code>available</code> — 분리되어 있고 부착 가능한 상태</li>
+<li><code>attaching</code> — 부착 중</li>
+<li><code>in-use</code> — 인스턴스/서비스에 부착된 상태</li>
+<li><code>detaching</code> — 분리 중. 이 상태에서 오래 머물면 위에서 다룬 문제다.</li>
+</ul>
+<p>상태 전환 중에는 보안 그룹 변경 같은 일부 작업이 막힌다. CloudFormation/Terraform으로 ENI 관련 변경을 자동화할 때 <code>detaching</code> 상태에서 실패하는 경우가 종종 있어서, 재시도 로직을 넣어두는 게 안전하다.</p>
+<h2 id="eni와-보안-그룹의-미묘한-관계">ENI와 보안 그룹의 미묘한 관계<a class="headerlink" href="#eni와-보안-그룹의-미묘한-관계" title="Permanent link">&para;</a></h2>
+<p>보안 그룹은 ENI 단위로 붙는다. 한 ENI에 최대 5개의 보안 그룹을 붙일 수 있다(쿼터 상향 가능). 한 인스턴스에 ENI가 2개 있고 각각 다른 SG가 붙으면, 그 인스턴스는 사실상 두 개의 다른 방화벽 규칙을 동시에 가지는 거다.</p>
+<p>특이한 케이스 하나. ECS awsvpc 모드에서는 태스크 정의의 networkConfiguration에 보안 그룹을 지정하는데, 이 보안 그룹은 태스크 ENI에 붙는다. 호스트 EC2의 보안 그룹과는 완전히 분리된다. 그래서 호스트 EC2에는 ECS 에이전트가 통신하는 데 필요한 outbound만 열고, 실제 애플리케이션의 inbound는 태스크 ENI 단의 SG에서 제어하는 게 표준 구성이다.</p>
+<h2 id="정리하면서--실무에서-마주치는-eni-관련-사고">정리하면서 — 실무에서 마주치는 ENI 관련 사고<a class="headerlink" href="#정리하면서--실무에서-마주치는-eni-관련-사고" title="Permanent link">&para;</a></h2>
+<p>마지막으로 자주 보는 사고 유형을 압축해서 적어둔다.</p>
+<p>서브넷 IP 고갈로 ECS 태스크가 PENDING에서 멈춘다. 이건 거의 100% 서브넷 크기 부족이다. <code>aws ec2 describe-subnets</code>로 <code>AvailableIpAddressCount</code>를 확인한다. 빠른 처방은 다른 서브넷을 ECS 서비스에 추가하는 거고, 근본 처방은 /24 이상으로 서브넷을 다시 자르는 거다.</p>
+<p>인스턴스 타입을 t3에서 m5로 바꿨는데 ENI 한계가 늘어난 건지 모르겠다. <code>describe-instance-types</code>로 확인한다. 사양표를 외울 필요 없다.</p>
+<p>NAT 게이트웨이를 삭제했는데 ENI가 안 사라진다. 보통 10분 안에 정리된다. 그 이상 남아 있으면 NAT 게이트웨이 상태가 <code>deleting</code>에서 멈춘 거다. 이때는 CloudFormation/Terraform 스택에서 의존성이 남아 있는 경우가 많다.</p>
+<p>Lambda VPC 함수의 IP가 매번 달라 보인다. hyperplane ENI가 여러 개일 수 있다. (VPC × 서브넷 × SG) 조합마다 하나, 그리고 부하가 늘면 같은 조합 내에서도 추가 ENI가 만들어진다. 화이트리스트 기반 외부 호출이 필요하면 NAT 게이트웨이 + EIP로 송신 IP를 고정하는 게 정석이다.</p>
+<p>ENI는 보이지 않는 인프라처럼 다뤄지지만, VPC 안에서 IP가 흐르는 모든 길이 ENI에서 시작한다. IP가 모자라거나, 보안 그룹이 의도대로 안 먹거나, 인스턴스가 detach 안 되거나 하는 문제는 결국 ENI 한 칸 한 칸을 들여다봐야 풀린다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../ALB_ECS_S3_Request_Flow/">ALB → ECS → S3 요청 흐름 (DNS부터 S3 업로드까지)</a></li>
+<li><a href="../Internet_Gateway/">AWS Internet Gateway</a></li>
+<li><a href="../Nat_Gateway/">AWS NAT Gateway</a></li>
+<li><a href="../Transit_Gateway/">AWS Transit Gateway</a></li>
+<li><a href="../VPC_Peering/">AWS VPC Peering</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Direct_Connect/" class="md-footer__link md-footer__link--prev" aria-label="이전: AWS Direct Connect">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                AWS Direct Connect
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Global_Accelerator/" class="md-footer__link md-footer__link--next" aria-label="다음: AWS Global Accelerator">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                AWS Global Accelerator
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

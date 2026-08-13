@@ -1,152 +1,2159 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EC%84%A4%EC%A0%95%20%EB%B0%8F%20%EC%BB%B4%ED%8C%8C%EC%9D%BC%EB%9F%AC/Workspace%EC%99%80%20ts_paths/ rel=canonical><link href=../ESLint%EC%99%80%20Prettier/ rel=prev><link href=../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../../feed_rss_updated.xml><link rel=icon href=../../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>TypeScript Workspace와 ts-paths - YGSTUDY</title><link rel=stylesheet href=../../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../../stylesheets/extra.css><script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#typescript-workspace와-ts-paths class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> TypeScript Workspace와 ts-paths </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3 checked> <div class="md-nav__link md-nav__container"> <a href=../../../ class="md-nav__link "> <span class=md-ellipsis> Language </span> </a> <label class="md-nav__link " for=__nav_3 id=__nav_3_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=true> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Language </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Java/ class=md-nav__link> <span class=md-ellipsis> Java </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Kotlin/ class=md-nav__link> <span class=md-ellipsis> Kotlin </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../JavaScript/ class=md-nav__link> <span class=md-ellipsis> JavaScript </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_5 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> TypeScript </span> </a> <label class="md-nav__link " for=__nav_3_5 id=__nav_3_5_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_3_5_label aria-expanded=true> <label class=md-nav__title for=__nav_3_5> <span class="md-nav__icon md-icon"></span> TypeScript </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/ class=md-nav__link> <span class=md-ellipsis> TypeScript 기본 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/ class=md-nav__link> <span class=md-ellipsis> 타입 정의 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../%ED%83%80%EC%9E%85%20%EC%9C%A0%ED%8B%B8%EB%A6%AC%ED%8B%B0/ class=md-nav__link> <span class=md-ellipsis> 타입 유틸리티 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_5_5 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 프로젝트 설정 </span> </a> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_3_5_5_label aria-expanded=true> <label class=md-nav__title for=__nav_3_5_5> <span class="md-nav__icon md-icon"></span> 프로젝트 설정 </label> <ul class=md-nav__list data-md-scrollfix> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Rust/ class=md-nav__link> <span class=md-ellipsis> Rust </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Go/ class=md-nav__link> <span class=md-ellipsis> Go </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Comparison/ class=md-nav__link> <span class=md-ellipsis> Comparison </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Python/ class=md-nav__link> <span class=md-ellipsis> Python </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../AI/ class=md-nav__link> <span class=md-ellipsis> AI </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#시작하기-전에 class=md-nav__link> <span class=md-ellipsis> 시작하기 전에 </span> </a> </li> <li class=md-nav__item> <a href=#paths의-가장-큰-함정-tsc는-import-경로를-변환하지-않는다 class=md-nav__link> <span class=md-ellipsis> paths의 가장 큰 함정: tsc는 import 경로를 변환하지 않는다 </span> </a> <nav class=md-nav aria-label="paths의 가장 큰 함정: tsc는 import 경로를 변환하지 않는다"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#빌드-후-변환-tsc-alias class=md-nav__link> <span class=md-ellipsis> 빌드 후 변환: tsc-alias </span> </a> </li> <li class=md-nav__item> <a href=#런타임-해석-tsconfig-pathsregister-ts-node class=md-nav__link> <span class=md-ellipsis> 런타임 해석: tsconfig-paths/register (ts-node) </span> </a> </li> <li class=md-nav__item> <a href=#테스트-jest-modulenamemapper class=md-nav__link> <span class=md-ellipsis> 테스트: jest moduleNameMapper </span> </a> </li> <li class=md-nav__item> <a href=#번들러-vite-webpack-esbuild class=md-nav__link> <span class=md-ellipsis> 번들러: Vite, webpack, esbuild </span> </a> </li> <li class=md-nav__item> <a href=#swc class=md-nav__link> <span class=md-ellipsis> swc </span> </a> </li> <li class=md-nav__item> <a href=#도구별-특성-정리 class=md-nav__link> <span class=md-ellipsis> 도구별 특성 정리 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#project-references와-paths를-함께-쓸-때 class=md-nav__link> <span class=md-ellipsis> Project References와 paths를 함께 쓸 때 </span> </a> </li> <li class=md-nav__item> <a href=#pnpm의-workspace-프로토콜 class=md-nav__link> <span class=md-ellipsis> pnpm의 workspace:* 프로토콜 </span> </a> </li> <li class=md-nav__item> <a href=#호이스팅-phantom-dependency class=md-nav__link> <span class=md-ellipsis> 호이스팅: phantom dependency </span> </a> </li> <li class=md-nav__item> <a href=#순환-의존성과-tsc--b-디버깅 class=md-nav__link> <span class=md-ellipsis> 순환 의존성과 tsc -b 디버깅 </span> </a> </li> <li class=md-nav__item> <a href=#ide에서-paths가-인식되지-않을-때 class=md-nav__link> <span class=md-ellipsis> IDE에서 paths가 인식되지 않을 때 </span> </a> </li> <li class=md-nav__item> <a href=#main-types-exports-필드 class=md-nav__link> <span class=md-ellipsis> main, types, exports 필드 </span> </a> </li> <li class=md-nav__item> <a href=#dev-소스-직접-import-vs-build-후-dist-import class=md-nav__link> <span class=md-ellipsis> dev: 소스 직접 import vs build 후 dist import </span> </a> </li> <li class=md-nav__item> <a href=#마지막으로-점검할-것 class=md-nav__link> <span class=md-ellipsis> 마지막으로 점검할 것 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>language</span> <span class=md-tag>typescript</span> </nav> <h1 id=typescript-workspace와-ts-paths>TypeScript Workspace와 ts-paths<a class=headerlink href=#typescript-workspace와-ts-paths title="Permanent link">&para;</a></h1> <h2 id=시작하기-전에>시작하기 전에<a class=headerlink href=#시작하기-전에 title="Permanent link">&para;</a></h2> <p>TypeScript 모노레포에서 가장 자주 만나는 두 가지 도구가 패키지 매니저의 workspace와 tsconfig의 <code>paths</code>다. 둘은 비슷해 보이지만 동작 계층이 완전히 다르다. workspace는 <strong>패키지 매니저 레벨</strong>에서 심볼릭 링크와 의존성 그래프를 관리하고, <code>paths</code>는 <strong>TypeScript 컴파일러 레벨</strong>에서 import 식별자를 어떻게 해석할지 알려주는 메타데이터다.</p> <p>이 둘의 경계를 모호하게 두면 "타입 체크는 통과하는데 <code>node dist/index.js</code>만 실행하면 <code>Cannot find module '@app/utils'</code> 에러가 난다" 같은 일이 생긴다. 실제로 ts-paths를 처음 도입한 팀에서 가장 많이 겪는 문제다. 아래에서는 이 함정을 중심으로 두 기능의 동작과 실무 설정을 정리한다.</p> <h2 id=paths의-가장-큰-함정-tsc는-import-경로를-변환하지-않는다>paths의 가장 큰 함정: tsc는 import 경로를 변환하지 않는다<a class=headerlink href=#paths의-가장-큰-함정-tsc는-import-경로를-변환하지-않는다 title="Permanent link">&para;</a></h2> <p><code>tsconfig.json</code>에 다음과 같이 적었다고 하자.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=p>{</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=w>    </span><span class=nt>&quot;baseUrl&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./src&quot;</span><span class=p>,</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a><span class=w>    </span><span class=nt>&quot;paths&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a><span class=w>      </span><span class=nt>&quot;@utils/*&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;utils/*&quot;</span><span class=p>]</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=w>    </span><span class=p>},</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=w>    </span><span class=nt>&quot;outDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist&quot;</span>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a><span class=p>}</span>
-</span></code></pre></div> <p>소스 코드는 이렇게 쓴다.</p> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=c1>// src/index.ts</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>formatDate</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s2>&quot;@utils/date&quot;</span><span class=p>;</span>
-</span></code></pre></div> <p><code>tsc</code>로 컴파일하면 <code>dist/index.js</code>에는 다음이 그대로 남는다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=c1>// dist/index.js</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=kd>const</span><span class=w> </span><span class=nx>date_1</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s2>&quot;@utils/date&quot;</span><span class=p>);</span>
-</span></code></pre></div> <p>문자열이 변환되지 않는다. 노드는 <code>@utils/date</code>를 <code>node_modules/@utils/date</code>에서 찾으므로 런타임에 <code>MODULE_NOT_FOUND</code>가 터진다. 이게 ts-paths의 가장 흔한 함정이다. <code>paths</code>는 <strong>타입 체커가 import 식별자를 해석할 때만 참조</strong>하는 정보고, 코드 생성 단계는 건드리지 않는다. TypeScript 공식 문서에도 명시되어 있고, 메인테이너들이 의도적으로 그렇게 설계했다.</p> <p>해결책은 두 갈래다. 빌드 후 정적 변환을 거치거나, 런타임에 모듈 해석 훅을 끼워 넣거나.</p> <h3 id=빌드-후-변환-tsc-alias>빌드 후 변환: tsc-alias<a class=headerlink href=#빌드-후-변환-tsc-alias title="Permanent link">&para;</a></h3> <p><code>tsc</code>가 만든 출력에서 alias를 실제 상대 경로로 치환하는 후처리 도구다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>npm<span class=w> </span>i<span class=w> </span>-D<span class=w> </span>tsc-alias
-</span></code></pre></div> <div class="language-json highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=c1>// package.json</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a><span class=p>{</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a><span class=w>  </span><span class=nt>&quot;scripts&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=w>    </span><span class=nt>&quot;build&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;tsc &amp;&amp; tsc-alias&quot;</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=p>}</span>
-</span></code></pre></div> <div class="language-json highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=c1>// tsconfig.json — paths만 정상적으로 정의되어 있으면 된다</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=p>{</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>    </span><span class=nt>&quot;baseUrl&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./src&quot;</span><span class=p>,</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>    </span><span class=nt>&quot;paths&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;@utils/*&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;utils/*&quot;</span><span class=p>]</span><span class=w> </span><span class=p>},</span>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=w>    </span><span class=nt>&quot;outDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist&quot;</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=p>}</span>
-</span></code></pre></div> <p><code>tsc-alias</code>는 <code>outDir</code> 안의 <code>.js</code>/<code>.d.ts</code> 파일을 모두 훑으면서 <code>@utils/date</code>를 <code>./utils/date</code> 같은 상대 경로로 바꿔 쓴다. 결과물이 alias-free라서 노드, 번들러, 어떤 런타임에도 그대로 들어간다. 단점은 매번 빌드 단계가 한 번 더 끼는 것과, dynamic import의 문자열 템플릿(<code>import(`@utils/${name}`)</code>)은 정적 분석이 안 돼서 변환되지 않는다는 점이다.</p> <h3 id=런타임-해석-tsconfig-pathsregister-ts-node>런타임 해석: tsconfig-paths/register (ts-node)<a class=headerlink href=#런타임-해석-tsconfig-pathsregister-ts-node title="Permanent link">&para;</a></h3> <p><code>ts-node</code>로 직접 실행할 때는 <code>tsconfig-paths/register</code>를 미리 로드해 노드의 모듈 해석 함수를 가로챈다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1>// tsconfig.json</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=p>{</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>  </span><span class=nt>&quot;ts-node&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>    </span><span class=nt>&quot;require&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;tsconfig-paths/register&quot;</span><span class=p>]</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=p>}</span>
-</span></code></pre></div> <p>또는 명령행에서.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>node<span class=w> </span>-r<span class=w> </span>ts-node/register<span class=w> </span>-r<span class=w> </span>tsconfig-paths/register<span class=w> </span>src/index.ts
-</span></code></pre></div> <p>이 방법은 빌드 결과물이 아닌 소스 실행 시점에만 동작한다. <code>node dist/index.js</code>로는 동작하지 않으므로 프로덕션 실행 경로에는 쓰지 않는다. 또 ESM 환경에서는 <code>--experimental-loader</code>로 따로 등록해야 하고, 로더 체이닝이 까다롭다.</p> <h3 id=테스트-jest-modulenamemapper>테스트: jest moduleNameMapper<a class=headerlink href=#테스트-jest-modulenamemapper title="Permanent link">&para;</a></h3> <p>Jest는 자체 모듈 해석을 쓰기 때문에 <code>paths</code>를 알아서 읽어주지 않는다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1>// jest.config.js</span>
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=nx>module</span><span class=p>.</span><span class=nx>exports</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=w>  </span><span class=nx>preset</span><span class=o>:</span><span class=w> </span><span class=s2>&quot;ts-jest&quot;</span><span class=p>,</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=w>  </span><span class=nx>moduleNameMapper</span><span class=o>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=w>    </span><span class=s2>&quot;^@utils/(.*)$&quot;</span><span class=o>:</span><span class=w> </span><span class=s2>&quot;&lt;rootDir&gt;/src/utils/$1&quot;</span>
-</span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a><span class=p>};</span>
-</span></code></pre></div> <p><code>paths</code>가 늘어날 때마다 두 군데를 동기화해야 하는 게 번거로워서 <code>ts-jest</code>의 <code>pathsToModuleNameMapper</code> 헬퍼를 쓰기도 한다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a><span class=kd>const</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>pathsToModuleNameMapper</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s2>&quot;ts-jest&quot;</span><span class=p>);</span>
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a><span class=kd>const</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>compilerOptions</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s2>&quot;./tsconfig.json&quot;</span><span class=p>);</span>
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a><span class=nx>module</span><span class=p>.</span><span class=nx>exports</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a><span class=w>  </span><span class=nx>preset</span><span class=o>:</span><span class=w> </span><span class=s2>&quot;ts-jest&quot;</span><span class=p>,</span>
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a><span class=w>  </span><span class=nx>moduleNameMapper</span><span class=o>:</span><span class=w> </span><span class=nx>pathsToModuleNameMapper</span><span class=p>(</span><span class=nx>compilerOptions</span><span class=p>.</span><span class=nx>paths</span><span class=p>,</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a><span class=w>    </span><span class=nx>prefix</span><span class=o>:</span><span class=w> </span><span class=s2>&quot;&lt;rootDir&gt;/&quot;</span>
-</span><span id=__span-9-8><a id=__codelineno-9-8 name=__codelineno-9-8 href=#__codelineno-9-8></a><span class=w>  </span><span class=p>})</span>
-</span><span id=__span-9-9><a id=__codelineno-9-9 name=__codelineno-9-9 href=#__codelineno-9-9></a><span class=p>};</span>
-</span></code></pre></div> <h3 id=번들러-vite-webpack-esbuild>번들러: Vite, webpack, esbuild<a class=headerlink href=#번들러-vite-webpack-esbuild title="Permanent link">&para;</a></h3> <p>번들러는 자체적으로 alias를 처리하지만 tsconfig의 <code>paths</code>를 무조건 따라가지는 않는다.</p> <p>Vite는 <code>vite-tsconfig-paths</code> 플러그인이 사실상 표준이다.</p> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=c1>// vite.config.ts</span>
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>defineConfig</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s2>&quot;vite&quot;</span><span class=p>;</span>
-</span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=k>import</span><span class=w> </span><span class=nx>tsconfigPaths</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s2>&quot;vite-tsconfig-paths&quot;</span><span class=p>;</span>
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a><span class=k>export</span><span class=w> </span><span class=k>default</span><span class=w> </span><span class=nx>defineConfig</span><span class=p>({</span>
-</span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a><span class=w>  </span><span class=nx>plugins</span><span class=o>:</span><span class=w> </span><span class=p>[</span><span class=nx>tsconfigPaths</span><span class=p>()]</span>
-</span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a><span class=p>});</span>
-</span></code></pre></div> <p>webpack은 보통 <code>tsconfig-paths-webpack-plugin</code>을 쓴다.</p> <div class="language-javascript highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a><span class=c1>// webpack.config.js</span>
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a><span class=kd>const</span><span class=w> </span><span class=nx>TsconfigPathsPlugin</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=nx>require</span><span class=p>(</span><span class=s2>&quot;tsconfig-paths-webpack-plugin&quot;</span><span class=p>);</span>
-</span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>
-</span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a><span class=nx>module</span><span class=p>.</span><span class=nx>exports</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=w>  </span><span class=nx>resolve</span><span class=o>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=w>    </span><span class=nx>plugins</span><span class=o>:</span><span class=w> </span><span class=p>[</span><span class=ow>new</span><span class=w> </span><span class=nx>TsconfigPathsPlugin</span><span class=p>({</span><span class=w> </span><span class=nx>configFile</span><span class=o>:</span><span class=w> </span><span class=s2>&quot;./tsconfig.json&quot;</span><span class=w> </span><span class=p>})]</span>
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a><span class=p>};</span>
-</span></code></pre></div> <h3 id=swc>swc<a class=headerlink href=#swc title="Permanent link">&para;</a></h3> <p><code>@swc/core</code>를 컴파일러로 쓰는 경우 <code>.swcrc</code>에 <code>paths</code>를 다시 적어야 한다. swc는 tsconfig를 읽지 않는다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1>// .swcrc</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=p>{</span>
-</span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=w>  </span><span class=nt>&quot;jsc&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=w>    </span><span class=nt>&quot;baseUrl&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./src&quot;</span><span class=p>,</span>
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a><span class=w>    </span><span class=nt>&quot;paths&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a><span class=w>      </span><span class=nt>&quot;@utils/*&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;utils/*&quot;</span><span class=p>]</span>
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-12-9><a id=__codelineno-12-9 name=__codelineno-12-9 href=#__codelineno-12-9></a><span class=p>}</span>
-</span></code></pre></div> <p>swc 역시 paths를 정적 변환해서 출력한다. tsc보다 훨씬 빠르지만 데코레이터 메타데이터처럼 일부 동작이 미묘하게 다르다는 점은 별도 이슈다.</p> <h3 id=도구별-특성-정리>도구별 특성 정리<a class=headerlink href=#도구별-특성-정리 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>도구</th> <th>시점</th> <th>변환 방식</th> <th>주의점</th> </tr> </thead> <tbody> <tr> <td>tsc</td> <td>컴파일</td> <td>변환 안 함</td> <td>paths는 타입 체크 전용</td> </tr> <tr> <td>tsc-alias</td> <td>빌드 후처리</td> <td>정적 치환</td> <td>dynamic import 템플릿 미지원</td> </tr> <tr> <td>tsconfig-paths/register</td> <td>런타임</td> <td>모듈 해석 훅</td> <td>ESM은 별도 로더 필요</td> </tr> <tr> <td>swc</td> <td>컴파일</td> <td>정적 치환</td> <td>tsconfig를 읽지 않음</td> </tr> <tr> <td>Vite/webpack</td> <td>번들 시점</td> <td>정적 치환</td> <td>별도 플러그인 필요</td> </tr> <tr> <td>jest moduleNameMapper</td> <td>테스트 런타임</td> <td>정규식 매핑</td> <td>tsconfig와 동기화 필요</td> </tr> </tbody> </table> <p>같은 alias를 쓰는데도 빌드, 테스트, 개발, 프로덕션 각각에서 다른 도구가 끼는 구조라 한쪽만 바꾸면 다른 쪽이 깨진다. 새 alias를 추가할 때 체크해야 할 곳이 어디어디인지 README에 적어두는 게 실무적으로 도움이 된다.</p> <h2 id=project-references와-paths를-함께-쓸-때>Project References와 paths를 함께 쓸 때<a class=headerlink href=#project-references와-paths를-함께-쓸-때 title="Permanent link">&para;</a></h2> <p><code>composite: true</code>로 설정한 프로젝트는 <code>tsc -b</code>로 의존 그래프를 따라 증분 빌드를 한다. 여기에 <code>paths</code>를 끼워 넣으면 미묘한 동작이 몇 가지 있다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=c1>// packages/utils/tsconfig.json</span>
-</span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a><span class=p>{</span>
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=w>    </span><span class=nt>&quot;composite&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a><span class=w>    </span><span class=nt>&quot;declaration&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=w>    </span><span class=nt>&quot;declarationMap&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a><span class=w>    </span><span class=nt>&quot;outDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist&quot;</span><span class=p>,</span>
-</span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a><span class=w>    </span><span class=nt>&quot;rootDir&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./src&quot;</span>
-</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a><span class=w>  </span><span class=p>},</span>
-</span><span id=__span-13-10><a id=__codelineno-13-10 name=__codelineno-13-10 href=#__codelineno-13-10></a><span class=w>  </span><span class=nt>&quot;include&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;src/**/*&quot;</span><span class=p>]</span>
-</span><span id=__span-13-11><a id=__codelineno-13-11 name=__codelineno-13-11 href=#__codelineno-13-11></a><span class=p>}</span>
-</span></code></pre></div> <div class="language-json highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a><span class=c1>// apps/web/tsconfig.json</span>
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a><span class=p>{</span>
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a><span class=w>    </span><span class=nt>&quot;composite&quot;</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=p>,</span>
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a><span class=w>    </span><span class=nt>&quot;baseUrl&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;.&quot;</span><span class=p>,</span>
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a><span class=w>    </span><span class=nt>&quot;paths&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a><span class=w>      </span><span class=nt>&quot;@acme/utils&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;../../packages/utils/src/index.ts&quot;</span><span class=p>]</span>
-</span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-14-9><a id=__codelineno-14-9 name=__codelineno-14-9 href=#__codelineno-14-9></a><span class=w>  </span><span class=p>},</span>
-</span><span id=__span-14-10><a id=__codelineno-14-10 name=__codelineno-14-10 href=#__codelineno-14-10></a><span class=w>  </span><span class=nt>&quot;references&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span>
-</span><span id=__span-14-11><a id=__codelineno-14-11 name=__codelineno-14-11 href=#__codelineno-14-11></a><span class=w>    </span><span class=p>{</span><span class=w> </span><span class=nt>&quot;path&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;../../packages/utils&quot;</span><span class=w> </span><span class=p>}</span>
-</span><span id=__span-14-12><a id=__codelineno-14-12 name=__codelineno-14-12 href=#__codelineno-14-12></a><span class=w>  </span><span class=p>],</span>
-</span><span id=__span-14-13><a id=__codelineno-14-13 name=__codelineno-14-13 href=#__codelineno-14-13></a><span class=w>  </span><span class=nt>&quot;include&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;src/**/*&quot;</span><span class=p>]</span>
-</span><span id=__span-14-14><a id=__codelineno-14-14 name=__codelineno-14-14 href=#__codelineno-14-14></a><span class=p>}</span>
-</span></code></pre></div> <p><code>paths</code>가 utils의 <strong>소스 파일</strong>을 가리키도록 매핑하면 IDE에서 go-to-definition이 <code>.d.ts</code>가 아니라 실제 <code>.ts</code>로 점프한다. 디버깅이 훨씬 편해진다. 다만 <code>tsc -b</code>는 references를 통해 utils가 먼저 빌드돼 <code>.d.ts</code>를 생성하는 흐름을 가정하므로, paths가 src를 가리켜도 별 문제는 없지만 utils의 <code>outDir/dist</code>와 paths가 가리키는 <code>src</code>가 동시에 존재한다는 점은 의식해야 한다.</p> <p><code>declarationMap: true</code>는 IDE에서 점프할 때 컴파일된 <code>.d.ts</code>가 아니라 원본 <code>.ts</code>로 가게 해주는 옵션이다. paths로 src를 직접 가리키면 어차피 src로 점프하지만, paths 없이 references만 쓰는 환경에서는 declarationMap이 사실상 필수다.</p> <p><code>.tsbuildinfo</code>는 increment 빌드의 핵심 캐시인데, 다음 경우에 통째로 무효화된다.</p> <ul> <li>tsconfig 파일이 변경됐을 때 (옵션 하나만 바꿔도)</li> <li>의존하는 패키지의 <code>.d.ts</code> 시그니처가 바뀌었을 때</li> <li>TypeScript 버전이 달라졌을 때</li> <li><code>extends</code> 체인의 상위 tsconfig가 바뀌었을 때</li> </ul> <p>paths만 추가하거나 수정해도 <code>.tsbuildinfo</code>가 무효화돼 전체가 다시 빌드된다. CI에서 <code>tsc -b</code> 캐시를 살리려고 <code>node_modules/.cache</code> 같은 데 <code>.tsbuildinfo</code>를 모아놨는데 paths 변경 한 줄로 캐시가 다 날아가서 빌드 시간이 늘어나는 사례가 흔하다. 캐시 키에 tsconfig 해시를 포함시키는 게 정석이다.</p> <h2 id=pnpm의-workspace-프로토콜>pnpm의 workspace:* 프로토콜<a class=headerlink href=#pnpm의-workspace-프로토콜 title="Permanent link">&para;</a></h2> <p>pnpm은 workspace 의존성을 표현할 때 <code>workspace:*</code>, <code>workspace:^</code>, <code>workspace:~</code> 같은 프로토콜을 쓴다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a><span class=p>{</span>
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a><span class=w>  </span><span class=nt>&quot;dependencies&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a><span class=w>    </span><span class=nt>&quot;@acme/utils&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;workspace:*&quot;</span><span class=p>,</span>
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a><span class=w>    </span><span class=nt>&quot;@acme/api&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;workspace:^1.2.0&quot;</span>
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-15-6><a id=__codelineno-15-6 name=__codelineno-15-6 href=#__codelineno-15-6></a><span class=p>}</span>
-</span></code></pre></div> <p>로컬 개발 시에는 심볼릭 링크로 연결되지만, <code>pnpm publish</code>를 하는 순간 이 표현이 실제 버전으로 치환된 <code>package.json</code>이 npm 레지스트리에 올라간다. <code>workspace:*</code>는 publish 시점의 정확한 버전(<code>1.2.3</code>)으로, <code>workspace:^</code>는 <code>^1.2.3</code>으로 변환된다. 사용자가 npm에서 받을 때는 일반 버전 의존성처럼 보인다.</p> <p>이 동작은 yarn berry(v2+)도 비슷하지만, <strong>yarn classic(v1)과 npm workspaces는 <code>workspace:</code> 프로토콜 자체를 모른다</strong>. yarn classic으로 모노레포를 운영하다 pnpm으로 바꾸려고 <code>workspace:*</code>를 적으면 yarn은 그대로 npm 레지스트리에서 <code>workspace:*</code> 버전을 찾으려고 시도하다 실패한다. 패키지 매니저 변경이 이만큼 침습적이다.</p> <p>npm v7 이후 workspaces도 호환은 되지만 <code>workspace:</code> 프로토콜 자체를 인식하는 건 npm v8.3 이후이고, publish 시 자동 치환은 npm v9에서야 들어왔다. 회사 사내 레지스트리에서 publish하는 라이브러리라면 npm/yarn/pnpm 어떤 도구로 publish되는지 한 번 확인해보는 게 안전하다.</p> <h2 id=호이스팅-phantom-dependency>호이스팅: phantom dependency<a class=headerlink href=#호이스팅-phantom-dependency title="Permanent link">&para;</a></h2> <p>npm과 yarn classic은 모든 의존성을 루트 <code>node_modules</code>로 끌어올린다(호이스팅). 그래서 <code>package.json</code>에 명시하지 않은 패키지도 <code>import lodash from "lodash"</code>가 우연히 동작하는 경우가 생긴다. 이게 phantom dependency다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a><span class=c1>// packages/web/package.json</span>
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a><span class=p>{</span>
-</span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a><span class=w>  </span><span class=nt>&quot;dependencies&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a><span class=w>    </span><span class=nt>&quot;react&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;^18.0.0&quot;</span>
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a><span class=p>}</span>
-</span></code></pre></div> <div class="language-typescript highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=c1>// packages/web/src/util.ts</span>
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=k>import</span><span class=w> </span><span class=nx>_</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s2>&quot;lodash&quot;</span><span class=p>;</span><span class=w> </span><span class=c1>// package.json엔 없는데 동작함</span>
-</span></code></pre></div> <p>루트 어딘가에 <code>lodash</code>가 깔려 있어 호이스팅으로 끌려 올라왔기 때문이다. pnpm의 strict 모드(기본값)는 호이스팅을 하지 않고 각 패키지의 <code>node_modules</code>에 명시된 의존성만 심볼릭 링크해주므로 위 import가 즉시 깨진다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a>Error: Cannot find module &#39;lodash&#39;
-</span></code></pre></div> <p>이 에러를 처음 보면 "왜 갑자기 안 되지?"가 되는데, 사실 npm/yarn에서 우연히 동작하던 게 잘못이었던 거다. pnpm으로 갈아탔을 때 가장 많이 보이는 에러가 이거다. 해결은 단순히 빠진 의존성을 <code>package.json</code>에 추가하는 것이다.</p> <p>반대로 일부 라이브러리(특히 오래된 React Native 관련 도구들)는 phantom dependency를 전제로 만들어져서 pnpm에서 깨진다. 이때는 <code>.npmrc</code>에 <code>shamefully-hoist=true</code> 또는 <code>public-hoist-pattern[]</code>을 적어 임시로 호이스팅을 켤 수 있다. 이름에서 알 수 있듯 권장되는 탈출구는 아니다.</p> <h2 id=순환-의존성과-tsc--b-디버깅>순환 의존성과 tsc -b 디버깅<a class=headerlink href=#순환-의존성과-tsc--b-디버깅 title="Permanent link">&para;</a></h2> <p><code>tsc -b</code>는 references 그래프에 순환이 있으면 다음과 같은 에러를 낸다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-19-1><a id=__codelineno-19-1 name=__codelineno-19-1 href=#__codelineno-19-1></a>error TS6202: Project references may not form a circular graph. 
-</span><span id=__span-19-2><a id=__codelineno-19-2 name=__codelineno-19-2 href=#__codelineno-19-2></a>Cycle detected: /repo/packages/a/tsconfig.json -&gt; /repo/packages/b/tsconfig.json -&gt; /repo/packages/a/tsconfig.json
-</span></code></pre></div> <p>해결의 시작은 <code>tsc -b --listFiles</code>로 어떤 파일이 어디에서 import됐는지 추적하는 것이다. references 자체가 순환이라기보다 그 안에서 실제 파일 import가 순환을 만든 경우가 대부분이다. <code>madge</code> 같은 도구로 의존성 그래프를 시각화하면 빠르다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-20-1><a id=__codelineno-20-1 name=__codelineno-20-1 href=#__codelineno-20-1></a>npx<span class=w> </span>madge<span class=w> </span>--circular<span class=w> </span>--extensions<span class=w> </span>ts<span class=w> </span>packages/
-</span></code></pre></div> <p>순환을 끊는 방법은 보통 셋 중 하나다.</p> <ul> <li>두 패키지에서 같이 쓰는 코드를 별도의 leaf 패키지로 추출</li> <li>인터페이스만 한쪽에 두고 구현은 반대쪽에 두는 의존성 역전</li> <li>단순한 타입 공유라면 <code>import type</code>만 쓰고 런타임 의존성은 끊기</li> </ul> <p><code>import type</code>은 emit 단계에서 완전히 제거되므로 런타임 순환은 만들지 않지만, references 그래프 입장에서는 여전히 의존성으로 잡힌다. 이걸 회피하려면 타입 전용 패키지를 따로 두는 패턴이 자주 쓰인다.</p> <h2 id=ide에서-paths가-인식되지-않을-때>IDE에서 paths가 인식되지 않을 때<a class=headerlink href=#ide에서-paths가-인식되지-않을-때 title="Permanent link">&para;</a></h2> <p>VSCode에서 <code>@utils/date</code>가 빨간 줄로 뜨고 자동완성이 안 될 때 점검 순서.</p> <ol> <li><code>baseUrl</code>이 빠지지 않았는지 확인. <code>paths</code>만 있고 <code>baseUrl</code>이 없으면 TypeScript 5.0 이전 버전에서는 동작하지 않는다(5.0부터는 paths 단독 사용 허용).</li> <li>tsconfig.json이 여러 개일 때 어느 것이 활성인지 확인. VSCode는 워크스페이스 루트의 tsconfig를 우선하지만, <code>"typescript.tsconfig"</code> 설정으로 바꿀 수 있다.</li> <li><code>extends</code> 체인이 길 때 paths가 상위에서 정의되고 하위에서 빈 객체로 덮였는지 확인. paths는 <strong>머지되지 않고 통째로 덮인다</strong>.</li> <li>VSCode 우하단의 TypeScript 버전 표시를 클릭해 워크스페이스의 TypeScript를 쓰는지 확인. 글로벌 TypeScript와 버전이 다르면 동작이 미묘하게 달라진다.</li> <li><code>Developer: Reload Window</code>로 TypeScript 서버를 재시작. 캐시가 꼬여 있는 경우가 의외로 많다.</li> <li>마지막으로 <code>tsc --traceResolution | grep "@utils"</code>로 실제 모듈 해석 로그를 본다. 어느 candidate 경로에서 실패하는지 그대로 찍힌다.</li> </ol> <p>WebStorm은 자체 인덱서를 쓰기 때문에 <code>.idea</code> 캐시(<code>Invalidate Caches / Restart</code>)가 자주 답이 된다. 그리고 WebStorm은 monorepo에서 각 패키지의 tsconfig를 자동으로 인식하는 게 VSCode보다 약해서, 명시적으로 <code>Settings &gt; Languages &amp; Frameworks &gt; TypeScript</code>에서 옵션을 손봐야 할 때가 있다.</p> <p>paths는 <strong>컴파일러에게 주는 힌트일 뿐 실제 모듈 해석을 보장하지 않는다</strong>는 사실을 IDE 동작에서도 항상 의식해야 한다. IDE에서 자동완성이 되더라도 런타임에서 깨지는 경우는 위에서 다룬 그대로다.</p> <h2 id=main-types-exports-필드>main, types, exports 필드<a class=headerlink href=#main-types-exports-필드 title="Permanent link">&para;</a></h2> <p>monorepo에서 패키지 간 import가 어떻게 해석되는지는 의외로 <code>package.json</code>의 진입점 필드가 결정한다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a><span class=p>{</span>
-</span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a><span class=w>  </span><span class=nt>&quot;name&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;@acme/utils&quot;</span><span class=p>,</span>
-</span><span id=__span-21-3><a id=__codelineno-21-3 name=__codelineno-21-3 href=#__codelineno-21-3></a><span class=w>  </span><span class=nt>&quot;main&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;dist/index.js&quot;</span><span class=p>,</span>
-</span><span id=__span-21-4><a id=__codelineno-21-4 name=__codelineno-21-4 href=#__codelineno-21-4></a><span class=w>  </span><span class=nt>&quot;types&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;dist/index.d.ts&quot;</span><span class=p>,</span>
-</span><span id=__span-21-5><a id=__codelineno-21-5 name=__codelineno-21-5 href=#__codelineno-21-5></a><span class=w>  </span><span class=nt>&quot;exports&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-21-6><a id=__codelineno-21-6 name=__codelineno-21-6 href=#__codelineno-21-6></a><span class=w>    </span><span class=nt>&quot;.&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-21-7><a id=__codelineno-21-7 name=__codelineno-21-7 href=#__codelineno-21-7></a><span class=w>      </span><span class=nt>&quot;types&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist/index.d.ts&quot;</span><span class=p>,</span>
-</span><span id=__span-21-8><a id=__codelineno-21-8 name=__codelineno-21-8 href=#__codelineno-21-8></a><span class=w>      </span><span class=nt>&quot;import&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist/index.mjs&quot;</span><span class=p>,</span>
-</span><span id=__span-21-9><a id=__codelineno-21-9 name=__codelineno-21-9 href=#__codelineno-21-9></a><span class=w>      </span><span class=nt>&quot;require&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist/index.cjs&quot;</span>
-</span><span id=__span-21-10><a id=__codelineno-21-10 name=__codelineno-21-10 href=#__codelineno-21-10></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-21-11><a id=__codelineno-21-11 name=__codelineno-21-11 href=#__codelineno-21-11></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-21-12><a id=__codelineno-21-12 name=__codelineno-21-12 href=#__codelineno-21-12></a><span class=p>}</span>
-</span></code></pre></div> <p><code>exports</code> 필드가 정의되어 있으면 노드는 <code>main</code>을 무시한다. TypeScript는 <code>moduleResolution: "bundler"</code> 또는 <code>"node16"</code>/<code>"nodenext"</code>일 때 <code>exports</code>를 본다. 이때 <strong><code>exports</code>에 <code>types</code> 조건이 빠져 있으면 최상위 <code>types</code> 필드가 무시되고 타입을 못 찾는 사고가 난다</strong>. 자주 보는 에러다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-22-1><a id=__codelineno-22-1 name=__codelineno-22-1 href=#__codelineno-22-1></a>error TS7016: Could not find a declaration file for module &#39;@acme/utils&#39;.
-</span></code></pre></div> <p>해결은 <code>exports</code> 안에 <code>types</code> 조건을 명시적으로 넣는 것이다. 그리고 <code>types</code> 조건은 반드시 <code>import</code>/<code>require</code>보다 <strong>먼저</strong> 적어야 한다. 조건은 순서대로 매칭되기 때문이다.</p> <div class="language-json highlight"><pre><span></span><code><span id=__span-23-1><a id=__codelineno-23-1 name=__codelineno-23-1 href=#__codelineno-23-1></a><span class=p>{</span>
-</span><span id=__span-23-2><a id=__codelineno-23-2 name=__codelineno-23-2 href=#__codelineno-23-2></a><span class=w>  </span><span class=nt>&quot;exports&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-23-3><a id=__codelineno-23-3 name=__codelineno-23-3 href=#__codelineno-23-3></a><span class=w>    </span><span class=nt>&quot;.&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-23-4><a id=__codelineno-23-4 name=__codelineno-23-4 href=#__codelineno-23-4></a><span class=w>      </span><span class=nt>&quot;types&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist/index.d.ts&quot;</span><span class=p>,</span>
-</span><span id=__span-23-5><a id=__codelineno-23-5 name=__codelineno-23-5 href=#__codelineno-23-5></a><span class=w>      </span><span class=nt>&quot;import&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist/index.mjs&quot;</span><span class=p>,</span>
-</span><span id=__span-23-6><a id=__codelineno-23-6 name=__codelineno-23-6 href=#__codelineno-23-6></a><span class=w>      </span><span class=nt>&quot;require&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;./dist/index.cjs&quot;</span>
-</span><span id=__span-23-7><a id=__codelineno-23-7 name=__codelineno-23-7 href=#__codelineno-23-7></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-23-8><a id=__codelineno-23-8 name=__codelineno-23-8 href=#__codelineno-23-8></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-23-9><a id=__codelineno-23-9 name=__codelineno-23-9 href=#__codelineno-23-9></a><span class=p>}</span>
-</span></code></pre></div> <p>서브 경로 export(<code>@acme/utils/date</code> 같은 형태)도 같은 규칙이다. tsconfig에서 <code>moduleResolution: "node"</code>(legacy)를 쓰면 <code>exports</code>를 무시하고 <code>main</code>/<code>types</code>만 보므로 에러가 안 나는데, 모던한 노드 버전에서 실행하면 깨진다. <code>node16</code> 이상으로 올리는 게 정답이지만, <code>paths</code>로 dist의 <code>.d.ts</code>를 직접 가리키는 우회를 쓰는 팀도 있다.</p> <h2 id=dev-소스-직접-import-vs-build-후-dist-import>dev: 소스 직접 import vs build 후 dist import<a class=headerlink href=#dev-소스-직접-import-vs-build-후-dist-import title="Permanent link">&para;</a></h2> <p>모노레포에서 패키지 간 import를 어떻게 풀지는 두 갈래다.</p> <p><strong>A안: paths로 src를 직접 가리킨다</strong></p> <div class="language-json highlight"><pre><span></span><code><span id=__span-24-1><a id=__codelineno-24-1 name=__codelineno-24-1 href=#__codelineno-24-1></a><span class=c1>// apps/web/tsconfig.json</span>
-</span><span id=__span-24-2><a id=__codelineno-24-2 name=__codelineno-24-2 href=#__codelineno-24-2></a><span class=p>{</span>
-</span><span id=__span-24-3><a id=__codelineno-24-3 name=__codelineno-24-3 href=#__codelineno-24-3></a><span class=w>  </span><span class=nt>&quot;compilerOptions&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-24-4><a id=__codelineno-24-4 name=__codelineno-24-4 href=#__codelineno-24-4></a><span class=w>    </span><span class=nt>&quot;paths&quot;</span><span class=p>:</span><span class=w> </span><span class=p>{</span>
-</span><span id=__span-24-5><a id=__codelineno-24-5 name=__codelineno-24-5 href=#__codelineno-24-5></a><span class=w>      </span><span class=nt>&quot;@acme/utils&quot;</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;../../packages/utils/src/index.ts&quot;</span><span class=p>]</span>
-</span><span id=__span-24-6><a id=__codelineno-24-6 name=__codelineno-24-6 href=#__codelineno-24-6></a><span class=w>    </span><span class=p>}</span>
-</span><span id=__span-24-7><a id=__codelineno-24-7 name=__codelineno-24-7 href=#__codelineno-24-7></a><span class=w>  </span><span class=p>}</span>
-</span><span id=__span-24-8><a id=__codelineno-24-8 name=__codelineno-24-8 href=#__codelineno-24-8></a><span class=p>}</span>
-</span></code></pre></div> <p>장점은 빌드 없이 즉시 반영되어 dev 서버가 빠르고, IDE go-to-definition이 실제 <code>.ts</code> 파일로 점프해서 디버깅이 쉽다는 것. 단점은 패키지의 <code>package.json</code> <code>main</code>/<code>exports</code>와 다른 진입점을 사용하므로 외부에 publish할 때와 동작이 달라질 수 있고, 타입 체크 범위에 모든 패키지의 src가 들어가서 큰 모노레포에서는 IDE가 무거워진다.</p> <p><strong>B안: build 후 dist를 import한다</strong></p> <p>각 패키지를 <code>tsc -b</code>로 미리 빌드하고 <code>package.json</code>의 <code>main</code>/<code>types</code>/<code>exports</code>가 가리키는 <code>dist</code>를 import한다. paths는 굳이 정의하지 않는다.</p> <p>장점은 외부 publish 환경과 dev 환경이 같아서 "로컬에선 되는데 배포하니까 안 된다" 류 사고가 줄고, 각 패키지가 격리되어 IDE 부담이 적다. 단점은 변경할 때마다 빌드 watch를 돌려야 하고(<code>tsc -b -w</code>), go-to-definition이 <code>.d.ts</code>로 가서 declarationMap을 켜지 않으면 디버깅이 불편하다.</p> <p>큰 모노레포에서는 보통 B안 + <code>declarationMap: true</code>로 가고, 작은 팀이거나 패키지가 publish되지 않는 사내 모노레포는 A안이 빠르다. 둘을 섞어서 dev에서는 src import, 프로덕션 빌드에서는 dist import로 분기하는 패턴(<code>tsconfig.json</code>과 <code>tsconfig.build.json</code>을 분리)도 있는데, 환경별 paths가 늘어나서 관리 비용이 커진다.</p> <pre class=mermaid-diagram><code>flowchart TD
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/Language/TypeScript/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EC%84%A4%EC%A0%95%20%EB%B0%8F%20%EC%BB%B4%ED%8C%8C%EC%9D%BC%EB%9F%AC/Workspace%EC%99%80%20ts_paths/">
+      
+      
+        <link rel="prev" href="../ESLint%EC%99%80%20Prettier/">
+      
+      
+        <link rel="next" href="../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>TypeScript Workspace와 ts-paths - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#typescript-workspace와-ts-paths" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TypeScript Workspace와 ts-paths
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Java/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Kotlin/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../JavaScript/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JavaScript
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TypeScript
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    TypeScript
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TypeScript 기본
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    타입 정의
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../%ED%83%80%EC%9E%85%20%EC%9C%A0%ED%8B%B8%EB%A6%AC%ED%8B%B0/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    타입 유틸리티
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    프로젝트 설정
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_5_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    프로젝트 설정
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Rust/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Go/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Go
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Comparison/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparison
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Python/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../../AI/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#시작하기-전에" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        시작하기 전에
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#paths의-가장-큰-함정-tsc는-import-경로를-변환하지-않는다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        paths의 가장 큰 함정: tsc는 import 경로를 변환하지 않는다
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="paths의 가장 큰 함정: tsc는 import 경로를 변환하지 않는다">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#빌드-후-변환-tsc-alias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        빌드 후 변환: tsc-alias
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#런타임-해석-tsconfig-pathsregister-ts-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        런타임 해석: tsconfig-paths/register (ts-node)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#테스트-jest-modulenamemapper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        테스트: jest moduleNameMapper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#번들러-vite-webpack-esbuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        번들러: Vite, webpack, esbuild
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#swc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        swc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#도구별-특성-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        도구별 특성 정리
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-references와-paths를-함께-쓸-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project References와 paths를 함께 쓸 때
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pnpm의-workspace-프로토콜" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pnpm의 workspace:* 프로토콜
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#호이스팅-phantom-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        호이스팅: phantom dependency
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#순환-의존성과-tsc--b-디버깅" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        순환 의존성과 tsc -b 디버깅
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ide에서-paths가-인식되지-않을-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IDE에서 paths가 인식되지 않을 때
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#main-types-exports-필드" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        main, types, exports 필드
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-소스-직접-import-vs-build-후-dist-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dev: 소스 직접 import vs build 후 dist import
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#마지막으로-점검할-것" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        마지막으로 점검할 것
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">language</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">typescript</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<h1 id="typescript-workspace와-ts-paths">TypeScript Workspace와 ts-paths<a class="headerlink" href="#typescript-workspace와-ts-paths" title="Permanent link">&para;</a></h1>
+<h2 id="시작하기-전에">시작하기 전에<a class="headerlink" href="#시작하기-전에" title="Permanent link">&para;</a></h2>
+<p>TypeScript 모노레포에서 가장 자주 만나는 두 가지 도구가 패키지 매니저의 workspace와 tsconfig의 <code>paths</code>다. 둘은 비슷해 보이지만 동작 계층이 완전히 다르다. workspace는 <strong>패키지 매니저 레벨</strong>에서 심볼릭 링크와 의존성 그래프를 관리하고, <code>paths</code>는 <strong>TypeScript 컴파일러 레벨</strong>에서 import 식별자를 어떻게 해석할지 알려주는 메타데이터다.</p>
+<p>이 둘의 경계를 모호하게 두면 "타입 체크는 통과하는데 <code>node dist/index.js</code>만 실행하면 <code>Cannot find module '@app/utils'</code> 에러가 난다" 같은 일이 생긴다. 실제로 ts-paths를 처음 도입한 팀에서 가장 많이 겪는 문제다. 아래에서는 이 함정을 중심으로 두 기능의 동작과 실무 설정을 정리한다.</p>
+<h2 id="paths의-가장-큰-함정-tsc는-import-경로를-변환하지-않는다">paths의 가장 큰 함정: tsc는 import 경로를 변환하지 않는다<a class="headerlink" href="#paths의-가장-큰-함정-tsc는-import-경로를-변환하지-않는다" title="Permanent link">&para;</a></h2>
+<p><code>tsconfig.json</code>에 다음과 같이 적었다고 하자.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">&quot;baseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./src&quot;</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">      </span><span class="nt">&quot;@utils/*&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;utils/*&quot;</span><span class="p">]</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist&quot;</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>소스 코드는 이렇게 쓴다.</p>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// src/index.ts</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">formatDate</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@utils/date&quot;</span><span class="p">;</span>
+</span></code></pre></div>
+<p><code>tsc</code>로 컴파일하면 <code>dist/index.js</code>에는 다음이 그대로 남는다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// dist/index.js</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">date_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;@utils/date&quot;</span><span class="p">);</span>
+</span></code></pre></div>
+<p>문자열이 변환되지 않는다. 노드는 <code>@utils/date</code>를 <code>node_modules/@utils/date</code>에서 찾으므로 런타임에 <code>MODULE_NOT_FOUND</code>가 터진다. 이게 ts-paths의 가장 흔한 함정이다. <code>paths</code>는 <strong>타입 체커가 import 식별자를 해석할 때만 참조</strong>하는 정보고, 코드 생성 단계는 건드리지 않는다. TypeScript 공식 문서에도 명시되어 있고, 메인테이너들이 의도적으로 그렇게 설계했다.</p>
+<p>해결책은 두 갈래다. 빌드 후 정적 변환을 거치거나, 런타임에 모듈 해석 훅을 끼워 넣거나.</p>
+<h3 id="빌드-후-변환-tsc-alias">빌드 후 변환: tsc-alias<a class="headerlink" href="#빌드-후-변환-tsc-alias" title="Permanent link">&para;</a></h3>
+<p><code>tsc</code>가 만든 출력에서 alias를 실제 상대 경로로 치환하는 후처리 도구다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>npm<span class="w"> </span>i<span class="w"> </span>-D<span class="w"> </span>tsc-alias
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// package.json</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="p">{</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;scripts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">&quot;build&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tsc &amp;&amp; tsc-alias&quot;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// tsconfig.json — paths만 정상적으로 정의되어 있으면 된다</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="p">{</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nt">&quot;baseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./src&quot;</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;@utils/*&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;utils/*&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist&quot;</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>tsc-alias</code>는 <code>outDir</code> 안의 <code>.js</code>/<code>.d.ts</code> 파일을 모두 훑으면서 <code>@utils/date</code>를 <code>./utils/date</code> 같은 상대 경로로 바꿔 쓴다. 결과물이 alias-free라서 노드, 번들러, 어떤 런타임에도 그대로 들어간다. 단점은 매번 빌드 단계가 한 번 더 끼는 것과, dynamic import의 문자열 템플릿(<code>import(`@utils/${name}`)</code>)은 정적 분석이 안 돼서 변환되지 않는다는 점이다.</p>
+<h3 id="런타임-해석-tsconfig-pathsregister-ts-node">런타임 해석: tsconfig-paths/register (ts-node)<a class="headerlink" href="#런타임-해석-tsconfig-pathsregister-ts-node" title="Permanent link">&para;</a></h3>
+<p><code>ts-node</code>로 직접 실행할 때는 <code>tsconfig-paths/register</code>를 미리 로드해 노드의 모듈 해석 함수를 가로챈다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// tsconfig.json</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="p">{</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;ts-node&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">&quot;require&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;tsconfig-paths/register&quot;</span><span class="p">]</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>또는 명령행에서.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>node<span class="w"> </span>-r<span class="w"> </span>ts-node/register<span class="w"> </span>-r<span class="w"> </span>tsconfig-paths/register<span class="w"> </span>src/index.ts
+</span></code></pre></div>
+<p>이 방법은 빌드 결과물이 아닌 소스 실행 시점에만 동작한다. <code>node dist/index.js</code>로는 동작하지 않으므로 프로덕션 실행 경로에는 쓰지 않는다. 또 ESM 환경에서는 <code>--experimental-loader</code>로 따로 등록해야 하고, 로더 체이닝이 까다롭다.</p>
+<h3 id="테스트-jest-modulenamemapper">테스트: jest moduleNameMapper<a class="headerlink" href="#테스트-jest-modulenamemapper" title="Permanent link">&para;</a></h3>
+<p>Jest는 자체 모듈 해석을 쓰기 때문에 <code>paths</code>를 알아서 읽어주지 않는다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">// jest.config.js</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nx">preset</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;ts-jest&quot;</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nx">moduleNameMapper</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="s2">&quot;^@utils/(.*)$&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;&lt;rootDir&gt;/src/utils/$1&quot;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">};</span>
+</span></code></pre></div>
+<p><code>paths</code>가 늘어날 때마다 두 군데를 동기화해야 하는 게 번거로워서 <code>ts-jest</code>의 <code>pathsToModuleNameMapper</code> 헬퍼를 쓰기도 한다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">pathsToModuleNameMapper</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;ts-jest&quot;</span><span class="p">);</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">compilerOptions</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./tsconfig.json&quot;</span><span class="p">);</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nx">preset</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;ts-jest&quot;</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nx">moduleNameMapper</span><span class="o">:</span><span class="w"> </span><span class="nx">pathsToModuleNameMapper</span><span class="p">(</span><span class="nx">compilerOptions</span><span class="p">.</span><span class="nx">paths</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nx">prefix</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;&lt;rootDir&gt;/&quot;</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="p">})</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">};</span>
+</span></code></pre></div>
+<h3 id="번들러-vite-webpack-esbuild">번들러: Vite, webpack, esbuild<a class="headerlink" href="#번들러-vite-webpack-esbuild" title="Permanent link">&para;</a></h3>
+<p>번들러는 자체적으로 alias를 처리하지만 tsconfig의 <code>paths</code>를 무조건 따라가지는 않는다.</p>
+<p>Vite는 <code>vite-tsconfig-paths</code> 플러그인이 사실상 표준이다.</p>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">// vite.config.ts</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">defineConfig</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;vite&quot;</span><span class="p">;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">import</span><span class="w"> </span><span class="nx">tsconfigPaths</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;vite-tsconfig-paths&quot;</span><span class="p">;</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="k">export</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="nx">defineConfig</span><span class="p">({</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nx">plugins</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="nx">tsconfigPaths</span><span class="p">()]</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">});</span>
+</span></code></pre></div>
+<p>webpack은 보통 <code>tsconfig-paths-webpack-plugin</code>을 쓴다.</p>
+<div class="language-javascript highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">// webpack.config.js</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">const</span><span class="w"> </span><span class="nx">TsconfigPathsPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">&quot;tsconfig-paths-webpack-plugin&quot;</span><span class="p">);</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nx">resolve</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nx">plugins</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="ow">new</span><span class="w"> </span><span class="nx">TsconfigPathsPlugin</span><span class="p">({</span><span class="w"> </span><span class="nx">configFile</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;./tsconfig.json&quot;</span><span class="w"> </span><span class="p">})]</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">};</span>
+</span></code></pre></div>
+<h3 id="swc">swc<a class="headerlink" href="#swc" title="Permanent link">&para;</a></h3>
+<p><code>@swc/core</code>를 컴파일러로 쓰는 경우 <code>.swcrc</code>에 <code>paths</code>를 다시 적어야 한다. swc는 tsconfig를 읽지 않는다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1">// .swcrc</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="p">{</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">&quot;jsc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="nt">&quot;baseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./src&quot;</span><span class="p">,</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">      </span><span class="nt">&quot;@utils/*&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;utils/*&quot;</span><span class="p">]</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>swc 역시 paths를 정적 변환해서 출력한다. tsc보다 훨씬 빠르지만 데코레이터 메타데이터처럼 일부 동작이 미묘하게 다르다는 점은 별도 이슈다.</p>
+<h3 id="도구별-특성-정리">도구별 특성 정리<a class="headerlink" href="#도구별-특성-정리" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>도구</th>
+<th>시점</th>
+<th>변환 방식</th>
+<th>주의점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tsc</td>
+<td>컴파일</td>
+<td>변환 안 함</td>
+<td>paths는 타입 체크 전용</td>
+</tr>
+<tr>
+<td>tsc-alias</td>
+<td>빌드 후처리</td>
+<td>정적 치환</td>
+<td>dynamic import 템플릿 미지원</td>
+</tr>
+<tr>
+<td>tsconfig-paths/register</td>
+<td>런타임</td>
+<td>모듈 해석 훅</td>
+<td>ESM은 별도 로더 필요</td>
+</tr>
+<tr>
+<td>swc</td>
+<td>컴파일</td>
+<td>정적 치환</td>
+<td>tsconfig를 읽지 않음</td>
+</tr>
+<tr>
+<td>Vite/webpack</td>
+<td>번들 시점</td>
+<td>정적 치환</td>
+<td>별도 플러그인 필요</td>
+</tr>
+<tr>
+<td>jest moduleNameMapper</td>
+<td>테스트 런타임</td>
+<td>정규식 매핑</td>
+<td>tsconfig와 동기화 필요</td>
+</tr>
+</tbody>
+</table>
+<p>같은 alias를 쓰는데도 빌드, 테스트, 개발, 프로덕션 각각에서 다른 도구가 끼는 구조라 한쪽만 바꾸면 다른 쪽이 깨진다. 새 alias를 추가할 때 체크해야 할 곳이 어디어디인지 README에 적어두는 게 실무적으로 도움이 된다.</p>
+<h2 id="project-references와-paths를-함께-쓸-때">Project References와 paths를 함께 쓸 때<a class="headerlink" href="#project-references와-paths를-함께-쓸-때" title="Permanent link">&para;</a></h2>
+<p><code>composite: true</code>로 설정한 프로젝트는 <code>tsc -b</code>로 의존 그래프를 따라 증분 빌드를 한다. 여기에 <code>paths</code>를 끼워 넣으면 미묘한 동작이 몇 가지 있다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1">// packages/utils/tsconfig.json</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="p">{</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nt">&quot;composite&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nt">&quot;declaration&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span><span class="nt">&quot;declarationMap&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="nt">&quot;outDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist&quot;</span><span class="p">,</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="nt">&quot;rootDir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./src&quot;</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">  </span><span class="nt">&quot;include&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/**/*&quot;</span><span class="p">]</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1">// apps/web/tsconfig.json</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="p">{</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nt">&quot;composite&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="nt">&quot;baseUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">      </span><span class="nt">&quot;@acme/utils&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;../../packages/utils/src/index.ts&quot;</span><span class="p">]</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">  </span><span class="nt">&quot;references&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;../../packages/utils&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">  </span><span class="nt">&quot;include&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;src/**/*&quot;</span><span class="p">]</span>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>paths</code>가 utils의 <strong>소스 파일</strong>을 가리키도록 매핑하면 IDE에서 go-to-definition이 <code>.d.ts</code>가 아니라 실제 <code>.ts</code>로 점프한다. 디버깅이 훨씬 편해진다. 다만 <code>tsc -b</code>는 references를 통해 utils가 먼저 빌드돼 <code>.d.ts</code>를 생성하는 흐름을 가정하므로, paths가 src를 가리켜도 별 문제는 없지만 utils의 <code>outDir/dist</code>와 paths가 가리키는 <code>src</code>가 동시에 존재한다는 점은 의식해야 한다.</p>
+<p><code>declarationMap: true</code>는 IDE에서 점프할 때 컴파일된 <code>.d.ts</code>가 아니라 원본 <code>.ts</code>로 가게 해주는 옵션이다. paths로 src를 직접 가리키면 어차피 src로 점프하지만, paths 없이 references만 쓰는 환경에서는 declarationMap이 사실상 필수다.</p>
+<p><code>.tsbuildinfo</code>는 increment 빌드의 핵심 캐시인데, 다음 경우에 통째로 무효화된다.</p>
+<ul>
+<li>tsconfig 파일이 변경됐을 때 (옵션 하나만 바꿔도)</li>
+<li>의존하는 패키지의 <code>.d.ts</code> 시그니처가 바뀌었을 때</li>
+<li>TypeScript 버전이 달라졌을 때</li>
+<li><code>extends</code> 체인의 상위 tsconfig가 바뀌었을 때</li>
+</ul>
+<p>paths만 추가하거나 수정해도 <code>.tsbuildinfo</code>가 무효화돼 전체가 다시 빌드된다. CI에서 <code>tsc -b</code> 캐시를 살리려고 <code>node_modules/.cache</code> 같은 데 <code>.tsbuildinfo</code>를 모아놨는데 paths 변경 한 줄로 캐시가 다 날아가서 빌드 시간이 늘어나는 사례가 흔하다. 캐시 키에 tsconfig 해시를 포함시키는 게 정석이다.</p>
+<h2 id="pnpm의-workspace-프로토콜">pnpm의 workspace:* 프로토콜<a class="headerlink" href="#pnpm의-workspace-프로토콜" title="Permanent link">&para;</a></h2>
+<p>pnpm은 workspace 의존성을 표현할 때 <code>workspace:*</code>, <code>workspace:^</code>, <code>workspace:~</code> 같은 프로토콜을 쓴다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nt">&quot;dependencies&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="nt">&quot;@acme/utils&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workspace:*&quot;</span><span class="p">,</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span><span class="nt">&quot;@acme/api&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workspace:^1.2.0&quot;</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>로컬 개발 시에는 심볼릭 링크로 연결되지만, <code>pnpm publish</code>를 하는 순간 이 표현이 실제 버전으로 치환된 <code>package.json</code>이 npm 레지스트리에 올라간다. <code>workspace:*</code>는 publish 시점의 정확한 버전(<code>1.2.3</code>)으로, <code>workspace:^</code>는 <code>^1.2.3</code>으로 변환된다. 사용자가 npm에서 받을 때는 일반 버전 의존성처럼 보인다.</p>
+<p>이 동작은 yarn berry(v2+)도 비슷하지만, <strong>yarn classic(v1)과 npm workspaces는 <code>workspace:</code> 프로토콜 자체를 모른다</strong>. yarn classic으로 모노레포를 운영하다 pnpm으로 바꾸려고 <code>workspace:*</code>를 적으면 yarn은 그대로 npm 레지스트리에서 <code>workspace:*</code> 버전을 찾으려고 시도하다 실패한다. 패키지 매니저 변경이 이만큼 침습적이다.</p>
+<p>npm v7 이후 workspaces도 호환은 되지만 <code>workspace:</code> 프로토콜 자체를 인식하는 건 npm v8.3 이후이고, publish 시 자동 치환은 npm v9에서야 들어왔다. 회사 사내 레지스트리에서 publish하는 라이브러리라면 npm/yarn/pnpm 어떤 도구로 publish되는지 한 번 확인해보는 게 안전하다.</p>
+<h2 id="호이스팅-phantom-dependency">호이스팅: phantom dependency<a class="headerlink" href="#호이스팅-phantom-dependency" title="Permanent link">&para;</a></h2>
+<p>npm과 yarn classic은 모든 의존성을 루트 <code>node_modules</code>로 끌어올린다(호이스팅). 그래서 <code>package.json</code>에 명시하지 않은 패키지도 <code>import lodash from "lodash"</code>가 우연히 동작하는 경우가 생긴다. 이게 phantom dependency다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1">// packages/web/package.json</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="p">{</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span><span class="nt">&quot;dependencies&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span><span class="nt">&quot;react&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^18.0.0&quot;</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-typescript highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1">// packages/web/src/util.ts</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">import</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;lodash&quot;</span><span class="p">;</span><span class="w"> </span><span class="c1">// package.json엔 없는데 동작함</span>
+</span></code></pre></div>
+<p>루트 어딘가에 <code>lodash</code>가 깔려 있어 호이스팅으로 끌려 올라왔기 때문이다. pnpm의 strict 모드(기본값)는 호이스팅을 하지 않고 각 패키지의 <code>node_modules</code>에 명시된 의존성만 심볼릭 링크해주므로 위 import가 즉시 깨진다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Error: Cannot find module &#39;lodash&#39;
+</span></code></pre></div>
+<p>이 에러를 처음 보면 "왜 갑자기 안 되지?"가 되는데, 사실 npm/yarn에서 우연히 동작하던 게 잘못이었던 거다. pnpm으로 갈아탔을 때 가장 많이 보이는 에러가 이거다. 해결은 단순히 빠진 의존성을 <code>package.json</code>에 추가하는 것이다.</p>
+<p>반대로 일부 라이브러리(특히 오래된 React Native 관련 도구들)는 phantom dependency를 전제로 만들어져서 pnpm에서 깨진다. 이때는 <code>.npmrc</code>에 <code>shamefully-hoist=true</code> 또는 <code>public-hoist-pattern[]</code>을 적어 임시로 호이스팅을 켤 수 있다. 이름에서 알 수 있듯 권장되는 탈출구는 아니다.</p>
+<h2 id="순환-의존성과-tsc--b-디버깅">순환 의존성과 tsc -b 디버깅<a class="headerlink" href="#순환-의존성과-tsc--b-디버깅" title="Permanent link">&para;</a></h2>
+<p><code>tsc -b</code>는 references 그래프에 순환이 있으면 다음과 같은 에러를 낸다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>error TS6202: Project references may not form a circular graph. 
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>Cycle detected: /repo/packages/a/tsconfig.json -&gt; /repo/packages/b/tsconfig.json -&gt; /repo/packages/a/tsconfig.json
+</span></code></pre></div>
+<p>해결의 시작은 <code>tsc -b --listFiles</code>로 어떤 파일이 어디에서 import됐는지 추적하는 것이다. references 자체가 순환이라기보다 그 안에서 실제 파일 import가 순환을 만든 경우가 대부분이다. <code>madge</code> 같은 도구로 의존성 그래프를 시각화하면 빠르다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>npx<span class="w"> </span>madge<span class="w"> </span>--circular<span class="w"> </span>--extensions<span class="w"> </span>ts<span class="w"> </span>packages/
+</span></code></pre></div>
+<p>순환을 끊는 방법은 보통 셋 중 하나다.</p>
+<ul>
+<li>두 패키지에서 같이 쓰는 코드를 별도의 leaf 패키지로 추출</li>
+<li>인터페이스만 한쪽에 두고 구현은 반대쪽에 두는 의존성 역전</li>
+<li>단순한 타입 공유라면 <code>import type</code>만 쓰고 런타임 의존성은 끊기</li>
+</ul>
+<p><code>import type</code>은 emit 단계에서 완전히 제거되므로 런타임 순환은 만들지 않지만, references 그래프 입장에서는 여전히 의존성으로 잡힌다. 이걸 회피하려면 타입 전용 패키지를 따로 두는 패턴이 자주 쓰인다.</p>
+<h2 id="ide에서-paths가-인식되지-않을-때">IDE에서 paths가 인식되지 않을 때<a class="headerlink" href="#ide에서-paths가-인식되지-않을-때" title="Permanent link">&para;</a></h2>
+<p>VSCode에서 <code>@utils/date</code>가 빨간 줄로 뜨고 자동완성이 안 될 때 점검 순서.</p>
+<ol>
+<li><code>baseUrl</code>이 빠지지 않았는지 확인. <code>paths</code>만 있고 <code>baseUrl</code>이 없으면 TypeScript 5.0 이전 버전에서는 동작하지 않는다(5.0부터는 paths 단독 사용 허용).</li>
+<li>tsconfig.json이 여러 개일 때 어느 것이 활성인지 확인. VSCode는 워크스페이스 루트의 tsconfig를 우선하지만, <code>"typescript.tsconfig"</code> 설정으로 바꿀 수 있다.</li>
+<li><code>extends</code> 체인이 길 때 paths가 상위에서 정의되고 하위에서 빈 객체로 덮였는지 확인. paths는 <strong>머지되지 않고 통째로 덮인다</strong>.</li>
+<li>VSCode 우하단의 TypeScript 버전 표시를 클릭해 워크스페이스의 TypeScript를 쓰는지 확인. 글로벌 TypeScript와 버전이 다르면 동작이 미묘하게 달라진다.</li>
+<li><code>Developer: Reload Window</code>로 TypeScript 서버를 재시작. 캐시가 꼬여 있는 경우가 의외로 많다.</li>
+<li>마지막으로 <code>tsc --traceResolution | grep "@utils"</code>로 실제 모듈 해석 로그를 본다. 어느 candidate 경로에서 실패하는지 그대로 찍힌다.</li>
+</ol>
+<p>WebStorm은 자체 인덱서를 쓰기 때문에 <code>.idea</code> 캐시(<code>Invalidate Caches / Restart</code>)가 자주 답이 된다. 그리고 WebStorm은 monorepo에서 각 패키지의 tsconfig를 자동으로 인식하는 게 VSCode보다 약해서, 명시적으로 <code>Settings &gt; Languages &amp; Frameworks &gt; TypeScript</code>에서 옵션을 손봐야 할 때가 있다.</p>
+<p>paths는 <strong>컴파일러에게 주는 힌트일 뿐 실제 모듈 해석을 보장하지 않는다</strong>는 사실을 IDE 동작에서도 항상 의식해야 한다. IDE에서 자동완성이 되더라도 런타임에서 깨지는 경우는 위에서 다룬 그대로다.</p>
+<h2 id="main-types-exports-필드">main, types, exports 필드<a class="headerlink" href="#main-types-exports-필드" title="Permanent link">&para;</a></h2>
+<p>monorepo에서 패키지 간 import가 어떻게 해석되는지는 의외로 <code>package.json</code>의 진입점 필드가 결정한다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="p">{</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;@acme/utils&quot;</span><span class="p">,</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">  </span><span class="nt">&quot;main&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dist/index.js&quot;</span><span class="p">,</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">  </span><span class="nt">&quot;types&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dist/index.d.ts&quot;</span><span class="p">,</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">  </span><span class="nt">&quot;exports&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">    </span><span class="nt">&quot;.&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">      </span><span class="nt">&quot;types&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist/index.d.ts&quot;</span><span class="p">,</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="w">      </span><span class="nt">&quot;import&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist/index.mjs&quot;</span><span class="p">,</span>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="w">      </span><span class="nt">&quot;require&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist/index.cjs&quot;</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>exports</code> 필드가 정의되어 있으면 노드는 <code>main</code>을 무시한다. TypeScript는 <code>moduleResolution: "bundler"</code> 또는 <code>"node16"</code>/<code>"nodenext"</code>일 때 <code>exports</code>를 본다. 이때 <strong><code>exports</code>에 <code>types</code> 조건이 빠져 있으면 최상위 <code>types</code> 필드가 무시되고 타입을 못 찾는 사고가 난다</strong>. 자주 보는 에러다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>error TS7016: Could not find a declaration file for module &#39;@acme/utils&#39;.
+</span></code></pre></div>
+<p>해결은 <code>exports</code> 안에 <code>types</code> 조건을 명시적으로 넣는 것이다. 그리고 <code>types</code> 조건은 반드시 <code>import</code>/<code>require</code>보다 <strong>먼저</strong> 적어야 한다. 조건은 순서대로 매칭되기 때문이다.</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">{</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nt">&quot;exports&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">    </span><span class="nt">&quot;.&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">      </span><span class="nt">&quot;types&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist/index.d.ts&quot;</span><span class="p">,</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">      </span><span class="nt">&quot;import&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist/index.mjs&quot;</span><span class="p">,</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">      </span><span class="nt">&quot;require&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./dist/index.cjs&quot;</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>서브 경로 export(<code>@acme/utils/date</code> 같은 형태)도 같은 규칙이다. tsconfig에서 <code>moduleResolution: "node"</code>(legacy)를 쓰면 <code>exports</code>를 무시하고 <code>main</code>/<code>types</code>만 보므로 에러가 안 나는데, 모던한 노드 버전에서 실행하면 깨진다. <code>node16</code> 이상으로 올리는 게 정답이지만, <code>paths</code>로 dist의 <code>.d.ts</code>를 직접 가리키는 우회를 쓰는 팀도 있다.</p>
+<h2 id="dev-소스-직접-import-vs-build-후-dist-import">dev: 소스 직접 import vs build 후 dist import<a class="headerlink" href="#dev-소스-직접-import-vs-build-후-dist-import" title="Permanent link">&para;</a></h2>
+<p>모노레포에서 패키지 간 import를 어떻게 풀지는 두 갈래다.</p>
+<p><strong>A안: paths로 src를 직접 가리킨다</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1">// apps/web/tsconfig.json</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="p">{</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">  </span><span class="nt">&quot;compilerOptions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">    </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="w">      </span><span class="nt">&quot;@acme/utils&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;../../packages/utils/src/index.ts&quot;</span><span class="p">]</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>장점은 빌드 없이 즉시 반영되어 dev 서버가 빠르고, IDE go-to-definition이 실제 <code>.ts</code> 파일로 점프해서 디버깅이 쉽다는 것. 단점은 패키지의 <code>package.json</code> <code>main</code>/<code>exports</code>와 다른 진입점을 사용하므로 외부에 publish할 때와 동작이 달라질 수 있고, 타입 체크 범위에 모든 패키지의 src가 들어가서 큰 모노레포에서는 IDE가 무거워진다.</p>
+<p><strong>B안: build 후 dist를 import한다</strong></p>
+<p>각 패키지를 <code>tsc -b</code>로 미리 빌드하고 <code>package.json</code>의 <code>main</code>/<code>types</code>/<code>exports</code>가 가리키는 <code>dist</code>를 import한다. paths는 굳이 정의하지 않는다.</p>
+<p>장점은 외부 publish 환경과 dev 환경이 같아서 "로컬에선 되는데 배포하니까 안 된다" 류 사고가 줄고, 각 패키지가 격리되어 IDE 부담이 적다. 단점은 변경할 때마다 빌드 watch를 돌려야 하고(<code>tsc -b -w</code>), go-to-definition이 <code>.d.ts</code>로 가서 declarationMap을 켜지 않으면 디버깅이 불편하다.</p>
+<p>큰 모노레포에서는 보통 B안 + <code>declarationMap: true</code>로 가고, 작은 팀이거나 패키지가 publish되지 않는 사내 모노레포는 A안이 빠르다. 둘을 섞어서 dev에서는 src import, 프로덕션 빌드에서는 dist import로 분기하는 패턴(<code>tsconfig.json</code>과 <code>tsconfig.build.json</code>을 분리)도 있는데, 환경별 paths가 늘어나서 관리 비용이 커진다.</p>
+<pre class="mermaid-diagram"><code>flowchart TD
     A[코드 변경] --&gt; B{dev 모드}
     B --&gt;|A안: src import| C[즉시 타입 체크]
     B --&gt;|B안: dist import| D[tsc -b -w 재빌드]
@@ -154,4 +2161,146 @@
     D --&gt; F[IDE: .d.ts로 점프]
     F --&gt; G{declarationMap?}
     G --&gt;|true| H[원본 .ts로 점프]
-    G --&gt;|false| I[.d.ts에 머무름]</code></pre> <h2 id=마지막으로-점검할-것>마지막으로 점검할 것<a class=headerlink href=#마지막으로-점검할-것 title="Permanent link">&para;</a></h2> <p>paths 한 줄을 추가하는 일은 IDE에선 즉시 동작하지만 그 변경이 실제로 정상 동작하려면 다음 환경이 모두 같이 알아야 한다.</p> <ul> <li>tsc 빌드 출력 (tsc-alias 또는 빌드 후 dist 사용)</li> <li>ts-node 직접 실행 (tsconfig-paths/register)</li> <li>jest 테스트 (moduleNameMapper)</li> <li>vite/webpack 번들링 (각자 플러그인)</li> <li>swc 컴파일 (.swcrc paths 별도 정의)</li> <li>IDE (tsconfig를 활성 프로젝트로 인식하는지)</li> </ul> <p>이 중 한 곳이라도 빠지면 그 환경에서만 깨진다. paths는 편하지만 동기화 비용을 늘리는 도구라는 점을 인정하고 도입하는 게 맞다. 작은 프로젝트에서는 차라리 짧은 상대 경로(<code>../utils</code>)가 정답일 때도 많다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../../Go/Go_Generics/ >Go 제네릭</a></li> <li><a href=../../../Java/%EC%9E%90%EB%B0%94%20%EB%94%94%EC%9E%90%EC%9D%B8%20%ED%8C%A8%ED%84%B4%20%EB%B0%8F%20%EC%9B%90%EC%B9%99/Generics/ >Java Generics</a></li> <li><a href=../../../Java/Java%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/Type_Casting/ >Java 형변환 (Type Casting)</a></li> <li><a href=../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/TypeScript/ >TypeScript</a></li> <li><a href=../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Class/ >TypeScript Class</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ESLint%EC%99%80%20Prettier/ class="md-footer__link md-footer__link--prev" aria-label="이전: TypeScript ESLint와 Prettier 설정"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> TypeScript ESLint와 Prettier 설정 </div> </div> </a> <a href=../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/ class="md-footer__link md-footer__link--next" aria-label="다음: TypeScript tsc-alias와 workspace 통합 사용법"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> TypeScript tsc-alias와 workspace 통합 사용법 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../../javascripts/extra.js></script> <script src=../../../../javascripts/mermaid-init.js></script> </body> </html>
+    G --&gt;|false| I[.d.ts에 머무름]</code></pre>
+<h2 id="마지막으로-점검할-것">마지막으로 점검할 것<a class="headerlink" href="#마지막으로-점검할-것" title="Permanent link">&para;</a></h2>
+<p>paths 한 줄을 추가하는 일은 IDE에선 즉시 동작하지만 그 변경이 실제로 정상 동작하려면 다음 환경이 모두 같이 알아야 한다.</p>
+<ul>
+<li>tsc 빌드 출력 (tsc-alias 또는 빌드 후 dist 사용)</li>
+<li>ts-node 직접 실행 (tsconfig-paths/register)</li>
+<li>jest 테스트 (moduleNameMapper)</li>
+<li>vite/webpack 번들링 (각자 플러그인)</li>
+<li>swc 컴파일 (.swcrc paths 별도 정의)</li>
+<li>IDE (tsconfig를 활성 프로젝트로 인식하는지)</li>
+</ul>
+<p>이 중 한 곳이라도 빠지면 그 환경에서만 깨진다. paths는 편하지만 동기화 비용을 늘리는 도구라는 점을 인정하고 도입하는 게 맞다. 작은 프로젝트에서는 차라리 짧은 상대 경로(<code>../utils</code>)가 정답일 때도 많다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../../Go/Go_Generics/">Go 제네릭</a></li>
+<li><a href="../../../Java/%EC%9E%90%EB%B0%94%20%EB%94%94%EC%9E%90%EC%9D%B8%20%ED%8C%A8%ED%84%B4%20%EB%B0%8F%20%EC%9B%90%EC%B9%99/Generics/">Java Generics</a></li>
+<li><a href="../../../Java/Java%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/Type_Casting/">Java 형변환 (Type Casting)</a></li>
+<li><a href="../../TypeScript%20%EA%B8%B0%EB%B3%B8%20%EA%B0%9C%EB%85%90/TypeScript/">TypeScript</a></li>
+<li><a href="../../%ED%83%80%EC%9E%85%20%EB%B0%8F%20%ED%83%80%EC%9E%85%20%EC%A0%95%EC%9D%98/Object%20Types/Class/">TypeScript Class</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../ESLint%EC%99%80%20Prettier/" class="md-footer__link md-footer__link--prev" aria-label="이전: TypeScript ESLint와 Prettier 설정">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                TypeScript ESLint와 Prettier 설정
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../tsc-alias%EC%99%80%20workspace%20%ED%95%A8%EA%BB%98%20%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0/" class="md-footer__link md-footer__link--next" aria-label="다음: TypeScript tsc-alias와 workspace 통합 사용법">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                TypeScript tsc-alias와 workspace 통합 사용법
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../../javascripts/extra.js"></script>
+      
+        <script src="../../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

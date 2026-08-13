@@ -1,57 +1,2599 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/AI/Concepts/Obsidian/ rel=canonical><link href=../Vibe_Coding_Security/ rel=prev><link href=../Karpathy_LLM_Obsidian/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>Obsidian 실무 사용법 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#obsidian-실무-사용법 class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Obsidian 실무 사용법 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AI </span> </a> <label class="md-nav__link " for=__nav_8 id=__nav_8_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_8_label aria-expanded=true> <label class=md-nav__title for=__nav_8> <span class="md-nav__icon md-icon"></span> AI </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8_2 checked> <div class="md-nav__link md-nav__container"> <a href=../ class="md-nav__link "> <span class=md-ellipsis> 개념 </span> </a> <label class="md-nav__link " for=__nav_8_2 id=__nav_8_2_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_8_2_label aria-expanded=true> <label class=md-nav__title for=__nav_8_2> <span class="md-nav__icon md-icon"></span> 개념 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../RAG_Evaluation/ class=md-nav__link> <span class=md-ellipsis> RAG 품질 평가 </span> </a> </li> <li class=md-nav__item> <a href=../Prompt_Caching/ class=md-nav__link> <span class=md-ellipsis> Prompt Caching </span> </a> </li> <li class=md-nav__item> <a href=../Lang_Chain_vs_SDK/ class=md-nav__link> <span class=md-ellipsis> LangChain vs 순수 SDK </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Agent_Harness/ class=md-nav__link> <span class=md-ellipsis> 에이전트 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../Embeddings/ class=md-nav__link> <span class=md-ellipsis> RAG와 검색 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8_2_7 checked> <label class=md-nav__link for=__nav_8_2_7 id=__nav_8_2_7_label tabindex=0> <span class=md-ellipsis> 실무 활용 </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_8_2_7_label aria-expanded=true> <label class=md-nav__title for=__nav_8_2_7> <span class="md-nav__icon md-icon"></span> 실무 활용 </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../Prompt_Engineering/ class=md-nav__link> <span class=md-ellipsis> 코딩을 위한 프롬프트 엔지니어링 </span> </a> </li> <li class=md-nav__item> <a href=../AI_Hallucination/ class=md-nav__link> <span class=md-ellipsis> 할루시네이션 </span> </a> </li> <li class=md-nav__item> <a href=../Vibe_Coding_Security/ class=md-nav__link> <span class=md-ellipsis> 바이브 코딩 보안 대처법 </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> Obsidian 실무 </span> <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> Obsidian 실무 </span> </a> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-vault가-뭔지부터 class=md-nav__link> <span class=md-ellipsis> 1. vault가 뭔지부터 </span> </a> </li> <li class=md-nav__item> <a href=#2-마크다운-저장-구조와-frontmatter class=md-nav__link> <span class=md-ellipsis> 2. 마크다운 저장 구조와 frontmatter </span> </a> </li> <li class=md-nav__item> <a href=#3-핵심-커뮤니티-플러그인 class=md-nav__link> <span class=md-ellipsis> 3. 핵심 커뮤니티 플러그인 </span> </a> <nav class=md-nav aria-label="3. 핵심 커뮤니티 플러그인"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-dataview--노트를-쿼리한다 class=md-nav__link> <span class=md-ellipsis> 3.1 Dataview — 노트를 쿼리한다 </span> </a> </li> <li class=md-nav__item> <a href=#32-templater--템플릿과-자동-삽입 class=md-nav__link> <span class=md-ellipsis> 3.2 Templater — 템플릿과 자동 삽입 </span> </a> </li> <li class=md-nav__item> <a href=#33-quickadd--손-안-대고-노트-찍기 class=md-nav__link> <span class=md-ellipsis> 3.3 QuickAdd — 손 안 대고 노트 찍기 </span> </a> </li> <li class=md-nav__item> <a href=#34-canvas--무한-캔버스 class=md-nav__link> <span class=md-ellipsis> 3.4 Canvas — 무한 캔버스 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-wikilink-백링크-그래프뷰--쓸모와-함정 class=md-nav__link> <span class=md-ellipsis> 4. wikilink, 백링크, 그래프뷰 — 쓸모와 함정 </span> </a> </li> <li class=md-nav__item> <a href=#5-동기화--sync-git-iclouddropbox class=md-nav__link> <span class=md-ellipsis> 5. 동기화 — Sync, git, iCloud/Dropbox </span> </a> <nav class=md-nav aria-label="5. 동기화 — Sync, git, iCloud/Dropbox"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-obsidian-sync-유료 class=md-nav__link> <span class=md-ellipsis> 5.1 Obsidian Sync (유료) </span> </a> </li> <li class=md-nav__item> <a href=#52-git class=md-nav__link> <span class=md-ellipsis> 5.2 git </span> </a> </li> <li class=md-nav__item> <a href=#53-icloud--dropbox--google-drive class=md-nav__link> <span class=md-ellipsis> 5.3 iCloud / Dropbox / Google Drive </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-플러그인-의존성-문제와-vault-이전 class=md-nav__link> <span class=md-ellipsis> 6. 플러그인 의존성 문제와 vault 이전 </span> </a> </li> <li class=md-nav__item> <a href=#7-모바일-제약과-회사-환경 class=md-nav__link> <span class=md-ellipsis> 7. 모바일 제약과 회사 환경 </span> </a> <nav class=md-nav aria-label="7. 모바일 제약과 회사 환경"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#71-모바일-앱의-한계 class=md-nav__link> <span class=md-ellipsis> 7.1 모바일 앱의 한계 </span> </a> </li> <li class=md-nav__item> <a href=#72-회사에서-쓸-때 class=md-nav__link> <span class=md-ellipsis> 7.2 회사에서 쓸 때 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#8-처음-시작하는-사람에게 class=md-nav__link> <span class=md-ellipsis> 8. 처음 시작하는 사람에게 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../Karpathy_LLM_Obsidian/ class=md-nav__link> <span class=md-ellipsis> LLM+Obsidian 워크플로 </span> </a> </li> <li class=md-nav__item> <a href=../Palantir_AI_Workflow/ class=md-nav__link> <span class=md-ellipsis> 팔란티어가 AI로 일하는 방식 </span> </a> </li> <li class=md-nav__item> <a href=../Unsloth_Qwen3_GGUF/ class=md-nav__link> <span class=md-ellipsis> 로컬 구동 (unsloth/Qwen3) </span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../LLM/ class=md-nav__link> <span class=md-ellipsis> LLM </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Claude/ class=md-nav__link> <span class=md-ellipsis> Claude </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Claude_Code/ class=md-nav__link> <span class=md-ellipsis> Claude Code </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Gemini/ class=md-nav__link> <span class=md-ellipsis> Gemini </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GPT/GPT_5_5.md class=md-nav__link> <span class=md-ellipsis> AI 모델 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cursor/ class=md-nav__link> <span class=md-ellipsis> 개발 도구 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-vault가-뭔지부터 class=md-nav__link> <span class=md-ellipsis> 1. vault가 뭔지부터 </span> </a> </li> <li class=md-nav__item> <a href=#2-마크다운-저장-구조와-frontmatter class=md-nav__link> <span class=md-ellipsis> 2. 마크다운 저장 구조와 frontmatter </span> </a> </li> <li class=md-nav__item> <a href=#3-핵심-커뮤니티-플러그인 class=md-nav__link> <span class=md-ellipsis> 3. 핵심 커뮤니티 플러그인 </span> </a> <nav class=md-nav aria-label="3. 핵심 커뮤니티 플러그인"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-dataview--노트를-쿼리한다 class=md-nav__link> <span class=md-ellipsis> 3.1 Dataview — 노트를 쿼리한다 </span> </a> </li> <li class=md-nav__item> <a href=#32-templater--템플릿과-자동-삽입 class=md-nav__link> <span class=md-ellipsis> 3.2 Templater — 템플릿과 자동 삽입 </span> </a> </li> <li class=md-nav__item> <a href=#33-quickadd--손-안-대고-노트-찍기 class=md-nav__link> <span class=md-ellipsis> 3.3 QuickAdd — 손 안 대고 노트 찍기 </span> </a> </li> <li class=md-nav__item> <a href=#34-canvas--무한-캔버스 class=md-nav__link> <span class=md-ellipsis> 3.4 Canvas — 무한 캔버스 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-wikilink-백링크-그래프뷰--쓸모와-함정 class=md-nav__link> <span class=md-ellipsis> 4. wikilink, 백링크, 그래프뷰 — 쓸모와 함정 </span> </a> </li> <li class=md-nav__item> <a href=#5-동기화--sync-git-iclouddropbox class=md-nav__link> <span class=md-ellipsis> 5. 동기화 — Sync, git, iCloud/Dropbox </span> </a> <nav class=md-nav aria-label="5. 동기화 — Sync, git, iCloud/Dropbox"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-obsidian-sync-유료 class=md-nav__link> <span class=md-ellipsis> 5.1 Obsidian Sync (유료) </span> </a> </li> <li class=md-nav__item> <a href=#52-git class=md-nav__link> <span class=md-ellipsis> 5.2 git </span> </a> </li> <li class=md-nav__item> <a href=#53-icloud--dropbox--google-drive class=md-nav__link> <span class=md-ellipsis> 5.3 iCloud / Dropbox / Google Drive </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-플러그인-의존성-문제와-vault-이전 class=md-nav__link> <span class=md-ellipsis> 6. 플러그인 의존성 문제와 vault 이전 </span> </a> </li> <li class=md-nav__item> <a href=#7-모바일-제약과-회사-환경 class=md-nav__link> <span class=md-ellipsis> 7. 모바일 제약과 회사 환경 </span> </a> <nav class=md-nav aria-label="7. 모바일 제약과 회사 환경"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#71-모바일-앱의-한계 class=md-nav__link> <span class=md-ellipsis> 7.1 모바일 앱의 한계 </span> </a> </li> <li class=md-nav__item> <a href=#72-회사에서-쓸-때 class=md-nav__link> <span class=md-ellipsis> 7.2 회사에서 쓸 때 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#8-처음-시작하는-사람에게 class=md-nav__link> <span class=md-ellipsis> 8. 처음 시작하는 사람에게 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>ai</span> <span class=md-tag>llm</span> </nav> <div class="admonition warning"> <p class=admonition-title>빠르게 낡는 문서</p> <p>이 주제는 릴리스 주기가 빠릅니다. 최종 확인: <strong><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span></strong><br> 읽기 전 해당 제품의 공식 문서와 릴리스 노트에서 최신 여부를 확인하세요.</p> </div> <h1 id=obsidian-실무-사용법>Obsidian 실무 사용법<a class=headerlink href=#obsidian-실무-사용법 title="Permanent link">&para;</a></h1> <p>이 문서는 Obsidian이라는 애플리케이션 자체를 다룬다. vault 구조, 자주 쓰는 플러그인, 동기화, 플러그인 깨짐 문제, 회사에서 쓸 때 주의할 점이 중심이다. LLM에 vault를 먹여서 쓰는 워크플로우는 별도로 <a href=../Karpathy_LLM_Obsidian/ >Karpathy의 LLM + Obsidian 워크플로우</a>에서 다루므로 여기서는 짧게만 언급한다.</p> <hr> <h2 id=1-vault가-뭔지부터>1. vault가 뭔지부터<a class=headerlink href=#1-vault가-뭔지부터 title="Permanent link">&para;</a></h2> <p>Obsidian에서 vault는 그냥 폴더 하나다. 그 안에 <code>.md</code> 파일들이 들어있고, Obsidian은 그 폴더를 열어서 보여준다. 데이터베이스도 없고 클라우드 계정도 강제하지 않는다. vault를 통째로 다른 컴퓨터에 복사하면 그대로 열린다. 이게 Notion이나 Roam과 가장 다른 지점이다.</p> <p>폴더를 열면 이런 구조가 된다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a>my-vault/
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>├── .obsidian/          # 설정 폴더. 여기가 핵심
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>│   ├── app.json
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>│   ├── appearance.json
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>│   ├── workspace.json
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>│   ├── community-plugins.json
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>│   ├── core-plugins.json
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>│   ├── hotkeys.json
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>│   ├── plugins/        # 설치한 커뮤니티 플러그인 본체
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>│   │   ├── dataview/
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a>│   │   └── templater-obsidian/
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a>│   ├── snippets/       # 커스텀 CSS
-</span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a>│   └── themes/
-</span><span id=__span-0-14><a id=__codelineno-0-14 name=__codelineno-0-14 href=#__codelineno-0-14></a>├── daily/
-</span><span id=__span-0-15><a id=__codelineno-0-15 name=__codelineno-0-15 href=#__codelineno-0-15></a>│   ├── 2026-06-17.md
-</span><span id=__span-0-16><a id=__codelineno-0-16 name=__codelineno-0-16 href=#__codelineno-0-16></a>│   └── 2026-06-16.md
-</span><span id=__span-0-17><a id=__codelineno-0-17 name=__codelineno-0-17 href=#__codelineno-0-17></a>├── notes/
-</span><span id=__span-0-18><a id=__codelineno-0-18 name=__codelineno-0-18 href=#__codelineno-0-18></a>│   └── kafka-rebalance.md
-</span><span id=__span-0-19><a id=__codelineno-0-19 name=__codelineno-0-19 href=#__codelineno-0-19></a>└── templates/
-</span><span id=__span-0-20><a id=__codelineno-0-20 name=__codelineno-0-20 href=#__codelineno-0-20></a>    └── daily.md
-</span></code></pre></div> <p><code>.obsidian/</code>이 vault의 설정 전체를 담는다. 테마, 단축키, 플러그인 목록, 마지막으로 열어둔 창 배치까지 전부 여기 들어간다. vault를 옮길 때 이 폴더를 같이 가져가면 환경이 그대로 따라온다. 안 가져가면 메모는 멀쩡한데 플러그인이 다 빠진 맨몸 상태로 열린다.</p> <p>여기서 실무적으로 알아둘 게 두 가지다.</p> <p><code>workspace.json</code>은 마지막 창 배치, 열려있던 탭, 사이드바 너비 같은 UI 상태를 담는다. 이 파일은 Obsidian을 열 때마다 바뀐다. git으로 vault를 관리하면 이 파일이 매번 diff에 잡혀서 거슬린다. <code>.gitignore</code>에 <code>.obsidian/workspace.json</code>을 넣는 게 보통이다.</p> <p><code>core-plugins.json</code>과 <code>community-plugins.json</code>은 어떤 플러그인을 켰는지를 담는다. 이건 버전 관리에 포함시키는 게 맞다. 새 컴퓨터에서 vault를 클론했을 때 이 파일이 있어야 같은 플러그인 셋업이 복원된다.</p> <p><code>.obsidian/plugins/</code> 안에는 플러그인 코드(JS, manifest, 스타일)가 통째로 들어있다. 이걸 git에 넣을지 말지가 갈린다. 넣으면 클론만으로 플러그인까지 복원되지만 vault가 무거워지고, 플러그인 업데이트할 때마다 diff가 지저분해진다. 안 넣으면 새 환경에서 플러그인을 일일이 다시 설치해야 한다. 본인은 plugins 폴더는 ignore하고 <code>community-plugins.json</code>만 추적한 다음, 새 환경에서 한 번 수동 설치하는 쪽을 쓴다.</p> <hr> <h2 id=2-마크다운-저장-구조와-frontmatter>2. 마크다운 저장 구조와 frontmatter<a class=headerlink href=#2-마크다운-저장-구조와-frontmatter title="Permanent link">&para;</a></h2> <p>모든 노트는 평범한 마크다운이다. 특별한 건 파일 맨 위 YAML frontmatter 정도다.</p> <div class="language-markdown highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>---
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>title: Kafka rebalance 장애
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>tags: [kafka, incident, 2026]
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>created: 2026-06-17
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a><span class=gu>status: resolved</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=gu>---</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=gh># Kafka rebalance 장애</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>session.timeout.ms를 너무 낮게 잡아서...
-</span></code></pre></div> <p>frontmatter는 <code>---</code>로 감싼 YAML이고, Obsidian은 이걸 메타데이터로 인식한다. <code>tags</code>는 사이드바 태그 패널과 검색에 잡히고, 나머지 필드는 뒤에 나올 Dataview 쿼리의 재료가 된다. 필드 이름은 본인이 마음대로 정해도 된다. <code>status</code>, <code>priority</code>, <code>due</code> 같은 걸 본인 규칙으로 박아두면 나중에 그걸로 쿼리를 돌린다.</p> <p>주의할 게 frontmatter의 YAML 문법이다. 콜론 뒤에 공백이 없거나, 따옴표 없이 콜론이 들어간 값을 쓰면 파싱이 깨진다. 예를 들어 <code>title: 9:00 회의</code>처럼 값 안에 콜론이 있으면 <code>title: "9:00 회의"</code>로 따옴표를 둘러야 한다. 깨지면 그 노트만 Dataview에서 조용히 빠져버려서 한참 헤맨다.</p> <p>코드블록은 일반 마크다운 펜스(<code>````</code>)를 그대로 쓴다. 백틱 세 개 안에 언어를 명시하면 신택스 하이라이트가 된다. 한 가지 함정이 있는데, 코드블록 안에 백틱 세 개짜리 펜스를 또 넣어야 할 때다. 이럴 땐 바깥 펜스를 백틱 네 개로 늘려야 한다. Dataview 쿼리나 Templater 코드를 문서로 설명할 때 자주 부딪힌다.</p> <hr> <h2 id=3-핵심-커뮤니티-플러그인>3. 핵심 커뮤니티 플러그인<a class=headerlink href=#3-핵심-커뮤니티-플러그인 title="Permanent link">&para;</a></h2> <p>Obsidian 기본 기능만으로도 메모는 되지만, 실제로 도구를 살리는 건 커뮤니티 플러그인이다. 설정 → Community plugins에서 Restricted mode를 끄고 설치한다. 처음 켤 때 "third-party 코드를 실행한다"는 경고가 뜨는데, 실제로 플러그인은 vault 파일을 읽고 쓸 권한을 전부 가진다. 이 점은 7장에서 다시 본다.</p> <p>실무에서 거의 항상 깔게 되는 건 Dataview, Templater, QuickAdd 세 개고, Canvas는 코어 기능이라 설치가 필요 없다.</p> <h3 id=31-dataview--노트를-쿼리한다>3.1 Dataview — 노트를 쿼리한다<a class=headerlink href=#31-dataview--노트를-쿼리한다 title="Permanent link">&para;</a></h3> <p>Dataview는 vault 안의 frontmatter와 inline field를 읽어서 표나 리스트로 뽑아주는 플러그인이다. 메모가 쌓이면 "이번 달에 status가 open인 장애 노트"같은 걸 손으로 찾기 힘들어지는데, 이걸 쿼리 한 줄로 만든다.</p> <p>가장 많이 쓰는 건 table과 list다. 노트 본문에 코드블록으로 박는다.</p> <div class="language-markdown highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=sb>```dataview</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=s>table status, created</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=s>from #incident</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a><span class=s>where created &gt;= date(2026-06-01)</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=s>sort created desc</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a><span class=sb>```</span>
-</span></code></pre></div> <p><code>from</code>은 소스를 지정한다. <code>#incident</code>는 태그, <code>"notes"</code>는 폴더 경로다. <code>where</code>로 필터하고 <code>sort</code>로 정렬한다. 위 쿼리는 incident 태그가 붙고 6월 이후 생성된 노트를 표로 뽑는다. 표의 열은 frontmatter 필드명을 그대로 쓴다.</p> <p>list는 더 단순하다.</p> <div class="language-markdown highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=sb>```dataview</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=s>list</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=s>from &quot;daily&quot;</span>
-</span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=s>where contains(file.tags, &quot;#followup&quot;)</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=sb>```</span>
-</span></code></pre></div> <p>inline field는 본문 한가운데에 메타데이터를 박는 방법이다. <code>필드:: 값</code> 형태로 쓴다.</p> <div class="language-markdown highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>이 장애의 영향 범위:: 결제 API 전체
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>복구까지:: 23분
-</span></code></pre></div> <p>이렇게 박아두면 <code>복구까지</code>를 Dataview에서 필드로 끌어 쓸 수 있다. frontmatter는 노트 맨 위에 정형 데이터를 두는 거고, inline field는 본문 흐름 안에 데이터를 끼워넣는 거다. 장애 회고처럼 서술하면서 중간중간 수치를 남길 때 inline field가 편하다.</p> <p>Dataview를 쓸 때 실무에서 자주 막히는 지점은 두 가지다. 하나는 날짜 비교다. frontmatter의 <code>created: 2026-06-17</code>은 따옴표 없이 쓰면 Dataview가 날짜 타입으로 인식하지만, <code>created: "2026-06-17"</code>처럼 따옴표를 두르면 문자열이 돼서 <code>date()</code> 비교가 안 먹는다. 다른 하나는 성능이다. vault에 노트가 수천 개 넘어가면 <code>from ""</code>처럼 전체를 훑는 쿼리는 노트를 열 때마다 눈에 띄게 느려진다. 소스를 폴더나 태그로 좁혀야 한다.</p> <h3 id=32-templater--템플릿과-자동-삽입>3.2 Templater — 템플릿과 자동 삽입<a class=headerlink href=#32-templater--템플릿과-자동-삽입 title="Permanent link">&para;</a></h3> <p>Templater는 노트를 만들 때 정해진 틀을 자동으로 채워넣는다. Obsidian 코어에도 Templates 플러그인이 있지만 날짜 치환 정도만 되고, Templater는 자바스크립트 실행까지 된다.</p> <p>데일리 노트 템플릿을 예로 들면 이렇게 만든다.</p> <div class="language-markdown highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>---
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>created: &lt;% tp.date.now(&quot;YYYY-MM-DD&quot;) %&gt;
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=gu>tags: [daily]</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=gu>---</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=gh># &lt;% tp.date.now(&quot;YYYY-MM-DD (ddd)&quot;) %&gt;</span>
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=gu>## 오늘 할 것</span>
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>
-</span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a><span class=gu>## 메모</span>
-</span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a>
-</span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a><span class=gu>## 어제 노트</span>
-</span><span id=__span-5-13><a id=__codelineno-5-13 name=__codelineno-5-13 href=#__codelineno-5-13></a>[[&lt;% tp.date.now(&quot;YYYY-MM-DD&quot;, -1) %&gt;]]
-</span></code></pre></div> <p><code>&lt;% %&gt;</code> 안이 Templater 구문이다. <code>tp.date.now()</code>로 현재 날짜를, 두 번째 인자 <code>-1</code>로 어제 날짜를 만들어서 어제 노트로 가는 링크를 자동으로 깐다. 노트를 새로 만들 때마다 어제 노트와 자동으로 연결돼서, 데일리 노트가 끊기지 않고 이어진다.</p> <p>Templater 설정에서 "Trigger Templater on new file creation"을 켜고, 특정 폴더(<code>daily/</code>)에 기본 템플릿을 지정해두면, 그 폴더에 노트를 만드는 순간 템플릿이 자동으로 적용된다. 코어 데일리 노트 플러그인과 폴더 경로를 맞춰두는 게 핵심이다. 안 맞으면 데일리 노트는 빈 파일로 생기고 템플릿은 안 먹는다.</p> <p>한 가지 주의할 게 코어 Templates 플러그인과 Templater의 문법이 다르다는 점이다. 코어는 <code>{{date}}</code>, Templater는 <code>&lt;% tp.date.now() %&gt;</code>다. 둘을 같은 vault에 켜두면 템플릿 파일을 어느 쪽으로 작성했는지 헷갈려서 치환이 안 되는 일이 생긴다. Templater를 쓰기로 했으면 코어 Templates는 끄는 게 깔끔하다.</p> <h3 id=33-quickadd--손-안-대고-노트-찍기>3.3 QuickAdd — 손 안 대고 노트 찍기<a class=headerlink href=#33-quickadd--손-안-대고-노트-찍기 title="Permanent link">&para;</a></h3> <p>QuickAdd는 단축키나 명령 한 번으로 정해진 동작을 실행한다. 자주 쓰는 패턴이 두 개다.</p> <p>Capture는 지정한 파일에 한 줄을 빠르게 추가한다. 떠오른 할 일을 <code>inbox.md</code> 맨 아래에 날짜와 함께 박는 식이다. 노트를 직접 열지 않고 명령 팔레트에서 바로 던진다.</p> <p>Template은 미리 만든 Templater 템플릿으로 새 노트를 만든다. "장애 회고 노트 만들기"를 QuickAdd 명령으로 등록해두면, 단축키 한 번에 회고 템플릿이 적용된 노트가 정해진 폴더에 생긴다. 매번 폴더 찾아가서 새 파일 만들고 템플릿 고르는 과정을 없앤다.</p> <p>QuickAdd, Templater, 코어 데일리 노트 셋을 묶어두면 "메모 시작까지의 마찰"이 거의 사라진다. 메모 도구는 적기 시작하는 순간의 귀찮음이 누적을 좌우하는데, 이 셋업이 그 귀찮음을 줄여준다.</p> <h3 id=34-canvas--무한-캔버스>3.4 Canvas — 무한 캔버스<a class=headerlink href=#34-canvas--무한-캔버스 title="Permanent link">&para;</a></h3> <p>Canvas는 노트와 카드를 자유롭게 배치하는 무한 화면이다. <code>.canvas</code> 확장자 파일로 저장되고, 내용은 JSON이다(마크다운이 아니다). 카드 안에 텍스트를 쓰거나, 기존 노트를 카드로 끌어다 놓거나, 카드끼리 화살표로 잇는다.</p> <p>실무에서 Canvas가 쓸모 있는 건 시스템 아키텍처를 손으로 그려가며 정리할 때, 또는 여러 노트를 한 화면에 펼쳐놓고 관계를 잡을 때다. 장애 원인을 추적하면서 관련 노트들을 한 캔버스에 모아놓고 화살표로 인과를 그리면 머릿속 정리가 빠르다.</p> <p>단점은 <code>.canvas</code>가 JSON이라 grep이나 LLM에 그대로 먹이기엔 부적합하다는 점이다. 좌표값과 노드 ID로 가득 차서 사람이 읽기 어렵다. Canvas는 사고를 정리하는 작업대로 쓰고, 결론은 다시 마크다운 노트로 옮겨두는 게 낫다. Canvas 자체를 영구 자료로 삼으면 나중에 검색에 안 걸린다.</p> <hr> <h2 id=4-wikilink-백링크-그래프뷰--쓸모와-함정>4. wikilink, 백링크, 그래프뷰 — 쓸모와 함정<a class=headerlink href=#4-wikilink-백링크-그래프뷰--쓸모와-함정 title="Permanent link">&para;</a></h2> <p>Obsidian의 간판 기능이 <code>[[wikilink]]</code>다. 노트 안에서 <code>[[kafka-rebalance]]</code>라고 쓰면 그 노트로 가는 링크가 걸리고, 링크된 쪽에서는 "어떤 노트들이 나를 가리키는가"가 백링크 패널에 뜬다. 그래프뷰는 이 링크 관계를 점과 선으로 시각화한다.</p> <p>여기서 현실적인 얘기를 해야 한다. wikilink와 백링크는 분명히 쓸모가 있다. 쓸모 있는 경우는 구체적이다.</p> <p>하나의 개념 노트(예: <code>kafka-consumer-group.md</code>)를 만들어두고, 여러 장애 노트나 데일리 노트에서 그걸 가리키면, 그 개념 노트의 백링크 패널에 "이 개념이 등장한 모든 맥락"이 모인다. 나중에 컨슈머 그룹 관련해서 내가 뭘 겪었는지 한 곳에서 본다. 이건 grep으로도 되지만, 링크는 표기 흔들림(consumer group / 컨슈머그룹 / consumer-group)에 영향을 안 받는다는 장점이 있다.</p> <p>반대로 그래프뷰에 집착하면 도구가 망가진다. 그래프뷰는 보기엔 멋있지만 노트가 수백 개를 넘어가면 그냥 털뭉치가 된다. 의미 있는 정보를 거기서 못 읽는다. 그래프를 예쁘게 만들겠다고 모든 노트를 억지로 링크로 잇기 시작하면, 메모 적는 시간보다 링크 거는 시간이 길어진다. 이게 PKM을 6개월 만에 포기하게 만드는 전형적인 함정이다.</p> <p>기준을 잡자면, 링크는 "나중에 이 노트를 이 개념에서부터 다시 찾을 것 같다"는 확신이 있을 때만 건다. 그래프뷰는 가끔 전체 구조를 훑어보는 용도지, 그걸 가꾸는 게 목적이 되면 안 된다. 사후에 링크를 LLM에게 걸게 하는 방식은 <a href=../Karpathy_LLM_Obsidian/ >Karpathy 워크플로우 문서</a>에서 다룬다.</p> <hr> <h2 id=5-동기화--sync-git-iclouddropbox>5. 동기화 — Sync, git, iCloud/Dropbox<a class=headerlink href=#5-동기화--sync-git-iclouddropbox title="Permanent link">&para;</a></h2> <p>vault를 여러 기기에서 쓰려면 동기화가 필요하다. 선택지가 셋인데 각각 성격이 다르다.</p> <h3 id=51-obsidian-sync-유료>5.1 Obsidian Sync (유료)<a class=headerlink href=#51-obsidian-sync-유료 title="Permanent link">&para;</a></h3> <p>공식 동기화 서비스다. 월 구독이고, end-to-end 암호화를 지원한다. 장점은 충돌 처리가 가장 매끄럽고, 모바일 포함 모든 기기에서 설정이 단순하다는 점이다. <code>.obsidian</code> 설정과 플러그인까지 선택적으로 동기화할 수 있다. 버전 히스토리도 자체적으로 들고 있어서 실수로 지운 노트 복구가 된다.</p> <p>돈을 내는 만큼 충돌로 골치 썩을 일이 가장 적다. 모바일을 적극적으로 쓰고 git을 모바일에서 다루기 싫다면 이게 제일 마음 편하다.</p> <h3 id=52-git>5.2 git<a class=headerlink href=#52-git title="Permanent link">&para;</a></h3> <p>vault가 폴더라서 그냥 git 저장소로 만들면 된다. 데스크탑에서는 이게 가장 강력하다. 변경 이력, diff, 브랜치, <code>git reflog</code> 복구가 전부 따라온다. 비용은 0이고 GitHub private 저장소에 올려두면 백업까지 된다.</p> <p>Obsidian Git이라는 커뮤니티 플러그인을 깔면 일정 주기로 자동 커밋/푸시를 해준다. 다만 git의 충돌은 사람이 직접 풀어야 한다. 두 기기에서 같은 노트를 수정하고 양쪽 다 자동 푸시되면 conflict가 나고, 노트 안에 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 마커가 박힌다. 이걸 모바일에서 풀기는 꽤 번거롭다.</p> <p>git의 진짜 약점은 모바일이다. iOS/안드로이드에서 Obsidian Git이 동작하긴 하지만 불안정하고, 큰 vault에서는 느리다. 데스크탑 중심이면 git, 모바일 중심이면 git은 추천하지 않는다.</p> <h3 id=53-icloud--dropbox--google-drive>5.3 iCloud / Dropbox / Google Drive<a class=headerlink href=#53-icloud--dropbox--google-drive title="Permanent link">&para;</a></h3> <p>vault 폴더를 클라우드 동기화 폴더 안에 두는 방식이다. 설정이 제일 쉽고 공짜에 가깝다. 그런데 실무에서 사고가 제일 많이 나는 게 이쪽이다.</p> <p>문제의 핵심은 이 클라우드 서비스들이 파일 단위 동기화라서, 두 기기가 거의 동시에 같은 노트를 건드리면 충돌을 자기 방식대로 처리한다는 데 있다. iCloud는 한쪽을 <code>kafka-rebalance 2.md</code>처럼 복제본으로 남긴다. Dropbox는 <code>kafka-rebalance (conflicted copy).md</code>를 만든다. 어느 쪽이든 노트가 슬그머니 두 개로 갈라지고, 본인은 한참 뒤에야 알아챈다.</p> <p>더 고약한 건 <code>.obsidian</code> 폴더다. 양쪽 기기에서 Obsidian이 동시에 켜져 있으면 <code>workspace.json</code>이나 플러그인 설정을 양쪽이 동시에 쓰면서 설정 파일이 깨진다. 플러그인이 갑자기 비활성화되거나 단축키가 날아가는 식이다. iCloud는 또 동기화를 한참 미뤄두는 습성이 있어서, 데스크탑에서 적은 노트가 폰에서 몇 분~몇십 분 안 보이는 일이 흔하다.</p> <p>트러블슈팅 관점에서 실제 대응은 이렇다. iCloud/Dropbox를 쓸 거면 한 기기에서 Obsidian을 완전히 닫은 뒤 동기화가 끝나기를 기다렸다가 다른 기기를 여는 습관을 들여야 한다. 두 기기를 동시에 띄워놓고 양쪽에서 메모하는 패턴은 충돌을 부른다. conflicted copy가 생기면 두 파일을 diff 도구로 비교해서 손으로 합친 뒤 한쪽을 지운다. 이게 귀찮아지는 순간이 Obsidian Sync나 git으로 넘어갈 때다.</p> <p>정리하면, 모바일을 많이 쓰고 충돌 처리에 시간 쓰기 싫으면 Obsidian Sync, 데스크탑 중심에 git이 익숙하면 git, 무료로 가볍게 쓰되 동시 편집을 안 한다는 규율을 지킬 수 있으면 iCloud/Dropbox다. 동시 편집 규율을 못 지킬 거면 클라우드 폴더 방식은 결국 사고가 난다.</p> <hr> <h2 id=6-플러그인-의존성-문제와-vault-이전>6. 플러그인 의존성 문제와 vault 이전<a class=headerlink href=#6-플러그인-의존성-문제와-vault-이전 title="Permanent link">&para;</a></h2> <p>커뮤니티 플러그인을 깔수록 vault가 그 플러그인들에 묶인다. 이게 시간이 지나면 부담이 된다.</p> <p>가장 흔한 사고가 Obsidian 본체 업데이트 후 플러그인이 깨지는 경우다. Obsidian이 마이너 버전 올라가면서 내부 API가 바뀌면, 업데이트가 끊긴 플러그인이 갑자기 동작을 멈춘다. Dataview처럼 활발히 관리되는 플러그인은 금방 따라오지만, 개인이 만들고 방치한 플러그인은 그대로 죽는다. 그 플러그인에 의존한 노트(예: 특정 Dataview 대체 플러그인의 쿼리)는 한순간에 빈 화면이 된다.</p> <p>vault를 다른 사람에게 넘기거나 새 기기로 이전할 때도 호환성 문제가 나온다. 노트에 Dataview 쿼리나 Templater 구문이 박혀 있으면, 받는 쪽에 그 플러그인이 없으면 쿼리 코드블록이 날것 그대로 텍스트로 보인다. 노트 내용 자체는 마크다운이라 안 사라지지만, 동적으로 생성되던 표는 안 나온다. vault는 plain text라 안전하다는 말은 본문에만 해당하고, 플러그인이 만들어내던 부분은 그 플러그인 없이는 재현이 안 된다.</p> <p>이 문제를 줄이는 현실적인 방향은 플러그인을 적게 쓰는 거다. 핵심 노트의 가치가 특정 플러그인에 의존하지 않게 한다. Dataview로 만든 인덱스는 어디까지나 보조이고, 노트 본문 자체로 의미가 통해야 한다. 화려한 플러그인 수십 개를 쌓은 vault는 1년 뒤 절반쯤 깨져 있다. 본인이 실제로 매일 쓰는 플러그인은 결국 서너 개로 수렴한다.</p> <p>플러그인 버전 자체를 관리하고 싶으면 <code>.obsidian/plugins/</code>를 git에 포함시켜서 특정 버전을 고정하는 방법도 있다. 본체 업데이트로 깨졌을 때 이전 버전으로 되돌릴 수 있다. 다만 앞서 말한 대로 diff가 지저분해지는 비용이 따른다.</p> <hr> <h2 id=7-모바일-제약과-회사-환경>7. 모바일 제약과 회사 환경<a class=headerlink href=#7-모바일-제약과-회사-환경 title="Permanent link">&para;</a></h2> <h3 id=71-모바일-앱의-한계>7.1 모바일 앱의 한계<a class=headerlink href=#71-모바일-앱의-한계 title="Permanent link">&para;</a></h3> <p>Obsidian 모바일은 데스크탑과 같은 vault를 열지만 제약이 있다. 일부 플러그인은 모바일 미지원으로 표시되고, 자바스크립트를 무겁게 도는 플러그인은 모바일에서 느리거나 동작을 안 한다. 플러그인 설명에 "Desktop only" 표시가 있으면 모바일에선 아예 로드가 안 된다.</p> <p>큰 vault를 모바일에서 처음 열면 인덱싱에 시간이 걸린다. 노트 수천 개짜리 vault는 폰에서 검색이 데스크탑만큼 빠르지 않다. 모바일에서는 빠르게 캡처하고, 정리는 데스크탑에서 하는 분업이 현실적이다. 모바일 Obsidian Git은 앞서 말했듯 불안정해서, 모바일을 많이 쓰면 Obsidian Sync가 사실상 답이다.</p> <h3 id=72-회사에서-쓸-때>7.2 회사에서 쓸 때<a class=headerlink href=#72-회사에서-쓸-때 title="Permanent link">&para;</a></h3> <p>회사 일을 Obsidian에 적기 시작하면 보안과 반출 문제를 반드시 짚어야 한다.</p> <p>먼저 동기화 경로다. 회사 코드, 장애 내용, 내부 시스템 이름이 들어간 노트를 개인 iCloud나 개인 GitHub에 올리면 그 자체가 정보 반출이다. 회사 정책에 따라 징계 사유가 된다. 회사 vault는 회사가 승인한 저장소(사내 git, 회사 계정 클라우드)에만 둬야 하고, 개인 vault와 물리적으로 분리하는 게 안전하다. 폴더부터 <code>~/vault-work</code>와 <code>~/vault-personal</code>로 나누고, 각각 다른 원격에 연결한다.</p> <p>커뮤니티 플러그인도 위험 요소다. 플러그인은 third-party 자바스크립트고 vault 파일 전체에 접근할 권한을 가진다. 이론적으로 악성 플러그인이 노트 내용을 외부로 빼돌릴 수 있다. 회사 vault에는 출처가 확실하고 널리 쓰이는 플러그인만 깔고, 잘 모르는 플러그인은 피하는 게 맞다. 일부 회사는 보안 정책상 Restricted mode 해제 자체를 금지하기도 한다.</p> <p>LLM 연동은 더 민감하다. 회사 노트를 외부 LLM API에 그대로 던지면 그게 곧 반출이다. 이건 vault 동기화보다 사고 위험이 크다. 회사 노트를 LLM에 먹이려면 사내 승인된 경로(사내 프록시를 거치는 API, 데이터 학습 미사용 계약이 된 엔드포인트)만 써야 한다. 구체적인 LLM 연동 방식과 회사/개인 vault 분리 운영은 <a href=../Karpathy_LLM_Obsidian/ >Karpathy 워크플로우 문서</a>에서 다룬다. 회사 환경이라면 그 문서의 분리 원칙을 먼저 정해두고 시작하는 게 순서다.</p> <hr> <h2 id=8-처음-시작하는-사람에게>8. 처음 시작하는 사람에게<a class=headerlink href=#8-처음-시작하는-사람에게 title="Permanent link">&para;</a></h2> <p>플러그인부터 잔뜩 깔지 마라. 빈 vault에 폴더 두 개(<code>daily/</code>, <code>notes/</code>)만 만들고 코어 데일리 노트만 켜서 2주를 적어본다. 손이 가는 불편함이 보이기 시작하면 그때 Templater로 데일리 템플릿을 만들고, 노트가 쌓여서 찾기 어려워지면 Dataview를 깐다. 동기화는 본인이 데스크탑 중심인지 모바일 중심인지 정한 다음에 5장 기준으로 고른다.</p> <p>화려한 셋업을 따라 만드는 데 며칠을 쓰는 사람이 많은데, 그렇게 만든 vault일수록 일주일 뒤에 안 본다. 도구는 단순하게 두고, 적는 양이 쌓이게 하는 게 먼저다. 플러그인은 불편을 실제로 겪은 다음에 하나씩 더한다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../AI_Hallucination/ >AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지</a></li> <li><a href=../Agent_Harness/ >Agent Harness — Claude Code 하네스로 보는 에이전트 런타임</a></li> <li><a href=../../Claude/Claude/ >Claude</a></li> <li><a href=../../Claude/Claude_Opus_4_7/ >Claude Opus 4.7</a></li> <li><a href=../../Claude/Claude_Opus_4_8/ >Claude Opus 4.8</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Vibe_Coding_Security/ class="md-footer__link md-footer__link--prev" aria-label="이전: 바이브 코딩 보안 대처법"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 바이브 코딩 보안 대처법 </div> </div> </a> <a href=../Karpathy_LLM_Obsidian/ class="md-footer__link md-footer__link--next" aria-label="다음: LLM+Obsidian 워크플로"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> LLM+Obsidian 워크플로 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/AI/Concepts/Obsidian/">
+      
+      
+        <link rel="prev" href="../Vibe_Coding_Security/">
+      
+      
+        <link rel="next" href="../Karpathy_LLM_Obsidian/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Obsidian 실무 사용법 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#obsidian-실무-사용법" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Obsidian 실무 사용법
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개념
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    개념
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RAG_Evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG 품질 평가
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Prompt_Caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prompt Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Lang_Chain_vs_SDK/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LangChain vs 순수 SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Agent_Harness/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    에이전트
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../Embeddings/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RAG와 검색
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8_2_7" id="__nav_8_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    실무 활용
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_8_2_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    실무 활용
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Prompt_Engineering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    코딩을 위한 프롬프트 엔지니어링
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AI_Hallucination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    할루시네이션
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vibe_Coding_Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    바이브 코딩 보안 대처법
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Obsidian 실무
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Obsidian 실무
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-vault가-뭔지부터" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. vault가 뭔지부터
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-마크다운-저장-구조와-frontmatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 마크다운 저장 구조와 frontmatter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-핵심-커뮤니티-플러그인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 핵심 커뮤니티 플러그인
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 핵심 커뮤니티 플러그인">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-dataview--노트를-쿼리한다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Dataview — 노트를 쿼리한다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-templater--템플릿과-자동-삽입" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Templater — 템플릿과 자동 삽입
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-quickadd--손-안-대고-노트-찍기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 QuickAdd — 손 안 대고 노트 찍기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-canvas--무한-캔버스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Canvas — 무한 캔버스
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-wikilink-백링크-그래프뷰--쓸모와-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. wikilink, 백링크, 그래프뷰 — 쓸모와 함정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-동기화--sync-git-iclouddropbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 동기화 — Sync, git, iCloud/Dropbox
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 동기화 — Sync, git, iCloud/Dropbox">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-obsidian-sync-유료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Obsidian Sync (유료)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 git
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-icloud--dropbox--google-drive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 iCloud / Dropbox / Google Drive
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-플러그인-의존성-문제와-vault-이전" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 플러그인 의존성 문제와 vault 이전
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-모바일-제약과-회사-환경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 모바일 제약과 회사 환경
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 모바일 제약과 회사 환경">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-모바일-앱의-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 모바일 앱의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-회사에서-쓸-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 회사에서 쓸 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-처음-시작하는-사람에게" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 처음 시작하는 사람에게
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Karpathy_LLM_Obsidian/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM+Obsidian 워크플로
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Palantir_AI_Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    팔란티어가 AI로 일하는 방식
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Unsloth_Qwen3_GGUF/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    로컬 구동 (unsloth/Qwen3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../LLM/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Claude/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Claude_Code/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Gemini/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gemini
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GPT/GPT_5_5.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 모델
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cursor/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개발 도구
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-vault가-뭔지부터" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. vault가 뭔지부터
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-마크다운-저장-구조와-frontmatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 마크다운 저장 구조와 frontmatter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-핵심-커뮤니티-플러그인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 핵심 커뮤니티 플러그인
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 핵심 커뮤니티 플러그인">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-dataview--노트를-쿼리한다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Dataview — 노트를 쿼리한다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-templater--템플릿과-자동-삽입" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Templater — 템플릿과 자동 삽입
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-quickadd--손-안-대고-노트-찍기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 QuickAdd — 손 안 대고 노트 찍기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-canvas--무한-캔버스" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Canvas — 무한 캔버스
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-wikilink-백링크-그래프뷰--쓸모와-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. wikilink, 백링크, 그래프뷰 — 쓸모와 함정
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-동기화--sync-git-iclouddropbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 동기화 — Sync, git, iCloud/Dropbox
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 동기화 — Sync, git, iCloud/Dropbox">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-obsidian-sync-유료" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Obsidian Sync (유료)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 git
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-icloud--dropbox--google-drive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 iCloud / Dropbox / Google Drive
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-플러그인-의존성-문제와-vault-이전" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 플러그인 의존성 문제와 vault 이전
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-모바일-제약과-회사-환경" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 모바일 제약과 회사 환경
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 모바일 제약과 회사 환경">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-모바일-앱의-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 모바일 앱의 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-회사에서-쓸-때" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 회사에서 쓸 때
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-처음-시작하는-사람에게" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 처음 시작하는 사람에게
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">ai</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">llm</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<div class="admonition warning">
+<p class="admonition-title">빠르게 낡는 문서</p>
+<p>이 주제는 릴리스 주기가 빠릅니다. 최종 확인: <strong>2026-06-17</strong><br />
+읽기 전 해당 제품의 공식 문서와 릴리스 노트에서 최신 여부를 확인하세요.</p>
+</div>
+<h1 id="obsidian-실무-사용법">Obsidian 실무 사용법<a class="headerlink" href="#obsidian-실무-사용법" title="Permanent link">&para;</a></h1>
+<p>이 문서는 Obsidian이라는 애플리케이션 자체를 다룬다. vault 구조, 자주 쓰는 플러그인, 동기화, 플러그인 깨짐 문제, 회사에서 쓸 때 주의할 점이 중심이다. LLM에 vault를 먹여서 쓰는 워크플로우는 별도로 <a href="../Karpathy_LLM_Obsidian/">Karpathy의 LLM + Obsidian 워크플로우</a>에서 다루므로 여기서는 짧게만 언급한다.</p>
+<hr />
+<h2 id="1-vault가-뭔지부터">1. vault가 뭔지부터<a class="headerlink" href="#1-vault가-뭔지부터" title="Permanent link">&para;</a></h2>
+<p>Obsidian에서 vault는 그냥 폴더 하나다. 그 안에 <code>.md</code> 파일들이 들어있고, Obsidian은 그 폴더를 열어서 보여준다. 데이터베이스도 없고 클라우드 계정도 강제하지 않는다. vault를 통째로 다른 컴퓨터에 복사하면 그대로 열린다. 이게 Notion이나 Roam과 가장 다른 지점이다.</p>
+<p>폴더를 열면 이런 구조가 된다.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>my-vault/
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── .obsidian/          # 설정 폴더. 여기가 핵심
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── app.json
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── appearance.json
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── workspace.json
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── community-plugins.json
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   ├── core-plugins.json
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── hotkeys.json
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── plugins/        # 설치한 커뮤니티 플러그인 본체
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   │   ├── dataview/
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   │   └── templater-obsidian/
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── snippets/       # 커스텀 CSS
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   └── themes/
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>├── daily/
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── 2026-06-17.md
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   └── 2026-06-16.md
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>├── notes/
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│   └── kafka-rebalance.md
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>└── templates/
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    └── daily.md
+</span></code></pre></div>
+<p><code>.obsidian/</code>이 vault의 설정 전체를 담는다. 테마, 단축키, 플러그인 목록, 마지막으로 열어둔 창 배치까지 전부 여기 들어간다. vault를 옮길 때 이 폴더를 같이 가져가면 환경이 그대로 따라온다. 안 가져가면 메모는 멀쩡한데 플러그인이 다 빠진 맨몸 상태로 열린다.</p>
+<p>여기서 실무적으로 알아둘 게 두 가지다.</p>
+<p><code>workspace.json</code>은 마지막 창 배치, 열려있던 탭, 사이드바 너비 같은 UI 상태를 담는다. 이 파일은 Obsidian을 열 때마다 바뀐다. git으로 vault를 관리하면 이 파일이 매번 diff에 잡혀서 거슬린다. <code>.gitignore</code>에 <code>.obsidian/workspace.json</code>을 넣는 게 보통이다.</p>
+<p><code>core-plugins.json</code>과 <code>community-plugins.json</code>은 어떤 플러그인을 켰는지를 담는다. 이건 버전 관리에 포함시키는 게 맞다. 새 컴퓨터에서 vault를 클론했을 때 이 파일이 있어야 같은 플러그인 셋업이 복원된다.</p>
+<p><code>.obsidian/plugins/</code> 안에는 플러그인 코드(JS, manifest, 스타일)가 통째로 들어있다. 이걸 git에 넣을지 말지가 갈린다. 넣으면 클론만으로 플러그인까지 복원되지만 vault가 무거워지고, 플러그인 업데이트할 때마다 diff가 지저분해진다. 안 넣으면 새 환경에서 플러그인을 일일이 다시 설치해야 한다. 본인은 plugins 폴더는 ignore하고 <code>community-plugins.json</code>만 추적한 다음, 새 환경에서 한 번 수동 설치하는 쪽을 쓴다.</p>
+<hr />
+<h2 id="2-마크다운-저장-구조와-frontmatter">2. 마크다운 저장 구조와 frontmatter<a class="headerlink" href="#2-마크다운-저장-구조와-frontmatter" title="Permanent link">&para;</a></h2>
+<p>모든 노트는 평범한 마크다운이다. 특별한 건 파일 맨 위 YAML frontmatter 정도다.</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>---
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>title: Kafka rebalance 장애
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>tags: [kafka, incident, 2026]
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>created: 2026-06-17
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="gu">status: resolved</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="gu">---</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="gh"># Kafka rebalance 장애</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>session.timeout.ms를 너무 낮게 잡아서...
+</span></code></pre></div>
+<p>frontmatter는 <code>---</code>로 감싼 YAML이고, Obsidian은 이걸 메타데이터로 인식한다. <code>tags</code>는 사이드바 태그 패널과 검색에 잡히고, 나머지 필드는 뒤에 나올 Dataview 쿼리의 재료가 된다. 필드 이름은 본인이 마음대로 정해도 된다. <code>status</code>, <code>priority</code>, <code>due</code> 같은 걸 본인 규칙으로 박아두면 나중에 그걸로 쿼리를 돌린다.</p>
+<p>주의할 게 frontmatter의 YAML 문법이다. 콜론 뒤에 공백이 없거나, 따옴표 없이 콜론이 들어간 값을 쓰면 파싱이 깨진다. 예를 들어 <code>title: 9:00 회의</code>처럼 값 안에 콜론이 있으면 <code>title: "9:00 회의"</code>로 따옴표를 둘러야 한다. 깨지면 그 노트만 Dataview에서 조용히 빠져버려서 한참 헤맨다.</p>
+<p>코드블록은 일반 마크다운 펜스(<code>````</code>)를 그대로 쓴다. 백틱 세 개 안에 언어를 명시하면 신택스 하이라이트가 된다. 한 가지 함정이 있는데, 코드블록 안에 백틱 세 개짜리 펜스를 또 넣어야 할 때다. 이럴 땐 바깥 펜스를 백틱 네 개로 늘려야 한다. Dataview 쿼리나 Templater 코드를 문서로 설명할 때 자주 부딪힌다.</p>
+<hr />
+<h2 id="3-핵심-커뮤니티-플러그인">3. 핵심 커뮤니티 플러그인<a class="headerlink" href="#3-핵심-커뮤니티-플러그인" title="Permanent link">&para;</a></h2>
+<p>Obsidian 기본 기능만으로도 메모는 되지만, 실제로 도구를 살리는 건 커뮤니티 플러그인이다. 설정 → Community plugins에서 Restricted mode를 끄고 설치한다. 처음 켤 때 "third-party 코드를 실행한다"는 경고가 뜨는데, 실제로 플러그인은 vault 파일을 읽고 쓸 권한을 전부 가진다. 이 점은 7장에서 다시 본다.</p>
+<p>실무에서 거의 항상 깔게 되는 건 Dataview, Templater, QuickAdd 세 개고, Canvas는 코어 기능이라 설치가 필요 없다.</p>
+<h3 id="31-dataview--노트를-쿼리한다">3.1 Dataview — 노트를 쿼리한다<a class="headerlink" href="#31-dataview--노트를-쿼리한다" title="Permanent link">&para;</a></h3>
+<p>Dataview는 vault 안의 frontmatter와 inline field를 읽어서 표나 리스트로 뽑아주는 플러그인이다. 메모가 쌓이면 "이번 달에 status가 open인 장애 노트"같은 걸 손으로 찾기 힘들어지는데, 이걸 쿼리 한 줄로 만든다.</p>
+<p>가장 많이 쓰는 건 table과 list다. 노트 본문에 코드블록으로 박는다.</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="sb">```dataview</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="s">table status, created</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="s">from #incident</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s">where created &gt;= date(2026-06-01)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s">sort created desc</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="sb">```</span>
+</span></code></pre></div>
+<p><code>from</code>은 소스를 지정한다. <code>#incident</code>는 태그, <code>"notes"</code>는 폴더 경로다. <code>where</code>로 필터하고 <code>sort</code>로 정렬한다. 위 쿼리는 incident 태그가 붙고 6월 이후 생성된 노트를 표로 뽑는다. 표의 열은 frontmatter 필드명을 그대로 쓴다.</p>
+<p>list는 더 단순하다.</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="sb">```dataview</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="s">list</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="s">from &quot;daily&quot;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s">where contains(file.tags, &quot;#followup&quot;)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="sb">```</span>
+</span></code></pre></div>
+<p>inline field는 본문 한가운데에 메타데이터를 박는 방법이다. <code>필드:: 값</code> 형태로 쓴다.</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>이 장애의 영향 범위:: 결제 API 전체
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>복구까지:: 23분
+</span></code></pre></div>
+<p>이렇게 박아두면 <code>복구까지</code>를 Dataview에서 필드로 끌어 쓸 수 있다. frontmatter는 노트 맨 위에 정형 데이터를 두는 거고, inline field는 본문 흐름 안에 데이터를 끼워넣는 거다. 장애 회고처럼 서술하면서 중간중간 수치를 남길 때 inline field가 편하다.</p>
+<p>Dataview를 쓸 때 실무에서 자주 막히는 지점은 두 가지다. 하나는 날짜 비교다. frontmatter의 <code>created: 2026-06-17</code>은 따옴표 없이 쓰면 Dataview가 날짜 타입으로 인식하지만, <code>created: "2026-06-17"</code>처럼 따옴표를 두르면 문자열이 돼서 <code>date()</code> 비교가 안 먹는다. 다른 하나는 성능이다. vault에 노트가 수천 개 넘어가면 <code>from ""</code>처럼 전체를 훑는 쿼리는 노트를 열 때마다 눈에 띄게 느려진다. 소스를 폴더나 태그로 좁혀야 한다.</p>
+<h3 id="32-templater--템플릿과-자동-삽입">3.2 Templater — 템플릿과 자동 삽입<a class="headerlink" href="#32-templater--템플릿과-자동-삽입" title="Permanent link">&para;</a></h3>
+<p>Templater는 노트를 만들 때 정해진 틀을 자동으로 채워넣는다. Obsidian 코어에도 Templates 플러그인이 있지만 날짜 치환 정도만 되고, Templater는 자바스크립트 실행까지 된다.</p>
+<p>데일리 노트 템플릿을 예로 들면 이렇게 만든다.</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>---
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>created: &lt;% tp.date.now(&quot;YYYY-MM-DD&quot;) %&gt;
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="gu">tags: [daily]</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="gu">---</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="gh"># &lt;% tp.date.now(&quot;YYYY-MM-DD (ddd)&quot;) %&gt;</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="gu">## 오늘 할 것</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="gu">## 메모</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="gu">## 어제 노트</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>[[&lt;% tp.date.now(&quot;YYYY-MM-DD&quot;, -1) %&gt;]]
+</span></code></pre></div>
+<p><code>&lt;% %&gt;</code> 안이 Templater 구문이다. <code>tp.date.now()</code>로 현재 날짜를, 두 번째 인자 <code>-1</code>로 어제 날짜를 만들어서 어제 노트로 가는 링크를 자동으로 깐다. 노트를 새로 만들 때마다 어제 노트와 자동으로 연결돼서, 데일리 노트가 끊기지 않고 이어진다.</p>
+<p>Templater 설정에서 "Trigger Templater on new file creation"을 켜고, 특정 폴더(<code>daily/</code>)에 기본 템플릿을 지정해두면, 그 폴더에 노트를 만드는 순간 템플릿이 자동으로 적용된다. 코어 데일리 노트 플러그인과 폴더 경로를 맞춰두는 게 핵심이다. 안 맞으면 데일리 노트는 빈 파일로 생기고 템플릿은 안 먹는다.</p>
+<p>한 가지 주의할 게 코어 Templates 플러그인과 Templater의 문법이 다르다는 점이다. 코어는 <code>{{date}}</code>, Templater는 <code>&lt;% tp.date.now() %&gt;</code>다. 둘을 같은 vault에 켜두면 템플릿 파일을 어느 쪽으로 작성했는지 헷갈려서 치환이 안 되는 일이 생긴다. Templater를 쓰기로 했으면 코어 Templates는 끄는 게 깔끔하다.</p>
+<h3 id="33-quickadd--손-안-대고-노트-찍기">3.3 QuickAdd — 손 안 대고 노트 찍기<a class="headerlink" href="#33-quickadd--손-안-대고-노트-찍기" title="Permanent link">&para;</a></h3>
+<p>QuickAdd는 단축키나 명령 한 번으로 정해진 동작을 실행한다. 자주 쓰는 패턴이 두 개다.</p>
+<p>Capture는 지정한 파일에 한 줄을 빠르게 추가한다. 떠오른 할 일을 <code>inbox.md</code> 맨 아래에 날짜와 함께 박는 식이다. 노트를 직접 열지 않고 명령 팔레트에서 바로 던진다.</p>
+<p>Template은 미리 만든 Templater 템플릿으로 새 노트를 만든다. "장애 회고 노트 만들기"를 QuickAdd 명령으로 등록해두면, 단축키 한 번에 회고 템플릿이 적용된 노트가 정해진 폴더에 생긴다. 매번 폴더 찾아가서 새 파일 만들고 템플릿 고르는 과정을 없앤다.</p>
+<p>QuickAdd, Templater, 코어 데일리 노트 셋을 묶어두면 "메모 시작까지의 마찰"이 거의 사라진다. 메모 도구는 적기 시작하는 순간의 귀찮음이 누적을 좌우하는데, 이 셋업이 그 귀찮음을 줄여준다.</p>
+<h3 id="34-canvas--무한-캔버스">3.4 Canvas — 무한 캔버스<a class="headerlink" href="#34-canvas--무한-캔버스" title="Permanent link">&para;</a></h3>
+<p>Canvas는 노트와 카드를 자유롭게 배치하는 무한 화면이다. <code>.canvas</code> 확장자 파일로 저장되고, 내용은 JSON이다(마크다운이 아니다). 카드 안에 텍스트를 쓰거나, 기존 노트를 카드로 끌어다 놓거나, 카드끼리 화살표로 잇는다.</p>
+<p>실무에서 Canvas가 쓸모 있는 건 시스템 아키텍처를 손으로 그려가며 정리할 때, 또는 여러 노트를 한 화면에 펼쳐놓고 관계를 잡을 때다. 장애 원인을 추적하면서 관련 노트들을 한 캔버스에 모아놓고 화살표로 인과를 그리면 머릿속 정리가 빠르다.</p>
+<p>단점은 <code>.canvas</code>가 JSON이라 grep이나 LLM에 그대로 먹이기엔 부적합하다는 점이다. 좌표값과 노드 ID로 가득 차서 사람이 읽기 어렵다. Canvas는 사고를 정리하는 작업대로 쓰고, 결론은 다시 마크다운 노트로 옮겨두는 게 낫다. Canvas 자체를 영구 자료로 삼으면 나중에 검색에 안 걸린다.</p>
+<hr />
+<h2 id="4-wikilink-백링크-그래프뷰--쓸모와-함정">4. wikilink, 백링크, 그래프뷰 — 쓸모와 함정<a class="headerlink" href="#4-wikilink-백링크-그래프뷰--쓸모와-함정" title="Permanent link">&para;</a></h2>
+<p>Obsidian의 간판 기능이 <code>[[wikilink]]</code>다. 노트 안에서 <code>[[kafka-rebalance]]</code>라고 쓰면 그 노트로 가는 링크가 걸리고, 링크된 쪽에서는 "어떤 노트들이 나를 가리키는가"가 백링크 패널에 뜬다. 그래프뷰는 이 링크 관계를 점과 선으로 시각화한다.</p>
+<p>여기서 현실적인 얘기를 해야 한다. wikilink와 백링크는 분명히 쓸모가 있다. 쓸모 있는 경우는 구체적이다.</p>
+<p>하나의 개념 노트(예: <code>kafka-consumer-group.md</code>)를 만들어두고, 여러 장애 노트나 데일리 노트에서 그걸 가리키면, 그 개념 노트의 백링크 패널에 "이 개념이 등장한 모든 맥락"이 모인다. 나중에 컨슈머 그룹 관련해서 내가 뭘 겪었는지 한 곳에서 본다. 이건 grep으로도 되지만, 링크는 표기 흔들림(consumer group / 컨슈머그룹 / consumer-group)에 영향을 안 받는다는 장점이 있다.</p>
+<p>반대로 그래프뷰에 집착하면 도구가 망가진다. 그래프뷰는 보기엔 멋있지만 노트가 수백 개를 넘어가면 그냥 털뭉치가 된다. 의미 있는 정보를 거기서 못 읽는다. 그래프를 예쁘게 만들겠다고 모든 노트를 억지로 링크로 잇기 시작하면, 메모 적는 시간보다 링크 거는 시간이 길어진다. 이게 PKM을 6개월 만에 포기하게 만드는 전형적인 함정이다.</p>
+<p>기준을 잡자면, 링크는 "나중에 이 노트를 이 개념에서부터 다시 찾을 것 같다"는 확신이 있을 때만 건다. 그래프뷰는 가끔 전체 구조를 훑어보는 용도지, 그걸 가꾸는 게 목적이 되면 안 된다. 사후에 링크를 LLM에게 걸게 하는 방식은 <a href="../Karpathy_LLM_Obsidian/">Karpathy 워크플로우 문서</a>에서 다룬다.</p>
+<hr />
+<h2 id="5-동기화--sync-git-iclouddropbox">5. 동기화 — Sync, git, iCloud/Dropbox<a class="headerlink" href="#5-동기화--sync-git-iclouddropbox" title="Permanent link">&para;</a></h2>
+<p>vault를 여러 기기에서 쓰려면 동기화가 필요하다. 선택지가 셋인데 각각 성격이 다르다.</p>
+<h3 id="51-obsidian-sync-유료">5.1 Obsidian Sync (유료)<a class="headerlink" href="#51-obsidian-sync-유료" title="Permanent link">&para;</a></h3>
+<p>공식 동기화 서비스다. 월 구독이고, end-to-end 암호화를 지원한다. 장점은 충돌 처리가 가장 매끄럽고, 모바일 포함 모든 기기에서 설정이 단순하다는 점이다. <code>.obsidian</code> 설정과 플러그인까지 선택적으로 동기화할 수 있다. 버전 히스토리도 자체적으로 들고 있어서 실수로 지운 노트 복구가 된다.</p>
+<p>돈을 내는 만큼 충돌로 골치 썩을 일이 가장 적다. 모바일을 적극적으로 쓰고 git을 모바일에서 다루기 싫다면 이게 제일 마음 편하다.</p>
+<h3 id="52-git">5.2 git<a class="headerlink" href="#52-git" title="Permanent link">&para;</a></h3>
+<p>vault가 폴더라서 그냥 git 저장소로 만들면 된다. 데스크탑에서는 이게 가장 강력하다. 변경 이력, diff, 브랜치, <code>git reflog</code> 복구가 전부 따라온다. 비용은 0이고 GitHub private 저장소에 올려두면 백업까지 된다.</p>
+<p>Obsidian Git이라는 커뮤니티 플러그인을 깔면 일정 주기로 자동 커밋/푸시를 해준다. 다만 git의 충돌은 사람이 직접 풀어야 한다. 두 기기에서 같은 노트를 수정하고 양쪽 다 자동 푸시되면 conflict가 나고, 노트 안에 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 마커가 박힌다. 이걸 모바일에서 풀기는 꽤 번거롭다.</p>
+<p>git의 진짜 약점은 모바일이다. iOS/안드로이드에서 Obsidian Git이 동작하긴 하지만 불안정하고, 큰 vault에서는 느리다. 데스크탑 중심이면 git, 모바일 중심이면 git은 추천하지 않는다.</p>
+<h3 id="53-icloud--dropbox--google-drive">5.3 iCloud / Dropbox / Google Drive<a class="headerlink" href="#53-icloud--dropbox--google-drive" title="Permanent link">&para;</a></h3>
+<p>vault 폴더를 클라우드 동기화 폴더 안에 두는 방식이다. 설정이 제일 쉽고 공짜에 가깝다. 그런데 실무에서 사고가 제일 많이 나는 게 이쪽이다.</p>
+<p>문제의 핵심은 이 클라우드 서비스들이 파일 단위 동기화라서, 두 기기가 거의 동시에 같은 노트를 건드리면 충돌을 자기 방식대로 처리한다는 데 있다. iCloud는 한쪽을 <code>kafka-rebalance 2.md</code>처럼 복제본으로 남긴다. Dropbox는 <code>kafka-rebalance (conflicted copy).md</code>를 만든다. 어느 쪽이든 노트가 슬그머니 두 개로 갈라지고, 본인은 한참 뒤에야 알아챈다.</p>
+<p>더 고약한 건 <code>.obsidian</code> 폴더다. 양쪽 기기에서 Obsidian이 동시에 켜져 있으면 <code>workspace.json</code>이나 플러그인 설정을 양쪽이 동시에 쓰면서 설정 파일이 깨진다. 플러그인이 갑자기 비활성화되거나 단축키가 날아가는 식이다. iCloud는 또 동기화를 한참 미뤄두는 습성이 있어서, 데스크탑에서 적은 노트가 폰에서 몇 분~몇십 분 안 보이는 일이 흔하다.</p>
+<p>트러블슈팅 관점에서 실제 대응은 이렇다. iCloud/Dropbox를 쓸 거면 한 기기에서 Obsidian을 완전히 닫은 뒤 동기화가 끝나기를 기다렸다가 다른 기기를 여는 습관을 들여야 한다. 두 기기를 동시에 띄워놓고 양쪽에서 메모하는 패턴은 충돌을 부른다. conflicted copy가 생기면 두 파일을 diff 도구로 비교해서 손으로 합친 뒤 한쪽을 지운다. 이게 귀찮아지는 순간이 Obsidian Sync나 git으로 넘어갈 때다.</p>
+<p>정리하면, 모바일을 많이 쓰고 충돌 처리에 시간 쓰기 싫으면 Obsidian Sync, 데스크탑 중심에 git이 익숙하면 git, 무료로 가볍게 쓰되 동시 편집을 안 한다는 규율을 지킬 수 있으면 iCloud/Dropbox다. 동시 편집 규율을 못 지킬 거면 클라우드 폴더 방식은 결국 사고가 난다.</p>
+<hr />
+<h2 id="6-플러그인-의존성-문제와-vault-이전">6. 플러그인 의존성 문제와 vault 이전<a class="headerlink" href="#6-플러그인-의존성-문제와-vault-이전" title="Permanent link">&para;</a></h2>
+<p>커뮤니티 플러그인을 깔수록 vault가 그 플러그인들에 묶인다. 이게 시간이 지나면 부담이 된다.</p>
+<p>가장 흔한 사고가 Obsidian 본체 업데이트 후 플러그인이 깨지는 경우다. Obsidian이 마이너 버전 올라가면서 내부 API가 바뀌면, 업데이트가 끊긴 플러그인이 갑자기 동작을 멈춘다. Dataview처럼 활발히 관리되는 플러그인은 금방 따라오지만, 개인이 만들고 방치한 플러그인은 그대로 죽는다. 그 플러그인에 의존한 노트(예: 특정 Dataview 대체 플러그인의 쿼리)는 한순간에 빈 화면이 된다.</p>
+<p>vault를 다른 사람에게 넘기거나 새 기기로 이전할 때도 호환성 문제가 나온다. 노트에 Dataview 쿼리나 Templater 구문이 박혀 있으면, 받는 쪽에 그 플러그인이 없으면 쿼리 코드블록이 날것 그대로 텍스트로 보인다. 노트 내용 자체는 마크다운이라 안 사라지지만, 동적으로 생성되던 표는 안 나온다. vault는 plain text라 안전하다는 말은 본문에만 해당하고, 플러그인이 만들어내던 부분은 그 플러그인 없이는 재현이 안 된다.</p>
+<p>이 문제를 줄이는 현실적인 방향은 플러그인을 적게 쓰는 거다. 핵심 노트의 가치가 특정 플러그인에 의존하지 않게 한다. Dataview로 만든 인덱스는 어디까지나 보조이고, 노트 본문 자체로 의미가 통해야 한다. 화려한 플러그인 수십 개를 쌓은 vault는 1년 뒤 절반쯤 깨져 있다. 본인이 실제로 매일 쓰는 플러그인은 결국 서너 개로 수렴한다.</p>
+<p>플러그인 버전 자체를 관리하고 싶으면 <code>.obsidian/plugins/</code>를 git에 포함시켜서 특정 버전을 고정하는 방법도 있다. 본체 업데이트로 깨졌을 때 이전 버전으로 되돌릴 수 있다. 다만 앞서 말한 대로 diff가 지저분해지는 비용이 따른다.</p>
+<hr />
+<h2 id="7-모바일-제약과-회사-환경">7. 모바일 제약과 회사 환경<a class="headerlink" href="#7-모바일-제약과-회사-환경" title="Permanent link">&para;</a></h2>
+<h3 id="71-모바일-앱의-한계">7.1 모바일 앱의 한계<a class="headerlink" href="#71-모바일-앱의-한계" title="Permanent link">&para;</a></h3>
+<p>Obsidian 모바일은 데스크탑과 같은 vault를 열지만 제약이 있다. 일부 플러그인은 모바일 미지원으로 표시되고, 자바스크립트를 무겁게 도는 플러그인은 모바일에서 느리거나 동작을 안 한다. 플러그인 설명에 "Desktop only" 표시가 있으면 모바일에선 아예 로드가 안 된다.</p>
+<p>큰 vault를 모바일에서 처음 열면 인덱싱에 시간이 걸린다. 노트 수천 개짜리 vault는 폰에서 검색이 데스크탑만큼 빠르지 않다. 모바일에서는 빠르게 캡처하고, 정리는 데스크탑에서 하는 분업이 현실적이다. 모바일 Obsidian Git은 앞서 말했듯 불안정해서, 모바일을 많이 쓰면 Obsidian Sync가 사실상 답이다.</p>
+<h3 id="72-회사에서-쓸-때">7.2 회사에서 쓸 때<a class="headerlink" href="#72-회사에서-쓸-때" title="Permanent link">&para;</a></h3>
+<p>회사 일을 Obsidian에 적기 시작하면 보안과 반출 문제를 반드시 짚어야 한다.</p>
+<p>먼저 동기화 경로다. 회사 코드, 장애 내용, 내부 시스템 이름이 들어간 노트를 개인 iCloud나 개인 GitHub에 올리면 그 자체가 정보 반출이다. 회사 정책에 따라 징계 사유가 된다. 회사 vault는 회사가 승인한 저장소(사내 git, 회사 계정 클라우드)에만 둬야 하고, 개인 vault와 물리적으로 분리하는 게 안전하다. 폴더부터 <code>~/vault-work</code>와 <code>~/vault-personal</code>로 나누고, 각각 다른 원격에 연결한다.</p>
+<p>커뮤니티 플러그인도 위험 요소다. 플러그인은 third-party 자바스크립트고 vault 파일 전체에 접근할 권한을 가진다. 이론적으로 악성 플러그인이 노트 내용을 외부로 빼돌릴 수 있다. 회사 vault에는 출처가 확실하고 널리 쓰이는 플러그인만 깔고, 잘 모르는 플러그인은 피하는 게 맞다. 일부 회사는 보안 정책상 Restricted mode 해제 자체를 금지하기도 한다.</p>
+<p>LLM 연동은 더 민감하다. 회사 노트를 외부 LLM API에 그대로 던지면 그게 곧 반출이다. 이건 vault 동기화보다 사고 위험이 크다. 회사 노트를 LLM에 먹이려면 사내 승인된 경로(사내 프록시를 거치는 API, 데이터 학습 미사용 계약이 된 엔드포인트)만 써야 한다. 구체적인 LLM 연동 방식과 회사/개인 vault 분리 운영은 <a href="../Karpathy_LLM_Obsidian/">Karpathy 워크플로우 문서</a>에서 다룬다. 회사 환경이라면 그 문서의 분리 원칙을 먼저 정해두고 시작하는 게 순서다.</p>
+<hr />
+<h2 id="8-처음-시작하는-사람에게">8. 처음 시작하는 사람에게<a class="headerlink" href="#8-처음-시작하는-사람에게" title="Permanent link">&para;</a></h2>
+<p>플러그인부터 잔뜩 깔지 마라. 빈 vault에 폴더 두 개(<code>daily/</code>, <code>notes/</code>)만 만들고 코어 데일리 노트만 켜서 2주를 적어본다. 손이 가는 불편함이 보이기 시작하면 그때 Templater로 데일리 템플릿을 만들고, 노트가 쌓여서 찾기 어려워지면 Dataview를 깐다. 동기화는 본인이 데스크탑 중심인지 모바일 중심인지 정한 다음에 5장 기준으로 고른다.</p>
+<p>화려한 셋업을 따라 만드는 데 며칠을 쓰는 사람이 많은데, 그렇게 만든 vault일수록 일주일 뒤에 안 본다. 도구는 단순하게 두고, 적는 양이 쌓이게 하는 게 먼저다. 플러그인은 불편을 실제로 겪은 다음에 하나씩 더한다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../AI_Hallucination/">AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지</a></li>
+<li><a href="../Agent_Harness/">Agent Harness — Claude Code 하네스로 보는 에이전트 런타임</a></li>
+<li><a href="../../Claude/Claude/">Claude</a></li>
+<li><a href="../../Claude/Claude_Opus_4_7/">Claude Opus 4.7</a></li>
+<li><a href="../../Claude/Claude_Opus_4_8/">Claude Opus 4.8</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../Vibe_Coding_Security/" class="md-footer__link md-footer__link--prev" aria-label="이전: 바이브 코딩 보안 대처법">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                바이브 코딩 보안 대처법
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Karpathy_LLM_Obsidian/" class="md-footer__link md-footer__link--next" aria-label="다음: LLM+Obsidian 워크플로">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                LLM+Obsidian 워크플로
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>

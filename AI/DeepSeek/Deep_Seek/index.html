@@ -1,4 +1,1727 @@
-<!doctype html><html lang=ko class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것"><meta name=author content=GYUTORY><link href=https://gyutory.github.io/YGSTUDY/AI/DeepSeek/Deep_Seek/ rel=canonical><link href=../ rel=prev><link href=../../GBrain/ rel=next><link rel=alternate type=application/rss+xml title="RSS 피드 생성완료" href=../../../feed_rss_created.xml><link rel=alternate type=application/rss+xml title="RSS 피드 업데이트완료" href=../../../feed_rss_updated.xml><link rel=icon href=../../../assets/images/favicon.png><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.7"><title>DeepSeek 모델 패밀리 개요와 실무 사용 - YGSTUDY</title><link rel=stylesheet href=../../../assets/stylesheets/main.ec1eaa64.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.ab4e12ef.min.css><link rel=stylesheet href=../../../stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#deepseek class=md-skip> 콘텐츠로 이동 </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=상단/헤더> <a href=../../.. title=YGSTUDY class="md-header__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> YGSTUDY </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> DeepSeek 모델 패밀리 개요와 실무 사용 </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=white data-md-color-accent=blue aria-label="다크 모드로 전환" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="다크 모드로 전환" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=black data-md-color-accent=blue aria-label="라이트 모드로 전환" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="라이트 모드로 전환" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=검색 placeholder=검색 autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=검색> <a href=javascript:void(0) class="md-search__icon md-icon" title=공유 aria-label=공유 data-clipboard data-clipboard-text data-md-component=search-share tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg> </a> <button type=reset class="md-search__icon md-icon" title=지우기 aria-label=지우기 tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> 검색 초기화 </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=네비게이션 data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title=YGSTUDY class="md-nav__button md-logo" aria-label=YGSTUDY data-md-component=logo> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg> </a> YGSTUDY </label> <div class=md-nav__source> <a href=https://github.com/gyutory/YGSTUDY title="저장소로 이동" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </div> <div class=md-source__repository> gyutory/YGSTUDY </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> <span class=md-ellipsis> YGSTUDY </span> </a> </li> <li class=md-nav__item> <a href=../../../%EC%B5%9C%EA%B7%BC/ class=md-nav__link> <span class=md-ellipsis> 최근 변경 문서 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Language/ class=md-nav__link> <span class=md-ellipsis> Language </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Framework/ class=md-nav__link> <span class=md-ellipsis> Backend </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../DataBase/ class=md-nav__link> <span class=md-ellipsis> Database </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Cloud/ class=md-nav__link> <span class=md-ellipsis> Infra </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../Network/ class=md-nav__link> <span class=md-ellipsis> CS </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_8 checked> <div class="md-nav__link md-nav__container"> <a href=../../ class="md-nav__link "> <span class=md-ellipsis> AI </span> </a> <label class="md-nav__link " for=__nav_8 id=__nav_8_label tabindex=0> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_8_label aria-expanded=true> <label class=md-nav__title for=__nav_8> <span class="md-nav__icon md-icon"></span> AI </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Concepts/ class=md-nav__link> <span class=md-ellipsis> 개념 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Claude/ class=md-nav__link> <span class=md-ellipsis> Claude </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Claude_Code/ class=md-nav__link> <span class=md-ellipsis> Claude Code </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Gemini/ class=md-nav__link> <span class=md-ellipsis> Gemini </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../GPT/GPT_5_5.md class=md-nav__link> <span class=md-ellipsis> AI 모델 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../Cursor/ class=md-nav__link> <span class=md-ellipsis> 개발 도구 </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/ class=md-nav__link> <span class=md-ellipsis> 가이드 </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../../../tags/ class=md-nav__link> <span class=md-ellipsis> Tags </span> </a> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label=목차> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> 목차 </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#1-deepseek이-뭔지부터-정리 class=md-nav__link> <span class=md-ellipsis> 1. DeepSeek이 뭔지부터 정리 </span> </a> </li> <li class=md-nav__item> <a href=#2-모델-패밀리-구조 class=md-nav__link> <span class=md-ellipsis> 2. 모델 패밀리 구조 </span> </a> <nav class=md-nav aria-label="2. 모델 패밀리 구조"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#21-deepseek-v2--coder-v2 class=md-nav__link> <span class=md-ellipsis> 2.1 DeepSeek-V2 / Coder-V2 </span> </a> </li> <li class=md-nav__item> <a href=#22-deepseek-v3 class=md-nav__link> <span class=md-ellipsis> 2.2 DeepSeek-V3 </span> </a> </li> <li class=md-nav__item> <a href=#23-deepseek-r1 class=md-nav__link> <span class=md-ellipsis> 2.3 DeepSeek-R1 </span> </a> </li> <li class=md-nav__item> <a href=#24-deepseek-v31-통합-세대 class=md-nav__link> <span class=md-ellipsis> 2.4 DeepSeek-V3.1 (통합 세대) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#3-moe-아키텍처가-self-host와-비용에-주는-실제-영향 class=md-nav__link> <span class=md-ellipsis> 3. MoE 아키텍처가 self-host와 비용에 주는 실제 영향 </span> </a> <nav class=md-nav aria-label="3. MoE 아키텍처가 self-host와 비용에 주는 실제 영향"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#31-a37b-671b의-의미 class=md-nav__link> <span class=md-ellipsis> 3.1 A37B-671B의 의미 </span> </a> </li> <li class=md-nav__item> <a href=#32-mla가-self-host에-주는-이점 class=md-nav__link> <span class=md-ellipsis> 3.2 MLA가 self-host에 주는 이점 </span> </a> </li> <li class=md-nav__item> <a href=#33-mtp와-speculative-decoding class=md-nav__link> <span class=md-ellipsis> 3.3 MTP와 speculative decoding </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#4-라이선스가-모델마다-다르다 class=md-nav__link> <span class=md-ellipsis> 4. 라이선스가 모델마다 다르다 </span> </a> </li> <li class=md-nav__item> <a href=#5-api-호출-방법 class=md-nav__link> <span class=md-ellipsis> 5. API 호출 방법 </span> </a> <nav class=md-nav aria-label="5. API 호출 방법"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#51-기본-호출-v3--deepseek-chat class=md-nav__link> <span class=md-ellipsis> 5.1 기본 호출 (V3 = deepseek-chat) </span> </a> </li> <li class=md-nav__item> <a href=#52-r1-호출과-reasoning_content-파싱 class=md-nav__link> <span class=md-ellipsis> 5.2 R1 호출과 reasoning_content 파싱 </span> </a> </li> <li class=md-nav__item> <a href=#53-fim-코드-보간 class=md-nav__link> <span class=md-ellipsis> 5.3 FIM (코드 보간) </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#6-reasoning-모드-동작-방식과-다른-모델과의-차이 class=md-nav__link> <span class=md-ellipsis> 6. Reasoning 모드 동작 방식과 다른 모델과의 차이 </span> </a> <nav class=md-nav aria-label="6. Reasoning 모드 동작 방식과 다른 모델과의 차이"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#61-r1의-동작 class=md-nav__link> <span class=md-ellipsis> 6.1 R1의 동작 </span> </a> </li> <li class=md-nav__item> <a href=#62-qwen3-내장-토글과의-차이 class=md-nav__link> <span class=md-ellipsis> 6.2 Qwen3 내장 토글과의 차이 </span> </a> </li> <li class=md-nav__item> <a href=#63-openai-o1-계열과의-차이 class=md-nav__link> <span class=md-ellipsis> 6.3 OpenAI o1 계열과의 차이 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#7-자체-호스팅--670gb-모델을-멀티노드로-띄우기 class=md-nav__link> <span class=md-ellipsis> 7. 자체 호스팅 — 670GB 모델을 멀티노드로 띄우기 </span> </a> <nav class=md-nav aria-label="7. 자체 호스팅 — 670GB 모델을 멀티노드로 띄우기"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#71-하드웨어-요구 class=md-nav__link> <span class=md-ellipsis> 7.1 하드웨어 요구 </span> </a> </li> <li class=md-nav__item> <a href=#72-sglang으로-띄우기 class=md-nav__link> <span class=md-ellipsis> 7.2 SGLang으로 띄우기 </span> </a> </li> <li class=md-nav__item> <a href=#73-vllm으로-띄우기 class=md-nav__link> <span class=md-ellipsis> 7.3 vLLM으로 띄우기 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#8-다른-모델과의-비교 class=md-nav__link> <span class=md-ellipsis> 8. 다른 모델과의 비교 </span> </a> <nav class=md-nav aria-label="8. 다른 모델과의 비교"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#81-대형-moe-라인 class=md-nav__link> <span class=md-ellipsis> 8.1 대형 MoE 라인 </span> </a> </li> <li class=md-nav__item> <a href=#82-reasoning-모델 class=md-nav__link> <span class=md-ellipsis> 8.2 reasoning 모델 </span> </a> </li> <li class=md-nav__item> <a href=#83-코딩-특화 class=md-nav__link> <span class=md-ellipsis> 8.3 코딩 특화 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#9-실무에서-자주-마주치는-함정 class=md-nav__link> <span class=md-ellipsis> 9. 실무에서 자주 마주치는 함정 </span> </a> <nav class=md-nav aria-label="9. 실무에서 자주 마주치는 함정"> <ul class=md-nav__list> <li class=md-nav__item> <a href=#91-r1-추론-토큰-폭주 class=md-nav__link> <span class=md-ellipsis> 9.1 R1 추론 토큰 폭주 </span> </a> </li> <li class=md-nav__item> <a href=#92-r1에-도구-호출json을-시키면-깨진다 class=md-nav__link> <span class=md-ellipsis> 9.2 R1에 도구 호출/JSON을 시키면 깨진다 </span> </a> </li> <li class=md-nav__item> <a href=#93-멀티턴에서-reasoning_content-재전송 class=md-nav__link> <span class=md-ellipsis> 9.3 멀티턴에서 reasoning_content 재전송 </span> </a> </li> <li class=md-nav__item> <a href=#94-fim-토큰-형식 class=md-nav__link> <span class=md-ellipsis> 9.4 FIM 토큰 형식 </span> </a> </li> <li class=md-nav__item> <a href=#95-컨텍스트-길이-한계 class=md-nav__link> <span class=md-ellipsis> 9.5 컨텍스트 길이 한계 </span> </a> </li> <li class=md-nav__item> <a href=#96-캐시-가격-정책 class=md-nav__link> <span class=md-ellipsis> 9.6 캐시 가격 정책 </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=#10-정리 class=md-nav__link> <span class=md-ellipsis> 10. 정리 </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <nav class=md-tags> <span class=md-tag>ai</span> <span class=md-tag>llm</span> </nav> <div class="admonition warning"> <p class=admonition-title>빠르게 낡는 문서</p> <p>이 주제는 릴리스 주기가 빠릅니다. 최종 확인: <strong><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span></strong><br> 읽기 전 DeepSeek 공식 문서에서 최신 여부를 확인하세요.</p> </div> <h1 id=deepseek>DeepSeek<a class=headerlink href=#deepseek title="Permanent link">&para;</a></h1> <h2 id=1-deepseek이-뭔지부터-정리>1. DeepSeek이 뭔지부터 정리<a class=headerlink href=#1-deepseek이-뭔지부터-정리 title="Permanent link">&para;</a></h2> <p>DeepSeek은 중국 항저우의 AI 연구소 深度求索(딥시크)가 만드는 LLM 패밀리다. 모회사가 퀀트 헤지펀드 High-Flyer라 GPU 자원이 두둑한 상태에서 출발했고, 2023년 말 DeepSeek-Coder를 시작으로 V2, V3, R1까지 1년 남짓 만에 라인업을 쌓았다. 2025년 초 R1을 공개했을 때 "OpenAI o1급 추론 모델을 훨씬 싼 학습 비용으로 만들었고 가중치까지 풀었다"는 점에서 시장이 크게 출렁였다.</p> <p>실무 입장에서 DeepSeek의 위치는 Qwen과 비슷하면서도 다르다. 가중치가 공개되고 OpenAI 호환 API가 같이 굴러간다는 점은 같은데, 모델 사이즈가 671B급이라 자체 호스팅 진입 장벽이 훨씬 높다. Qwen은 0.5B부터 72B까지 촘촘하게 깔려 있어서 단일 GPU로도 굴릴 수 있지만, DeepSeek-V3/R1은 사실상 멀티노드 서버가 아니면 못 띄운다. 그래서 현실적으로는 "API로 쓰거나, 인프라 팀이 작정하고 노드를 붙이거나" 둘 중 하나다.</p> <p>벤치마크상 V3는 GPT-4o, Claude 3.5 Sonnet 구간이고 R1은 o1 계열과 경쟁한다. 가격이 같은 품질 대비 압도적으로 싸다는 게 채택 이유의 절반이다. 코드, 수학, 추론 작업에서 강하고 영어/중국어가 메인이다. 한국어는 Qwen보다 약간 떨어지지만 V3 이상 사이즈에서는 실무에 쓸 만한 수준이다.</p> <hr> <h2 id=2-모델-패밀리-구조>2. 모델 패밀리 구조<a class=headerlink href=#2-모델-패밀리-구조 title="Permanent link">&para;</a></h2> <p>세대를 시간순으로 정리한다. 이름에 V2/V3/R1/Coder가 섞여 나와서 한 번 짚고 가는 게 낫다.</p> <pre class=mermaid-diagram><code>graph TD
+
+<!doctype html>
+<html lang="ko" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="백엔드 엔지니어 강영규의 기술 노트 — 시스템과 인프라, 그 사이의 모든 것">
+      
+      
+        <meta name="author" content="GYUTORY">
+      
+      
+        <link rel="canonical" href="https://gyutory.github.io/YGSTUDY/AI/DeepSeek/Deep_Seek/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../GBrain/">
+      
+      
+        
+      
+      
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 생성완료" href="../../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS 피드 업데이트완료" href="../../../feed_rss_updated.xml">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>DeepSeek 모델 패밀리 개요와 실무 사용 - YGSTUDY</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#deepseek" class="md-skip">
+          콘텐츠로 이동
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="상단/헤더">
+    <a href="../../.." title="YGSTUDY" class="md-header__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            YGSTUDY
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              DeepSeek 모델 패밀리 개요와 실무 사용
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue"  aria-label="다크 모드로 전환"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="다크 모드로 전환" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="라이트 모드로 전환"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="라이트 모드로 전환" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="검색" placeholder="검색" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="검색">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="공유" aria-label="공유" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="지우기" aria-label="지우기" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            검색 초기화
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="네비게이션" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="YGSTUDY" class="md-nav__button md-logo" aria-label="YGSTUDY" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 2-5 4.5v11l5-4.5zM6.5 5C4.55 5 2.45 5.4 1 6.5v14.66c0 .25.25.5.5.5.1 0 .15-.07.25-.07 1.35-.65 3.3-1.09 4.75-1.09 1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.31 4.75 1.06.1.05.15.03.25.03.25 0 .5-.25.5-.5V6.5c-.6-.45-1.25-.75-2-1V19c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6.5C10.55 5.4 8.45 5 6.5 5"/></svg>
+
+    </a>
+    YGSTUDY
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gyutory/YGSTUDY" title="저장소로 이동" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gyutory/YGSTUDY
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YGSTUDY
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../%EC%B5%9C%EA%B7%BC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    최근 변경 문서
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../Language/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Framework/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../DataBase/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Cloud/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infra
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../Network/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CS
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Concepts/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개념
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Claude/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Claude_Code/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../Gemini/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gemini
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../GPT/GPT_5_5.md" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 모델
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../Cursor/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    개발 도구
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    
+  
+  
+  
+    <a href="../../../_hub/%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98%EA%B3%BC_%EB%8F%99%EC%8B%9C%EC%84%B1/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    가이드
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-deepseek이-뭔지부터-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. DeepSeek이 뭔지부터 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-모델-패밀리-구조" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 모델 패밀리 구조
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 모델 패밀리 구조">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-deepseek-v2--coder-v2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 DeepSeek-V2 / Coder-V2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-deepseek-v3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 DeepSeek-V3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-deepseek-r1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 DeepSeek-R1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-deepseek-v31-통합-세대" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 DeepSeek-V3.1 (통합 세대)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-moe-아키텍처가-self-host와-비용에-주는-실제-영향" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. MoE 아키텍처가 self-host와 비용에 주는 실제 영향
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. MoE 아키텍처가 self-host와 비용에 주는 실제 영향">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-a37b-671b의-의미" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 A37B-671B의 의미
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-mla가-self-host에-주는-이점" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 MLA가 self-host에 주는 이점
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-mtp와-speculative-decoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 MTP와 speculative decoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-라이선스가-모델마다-다르다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 라이선스가 모델마다 다르다
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-api-호출-방법" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. API 호출 방법
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. API 호출 방법">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-기본-호출-v3--deepseek-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 기본 호출 (V3 = deepseek-chat)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-r1-호출과-reasoning_content-파싱" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 R1 호출과 reasoning_content 파싱
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-fim-코드-보간" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 FIM (코드 보간)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-reasoning-모드-동작-방식과-다른-모델과의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Reasoning 모드 동작 방식과 다른 모델과의 차이
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Reasoning 모드 동작 방식과 다른 모델과의 차이">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-r1의-동작" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 R1의 동작
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-qwen3-내장-토글과의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Qwen3 내장 토글과의 차이
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-openai-o1-계열과의-차이" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 OpenAI o1 계열과의 차이
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-자체-호스팅--670gb-모델을-멀티노드로-띄우기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 자체 호스팅 — 670GB 모델을 멀티노드로 띄우기
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. 자체 호스팅 — 670GB 모델을 멀티노드로 띄우기">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-하드웨어-요구" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 하드웨어 요구
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-sglang으로-띄우기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 SGLang으로 띄우기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-vllm으로-띄우기" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 vLLM으로 띄우기
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-다른-모델과의-비교" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 다른 모델과의 비교
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. 다른 모델과의 비교">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-대형-moe-라인" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 대형 MoE 라인
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-reasoning-모델" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 reasoning 모델
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-코딩-특화" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 코딩 특화
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-실무에서-자주-마주치는-함정" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 실무에서 자주 마주치는 함정
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. 실무에서 자주 마주치는 함정">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-r1-추론-토큰-폭주" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 R1 추론 토큰 폭주
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-r1에-도구-호출json을-시키면-깨진다" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 R1에 도구 호출/JSON을 시키면 깨진다
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-멀티턴에서-reasoning_content-재전송" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 멀티턴에서 reasoning_content 재전송
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-fim-토큰-형식" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 FIM 토큰 형식
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-컨텍스트-길이-한계" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 컨텍스트 길이 한계
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-캐시-가격-정책" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 캐시 가격 정책
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-정리" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. 정리
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">ai</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">llm</span>
+      
+    
+  </nav>
+
+
+  
+  
+
+
+<div class="admonition warning">
+<p class="admonition-title">빠르게 낡는 문서</p>
+<p>이 주제는 릴리스 주기가 빠릅니다. 최종 확인: <strong>2026-05-26</strong><br />
+읽기 전 DeepSeek 공식 문서에서 최신 여부를 확인하세요.</p>
+</div>
+<h1 id="deepseek">DeepSeek<a class="headerlink" href="#deepseek" title="Permanent link">&para;</a></h1>
+<h2 id="1-deepseek이-뭔지부터-정리">1. DeepSeek이 뭔지부터 정리<a class="headerlink" href="#1-deepseek이-뭔지부터-정리" title="Permanent link">&para;</a></h2>
+<p>DeepSeek은 중국 항저우의 AI 연구소 深度求索(딥시크)가 만드는 LLM 패밀리다. 모회사가 퀀트 헤지펀드 High-Flyer라 GPU 자원이 두둑한 상태에서 출발했고, 2023년 말 DeepSeek-Coder를 시작으로 V2, V3, R1까지 1년 남짓 만에 라인업을 쌓았다. 2025년 초 R1을 공개했을 때 "OpenAI o1급 추론 모델을 훨씬 싼 학습 비용으로 만들었고 가중치까지 풀었다"는 점에서 시장이 크게 출렁였다.</p>
+<p>실무 입장에서 DeepSeek의 위치는 Qwen과 비슷하면서도 다르다. 가중치가 공개되고 OpenAI 호환 API가 같이 굴러간다는 점은 같은데, 모델 사이즈가 671B급이라 자체 호스팅 진입 장벽이 훨씬 높다. Qwen은 0.5B부터 72B까지 촘촘하게 깔려 있어서 단일 GPU로도 굴릴 수 있지만, DeepSeek-V3/R1은 사실상 멀티노드 서버가 아니면 못 띄운다. 그래서 현실적으로는 "API로 쓰거나, 인프라 팀이 작정하고 노드를 붙이거나" 둘 중 하나다.</p>
+<p>벤치마크상 V3는 GPT-4o, Claude 3.5 Sonnet 구간이고 R1은 o1 계열과 경쟁한다. 가격이 같은 품질 대비 압도적으로 싸다는 게 채택 이유의 절반이다. 코드, 수학, 추론 작업에서 강하고 영어/중국어가 메인이다. 한국어는 Qwen보다 약간 떨어지지만 V3 이상 사이즈에서는 실무에 쓸 만한 수준이다.</p>
+<hr />
+<h2 id="2-모델-패밀리-구조">2. 모델 패밀리 구조<a class="headerlink" href="#2-모델-패밀리-구조" title="Permanent link">&para;</a></h2>
+<p>세대를 시간순으로 정리한다. 이름에 V2/V3/R1/Coder가 섞여 나와서 한 번 짚고 가는 게 낫다.</p>
+<pre class="mermaid-diagram"><code>graph TD
     DC["DeepSeek-Coder (2023.11)&lt;br/&gt;1.3B~33B dense, 코드 특화"]
     V2["DeepSeek-V2 (2024.05)&lt;br/&gt;MLA 첫 도입, A21B-236B MoE"]
     CV2["DeepSeek-Coder-V2 (2024.07)&lt;br/&gt;A21B-236B / Lite A2.4B-16B"]
@@ -8,81 +1731,550 @@
 
     DC --&gt; V2 --&gt; CV2
     V2 --&gt; V3 --&gt; R1
-    V3 --&gt; V31</code></pre> <p>세대별로 실무에서 알아야 할 차이만 짚는다.</p> <h3 id=21-deepseek-v2--coder-v2>2.1 DeepSeek-V2 / Coder-V2<a class=headerlink href=#21-deepseek-v2--coder-v2 title="Permanent link">&para;</a></h3> <p>MLA(Multi-head Latent Attention)가 처음 들어간 세대다. MLA는 KV 캐시를 압축하는 어텐션 변종인데, 이게 self-host 비용에 직접 영향을 준다(3장에서 다룬다). Coder-V2는 V2를 코드 데이터로 추가 학습한 버전이고, 풀 사이즈(A21B-236B)와 Lite(A2.4B-16B) 두 종이 있다. Lite는 단일 GPU에서도 돌아가서 IDE 자동완성용 self-host 후보로 많이 쓰였다. 컨텍스트 128K, FIM(fill-in-the-middle) 지원이라 코드 보간 용도로 맞다.</p> <h3 id=22-deepseek-v3>2.2 DeepSeek-V3<a class=headerlink href=#22-deepseek-v3 title="Permanent link">&para;</a></h3> <p>현행 베이스 모델이다. 전체 671B 파라미터에 토큰당 활성 37B(A37B-671B)인 MoE다. 핵심은 세 가지다.</p> <ul> <li>MLA로 KV 캐시를 dense 대비 1/5 이하로 줄였다</li> <li>FP8 혼합정밀도로 학습해서 학습 비용을 크게 낮췄다(공개된 학습 비용이 화제가 됐던 이유)</li> <li>MTP(Multi-Token Prediction) 목적함수를 써서 학습 효율과 추론 시 speculative decoding을 동시에 노렸다</li> </ul> <p>API에서는 <code>deepseek-chat</code>이 V3 계열을 가리킨다. 일반 대화/코드/요약 작업에 쓰는 기본 모델이다.</p> <h3 id=23-deepseek-r1>2.3 DeepSeek-R1<a class=headerlink href=#23-deepseek-r1 title="Permanent link">&para;</a></h3> <p>V3를 베이스로 강화학습을 돌려 만든 reasoning 특화 모델이다. 응답 전에 <code>&lt;think&gt;...&lt;/think&gt;</code> 블록으로 내부 추론을 길게 뽑고 그 다음 최종 답을 낸다. o1 계열과 경쟁하는 포지션이고, 수학/코드/논리 문제에서 V3보다 정확도가 확실히 높다. API에서는 <code>deepseek-reasoner</code>다.</p> <p>R1의 가장 큰 의미는 라이선스다. 가중치를 MIT로 풀었고 distillation(증류)을 명시적으로 허용했다. R1 출력으로 작은 모델을 학습시켜 상업적으로 쓰는 게 라이선스상 막히지 않는다. 실제로 R1 distill 버전(Qwen/Llama 베이스)이 여럿 나왔다.</p> <h3 id=24-deepseek-v31-통합-세대>2.4 DeepSeek-V3.1 (통합 세대)<a class=headerlink href=#24-deepseek-v31-통합-세대 title="Permanent link">&para;</a></h3> <p>R1을 별도 모델로 두던 구조에서, thinking/non-thinking을 한 베이스에서 처리하는 방향으로 정리한 세대다. Qwen3가 <code>enable_thinking</code> 토글로 한 모델에서 처리하는 것과 비슷한 발상인데, DeepSeek은 모델 가중치는 공유하되 API 엔드포인트(<code>deepseek-chat</code> vs <code>deepseek-reasoner</code>)로 모드를 가른다. 이 구분은 5장에서 다시 본다.</p> <hr> <h2 id=3-moe-아키텍처가-self-host와-비용에-주는-실제-영향>3. MoE 아키텍처가 self-host와 비용에 주는 실제 영향<a class=headerlink href=#3-moe-아키텍처가-self-host와-비용에-주는-실제-영향 title="Permanent link">&para;</a></h2> <p>V3/R1의 671B라는 숫자만 보면 겁이 나지만, MoE 구조 때문에 실제 연산량과 메모리 요구는 좀 다르게 움직인다. 이걸 이해해야 인프라 견적이 나온다.</p> <h3 id=31-a37b-671b의-의미>3.1 A37B-671B의 의미<a class=headerlink href=#31-a37b-671b의-의미 title="Permanent link">&para;</a></h3> <p>토큰 하나를 처리할 때 671B 전체가 도는 게 아니라 라우터가 고른 전문가(expert)만 활성화돼서 37B 분량만 연산한다. 그래서 추론 시 연산량(FLOPs)은 37B dense 모델 수준이다. 처리 속도가 빠른 이유가 이것이다.</p> <p>문제는 메모리다. 어떤 토큰이 어떤 expert를 부를지 모르니 671B 가중치 전체를 VRAM에 올려둬야 한다. 즉 연산은 37B인데 메모리는 671B를 요구한다. 이 비대칭이 MoE self-host의 핵심 함정이다. "연산 가벼우니까 작은 카드로 되겠지" 하고 견적 잡으면 메모리에서 막힌다.</p> <p>대략적인 메모리 계산:</p> <table> <thead> <tr> <th>정밀도</th> <th>가중치 크기</th> <th>비고</th> </tr> </thead> <tbody> <tr> <td>FP8</td> <td>약 670GB</td> <td>DeepSeek 공식 배포 포맷</td> </tr> <tr> <td>BF16</td> <td>약 1.3TB</td> <td>FP8을 풀면 두 배</td> </tr> <tr> <td>양자화(INT4 등)</td> <td>약 350GB 전후</td> <td>커뮤니티 양자화, 품질 손실 있음</td> </tr> </tbody> </table> <p>여기에 KV 캐시와 활성화 메모리가 추가로 붙는다. 그래서 FP8 670GB가 H100 8장(640GB)에 "딱 안 들어간다". 가중치만으로 이미 초과다.</p> <h3 id=32-mla가-self-host에-주는-이점>3.2 MLA가 self-host에 주는 이점<a class=headerlink href=#32-mla가-self-host에-주는-이점 title="Permanent link">&para;</a></h3> <p>MLA는 KV 캐시를 저차원 latent로 압축해서 저장한다. 일반 multi-head attention 대비 KV 캐시 메모리가 크게 줄어든다(모델마다 다르지만 1/5~1/10 수준으로 보고된다). self-host 입장에서 이게 중요한 이유는, 긴 컨텍스트나 높은 동시성을 받을 때 보통 KV 캐시가 VRAM을 잡아먹는데 MLA는 그 부담을 줄여주기 때문이다. 같은 카드로 더 많은 동시 요청, 더 긴 컨텍스트를 처리할 수 있다.</p> <p>단, MLA는 서빙 엔진이 전용 커널로 지원해야 성능이 나온다. 아래에서 보듯 vLLM/SGLang 버전이 낮으면 MLA 최적화 경로를 안 타서 메모리 이점을 못 누리는 경우가 있다.</p> <h3 id=33-mtp와-speculative-decoding>3.3 MTP와 speculative decoding<a class=headerlink href=#33-mtp와-speculative-decoding title="Permanent link">&para;</a></h3> <p>MTP는 학습 시 다음 토큰 하나가 아니라 여러 토큰을 동시에 예측하게 한 목적함수다. 추론 단계에서는 이 MTP 헤드를 speculative decoding의 draft로 재활용할 수 있어서 토큰 생성 속도가 올라간다. SGLang/vLLM 최신 버전에서 MTP speculative decoding을 옵션으로 켤 수 있는데, 워크로드에 따라 처리량이 더 나오기도 하고 오히려 손해를 보기도 해서 실제 트래픽으로 A/B를 봐야 한다.</p> <hr> <h2 id=4-라이선스가-모델마다-다르다>4. 라이선스가 모델마다 다르다<a class=headerlink href=#4-라이선스가-모델마다-다르다 title="Permanent link">&para;</a></h2> <p>DeepSeek도 Qwen처럼 모델별 라이선스가 갈린다. 한 번 정리해두지 않으면 상업 도입 단계에서 법무에 막힌다.</p> <table> <thead> <tr> <th>모델</th> <th>코드 라이선스</th> <th>가중치 라이선스</th> <th>상업 사용</th> </tr> </thead> <tbody> <tr> <td>DeepSeek-Coder (1.3B~33B)</td> <td>MIT</td> <td>DeepSeek License</td> <td>가능 (사용 제한 조항 있음)</td> </tr> <tr> <td>DeepSeek-V2 / Coder-V2</td> <td>MIT</td> <td>DeepSeek License</td> <td>가능 (사용 제한 조항 있음)</td> </tr> <tr> <td>DeepSeek-V3</td> <td>MIT</td> <td>DeepSeek License</td> <td>가능 (사용 제한 조항 있음)</td> </tr> <tr> <td>DeepSeek-R1</td> <td>MIT</td> <td>MIT</td> <td>자유, distillation 허용</td> </tr> </tbody> </table> <p>핵심은 두 가지다.</p> <p>R1만 가중치까지 완전한 MIT다. 코드, 모델, 출력 증류까지 제약이 거의 없다. R1 출력으로 사내 작은 모델을 fine-tuning해서 상업 서비스에 박아도 라이선스상 문제가 없다. 이게 R1이 화제가 됐던 실무적 이유다.</p> <p>V3/Coder 계열은 코드는 MIT지만 가중치는 "DeepSeek License Agreement"다. 상업 사용은 허용하되 군사 용도, 불법 행위 등 use-based restriction(사용 목적 제한) 조항이 붙어 있다. Apache 2.0/MIT처럼 무조건 자유는 아니고, Llama의 Acceptable Use Policy와 비슷한 성격이다. 일반적인 SaaS/내부 도구 용도면 거의 걸릴 일이 없지만, 상업 서비스에 박기 전에 법무가 use-based restriction 조항을 한 번 읽어두는 게 안전하다.</p> <p>MAU 같은 사용자 수 상한 조항은 DeepSeek License에는 없다. Qwen 72B의 "1억 MAU" 같은 트랩은 없다는 뜻이라 그 점은 오히려 단순하다.</p> <hr> <h2 id=5-api-호출-방법>5. API 호출 방법<a class=headerlink href=#5-api-호출-방법 title="Permanent link">&para;</a></h2> <p>DeepSeek은 OpenAI 호환 엔드포인트를 제공한다. 기존 OpenAI SDK 코드에서 base URL과 모델명만 바꾸면 그대로 돈다. 별도 SDK가 없어서 마이그레이션이 Qwen보다 더 단순하다.</p> <h3 id=51-기본-호출-v3--deepseek-chat>5.1 기본 호출 (V3 = deepseek-chat)<a class=headerlink href=#51-기본-호출-v3--deepseek-chat title="Permanent link">&para;</a></h3> <div class="language-python highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=kn>from</span><span class=w> </span><span class=nn>openai</span><span class=w> </span><span class=kn>import</span> <span class=n>OpenAI</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>(</span>
-</span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>    <span class=n>api_key</span><span class=o>=</span><span class=s2>&quot;sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&quot;</span><span class=p>,</span>
-</span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>    <span class=n>base_url</span><span class=o>=</span><span class=s2>&quot;https://api.deepseek.com&quot;</span><span class=p>,</span>  <span class=c1># 또는 /v1</span>
-</span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=p>)</span>
-</span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>
-</span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;deepseek-chat&quot;</span><span class=p>,</span>
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
-</span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a>        <span class=p>{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;system&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=s2>&quot;당신은 백엔드 개발자입니다.&quot;</span><span class=p>},</span>
-</span><span id=__span-0-12><a id=__codelineno-0-12 name=__codelineno-0-12 href=#__codelineno-0-12></a>        <span class=p>{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=s2>&quot;분산 락 구현 방법을 알려주세요.&quot;</span><span class=p>},</span>
-</span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a>    <span class=p>],</span>
-</span><span id=__span-0-14><a id=__codelineno-0-14 name=__codelineno-0-14 href=#__codelineno-0-14></a>    <span class=n>temperature</span><span class=o>=</span><span class=mf>0.7</span><span class=p>,</span>
-</span><span id=__span-0-15><a id=__codelineno-0-15 name=__codelineno-0-15 href=#__codelineno-0-15></a>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>2048</span><span class=p>,</span>
-</span><span id=__span-0-16><a id=__codelineno-0-16 name=__codelineno-0-16 href=#__codelineno-0-16></a><span class=p>)</span>
-</span><span id=__span-0-17><a id=__codelineno-0-17 name=__codelineno-0-17 href=#__codelineno-0-17></a>
-</span><span id=__span-0-18><a id=__codelineno-0-18 name=__codelineno-0-18 href=#__codelineno-0-18></a><span class=nb>print</span><span class=p>(</span><span class=n>response</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
-</span></code></pre></div> <p><code>base_url</code>은 <code>https://api.deepseek.com</code>과 <code>https://api.deepseek.com/v1</code> 둘 다 동작한다. <code>/v1</code>은 OpenAI 호환 경로일 뿐 모델 버전과 무관하다. 여기서 헷갈리는 사람이 많다.</p> <h3 id=52-r1-호출과-reasoning_content-파싱>5.2 R1 호출과 reasoning_content 파싱<a class=headerlink href=#52-r1-호출과-reasoning_content-파싱 title="Permanent link">&para;</a></h3> <p><code>deepseek-reasoner</code>를 부르면 응답에 <code>reasoning_content</code> 필드가 추가로 들어온다. 최종 답변인 <code>content</code>와 별개로, R1이 거친 내부 추론(<code>&lt;think&gt;</code> 내용)이 여기 담긴다. o1과 달리 추론 과정을 통째로 노출해준다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;deepseek-reasoner&quot;</span><span class=p>,</span>
-</span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
-</span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>        <span class=p>{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=s2>&quot;1부터 100까지 소수의 개수를 구하고 풀이 과정을 설명해줘.&quot;</span><span class=p>},</span>
-</span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>    <span class=p>],</span>
-</span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a><span class=p>)</span>
-</span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a><span class=n>msg</span> <span class=o>=</span> <span class=n>response</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span>
-</span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a><span class=nb>print</span><span class=p>(</span><span class=s2>&quot;추론 과정:&quot;</span><span class=p>,</span> <span class=n>msg</span><span class=o>.</span><span class=n>reasoning_content</span><span class=p>)</span>  <span class=c1># &lt;think&gt; 내용</span>
-</span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a><span class=nb>print</span><span class=p>(</span><span class=s2>&quot;최종 답변:&quot;</span><span class=p>,</span> <span class=n>msg</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>            <span class=c1># 사용자에게 보여줄 답</span>
-</span></code></pre></div> <p>스트리밍에서는 <code>delta.reasoning_content</code>가 먼저 흘러나오고 추론이 끝나면 <code>delta.content</code>가 나온다. 챗 UI라면 reasoning_content는 접어두고 content만 펼쳐 보여주는 식으로 처리한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;deepseek-reasoner&quot;</span><span class=p>,</span>
-</span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;user&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=s2>&quot;...&quot;</span><span class=p>}],</span>
-</span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>    <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-2-5><a id=__codelineno-2-5 name=__codelineno-2-5 href=#__codelineno-2-5></a><span class=p>)</span>
-</span><span id=__span-2-6><a id=__codelineno-2-6 name=__codelineno-2-6 href=#__codelineno-2-6></a>
-</span><span id=__span-2-7><a id=__codelineno-2-7 name=__codelineno-2-7 href=#__codelineno-2-7></a><span class=k>for</span> <span class=n>chunk</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
-</span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>    <span class=n>delta</span> <span class=o>=</span> <span class=n>chunk</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span>
-</span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a>    <span class=k>if</span> <span class=n>delta</span><span class=o>.</span><span class=n>reasoning_content</span><span class=p>:</span>
-</span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a>        <span class=nb>print</span><span class=p>(</span><span class=n>delta</span><span class=o>.</span><span class=n>reasoning_content</span><span class=p>,</span> <span class=n>end</span><span class=o>=</span><span class=s2>&quot;&quot;</span><span class=p>,</span> <span class=n>flush</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>  <span class=c1># 추론 스트림</span>
-</span><span id=__span-2-11><a id=__codelineno-2-11 name=__codelineno-2-11 href=#__codelineno-2-11></a>    <span class=k>elif</span> <span class=n>delta</span><span class=o>.</span><span class=n>content</span><span class=p>:</span>
-</span><span id=__span-2-12><a id=__codelineno-2-12 name=__codelineno-2-12 href=#__codelineno-2-12></a>        <span class=nb>print</span><span class=p>(</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span><span class=p>,</span> <span class=n>end</span><span class=o>=</span><span class=s2>&quot;&quot;</span><span class=p>,</span> <span class=n>flush</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>             <span class=c1># 답변 스트림</span>
-</span></code></pre></div> <p>멀티턴에서 함정이 하나 있다. 다음 턴 요청을 보낼 때 직전 assistant 메시지의 <code>reasoning_content</code>를 messages에 다시 넣으면 안 된다. <code>content</code>만 넣어야 한다. reasoning_content를 그대로 다시 보내면 400 에러가 나거나 추론이 꼬인다. 멀티턴 히스토리를 쌓는 코드에서 이 필드를 자동으로 떼어내도록 짜둬야 한다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a><span class=c1># 멀티턴 히스토리 누적 시 reasoning_content는 제외</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=n>history</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&quot;role&quot;</span><span class=p>:</span> <span class=s2>&quot;assistant&quot;</span><span class=p>,</span> <span class=s2>&quot;content&quot;</span><span class=p>:</span> <span class=n>msg</span><span class=o>.</span><span class=n>content</span><span class=p>})</span>
-</span></code></pre></div> <h3 id=53-fim-코드-보간>5.3 FIM (코드 보간)<a class=headerlink href=#53-fim-코드-보간 title="Permanent link">&para;</a></h3> <p>코드 자동완성용 fill-in-the-middle은 별도 beta 엔드포인트를 쓴다. prefix와 suffix를 주면 그 사이를 채운다.</p> <div class="language-python highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>(</span>
-</span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>    <span class=n>api_key</span><span class=o>=</span><span class=s2>&quot;sk-...&quot;</span><span class=p>,</span>
-</span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>    <span class=n>base_url</span><span class=o>=</span><span class=s2>&quot;https://api.deepseek.com/beta&quot;</span><span class=p>,</span>  <span class=c1># FIM은 beta 경로</span>
-</span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a><span class=p>)</span>
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>    <span class=n>model</span><span class=o>=</span><span class=s2>&quot;deepseek-chat&quot;</span><span class=p>,</span>
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>    <span class=n>prompt</span><span class=o>=</span><span class=s2>&quot;def quicksort(arr):</span><span class=se>\n</span><span class=s2>    if len(arr) &lt;= 1:</span><span class=se>\n</span><span class=s2>        return arr</span><span class=se>\n</span><span class=s2>    &quot;</span><span class=p>,</span>
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>    <span class=n>suffix</span><span class=o>=</span><span class=s2>&quot;</span><span class=se>\n</span><span class=s2>    return quicksort(left) + middle + quicksort(right)&quot;</span><span class=p>,</span>
-</span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span>
-</span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=p>)</span>
-</span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a><span class=nb>print</span><span class=p>(</span><span class=n>response</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>text</span><span class=p>)</span>
-</span></code></pre></div> <p>self-host 시에는 FIM 특수 토큰 형식을 직접 맞춰야 하는 경우가 있다(7장 참고).</p> <hr> <h2 id=6-reasoning-모드-동작-방식과-다른-모델과의-차이>6. Reasoning 모드 동작 방식과 다른 모델과의 차이<a class=headerlink href=#6-reasoning-모드-동작-방식과-다른-모델과의-차이 title="Permanent link">&para;</a></h2> <h3 id=61-r1의-동작>6.1 R1의 동작<a class=headerlink href=#61-r1의-동작 title="Permanent link">&para;</a></h3> <p>R1은 강화학습으로 추론 행동이 가중치에 박힌 모델이다. 응답을 내기 전 <code>&lt;think&gt;</code> 블록 안에서 문제를 분해하고, 가설을 세우고, 틀리면 되돌아가는 과정을 길게 토큰으로 뽑는다. 이 추론 토큰이 다 생성된 뒤에야 최종 답이 시작된다. 그래서 정확도는 올라가지만 latency와 토큰 비용이 크게 늘어난다.</p> <p>R1에는 제약이 몇 개 있다. <code>deepseek-reasoner</code>는 function calling, JSON output, <code>temperature</code>, <code>top_p</code> 같은 파라미터를 지원하지 않거나 무시한다. 구조화 출력이나 도구 호출이 필요한 작업이면 R1이 아니라 V3(<code>deepseek-chat</code>)를 써야 한다. 이걸 모르고 R1에 <code>tools</code>를 넘기면 무시되거나 깨진 응답이 나온다.</p> <h3 id=62-qwen3-내장-토글과의-차이>6.2 Qwen3 내장 토글과의 차이<a class=headerlink href=#62-qwen3-내장-토글과의-차이 title="Permanent link">&para;</a></h3> <p>Qwen3는 한 모델/한 엔드포인트에서 <code>enable_thinking</code> 플래그로 추론을 켜고 끈다. DeepSeek은 모델(엔드포인트)을 아예 갈라놨다. non-thinking은 <code>deepseek-chat</code>, thinking은 <code>deepseek-reasoner</code>다. V3.1 세대부터 베이스 가중치는 공유하지만 호출 인터페이스는 여전히 엔드포인트로 나뉜다.</p> <p>실무 차이는 라우팅에 있다. Qwen3는 같은 모델 인스턴스에 요청별로 플래그만 바꿔 보내면 되지만, DeepSeek은 작업 성격에 따라 어느 엔드포인트로 보낼지를 애플리케이션 레벨에서 라우팅해야 한다. "이 요청은 추론이 필요하니 reasoner, 단순 답변이니 chat" 식의 분기를 코드로 짜두는 패턴이 일반적이다.</p> <h3 id=63-openai-o1-계열과의-차이>6.3 OpenAI o1 계열과의 차이<a class=headerlink href=#63-openai-o1-계열과의-차이 title="Permanent link">&para;</a></h3> <p>o1은 추론 토큰을 사용자에게 노출하지 않는다. 요약된 reasoning summary만 보여주고 원문 CoT는 숨긴다. R1은 <code>reasoning_content</code>로 전체 추론을 그대로 준다. 디버깅이나 추론 품질 검수가 필요한 워크로드에서는 R1 쪽이 다루기 편하다. 모델이 왜 그 답을 냈는지 추론 과정을 직접 들여다볼 수 있어서 프롬프트를 고치기 쉽다.</p> <p>또 o1은 reasoning effort를 파라미터로 조절할 수 있는데, R1은 그런 다이얼이 없다. 추론 길이를 직접 통제하기 어렵고, 프롬프트로 "짧게 생각해"를 넣어도 잘 안 먹는다. 토큰 폭주를 max_tokens로 막는 수밖에 없다(7장).</p> <p>작업별로 정리하면:</p> <ul> <li>수학, 코드 디버깅, 복잡한 논리: <code>deepseek-reasoner</code> (R1)</li> <li>일반 대화, 요약, 번역, 도구 호출, JSON 출력: <code>deepseek-chat</code> (V3)</li> </ul> <hr> <h2 id=7-자체-호스팅--670gb-모델을-멀티노드로-띄우기>7. 자체 호스팅 — 670GB 모델을 멀티노드로 띄우기<a class=headerlink href=#7-자체-호스팅--670gb-모델을-멀티노드로-띄우기 title="Permanent link">&para;</a></h2> <p>V3/R1을 self-host하려는 순간 단일 노드로는 안 된다는 벽에 부딪힌다. 견적부터 정리한다.</p> <h3 id=71-하드웨어-요구>7.1 하드웨어 요구<a class=headerlink href=#71-하드웨어-요구 title="Permanent link">&para;</a></h3> <p>FP8 가중치 670GB + KV 캐시 + 활성화 메모리를 담아야 한다. 카드별로 보면:</p> <table> <thead> <tr> <th>구성</th> <th>총 VRAM</th> <th>FP8 671B 수용</th> </tr> </thead> <tbody> <tr> <td>H100 80GB × 8 (1노드)</td> <td>640GB</td> <td>불가 (가중치만으로 초과)</td> </tr> <tr> <td>H100 80GB × 16 (2노드)</td> <td>1280GB</td> <td>가능</td> </tr> <tr> <td>H200 141GB × 8 (1노드)</td> <td>1128GB</td> <td>가능 (여유 있음)</td> </tr> <tr> <td>B200/GB200 계열</td> <td>노드당 더 큼</td> <td>단일 노드 가능</td> </tr> </tbody> </table> <p>핵심은 H100 8장 단일 노드로는 FP8 671B가 안 들어간다는 것이다. 1노드로 끝내려면 H200 이상 메모리 큰 카드가 필요하고, H100 세대면 2노드를 묶어야 한다. 2노드 구성은 노드 간 인터커넥트(InfiniBand 등)가 병목이 되므로 네트워크 사양도 같이 봐야 한다.</p> <h3 id=72-sglang으로-띄우기>7.2 SGLang으로 띄우기<a class=headerlink href=#72-sglang으로-띄우기 title="Permanent link">&para;</a></h3> <p>DeepSeek 계열은 SGLang이 MLA, MTP, DP attention 최적화를 가장 먼저 지원해서 사실상 표준에 가깝다. 단일 노드(H200 8장) 예시:</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>python<span class=w> </span>-m<span class=w> </span>sglang.launch_server<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=w>    </span>--model-path<span class=w> </span>deepseek-ai/DeepSeek-V3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>    </span>--tp<span class=w> </span><span class=m>8</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>    </span>--trust-remote-code<span class=w> </span><span class=se>\</span>
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>    </span>--port<span class=w> </span><span class=m>30000</span>
-</span></code></pre></div> <p>H100 2노드 구성이면 <code>--nnodes 2</code>로 노드를 묶고 각 노드에서 띄운다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># 노드 0 (마스터)</span>
-</span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>python<span class=w> </span>-m<span class=w> </span>sglang.launch_server<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>    </span>--model-path<span class=w> </span>deepseek-ai/DeepSeek-V3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>    </span>--tp<span class=w> </span><span class=m>16</span><span class=w> </span>--nnodes<span class=w> </span><span class=m>2</span><span class=w> </span>--node-rank<span class=w> </span><span class=m>0</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>    </span>--dist-init-addr<span class=w> </span><span class=m>10</span>.0.0.1:5000<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a><span class=w>    </span>--trust-remote-code
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a><span class=c1># 노드 1</span>
-</span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>python<span class=w> </span>-m<span class=w> </span>sglang.launch_server<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a><span class=w>    </span>--model-path<span class=w> </span>deepseek-ai/DeepSeek-V3<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-11><a id=__codelineno-6-11 name=__codelineno-6-11 href=#__codelineno-6-11></a><span class=w>    </span>--tp<span class=w> </span><span class=m>16</span><span class=w> </span>--nnodes<span class=w> </span><span class=m>2</span><span class=w> </span>--node-rank<span class=w> </span><span class=m>1</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-12><a id=__codelineno-6-12 name=__codelineno-6-12 href=#__codelineno-6-12></a><span class=w>    </span>--dist-init-addr<span class=w> </span><span class=m>10</span>.0.0.1:5000<span class=w> </span><span class=se>\</span>
-</span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a><span class=w>    </span>--trust-remote-code
-</span></code></pre></div> <p>두 노드의 <code>--dist-init-addr</code>가 같아야 하고, 방화벽에서 해당 포트가 노드 간 열려 있어야 한다. 인터커넥트가 이더넷이면 TP 통신 오버헤드가 커서 처리량이 확 떨어진다. 멀티노드 TP는 InfiniBand/NVLink가 전제다.</p> <h3 id=73-vllm으로-띄우기>7.3 vLLM으로 띄우기<a class=headerlink href=#73-vllm으로-띄우기 title="Permanent link">&para;</a></h3> <p>vLLM도 DeepSeek MLA를 지원하지만 버전에 민감하다. 낮은 버전은 MLA 전용 커널이 빠져서 KV 캐시 이점을 못 누리거나 아예 로드가 안 된다. 멀티노드는 Ray 클러스터를 먼저 띄운 뒤 그 위에서 서빙한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>vllm<span class=w> </span>serve<span class=w> </span>deepseek-ai/DeepSeek-R1<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a><span class=w>    </span>--tensor-parallel-size<span class=w> </span><span class=m>8</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>    </span>--pipeline-parallel-size<span class=w> </span><span class=m>2</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>    </span>--trust-remote-code<span class=w> </span><span class=se>\</span>
-</span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=w>    </span>--max-model-len<span class=w> </span><span class=m>65536</span>
-</span></code></pre></div> <p>TP×PP가 전체 GPU 수와 맞아야 한다(위 예시는 16장). reasoning 모델은 vLLM의 reasoning parser(<code>--reasoning-parser deepseek_r1</code>)를 켜야 <code>&lt;think&gt;</code> 블록을 reasoning_content로 분리해준다. 안 켜면 추론이 그대로 content에 섞여 나온다.</p> <p>self-host는 노드 비용이 크기 때문에, 트래픽이 풀로 안 차는 상황이면 API가 훨씬 싸다. 670GB 모델을 24시간 돌리는 H100 16장 비용 vs API 토큰 단가를 실제 트래픽 기준으로 비교해보고 결정해야 한다. 어중간한 트래픽이면 API가 이긴다.</p> <hr> <h2 id=8-다른-모델과의-비교>8. 다른 모델과의 비교<a class=headerlink href=#8-다른-모델과의-비교 title="Permanent link">&para;</a></h2> <h3 id=81-대형-moe-라인>8.1 대형 MoE 라인<a class=headerlink href=#81-대형-moe-라인 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>DeepSeek-V3 (A37B-671B)</th> <th>Qwen3.6-A22B-235B</th> <th>Mixtral 8x22B (A39B-141B)</th> </tr> </thead> <tbody> <tr> <td>라이선스(가중치)</td> <td>DeepSeek License</td> <td>Apache 2.0</td> <td>Apache 2.0</td> </tr> <tr> <td>활성/전체 파라미터</td> <td>37B / 671B</td> <td>22B / 235B</td> <td>39B / 141B</td> </tr> <tr> <td>VRAM (FP8/full)</td> <td>670GB / 1.3TB</td> <td>약 470GB (bf16)</td> <td>280GB (bf16)</td> </tr> <tr> <td>self-host 노드</td> <td>2노드(H100) 또는 H200 1노드</td> <td>H100 8장 1노드</td> <td>H100 4장</td> </tr> <tr> <td>KV 캐시 최적화</td> <td>MLA</td> <td>GQA</td> <td>GQA</td> </tr> <tr> <td>한국어 품질</td> <td>중상</td> <td>상</td> <td>중</td> </tr> </tbody> </table> <p>self-host 진입 장벽은 DeepSeek-V3가 셋 중 가장 높다. Qwen3.6-A22B는 H100 한 노드면 올라가는데 V3는 두 노드가 필요하다. 회사에서 LLM 인프라를 직접 구성한다면 이 한 노드 차이가 운영 비용에 크게 작용한다. 품질만 보면 V3가 앞서지만, 인프라 부담까지 합치면 한국어 워크로드는 Qwen이 가성비가 낫다.</p> <h3 id=82-reasoning-모델>8.2 reasoning 모델<a class=headerlink href=#82-reasoning-모델 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>DeepSeek-R1</th> <th>OpenAI o1</th> <th>Qwen3 (thinking)</th> </tr> </thead> <tbody> <tr> <td>추론 노출</td> <td>전체 CoT (reasoning_content)</td> <td>요약만</td> <td>전체 <code>&lt;think&gt;</code></td> </tr> <tr> <td>모드 전환</td> <td>엔드포인트 분리</td> <td>모델 분리</td> <td>한 모델 토글</td> </tr> <tr> <td>가중치 공개</td> <td>O (MIT)</td> <td>X</td> <td>O (Apache 2.0)</td> </tr> <tr> <td>function calling</td> <td>미지원</td> <td>지원</td> <td>지원(끄는 게 안정적)</td> </tr> <tr> <td>reasoning effort 조절</td> <td>불가</td> <td>가능</td> <td>불가</td> </tr> <tr> <td>가격</td> <td>가장 쌈</td> <td>비쌈</td> <td>중간/self-host</td> </tr> </tbody> </table> <p>R1은 추론 과정을 통째로 노출하고 가중치가 MIT라 검수와 distillation 측면에서 다루기 편하다. 대신 도구 호출/구조화 출력이 안 되니 그런 작업은 V3로 빠져야 한다. o1은 폐쇄형이지만 reasoning effort 다이얼과 안정적인 도구 호출이 강점이다.</p> <h3 id=83-코딩-특화>8.3 코딩 특화<a class=headerlink href=#83-코딩-특화 title="Permanent link">&para;</a></h3> <table> <thead> <tr> <th>항목</th> <th>DeepSeek-Coder-V2 (A21B-236B)</th> <th>DeepSeek-Coder-V2-Lite (A2.4B-16B)</th> <th>Qwen2.5-Coder-32B</th> </tr> </thead> <tbody> <tr> <td>컨텍스트</td> <td>128K</td> <td>128K</td> <td>32K</td> </tr> <tr> <td>FIM 지원</td> <td>O</td> <td>O</td> <td>O</td> </tr> <tr> <td>self-host</td> <td>멀티 GPU</td> <td>단일 GPU 가능</td> <td>단일 GPU(bf16 64GB)</td> </tr> <tr> <td>라이선스(가중치)</td> <td>DeepSeek License</td> <td>DeepSeek License</td> <td>Apache 2.0</td> </tr> </tbody> </table> <p>IDE 자동완성을 self-host로 붙일 거면 Coder-V2-Lite가 단일 GPU에서 돌고 128K 컨텍스트라 리포지토리 레벨 보간에 쓸 만하다. 다만 라이선스가 Apache가 아니라 DeepSeek License라 상업 도입 전 use-based restriction 확인이 필요하다. 그 부담을 피하려면 Qwen2.5-Coder가 깔끔하다.</p> <hr> <h2 id=9-실무에서-자주-마주치는-함정>9. 실무에서 자주 마주치는 함정<a class=headerlink href=#9-실무에서-자주-마주치는-함정 title="Permanent link">&para;</a></h2> <h3 id=91-r1-추론-토큰-폭주>9.1 R1 추론 토큰 폭주<a class=headerlink href=#91-r1-추론-토큰-폭주 title="Permanent link">&para;</a></h3> <p>R1은 reasoning effort 조절이 없어서 어려운 문제를 던지면 추론 토큰이 1만 토큰 이상 나가기도 한다. "단계별로 자세히" 같은 지시를 system/user에 넣으면 더 길어진다. <code>max_tokens</code>를 안 걸어두면 비용이 예상의 몇 배로 튄다. R1에서는 max_tokens를 넉넉히 잡되 상한을 반드시 두고, 추론 길이를 늘리는 프롬프트 지시는 빼는 게 낫다. 그리고 reasoning_content도 과금 대상이라는 점을 비용 산정에 반영해야 한다.</p> <h3 id=92-r1에-도구-호출json을-시키면-깨진다>9.2 R1에 도구 호출/JSON을 시키면 깨진다<a class=headerlink href=#92-r1에-도구-호출json을-시키면-깨진다 title="Permanent link">&para;</a></h3> <p><code>deepseek-reasoner</code>는 function calling, JSON output을 지원하지 않는다. <code>tools</code>나 <code>response_format={"type": "json_object"}</code>를 넘겨도 무시되거나 깨진 응답이 나온다. 구조화 출력/도구 호출이 필요하면 <code>deepseek-chat</code>(V3)으로 보내야 한다. 라우팅 코드에서 "도구 필요 → chat, 추론 필요 → reasoner"로 분기하고, 둘 다 필요한 작업은 추론은 reasoner로 먼저 받고 그 결과를 chat에 넘겨 JSON으로 정리하는 2단 파이프라인으로 푸는 게 안전하다.</p> <h3 id=93-멀티턴에서-reasoning_content-재전송>9.3 멀티턴에서 reasoning_content 재전송<a class=headerlink href=#93-멀티턴에서-reasoning_content-재전송 title="Permanent link">&para;</a></h3> <p>5.2에서 짚었듯, 다음 턴에 직전 assistant의 <code>reasoning_content</code>를 messages에 다시 넣으면 에러가 난다. <code>content</code>만 히스토리에 누적해야 한다. 대화 히스토리를 통째로 append하는 흔한 패턴을 그대로 쓰면 이 필드가 섞여 들어가서 깨진다. assistant 메시지를 저장할 때 reasoning_content를 떼어내는 로직을 넣어둬야 한다.</p> <h3 id=94-fim-토큰-형식>9.4 FIM 토큰 형식<a class=headerlink href=#94-fim-토큰-형식 title="Permanent link">&para;</a></h3> <p>self-host로 FIM을 쓸 때 특수 토큰 형식을 직접 맞춰야 한다. DeepSeek FIM은 <code>&lt;｜fim▁begin｜&gt;</code>, <code>&lt;｜fim▁hole｜&gt;</code>, <code>&lt;｜fim▁end｜&gt;</code> 형태의 토큰을 쓴다(전각 파이프 문자라 일반 <code>|</code>와 다르다). 이걸 ASCII 파이프로 잘못 적으면 토크나이저가 특수 토큰으로 인식 못 하고 평문으로 처리해서 보간이 완전히 망가진다. API beta 엔드포인트(<code>completions</code> + suffix)를 쓰면 이 토큰을 직접 만질 일은 없지만, self-host에서 raw completion으로 FIM을 구현하면 토큰 형식이 첫 번째 디버깅 포인트다.</p> <h3 id=95-컨텍스트-길이-한계>9.5 컨텍스트 길이 한계<a class=headerlink href=#95-컨텍스트-길이-한계 title="Permanent link">&para;</a></h3> <p>API의 컨텍스트는 모델 페이지에 명시된 값을 따른다(세대에 따라 64K~128K). 입력 + reasoning_content + 출력이 전부 이 한도 안에 들어가야 한다. R1은 reasoning_content가 컨텍스트를 크게 잡아먹기 때문에, 긴 입력에 R1을 쓰면 추론 도중 한도에 걸려 답이 잘리는 일이 생긴다. 긴 문서를 R1으로 처리할 때는 입력을 줄이거나 작업을 쪼개야 한다. self-host에서 <code>--max-model-len</code>을 모델 학습 컨텍스트보다 크게 잡으면 로드는 되지만 품질이 무너지므로 학습 한도 안에서 잡는다.</p> <h3 id=96-캐시-가격-정책>9.6 캐시 가격 정책<a class=headerlink href=#96-캐시-가격-정책 title="Permanent link">&para;</a></h3> <p>DeepSeek API는 context caching이 있어서 같은 prefix가 반복되면 cache hit 단가로 크게 싸진다. cache miss(처음 보는 입력) 대비 cache hit 토큰 단가가 몇 분의 일 수준이다. 같은 system 프롬프트나 같은 문서를 반복 질의하는 워크로드면 prefix를 고정해서 캐시를 태우는 것만으로 비용이 크게 준다. 반대로 매 요청 prefix가 달라지면 캐시가 안 먹어서 단가가 비싸진다. 비용을 추정할 때 cache hit/miss 비율을 가정에 넣어야 실제 청구액과 맞는다. 캐시는 일정 시간 미사용 시 만료되므로, 트래픽이 듬성듬성하면 캐시 적중률이 생각보다 낮게 나온다.</p> <hr> <h2 id=10-정리>10. 정리<a class=headerlink href=#10-정리 title="Permanent link">&para;</a></h2> <p>DeepSeek은 V3로 GPT-4o 구간의 범용 성능을, R1으로 o1 구간의 추론 성능을 가져가면서 가격을 크게 낮춘 라인이다. API로 쓰면 가성비가 가장 큰 무기지만, self-host는 671B MoE라 멀티노드가 필요해서 진입 장벽이 Qwen보다 훨씬 높다.</p> <p>모델 선택은 단순하게 가른다. 도구 호출/JSON/일반 작업은 <code>deepseek-chat</code>(V3), 수학·코드·논리 추론은 <code>deepseek-reasoner</code>(R1)다. R1은 도구 호출과 구조화 출력이 안 되고 추론 토큰이 폭주할 수 있으니 max_tokens 상한과 라우팅 분기를 코드에 박아두는 게 운영의 절반이다. 가중치를 완전히 풀고 distillation까지 허용하는 R1의 MIT 라이선스는, 사내 작은 모델을 학습시켜 쓰려는 경우 실무에서 가장 큰 이점이다.</p> <p>오픈소스 LLM을 폭넓게 비교하려면 <a href=../../Qwen/Qwen/ >Qwen 모델 패밀리</a> 문서를 같이 보면 된다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../../Concepts/AI_Hallucination/ >AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지</a></li> <li><a href=../../Concepts/Agent_Harness/ >Agent Harness — Claude Code 하네스로 보는 에이전트 런타임</a></li> <li><a href=../../Claude/Claude/ >Claude</a></li> <li><a href=../../Claude/Claude_Opus_4_7/ >Claude Opus 4.7</a></li> <li><a href=../../Claude/Claude_Opus_4_8/ >Claude Opus 4.8</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../ class="md-footer__link md-footer__link--prev" aria-label="이전: DeepSeek 전체 보기"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> DeepSeek 전체 보기 </div> </div> </a> <a href=../../GBrain/ class="md-footer__link md-footer__link--next" aria-label="다음: GBrain 전체 보기"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> GBrain 전체 보기 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <div class=md-progress data-md-component=progress role=progressbar></div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+    V3 --&gt; V31</code></pre>
+<p>세대별로 실무에서 알아야 할 차이만 짚는다.</p>
+<h3 id="21-deepseek-v2--coder-v2">2.1 DeepSeek-V2 / Coder-V2<a class="headerlink" href="#21-deepseek-v2--coder-v2" title="Permanent link">&para;</a></h3>
+<p>MLA(Multi-head Latent Attention)가 처음 들어간 세대다. MLA는 KV 캐시를 압축하는 어텐션 변종인데, 이게 self-host 비용에 직접 영향을 준다(3장에서 다룬다). Coder-V2는 V2를 코드 데이터로 추가 학습한 버전이고, 풀 사이즈(A21B-236B)와 Lite(A2.4B-16B) 두 종이 있다. Lite는 단일 GPU에서도 돌아가서 IDE 자동완성용 self-host 후보로 많이 쓰였다. 컨텍스트 128K, FIM(fill-in-the-middle) 지원이라 코드 보간 용도로 맞다.</p>
+<h3 id="22-deepseek-v3">2.2 DeepSeek-V3<a class="headerlink" href="#22-deepseek-v3" title="Permanent link">&para;</a></h3>
+<p>현행 베이스 모델이다. 전체 671B 파라미터에 토큰당 활성 37B(A37B-671B)인 MoE다. 핵심은 세 가지다.</p>
+<ul>
+<li>MLA로 KV 캐시를 dense 대비 1/5 이하로 줄였다</li>
+<li>FP8 혼합정밀도로 학습해서 학습 비용을 크게 낮췄다(공개된 학습 비용이 화제가 됐던 이유)</li>
+<li>MTP(Multi-Token Prediction) 목적함수를 써서 학습 효율과 추론 시 speculative decoding을 동시에 노렸다</li>
+</ul>
+<p>API에서는 <code>deepseek-chat</code>이 V3 계열을 가리킨다. 일반 대화/코드/요약 작업에 쓰는 기본 모델이다.</p>
+<h3 id="23-deepseek-r1">2.3 DeepSeek-R1<a class="headerlink" href="#23-deepseek-r1" title="Permanent link">&para;</a></h3>
+<p>V3를 베이스로 강화학습을 돌려 만든 reasoning 특화 모델이다. 응답 전에 <code>&lt;think&gt;...&lt;/think&gt;</code> 블록으로 내부 추론을 길게 뽑고 그 다음 최종 답을 낸다. o1 계열과 경쟁하는 포지션이고, 수학/코드/논리 문제에서 V3보다 정확도가 확실히 높다. API에서는 <code>deepseek-reasoner</code>다.</p>
+<p>R1의 가장 큰 의미는 라이선스다. 가중치를 MIT로 풀었고 distillation(증류)을 명시적으로 허용했다. R1 출력으로 작은 모델을 학습시켜 상업적으로 쓰는 게 라이선스상 막히지 않는다. 실제로 R1 distill 버전(Qwen/Llama 베이스)이 여럿 나왔다.</p>
+<h3 id="24-deepseek-v31-통합-세대">2.4 DeepSeek-V3.1 (통합 세대)<a class="headerlink" href="#24-deepseek-v31-통합-세대" title="Permanent link">&para;</a></h3>
+<p>R1을 별도 모델로 두던 구조에서, thinking/non-thinking을 한 베이스에서 처리하는 방향으로 정리한 세대다. Qwen3가 <code>enable_thinking</code> 토글로 한 모델에서 처리하는 것과 비슷한 발상인데, DeepSeek은 모델 가중치는 공유하되 API 엔드포인트(<code>deepseek-chat</code> vs <code>deepseek-reasoner</code>)로 모드를 가른다. 이 구분은 5장에서 다시 본다.</p>
+<hr />
+<h2 id="3-moe-아키텍처가-self-host와-비용에-주는-실제-영향">3. MoE 아키텍처가 self-host와 비용에 주는 실제 영향<a class="headerlink" href="#3-moe-아키텍처가-self-host와-비용에-주는-실제-영향" title="Permanent link">&para;</a></h2>
+<p>V3/R1의 671B라는 숫자만 보면 겁이 나지만, MoE 구조 때문에 실제 연산량과 메모리 요구는 좀 다르게 움직인다. 이걸 이해해야 인프라 견적이 나온다.</p>
+<h3 id="31-a37b-671b의-의미">3.1 A37B-671B의 의미<a class="headerlink" href="#31-a37b-671b의-의미" title="Permanent link">&para;</a></h3>
+<p>토큰 하나를 처리할 때 671B 전체가 도는 게 아니라 라우터가 고른 전문가(expert)만 활성화돼서 37B 분량만 연산한다. 그래서 추론 시 연산량(FLOPs)은 37B dense 모델 수준이다. 처리 속도가 빠른 이유가 이것이다.</p>
+<p>문제는 메모리다. 어떤 토큰이 어떤 expert를 부를지 모르니 671B 가중치 전체를 VRAM에 올려둬야 한다. 즉 연산은 37B인데 메모리는 671B를 요구한다. 이 비대칭이 MoE self-host의 핵심 함정이다. "연산 가벼우니까 작은 카드로 되겠지" 하고 견적 잡으면 메모리에서 막힌다.</p>
+<p>대략적인 메모리 계산:</p>
+<table>
+<thead>
+<tr>
+<th>정밀도</th>
+<th>가중치 크기</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FP8</td>
+<td>약 670GB</td>
+<td>DeepSeek 공식 배포 포맷</td>
+</tr>
+<tr>
+<td>BF16</td>
+<td>약 1.3TB</td>
+<td>FP8을 풀면 두 배</td>
+</tr>
+<tr>
+<td>양자화(INT4 등)</td>
+<td>약 350GB 전후</td>
+<td>커뮤니티 양자화, 품질 손실 있음</td>
+</tr>
+</tbody>
+</table>
+<p>여기에 KV 캐시와 활성화 메모리가 추가로 붙는다. 그래서 FP8 670GB가 H100 8장(640GB)에 "딱 안 들어간다". 가중치만으로 이미 초과다.</p>
+<h3 id="32-mla가-self-host에-주는-이점">3.2 MLA가 self-host에 주는 이점<a class="headerlink" href="#32-mla가-self-host에-주는-이점" title="Permanent link">&para;</a></h3>
+<p>MLA는 KV 캐시를 저차원 latent로 압축해서 저장한다. 일반 multi-head attention 대비 KV 캐시 메모리가 크게 줄어든다(모델마다 다르지만 1/5~1/10 수준으로 보고된다). self-host 입장에서 이게 중요한 이유는, 긴 컨텍스트나 높은 동시성을 받을 때 보통 KV 캐시가 VRAM을 잡아먹는데 MLA는 그 부담을 줄여주기 때문이다. 같은 카드로 더 많은 동시 요청, 더 긴 컨텍스트를 처리할 수 있다.</p>
+<p>단, MLA는 서빙 엔진이 전용 커널로 지원해야 성능이 나온다. 아래에서 보듯 vLLM/SGLang 버전이 낮으면 MLA 최적화 경로를 안 타서 메모리 이점을 못 누리는 경우가 있다.</p>
+<h3 id="33-mtp와-speculative-decoding">3.3 MTP와 speculative decoding<a class="headerlink" href="#33-mtp와-speculative-decoding" title="Permanent link">&para;</a></h3>
+<p>MTP는 학습 시 다음 토큰 하나가 아니라 여러 토큰을 동시에 예측하게 한 목적함수다. 추론 단계에서는 이 MTP 헤드를 speculative decoding의 draft로 재활용할 수 있어서 토큰 생성 속도가 올라간다. SGLang/vLLM 최신 버전에서 MTP speculative decoding을 옵션으로 켤 수 있는데, 워크로드에 따라 처리량이 더 나오기도 하고 오히려 손해를 보기도 해서 실제 트래픽으로 A/B를 봐야 한다.</p>
+<hr />
+<h2 id="4-라이선스가-모델마다-다르다">4. 라이선스가 모델마다 다르다<a class="headerlink" href="#4-라이선스가-모델마다-다르다" title="Permanent link">&para;</a></h2>
+<p>DeepSeek도 Qwen처럼 모델별 라이선스가 갈린다. 한 번 정리해두지 않으면 상업 도입 단계에서 법무에 막힌다.</p>
+<table>
+<thead>
+<tr>
+<th>모델</th>
+<th>코드 라이선스</th>
+<th>가중치 라이선스</th>
+<th>상업 사용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DeepSeek-Coder (1.3B~33B)</td>
+<td>MIT</td>
+<td>DeepSeek License</td>
+<td>가능 (사용 제한 조항 있음)</td>
+</tr>
+<tr>
+<td>DeepSeek-V2 / Coder-V2</td>
+<td>MIT</td>
+<td>DeepSeek License</td>
+<td>가능 (사용 제한 조항 있음)</td>
+</tr>
+<tr>
+<td>DeepSeek-V3</td>
+<td>MIT</td>
+<td>DeepSeek License</td>
+<td>가능 (사용 제한 조항 있음)</td>
+</tr>
+<tr>
+<td>DeepSeek-R1</td>
+<td>MIT</td>
+<td>MIT</td>
+<td>자유, distillation 허용</td>
+</tr>
+</tbody>
+</table>
+<p>핵심은 두 가지다.</p>
+<p>R1만 가중치까지 완전한 MIT다. 코드, 모델, 출력 증류까지 제약이 거의 없다. R1 출력으로 사내 작은 모델을 fine-tuning해서 상업 서비스에 박아도 라이선스상 문제가 없다. 이게 R1이 화제가 됐던 실무적 이유다.</p>
+<p>V3/Coder 계열은 코드는 MIT지만 가중치는 "DeepSeek License Agreement"다. 상업 사용은 허용하되 군사 용도, 불법 행위 등 use-based restriction(사용 목적 제한) 조항이 붙어 있다. Apache 2.0/MIT처럼 무조건 자유는 아니고, Llama의 Acceptable Use Policy와 비슷한 성격이다. 일반적인 SaaS/내부 도구 용도면 거의 걸릴 일이 없지만, 상업 서비스에 박기 전에 법무가 use-based restriction 조항을 한 번 읽어두는 게 안전하다.</p>
+<p>MAU 같은 사용자 수 상한 조항은 DeepSeek License에는 없다. Qwen 72B의 "1억 MAU" 같은 트랩은 없다는 뜻이라 그 점은 오히려 단순하다.</p>
+<hr />
+<h2 id="5-api-호출-방법">5. API 호출 방법<a class="headerlink" href="#5-api-호출-방법" title="Permanent link">&para;</a></h2>
+<p>DeepSeek은 OpenAI 호환 엔드포인트를 제공한다. 기존 OpenAI SDK 코드에서 base URL과 모델명만 바꾸면 그대로 돈다. 별도 SDK가 없어서 마이그레이션이 Qwen보다 더 단순하다.</p>
+<h3 id="51-기본-호출-v3--deepseek-chat">5.1 기본 호출 (V3 = deepseek-chat)<a class="headerlink" href="#51-기본-호출-v3--deepseek-chat" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&quot;</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.deepseek.com&quot;</span><span class="p">,</span>  <span class="c1"># 또는 /v1</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;deepseek-chat&quot;</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;당신은 백엔드 개발자입니다.&quot;</span><span class="p">},</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;분산 락 구현 방법을 알려주세요.&quot;</span><span class="p">},</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">],</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">temperature</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">max_tokens</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>base_url</code>은 <code>https://api.deepseek.com</code>과 <code>https://api.deepseek.com/v1</code> 둘 다 동작한다. <code>/v1</code>은 OpenAI 호환 경로일 뿐 모델 버전과 무관하다. 여기서 헷갈리는 사람이 많다.</p>
+<h3 id="52-r1-호출과-reasoning_content-파싱">5.2 R1 호출과 reasoning_content 파싱<a class="headerlink" href="#52-r1-호출과-reasoning_content-파싱" title="Permanent link">&para;</a></h3>
+<p><code>deepseek-reasoner</code>를 부르면 응답에 <code>reasoning_content</code> 필드가 추가로 들어온다. 최종 답변인 <code>content</code>와 별개로, R1이 거친 내부 추론(<code>&lt;think&gt;</code> 내용)이 여기 담긴다. o1과 달리 추론 과정을 통째로 노출해준다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;deepseek-reasoner&quot;</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;1부터 100까지 소수의 개수를 구하고 풀이 과정을 설명해줘.&quot;</span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="p">],</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">msg</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;추론 과정:&quot;</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">reasoning_content</span><span class="p">)</span>  <span class="c1"># &lt;think&gt; 내용</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;최종 답변:&quot;</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>            <span class="c1"># 사용자에게 보여줄 답</span>
+</span></code></pre></div>
+<p>스트리밍에서는 <code>delta.reasoning_content</code>가 먼저 흘러나오고 추론이 끝나면 <code>delta.content</code>가 나온다. 챗 UI라면 reasoning_content는 접어두고 content만 펼쳐 보여주는 식으로 처리한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;deepseek-reasoner&quot;</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}],</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">if</span> <span class="n">delta</span><span class="o">.</span><span class="n">reasoning_content</span><span class="p">:</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">reasoning_content</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># 추론 스트림</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="k">elif</span> <span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>             <span class="c1"># 답변 스트림</span>
+</span></code></pre></div>
+<p>멀티턴에서 함정이 하나 있다. 다음 턴 요청을 보낼 때 직전 assistant 메시지의 <code>reasoning_content</code>를 messages에 다시 넣으면 안 된다. <code>content</code>만 넣어야 한다. reasoning_content를 그대로 다시 보내면 400 에러가 나거나 추론이 꼬인다. 멀티턴 히스토리를 쌓는 코드에서 이 필드를 자동으로 떼어내도록 짜둬야 한다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 멀티턴 히스토리 누적 시 reasoning_content는 제외</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">})</span>
+</span></code></pre></div>
+<h3 id="53-fim-코드-보간">5.3 FIM (코드 보간)<a class="headerlink" href="#53-fim-코드-보간" title="Permanent link">&para;</a></h3>
+<p>코드 자동완성용 fill-in-the-middle은 별도 beta 엔드포인트를 쓴다. prefix와 suffix를 주면 그 사이를 채운다.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;sk-...&quot;</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://api.deepseek.com/beta&quot;</span><span class="p">,</span>  <span class="c1"># FIM은 beta 경로</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;deepseek-chat&quot;</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;def quicksort(arr):</span><span class="se">\n</span><span class="s2">    if len(arr) &lt;= 1:</span><span class="se">\n</span><span class="s2">        return arr</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    return quicksort(left) + middle + quicksort(right)&quot;</span><span class="p">,</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">max_tokens</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">)</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+</span></code></pre></div>
+<p>self-host 시에는 FIM 특수 토큰 형식을 직접 맞춰야 하는 경우가 있다(7장 참고).</p>
+<hr />
+<h2 id="6-reasoning-모드-동작-방식과-다른-모델과의-차이">6. Reasoning 모드 동작 방식과 다른 모델과의 차이<a class="headerlink" href="#6-reasoning-모드-동작-방식과-다른-모델과의-차이" title="Permanent link">&para;</a></h2>
+<h3 id="61-r1의-동작">6.1 R1의 동작<a class="headerlink" href="#61-r1의-동작" title="Permanent link">&para;</a></h3>
+<p>R1은 강화학습으로 추론 행동이 가중치에 박힌 모델이다. 응답을 내기 전 <code>&lt;think&gt;</code> 블록 안에서 문제를 분해하고, 가설을 세우고, 틀리면 되돌아가는 과정을 길게 토큰으로 뽑는다. 이 추론 토큰이 다 생성된 뒤에야 최종 답이 시작된다. 그래서 정확도는 올라가지만 latency와 토큰 비용이 크게 늘어난다.</p>
+<p>R1에는 제약이 몇 개 있다. <code>deepseek-reasoner</code>는 function calling, JSON output, <code>temperature</code>, <code>top_p</code> 같은 파라미터를 지원하지 않거나 무시한다. 구조화 출력이나 도구 호출이 필요한 작업이면 R1이 아니라 V3(<code>deepseek-chat</code>)를 써야 한다. 이걸 모르고 R1에 <code>tools</code>를 넘기면 무시되거나 깨진 응답이 나온다.</p>
+<h3 id="62-qwen3-내장-토글과의-차이">6.2 Qwen3 내장 토글과의 차이<a class="headerlink" href="#62-qwen3-내장-토글과의-차이" title="Permanent link">&para;</a></h3>
+<p>Qwen3는 한 모델/한 엔드포인트에서 <code>enable_thinking</code> 플래그로 추론을 켜고 끈다. DeepSeek은 모델(엔드포인트)을 아예 갈라놨다. non-thinking은 <code>deepseek-chat</code>, thinking은 <code>deepseek-reasoner</code>다. V3.1 세대부터 베이스 가중치는 공유하지만 호출 인터페이스는 여전히 엔드포인트로 나뉜다.</p>
+<p>실무 차이는 라우팅에 있다. Qwen3는 같은 모델 인스턴스에 요청별로 플래그만 바꿔 보내면 되지만, DeepSeek은 작업 성격에 따라 어느 엔드포인트로 보낼지를 애플리케이션 레벨에서 라우팅해야 한다. "이 요청은 추론이 필요하니 reasoner, 단순 답변이니 chat" 식의 분기를 코드로 짜두는 패턴이 일반적이다.</p>
+<h3 id="63-openai-o1-계열과의-차이">6.3 OpenAI o1 계열과의 차이<a class="headerlink" href="#63-openai-o1-계열과의-차이" title="Permanent link">&para;</a></h3>
+<p>o1은 추론 토큰을 사용자에게 노출하지 않는다. 요약된 reasoning summary만 보여주고 원문 CoT는 숨긴다. R1은 <code>reasoning_content</code>로 전체 추론을 그대로 준다. 디버깅이나 추론 품질 검수가 필요한 워크로드에서는 R1 쪽이 다루기 편하다. 모델이 왜 그 답을 냈는지 추론 과정을 직접 들여다볼 수 있어서 프롬프트를 고치기 쉽다.</p>
+<p>또 o1은 reasoning effort를 파라미터로 조절할 수 있는데, R1은 그런 다이얼이 없다. 추론 길이를 직접 통제하기 어렵고, 프롬프트로 "짧게 생각해"를 넣어도 잘 안 먹는다. 토큰 폭주를 max_tokens로 막는 수밖에 없다(7장).</p>
+<p>작업별로 정리하면:</p>
+<ul>
+<li>수학, 코드 디버깅, 복잡한 논리: <code>deepseek-reasoner</code> (R1)</li>
+<li>일반 대화, 요약, 번역, 도구 호출, JSON 출력: <code>deepseek-chat</code> (V3)</li>
+</ul>
+<hr />
+<h2 id="7-자체-호스팅--670gb-모델을-멀티노드로-띄우기">7. 자체 호스팅 — 670GB 모델을 멀티노드로 띄우기<a class="headerlink" href="#7-자체-호스팅--670gb-모델을-멀티노드로-띄우기" title="Permanent link">&para;</a></h2>
+<p>V3/R1을 self-host하려는 순간 단일 노드로는 안 된다는 벽에 부딪힌다. 견적부터 정리한다.</p>
+<h3 id="71-하드웨어-요구">7.1 하드웨어 요구<a class="headerlink" href="#71-하드웨어-요구" title="Permanent link">&para;</a></h3>
+<p>FP8 가중치 670GB + KV 캐시 + 활성화 메모리를 담아야 한다. 카드별로 보면:</p>
+<table>
+<thead>
+<tr>
+<th>구성</th>
+<th>총 VRAM</th>
+<th>FP8 671B 수용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H100 80GB × 8 (1노드)</td>
+<td>640GB</td>
+<td>불가 (가중치만으로 초과)</td>
+</tr>
+<tr>
+<td>H100 80GB × 16 (2노드)</td>
+<td>1280GB</td>
+<td>가능</td>
+</tr>
+<tr>
+<td>H200 141GB × 8 (1노드)</td>
+<td>1128GB</td>
+<td>가능 (여유 있음)</td>
+</tr>
+<tr>
+<td>B200/GB200 계열</td>
+<td>노드당 더 큼</td>
+<td>단일 노드 가능</td>
+</tr>
+</tbody>
+</table>
+<p>핵심은 H100 8장 단일 노드로는 FP8 671B가 안 들어간다는 것이다. 1노드로 끝내려면 H200 이상 메모리 큰 카드가 필요하고, H100 세대면 2노드를 묶어야 한다. 2노드 구성은 노드 간 인터커넥트(InfiniBand 등)가 병목이 되므로 네트워크 사양도 같이 봐야 한다.</p>
+<h3 id="72-sglang으로-띄우기">7.2 SGLang으로 띄우기<a class="headerlink" href="#72-sglang으로-띄우기" title="Permanent link">&para;</a></h3>
+<p>DeepSeek 계열은 SGLang이 MLA, MTP, DP attention 최적화를 가장 먼저 지원해서 사실상 표준에 가깝다. 단일 노드(H200 8장) 예시:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>-m<span class="w"> </span>sglang.launch_server<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span>--model-path<span class="w"> </span>deepseek-ai/DeepSeek-V3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span>--tp<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span>--trust-remote-code<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span>--port<span class="w"> </span><span class="m">30000</span>
+</span></code></pre></div>
+<p>H100 2노드 구성이면 <code>--nnodes 2</code>로 노드를 묶고 각 노드에서 띄운다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 노드 0 (마스터)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>python<span class="w"> </span>-m<span class="w"> </span>sglang.launch_server<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>--model-path<span class="w"> </span>deepseek-ai/DeepSeek-V3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span>--tp<span class="w"> </span><span class="m">16</span><span class="w"> </span>--nnodes<span class="w"> </span><span class="m">2</span><span class="w"> </span>--node-rank<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span>--dist-init-addr<span class="w"> </span><span class="m">10</span>.0.0.1:5000<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span>--trust-remote-code
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="c1"># 노드 1</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>python<span class="w"> </span>-m<span class="w"> </span>sglang.launch_server<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span>--model-path<span class="w"> </span>deepseek-ai/DeepSeek-V3<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span>--tp<span class="w"> </span><span class="m">16</span><span class="w"> </span>--nnodes<span class="w"> </span><span class="m">2</span><span class="w"> </span>--node-rank<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">    </span>--dist-init-addr<span class="w"> </span><span class="m">10</span>.0.0.1:5000<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">    </span>--trust-remote-code
+</span></code></pre></div>
+<p>두 노드의 <code>--dist-init-addr</code>가 같아야 하고, 방화벽에서 해당 포트가 노드 간 열려 있어야 한다. 인터커넥트가 이더넷이면 TP 통신 오버헤드가 커서 처리량이 확 떨어진다. 멀티노드 TP는 InfiniBand/NVLink가 전제다.</p>
+<h3 id="73-vllm으로-띄우기">7.3 vLLM으로 띄우기<a class="headerlink" href="#73-vllm으로-띄우기" title="Permanent link">&para;</a></h3>
+<p>vLLM도 DeepSeek MLA를 지원하지만 버전에 민감하다. 낮은 버전은 MLA 전용 커널이 빠져서 KV 캐시 이점을 못 누리거나 아예 로드가 안 된다. 멀티노드는 Ray 클러스터를 먼저 띄운 뒤 그 위에서 서빙한다.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>vllm<span class="w"> </span>serve<span class="w"> </span>deepseek-ai/DeepSeek-R1<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span>--tensor-parallel-size<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span>--pipeline-parallel-size<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span>--trust-remote-code<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span>--max-model-len<span class="w"> </span><span class="m">65536</span>
+</span></code></pre></div>
+<p>TP×PP가 전체 GPU 수와 맞아야 한다(위 예시는 16장). reasoning 모델은 vLLM의 reasoning parser(<code>--reasoning-parser deepseek_r1</code>)를 켜야 <code>&lt;think&gt;</code> 블록을 reasoning_content로 분리해준다. 안 켜면 추론이 그대로 content에 섞여 나온다.</p>
+<p>self-host는 노드 비용이 크기 때문에, 트래픽이 풀로 안 차는 상황이면 API가 훨씬 싸다. 670GB 모델을 24시간 돌리는 H100 16장 비용 vs API 토큰 단가를 실제 트래픽 기준으로 비교해보고 결정해야 한다. 어중간한 트래픽이면 API가 이긴다.</p>
+<hr />
+<h2 id="8-다른-모델과의-비교">8. 다른 모델과의 비교<a class="headerlink" href="#8-다른-모델과의-비교" title="Permanent link">&para;</a></h2>
+<h3 id="81-대형-moe-라인">8.1 대형 MoE 라인<a class="headerlink" href="#81-대형-moe-라인" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>DeepSeek-V3 (A37B-671B)</th>
+<th>Qwen3.6-A22B-235B</th>
+<th>Mixtral 8x22B (A39B-141B)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>라이선스(가중치)</td>
+<td>DeepSeek License</td>
+<td>Apache 2.0</td>
+<td>Apache 2.0</td>
+</tr>
+<tr>
+<td>활성/전체 파라미터</td>
+<td>37B / 671B</td>
+<td>22B / 235B</td>
+<td>39B / 141B</td>
+</tr>
+<tr>
+<td>VRAM (FP8/full)</td>
+<td>670GB / 1.3TB</td>
+<td>약 470GB (bf16)</td>
+<td>280GB (bf16)</td>
+</tr>
+<tr>
+<td>self-host 노드</td>
+<td>2노드(H100) 또는 H200 1노드</td>
+<td>H100 8장 1노드</td>
+<td>H100 4장</td>
+</tr>
+<tr>
+<td>KV 캐시 최적화</td>
+<td>MLA</td>
+<td>GQA</td>
+<td>GQA</td>
+</tr>
+<tr>
+<td>한국어 품질</td>
+<td>중상</td>
+<td>상</td>
+<td>중</td>
+</tr>
+</tbody>
+</table>
+<p>self-host 진입 장벽은 DeepSeek-V3가 셋 중 가장 높다. Qwen3.6-A22B는 H100 한 노드면 올라가는데 V3는 두 노드가 필요하다. 회사에서 LLM 인프라를 직접 구성한다면 이 한 노드 차이가 운영 비용에 크게 작용한다. 품질만 보면 V3가 앞서지만, 인프라 부담까지 합치면 한국어 워크로드는 Qwen이 가성비가 낫다.</p>
+<h3 id="82-reasoning-모델">8.2 reasoning 모델<a class="headerlink" href="#82-reasoning-모델" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>DeepSeek-R1</th>
+<th>OpenAI o1</th>
+<th>Qwen3 (thinking)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>추론 노출</td>
+<td>전체 CoT (reasoning_content)</td>
+<td>요약만</td>
+<td>전체 <code>&lt;think&gt;</code></td>
+</tr>
+<tr>
+<td>모드 전환</td>
+<td>엔드포인트 분리</td>
+<td>모델 분리</td>
+<td>한 모델 토글</td>
+</tr>
+<tr>
+<td>가중치 공개</td>
+<td>O (MIT)</td>
+<td>X</td>
+<td>O (Apache 2.0)</td>
+</tr>
+<tr>
+<td>function calling</td>
+<td>미지원</td>
+<td>지원</td>
+<td>지원(끄는 게 안정적)</td>
+</tr>
+<tr>
+<td>reasoning effort 조절</td>
+<td>불가</td>
+<td>가능</td>
+<td>불가</td>
+</tr>
+<tr>
+<td>가격</td>
+<td>가장 쌈</td>
+<td>비쌈</td>
+<td>중간/self-host</td>
+</tr>
+</tbody>
+</table>
+<p>R1은 추론 과정을 통째로 노출하고 가중치가 MIT라 검수와 distillation 측면에서 다루기 편하다. 대신 도구 호출/구조화 출력이 안 되니 그런 작업은 V3로 빠져야 한다. o1은 폐쇄형이지만 reasoning effort 다이얼과 안정적인 도구 호출이 강점이다.</p>
+<h3 id="83-코딩-특화">8.3 코딩 특화<a class="headerlink" href="#83-코딩-특화" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>DeepSeek-Coder-V2 (A21B-236B)</th>
+<th>DeepSeek-Coder-V2-Lite (A2.4B-16B)</th>
+<th>Qwen2.5-Coder-32B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>컨텍스트</td>
+<td>128K</td>
+<td>128K</td>
+<td>32K</td>
+</tr>
+<tr>
+<td>FIM 지원</td>
+<td>O</td>
+<td>O</td>
+<td>O</td>
+</tr>
+<tr>
+<td>self-host</td>
+<td>멀티 GPU</td>
+<td>단일 GPU 가능</td>
+<td>단일 GPU(bf16 64GB)</td>
+</tr>
+<tr>
+<td>라이선스(가중치)</td>
+<td>DeepSeek License</td>
+<td>DeepSeek License</td>
+<td>Apache 2.0</td>
+</tr>
+</tbody>
+</table>
+<p>IDE 자동완성을 self-host로 붙일 거면 Coder-V2-Lite가 단일 GPU에서 돌고 128K 컨텍스트라 리포지토리 레벨 보간에 쓸 만하다. 다만 라이선스가 Apache가 아니라 DeepSeek License라 상업 도입 전 use-based restriction 확인이 필요하다. 그 부담을 피하려면 Qwen2.5-Coder가 깔끔하다.</p>
+<hr />
+<h2 id="9-실무에서-자주-마주치는-함정">9. 실무에서 자주 마주치는 함정<a class="headerlink" href="#9-실무에서-자주-마주치는-함정" title="Permanent link">&para;</a></h2>
+<h3 id="91-r1-추론-토큰-폭주">9.1 R1 추론 토큰 폭주<a class="headerlink" href="#91-r1-추론-토큰-폭주" title="Permanent link">&para;</a></h3>
+<p>R1은 reasoning effort 조절이 없어서 어려운 문제를 던지면 추론 토큰이 1만 토큰 이상 나가기도 한다. "단계별로 자세히" 같은 지시를 system/user에 넣으면 더 길어진다. <code>max_tokens</code>를 안 걸어두면 비용이 예상의 몇 배로 튄다. R1에서는 max_tokens를 넉넉히 잡되 상한을 반드시 두고, 추론 길이를 늘리는 프롬프트 지시는 빼는 게 낫다. 그리고 reasoning_content도 과금 대상이라는 점을 비용 산정에 반영해야 한다.</p>
+<h3 id="92-r1에-도구-호출json을-시키면-깨진다">9.2 R1에 도구 호출/JSON을 시키면 깨진다<a class="headerlink" href="#92-r1에-도구-호출json을-시키면-깨진다" title="Permanent link">&para;</a></h3>
+<p><code>deepseek-reasoner</code>는 function calling, JSON output을 지원하지 않는다. <code>tools</code>나 <code>response_format={"type": "json_object"}</code>를 넘겨도 무시되거나 깨진 응답이 나온다. 구조화 출력/도구 호출이 필요하면 <code>deepseek-chat</code>(V3)으로 보내야 한다. 라우팅 코드에서 "도구 필요 → chat, 추론 필요 → reasoner"로 분기하고, 둘 다 필요한 작업은 추론은 reasoner로 먼저 받고 그 결과를 chat에 넘겨 JSON으로 정리하는 2단 파이프라인으로 푸는 게 안전하다.</p>
+<h3 id="93-멀티턴에서-reasoning_content-재전송">9.3 멀티턴에서 reasoning_content 재전송<a class="headerlink" href="#93-멀티턴에서-reasoning_content-재전송" title="Permanent link">&para;</a></h3>
+<p>5.2에서 짚었듯, 다음 턴에 직전 assistant의 <code>reasoning_content</code>를 messages에 다시 넣으면 에러가 난다. <code>content</code>만 히스토리에 누적해야 한다. 대화 히스토리를 통째로 append하는 흔한 패턴을 그대로 쓰면 이 필드가 섞여 들어가서 깨진다. assistant 메시지를 저장할 때 reasoning_content를 떼어내는 로직을 넣어둬야 한다.</p>
+<h3 id="94-fim-토큰-형식">9.4 FIM 토큰 형식<a class="headerlink" href="#94-fim-토큰-형식" title="Permanent link">&para;</a></h3>
+<p>self-host로 FIM을 쓸 때 특수 토큰 형식을 직접 맞춰야 한다. DeepSeek FIM은 <code>&lt;｜fim▁begin｜&gt;</code>, <code>&lt;｜fim▁hole｜&gt;</code>, <code>&lt;｜fim▁end｜&gt;</code> 형태의 토큰을 쓴다(전각 파이프 문자라 일반 <code>|</code>와 다르다). 이걸 ASCII 파이프로 잘못 적으면 토크나이저가 특수 토큰으로 인식 못 하고 평문으로 처리해서 보간이 완전히 망가진다. API beta 엔드포인트(<code>completions</code> + suffix)를 쓰면 이 토큰을 직접 만질 일은 없지만, self-host에서 raw completion으로 FIM을 구현하면 토큰 형식이 첫 번째 디버깅 포인트다.</p>
+<h3 id="95-컨텍스트-길이-한계">9.5 컨텍스트 길이 한계<a class="headerlink" href="#95-컨텍스트-길이-한계" title="Permanent link">&para;</a></h3>
+<p>API의 컨텍스트는 모델 페이지에 명시된 값을 따른다(세대에 따라 64K~128K). 입력 + reasoning_content + 출력이 전부 이 한도 안에 들어가야 한다. R1은 reasoning_content가 컨텍스트를 크게 잡아먹기 때문에, 긴 입력에 R1을 쓰면 추론 도중 한도에 걸려 답이 잘리는 일이 생긴다. 긴 문서를 R1으로 처리할 때는 입력을 줄이거나 작업을 쪼개야 한다. self-host에서 <code>--max-model-len</code>을 모델 학습 컨텍스트보다 크게 잡으면 로드는 되지만 품질이 무너지므로 학습 한도 안에서 잡는다.</p>
+<h3 id="96-캐시-가격-정책">9.6 캐시 가격 정책<a class="headerlink" href="#96-캐시-가격-정책" title="Permanent link">&para;</a></h3>
+<p>DeepSeek API는 context caching이 있어서 같은 prefix가 반복되면 cache hit 단가로 크게 싸진다. cache miss(처음 보는 입력) 대비 cache hit 토큰 단가가 몇 분의 일 수준이다. 같은 system 프롬프트나 같은 문서를 반복 질의하는 워크로드면 prefix를 고정해서 캐시를 태우는 것만으로 비용이 크게 준다. 반대로 매 요청 prefix가 달라지면 캐시가 안 먹어서 단가가 비싸진다. 비용을 추정할 때 cache hit/miss 비율을 가정에 넣어야 실제 청구액과 맞는다. 캐시는 일정 시간 미사용 시 만료되므로, 트래픽이 듬성듬성하면 캐시 적중률이 생각보다 낮게 나온다.</p>
+<hr />
+<h2 id="10-정리">10. 정리<a class="headerlink" href="#10-정리" title="Permanent link">&para;</a></h2>
+<p>DeepSeek은 V3로 GPT-4o 구간의 범용 성능을, R1으로 o1 구간의 추론 성능을 가져가면서 가격을 크게 낮춘 라인이다. API로 쓰면 가성비가 가장 큰 무기지만, self-host는 671B MoE라 멀티노드가 필요해서 진입 장벽이 Qwen보다 훨씬 높다.</p>
+<p>모델 선택은 단순하게 가른다. 도구 호출/JSON/일반 작업은 <code>deepseek-chat</code>(V3), 수학·코드·논리 추론은 <code>deepseek-reasoner</code>(R1)다. R1은 도구 호출과 구조화 출력이 안 되고 추론 토큰이 폭주할 수 있으니 max_tokens 상한과 라우팅 분기를 코드에 박아두는 게 운영의 절반이다. 가중치를 완전히 풀고 distillation까지 허용하는 R1의 MIT 라이선스는, 사내 작은 모델을 학습시켜 쓰려는 경우 실무에서 가장 큰 이점이다.</p>
+<p>오픈소스 LLM을 폭넓게 비교하려면 <a href="../../Qwen/Qwen/">Qwen 모델 패밀리</a> 문서를 같이 보면 된다.</p>
+<!-- related-docs -->
+<hr />
+<p><strong>관련 문서</strong></p>
+<ul>
+<li><a href="../../Concepts/AI_Hallucination/">AI 할루시네이션 — 코드 생성에서 프로덕션 검증까지</a></li>
+<li><a href="../../Concepts/Agent_Harness/">Agent Harness — Claude Code 하네스로 보는 에이전트 런타임</a></li>
+<li><a href="../../Claude/Claude/">Claude</a></li>
+<li><a href="../../Claude/Claude_Opus_4_7/">Claude Opus 4.7</a></li>
+<li><a href="../../Claude/Claude_Opus_4_8/">Claude Opus 4.8</a></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="이전: DeepSeek 전체 보기">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                이전
+              </span>
+              <div class="md-ellipsis">
+                DeepSeek 전체 보기
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../GBrain/" class="md-footer__link md-footer__link--next" aria-label="다음: GBrain 전체 보기">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                다음
+              </span>
+              <div class="md-ellipsis">
+                GBrain 전체 보기
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 - 2026 GYUTORY
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/GYUTORY" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../../javascripts/extra.js"></script>
+      
+        <script src="../../../javascripts/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>
