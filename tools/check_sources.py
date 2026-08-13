@@ -18,26 +18,34 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent / "Develop"
 
 # 사실 주장 패턴 — 출처가 필요한 서술
+#
+# 정밀도 우선. 넓게 잡았을 때 131건이 걸렸는데 대부분이 오탐이었다:
+#   "타임아웃 5초"(설명), "메모리 64MB"(문제 조건), "벤치마크를 돌려보면"(도구 언급),
+#   "Java 21"(맥락), "v1.2"(목차). 전부 출처를 요구할 성질이 아니다.
+# 그래서 게이트가 `|| true` 로 꺼져 있었다 — 오탐이 많으면 아무도 안 본다.
+#
+# 남긴 것은 "검증 가능한 정량 비교 주장"뿐이다. 이건 근거 없이 쓰면 실제로 틀린다.
 CLAIM_PATTERNS = [
-    r"\bv\d+\.\d+",                          # v1.23 같은 버전 표기
-    # 런타임 버전: 두 자리 이상 또는 소수점 있을 때만 (Java 8·Go 1 같은 단일 숫자 제외)
-    r"(?:Node\.js|Java|Python|Go|Rust|PHP|Ruby|Kotlin|Swift)\s+(?:\d{2,}|\d+\.\d+)",
-    r"\d+(?:\.\d+)?\s*%\s*(?:빠르|느리|향상|감소|개선|절약)",       # 성능 수치 비교
-    r"(?:벤치마크|benchmark|autocannon|wrk|ab\s+테스트|JMH|k6)",     # 벤치마크 도구
-    r"(?:~부터\s*지원|버전부터\s*(?:지원|추가|도입))",               # 버전별 지원 여부
-    r"(?:deprecated|폐기|제거됨)\s+(?:in|in\s+v|since\s+v)",        # deprecation 버전
+    # "30% 빨라진다" 류 — 비율로 성능을 단정하는 문장
+    r"\d+(?:\.\d+)?\s*%\s*(?:이상\s*)?(?:더\s*)?(?:빠르|느리|향상|감소|개선|절약|단축|증가)",
+    # "2배 빠르다" 류
+    r"\d+(?:\.\d+)?\s*배\s*(?:이상\s*)?(?:더\s*)?(?:빠르|느리|향상|개선)",
+    # 벤치마크 '결과'를 수치로 제시하는 경우 (도구 이름만 언급하는 건 제외)
+    r"(?:벤치마크|benchmark)\s*(?:결과|상)?[^\n]{0,24}?\d+(?:\.\d+)?\s*(?:%|배|ms|req/s|rps|tps)",
     # RFC/ISO/OWASP 는 그 자체가 출처이므로 제외
 ]
 
-# 측정값은 비교·벤치마크 맥락 줄에서만 주장으로 간주
+# 측정값 단독은 주장이 아니다. 같은 줄에 비교 서술이 있을 때만 주장으로 본다.
 # (?<![A-Za-z]) — 앞에 영문자가 붙으면 측정값이 아님 (utf8mb4의 '8mb' 오탐 방지)
 _MEASUREMENT_RE = re.compile(
-    r"(?<![A-Za-z])\d+(?:\.\d+)?\s*(?:ms|μs|ns|MB|GB|KB|초|밀리초|마이크로초)",
+    r"(?<![A-Za-z])\d+(?:\.\d+)?\s*(?:ms|μs|ns|MB|GB|KB)",
     re.IGNORECASE,
 )
+# "성능"·"벤치마크" 같은 단어가 스쳐 지나가는 줄까지 잡던 것을 좁혔다.
+# 두 대상을 견주는 표현이 있을 때만 근거를 요구한다.
 _COMPARISON_CTX_RE = re.compile(
-    r"측정|벤치마크|benchmark|대비|빠르|느리|향상|감소|개선|절약|latency|throughput|성능",
-    re.IGNORECASE,
+    r"(?:대비|보다)\s*\S*\s*(?:빠르|느리|향상|감소|개선|절약)|"
+    r"(?:빠르|느리)(?:다|고|며|지만)|측정\s*결과|벤치마크\s*결과",
 )
 
 EXTERNAL_LINK_RE = re.compile(r"https?://(?!(?:localhost|127\.|example\.com|evil\.com))")
@@ -188,7 +196,12 @@ def main():
     for path in sorted(targets):
         violated, claims = check_file(path, base_ref)
         if violated:
-            rel = path.relative_to(ROOT.parent)
+            # --file 로 상대경로를 주면 relative_to 가 ValueError 로 죽었다.
+            # 표시용 경로일 뿐이라 실패하면 받은 경로를 그대로 쓴다.
+            try:
+                rel = path.resolve().relative_to(ROOT.parent.resolve())
+            except ValueError:
+                rel = path
             violations.append((rel, claims))
 
     if not violations:

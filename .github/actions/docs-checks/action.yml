@@ -34,13 +34,16 @@ runs:
     #   BEFORE_SHA → 이번 푸시에서 바뀐 파일만 고른다
     #   같은 SHA 를 base_ref 로 써서 그 파일의 "새로 추가된 줄"만 본다
     # 이렇게 해야 오래된 문서를 한 줄만 고쳐도 과거 무출처 주장이 걸리는 일이 없다.
-    # 오탐 패턴 정리(utf8mb4·RFC·단일 숫자 버전)까지 끝나 strict 로 올렸다.
+    # 패턴을 정밀화해 `|| true` 를 걷어냈다. 전체 스캔 기준 131건 -> 24건이 됐고,
+    # 남은 24건은 "4배 빠르다"·"90% 감소" 같은 실제 무출처 정량 주장이다.
+    # 그 24건을 지금 막으면 CI 가 계속 빨간불이므로(출처를 지어낼 수는 없다)
+    # 위 두 겹으로 "이번 푸시에서 새로 추가된 줄"만 본다 — 새 주장은 막고 과거 빚은 남긴다.
     - name: Check sources
       shell: bash
       env:
         BEFORE_SHA: ${{ inputs.before_sha }}
         AFTER_SHA: ${{ github.sha }}
-      run: python3 tools/check_sources.py --strict || true   # 패턴 정밀화 후 복원
+      run: python3 tools/check_sources.py --strict
 
     - name: Build strict
       shell: bash
