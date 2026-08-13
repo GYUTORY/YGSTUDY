@@ -44,4 +44,11 @@ jobs:
           before_sha: ${{ github.event.before }}
 
       - name: Deploy
+        env:
+          # FULL_BUILD 가 없으면 minify·rss·git-revision-date 가 전부 꺼진 채 배포된다.
+          # 검증 스텝(docs-checks)에만 붙어 있어서, 실제로 나가는 사이트는
+          # RSS 피드가 없는데 1,349개 페이지가 피드 링크를 광고하고(404),
+          # HTML 은 압축되지 않고(2,864줄 vs 136줄), 문서마다 최종 수정일이 사라졌다.
+          FULL_BUILD: "true"
+          DISABLE_MKDOCS_2_WARNING: "true"
         run: mkdocs gh-deploy --force
