@@ -3712,10 +3712,10 @@
     C -.-&gt; block</code></pre>
 <p>아래 그림은 Decoder-Only Transformer의 전체 구조를 나타낸다. 입력 토큰이 임베딩과 위치 인코딩을 거친 뒤, N개의 Decoder Block을 반복 통과하고, 최종적으로 다음 토큰의 확률 분포를 출력한다.</p>
 <figure>
-  <img src="images/transformer_architecture.svg" alt="Decoder-Only Transformer 아키텍처 구조도" width="720">
-  <figcaption>Decoder-Only Transformer 아키텍처. 입력 토큰 → Embedding → N개 Decoder Block → Softmax → 다음 토큰 확률</figcaption>
+<p><img alt="Decoder-Only Transformer 아키텍처 구조도" src="../images/transformer_architecture.svg" width="720" />
+  </p>
+<figcaption>Decoder-Only Transformer 아키텍처. 입력 토큰 → Embedding → N개 Decoder Block → Softmax → 다음 토큰 확률</figcaption>
 </figure>
-
 <p>각 Decoder Block은 Masked Self-Attention과 Feed-Forward Network, 그리고 잔차 연결(residual connection)과 Layer Normalization으로 구성된다. 입력이 Attention을 거친 뒤 원래 입력과 더해지고(Add), 정규화(Norm)를 거치는 과정이 반복된다. 이 블록이 수십~수백 개 쌓여 있다. GPT-4 급 모델은 100개 이상의 레이어를 가진 것으로 알려져 있다.</p>
 <h3 id="22-self-attention-메커니즘">2.2 Self-Attention 메커니즘<a class="headerlink" href="#22-self-attention-메커니즘" title="Permanent link">&para;</a></h3>
 <p>Self-Attention은 입력 시퀀스의 각 토큰이 다른 모든 토큰과의 관련도를 계산하는 방식이다.</p>
@@ -3765,10 +3765,10 @@
     MHA --&gt; Concat["Concat → Linear"]</code></pre>
 <p>아래 그림은 Self-Attention 연산의 전체 과정을 한눈에 보여준다. 입력 벡터에서 Q, K, V를 생성하고, Attention 가중치 행렬을 계산한 뒤, V와 가중합하는 흐름이다.</p>
 <figure>
-  <img src="images/self_attention.svg" alt="Self-Attention 연산 흐름도" width="780">
-  <figcaption>Self-Attention 연산 흐름. Q×K^T → 스케일링 → Mask → Softmax → ×V → 문맥 반영 벡터</figcaption>
+<p><img alt="Self-Attention 연산 흐름도" src="../images/self_attention.svg" width="780" />
+  </p>
+<figcaption>Self-Attention 연산 흐름. Q×K^T → 스케일링 → Mask → Softmax → ×V → 문맥 반영 벡터</figcaption>
 </figure>
-
 <p>위 흐름이 Self-Attention의 전체 연산 과정이다. 입력 벡터에서 Q, K, V를 각각 만들고, Q와 K의 유사도를 구해 가중치로 사용한다. Decoder에서는 Mask를 적용해서 아직 생성하지 않은 미래 토큰을 참조하지 못하게 막는다. Multi-Head는 이 과정을 여러 head가 병렬로 수행한 뒤 결과를 합치는 구조다.</p>
 <h3 id="23-컨텍스트-윈도우와-kv-cache">2.3 컨텍스트 윈도우와 KV Cache<a class="headerlink" href="#23-컨텍스트-윈도우와-kv-cache" title="Permanent link">&para;</a></h3>
 <p>Attention 연산은 시퀀스 길이의 제곱에 비례하는 연산량이 든다. 토큰이 1000개면 1,000,000번의 유사도 계산이 필요하다. 이게 컨텍스트 윈도우에 제한이 있는 근본적인 이유다.</p>
@@ -3809,10 +3809,10 @@
     E --&gt; F</code></pre>
 <p>아래 그림은 BPE 토크나이저의 인코딩·디코딩 전체 과정이다. 원본 텍스트가 UTF-8 바이트로 분해되고, 빈도 기반 병합을 거쳐 토큰 ID로 변환되는 흐름을 보여준다.</p>
 <figure>
-  <img src="images/bpe_tokenizer.svg" alt="BPE 토크나이저 인코딩/디코딩 과정" width="780">
-  <figcaption>BPE 인코딩: 텍스트 → UTF-8 바이트 → 빈도 기반 쌍 병합 → 토큰 ID / 디코딩은 역순</figcaption>
+<p><img alt="BPE 토크나이저 인코딩/디코딩 과정" src="../images/bpe_tokenizer.svg" width="780" />
+  </p>
+<figcaption>BPE 인코딩: 텍스트 → UTF-8 바이트 → 빈도 기반 쌍 병합 → 토큰 ID / 디코딩은 역순</figcaption>
 </figure>
-
 <p>BPE는 학습 단계에서 대규모 텍스트 코퍼스의 바이트 쌍 빈도를 기반으로 어휘 사전(vocab)을 미리 구성한다. 이 어휘 사전의 크기가 토큰화 결과를 결정하고, 영어 중심 코퍼스로 학습한 사전은 한국어를 더 잘게 쪼개게 된다.</p>
 <h3 id="32-sentencepiece">3.2 SentencePiece<a class="headerlink" href="#32-sentencepiece" title="Permanent link">&para;</a></h3>
 <p>구글 계열(Gemini, T5) 모델이 주로 사용한다. BPE와의 차이:</p>
@@ -3923,10 +3923,10 @@
     original --&gt; |"Top-p 필터"| top_p</code></pre>
 <p>아래 그림은 Temperature와 Top-p 설정에 따른 확률 분포 변화를 막대 그래프로 비교한 것이다.</p>
 <figure>
-  <img src="images/temperature_top_p.svg" alt="Temperature와 Top-p에 따른 확률 분포 비교" width="780">
-  <figcaption>Temperature 0.0/1.0/2.0과 Top-p 0.7의 확률 분포 비교. Temperature는 분포 모양을 바꾸고, Top-p는 하위 토큰을 잘라낸다</figcaption>
+<p><img alt="Temperature와 Top-p에 따른 확률 분포 비교" src="../images/temperature_top_p.svg" width="780" />
+  </p>
+<figcaption>Temperature 0.0/1.0/2.0과 Top-p 0.7의 확률 분포 비교. Temperature는 분포 모양을 바꾸고, Top-p는 하위 토큰을 잘라낸다</figcaption>
 </figure>
-
 <p>Temperature는 확률 분포의 뾰족함을 조절한다. 낮추면 1등 토큰에 확률이 집중되고, 높이면 분포가 고르게 퍼진다. Top-p는 분포 모양은 건드리지 않고, 누적 확률 기준으로 하위 토큰들을 후보에서 잘라내는 방식이다.</p>
 <h3 id="43-max-tokens--stop-sequences">4.3 Max Tokens / Stop Sequences<a class="headerlink" href="#43-max-tokens--stop-sequences" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
@@ -4446,10 +4446,10 @@
     M2 --&gt; |"가중치 전달"| stage3</code></pre>
 <p>아래 그림은 LLM 학습 파이프라인의 전체 과정이다. 각 단계에서 사용하는 데이터, 학습 목표, 결과물이 어떻게 달라지는지 보여준다.</p>
 <figure>
-  <img src="images/llm_training_pipeline.svg" alt="LLM 학습 파이프라인: Pre-training → SFT → RLHF/DPO" width="780">
-  <figcaption>LLM 3단계 학습 파이프라인. Pre-training(언어 이해) → SFT(대화 학습) → RLHF/DPO(선호도 정렬)</figcaption>
+<p><img alt="LLM 학습 파이프라인: Pre-training → SFT → RLHF/DPO" src="../images/llm_training_pipeline.svg" width="780" />
+  </p>
+<figcaption>LLM 3단계 학습 파이프라인. Pre-training(언어 이해) → SFT(대화 학습) → RLHF/DPO(선호도 정렬)</figcaption>
 </figure>
-
 <p>각 단계에서 모델의 성격이 바뀐다. Pre-training은 "언어를 아는 상태", SFT는 "대화할 줄 아는 상태", RLHF/DPO는 "좋은 답변을 구분하는 상태"가 된다. 단계별로 필요한 데이터의 양과 성격이 완전히 다르다.</p>
 <h3 id="101-pre-training-사전-학습">10.1 Pre-training (사전 학습)<a class="headerlink" href="#101-pre-training-사전-학습" title="Permanent link">&para;</a></h3>
 <p>인터넷에서 수집한 대규모 텍스트 데이터로 "다음 토큰 예측" 과제를 학습하는 단계다. GPT-4 급 모델은 수조(trillion) 토큰 규모의 데이터를 수천 장의 GPU로 수개월간 학습한다.</p>
@@ -4509,10 +4509,10 @@
 </span></code></pre></div>
 <p>아래 그림은 임베딩 벡터 공간을 2D로 축소한 시각화다. 의미적으로 가까운 단어들이 클러스터를 형성하고, 관련 없는 단어는 먼 위치에 놓이는 구조를 볼 수 있다.</p>
 <figure>
-  <img src="images/embedding_vector_space.svg" alt="임베딩 벡터 공간 시각화" width="780">
-  <figcaption>임베딩 벡터 공간. 의미적으로 유사한 단어가 가까이 클러스터링된다 (실제는 수천 차원, 이 그림은 2D 축소)</figcaption>
+<p><img alt="임베딩 벡터 공간 시각화" src="../images/embedding_vector_space.svg" width="780" />
+  </p>
+<figcaption>임베딩 벡터 공간. 의미적으로 유사한 단어가 가까이 클러스터링된다 (실제는 수천 차원, 이 그림은 2D 축소)</figcaption>
 </figure>
-
 <p>의미가 비슷한 단어는 벡터 공간에서 가까운 위치에 놓인다. "서버"와 "호스트"의 벡터 거리는 "서버"와 "바나나"의 거리보다 가깝다.</p>
 <h3 id="112-임베딩-api-사용">11.2 임베딩 API 사용<a class="headerlink" href="#112-임베딩-api-사용" title="Permanent link">&para;</a></h3>
 <p>문장 단위의 임베딩을 생성해서 검색이나 유사도 계산에 사용하는 방식이다. RAG 파이프라인의 핵심 구성 요소이기도 하다.</p>
