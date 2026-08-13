@@ -15,7 +15,7 @@ LLM이 사실이 아닌 내용을 사실처럼 생성하는 현상이다. LLM은
 
 아래 그림은 LLM이 토큰을 생성할 때 할루시네이션이 어떻게 발생하는지를 보여준다. `requests.` 다음에 올 토큰의 확률 분포에서, 실제로 존재하지 않는 `get_async` 같은 메서드도 확률값을 갖는다. Temperature가 높으면 이런 토큰이 선택될 수 있다.
 
-![LLM 토큰 생성 과정에서 할루시네이션 발생 메커니즘](../images/hallucination_mechanism.svg)
+![LLM 토큰 생성 과정에서 할루시네이션 발생 메커니즘](images/hallucination_mechanism.svg)
 
 ---
 
@@ -181,7 +181,7 @@ CLI 도구는 버전마다 옵션이 다르고, 학습 데이터에 여러 버�
 
 아래 그림은 주요 모델 3개의 영역별 할루시네이션 빈도를 상대 비교한 것이다. 모델마다 강한 영역과 약한 영역이 다르기 때문에, 작업 특성에 따라 모델을 선택하거나 교차 검증을 하는 게 실무에서 도움이 된다.
 
-![모델별 할루시네이션 취약 영역 비교](../images/hallucination_model_comparison.svg)
+![모델별 할루시네이션 취약 영역 비교](images/hallucination_model_comparison.svg)
 
 ### 4.5 공통적으로 취약한 영역
 
@@ -399,7 +399,7 @@ AI 코딩 에이전트(Claude Code, Cursor Agent, Codex 등)를 장시간 돌리
 
 아래 그림은 실제로 흔한 누적 시나리오다. 턴 1에서 정상적으로 만든 클래스를 턴 3에서 잘못 참조하면서 시작된 할루시네이션이, 턴 8에서는 테스트 코드까지 오염시킨다. 코드 4개 파일이 존재하지 않는 메서드에 의존하게 되는데, 컴파일은 되기 때문에 발견이 늦다.
 
-![에이전트 장기 실행 시 할루시네이션 누적](../images/hallucination_accumulation.svg)
+![에이전트 장기 실행 시 할루시네이션 누적](images/hallucination_accumulation.svg)
 
 ### 6.1 누적 패턴
 

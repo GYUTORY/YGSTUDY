@@ -46,4 +46,5 @@ runs:
       shell: bash
       env:
         DISABLE_MKDOCS_2_WARNING: "true"
+        FULL_BUILD: "true"   # CI 는 minify·rss·git-date 포함 전체 빌드
       run: mkdocs build --strict

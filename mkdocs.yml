@@ -386,6 +386,7 @@ plugins:
         'Linux/SA__PSACCT.md': 'DevOps/Linux/SA__PSACCT.md'
         'Linux/WSL.md': 'DevOps/Linux/WSL.md'
   - git-revision-date-localized:
+      enabled: !ENV [FULL_BUILD, false]
       enable_creation_date: true
       type: date
       locale: ko
@@ -394,12 +395,13 @@ plugins:
         - "*/index.md"
         - "최근.md"
   - rss:
+      enabled: !ENV [FULL_BUILD, false]
       match_path: ".*"
       date_from_meta:
         as_creation: date
       length: 30
   - minify:
-      minify_html: true
+      minify_html: !ENV [FULL_BUILD, false]
 
 markdown_extensions:
   - pymdownx.highlight:
