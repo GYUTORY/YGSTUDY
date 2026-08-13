@@ -239,7 +239,7 @@ T+15~30분: 사실상 전체 수렴.
 ### DNS 방식의 한계
 
 <div align="center">
-    <img src="../../etc/image/Network_image/DNS.webp" alt="DNS 재해복구" width="60%">
+    <img src="../../../etc/image/Network_image/DNS.webp" alt="DNS 재해복구" width="60%">
 </div>
 
 단순 DNS만 쓰면 서버 상태를 모른다. 죽은 서버 IP도 그대로 응답에 포함된다. 클라이언트는 죽은 IP에 SYN을 보내고 타임아웃을 기다린 뒤에야 다음 IP로 넘어간다. 일부 브라우저는 happy eyeballs(RFC 8305)로 빠르게 다음 IP를 시도하지만, 모든 클라이언트가 그런 건 아니다.
@@ -247,7 +247,7 @@ T+15~30분: 사실상 전체 수렴.
 ### GSLB 방식
 
 <div align="center">
-    <img src="../../etc/image/Network_image/GSLB.webp" alt="GSLB 재해복구" width="60%">
+    <img src="../../../etc/image/Network_image/GSLB.webp" alt="GSLB 재해복구" width="60%">
 </div>
 
 GSLB는 헬스체크 결과를 보고 죽은 IP를 응답에서 빼버린다. 다만 위에서 본 캐시 layer 때문에 즉시 효과는 없다. Active-Standby로 설정하면 primary가 죽었을 때만 secondary 응답으로 갈아탄다. Active-Active로 양쪽에 동시 트래픽을 흘리면 일상적인 부하 분산이 되고 한쪽 장애 시 자동으로 쏠림이 일어난다.
@@ -259,7 +259,7 @@ GSLB는 헬스체크 결과를 보고 죽은 IP를 응답에서 빼버린다. �
 ### DNS round-robin의 문제
 
 <div align="center">
-    <img src="../../etc/image/Network_image/DNS_LB.webp" alt="DNS 로드밸런싱" width="60%">
+    <img src="../../../etc/image/Network_image/DNS_LB.webp" alt="DNS 로드밸런싱" width="60%">
 </div>
 
 DNS round-robin은 응답 IP의 순서를 단순 순환할 뿐이다. 서버 부하, 응답 시간, 커넥션 수를 보지 않는다. 캐싱 resolver가 첫 번째 IP를 고정으로 잡거나, 클라이언트가 첫 번째 IP만 시도하는 케이스가 흔해서 분포도 균등하지 않다.
@@ -267,7 +267,7 @@ DNS round-robin은 응답 IP의 순서를 단순 순환할 뿐이다. 서버 부
 ### GSLB의 알고리즘 선택
 
 <div align="center">
-    <img src="../../etc/image/Network_image/GSLB_LB.webp" alt="GSLB 로드밸런싱" width="60%">
+    <img src="../../../etc/image/Network_image/GSLB_LB.webp" alt="GSLB 로드밸런싱" width="60%">
 </div>
 
 GSLB 솔루션이 제공하는 알고리즘은 보통 다음과 같다.
@@ -283,11 +283,11 @@ GSLB 솔루션이 제공하는 알고리즘은 보통 다음과 같다.
 ## 위치 기반 라우팅
 
 <div align="center">
-    <img src="../../etc/image/Network_image/DNS_GPS.webp" alt="DNS 위치기반" width="60%">
+    <img src="../../../etc/image/Network_image/DNS_GPS.webp" alt="DNS 위치기반" width="60%">
 </div>
 
 <div align="center">
-    <img src="../../etc/image/Network_image/GSLB_GPS.webp" alt="GSLB 위치기반" width="60%">
+    <img src="../../../etc/image/Network_image/GSLB_GPS.webp" alt="GSLB 위치기반" width="60%">
 </div>
 
 지리적 라우팅이 데이터 주권(GDPR, 한국 개인정보보호법) 준수에 자주 쓰인다. EU 사용자의 PII가 미국 region 서버에 닿으면 안 되는 케이스라면 GeoLocation routing으로 EU 사용자를 무조건 EU region으로 묶는다.
@@ -299,11 +299,11 @@ GSLB 솔루션이 제공하는 알고리즘은 보통 다음과 같다.
 ## 레이턴시 기반 라우팅
 
 <div align="center">
-    <img src="../../etc/image/Network_image/DNS_LT.webp" alt="DNS 레이턴시" width="60%">
+    <img src="../../../etc/image/Network_image/DNS_LT.webp" alt="DNS 레이턴시" width="60%">
 </div>
 
 <div align="center">
-    <img src="../../etc/image/Network_image/GSLB_LT.webp" alt="GSLB 레이턴시" width="60%">
+    <img src="../../../etc/image/Network_image/GSLB_LT.webp" alt="GSLB 레이턴시" width="60%">
 </div>
 
 Latency-based routing은 GSLB 제공자가 자체적으로 측정한 "ASN별 → region별 RTT 통계"를 보고 결정한다. Route 53은 자기 인프라가 측정한 데이터를 쓰고, NS1 Pulsar는 RUM 데이터를 결합해 쓴다.

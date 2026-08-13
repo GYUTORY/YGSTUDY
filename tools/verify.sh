@@ -16,5 +16,8 @@ run "check_links"         python3 tools/check_links.py --strict
 echo "── 빌드 (약 55초, minify·rss·git-date 제외) ──"
 DISABLE_MKDOCS_2_WARNING=true run "mkdocs build --strict" mkdocs build --strict -d /tmp/_verify_site
 
+echo "── 산출물 검사 ──"
+run "built assets"        python3 tools/check_built_assets.py /tmp/_verify_site --strict
+
 [ $FAIL -eq 0 ] && echo "✓ 전부 통과 — 푸시 가능" || echo "✗ 실패 있음 — 푸시하지 말 것"
 exit $FAIL

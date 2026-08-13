@@ -48,3 +48,9 @@ runs:
         DISABLE_MKDOCS_2_WARNING: "true"
         FULL_BUILD: "true"   # CI 는 minify·rss·git-date 포함 전체 빌드
       run: mkdocs build --strict
+
+    # raw <img> 는 mkdocs 가 경로를 재작성하지 않아 소스 검사로는 안 잡힌다.
+    # 빌드 산출물 기준으로 한 번 더 본다.
+    - name: Check built assets
+      shell: bash
+      run: python3 tools/check_built_assets.py site --strict

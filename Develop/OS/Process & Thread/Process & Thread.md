@@ -31,7 +31,7 @@ $ ps -T -p 5678 | head -5
 nginx는 멀티 프로세스 모델이고, Spring Boot(Tomcat)는 멀티 스레드 모델이다. 이 차이를 모르면 장애 대응에서 삽질한다.
 
 <div align="center">
-    <img src="../../etc/image/OS/Process & Thread.webp" alt="Process & Thread Image" width="50%">
+    <img src="../../../etc/image/OS/Process & Thread.webp" alt="Process & Thread Image" width="50%">
 </div>
 
 ---
@@ -102,7 +102,7 @@ $ ls -la /proc/1234/fd | wc -l
 ```
 
 <div align="center">
-    <img src="../../etc/image/OS/Process1.webp" alt="Process1" width="50%">
+    <img src="../../../etc/image/OS/Process1.webp" alt="Process1" width="50%">
 </div>
 
 ---
@@ -300,7 +300,7 @@ fork 직후:
 힙을 공유하기 때문에 스레드 간 데이터 전달이 빠르다. 반면 동기화를 제대로 안 하면 데이터가 깨진다.
 
 <div align="center">
-    <img src="../../etc/image/OS/쓰레드.webp" alt="Thread Structure" width="75%">
+    <img src="../../../etc/image/OS/쓰레드.webp" alt="Thread Structure" width="75%">
 </div>
 
 ### Linux에서 스레드의 실체
@@ -390,7 +390,7 @@ $ jstack <pid> | grep -A 5 "deadlock"
 ```
 
 <div align="center">
-    <img src="../../etc/image/OS/Thread의 흐름.webp" alt="Thread Flow" width="50%">
+    <img src="../../../etc/image/OS/Thread의 흐름.webp" alt="Thread Flow" width="50%">
 </div>
 
 ---
