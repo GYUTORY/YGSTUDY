@@ -103,6 +103,27 @@ function strictMode() {
 strictMode(); // undefined
 ```
 
+이 문서 곳곳의 `"use strict";` 는 **실제로는 켜지지 않는다.** 지시어는 스크립트나 함수 본문의 **첫 문장**일 때만 효력이 있다. 위 블록처럼 다른 코드 아래에 두면 그냥 문자열 하나가 평가될 뿐이다.
+
+```javascript
+function notFirst() {
+  const a = 1;
+  "use strict";                        // ← 무시된다
+  return (function () { return this; })();
+}
+notFirst();   // globalThis
+
+function first() {
+  "use strict";                        // ← 첫 문장이라 유효하다
+  return (function () { return this; })();
+}
+first();      // undefined
+```
+
+그래서 "일반 모드"와 "엄격 모드"를 한 파일 안에서 위아래로 비교하는 것은 불가능하다. 위쪽에 지시어를 제대로 놓으면 아래 전부가 엄격해지고, 아래에 놓으면 아무 데도 안 걸린다. 두 모드를 정말 비교하려면 **파일을 나누거나 함수 안에 넣어야** 한다.
+
+이 차이는 눈에 띄지 않는다. 문서 예제를 콘솔에 붙여넣고 "설명과 다르게 나오네"로 끝나기 쉬운 지점이다.
+
 #### 메서드 호출
 ```javascript
 const user = {
@@ -174,6 +195,26 @@ const example = new Example();
 example.regularMethod(); // Example { name: 'Example', arrowMethod: [Function] }
 example.arrowMethod(); // Example { name: 'Example', arrowMethod: [Function] }
 ```
+
+`class` 본문은 지시어와 무관하게 **언제나 엄격 모드**다. 그래서 클래스 메서드를 떼어내면 `this` 가 전역이 아니라 `undefined` 다.
+
+```javascript
+class C { m() { return this; } }
+const m = new C().m;
+m();          // undefined
+```
+
+같은 모양을 객체 리터럴로 만들면 결과가 다르다.
+
+```javascript
+const o = { m: function () { return this; } };
+const om = o.m;
+om();         // globalThis  (비엄격 파일에서)
+```
+
+이 차이가 실무에서 드러나는 자리가 콜백이다. 클래스 메서드를 `arr.map(this.format)` 이나 `addEventListener('click', this.onClick)` 로 넘기면 `this` 가 `undefined` 가 되어 `Cannot read properties of undefined` 로 터진다. 객체 리터럴 메서드였다면 전역 객체가 들어가서 **에러 대신 `undefined` 값**이 흘러 다녔을 것이다. 클래스 쪽이 시끄럽게 실패하는 만큼 낫다.
+
+`arrowMethod = () => {}` 같은 클래스 필드는 프로토타입이 아니라 **인스턴스마다 하나씩** 만들어진다. 그래서 `Object.keys(example)` 에 잡히고, 위 출력에서 `arrowMethod` 가 인스턴스 속성으로 함께 찍힌다. 떼어내도 `this` 를 잃지 않는 대신 인스턴스가 늘어날수록 함수 객체도 같이 늘어난다.
 
 ## 예시
 
@@ -332,6 +373,19 @@ module.publicMethod();
 module.arrowMethod();
 ```
 
+`arrowMethod` 의 주석은 틀렸다. **전역 객체가 아니라 `undefined` 다.**
+
+```javascript
+module.arrowMethod();               // undefined
+module.arrowMethod() === globalThis;  // false
+```
+
+화살표 함수는 정의된 위치의 `this` 를 그대로 쓴다. 여기서 정의된 위치는 IIFE 함수 본문이고, 그 IIFE 는 `"use strict"` 가 첫 문장이라 엄격 모드로 평범하게 호출된다 — 즉 IIFE 의 `this` 가 `undefined` 다. 화살표 함수는 그 `undefined` 를 물려받는다.
+
+"화살표 함수는 use strict 의 영향을 받지 않는다"는 말이 여기서 오해를 만든다. 화살표 함수 자신이 `this` 를 정하지 않는 건 맞지만, **물려받는 바깥의 `this` 는 엄격 모드에 따라 달라진다.** 그러니 영향을 안 받는 게 아니라 한 단계 건너서 받는다.
+
+`publicMethod` 쪽은 주석대로 동작한다. 반환된 객체의 메서드로 호출하니 `this` 는 그 객체다. 다만 그 안에서 `privateMethod()` 를 평범하게 호출하면 `this` 는 다시 `undefined` 로 떨어진다. 같은 함수 안에 있어도 **호출 방식이 바뀌면 `this` 도 바뀐다.**
+
 ## 운영 팁
 
 ### 성능 최적화
@@ -365,6 +419,43 @@ class EfficientClass {
     }
 }
 ```
+
+`EfficientClass` 는 효율적인 게 아니라 **동작하지 않는다.** `addItem` 이 자기 자신을 다시 예약하기만 하고 `data` 에는 아무것도 넣지 않는다.
+
+```
+addItem 호출됨, item = X          | data = []
+addItem 호출됨, item = undefined  | data = []
+addItem 호출됨, item = undefined  | data = []
+...
+```
+
+두 가지가 겹쳤다. 하나, `this.data.push` 가 없어서 저장이 일어나지 않는다. 둘, `setTimeout(this.addItem, 100)` 은 **인자를 넘기지 않으므로** 다음 호출부터 `item` 이 `undefined` 다. 타이머는 멈추지 않고 계속 새 타이머를 건다.
+
+`bind` 를 생성자에서 한 번만 한다는 아이디어 자체는 맞다. 이 코드가 보여주려던 것은 아마 이런 형태다.
+
+```javascript
+class C {
+  constructor() {
+    this.data = [];
+    this.flush = this.flush.bind(this);   // 한 번만 바인딩
+  }
+  add(item) {
+    this.data.push(item);
+    setTimeout(this.flush, 100);          // 매번 새 함수를 만들지 않는다
+  }
+  flush() { console.log(this.data); }
+}
+```
+
+바로 위 `InefficientClass` 를 "비효율"이라 부른 근거도 이 문서에는 없다. 화살표 함수 하나가 호출마다 만들어지는 건 사실이지만, 그게 문제가 되는지는 호출 빈도에 달렸고 여기서는 재지 않았다. `bind` 를 생성자에서 한 번 해 두는 진짜 이유는 성능보다 **참조가 고정된다**는 데 있다.
+
+```javascript
+f.bind(o) === f.bind(o);      // false — 호출할 때마다 새 함수다
+(() => {}) === (() => {});    // false — 인라인 화살표도 마찬가지
+c.h === c.h;                  // true  — 생성자에서 한 번 만들어 두면 같다
+```
+
+등록한 리스너를 나중에 떼거나, 이전 값과 같은지 비교해 다시 그릴지 정하는 코드(React 의 의존성 배열 같은 것)에서는 이 동등성이 곧 정확성이다. "새 함수가 만들어져서 느리다"보다 "매번 다른 함수라 이전 것을 못 찾는다"가 먼저 문제가 된다.
 
 ### 에러 처리
 

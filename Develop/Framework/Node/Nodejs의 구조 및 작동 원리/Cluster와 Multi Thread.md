@@ -31,6 +31,40 @@ Node.js는 기본적으로 싱글 스레드 기반으로 동작하지만, 멀티
 | **성능 최적화** | 다수의 요청을 병렬 처리할 때 유리 | CPU 연산이 많은 작업에서 유리 |
 | **대표적인 활용 예제** | HTTP 서버 부하 분산 | 이미지 처리, 대규모 데이터 연산 |
 
+#### 표의 "메모리 공유 O" 는 조건부다
+
+이 한 칸을 오해하면 설계가 통째로 틀어진다. Worker Threads 가 같은 프로세스 주소 공간에 있는 건 맞지만, **`postMessage` 와 `workerData` 로 넘긴 일반 객체는 구조화 복제(structured clone)로 복사된다.** 공유되는 건 `SharedArrayBuffer` 뿐이다.
+
+```javascript
+// share.js — 같은 파일을 워커로도 실행한다
+const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+if (isMainThread) {
+  const plain = { n: 1 };
+  const sab = new SharedArrayBuffer(4);
+  const view = new Int32Array(sab);
+  view[0] = 1;
+  const w = new Worker(__filename, { workerData: { plain, sab } });
+  w.on('message', () => {
+    console.log('plain.n =', plain.n);      // 워커가 99 로 바꾼 뒤
+    console.log('view[0] =', view[0]);
+    process.exit(0);
+  });
+} else {
+  workerData.plain.n = 99;
+  Atomics.store(new Int32Array(workerData.sab), 0, 99);
+  parentPort.postMessage('done');
+}
+```
+
+```
+plain.n = 1     ← 복사본이라 반영 안 됨
+view[0] = 99    ← 공유 메모리라 반영됨
+```
+
+(Node v22.21.1 실측)
+
+그래서 "메모리를 공유하니까 큰 데이터를 그냥 넘기면 되겠다"는 판단은 반대로 간다. 큰 배열을 `workerData` 로 넘기면 **직렬화 비용을 그대로 문다.** 진짜로 복사를 피하려면 `SharedArrayBuffer` 를 쓰거나 `transferList` 로 `ArrayBuffer` 소유권을 넘겨야 한다(넘긴 쪽은 그 버퍼를 못 쓰게 된다).
+
 ### Cluster (클러스터) 활용
 
 #### 기본적인 Cluster 예제
@@ -71,6 +105,35 @@ if (cluster.isMaster) {
 워커 프로세스 실행 (PID: 12348)
 워커 프로세스 실행 (PID: 12349)
 ```
+
+이 예제의 `cluster.isMaster` 는 지금도 동작하지만 **현재 이름은 `cluster.isPrimary`** 다.
+
+```
+$ node -e "const c=require('cluster');console.log(c.isMaster, c.isPrimary, process.version)"
+true true v22.21.1
+```
+
+v22.21.1 에서 둘 다 살아 있고 값도 같다. 실행 시 경고도 안 뜬다. 그래서 옛 코드가 조용히 남아 있기 쉬운데, 새로 쓰는 코드는 `isPrimary` 를 쓴다. 마스터/워커라는 말도 `primary`/`worker` 로 갈렸다.
+
+한 가지 더 — `cluster.on('exit')` 에서 조건 없이 `cluster.fork()` 를 다시 부르는 이 패턴은 **부팅 단계에서 죽는 버그와 만나면 무한 재시작 루프**가 된다. 워커가 `listen` 도 못 하고 즉사하는 상황을 재현해 재시작 횟수를 세보면:
+
+```javascript
+const cluster = require('cluster');
+if (cluster.isPrimary) {
+  let n = 0; const t0 = Date.now();
+  cluster.fork();
+  cluster.on('exit', () => {
+    n++;
+    if (Date.now() - t0 > 1000) { console.log('1초 동안 재시작:', n); process.exit(0); }
+    cluster.fork();
+  });
+} else {
+  throw new Error('부팅 실패');
+}
+// → 1초 동안 재시작: 39   (실행 환경에 따라 달라진다)
+```
+
+죽고 살아나기를 쉬지 않고 반복하는데 로그에는 "워커 종료됨"만 계속 찍혀서 원인이 안 보인다. 아래 `HighAvailabilityCluster` 처럼 재시작 횟수 상한을 두거나, 최소한 재시작 사이에 backoff 를 넣는다.
 
 ### Worker Threads (멀티 스레드) 활용
 
@@ -437,6 +500,25 @@ function createWorker(operation, data) {
 }
 ```
 
+위 `analyzeData` 의 `median` 계산에는 걸리기 쉬운 함정이 둘 있다.
+
+```
+$ node -e "
+> const ds=[5,1,4,2,3];
+> const median = ds.sort((a,b)=>a-b)[Math.floor(ds.length/2)];
+> console.log('정렬 후 원본:', ds, '/ median:', median);
+> const even=[1,2,3,4];
+> console.log('짝수 길이:', even.sort((a,b)=>a-b)[Math.floor(even.length/2)]);"
+정렬 후 원본: [ 1, 2, 3, 4, 5 ] / median: 3
+짝수 길이: 3
+```
+
+첫째, `Array.prototype.sort` 는 **인자로 받은 배열을 그 자리에서 정렬한다.** 호출한 쪽의 `dataset` 순서가 바뀐다. 원본 순서를 쓰는 코드가 뒤에 있으면 조용히 결과가 달라진다. `[...dataset].sort(...)` 로 복사본을 만든다.
+
+둘째, 짝수 길이에서 위 식은 산술 중앙값(2.5)이 아니라 위쪽 값(3)을 준다. 통계 지표로 쓸 거면 짝수일 때 두 값의 평균을 내야 한다.
+
+`worker.on('exit')` 핸들러도 눈여겨본다. 종료 코드가 0 이면 `reject` 도 `resolve` 도 하지 않는다. 워커가 `postMessage` 없이 정상 종료하면 이 `Promise` 는 영원히 매달린다 — 아래 벤치마크 코드가 정확히 이 상태에 빠진다.
+
 ### 고급 비교 예제
 
 #### 성능 비교 테스트
@@ -559,6 +641,66 @@ if (isMainThread && !cluster.isMaster) {
     comparison.comparePerformance();
 }
 ```
+
+#### 위 벤치마크 코드는 실행되지 않는다 — 세 군데가 막혀 있다
+
+읽고 넘어가면 그럴듯한데, 실제로 돌리면 아무 일도 안 일어난다. 순서대로 짚는다.
+
+**1. 진입 조건이 프라이머리에서 항상 false 다.**
+
+```
+$ node -e "const c=require('cluster');const {isMainThread}=require('worker_threads');
+> console.log(isMainThread, c.isMaster, (isMainThread && !c.isMaster))"
+true true false
+```
+
+`isMainThread` 는 워커 스레드가 아니면 true, `cluster.isMaster` 는 클러스터 워커가 아니면 true 다. 즉 **평범하게 `node file.js` 로 띄운 프로세스에서는 두 조건이 동시에 만족될 수 없다.** 이 조건이 true 가 되는 곳은 오직 *클러스터 워커 프로세스 안*이다(실측: 워커에서 `isMainThread=true, isMaster=false` → true). 그런데 그 워커를 만드는 코드는 `comparePerformance()` 안에 있으니, 아무도 첫 fork 를 하지 않는다. 스크립트는 조용히 끝난다.
+
+설령 어떻게든 워커 안에서 실행됐다면 이번엔 `runClusterTest()` 가 또 `cluster.fork()` 를 하고, 그 손자 워커에서 조건이 다시 true 가 되어 **재귀적으로 fork** 한다. 안 도는 게 차라리 다행인 코드다.
+
+**2. 워커 쪽 `else` 분기는 클래스 메서드 안에 있어서 절대 실행되지 않는다.**
+
+`new Worker(__filename)` 은 그 파일을 **처음부터 다시 실행**한다. 워커에서 다시 도는 건 모듈 최상위 코드뿐이고, `runWorkerThreadsTest()` 라는 메서드는 누가 부르지 않으면 호출되지 않는다. 최상위에는 그걸 부르는 코드가 없다. 결과는 "워커가 아무것도 안 하고 즉시 종료 → `postMessage` 없음 → `Promise` 영원히 미해결" 이다.
+
+```javascript
+// 같은 구조를 최소로 재현
+const { Worker, isMainThread, parentPort } = require('worker_threads');
+class T {
+  async run() {
+    if (isMainThread) {
+      return new Promise((resolve) => {
+        const w = new Worker(__filename);
+        w.on('message', resolve);
+        w.on('exit', c => console.log('워커 종료 code=' + c + ' — resolve 호출 안 됨'));
+      });
+    } else {
+      parentPort.postMessage({ ok: true });   // 여기 못 온다
+    }
+  }
+}
+if (isMainThread) new T().run().then(r => console.log('resolved', r));
+```
+
+```
+워커 종료 code=0 — resolve 호출 안 됨
+(그리고 프로그램은 멈춘 채로 남는다)
+```
+
+워커 진입점은 **모듈 최상위에서 갈라야 한다.** 클래스 메서드 안의 `if (isMainThread)` 는 메인 쪽 코드에만 쓸모가 있다.
+
+**3. `process.threadId` 는 존재하지 않는다.**
+
+`parentPort.postMessage({ threadId: process.threadId, ... })` 는 예외 없이 `undefined` 를 보낸다. 스레드 ID 는 `worker_threads` 모듈에 있다.
+
+```
+from worker: { process_threadId: undefined, wt_threadId: 1 }
+```
+
+```javascript
+const { threadId } = require('worker_threads');   // ← 이쪽
+```
+
+에러가 안 나고 `undefined` 만 조용히 실려 나가는 부류라, 로그에 `threadId: undefined` 가 찍히기 전까지 아무도 모른다.
 
 ## 운영 팁
 
@@ -697,7 +839,33 @@ if (isMainThread) {
     Atomics.store(sharedArray, 0, 42);
     parentPort.postMessage({ success: true });
 }
+```
 
+바로 위 "메모리 공유" 예제는 **첫 줄에서 터진다.** `worker_threads` 는 `SharedArrayBuffer` 도 `Atomics` 도 export 하지 않는데, 구조 분해로 받으면서 두 전역을 `undefined` 로 덮어버린다.
+
+```
+$ node -e "const wt=require('worker_threads');
+> console.log('SharedArrayBuffer' in wt, 'Atomics' in wt)"
+false false
+
+$ node -e "const { SharedArrayBuffer } = require('worker_threads'); new SharedArrayBuffer(1024)"
+TypeError: SharedArrayBuffer is not a constructor
+```
+
+`SharedArrayBuffer` 와 `Atomics` 는 **JavaScript 전역**이라 아무것도 import 하지 않아도 쓸 수 있다. `require` 목록에서 지우기만 하면 된다.
+
+이 부류는 "없는 이름을 import 하면 에러가 나겠지"라는 감각으로는 못 잡는다. CommonJS 구조 분해는 없는 키를 `undefined` 로 조용히 내주고, 이름이 전역과 겹칠 때만 이렇게 전역을 가린다.
+
+덧붙여 이 절의 예제 1·2·3 은 **한 파일에 이어 붙이면 파싱 자체가 안 된다.** 같은 스코프에서 `const { Worker, ... }` 를 두 번 선언하기 때문이다.
+
+```
+$ node --check dup.js
+SyntaxError: Identifier 'Worker' has already been declared
+```
+
+`node --check` 로 3초면 확인된다. 문서의 코드를 복사해 한 파일에 모을 때 자주 밟는다.
+
+```javascript
 // 3. 실시간 데이터 처리가 필요한 경우
 class RealTimeDataProcessor {
     constructor() {
@@ -919,6 +1087,12 @@ class SharedMemoryManager {
 ## 참고
 
 ### 성능 벤치마크 결과
+
+아래 객체는 **측정값이 아니라 손으로 적어 넣은 리터럴**이다. 어떤 하드웨어에서, 어떤 부하로, 무엇을 잰 것인지가 없다. 그대로 인용하면 안 된다.
+
+숫자보다 중요한 건 두 방식의 비용 구조가 다르다는 점이다. Cluster 는 프로세스마다 V8 힙과 런타임을 통째로 하나씩 갖는다. Worker Threads 는 힙은 스레드마다 따로지만 런타임 자체는 한 프로세스 안이라 기동이 가볍다. 대신 위에서 본 것처럼 **데이터를 주고받을 때마다 구조화 복제 비용**을 문다. 그래서 "요청당 데이터가 작고 요청 수가 많다"면 Cluster, "요청은 드문데 넘기는 데이터가 크다"면 복제 비용부터 재봐야 한다.
+
+직접 재려면 스스로의 워크로드로 잰다. 남의 표를 가져다 쓰면 CPU 코어 수·Node 버전·페이로드 크기가 전부 다르다.
 
 #### 일반적인 성능 비교
 ```javascript

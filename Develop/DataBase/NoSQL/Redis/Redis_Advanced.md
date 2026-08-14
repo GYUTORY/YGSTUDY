@@ -1690,6 +1690,116 @@ valkey-cli ping    # → PONG
 
 자사 서비스에 Redis를 내장하여 사용하는 경우라면 라이선스 문제가 없으므로 당장 Valkey로 전환할 필요는 없다. 하지만 클라우드 매니지드 서비스를 사용하고 있다면 해당 벤더의 Valkey 전환 일정을 확인해야 한다.
 
+## 10.5 이 문서의 코드에서 먼저 터지는 곳
+
+아래는 로컬 Redis 8.2.1에서 확인한 것이다.
+
+### Lua 스크립트는 서버 전체를 멈추고, 쓰기 이후에는 죽일 수도 없다
+
+Redis는 명령 실행이 단일 스레드다. Lua 스크립트가 도는 동안 **다른 클라이언트의 요청은 하나도 처리되지 않는다.** 스크립트 안에서 큰 Set을 순회하거나 루프를 돌면 그만큼 전체가 멈춘다.
+
+`lua-time-limit`이 지나면 다른 클라이언트는 이 응답만 받는다.
+
+```
+$ redis-cli GET foo
+BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSAVE.
+```
+
+그런데 `SCRIPT KILL`에 결정적인 제약이 있다. 쓰기를 한 번이라도 수행한 스크립트에는 다음이 돌아온다.
+
+```
+$ redis-cli SCRIPT KILL
+UNKILLABLE Sorry the script already executed write commands against the dataset.
+You can either wait the script termination or kill the server in a hard way
+using the SHUTDOWN NOSAVE command.
+```
+
+**스크립트가 이미 쓰기를 한 뒤라면 죽일 수 없다.** 중간에 끊으면 데이터가 반쯤 바뀐 상태가 되기 때문이다. 남는 선택지는 스크립트가 끝나기를 기다리거나 `SHUTDOWN NOSAVE`로 서버를 강제 종료하는 것뿐이다. 후자는 마지막 저장 이후의 데이터를 버린다.
+
+그래서 Lua 스크립트에는 규칙이 하나 있다. **입력 크기에 비례해 도는 루프를 넣지 않는다.** 위 Rate Limiter나 재고 차감처럼 상수 개수의 명령만 실행하는 형태로 유지한다. 키 목록을 스크립트 안에서 만들어 순회하는 코드가 가장 위험하다.
+
+### `EVALSHA` 캐시를 메모하면 재시작 후 영구 실패한다
+
+`RateLimiter` 클래스는 `scriptSha`를 한 번 받아 계속 재사용한다.
+
+```typescript
+private async getScriptSha(): Promise<string> {
+    if (!this.scriptSha) { this.scriptSha = await this.redis.script('LOAD', ...); }
+    return this.scriptSha;   // 한 번 채워지면 다시는 갱신되지 않는다
+}
+```
+
+Redis가 재시작하거나 누군가 `SCRIPT FLUSH`를 돌리면 서버의 스크립트 캐시가 비는데, 애플리케이션은 여전히 옛 SHA로 `EVALSHA`를 부른다.
+
+```
+NOSCRIPT No matching script
+```
+
+**한 번 이 상태가 되면 애플리케이션을 재시작하기 전까지 회복되지 않는다.** Rate Limiter가 예외를 던지므로 그 경로의 요청이 전부 실패한다. 페일오버로 새 마스터가 승격됐을 때도 같은 일이 생긴다(스크립트 캐시는 복제되지 않는다).
+
+ioredis의 `defineCommand`가 이 처리를 대신해준다 — `EVALSHA`를 먼저 시도하고 `NOSCRIPT`면 자동으로 `EVAL`로 폴백한 뒤 캐시를 갱신한다.
+
+```typescript
+redis.defineCommand('rateLimit', { numberOfKeys: 1, lua: rateLimiterScript });
+const allowed = await (redis as any).rateLimit(`rate:${clientId}`, windowSec, maxRequests, Date.now());
+```
+
+직접 구현한다면 `NOSCRIPT` 에러를 잡아 `scriptSha`를 null로 되돌리고 재시도하는 경로가 반드시 있어야 한다.
+
+### Rate Limiter가 클라이언트 시계를 믿는다
+
+스크립트가 `ARGV[3]`로 `Date.now()`를 받는다. 애플리케이션 서버가 여러 대면 **서버마다 시계가 다르고**, NTP 동기화가 어긋난 한 대가 미래 시각을 보내면 그 요청들의 스코어가 윈도우 밖으로 나가 계산이 무너진다. 반대로 과거 시각이면 즉시 제거 대상이 된다.
+
+Redis의 `TIME` 명령을 스크립트 안에서 쓰면 기준이 하나로 통일된다.
+
+```lua
+local t = redis.call('TIME')                     -- {초, 마이크로초}
+local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
+```
+
+예전 Redis에서는 스크립트를 결정적으로 유지해야 해서 `TIME` 사용에 제약이 있었지만, 효과 복제(effect replication)가 기본인 현재 버전에서는 문제없다. 참고로 같은 스크립트의 `math.random`은 지금 버전에서 호출마다 다른 값을 반환한다(실측: 396465 / 840486 / 353337 / …). 결정성 가정에 기대는 코드는 버전에 따라 동작이 갈리므로, 유일성이 필요하면 난수 대신 `TIME`의 마이크로초나 별도 카운터를 쓴다.
+
+### 문서 안에서 `KEYS`를 쓰라고 하고 쓰고 있다
+
+§7.2는 `KEYS *`를 위험 명령으로 분류하고 `rename-command KEYS ""`로 막으라고 한다. 그런데 §6.2 `UserService`는 두 군데에서 그걸 쓴다.
+
+```typescript
+const keys = await this.redis.keys('users:*');            // clearCache
+const listKeys = await this.redis.keys('userList:*');     // deleteWithListCache
+```
+
+`deleteWithListCache`는 사용자 삭제 API마다 호출되는 경로다. 키가 수십만 개인 인스턴스에서 이 API가 몇 번만 불려도 서비스가 멈춘다. `rename-command KEYS ""`를 실제로 적용했다면 이 코드는 `unknown command` 에러로 죽는다 — 둘 중 하나는 반드시 고쳐야 한다.
+
+목록 캐시를 통째로 날려야 한다면 패턴 스캔이 아니라 **버전 키**를 쓴다.
+
+```typescript
+// 목록 캐시 키에 버전을 넣는다: userList:v{n}:page:1
+const v = await this.redis.incr('userList:version');   // 무효화 = 버전 1 증가
+// 옛 버전 키들은 TTL 로 알아서 사라진다
+```
+
+`del(...keys)`로 수만 개를 한 번에 지우는 것도 블로킹이다. 큰 키·많은 키에는 `UNLINK`를 쓴다.
+
+### `min-replicas-to-write`는 데이터 손실을 막지 못한다
+
+§2.3의 설명은 맞지만 한계가 분명하다. Redis 복제는 비동기라 **마스터는 레플리카의 ACK를 기다리지 않고 클라이언트에 OK를 반환한다.** `min-replicas-to-write 1`은 "연결된 레플리카가 1대 이상인가"만 확인할 뿐, 방금 그 쓰기가 레플리카에 도달했는지는 보지 않는다.
+
+파티션이 생긴 직후 `min-replicas-max-lag`(10초) 동안은 마스터가 여전히 쓰기를 받는다. 그 10초치 쓰기는 페일오버 후 사라진다. 이 옵션은 **손실 창을 유한하게 만드는 것**이지 없애는 게 아니다.
+
+정말 유실이 곤란한 데이터는 Redis에 최종 저장하지 않는다. Redis는 캐시·세션·큐로 쓰고, 원장은 RDB에 둔다. `WAIT` 명령으로 특정 쓰기의 복제를 확인할 수는 있지만 지연이 크게 늘어난다.
+
+### 페일오버 후 클라이언트가 옛 마스터에 붙어 있는 것을 확인하는 법
+
+§2.9의 첫 번째 장애 패턴은 실제로 자주 나는데, 확인 방법이 명확하지 않으면 놓친다. 페일오버 직후 **새 마스터와 옛 마스터 양쪽에서** 커넥션을 세어본다.
+
+```bash
+redis-cli -h <새-마스터> info clients | grep connected_clients
+redis-cli -h <옛-마스터> info clients | grep connected_clients
+redis-cli -h <옛-마스터> info replication | grep -E 'role|master_link_status'
+```
+
+옛 마스터가 `role:slave`인데 커넥션이 남아 있다면 그쪽으로 가는 쓰기는 전부 `READONLY You can't write against a read only replica`로 실패한다. 애플리케이션이 이 에러를 잡아 재연결하지 않으면 계속 실패한다. ioredis의 `reconnectOnError`에서 `READONLY`를 재연결 조건으로 넣는 이유가 이것이다.
+
 ## 11. 운영 시 주의사항
 
 ### 설정

@@ -603,6 +603,64 @@ class UserService {
 }
 ```
 
+### 위 쿼리 빌더는 실행하면 첫 체이닝에서 죽는다
+
+`QueryBuilder` 를 그대로 옮겨 실행하면 `.select([...])` 에서 `TypeError: ... .select is not a function` 이 난다. SQL 문법 문제가 아니라 프로퍼티 조회 순서 문제다.
+
+`reset()` 이 `this.select = ['*']` 로 **인스턴스 자기 프로퍼티**를 만든다. 같은 이름의 메서드는 프로토타입에 있다. 조회는 인스턴스가 먼저라 배열이 메서드를 가린다.
+
+```javascript
+const b = new QueryBuilder();
+typeof b.select                       // 'object'   ← reset() 이 넣은 배열
+typeof QueryBuilder.prototype.select  // 'function' ← 가려진 메서드
+```
+
+`reset()` 의 키와 메서드 이름이 겹치는 것은 9개다 — `select` `where` `orderBy` `groupBy` `having` `limit` `offset` `distinct` `lock`. 사실상 빌더의 주요 메서드 전부다. `from()` 과 `join()` 계열만 살아남는다.
+
+빌더는 "메서드 이름 = 만들려는 필드 이름" 으로 수렴하는 성질이 있어서 이 충돌은 우연이 아니라 구조적으로 잘 난다. **문법 오류가 아니라 린터도 그냥 넘어가고**, 그 메서드를 실제로 호출하는 경로가 실행돼야 드러난다. 상태 필드에 접두사를 붙여 이름 공간을 나누는 것이 가장 단순한 해법이다.
+
+```javascript
+class QueryBuilder {
+  reset() {
+    this._table = null;
+    this._select = ['*'];
+    this._where = [];
+    return this;
+  }
+  select(columns) { this._select = Array.isArray(columns) ? columns : [columns]; return this; }
+  where(condition) { this._where.push(condition); return this; }
+}
+```
+
+### `where('active', true)` 는 `active = true` 가 되지 않는다
+
+`where(condition, operator = 'AND')` 의 두 번째 인자는 값이 아니라 조건들을 잇는 연산자 자리다. 첫 인자가 문자열이면 그대로 WHERE 절에 밀어 넣으므로 `.where('active', true)` 는 `WHERE active` 를 만들고 `true` 는 버린다. `findById(id)` 도 내부에서 `this.where('id', id)` 를 부르니 `WHERE id LIMIT 1` 이 된다 — 찾으려던 id 값이 통째로 사라진다.
+
+키-값을 넘기려면 객체 분기를 써야 한다.
+
+```javascript
+.where({ active: true })   // → active = 'true'
+```
+
+이름 충돌을 고치더라도 위 사용 예시(`getUsers`, `getUsersWithOrders`)는 전부 문자열 2인자 형태라 조건이 빠진 SQL 이 나간다. **체이닝 API 는 잘못 써도 예외가 안 나고 조용히 다른 쿼리를 만든다** — 빌더를 직접 만들 때 가장 신경 써야 할 지점이다.
+
+### 값을 문자열로 이어 붙이면 쿼리 빌더가 아니다
+
+`${key} = '${value}'`, `values.map(v => "'" + v + "'")` 에는 이스케이프가 없다. `searchUsers` 는 사용자 입력을 `LIKE '%...%'` 안에 그대로 넣는다. 작은따옴표 하나만 들어와도 문법이 깨지고, 그 지점이 곧 주입 지점이다.
+
+빌더 패턴 자체의 결함은 아니지만, **쿼리 빌더를 만들 때 먼저 결정할 것은 체이닝 API 모양이 아니라 "값을 어디에 담을 것인가"** 다. SQL 문자열과 바인딩 파라미터를 함께 쌓아 두 개를 같이 반환하는 형태가 기본이다.
+
+```javascript
+build() {
+  return {
+    sql: `SELECT ${this._select.join(', ')} FROM ${this._table} WHERE email = ?`,
+    params: [this._email]
+  };
+}
+```
+
+식별자(테이블명·컬럼명)는 파라미터로 바인딩할 수 없으니 화이트리스트로 검증하는 수밖에 없다. 이 둘을 구분하지 않으면 "파라미터 쓰니까 안전하다"고 착각하게 된다.
+
 ## Builder 패턴 장단점
 
 ### 장점
@@ -669,6 +727,27 @@ const request = new HttpRequestBuilder()
 // request 객체는 생성 후 변경 불가
 // request.url = 'https://malicious.com'; // 불가능
 ```
+
+> 이 주장은 위 코드에서 성립하지 않는다. 실제로 실행해 보면 `request.url = 'https://malicious.com'` 이 그대로 먹고 `Object.isFrozen(request)` 는 `false` 다. `HttpRequest` 는 평범한 클래스 인스턴스라 언어 차원에서 막는 것이 없다.
+
+빌더가 주는 것은 "생성 이후 setter 를 노출하지 않는다"는 **관례**뿐이다. 불변을 실제로 강제하려면 `Object.freeze` 나 `#private` 필드를 직접 써야 한다.
+
+여기에 더해 `HttpRequest` 는 빌더의 `headers` / `params` 객체를 **참조 그대로** 받는다. 얕은 복사조차 없다. 그래서 `build()` 이후 빌더 쪽에서 헤더를 하나 더 넣으면 이미 만들어진 요청에도 그 헤더가 나타난다. 빌더 인스턴스를 필드에 두고 재사용하는 코드에서 요청 간에 값이 조용히 섞인다.
+
+```javascript
+class HttpRequest {
+  constructor(builder) {
+    this.url = builder.url;
+    this.headers = Object.freeze({ ...builder.headers });
+    this.params  = Object.freeze({ ...builder.params });
+    Object.freeze(this);
+  }
+}
+```
+
+`Object.freeze` 는 얕게 동작한다. 중첩 객체까지 막으려면 재귀로 얼리거나 애초에 중첩을 허용하지 않는다.
+
+같은 맥락에서 `reset()` 을 둔 재사용형 빌더는 `build()` 가 `reset()` 을 부르지 않는다는 점을 봐야 한다. 같은 빌더로 두 번 `build()` 하면 앞 요청의 헤더·타임아웃이 그대로 남은 채 두 번째 객체가 만들어진다. 재사용을 허용할 거면 `build()` 마지막에 `reset()` 을 부르거나, 아예 매번 새 빌더를 만들도록 문서에 못 박는다.
 
 **4. 유효성 검사와 검증**
 ```javascript
@@ -802,6 +881,25 @@ const config = { host: 'localhost', port: 3000 }; // 빌더 불필요
 2. **선택적 매개변수가 많은가?** (이메일, 설정 객체)
 3. **가독성이 중요한가?** (API 클라이언트, 쿼리 빌더)
 4. **유효성 검사가 필요한가?** (복잡한 객체 생성)
+
+### 빌더를 넣으면 무엇을 포기하는가
+
+장점은 위에 적혀 있으니 반대쪽만 적는다.
+
+**검사 시점이 뒤로 밀린다.** 생성자에 인자를 빠뜨리면 타입 시스템이 잡지만, 빌더는 그 검사를 `build()` 안의 `if (!this.url) throw` 로 옮긴다. 컴파일 에러가 런타임 에러가 된다는 뜻이다. 위 "런타임 에러 가능성" 단점의 정체가 이것이고, 필수 필드가 늘수록 손해가 커진다. 타입스크립트라면 단계별 인터페이스(`UrlSet` → `MethodSet` → `Buildable`)로 되돌릴 수 있지만 그만큼 빌더가 복잡해진다.
+
+**수정 지점이 두 배가 된다.** 필드를 하나 추가하려면 Product 와 Builder 양쪽을 고쳐야 한다. 한쪽만 고치면 예외 없이 `undefined` 가 흐른다.
+
+**미완성 상태가 값으로 돌아다닌다.** 체이닝 중간의 빌더는 아직 유효하지 않은 객체인데도 변수에 담기고 함수 인자로 넘어갈 수 있다. 생성자는 "만들어졌으면 유효하다"가 보장되지만 빌더는 그 보장을 포기하는 대신 유연성을 얻는다.
+
+| 빌더가 값을 하는 자리 | 빌더가 손해인 자리 |
+|---|---|
+| 선택 인자가 많고 대부분 기본값으로 두는 객체 | 필드가 서너 개고 전부 필수인 객체 |
+| 조합이 유효한지 build 시점에 한 번 검사해야 할 때 | 객체 리터럴 + 구조 분해로 끝나는 설정 |
+| 같은 골격에서 조금씩 다른 변형을 여러 개 찍을 때 | 한 곳에서 한 번 만들고 끝나는 객체 |
+| 언어에 이름 있는 인자(named argument)가 없을 때 | 팩토리 함수나 DI 컨테이너가 이미 조립을 맡고 있을 때 |
+
+마지막 줄이 자바스크립트에서 특히 중요하다. **객체 리터럴이 이미 이름 있는 인자 역할을 한다.** `new HttpRequest({ url, method, timeout })` 한 줄이면 위 "가독성" 장점의 상당 부분이 해결되고, 기본값은 구조 분해의 기본값(`{ timeout = 5000 } = {}`)으로 처리된다. 자바처럼 이름 있는 인자가 없는 언어에서 빌더가 흔한 이유가 여기 있다 — 언어가 메우지 못하는 자리를 패턴으로 메우는 것이다. 옵션 객체로 충분한지 먼저 보고 나서 빌더를 꺼낸다.
 
 ## 안티패턴
 

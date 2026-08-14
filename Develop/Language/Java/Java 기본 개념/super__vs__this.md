@@ -126,6 +126,23 @@ class Dog extends Animal {
 }
 ```
 
+주석은 전부 맞다. 하지만 **필드 섀도잉의 진짜 함정은 클래스 안이 아니라 밖에 있다.** 필드는 메서드와 달리 다형적으로 동작하지 않는다. 필드는 **참조 변수의 타입**으로, 메서드는 **실제 객체의 타입**으로 결정된다.
+
+```java
+Dog d = new Dog();
+Animal ref = d;          // 같은 객체를 부모 타입으로 가리킨다
+
+((Dog) ref).name         // "Dog"
+ref.name                 // "Animal"   ← 객체는 Dog 인데 Animal 의 필드를 읽는다
+ref.who()                // "Dog"      ← 메서드는 오버라이딩이 적용된다
+```
+
+객체는 하나인데 `ref.name` 과 `ref.who()` 가 서로 다른 클래스를 가리킨다. 필드 섀도잉은 부모 필드를 덮어쓰는 게 아니라 **같은 이름의 필드를 하나 더 만드는 것**이고, 인스턴스 안에는 `name` 이 두 개 존재한다. 어느 쪽을 읽을지는 컴파일 시점에 참조 타입으로 정해진다.
+
+그래서 실무 규칙은 단순하다. **필드는 섀도잉하지 않는다.** 부모와 자식이 같은 이름의 필드를 가져야 할 이유는 거의 없고, 있다면 대개 설계가 잘못된 것이다. 값을 바꾸고 싶으면 필드를 새로 선언하는 대신 부모 필드에 다른 값을 넣거나, 접근을 메서드로 감싸 오버라이딩한다.
+
+`age` 가 "섀도잉되지 않음"인 이유도 같다. `Dog` 이 `age` 를 다시 선언하지 않았으니 필드가 하나뿐이고, 그래서 `age` 와 `super.age` 가 같은 값을 읽는다.
+
 #### 부모 클래스의 메서드 호출
 ```java
 class Animal {
@@ -426,6 +443,24 @@ Calculator calc = new Calculator(10)
 System.out.println("Result: " + calc.getResult()); // 5.5
 ```
 
+**주석의 `5.5` 는 틀렸다. 실제로 실행하면 `6.75` 가 나온다.**
+
+```
+10 + 5 = 15  →  × 2 = 30  →  − 3 = 27  →  ÷ 4 = 6.75
+```
+
+메서드 체이닝은 **왼쪽에서 오른쪽으로 순서대로** 적용될 뿐 사칙연산 우선순위를 따르지 않는다. `10 + 5 * 2 - 3 / 4` 를 수학 규칙대로 계산하면 19.25 이고, 그것도 5.5 는 아니다. 체이닝 API 를 읽을 때 무의식적으로 연산자 우선순위를 적용하게 되는 것이 이 방식의 알려진 함정이다.
+
+`divide` 에도 짚어 둘 게 있다. `if (value != 0)` 으로 0 을 걸러내는데, **0 을 넘기면 아무 일도 일어나지 않고 이전 결과가 그대로 남는다.**
+
+```java
+new Calculator(10).add(5).multiply(2).subtract(3).divide(0).getResult();  // 27.0
+```
+
+예외도 없고 로그도 없다. 호출한 쪽은 나눗셈이 수행됐다고 믿는데 값은 나누기 전 상태다. 0 으로 나누는 게 오류라면 예외를 던지고, 무시가 정말 의도라면 그 사실을 반환값으로 알려야 한다. **조용히 아무것도 하지 않는 것이 가장 나쁜 선택지다.**
+
+참고로 `double` 나눗셈은 0 으로 나눠도 예외가 아니라 `Infinity` 를 준다(정수 나눗셈만 `ArithmeticException` 을 던진다). 즉 이 가드가 없어도 프로그램은 죽지 않고 `Infinity` 가 전파된다. 어느 쪽이든 명시적으로 처리하는 편이 낫다.
+
 #### 상속 체인에서의 생성자 호출
 ```java
 class GrandParent {
@@ -479,6 +514,47 @@ class Child extends Parent {
     }
 }
 ```
+
+실행하면 **생성자 본문은 조상부터 역순으로** 찍힌다. `super()` 가 첫 줄이라 자식 본문은 부모가 끝난 뒤에야 실행된다.
+
+```
+=== new Child() ===
+GrandParent constructor called
+Parent constructor called
+Child constructor called
+Full name: John Michael Smith
+
+=== new Child("Lee") ===
+GrandParent constructor with familyName called
+Parent constructor with firstName called
+Child constructor with middleName called
+Full name: Jane Lee Johnson
+```
+
+`new Child("Lee")` 에서 `familyName` 이 `"Johnson"` 이 되는 게 이 예제의 요점이다. `Child(String)` → `super("Jane")` → `Parent(String)` → `super("Johnson")` 순으로 전달돼, **호출한 쪽이 준 값이 아니라 중간 생성자가 하드코딩한 값**이 최상위에 도달한다.
+
+이 "부모 먼저" 순서가 만드는 함정이 하나 있다. **생성자에서 오버라이딩 가능한 메서드를 부르면 자식 필드가 아직 초기화되지 않은 상태로 실행된다.**
+
+```java
+class Base {
+    Base() { init(); }                  // 오버라이딩 가능한 메서드 호출
+    void init() { }
+}
+class Derived extends Base {
+    private String value = "assigned";
+    private final int n = 42;
+    @Override void init() { System.out.println("value=" + value + ", n=" + n); }
+}
+new Derived();
+```
+
+```
+value=null, n=42
+```
+
+`init()` 은 오버라이딩됐으니 `Derived` 것이 불리는데, 그 시점에는 `Base` 생성자가 도는 중이라 `Derived` 의 필드 초기화가 아직 실행되지 않았다. `value` 는 기본값 `null` 이다. `n` 이 `42` 로 보이는 건 `final int` 상수라 컴파일 시점에 값이 인라인되기 때문이고, 이 예외가 오히려 헷갈림을 키운다.
+
+**생성자에서는 오버라이딩 가능한 메서드를 호출하지 않는다.** 꼭 필요하면 `private` 나 `final` 로 선언해 오버라이딩 자체를 막는다.
 
 ## 운영 팁
 

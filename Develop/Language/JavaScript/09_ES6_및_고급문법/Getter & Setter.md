@@ -191,6 +191,27 @@ const user = {
 }
 ```
 
+이 예제 자체가 함정을 하나 더 보여준다. **같은 객체 리터럴에 `get name` 이 두 번 있으면 뒤엣것이 앞엣것을 조용히 덮는다.**
+
+```javascript
+const u = {
+  _name: '김철수',
+  get name() { return this.name; },    // ← 이 정의는 사라진다
+  get name() { return this._name; }
+};
+u.name;   // '김철수' — 무한 루프는 일어나지 않는다
+```
+
+에러도 경고도 없다. 그래서 "잘못된 예"가 실제로는 실행되지 않고, 이 코드를 붙여넣어 무한 루프를 재현해 보려던 사람은 아무 일도 안 일어나는 것을 보게 된다. 진짜로 재현하려면 잘못된 정의 하나만 남겨야 한다.
+
+```javascript
+const bad = { get name() { return this.name; } };
+bad.name;
+// RangeError: Maximum call stack size exceeded
+```
+
+중복 키가 조용히 덮이는 것은 getter 만의 얘기가 아니다. 평범한 속성도 마찬가지고, 엄격 모드에서도 에러가 아니다. 설정 객체가 길어지면 같은 키를 두 번 쓰고도 모른 채 지나가기 쉽다 — ESLint 의 `no-dupe-keys` 같은 정적 검사에 맡기는 수밖에 없다.
+
 ### 2. Getter만 정의한 경우
 ```javascript
 const user = {
@@ -206,6 +227,33 @@ console.log(user.name); // 김철수
 user.name = '박영희';    // 에러는 발생하지 않지만 값이 변경되지 않음
 console.log(user.name); // 여전히 김철수
 ```
+
+"에러는 발생하지 않지만"은 **비엄격 모드에서만** 맞다. ES 모듈이나 클래스 안에서는 던진다.
+
+```javascript
+// 모듈 파일(엄격 모드)
+const g = { _n: '김철수', get name() { return this._n; } };
+g.name = '박영희';
+// TypeError: Cannot set property name of #<Object> which has only a getter
+```
+
+문제는 조용히 실패하는 쪽이다. 대입은 실패했는데 **대입식의 값은 대입하려던 그 값**이라, 반환값으로 성공 여부를 판단할 수 없다.
+
+```javascript
+const result = (g.name = '박영희');
+result;    // '박영희'   ← 성공한 것처럼 보인다
+g.name;    // '김철수'   ← 실제로는 안 바뀌었다
+```
+
+이 문서의 setter 들도 같은 형태다. 검증에 걸리면 `console.error` 를 찍고 `return` 하는데, 호출부 입장에서는 성공과 실패가 구분되지 않는다.
+
+```javascript
+user.age = 999;    // 콘솔에는 에러가 찍히지만 코드 흐름은 그대로 이어진다
+```
+
+setter 안에서는 반환값으로 알릴 방법이 없으니, 정말 막아야 하는 값이면 **던져야** 한다. `throw new RangeError('나이는 0~150')` 이면 호출부가 `try/catch` 로 다룰 수 있다. 로그만 남기고 넘어가면 잘못된 값이 들어간 줄 모른 채 다음 단계로 간다.
+
+setter 로 검증하는 접근 자체의 한계도 있다. 이 문서 앞쪽 `getName`/`setAge` 예제에서 `age` 는 여전히 평범한 공개 속성이라 `user.age = 999` 한 줄로 우회된다. 검증을 강제하려면 값을 밖에서 못 건드리게 해야 하고, 그 자리에 있는 것이 `#private` 필드다.
 
 
 ### 사용자 프로필 관리
@@ -485,6 +533,41 @@ console.log(userProfile.age);      // 25
 
 
 
+
+## 언더스코어는 접근 제어가 아니다
+
+위 `userProfile` 의 `get password()` 마스킹은 **보안이 아니다.** `_password` 가 평범한 속성으로 옆에 그대로 남아 있어서, 객체를 통째로 다루는 순간 원문이 나온다.
+
+```javascript
+JSON.stringify(userProfile);
+// {"_password":"hunter2xyz","password":"**********","_email":"a@b.c","email":"a@b.c"}
+
+{ ...userProfile };
+// { _password: 'hunter2xyz', password: '**********', _email: 'a@b.c', email: 'a@b.c' }
+```
+
+마스킹한 값과 원문이 **나란히** 들어간다. 이 객체가 API 응답이나 에러 로그로 나가면 비밀번호가 그대로 실려 나간다. 마스킹을 해 뒀다는 사실이 오히려 "가려져 있다"는 착각을 만들어서 아무도 다시 확인하지 않는다.
+
+여기서 두 가지가 같이 보인다.
+
+**하나, 언더스코어 접두사는 약속일 뿐이다.** `userProfile._password` 는 누구나 읽고 쓸 수 있다. 진짜로 감추려면 클래스의 private 필드를 쓴다. `#` 필드는 클래스 밖에서 접근하면 문법 에러이고, `JSON.stringify` 와 스프레드에도 나오지 않는다.
+
+```javascript
+class Profile {
+  #password = '';
+  set password(v) {
+    if (v.length < 8) throw new RangeError('비밀번호는 8자 이상');
+    this.#password = v;
+  }
+  get masked() { return '*'.repeat(this.#password.length); }
+}
+
+const p = new Profile();
+p.password = 'hunter2xyz';
+JSON.stringify(p);   // '{}'   — 새어 나갈 것이 없다
+```
+
+**둘, `JSON.stringify` 와 스프레드는 getter 를 호출한다.** 위 출력의 `"password":"**********"` 가 그 결과다. getter 가 계산 비용이 크거나 부수 효과가 있으면 객체를 로그로 찍는 것만으로 그게 실행된다. `console.log` 로 값을 들여다보다 상태가 바뀌는 코드는 원인을 찾기 극도로 어렵다. **getter 안에서는 아무것도 바꾸지 않는다**를 규칙으로 두는 편이 낫다.
 
 ## ES6 Getter & Setter 문법
 

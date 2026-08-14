@@ -49,6 +49,23 @@ console.log(checkUndefined(null));      // false
 console.log(checkUndefined('hello'));   // false
 ```
 
+**`let uninitialized: string;` 뒤의 `console.log` 는 `strict` 에서 컴파일되지 않는다.** 주석은 `undefined` 가 찍힌다고 하지만 그 지점에 도달하지 못한다.
+
+```
+error TS2454: Variable 'uninitialized' is used before being assigned.
+```
+
+런타임 값이 `undefined` 인 건 맞다. TypeScript 가 그 상태를 **읽지 못하게 막는 것**이고, 이게 `strictNullChecks` 가 하는 일이다. 그래서 `string` 으로 선언한 변수는 `undefined` 를 담을 수 있는 시점이 있어도 타입에는 그게 안 보인다. 실제로 값이 없을 수 있으면 `string | undefined` 로 적어야 타입과 사실이 맞는다.
+
+`checkUndefined(null)` 이 `false` 인 것도 짚어 둘 만하다. `undefined` 와 `null` 은 다른 값이고 `===` 로는 구분된다. 반면 `==` 는 둘을 같게 본다.
+
+```javascript
+null === undefined   // false
+null ==  undefined   // true   ← 이 성질 때문에 == null 이 관용구가 됐다
+```
+
+"둘 중 하나면 참"을 원할 때만 `== null` 을 쓰고, 나머지 자리에서는 `===` 를 쓴다. `== null` 은 ESLint 의 `eqeqeq` 규칙도 예외로 허용하는 유일한 `==` 용법이다.
+
 #### undefined와 함수
 ```typescript
 // undefined를 반환하는 함수
@@ -149,6 +166,48 @@ console.log(user1); // { name: '홍길동', age: 30, email: 'hong@example.com' }
 console.log(user2); // { name: '김철수', age: 20, email: undefined }
 console.log(user3); // { name: '이영희', age: 25, email: undefined }
 ```
+
+주석의 `email: undefined` 를 그냥 넘기면 안 된다. **`createUser` 는 선택적 프로퍼티를 생략하지 않고 `undefined` 값으로 채워 넣는다.** 둘은 읽을 때만 같아 보이고 실제로는 다른 객체다.
+
+```javascript
+const u2 = createUser('김철수');        // { name, age, email: undefined }
+const u3 = { name: '김철수', age: 20 }; // email 키 자체가 없음
+
+u2.email          // undefined
+u3.email          // undefined   ← 여기까지는 똑같다
+
+'email' in u2     // true
+'email' in u3     // false
+Object.keys(u2)   // ['name', 'age', 'email']
+Object.keys(u3)   // ['name', 'age']
+```
+
+차이가 실제로 터지는 곳은 **병합**이다. 스프레드와 `Object.assign` 은 키의 존재만 보고 값을 덮어쓰므로, 명시적 `undefined` 가 기본값을 지운다.
+
+```javascript
+const defaults = { email: 'default@x.com' };
+
+{ ...defaults, ...u2 }   // { email: undefined,         name: '김철수', age: 20 }
+{ ...defaults, ...u3 }   // { email: 'default@x.com',   name: '김철수', age: 20 }
+```
+
+설정 병합이나 PATCH 요청 본문을 만드는 코드에서 기본값이 사라지는 사고가 여기서 나온다. "값을 안 보냈다"와 "값을 비우라고 보냈다"가 구분되지 않기 때문이다.
+
+`JSON.stringify` 는 또 다르게 동작해서 **명시적 `undefined` 를 조용히 버린다.**
+
+```javascript
+JSON.stringify(u2)   // {"name":"김철수","age":20}   ← email 이 사라진다
+```
+
+그래서 서버로 나갈 때는 두 객체가 같아 보이고, 로컬 병합에서는 다르게 동작한다. 재현이 어려운 버그의 전형이다.
+
+키를 아예 만들지 않으려면 조건부로 넣는다.
+
+```typescript
+return { name, age, ...(email !== undefined && { email }) };
+```
+
+TypeScript 쪽에서는 `exactOptionalPropertyTypes` 옵션을 켜면 `age?: number` 에 `undefined` 를 명시적으로 대입하는 것을 막아 준다. `strict` 에 포함되지 않으므로 따로 켜야 한다.
 
 ### 3. undefined와 타입 가드
 
@@ -412,6 +471,22 @@ const user: RequiredUser = {
 processUser(user); // "이름: 홍길동, 나이: 30, 이메일: hong@example.com"
 ```
 
+주석의 결과 `{ name: string; age: number; email: string }` 는 맞다. 다만 **`NonUndefined<T[K]>` 는 있으나 없으나 결과가 같다.** 매핑 타입의 `-?` 수식자가 선택성만 없애는 게 아니라 프로퍼티 타입에서 `undefined` 까지 함께 제거하기 때문이다.
+
+```typescript
+type Without = { [K in keyof OptionalUser]-?: OptionalUser[K] };   // NonUndefined 없이
+const z: Without = { name: 'a', age: undefined, email: 'e' };
+// error TS2322: Type 'undefined' is not assignable to type 'number'
+```
+
+`NonUndefined` 를 빼도 똑같이 막힌다. 즉 `RequiredOptional` 은 표준 유틸리티 타입 `Required<T>` 와 같은 것을 다시 만든 것이다.
+
+```typescript
+type RequiredUser = Required<OptionalUser>;   // 동일한 결과
+```
+
+`NonUndefined<T>` 자체가 쓸모없다는 뜻은 아니다. **매핑 타입 밖에서** 유니온의 `undefined` 를 걷어낼 때는 제 역할을 한다. 이것도 표준으로 `NonNullable<T>` 가 있는데, 그쪽은 `null` 까지 같이 제거한다는 점이 다르다. 둘 중 무엇이 필요한지 정해서 쓴다.
+
 ## 운영 팁
 
 ### 성능 최적화
@@ -462,6 +537,16 @@ console.log(UndefinedOptimizer.safeGetWithDefault(data, 'email', 'unknown')); //
 
 UndefinedOptimizer.executeIfDefined(data.name, name => console.log(`이름: ${name}`)); // "이름: 홍길동"
 ```
+
+**`'email'` 을 넘기는 두 줄은 컴파일되지 않는다.** `data` 는 `{ name: string; age: number }` 로 추론되므로 `keyof` 에 `'email'` 이 없다.
+
+```
+error TS2345: Argument of type '"email"' is not assignable to parameter of type '"age" | "name"'.
+```
+
+이건 결함이 아니라 `K extends keyof T` 가 제대로 일한 결과다. 주석이 기대한 `undefined` 반환은 **자바스크립트의 동작**이고, TypeScript 는 그 접근 자체를 오타로 보고 막는다. 없는 키를 조회하는 게 정말 의도라면 시그니처를 `key: string` 으로 넓히거나 인덱스 시그니처가 있는 타입을 받아야 한다. 지금 상태에서는 예제와 구현이 서로 다른 걸 가정하고 있다.
+
+`safeGet` 이 반환 타입에 `| undefined` 를 붙인 것도 실제로는 겉돈다. `T[K]` 는 이미 `keyof T` 로 좁혀진 실재하는 키의 타입이라 `undefined` 가 추가로 나올 일이 없다. 인덱스 접근이 정말 `undefined` 를 낼 수 있다고 타입에 반영하려면 `noUncheckedIndexedAccess` 를 켜야 하는데, 그건 인덱스 시그니처에만 적용되고 `keyof` 로 좁힌 접근에는 적용되지 않는다.
 
 ### 에러 처리
 

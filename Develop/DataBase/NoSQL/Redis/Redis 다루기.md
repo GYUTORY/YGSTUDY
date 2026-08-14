@@ -553,6 +553,121 @@ redis-cli --bigkeys       # 레플리카에서 실행 권장
 
 ---
 
+---
+
+## 위 패턴에서 실제로 걸리는 곳
+
+Redis는 명령 하나하나가 원자적이라 안전해 보이는데, **명령 두 개를 이어 붙이는 순간 그 보장이 사라진다.** 위 코드들이 걸리는 지점은 대부분 여기다. 아래는 로컬 Redis 8.2.1 + ioredis에서 확인한 것이다.
+
+### 두 명령 사이에서 프로세스가 죽으면 TTL이 없는 키가 남는다
+
+```javascript
+// Rate Limiting (Fixed Window)
+const count = await redis.incr(key);
+if (count === 1) await redis.expire(key, 60);
+```
+
+`INCR` 직후 `EXPIRE` 전에 프로세스가 죽거나 커넥션이 끊기면 그 키는 만료 없이 남는다.
+
+```
+INCR 만 하고 EXPIRE 전 TTL = -1   (-1 = 만료 없음)
+```
+
+그 사용자는 카운터가 한도를 넘은 채 **영구히 429를 받는다.** 서비스 전체는 멀쩡하고 특정 사용자만 안 되므로 제보가 들어와도 재현이 안 된다. `ProductService`의 `saveAsHash`(HSET → EXPIRE)도 같은 구조고, 이쪽은 캐시가 영구히 남아 만료 갱신이 영영 안 되는 형태가 된다.
+
+두 명령을 하나로 만든다.
+
+```javascript
+// 원자적으로: 없으면 만들고 TTL 을 붙인 뒤 증가
+const [count] = await redis.eval(
+  `local c = redis.call('INCR', KEYS[1])
+   if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+   return {c}`,
+  1, key, 60
+);
+```
+
+Hash라면 `HSET` 대신 `HSET` + `EXPIRE`를 파이프라인이 아니라 Lua로 묶는다. 파이프라인은 왕복만 줄일 뿐 원자성을 주지 않는다.
+
+### 파이프라인은 실패를 던지지 않는다
+
+```
+results = [
+  [0] err= null                                          | val= { f: 'v' }
+  [1] err= WRONGTYPE Operation against a key holding...  | val= undefined
+  [2] err= WRONGTYPE Operation against a key holding...  | val= undefined
+]
+```
+
+`getUserDashboard`는 `results[0][1]`, `results[1][1]`, `results[2][1]`만 읽는다. 명령이 실패하면 그 자리가 `undefined`가 되어 **에러 없이 빈 대시보드가 나간다.** `exec()`는 예외를 던지지 않으므로 try/catch로도 안 잡힌다.
+
+```javascript
+const results = await pipeline.exec();
+const failed = results.filter(([err]) => err);
+if (failed.length) logger.warn('pipeline 일부 실패', { count: failed.length, first: failed[0][0].message });
+```
+
+`setSharded`처럼 여러 샤드에 같은 값을 쓰는 파이프라인은 특히 중요하다. 일부만 성공하면 샤드마다 다른 값이 남아, 랜덤 선택 결과에 따라 **읽을 때마다 다른 데이터가 나오는** 상태가 된다.
+
+### 분산 락은 TTL보다 오래 걸리는 작업을 막지 못한다
+
+`OrderService.processOrder`는 30초 TTL로 락을 잡는다. `doProcessOrder`가 35초 걸리면 이렇게 된다.
+
+```
+t=0    A 락 획득 (TTL 30s)
+t=30   락 자동 만료
+t=31   B 락 획득 → A 와 B 가 동시에 같은 주문을 처리
+t=35   A 종료. releaseLock 의 Lua 가 값을 비교 → B 의 락이라 안 지움 (여기까진 맞다)
+```
+
+Lua 해제는 **남의 락을 지우는 것**만 막는다. 두 워커가 겹쳐 도는 것 자체는 못 막는다. 락이 상호 배제를 보장한다고 가정한 로직(재고 차감, 결제 승인)이 그 사이에 두 번 실행된다.
+
+TTL은 "작업이 이 시간 안에 끝난다"는 약속이 아니라 "이 시간이 지나면 죽은 것으로 간주한다"는 선언이다. 세 가지 중 하나를 골라야 한다.
+
+- 작업 시간을 측정해서 TTL을 p99보다 충분히 길게 잡는다
+- 작업 중 주기적으로 TTL을 연장한다(watchdog). 단 연장 스레드가 멈추면 같은 문제로 돌아온다
+- 락에 의존하지 않고 **최종 쓰기에 조건을 건다** — `UPDATE ... WHERE status = 'PENDING'`처럼. 두 번째 실행이 0 rows affected로 걸러진다
+
+세 번째가 가장 튼튼하다. 락은 경합을 줄이는 최적화로 쓰고, 정합성은 DB 조건으로 지킨다.
+
+`acquireLock`의 재시도 루프도 손볼 곳이 있다. `setTimeout(res, 50)`으로 고정 간격 폴링을 하면 대기 중인 요청들이 같은 타이밍에 몰린다. `50 + Math.random() * 50`처럼 흔들어준다.
+
+### `SCAN`은 중복을 반환할 수 있다
+
+`KEYS` 대신 `SCAN`을 쓰라는 건 맞지만, 두 명령의 결과가 같지는 않다.
+
+- 순회 내내 존재한 키는 **최소 한 번** 반환된다 — 여러 번 나올 수 있다
+- 순회 중 생기거나 사라진 키는 나올 수도, 안 나올 수도 있다
+- `COUNT`는 힌트라 그 개수를 보장하지 않고, 0건이 돌아와도 커서가 0이 아니면 끝난 게 아니다
+
+그래서 `SCAN` 결과로 개수를 세면 실제보다 많이 나올 수 있다. 삭제 대상을 모을 때도 중복이 섞이므로 Set으로 받는다.
+
+```javascript
+const found = new Set();
+let cursor = '0';
+do {
+  const [next, keys] = await redis.scan(cursor, 'MATCH', 'user:*', 'COUNT', 100);
+  keys.forEach((k) => found.add(k));
+  cursor = next;          // keys 가 비어도 cursor 가 '0' 이 될 때까지 계속한다
+} while (cursor !== '0');
+```
+
+키 개수를 정확히 알아야 한다면 스캔이 아니라 별도의 Set이나 카운터로 관리한다.
+
+### 진단 명령이 프로덕션을 멈춘다
+
+- `MEMORY USAGE key SAMPLES 0`은 샘플링 없이 **전부** 계산한다. 필드가 수만 개인 Hash에 걸면 그 시간 동안 서버가 멈춘다. Big Key를 찾으려는 명령이 Big Key에서 가장 위험하다. 기본 샘플링(`SAMPLES 5`)으로 먼저 대략을 본다
+- `--bigkeys`와 `--hotkeys`는 내부적으로 전체 키를 순회한다. 문서에 적힌 대로 레플리카에서 돌린다
+- `MONITOR`는 모든 명령을 스트리밍한다. 처리량이 높은 인스턴스에서는 이것만으로 지연이 올라간다. 붙였다면 반드시 끊는다
+
+`SLOWLOG`에도 한계가 있다. **기록되는 시간은 명령 실행 시간뿐이고, 앞선 명령을 기다린 대기 시간은 포함되지 않는다.** 앞에서 누가 `KEYS *`를 돌리면 뒤의 `GET`들은 실제로 수백 ms를 기다렸는데 슬로우 로그에는 안 남는다. 클라이언트는 느린데 슬로우 로그가 깨끗하다면 이 경우다. 원인 명령 하나(`KEYS`, 큰 `HGETALL`, 무거운 Lua)를 찾으면 나머지가 같이 풀린다.
+
+### 로컬 캐시가 인스턴스마다 다른 값을 보여준다
+
+`HotKeyService`의 LRU 캐시는 TTL 5초다. 인스턴스가 4대면 같은 키에 대해 **최대 5초 동안 서로 다른 값을 응답할 수 있다.** 새로고침할 때마다 값이 왔다 갔다 하는 화면이 여기서 나온다.
+
+가격, 재고, 잔액처럼 사용자가 즉시 확인하는 값에는 쓰지 않는다. 카테고리 목록, 설정값, 배너처럼 몇 초 늦어도 되는 것에만 건다. 무효화 전파(Pub/Sub, Redis Client-side Caching)를 붙일 수는 있지만, 전파 자체가 유실될 수 있으므로 TTL은 여전히 필요하다.
+
 ## 참조
 
 - [Redis 명령어 레퍼런스](https://redis.io/commands/)

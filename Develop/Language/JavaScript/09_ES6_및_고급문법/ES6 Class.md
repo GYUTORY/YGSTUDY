@@ -64,6 +64,50 @@ console.log(student.name);    // "김철수"
 console.log(student.grade);   // 2
 ```
 
+두 방식의 진짜 차이는 문법이 아니라 **실행 순서**다. 클래스 필드는 코드에서 어디에 적혀 있든 **생성자 본문보다 먼저** 실행된다.
+
+```javascript
+class A {
+  b = this.a;                       // 이 줄이 먼저다
+  constructor(a) { this.a = a; }    // 이 줄이 나중이다
+}
+new A(10).b;    // undefined — 생성자 인자를 볼 수 없다
+```
+
+필드에 `this.무언가` 를 쓰는 순간 이 순서에 걸린다. 위 `school = '서울고등학교'` 처럼 상수만 넣으면 문제가 없지만, `fullName = this.first + this.last` 같은 것을 쓰면 언제나 `undefined undefined` 다. 계산이 필요한 값은 필드가 아니라 생성자 안에서 만든다.
+
+순서는 속성이 만들어지는 순서에도 그대로 나타난다.
+
+```javascript
+class B {
+  constructor(a) { this.a = a; }
+  b = 'field';
+}
+Object.keys(new B(1));   // ['b', 'a'] — 아래 적힌 b 가 먼저다
+```
+
+`JSON.stringify` 결과의 키 순서가 코드 순서와 다른 이유가 이것이다. 응답 필드 순서를 눈으로 대조하다 헷갈리기 좋은 지점이다.
+
+상속이 끼면 순서가 하나 더 생긴다. 자식 필드는 `super()` 가 끝난 **뒤에** 초기화된다.
+
+```javascript
+class P {
+  constructor() { console.log(this.childField); this.init(); }
+  init() {}
+}
+class C extends P {
+  childField = 'ready';
+  constructor() { super(); console.log(this.childField); }
+  init() { console.log(this.childField); }
+}
+new C();
+// undefined   ← 부모 생성자에서 본 값
+// undefined   ← 부모가 부른 init() 안에서 본 값 (오버라이드된 자식 메서드다)
+// ready       ← super() 가 끝난 뒤
+```
+
+부모 생성자가 오버라이드 가능한 메서드를 호출하는 구조는 그래서 위험하다. 자식이 그 메서드를 재정의하면 **자기 필드가 아직 준비되지 않은 상태에서** 불린다. 초기화 로직을 생성자에서 부르는 대신 호출부가 명시적으로 부르게 하거나, 부모에서 부를 메서드는 오버라이드하지 못하게(private) 만든다.
+
 ---
 
 
@@ -732,6 +776,79 @@ console.log(person.introduce()); // "안녕하세요, 제 이름은 윤아준입
 - **class**: 객체를 생성하기 위한 템플릿을 정의하는 키워드
 - **constructor**: 클래스의 생성자 메서드 (객체 생성 시 자동 호출)
 - **메서드**: 클래스 내부에 정의된 함수
+
+### "문법적 설탕"이라는 말의 한계
+
+이 문서가 여러 번 말하는 "내부적으로는 프로토타입"은 맞지만, **두 코드가 같게 동작하지는 않는다.** 위 ES5 예제와 ES6 예제를 나란히 돌려 보면 네 군데가 다르다.
+
+**1. 메서드의 열거 가능성.** 클래스 메서드는 `enumerable: false` 이고, 프로토타입에 대입한 메서드는 `true` 다.
+
+```javascript
+class C { m() {} }
+function D() {}
+D.prototype.m = function () {};
+
+for (const k in new C()) console.log(k);   // 아무것도 안 찍힌다
+for (const k in new D()) console.log(k);   // 'm'
+```
+
+옛 코드를 클래스로 옮기다 `for...in` 이나 `Object.assign` 으로 인스턴스를 복사하던 부분이 조용히 달라진다.
+
+**2. 호이스팅.** 함수 선언은 정의 전에 쓸 수 있지만 클래스는 못 쓴다.
+
+```javascript
+new Later();      // ReferenceError: Cannot access 'Later' before initialization
+class Later {}
+
+hoisted();        // 동작한다
+function hoisted() {}
+```
+
+파일 위쪽에서 아래 정의된 클래스를 참조하는 코드는, 그 참조가 **모듈 로드 시점**에 실행되면 터지고 함수 안에서 나중에 실행되면 멀쩡하다. 그래서 순환 import 가 얽히면 재현이 까다로운 에러가 된다.
+
+**3. `new` 강제.** 클래스는 `new` 없이 호출하면 `TypeError` 다. 생성자 함수는 조용히 다른 일을 한다.
+
+**4. 클래스 본문은 언제나 엄격 모드.** `"use strict"` 를 쓴 적이 없어도 그렇다.
+
+문법만 바뀐 게 아니라 **기본값이 안전한 쪽으로 바뀐 것**에 가깝다.
+
+### 계산된 메서드 이름의 두 가지
+
+앞의 `[methodName]()` 예제에 딸린 성질이 둘 있다. 하나, 이름은 **클래스가 정의되는 시점에 한 번** 평가되고 그대로 굳는다.
+
+```javascript
+let mn = 'alpha';
+class F { [mn]() { return 'x'; } }
+mn = 'beta';
+Object.getOwnPropertyNames(F.prototype);   // ['constructor', 'alpha']
+```
+
+변수를 바꿔도 메서드 이름은 따라오지 않는다. "동적"이라는 말이 실행 중에 바뀐다는 뜻은 아니다.
+
+둘, 두 계산된 이름이 같은 값이 되면 **뒤엣것이 앞엣것을 조용히 덮는다.**
+
+```javascript
+const n1 = 'same', n2 = 'same';
+class E {
+  [n1]() { return 'first'; }
+  [n2]() { return 'second'; }
+}
+new E().same();   // 'second'
+```
+
+상수 두 개가 우연히 같은 문자열이면 메서드 하나가 사라지는데 에러가 없다. 이름을 데이터에서 만들어 쓸 때는 중복 가능성을 먼저 확인해야 한다.
+
+### getInfo 가 돌려주는 것은 복사본이 아니다
+
+`User.getInfo()` 는 새 객체를 만들지만 **`createdAt` 은 같은 `Date` 인스턴스**를 가리킨다.
+
+```javascript
+const info = user.getInfo();
+info.createdAt.setFullYear(1999);
+user.createdAt.getFullYear();   // 1999 — 원본이 바뀌었다
+```
+
+"정보를 복사해서 돌려준다"고 읽히지만 얕은 복사라 참조형 필드는 그대로 새어 나간다. `Date` 는 변경 가능한 객체라 받는 쪽이 `setDate` 한 번만 불러도 원본이 오염된다. 넘길 때 `new Date(this.createdAt)` 로 새로 만들거나, 처음부터 문자열·숫자 타임스탬프로 들고 있는 편이 안전하다.
 
 ---
 

@@ -65,6 +65,15 @@ console.log(escapedString);
 console.log(rawString);
 ```
 
+`rawString` 변수명은 오해를 부른다. **백틱은 원시 문자열이 아니다.** 템플릿 리터럴 안에서도 `\n` 은 여전히 줄바꿈 이스케이프로 해석된다. 위 `rawString` 의 실제 값은 `"원시 문자열: \n\t\""` 이고 길이는 11 이다 — 역슬래시가 남아 있다면 15 여야 한다.
+
+```javascript
+`원시 문자열: \n\t\"`.length          // 11  ← 이스케이프가 해석됨
+String.raw`원시 문자열: \n\t\"`.length // 15  ← 역슬래시가 그대로 남음
+```
+
+백틱이 일반 문자열과 다른 점은 **줄바꿈을 그냥 눌러서 넣을 수 있다**는 것이지 이스케이프를 끄는 게 아니다. 역슬래시를 문자 그대로 남기려면 `String.raw` 를 쓴다. 윈도우 경로나 정규식 소스를 문자열로 다룰 때 이 차이가 드러난다.
+
 ### 2. 템플릿 리터럴과 문자열 보간
 
 #### 템플릿 리터럴 사용
@@ -131,6 +140,28 @@ console.log(text.substring(0, 5));       // "Hello"
 console.log(text.slice(7, 17));          // "TypeScript"
 console.log(text.charAt(0));             // "H"
 ```
+
+여기서 쓴 `length` · `charAt` · `slice` · `substring` 은 전부 **문자가 아니라 UTF-16 코드 유닛** 단위로 센다. 배경 절의 "16비트 유니코드"가 바로 이 뜻이고, 실무에서 걸리는 지점은 16비트를 넘는 문자다.
+
+```javascript
+'홍길동'.length      // 3   ← 한글은 코드 유닛 1개라 직관과 맞는다
+'👍'.length          // 2   ← 서로게이트 페어. 한 글자인데 2다
+'가족👨‍👩‍👧 사진'.length      // 13
+[...'가족👨‍👩‍👧 사진'].length  // 10  ← 이터레이터는 코드 포인트 단위
+```
+
+인덱스로 자르면 문자가 반으로 쪼개진다. `'Hi 👍!'.slice(0, 4)` 는 `'Hi '` 뒤에 서로게이트 절반(`\uD83D`)만 붙은 깨진 문자열을 돌려준다. 화면에는 `�` 로 나온다.
+
+**판단 기준**: 바이트/저장 한도를 재는 자리(DB `VARCHAR`, 프로토콜 길이 필드)에는 `length` 가 맞고, 사람이 세는 글자 수나 화면에 자를 위치를 정하는 자리에는 틀리다. 후자는 `[...str]` 이나 `Array.from(str)` 으로 코드 포인트 배열을 만든 뒤 센다. 그것도 완벽하진 않다. 위 가족 이모지는 ZWJ 로 이어붙인 5개 코드 포인트라서, 같은 문자열을 세 방식으로 세면 **13 / 10 / 6** 으로 전부 다르게 나온다.
+
+```javascript
+const s = '가족👨‍👩‍👧 사진';
+s.length                                                    // 13  코드 유닛
+[...s].length                                               // 10  코드 포인트
+[...new Intl.Segmenter('ko',{granularity:'grapheme'}).segment(s)].length  // 6   사람이 세는 글자
+```
+
+사람 눈에 보이는 글자 수가 필요하면 `Intl.Segmenter` 를 쓴다.
 
 #### 문자열 분할과 결합
 ```typescript
@@ -263,6 +294,32 @@ console.log(StringFormatter.formatDate(new Date())); // "2024-01-15"
 console.log(StringFormatter.truncate('매우 긴 문자열입니다.', 10)); // "매우 긴 문자열..."
 ```
 
+이 클래스에는 확인된 결함이 둘 있다.
+
+**`toPascalCase` 는 파스칼 케이스를 만들지 않는다.** 첫 글자만 대문자로 올리고 나머지를 통째로 소문자로 내린다. 주석의 `"Hello world"` 가 실제 출력이 맞는데, 그건 파스칼 케이스가 아니다(파스칼이면 `HelloWorld`). 더 나쁜 건 이미 카멜 케이스인 입력을 넣으면 정보가 사라진다는 점이다.
+
+```javascript
+toPascalCase('hello world')  // "Hello world"  ← 단어 경계를 안 붙인다
+toPascalCase('helloWorld')   // "Helloworld"   ← 있던 W 를 소문자로 깎아먹는다
+```
+
+단어 경계를 살리려면 구분자에서 쪼갠 뒤 각 조각의 머리를 올린다.
+
+```javascript
+static toPascalCase(str: string): string {
+    return str
+        .split(/[\s\-_]+/)
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join('');
+}
+// 'hello world' → 'HelloWorld', 'hello-world' → 'HelloWorld', 'helloWorld' → 'HelloWorld'
+```
+
+**`truncate` 주석의 출력값이 틀렸다.** `'매우 긴 문자열입니다.'` 를 10 으로 자르면 실제로는 `"매우 긴 문자열입니..."` 가 나온다. `'매우 긴 문자열입니'` 가 정확히 10 자다. 주석의 `"매우 긴 문자열..."` 은 7 자를 자른 결과다.
+
+그리고 `truncate` 는 앞에서 본 서로게이트 문제를 그대로 안는다. `substring` 이 코드 유닛으로 자르므로 경계에 이모지가 걸리면 반쪽만 남는다 — 실행해 보면 `truncate('안녕👍👍👍하세요', 4)` 가 `'안녕👍...'` 로 우연히 맞아떨어지지만, 한 칸만 밀린 `maxLength: 3` 에서는 깨진 문자가 나온다. 자르는 길이가 사용자 입력에서 오는 자리라면 코드 포인트 배열로 자르는 편이 안전하다.
+
 ### 2. 고급 패턴
 
 #### 문자열과 제네릭
@@ -314,6 +371,17 @@ const result = processor
 
 console.log(result); // "HELLO, JAVASCRIPT!"
 ```
+
+`reverse()` 의 `split('')` 은 코드 유닛으로 쪼개므로 **서로게이트 페어를 뒤집어 놓는다.** 아스키와 한글에서는 멀쩡히 돌아가서 눈치채기 어렵다.
+
+```javascript
+'가나다'.split('').reverse().join('')    // "다나가"  ← 정상
+'ab👍cd'.split('').reverse().join('')    // "dc\uDC4D\uD83Dba"  ← 👍 가 깨진다
+```
+
+서로게이트 두 조각의 순서가 뒤바뀌어 유효하지 않은 문자가 된다. `[...str]` 로 쪼개면 코드 포인트 단위라 이건 해결되지만, 결합 문자(NFD 로 저장된 `café` 의 악센트 등)는 여전히 앞 글자와 분리돼 엉뚱한 글자에 붙는다. 문자열 뒤집기는 유니코드에서 일반해가 없는 연산이다 — 데모 말고 실제 로직에 넣지 않는 게 맞다.
+
+제네릭 `<T extends string>` 도 여기서는 하는 일이 없다. `toUpperCase(): string` 처럼 반환 타입을 전부 `string` 으로 고정해 놨기 때문에 `T` 가 리터럴 타입 정보를 들고 있어도 밖으로 전달되지 않는다. 리터럴을 살리려면 반환 타입을 `Uppercase<T>` 같은 문자열 조작 타입으로 바꿔야 의미가 생긴다.
 
 #### 문자열과 정규표현식
 ```typescript
@@ -367,6 +435,33 @@ console.log(StringAnalyzer.extractEmails(sampleText)); // ["user@example.com"]
 console.log(StringAnalyzer.extractUrls(sampleText)); // ["https://example.com"]
 console.log(StringAnalyzer.extractHashtags(sampleText)); // ["#TypeScript", "#JavaScript"]
 ```
+
+**앞 두 줄의 주석이 실제 출력과 다르다.** 이 `sampleText` 를 그대로 넣고 실행하면 단어는 12, 문장은 6 이 나온다.
+
+```
+countWords     → 12  (주석: 15)
+countSentences →  6  (주석: 4)
+```
+
+문장 개수가 어긋나는 이유가 이 함수의 본질적 한계다. `split(/[.!?]+/)` 는 마침표를 무조건 문장 끝으로 본다. 그런데 샘플 안의 `user@example.com` 과 `https://example.com` 에는 마침표가 들어 있어서 URL 과 이메일이 각각 두 조각으로 쪼개진다. 소수점(`3.14`), 약어(`Mr.`), 줄임표도 전부 같은 방식으로 문장을 부풀린다.
+
+`countWords` 도 빈 문자열에서 틀린다. `''.trim().split(/\s+/)` 는 빈 배열이 아니라 `['']` 을 돌려주므로 **단어 0개짜리 입력에 1을 반환한다.**
+
+```javascript
+''.trim().split(/\s+/)          // ['']  → length 1
+'   '.trim().split(/\s+/)       // ['']  → length 1
+'hello'.trim().split(/\s+/)     // ['hello'] → length 1
+```
+
+빈 입력과 단어 하나짜리 입력이 같은 답을 낸다. 빈 조각을 걸러내면 해결된다.
+
+```typescript
+static countWords(text: string): number {
+    return text.trim().split(/\s+/).filter(Boolean).length;
+}
+```
+
+이메일 정규식의 `[A-Z|a-z]{2,}` 에도 오타가 있다. 문자 클래스 안의 `|` 는 교대(OR)가 아니라 **파이프 문자 그 자체**다. 즉 이 클래스는 `A-Z`, `a-z`, 그리고 `|` 를 허용한다. 의도는 `[A-Za-z]{2,}` 였을 것이다. 샘플에서는 결과가 같아서 드러나지 않지만 `user@example.a|b` 같은 입력을 통과시킨다.
 
 ## 운영 팁
 
@@ -479,6 +574,20 @@ console.log(SafeStringHandler.normalizeString('  Hello   World  ')); // "hello w
 | **메서드** | 직접 호출 불가 | 메서드 호출 가능 |
 | **성능** | 빠름 | 상대적으로 느림 |
 | **사용 권장** | 일반적인 사용 | 특별한 경우만 |
+
+**위 표의 "메서드 · 직접 호출 불가" 는 사실이 아니다.** 원시 `string` 도 메서드를 그대로 부른다. `'abc'.toUpperCase()` 는 `'ABC'` 를 돌려주고 `typeof 'abc'` 는 여전히 `'string'` 이다. 이 문서 전체가 원시 문자열에 `.length` · `.split()` · `.replace()` 를 부르고 있다는 것 자체가 반례다. 엔진이 호출 순간에만 임시 래퍼를 만들어 주기 때문에(오토박싱) 개발자가 신경 쓸 일이 없다.
+
+진짜 구분해야 할 지점은 다른 데 있다. TypeScript 에서 `String`(대문자)을 **타입 자리에** 쓰면 원시 타입과 호환되지 않아 대입이 막힌다.
+
+```typescript
+let a: string = 'hi';
+let b: String = a;   // OK  — 원시 → 래퍼는 통과
+let c: string = b;   // 에러 TS2322: 'String' is not assignable to 'string'
+```
+
+런타임에서도 래퍼 객체는 원시값과 다르게 행동한다. `typeof new String('a')` 는 `'object'` 이고, `new String('a') === 'a'` 는 `false` 다. 더 위험한 건 `Boolean(new String(''))` 이 `true` 라는 점이다 — 빈 문자열인데 조건문에서 참으로 평가된다.
+
+`String`(대문자)은 **타입 자리에는 쓰지 않는다.** 함수로서의 `String(value)` 는 `new` 없이 부르는 변환 함수라 전혀 다른 얘기이고, 이건 정상적으로 쓰는 코드다(문서 아래 `SafeStringHandler.safeToString` 이 그 예다).
 
 ### 결론
 TypeScript의 string 타입은 텍스트 데이터를 처리하는 기본 타입입니다.

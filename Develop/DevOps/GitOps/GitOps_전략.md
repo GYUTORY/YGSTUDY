@@ -554,6 +554,107 @@ flux suspend kustomization app-service    # 동기화 중지
 flux resume kustomization app-service     # 동기화 재개
 ```
 
+## selfHeal을 켠 뒤에 겪는 것들
+
+`selfHeal: true`와 `prune: true`는 GitOps의 핵심이자, 켜자마자 사고를 내는 두 옵션이다. "Git이 진실"이라는 문장의 실제 의미는 **Git에 없는 것은 지워지고, Git과 다른 것은 되돌려진다**이다.
+
+### HPA와 `replicas`가 싸운다
+
+```yaml
+# base/deployment.yaml
+spec:
+  replicas: 1        # Git 에 1 이 박혀 있다
+```
+
+HPA가 부하를 보고 replicas를 8로 올리면, ArgoCD는 이걸 드리프트로 판단해 1로 되돌린다. HPA가 다시 8로 올린다. 이 왕복이 몇 초 간격으로 반복되면서 파드가 계속 뜨고 죽는다. **Sync 상태는 대부분의 시간 Synced로 보이므로 대시보드만 봐서는 안 잡힌다.** 증상은 "트래픽이 올라가는데 스케일이 안 붙는다"로 온다.
+
+HPA를 쓸 거면 매니페스트에서 `replicas`를 아예 빼거나, Application에서 그 필드를 무시하게 한다.
+
+```yaml
+spec:
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+```
+
+같은 문제가 cert-manager가 주입하는 CA 번들, 서비스 메시가 붙이는 사이드카, `service.spec.clusterIP` 등에서도 난다. 클러스터가 채워 넣는 필드는 Git에 적지 않는다.
+
+### Application의 finalizer는 워크로드까지 지운다
+
+```yaml
+metadata:
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+```
+
+이게 붙은 Application을 `kubectl delete`하면 **그 Application이 관리하던 리소스가 전부 함께 삭제된다.** Deployment, Service, PVC까지 간다. "ArgoCD에서 앱 등록만 빼겠다"는 의도로 지웠다가 프로덕션 워크로드가 사라지는 경로가 이거다.
+
+관리만 해제하려면 finalizer를 먼저 제거하고 지운다.
+
+```bash
+kubectl patch app app-service-prod -n argocd \
+  -p '{"metadata":{"finalizers":null}}' --type=merge
+kubectl delete app app-service-prod -n argocd
+```
+
+### PreSync 훅 Job은 두 번째 Sync에서 실패한다
+
+Job의 `spec.template`은 생성 후 변경할 수 없다. DB 마이그레이션 Job을 `argocd.argoproj.io/hook: PreSync`로 걸어두고 삭제 정책을 지정하지 않으면, 이전 Job 오브젝트가 남은 상태에서 같은 이름으로 다시 만들려다 실패한다. Sync가 PreSync 단계에서 멈추고 배포가 안 나간다.
+
+```yaml
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+```
+
+`HookSucceeded`를 쓰면 실패한 Job의 로그가 남지 않아 원인 파악이 어렵다. `BeforeHookCreation`이 실패 로그를 남기면서 다음 실행도 막지 않는다.
+
+### 이미지 자동 업데이트가 CI를 무한 루프로 만든다
+
+Flux의 `ImageUpdateAutomation`은 설정 레포에 커밋을 푸시한다. 그 레포의 CI가 `on: push: branches: [main]`으로 걸려 있고, 그 CI가 다시 이미지를 빌드해서 푸시하면 순환한다. 앱 레포와 설정 레포를 분리했다면 대부분 문제없지만, "통합" 전략에서는 실제로 돈다. 봇 커밋을 CI에서 걸러야 한다.
+
+```yaml
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.author.name, 'flux-bot')"
+```
+
+같은 이유로 위 GitHub Actions 예제(설정 레포에 `git push`하는 스텝)도 설정 레포 CI가 있다면 확인이 필요하다.
+
+### 이 문서의 ApplicationSet은 프로모션을 하지 않는다
+
+§6의 "브랜치 기반" 프로모션과 §2의 ApplicationSet이 서로 맞지 않는다. ApplicationSet은 staging과 prod의 `revision`을 **둘 다 `main`**으로 두고 있다. 이러면 main에 머지되는 순간 staging과 prod가 동시에 같은 리비전을 받는다. 프로모션 단계가 존재하지 않는다.
+
+디렉토리 기반(§6 방법 2)을 쓸 거면 revision은 전 환경 `main`으로 두고 **환경별 overlay의 이미지 태그**로 승격을 표현해야 한다. 브랜치 기반을 쓸 거면 prod는 `release/*`나 태그를 가리켜야 한다. 두 방식을 섞으면 "PR을 머지했는데 prod까지 나갔다"가 된다.
+
+### Sealed Secrets의 복호화 키는 클러스터에 있다
+
+Sealed Secrets는 클러스터에 있는 컨트롤러의 개인키로만 풀린다. **클러스터를 새로 만들면 기존 SealedSecret은 전부 복호화되지 않는다.** DR 시나리오에서 매니페스트는 Git에 다 있는데 시크릿만 못 살리는 상황이 여기서 나온다.
+
+```bash
+# 봉인 키 백업 (이 파일 자체가 최고 등급 비밀이다)
+kubectl get secret -n kube-system \
+  -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > sealed-secrets-key.yaml
+```
+
+이 백업을 Git에 넣으면 SealedSecrets를 쓰는 의미가 없어진다. 클러스터 재구축 빈도가 있거나 멀티 클러스터라면 External Secrets 쪽이 운영 부담이 작다 — 키가 클러스터 밖(AWS Secrets Manager, Vault)에 있으니 클러스터를 갈아엎어도 그대로 산다.
+
+### 드리프트가 안 잡히는 자리
+
+`selfHeal`은 ArgoCD가 관리하는 리소스만 본다. 다음은 Git과 실제가 달라져도 아무도 알려주지 않는다.
+
+- 클러스터에 직접 `kubectl apply`한, Application에 속하지 않는 리소스
+- ConfigMap을 바꿨는데 Deployment가 그대로인 경우 — 파드가 재시작하지 않으므로 옛 설정으로 계속 돈다. 체크섬 애노테이션으로 파드를 굴려야 한다
+- Helm 차트의 `values`가 아닌 곳(subchart 기본값, 레지스트리의 `latest` 태그)에서 온 변경
+
+`image: registry.example.com/app-service:latest`처럼 태그가 고정돼 있지 않으면 Git은 그대로인데 실제로 도는 이미지가 바뀐다. base 매니페스트에 `latest`가 남아 있으면 overlay에서 덮어쓰는지 반드시 확인한다.
+
 ## 운영 팁
 
 ### 체크리스트

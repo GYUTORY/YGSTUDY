@@ -121,6 +121,24 @@ global.sequelize = sequelize;
 global.getTransaction = () => transaction;
 ```
 
+#### `global.sequelize` 는 영원히 `undefined` 다
+
+마지막 두 줄은 겉보기에 같은 일을 하는 것 같지만 결과가 정반대다. **`global.sequelize = sequelize` 는 파일이 로드되는 순간 실행된다.** 그때 `sequelize` 는 아직 `beforeAll` 이 돌기 전이라 `undefined` 이고, 그 `undefined` 가 값으로 복사된다. 나중에 `beforeAll` 이 지역 변수를 채워도 이미 복사된 전역은 안 바뀐다.
+
+```
+global.sequelize   = undefined
+지역 변수 sequelize = { name: '진짜 커넥션' }
+global.getTransaction() = { id: 't1' }
+```
+
+바로 아래 `getTransaction` 이 멀쩡한 이유는 **함수라서 호출 시점에 변수를 읽기** 때문이다. 이 차이가 이 파일의 유일한 방어선이다.
+
+그래서 테스트에서 `global.sequelize.query(...)` 를 부르면 `Cannot read properties of undefined` 가 난다. 값을 전역으로 넘길 거면 게터로 넘긴다.
+
+```javascript
+global.getSequelize = () => sequelize;   // ✓ 호출 시점에 읽는다
+```
+
 #### TypeORM을 사용한 트랜잭션 관리
 ```javascript
 // tests/setup.js
@@ -213,6 +231,29 @@ class UserFactory {
 
 module.exports = UserFactory;
 ```
+
+#### 팩토리가 트랜잭션을 안 받으면 롤백 격리가 통째로 무너진다
+
+앞 절의 격리 전략은 "모든 쿼리가 같은 트랜잭션 위에서 돈다"를 전제로 한다. 그런데 이 팩토리의 `User.create(userData)` 에는 **`{ transaction }` 이 없다.** 트랜잭션 밖에서 커밋되므로 `afterEach` 의 롤백이 이 데이터를 못 지운다.
+
+증상은 이렇게 나타난다. 아래 테스트를 두 번 돌리면 두 번째부터 다르게 동작한다.
+
+```javascript
+const existingUser = await UserFactory.create({ email: 'existing@example.com' });  // ← 트랜잭션 밖
+```
+
+첫 실행에서 이 행이 DB 에 영구히 남고, 두 번째 실행에서는 **`UserFactory.create` 자체가 유니크 제약으로 죽는다.** "왜 어제는 통과했는데 오늘은 실패하지" 의 전형이다. 게다가 이건 테스트 순서·개수에 따라 다르게 터져서 재현이 어렵다.
+
+팩토리는 트랜잭션을 받아 넘겨야 한다.
+
+```javascript
+static async create(overrides = {}, options = {}) {
+  return await User.create({ ...defaultData, ...overrides }, options);
+}
+// 호출부: await UserFactory.create({ email }, { transaction })
+```
+
+트랜잭션을 일일이 넘기기가 번거로우면 Sequelize 의 CLS(`Sequelize.useCLS`)로 자동 전파시키는 방법도 있다. 어느 쪽이든 **"롤백했으니 깨끗하다"는 가정이 실제로 성립하는지**는 한 번 확인해야 한다. 테스트를 연속 두 번 돌려 같은 결과가 나오는지 보는 게 가장 싼 검증이다.
 
 #### 테스트 데이터 시드
 ```javascript
@@ -596,6 +637,27 @@ describe('Performance Tests', () => {
 });
 ```
 
+이 성능 테스트는 두 가지 이유로 그대로 돌릴 수 없다.
+
+**첫째, `UserFactory.buildMany` 라는 메서드가 없다.** 앞의 팩토리에 정의된 건 `create` / `createMany` / `build` 셋뿐이다.
+
+```
+buildMany 타입: undefined
+호출 결과: TypeError: UserFactory.buildMany is not a function
+```
+
+성능을 재기도 전에 첫 줄에서 죽는다. `build` 를 100번 부르거나 `buildMany` 를 팩토리에 추가해야 한다.
+
+**둘째, 벽시계 시간에 절대 임계값을 거는 단언은 CI 에서 흔들린다.** `toBeLessThan(5000)` 은 개발 머신에서는 늘 통과하다가, 공용 러너가 붐비는 날 갑자기 실패한다. 그러면 사람들은 원인을 찾는 대신 숫자를 10000 으로 올린다. 몇 번 반복되면 이 테스트는 아무것도 검증하지 않으면서 CI 시간만 먹는다.
+
+성능을 테스트로 지키려면 시간이 아니라 **변하지 않는 것**을 건다.
+
+- 쿼리 실행 횟수 — N+1 이 생기면 100번 나가던 게 101번이 된다. 이건 머신 속도와 무관하다.
+- 실행 계획 — 인덱스를 타는지 `EXPLAIN` 으로 확인한다.
+- 반환 행 수 상한 — 페이지네이션이 빠졌는지 잡힌다.
+
+절대 시간은 테스트가 아니라 부하 테스트 도구와 모니터링의 몫이다.
+
 ## 운영 팁
 
 ### 1. 테스트 데이터베이스 관리
@@ -722,6 +784,61 @@ module.exports = {
   globalTeardown: '<rootDir>/tests/globalTeardown.js'
 };
 ```
+
+`maxWorkers: 4` 를 켜기 전에 **앞에서 본 트랜잭션 누수부터 잡아야 한다.** 워커 넷이 같은 테스트 DB 하나를 쓰는데 그중 일부 쓰기가 트랜잭션 밖에서 커밋되면, A 워커가 만든 행을 B 워커가 보고 단언이 틀어진다. 순차 실행에서는 안 나던 실패가 병렬에서만, 그것도 매번 다른 테스트에서 나온다.
+
+`globalTeardown` 의 `DROP DATABASE` 도 이때 위험해진다. 로컬에서 개발 DB 이름을 잘못 넣어두면 그대로 날아간다. 이 스크립트에는 **삭제 대상 이름이 테스트용이 맞는지 확인하는 가드**를 넣는 편이 낫다.
+
+```javascript
+if (!/_test$/.test(config.test.database)) {
+  throw new Error(`테스트 DB 이름이 아님: ${config.test.database}`);
+}
+```
+
+병렬을 제대로 하려면 워커마다 DB 를 나눠 갖는 쪽이 확실하다. Jest 는 워커 번호를 `process.env.JEST_WORKER_ID` 로 준다.
+
+```javascript
+database: `myapp_test_${process.env.JEST_WORKER_ID || 1}`
+```
+
+#### 그런데 `maxWorkers: 4` 라고 프로세스가 4개인 건 아니다
+
+Jest 는 조건이 맞으면 **워커를 안 띄우고 전부 한 프로세스(in-band)에서 돌린다.** 테스트 파일 4개에 `--maxWorkers=4` 를 주고 워커 ID 와 PID 를 찍어보면:
+
+```
+# 1회차
+WORKER_ID=1 pid=29130
+WORKER_ID=1 pid=29130
+WORKER_ID=1 pid=29130
+WORKER_ID=1 pid=29130
+
+# 2회차 (같은 명령, 같은 파일)
+WORKER_ID=1 pid=31454
+WORKER_ID=2 pid=31455
+WORKER_ID=3 pid=31456
+WORKER_ID=4 pid=31457
+```
+
+같은 명령인데 결과가 다르다. 판단 근거는 `@jest/core` 안에 그대로 있다.
+
+```javascript
+const SLOW_TEST_TIME = 1000;
+const areFastTests = timings.every(timing => timing < SLOW_TEST_TIME);
+return workerIdleMemoryLimit === undefined &&
+  (oneWorkerOrLess || oneTestOrLess ||
+   tests.length <= 20 && timings.length > 0 && areFastTests);
+```
+
+(Jest 30.4.1 — `node_modules/@jest/core/build/index.js` 의 `shouldRunInBand`)
+
+**직전 실행의 소요 시간을 캐시해 두고, 파일이 20개 이하이면서 전부 1초 미만이면 워커를 안 띄운다.** 위 1회차가 in-band 였던 건 그 전에 돌린 빠른 버전의 타이밍이 캐시에 남아 있었기 때문이고, 2회차는 느려진 타이밍이 반영돼 워커로 갈렸다.
+
+DB 통합 테스트에서 이게 왜 중요하냐면, **격리 방식이 프로세스 수에 따라 달라지기 때문**이다.
+
+- in-band 면 모든 스위트가 커넥션 풀 하나와 전역 하나를 공유한다. 위의 `myapp_test_${JEST_WORKER_ID}` 도 전부 `..._1` 로 같은 DB 를 가리킨다.
+- 워커로 갈리면 프로세스마다 풀이 따로 뜨고, DB 도 갈린다.
+
+그래서 "로컬에서는 되는데 CI 에서만 깨진다"가 나온다. CI 는 캐시가 비어 있는 상태로 시작하니 첫 실행의 경로가 로컬과 다르다. **캐시 상태에 따라 실행 방식이 바뀌는 걸 피하려면 `--runInBand` 나 `--maxWorkers=1` 로 못 박는다.** 느려지는 대신 재현이 된다.
 
 #### 테스트 데이터 캐싱
 ```javascript

@@ -254,6 +254,51 @@ class MockVehicleFactory extends VehicleFactory {
 - 추가적인 추상화 계층으로 인한 **약간의 성능 저하**
 - 하지만 대부분의 경우 **무시할 수 있는 수준**
 
+### 이 문서의 팩토리는 OCP 를 만족하지 않는다
+
+위에서 개방-폐쇄 원칙을 장점으로 들었지만, 문서 전반에 나오는 형태는 그 원칙을 지키지 않는다.
+
+```javascript
+static createNewVehicle(type, brand, model) {
+    switch (type.toLowerCase()) {
+        case "car": return new Car(brand, model);
+        case "motorcycle": return new Motorcycle(brand, model);
+        // 트럭을 추가하려면? 이 함수를 연다.
+    }
+}
+```
+
+새 타입마다 팩토리를 **수정**해야 하니 "수정에는 닫혀 있다"가 성립하지 않는다. 달라진 것은 흩어져 있던 분기가 한 곳으로 모였다는 점이고, 그것만으로 충분히 값을 한다. 다만 그건 OCP 가 아니라 **분기의 국소화**다.
+
+GoF 가 말한 Factory Method 는 서브클래스가 오버라이드하는 인스턴스 메서드다(`CarCreator extends Creator` 가 `createVehicle()` 을 구현). 위 `static create...(type)` 은 보통 Simple Factory 로 따로 부르는 것이고, 확장 방식이 다르다. 이름이 같아 보여서 "팩토리를 썼으니 OCP 를 지켰다"고 넘어가기 쉽다.
+
+수정 없이 확장하려면 등록표를 둔다.
+
+```javascript
+class VehicleFactory {
+  static #registry = new Map();
+  static register(type, Ctor) { this.#registry.set(type, Ctor); }
+  static create(type, ...args) {
+    const Ctor = this.#registry.get(type);
+    if (!Ctor) throw new Error(`지원하지 않는 차량 타입: ${type}`);
+    return new Ctor(...args);
+  }
+}
+
+VehicleFactory.register('truck', Truck);   // 팩토리 파일은 그대로 둔다
+```
+
+대신 대가가 있다. **등록 코드가 실행돼야 그 타입이 존재한다.** 등록이 든 모듈을 import 하지 않으면 런타임에야 "지원하지 않는 타입"이 나오고, 번들러가 부수효과뿐인 import 를 지워 같은 증상이 배포 환경에서만 나타나기도 한다. switch 는 이런 문제가 없고 타입스크립트라면 유니온으로 누락을 컴파일 시점에 잡을 수 있다.
+
+| | switch 팩토리 | 등록표 팩토리 |
+|---|---|---|
+| 새 타입 추가 | 팩토리 파일 수정 | 등록 한 줄 |
+| 누락 감지 | 컴파일·리뷰 시점 | 런타임 |
+| 타입 좁히기 | 유니온으로 가능 | 대체로 문자열 키 |
+| 맞는 자리 | 타입이 유한하고 한 팀이 관리 | 플러그인처럼 밖에서 타입이 들어옴 |
+
+타입이 자주 늘지 않는다면 switch 쪽이 낫다. 등록표는 "팩토리를 고칠 수 없는 사람이 타입을 추가해야 할 때" 값을 한다.
+
 ## 언제 사용해야 할까?
 
 ### 적합한 상황
@@ -1313,6 +1358,31 @@ const vehicle2 = CachedVehicleFactory.createVehicle("car", "Toyota", "Camry"); /
 console.log(CachedVehicleFactory.getCacheStats());
 ```
 
+#### 이 "캐싱 팩토리" 는 캐시가 아니라 인스턴스 공유다
+
+같은 키로 두 번 부르면 **같은 객체**가 돌아온다.
+
+```javascript
+const v1 = CachedVehicleFactory.createVehicle("car", "Toyota", "Camry");
+const v2 = CachedVehicleFactory.createVehicle("car", "Toyota", "Camry");
+v1 === v2        // true
+v1.start();
+v2.isRunning     // true  ← v2 는 건드린 적이 없다
+```
+
+"캐시" 라는 이름 때문에 생성 비용만 아끼는 것처럼 읽히지만, 실제로는 호출자 전원이 하나의 가변 객체를 나눠 쓰는 구조다. 한 요청이 상태를 바꾸면 다른 요청이 그 상태를 본다. **팩토리에 캐시를 붙이려면 만들어지는 객체가 불변이거나 무상태여야 한다.** 주행 상태를 갖는 차량은 그 조건에 맞지 않는다. 굳이 재사용하겠다면 캐시에는 생성 재료만 담고 매 호출에 새 인스턴스를 만들거나, 반환 직전에 복제한다.
+
+축출 정책도 이름과 다르다. `this.cache.keys().next().value` 는 Map 에 **가장 먼저 넣은** 키를 지운다. `get` 은 Map 의 순서를 바꾸지 않으므로 아무리 자주 읽어도 오래된 항목부터 나간다 — LRU 가 아니라 FIFO 다.
+
+```
+상한 3에서 A B C 를 넣고 → A 를 다시 읽고 → D 를 넣으면
+남는 키: B C D        (A 를 방금 읽었는데도 축출된다)
+```
+
+LRU 로 만들려면 히트 시 `delete` 후 `set` 으로 다시 넣어 순서를 갱신한다.
+
+`static cache` 를 상속과 함께 쓸 때도 봐야 한다. 정적 필드는 프로토타입 체인을 타고 상속되므로 `class SubFactory extends CachedVehicleFactory {}` 는 자기 Map 을 갖지 않고 **부모의 Map 에 쓴다.** 서브 팩토리마다 캐시를 나누려면 각 클래스에 `static cache = new Map()` 을 다시 선언해야 한다. 이 공유는 조용해서, 서브 팩토리를 여러 개 만든 뒤에야 "왜 남의 차량이 나오지" 로 드러난다.
+
 ### 2. 빌더 패턴과 결합한 팩토리
 
 복잡한 객체 생성을 단계별로 처리하는 패턴입니다.
@@ -2138,6 +2208,30 @@ function memoryUsageTest() {
     });
 }
 ```
+
+### 3. 위 두 측정으로는 아무것도 판정할 수 없다
+
+성능 비교 코드에는 문제가 셋 겹쳐 있다.
+
+**결과를 아무 데도 쓰지 않는다.** `new Car(...)` 를 만들고 버리므로 최적화가 할당 자체를 들어낼 수 있다. 10만 회 반복이 밀리초 단위에서 끝나는데, 이 규모면 재려던 차이보다 잡음이 크다.
+
+**한 프로세스에서 순서대로 잰다.** 앞 루프가 JIT 워밍업과 힙 상태를 남긴 채 뒤 루프가 돈다. 그래서 순서만 바꿔 돌리면 승자가 뒤집힌다. 같은 코드를 별도 프로세스에서 여섯 번 돌린 결과다.
+
+```
+direct-first : 직접 1.51 / 팩토리 1.17
+factory-first: 직접 0.82 / 팩토리 1.67
+direct-first : 직접 1.14 / 팩토리 1.17
+factory-first: 직접 0.63 / 팩토리 1.32
+direct-first : 직접 1.12 / 팩토리 1.05
+factory-first: 직접 0.70 / 팩토리 1.37
+        (단위 밀리초, 각 10만 회, node 단독 실행)
+```
+
+먼저 도는 쪽이 손해를 보고 있을 뿐이라는 게 보인다. 결과를 배열에 담아 버려지지 않게 하면 두 값 모두 몇 배로 커진다 — 원래 재려던 것은 생성 비용이 아니라 최적화기의 기분이었던 셈이다.
+
+**GC 를 통제하지 않는다.** 메모리 테스트의 `process.memoryUsage()` 차이는 그 사이 수집이 돌았는지에 좌우된다. `--expose-gc` 로 앞뒤에 강제 수집을 넣지 않으면 증가량이 음수로 나오기도 한다.
+
+측정을 하지 말라는 뜻이 아니라 **팩토리 도입 여부를 이런 미시 측정으로 정하지 말라는 뜻이다.** 함수 호출 하나와 `switch` 한 번이 병목인 코드는 드물다. 이 패턴의 실제 비용은 호출 오버헤드가 아니라 위에 적힌 "클래스 수 증가", 그리고 **`new` 가 코드에서 사라져 어떤 구현이 만들어졌는지 추적하기 어려워지는 것** 쪽이다. 스택 트레이스에 팩토리만 찍히고 정작 어떤 구체 타입인지는 디버거를 붙여야 아는 상황이 그 대가다.
 
 ## 마이그레이션 가이드
 

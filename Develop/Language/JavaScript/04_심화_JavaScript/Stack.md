@@ -384,6 +384,21 @@ graph.addEdge('C', 'D');
 console.log(graph.dfs('A')); // ['A', 'C', 'D', 'B']
 ```
 
+실제로 돌리면 `['A', 'B', 'D', 'C']` 가 나온다. 주석이 틀렸다.
+
+이웃을 **역순으로** 스택에 넣기 때문이다. `A` 의 이웃 `['B', 'C']` 를 뒤에서부터 넣으면 스택은 `[C, B]` 가 되고, `pop` 은 맨 위인 `B` 를 먼저 꺼낸다. 재귀 DFS 와 같은 방문 순서를 맞추려고 일부러 뒤집은 것이라, 인접 리스트 순서 그대로 방문한다고 읽으면 어긋난다.
+
+`for` 루프를 정순으로 바꾸면 `['A', 'C', 'D', 'B']` 가 나온다. 어느 쪽이든 유효한 DFS 지만 **결과가 다르므로**, 이 순서에 의존하는 테스트를 짜기 전에 실제 출력을 확인해야 한다.
+
+`addEdge` 는 정점이 없으면 던진다.
+
+```javascript
+graph.addEdge('A', 'Z');
+// TypeError: Cannot read properties of undefined (reading 'push')
+```
+
+`addVertex` 를 먼저 부르지 않으면 `adjacencyList.get('Z')` 가 `undefined` 이고 거기에 `push` 를 부른다. 에지 목록을 파일이나 API 에서 읽어 넣는 코드라면 정점이 빠지는 일이 흔하다. `addEdge` 안에서 `addVertex` 를 먼저 호출하게 하는 편이 안전하다.
+
 ## 예시
 
 ### 1. 실제 사용 사례
@@ -493,6 +508,39 @@ console.log(PostfixCalculator.evaluate('5 3 +')); // 8
 console.log(PostfixCalculator.evaluate('10 5 2 * -')); // 0
 console.log(PostfixCalculator.evaluate('3 4 5 * +')); // 23
 ```
+
+`isNumber` 가 숫자를 제대로 걸러내지 못한다. `isNaN` 은 인자를 먼저 숫자로 **변환**하고 나서 판정하기 때문에, 숫자로 변환되는 것은 전부 통과한다.
+
+```javascript
+const isNumber = t => !isNaN(t) && t !== '';
+
+isNumber(' ');         // true   ← 공백은 0 으로 변환된다
+isNumber(null);        // true   ← null 도 0 이다
+isNumber('0x10');      // true
+isNumber('Infinity');  // true
+```
+
+그 다음 줄의 `parseFloat` 는 변환 규칙이 또 달라서 값이 어긋난다.
+
+```javascript
+parseFloat(' ');       // NaN   ← isNumber 는 통과시켰는데 파싱은 실패
+parseFloat('0x10');    // 0     ← 16 이 아니다
+```
+
+`'0x10'` 이 스택에 `0` 으로 들어가면 계산 결과만 틀리고 에러는 없다. 입력 검증과 실제 파싱이 **서로 다른 함수**를 쓰면 이런 틈이 생긴다. 판정과 변환을 한 번에 하는 편이 안전하다.
+
+```javascript
+const n = Number(token);
+if (Number.isFinite(n)) stack.push(n);
+```
+
+`evaluate` 에는 검증이 하나 더 빠져 있다. 피연산자가 모자라면 `pop()` 이 `undefined` 를 돌려주고 그대로 계산에 들어간다.
+
+```javascript
+PostfixCalculator.evaluate('5 +');   // NaN — undefined + 5
+```
+
+`NaN` 은 이후 모든 연산을 오염시키며 끝까지 흘러간다. 잘못된 수식이 에러 대신 `NaN` 으로 반환되면 호출부는 계산이 성공했다고 믿는다. 스택 크기를 먼저 확인하고 부족하면 던져야 한다.
 
 ### 2. 고급 패턴
 
@@ -626,6 +674,19 @@ class SafeStack extends Stack {
     }
 }
 ```
+
+`SafeStack` 의 `try/catch` 는 한 번도 실행되지 않는다. **`SafeStack` 이 상속한 `Stack` 은 던지지 않기 때문이다.**
+
+```javascript
+const s = new SafeStack();
+s.pop();   // undefined — 경고도 안 찍히고 null 도 아니다
+```
+
+이 문서 안에 스택 클래스가 두 개 있다. 맨 위 `Stack` 은 비어 있을 때 `undefined` 를 **반환**하고, 아래 `GenericStack` 만 `throw new Error('Stack is empty')` 를 한다. `SafeStack extends Stack` 이니 잡을 예외 자체가 없다.
+
+이런 종류의 코드가 특히 나쁜 이유는 **아무 증상이 없다**는 것이다. 에러가 나지도, 경고가 찍히지도 않고, 그냥 문서가 약속한 `null` 대신 `undefined` 가 나온다. 호출부가 `if (v === null)` 로 검사하고 있으면 빈 스택을 못 알아챈다. `GenericStack` 을 상속하도록 바꾸면 의도대로 동작한다.
+
+여기서 되짚을 만한 건 `try/catch` 로 감싸 놓고 "이제 안전하다"고 믿게 되는 구조다. **잡으려는 예외가 실제로 던져지는지** 확인해야 검증이 성립한다. 이 문서의 코드는 한 파일 안에서도 두 스택의 빈 스택 규약이 갈리는데(`undefined` 반환 vs `throw`), 그런 상태에서 예외 기반 방어는 성립하지 않는다.
 
 ## 참고
 

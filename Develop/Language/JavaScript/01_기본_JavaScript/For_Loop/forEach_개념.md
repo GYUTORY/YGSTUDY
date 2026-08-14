@@ -72,6 +72,18 @@ items.forEach(function() {
 console.log(counter.count); // 3
 ```
 
+여기서 콜백이 화살표 함수가 아닌 것은 실수가 아니다. **화살표 함수를 쓰면 `thisArg` 가 무시된다.**
+
+```javascript
+const ctx = { c: 0 };
+[1, 2, 3].forEach(() => { this.c++; }, ctx);
+ctx.c;   // 0 — 두 번째 인자가 아무 일도 안 했다
+```
+
+화살표 함수는 자기 `this` 를 갖지 않고 정의된 위치의 `this` 를 그대로 쓴다. `forEach` 가 아무리 `thisArg` 를 넘겨도 바꿀 대상이 없다. 에러가 나지 않고 그냥 다른 객체를 건드리기 때문에, 카운터가 안 올라가는 것만 보고 원인을 찾기 어렵다.
+
+`thisArg` 자체가 화살표 함수 이전 시대의 유물이다. 지금은 두 번째 인자를 쓰기보다 필요한 값을 클로저로 잡는 편이 낫다.
+
 ### 2. forEach의 특징
 
 #### 반환값이 없음
@@ -123,6 +135,35 @@ users.forEach(user => {
 console.log(users);
 // [{ name: 'Alice', age: 26 }, { name: 'Bob', age: 31 }]
 ```
+
+원본을 바꿀 수 있다는 것과 **바꾸면서 순회해도 된다**는 것은 다르다. `forEach` 는 시작할 때 길이를 한 번 읽고, 매 회 그 인덱스를 다시 조회한다. 그래서 순회 중 요소를 지우면 뒤가 밀려 건너뛴다.
+
+```javascript
+const arr = [1, 2, 3, 4];
+const seen = [];
+arr.forEach(x => { seen.push(x); if (x === 1) arr.splice(1, 1); });
+
+seen;   // [1, 3, 4]   ← 2 는 지웠고, 4 는 방문했는데
+arr;    // [1, 3, 4]
+```
+
+`splice` 로 2 를 지우자 3 이 인덱스 1 로 당겨졌는데 다음 차례는 인덱스 2 다. 3 은 그대로 넘어간다. 반대로 순회 중에 `push` 로 추가한 요소는 방문하지 않는다 — 길이가 이미 고정됐기 때문이다. "필터링하면서 삭제"를 `forEach` 로 짜면 절반쯤만 지워진다. 지울 목적이면 `filter` 로 새 배열을 만든다.
+
+**빈 슬롯(hole)은 아예 건너뛴다.** 이건 `map`·`filter` 도 마찬가지다.
+
+```javascript
+let n = 0;
+[1, , 3].forEach(() => n++);
+n;   // 2 — 가운데 구멍은 방문하지 않는다
+
+let m = 0;
+new Array(3).forEach(() => m++);
+m;   // 0 — 콜백이 한 번도 안 불린다
+
+new Array(3).map(() => 1);   // [비어 있음 × 3] — 채워지지 않는다
+```
+
+`new Array(n)` 은 길이만 `n` 이고 요소가 하나도 없는 배열이다. `length` 는 3 인데 순회는 0 회라서 "왜 아무 일도 안 일어나지"로 막히기 쉽다. 길이만큼 채우려면 `Array.from({ length: 3 })` 이나 `new Array(3).fill()` 을 쓴다. 이렇게 만든 배열은 `undefined` 로 채워져 있어서 `forEach` 가 3번 돈다.
 
 ### 3. forEach vs 다른 배열 메서드
 
@@ -424,6 +465,39 @@ async function processUrls() {
     console.log('완료!');
 }
 ```
+
+`forEach` 에 `async` 콜백을 넘겼을 때 실제로 일어나는 일은 "기다리지 않는다"보다 나쁘다. **예외가 사라진다.**
+
+```javascript
+try {
+  urls.forEach(async url => { throw new Error('안 잡힌다'); });
+  console.log('try 블록은 그냥 통과한다');
+} catch (e) {
+  console.log('여기는 실행되지 않는다');
+}
+// 출력: try 블록은 그냥 통과한다
+// 그 뒤에: UnhandledPromiseRejection × 3
+```
+
+`async` 함수는 던지는 대신 거부된 프로미스를 **반환**하는데, `forEach` 는 콜백의 반환값을 버린다. 아무도 잡지 않은 거부가 남아 Node 에서는 프로세스가 죽고 브라우저에서는 콘솔에만 찍힌다. `try/catch` 는 이미 지나간 뒤다.
+
+작업 자체는 돌긴 돈다 — 순서만 어긋난다.
+
+```
+forEach 직후 done = []          ← 아직 아무것도 안 끝났다
+100ms 뒤    done = ['a','b','c']
+```
+
+그래서 "완료!" 뒤에 결과를 쓰는 코드는 빈 배열을 보게 된다. 로그만 보면 요청은 다 나갔으니 원인이 비동기라는 것도 눈에 안 띈다.
+
+순차 실행이 필요하면 문서의 `for...of` 가 맞다. 앞 요청의 결과를 뒤에서 쓰지 않는다면 `map` 으로 프로미스를 모아 `await` 한다. 요청이 동시에 나가고, 무엇보다 **에러가 정상적으로 전파된다.**
+
+```javascript
+await Promise.all(urls.map(url => fetch(url)));   // 하나라도 실패하면 거부
+await Promise.allSettled(urls.map(url => fetch(url)));  // 전부 끝까지 돌린 뒤 결과 확인
+```
+
+동시 요청 수를 제한해야 하는 상황이 아니라면 `Promise.all` 이 기본값이다. `forEach` 와 `async` 를 같이 쓰는 코드는 대체로 이 둘 중 하나를 잘못 쓴 것이다.
 
 ## 참고
 

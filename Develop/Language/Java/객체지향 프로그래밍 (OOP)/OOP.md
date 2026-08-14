@@ -84,6 +84,41 @@ public class EncapsulationExample {
 }
 ```
 
+캡슐화 예제로는 적절하지만 **이 클래스는 돈을 다루는 코드로는 두 가지가 틀렸다.**
+
+**첫째, `balance` 가 `double` 이다.** 2진 부동소수점은 0.1 을 정확히 표현하지 못하므로 금액이 조금씩 어긋난다.
+
+```java
+for (int i = 0; i < 10; i++) account.deposit(0.1);
+account.getBalance();   // 0.9999999999999999   (기대: 1.0)
+```
+
+잔액이 커지면 더 나빠져서 **덧셈이 아예 무시된다.**
+
+```java
+double big = 1_000_000_000_000_000_000.0;
+big + 1 == big   // true  ← 1원을 입금했는데 잔액이 그대로다
+```
+
+`double` 의 정밀도는 유효숫자 약 15~17 자리라 그 너머의 1 단위 변화를 표현할 수 없다. 예외도 경고도 없이 입금이 사라진다. 금액은 `BigDecimal` 이나 최소 단위 정수(원·센트)로 다룬다. `BigDecimal` 은 문자열 생성자를 써야 한다 — `new BigDecimal(0.1)` 처럼 `double` 을 넘기면 이미 오차가 낀 값이 들어온다.
+
+```java
+new BigDecimal("0.1").add(new BigDecimal("0.2"))   // 0.3  정확
+```
+
+**둘째, `withdraw` 가 실패를 알리지 않는다.** 잔액이 부족하면 콘솔에 찍고 끝이다. 반환 타입이 `void` 라 **호출한 쪽은 출금이 됐는지 안 됐는지 알 방법이 없다.** 출금 실패를 모르고 다음 단계를 진행하면 정합성이 깨진다. `boolean` 을 반환하거나 예외를 던져야 한다. 콘솔 출력은 호출자에게 전달되는 신호가 아니다.
+
+한 가지 덧붙이면, Java 의 `private` 은 TypeScript 와 달리 **JVM 이 런타임에 강제한다.** 다만 리플렉션에는 뚫린다.
+
+```java
+Field f = BankAccount.class.getDeclaredField("balance");
+f.setAccessible(true);
+f.setDouble(account, -999999);
+account.getBalance();   // -999999.0
+```
+
+그래서 `private` 은 "실수로 못 건드리게" 하는 장치이지 보안 경계가 아니다. 진짜 불변을 원하면 `final` 필드로 만들어 애초에 변경 지점을 없앤다.
+
 ### 2. 상속(Inheritance)
 
 #### 상속의 개념
@@ -161,6 +196,24 @@ public class InheritanceExample {
 
 #### 다형성의 개념
 같은 메서드가 다양한 방식으로 동작하는 기법이다. 오버라이딩과 오버로딩을 통해 구현된다.
+
+다만 **둘은 결정 시점이 다르다.** 오버라이딩은 런타임에 실제 객체로, 오버로딩은 컴파일 시점에 참조 타입으로 결정된다. 이 차이를 모르면 "분명 Dog 을 넣었는데 Animal 쪽이 불린다"는 상황을 만난다.
+
+```java
+static void speak(Animal a) { System.out.println("Animal 버전"); }
+static void speak(Dog d)    { System.out.println("Dog 버전"); }
+
+Animal ref = new Dog();   // 실제 객체는 Dog
+speak(ref);               // "Animal 버전"  ← 참조 타입으로 골랐다
+speak((Dog) ref);         // "Dog 버전"
+```
+
+```java
+Base b = new Derived();
+b.m();                    // "Derived"      ← 실제 객체로 골랐다
+```
+
+같은 객체인데 오버로딩은 `Animal` 을, 오버라이딩은 `Derived` 를 택한다. **오버로딩은 엄밀히 말하면 다형성이 아니라 이름 재사용**이고, 런타임 다형성을 주는 것은 오버라이딩뿐이다. 타입에 따라 동작을 바꾸고 싶으면 오버로딩이 아니라 오버라이딩으로 설계해야 한다.
 
 #### 다형성 예제
 ```java
@@ -432,6 +485,16 @@ class Library {
     }
 }
 ```
+
+`Library` 가 `book.title` 과 `book.isAvailable` 을 **직접 읽는다.** 컴파일은 된다 — `protected` 는 자식 클래스뿐 아니라 **같은 패키지**에서도 접근을 허용하기 때문이다. 하지만 이 문서가 첫 절에서 가르친 캡슐화를 스스로 어기고 있다.
+
+`protected` 의 이 "같은 패키지" 규칙은 자주 오해된다. 상속용으로만 열었다고 생각한 필드가 옆 클래스에서 그대로 보인다. 상속 계층에만 열고 싶다면 `protected` 로도 부족하고, 애초에 필드는 `private` 으로 두고 접근을 메서드로 감싸는 게 맞다.
+
+`borrowBook` 에도 `withdraw` 와 같은 문제가 있다. **책을 못 찾은 것과 이미 대출된 것이 둘 다 콘솔 출력으로 끝나고 반환값이 없다.** 호출한 쪽은 대출이 성공했는지 알 수 없다.
+
+`book.title.equals(title)` 은 인자가 `null` 이면 `NullPointerException` 이다. 상수나 확실히 non-null 인 쪽을 왼쪽에 두거나 `Objects.equals(book.title, title)` 를 쓰면 이 부류가 사라진다.
+
+참고로 이 코드 블록은 `List` 와 `ArrayList` 를 쓰면서 `import java.util.*;` 가 없어 그대로 복사하면 컴파일되지 않는다.
 
 ### 2. 고급 패턴
 

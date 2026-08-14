@@ -297,6 +297,8 @@ class ProductionInfraFactory implements InfrastructureFactory {
 }
 ```
 
+> `SQSQueue.subscribe` 의 폴링 부분은 그대로 쓰면 안 된다. `WaitTimeSeconds: 20` 짜리 롱폴링을 `setInterval(poll, 1000)` 으로 돌리는데, `setInterval` 은 앞 실행이 끝나기를 기다리지 않는다. 폴 하나가 20초 걸리면 그동안 19번이 더 시작돼 요청이 중첩 누적된다. 200ms 걸리는 작업을 20ms 간격으로 돌려 보면 300ms 만에 동시 실행이 10개까지 올라간다. 폴링은 앞 실행이 끝난 뒤 다음을 예약하는 형태(`while` 루프 + `await`, 또는 `setTimeout` 재귀)로 쓴다.
+
 ```typescript
 // infrastructure/index.ts
 function createInfraFactory(): InfrastructureFactory {
@@ -468,6 +470,45 @@ class DedicatedDatabase implements Database {
 }
 ```
 
+`DedicatedDatabase` 는 이 처리를 해 뒀다. 그런데 같은 문서의 다른 어댑터들은 그렇지 않다 — `LocalDatabaseAdapter` 와 `RDSDatabase` 는 **생성자에서** `new Pool(...)` 을 하고, `ElastiCacheAdapter` 는 생성자에서 Redis 연결을 연다. 위 `tenantMiddleware` 는 요청마다 `createDatabase()` / `createStorage()` / `createNotifier()` 를 부르므로, 팩토리를 캐싱해도 **커넥션은 요청 수만큼 생긴다.**
+
+**팩토리 캐싱과 리소스 캐싱은 다른 문제다.** 재사용해야 할 대상은 팩토리가 아니라 팩토리가 만드는 것이다.
+
+여기서 이름이 함정으로 작용한다. `createXxx()` 는 "부를 때마다 새로 만든다"로 읽히고 패턴의 원래 정의도 그렇다. 하지만 인프라 어댑터는 대개 프로세스당 하나여야 한다. 이 어긋남은 어딘가에서 흡수해야 하고 선택지는 셋이다.
+
+| 방법 | 대가 |
+|---|---|
+| 팩토리 내부에서 인스턴스를 메모이즈 | `create` 라는 이름이 거짓이 된다 — 호출자가 매번 새 객체로 착각한다 |
+| 클래스 static 풀 (위 `DedicatedDatabase`) | 전역 상태라 테스트 격리가 깨지고 종료 시 정리 지점이 흩어진다 |
+| 앱 시작 때 한 번만 `create*` 하고 결과를 주입 | 런타임에 조합을 바꾸는 능력을 포기한다 |
+
+세 번째가 가장 무난하지만 그걸 택하면 이 패턴이 필요했던 이유(테넌트별 런타임 전환)가 사라진다. 멀티 테넌트라면 첫 번째나 두 번째를 쓰되 메서드 이름을 `getDatabase()` 로 바꿔 재사용이 의도임을 드러내는 편이 사고가 적다.
+
+### 레지스트리에 남는 세 가지
+
+**캐시가 무한히 자란다.** `TenantInfraRegistry.factories` 는 삭제 경로가 없는 Map 이다. 테넌트가 늘면 팩토리와 그 팩토리가 잡은 커넥션이 그대로 쌓인다. 상한이나 TTL 을 두면 이번엔 "축출된 팩토리의 커넥션은 누가 닫는가" 가 따라온다.
+
+**동시에 들어오면 팩토리가 여러 개 만들어진다.** `getFactory` 는 `await this.loadTenantConfig(...)` 에서 제어를 놓는다. 같은 테넌트로 요청 3개가 동시에 들어오면 셋 다 캐시 미스로 판정하고 셋 다 팩토리를 만든다. 실제로 돌려 보면 생성 3회, 반환된 객체 3개가 서로 다르고, Map 에는 마지막 것만 남는다. 유실된 두 개가 이미 커넥션을 열었다면 그대로 새는 것이다. 처방은 **완성된 값이 아니라 Promise 를 캐싱**하는 것이다.
+
+```typescript
+private factories = new Map<string, Promise<TenantInfraFactory>>();
+
+getFactory(tenantId: string): Promise<TenantInfraFactory> {
+  let pending = this.factories.get(tenantId);
+  if (!pending) {
+    pending = this.loadTenantConfig(tenantId)
+      .then(cfg => this.createFactoryForPlan(tenantId, cfg));
+    this.factories.set(tenantId, pending);          // await 이전에 등록한다
+    pending.catch(() => this.factories.delete(tenantId));  // 실패는 캐싱하지 않는다
+  }
+  return pending;
+}
+```
+
+`set` 을 `await` **앞**에 두는 것이 요점이다. 실패한 Promise 를 지우지 않으면 일시적 장애가 영구 장애가 된다.
+
+**플랜이 바뀌어도 캐시는 모른다.** 고객이 Free 에서 Enterprise 로 올라가도 캐싱된 `SharedInfraFactory` 가 계속 나온다. 재배포 전까지 결제한 기능이 안 켜진다. 플랜 변경 시 해당 키를 지우는 경로가 없다면 이 구조는 "거의 안 바뀌는 설정" 에만 쓸 수 있다.
+
 ## DI 컨테이너와의 관계
 
 실무에서 Abstract Factory를 직접 구현하는 경우는 점점 줄어든다. NestJS, tsyringe 같은 DI 프레임워크가 사실상 Abstract Factory 역할을 대신하기 때문이다.
@@ -603,6 +644,27 @@ interface InfrastructureFactory {
 ```
 
 팩토리가 3개 이하면 감당할 만하다. 그 이상이면 팩토리 인터페이스를 분리하거나, 제품 추가가 잦은 부분은 다른 방식(맵 기반 동적 등록 등)을 고려해야 한다.
+
+### 구현체가 늘어나면 "같은 인터페이스, 다른 동작"을 떠안는다
+
+시그니처는 컴파일러가 맞춰 주지만 **동작은 아무도 맞춰 주지 않는다.** 이 문서의 `MessageQueue` 가 그 예다.
+
+| | `LocalQueueAdapter` | `SQSQueue` |
+|---|---|---|
+| publish 후 핸들러 실행 | 같은 틱에 동기 실행 | 다른 프로세스에서 나중에 |
+| 전달 보장 | 정확히 1회 | 최소 1회 (중복 가능) |
+| 순서 | 등록 순서 그대로 | 표준 큐는 보장 없음 |
+| 구독자가 없을 때 | 메시지 소멸 | 큐에 남았다가 나중에 전달 |
+| 핸들러가 던진 예외 | publish 호출자에게 전파 | 호출자와 무관 |
+
+`publish(topic, message): Promise<void>` 라는 타입은 이 차이를 하나도 표현하지 못한다. 그래서 "발행하고 곧바로 결과를 조회" 하는 코드가 로컬에서 통과하고 운영에서 깨진다. 핸들러 예외를 publish 쪽 `try/catch` 로 잡는 코드도 마찬가지다.
+
+캐시도 같다. `InMemoryCache` 는 프로세스 로컬이라 워커를 두 개 띄우면 각자 다른 값을 본다. 만료 항목은 `get` 할 때만 지워지므로 **읽히지 않는 키는 TTL 이 지나도 계속 메모리에 남는다** — 이미 만료된 항목 1,000개를 넣고 `get` 을 부르지 않으면 내부 Map 크기는 1,000 그대로다. Redis 라면 서버가 회수하는 부분이다.
+
+**Abstract Factory 를 도입하면 인터페이스 하나당 구현이 N개로 늘고, 그 N개가 같게 동작하는지는 사람이 지켜야 한다.** 이게 이 패턴의 가장 비싼 대가다. 줄이는 방법은 둘이다.
+
+- **같은 테스트를 모든 구현에 돌린다.** 계약 테스트를 하나 쓰고 `LocalQueueAdapter` 와 `SQSQueue` 에 똑같이 적용한다.
+- **인터페이스를 가장 약한 구현에 맞춘다.** SQS 가 순서를 보장하지 않으면 로컬 구현도 일부러 섞는다. 로컬이 더 관대하면 그 관대함에 기대는 코드가 반드시 생긴다.
 
 ### 과도한 추상화 징후
 

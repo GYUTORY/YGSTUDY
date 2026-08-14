@@ -70,6 +70,23 @@ console.log(`Map 검색 시간: ${endTime - startTime}ms`);
 console.log('검색 결과:', result);
 ```
 
+이 측정은 아무것도 말해주지 않는다. `get` 한 번에 걸리는 시간이 **`performance.now()` 를 두 번 부르는 비용과 자릿수가 같기** 때문이다.
+
+```javascript
+const t0 = performance.now();
+const r = largeMap.get(50000);
+const t1 = performance.now();
+console.log(t1 - t0);        // 0.0039...
+
+const t2 = performance.now();
+const t3 = performance.now();
+console.log(t3 - t2);        // 0.0005...  ← 사이에 아무것도 없다
+```
+
+측정 대상보다 측정 도구의 오차가 크면 나온 값은 잡음이다. 게다가 JIT 이 워밍업되기 전 첫 호출이라 이후 호출과 성격도 다르다. 이 코드로 "Map 이 빠르다"를 확인했다고 생각하면 그건 착각이다.
+
+마이크로벤치를 굳이 손으로 짜야 한다면 최소한 (1) 충분히 많이 반복해서 총 시간을 재고, (2) 워밍업 루프를 먼저 돌리고, (3) 결과를 어딘가에 누적해 최적화가 통째로 걷어내지 못하게 해야 한다. 셋 중 하나라도 빠지면 숫자를 믿지 않는 편이 낫다. 실제로는 [tinybench](https://github.com/tinylibs/tinybench) 같은 라이브러리에 맡기는 쪽이 정확하다.
+
 #### Map vs Object 비교
 ```javascript
 // Map의 장점들
@@ -291,6 +308,21 @@ measureMemoryUsage('Map');
 const map = new Map(testData.map(item => [item.id, item]));
 ```
 
+이 코드는 어느 환경에서도 의미 있는 값을 내지 않는다. 세 가지가 겹쳤다.
+
+**`performance.memory` 는 표준이 아니다.** Node 에서는 `undefined` 라 `?? 0` 이 아니라 `|| 0` 을 거쳐 항상 0 이 되고, 결과는 `0.00MB` 로 고정된다. 브라우저에서도 Chromium 계열에만 있고 값은 의도적으로 뭉뚱그려져 있다.
+
+```javascript
+performance.memory              // Node: undefined
+performance.memory?.usedJSHeapSize || 0   // 0
+```
+
+**측정 구간이 대상을 감싸지 못한다.** `measureMemoryUsage('Array')` 를 먼저 부르고 그 다음 줄에서 배열을 만든다. `startMemory` 는 할당 전에 찍히지만 `endMemory` 는 `setTimeout` 안이라, 그 사이에 Map 생성까지 끝나 있다. 두 측정 구간이 서로 겹쳐서 Array 몫에 Map 이 섞인다.
+
+**GC 시점을 모른다.** 힙 사용량은 수집이 언제 도는지에 따라 왔다 갔다 한다. Node 라면 `--expose-gc` 로 `global.gc()` 를 강제한 뒤 `process.memoryUsage().heapUsed` 를 재는 게 그나마 재현된다. 그래도 오차는 크다.
+
+아래 "메모리 사용량 비교표"의 수치도 이 코드로는 재현되지 않는다. 자료구조의 메모리를 근거로 설계를 정할 일이 있으면 그때 자기 데이터로 직접 재는 수밖에 없다.
+
 ## 예시
 
 ### 1. 실제 사용 사례
@@ -467,7 +499,30 @@ console.log(`두 번째 검색: ${endTime2 - startTime2}ms`);
 console.log('캐시 통계:', manager.getCacheStats());
 ```
 
-## 운영 팁
+`getCachedResult` 에는 캐시 코드에서 가장 흔한 함정이 그대로 들어 있다. **없는 것을 찾은 결과는 캐시되지 않는다.**
+
+```javascript
+// 찾은 id: 두 번째부터 캐시 히트
+m.getById(1); m.getById(1); m.getById(1);
+// 실제 배열 스캔 횟수 = 1
+
+// 없는 id: 매번 다시 스캔
+m.getById(999); m.getById(999); m.getById(999);
+// 실제 배열 스캔 횟수 = 3
+```
+
+`find` 가 `undefined` 를 돌려주면 `this.cache.set(key, undefined)` 로 저장은 되지만, 다음 조회에서 `if (cached && ...)` 가 falsy 로 막는다. 하필 없는 키를 찾는 요청이 **가장 비싼 경우**(배열 전체를 끝까지 훑는다)인데 그것만 캐시가 안 걸린다. 존재하지 않는 ID 로 들어오는 트래픽이 그대로 전부 풀스캔이 된다.
+
+고치려면 값이 아니라 **키가 있는지**로 판단해야 한다 — `if (this.cache.has(key) && expiry && now < expiry)`. 값이 `0`, `''`, `false` 인 정상 결과에도 같은 문제가 생기므로 캐시를 짤 때는 항상 `has` 로 검사한다.
+
+`getByCondition` 의 캐시 키에도 문제가 있다.
+
+```javascript
+'condition_' + JSON.stringify({ a: 1, b: 2 })   // 'condition_{"a":1,"b":2}'
+'condition_' + JSON.stringify({ b: 2, a: 1 })   // 'condition_{"b":2,"a":1}'
+```
+
+의미가 완전히 같은 조건인데 키가 다르다. `JSON.stringify` 는 속성 순서를 그대로 옮기고, 그 순서는 호출부가 객체를 어떻게 썼느냐에 달렸다. 캐시 적중률이 이유 없이 낮으면 이걸 의심한다. 키를 만들 때 `Object.keys(condition).sort()` 로 순서를 고정하면 된다.
 
 ### 성능 최적화
 
@@ -571,6 +626,24 @@ try {
     console.error('검색 중 오류 발생:', error);
 }
 ```
+
+`safeArrayFind` 의 `array.find(predicate) || defaultValue` 는 안전하지 않다. **찾은 값이 falsy 면 못 찾은 것으로 처리한다.**
+
+```javascript
+safeArrayFind([0, 1, 2],  x => x === 0,     'DEFAULT');  // 'DEFAULT'
+safeArrayFind(['', 'a'],  x => x === '',    'DEFAULT');  // 'DEFAULT'
+safeArrayFind([false],    x => x === false, 'DEFAULT');  // 'DEFAULT'
+```
+
+숫자 0, 빈 문자열, `false` 는 배열에 흔히 들어 있는 정상 값이다. 수량 0인 항목이나 빈 메모를 찾을 때만 기본값이 튀어나오는 식으로 나타나서 재현 조건을 잡기 까다롭다.
+
+`||` 대신 `??` 를 쓰면 `null` 과 `undefined` 만 걸러진다. `find` 는 못 찾았을 때 정확히 `undefined` 를 돌려주므로 이게 맞다.
+
+```javascript
+return array.find(predicate) ?? defaultValue;
+```
+
+`try/catch` 로 감싼 것도 다시 볼 만하다. `map.get` 이나 `array.filter` 자체는 던지지 않는다. 여기서 실제로 잡히는 예외는 **넘겨받은 `predicate` 안에서 난 것**뿐이고, 그걸 `console.error` 하고 기본값으로 삼키면 호출부는 "조건에 맞는 게 없었다"와 "콜백이 터졌다"를 구분하지 못한다. 조용히 빈 배열을 돌려주는 코드는 원인 추적을 어렵게 만든다.
 
 ## 참고
 

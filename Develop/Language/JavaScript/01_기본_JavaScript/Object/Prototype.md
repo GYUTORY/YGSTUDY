@@ -130,6 +130,31 @@ console.log(person1.__proto__ === Person.prototype); // true
 console.log(Person.prototype.__proto__ === Object.prototype); // true
 ```
 
+프로토타입에 **참조형 값**을 두면 모든 인스턴스가 그 하나를 같이 쓴다. 여기서 가장 자주 나는 사고다.
+
+```javascript
+function Animal(name) { this.name = name; }
+Animal.prototype.tags = [];
+
+const a1 = new Animal('a'), a2 = new Animal('b');
+a1.tags.push('강아지');
+
+a2.tags;                 // ['강아지']   ← 건드린 적 없다
+a1.tags === a2.tags;     // true         ← 같은 배열이다
+```
+
+읽기와 쓰기가 비대칭이라 헷갈린다. `a1.tags.push(...)` 는 **찾아 올라가서** 프로토타입의 배열을 고치지만, `a1.tags = [...]` 는 `a1` 자신에게 새 속성을 만들 뿐 프로토타입은 그대로 둔다.
+
+```javascript
+a1.tags = ['새 배열'];
+a2.tags;                    // ['강아지']   프로토타입 쪽은 안 바뀌었다
+Object.hasOwn(a1, 'tags');  // true         a1 만 자기 것을 갖게 됐다
+```
+
+배열이나 객체를 기본값으로 주고 싶으면 프로토타입이 아니라 **생성자 안에서** `this.tags = []` 로 만든다. 인스턴스마다 새로 만들어야 하는 값과, 공유해도 되는 값(메서드)을 나누는 기준이 이것이다.
+
+같은 이유로 클래스 필드도 조심해야 한다. 클래스에서 `tags = []` 라고 쓰면 이건 프로토타입이 아니라 인스턴스 속성이라 안전하다. 헷갈리는 건 `Animal.prototype.tags = []` 처럼 손으로 프로토타입에 붙일 때다.
+
 ### 3. 상속 구현
 
 #### 기본 상속 패턴
@@ -171,6 +196,39 @@ myDog.speak(); // "Max이(가) 소리를 냅니다."
 myDog.eat(); // "Max이(가) 먹이를 먹었습니다. (체력: 110)"
 myDog.bark(); // "Max이(가) Golden Retriever답게 짖습니다!"
 ```
+
+이 패턴은 **줄 순서가 곧 동작**이다. `Dog.prototype = ...` 는 객체를 통째로 갈아끼우는 대입이라, 그 전에 붙여 둔 메서드는 함께 버려진다.
+
+```javascript
+Dog.prototype.bark = function () { /* ... */ };   // 먼저 붙이고
+Dog.prototype = Object.create(Animal.prototype);   // 나중에 갈아끼우면
+
+const d = new Dog('x');
+d.speak();          // 동작한다
+typeof d.bark;      // 'undefined'   ← 사라졌다
+```
+
+상속받은 메서드는 멀쩡한데 자기 메서드만 없어져서, 원인을 상속 설정이 아니라 `bark` 정의 쪽에서 찾게 된다. 상속 줄을 **항상 먼저** 쓰는 것 말고는 방법이 없다.
+
+`Object.create` 를 빼고 바로 대입하는 실수도 자주 나온다.
+
+```javascript
+Fox.prototype = Animal.prototype;       // 같은 객체를 가리킨다
+Fox.prototype.dig = function () {};
+
+typeof new Animal('z').dig;             // 'function'   ← 부모까지 오염됐다
+```
+
+자식에게 메서드를 추가했더니 부모와 다른 모든 형제에게도 생긴다. `Object.create` 는 "부모를 프로토타입으로 하는 **새 객체**"를 만들어 이 공유를 끊는 역할이다.
+
+`Dog.prototype.constructor = Dog` 를 빼먹으면 `instanceof` 는 멀쩡한데 `constructor` 만 어긋난다.
+
+```javascript
+c instanceof Cat;        // true
+c.constructor.name;      // 'Animal'   ← 복원을 안 하면 부모가 나온다
+```
+
+`instanceof` 로 테스트하면 통과하고, `obj.constructor` 로 타입을 판별하는 코드나 로깅에서만 틀린 이름이 나온다. `class ... extends` 는 이 두 줄을 알아서 해 준다 — 손으로 쓰는 상속에서 빠뜨리기 쉬운 게 정확히 이 부분이라 클래스 문법이 값을 한다.
 
 #### ES6 클래스와 프로토타입
 ```javascript
@@ -389,6 +447,44 @@ if (!Array.prototype.find) {
 }
 ```
 
+"권장하지 않음"이라는 주석의 이유가 취향 문제로 읽히기 쉬운데, 실제로는 **다른 코드를 망가뜨린다.** 대입으로 만든 속성은 열거 가능하기 때문이다.
+
+```javascript
+Array.prototype.first = function () { return this[0]; };
+
+const arr = [10, 20];
+for (const k in arr) console.log(k);
+// '0', '1', 'first'   ← 메서드가 순회에 끼어든다
+
+Object.getOwnPropertyDescriptor(Array.prototype, 'first').enumerable;  // true
+Object.getOwnPropertyDescriptor(Array.prototype, 'map').enumerable;    // false
+```
+
+내장 메서드는 전부 `enumerable: false` 라 `for...in` 에 안 잡히는데, 손으로 붙인 것만 잡힌다. 남의 라이브러리가 배열에 `for...in` 을 쓰고 있으면 그쪽이 깨진다. 원인이 내 코드에 있다는 걸 알아내기까지가 오래 걸린다.
+
+꼭 붙여야 한다면 `Object.defineProperty` 로 `enumerable: false` 를 명시한다.
+
+```javascript
+Object.defineProperty(Array.prototype, 'first', {
+  value: function () { return this[0]; },
+  enumerable: false, writable: true, configurable: true
+});
+```
+
+그래도 이름 충돌은 남는다. 나중에 표준에 같은 이름이 들어오면 두 구현이 부딪힌다. 실제로 `Array.prototype.flatten` 이 이 문제로 표준화 중에 이름을 `flat` 으로 바꿨다. 오래된 MooTools 가 `Array.prototype` 의 **열거 가능한** 메서드를 자기 객체로 복사하는 구조였는데, 네이티브 `flatten` 은 열거 불가라 복사되지 않아 사이트가 깨졌다([TC39 논의](https://github.com/tc39/proposal-flatMap/pull/56)). 위에서 본 열거 가능성 문제가 언어 표준을 되돌린 셈이다.
+
+아래 폴리필 패턴(`if (!Array.prototype.find)`)은 성격이 다르다. 표준에 이미 있는 것을 옛 환경에 채워 넣는 것이라 이름이 충돌할 일이 없다. 다만 손으로 쓴 폴리필은 표준과 조금씩 어긋난다. 이 구현만 해도 두 번째 인자 `thisArg` 를 받지 않는다.
+
+```javascript
+const ctx = { want: 20 };
+[10, 20, 30].find(function (x) { return x === this.want; }, ctx);   // 20
+// 위 폴리필로 같은 호출을 하면 → undefined
+```
+
+폴리필이 필요하면 core-js 처럼 명세를 따라 검증된 구현을 쓴다. 그리고 `find` 를 채워 넣어야 하는 환경은 이제 거의 남아 있지 않다.
+
+기능을 더하고 싶으면 프로토타입 대신 그냥 함수로 만든다. `first(arr)` 은 아무것도 깨뜨리지 않는다.
+
 ## 운영 팁
 
 ### 성능 최적화
@@ -475,6 +571,21 @@ PropertyCheckClass.prototype.checkProperty = function(propName) {
     }
 };
 ```
+
+`obj.hasOwnProperty(...)` 를 직접 부르는 것은 두 경우에 깨진다. 첫째, 검사하려는 객체가 `hasOwnProperty` 라는 이름의 속성을 갖고 있으면 그게 불린다. 둘째, 프로토타입이 없는 객체에는 아예 그 메서드가 없다.
+
+```javascript
+const bare = Object.create(null);
+bare.a = 1;
+bare.hasOwnProperty('a');
+// TypeError: bare.hasOwnProperty is not a function
+
+Object.hasOwn(bare, 'a');   // true
+```
+
+`Object.create(null)` 은 사전 용도로 흔히 쓰이고, JSON 파서나 일부 라이브러리가 이렇게 만든 객체를 돌려준다. 남이 준 객체를 받는 함수라면 남 얘기가 아니다.
+
+`Object.hasOwn(obj, key)` 를 쓰면 둘 다 해결된다. 예전에는 `Object.prototype.hasOwnProperty.call(obj, key)` 라고 길게 썼는데, 이제 그 자리를 대신하는 표준 메서드가 있다.
 
 ## 참고
 

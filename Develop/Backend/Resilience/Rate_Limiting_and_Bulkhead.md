@@ -310,6 +310,31 @@ export class RateLimitInterceptor implements NestInterceptor {
 }
 ```
 
+#### 위 구현에는 결함이 둘 있다
+
+**검사와 기록이 원자적이지 않다.** `zremrangebyscore` → `zcard` → `zadd` 는 세 번의 왕복이고 그 사이에 다른 요청이 끼어든다. 동시에 도착한 요청이 전부 `count >= limit` 검사를 통과한 뒤 각자 `zadd` 하므로 한도가 그대로 뚫린다. 세 번의 왕복을 그대로 흉내 낸 모형에 한도 5로 동시 20요청을 넣으면 20건이 전부 통과한다.
+
+부하가 낮을 때는 드러나지 않고 **정확히 트래픽이 몰릴 때만** 무력해진다. 레이트 리미터로서는 최악의 실패 방식이다. 위 표에서 Sliding Window Counter 의 정확도를 "높음"으로 적었지만 그건 알고리즘의 성질이지 이 구현의 성질이 아니다.
+
+원자성은 Lua 스크립트로 만든다. `MULTI/EXEC` 는 명령을 묶어 주기는 해도 중간 결과(`ZCARD`)를 보고 분기할 수 없어 이 용도에는 부족하다.
+
+```lua
+-- KEYS[1]=키, ARGV: now, windowStart, limit, member, windowMs
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[2])
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[3]) then return 0 end
+redis.call('ZADD', KEYS[1], ARGV[1], ARGV[4])
+redis.call('PEXPIRE', KEYS[1], ARGV[5])
+return 1
+```
+
+**member 가 밀리초 문자열이라 같은 밀리초의 요청이 1건으로 합쳐진다.** `zadd(redisKey, now, String(now))` 에서 member 는 `String(now)` 다. ZSET 의 member 는 유일하므로, 이미 있는 member 로 ZADD 하면 원소가 추가되지 않고 score 만 갱신된다([ZADD 문서](https://redis.io/docs/latest/commands/zadd/)). 같은 밀리초에 들어온 요청 20건이 ZSET 에 원소 하나로 남는다. 초당 수백 건이 오는 API 라면 세는 값 자체가 실제보다 작아진다. member 에는 충돌하지 않는 값을 넣는다.
+
+```typescript
+await this.redis.zadd(redisKey, now, `${now}:${randomUUID()}`);
+```
+
+**클라이언트 식별에도 함정이 있다.** `extractClientId` 는 `x-api-key` 헤더를 검증 없이 키로 쓴다. 이 헤더는 클라이언트가 아무 값이나 넣을 수 있으니, 요청마다 다른 값을 보내면 제한이 통째로 무력해진다. **인증을 통과한 뒤 서버가 확인한 신원**으로 키를 만들어야 한다. 폴백인 `req.ip` 도 프록시·로드밸런서 뒤에서는 프록시 주소가 되어 모든 사용자가 카운터 하나를 공유한다 — 한 명이 한도를 채우면 전원이 함께 429 를 받는다. Express 라면 `trust proxy` 를 설정하고, 그 앞단이 신뢰할 수 있는 경로인지 먼저 확인한다.
+
 ### 3. 다중 계층 Rate Limiting
 
 ```
@@ -467,6 +492,42 @@ export class OrderService {
 | **타임아웃 제어** | 가능 (스레드 인터럽트) | 불가 (호출자 스레드) |
 | **반환 타입** | `CompletableFuture` | 동기 반환 |
 | **적합한 경우** | 외부 API, 느린 호출 | 내부 서비스, 빠른 호출 |
+
+### 위 Bulkhead 가 과부하에서 하는 일
+
+`waitForSlot()` 은 폴링용 `setInterval` 과 타임아웃용 `setTimeout` 두 개를 만든다. 슬롯이 나면 둘 다 정리하지만 **타임아웃으로 거절될 때는 interval 을 정리하지 않는다.** 그래서 거절된 요청 하나마다 10ms 폴링 타이머가 하나씩 남는다.
+
+```
+슬롯 1개를 점유한 채 100건을 거절시키면
+  거절 처리 직후 살아있는 타이머 = 101   (점유 중 작업 1 + 누수 100)
+  0.4초 뒤에도                    = 101   ← 슬롯이 안 비면 계속 폴링한다
+```
+
+남은 interval 은 슬롯이 빌 때 스스로 정리된다. 그런데 **하필 슬롯이 안 비는 상황이 곧 거절이 쏟아지는 상황**이다. 과부하일수록 폴링 타이머가 쌓이니 방향이 반대다. `reject` 쪽에서도 `clearInterval` 을 부르는 것이 최소 수정이고, 폴링 자체를 없애고 대기자 큐를 두는 편이 낫다.
+
+```typescript
+private waiters: Array<() => void> = [];
+
+private release() {
+  this.running--;
+  this.waiters.shift()?.();   // 폴링 없이 한 명만 깨운다
+}
+```
+
+### "Thread Pool Isolation" 은 Node 에 그대로 옮겨지지 않는다
+
+위 비교표의 "완전 격리(별도 스레드)", "반환 타입 `CompletableFuture`", "타임아웃 제어: 스레드 인터럽트" 는 JVM(Hystrix·Resilience4j) 이야기다. 예시로 든 `p-limit` 은 스레드를 만들지 않는다 — **진행 중인 Promise 개수를 세는 것뿐이라 사실상 아래 세마포어와 같다.** Node 에서 두 방식의 차이는 표에 적힌 만큼 크지 않다.
+
+그래서 Node 에서 Bulkhead 를 붙일 때는 **무엇을 격리하려는 것인지**를 다시 물어야 한다. 동시 실행 수를 제한해도 아래는 여전히 공유 자원이다.
+
+| 공유 자원 | 동시 실행 수 제한으로 격리되나 | 실제로 나눠야 하는 것 |
+|---|---|---|
+| HTTP 소켓 | 안 됨 | 서비스별 `http.Agent` 와 `maxSockets` |
+| DB 커넥션 | 안 됨 | 용도별 커넥션 풀 분리 |
+| 이벤트 루프 | 안 됨 | 무거운 동기 작업은 `worker_threads` 로 |
+| 메모리 | 안 됨 | 프로세스 분리 |
+
+느린 외부 API 하나가 소켓을 다 붙들면 `p-limit` 상한과 무관하게 다른 호출이 소켓을 기다린다. **동시 호출 수 제한은 격리의 일부일 뿐이고, 진짜 격리는 자원을 물리적으로 나누는 데서 온다.** 프로세스가 하나인 Node 에서 완전한 격리를 원하면 결국 프로세스를 나눠야 하고, 그러면 배포 단위와 운영 부담이 늘어난다. 그게 이 패턴의 대가다.
 
 ### 3. 패턴 조합
 

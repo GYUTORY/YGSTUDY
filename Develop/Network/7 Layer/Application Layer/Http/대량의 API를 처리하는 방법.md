@@ -3096,6 +3096,206 @@ async function transferPoints(fromUserId, toUserId, points) {
 
 ---
 
+---
+
+## 위 예제를 그대로 쓰기 전에 — 실측으로 확인한 것들
+
+아래는 로컬 Redis 8.2.1 + ioredis + Node v22.21.1에서 직접 돌려 확인한 내용이다. 이 문서의 코드 중 상당수는 **동시 요청이 없을 때만 맞다.**
+
+### 캐시 히트율 계산이 틀렸다
+
+"#2 캐싱을 통한 부하 감소"의 산술이 맞지 않는다.
+
+```
+문서: 90,000 요청 → Redis(0.1ms) = "90"
+실제: 90,000 × 0.1ms = 9,000ms
+
+문서: 총 처리 시간 = 90 + 100,000 = 100,090ms
+실제: 9,000 + 100,000 = 109,000ms
+
+문서: "10배 이상 차이"
+실제: 1,000,000 ÷ 109,000 = 9.17배
+```
+
+숫자보다 중요한 건 **이 모델 자체가 모든 요청을 한 줄로 세워 계산한다**는 점이다. 실제 서버는 요청을 동시에 처리하므로 "총 처리 시간"은 이렇게 더해지지 않는다. 캐시의 효과는 총 시간 합계가 아니라 **DB에 도달하는 요청 수**(100,000건 → 10,000건)로 봐야 한다. 병목이 DB 커넥션 풀이라면 이 감소분이 그대로 여유가 된다.
+
+### `redis.info()`는 객체가 아니라 문자열이다
+
+"Redis 모니터링 지표"와 "메모리 관리"의 코드는 **전부 undefined/NaN을 다룬다.**
+
+```
+info() typeof = string
+info().used_memory   = undefined
+info().keyspace_hits = undefined
+parseInt(info('memory').used_memory) = NaN
+```
+
+`hitRate`는 `NaN%`가 되고, `parseFloat(metrics.hitRate) < 80`은 NaN 비교라 항상 false다. **경고가 영원히 안 뜬다.** 메모리 사용률도 `NaN%`로 찍히고 임계값 검사가 통과된다. 모니터링 코드는 "아무 일도 안 일어나는 것"이 정상 상태와 구분이 안 되므로 이 부류의 버그는 오래 산다.
+
+```javascript
+function parseInfo(raw) {
+  const out = {};
+  for (const line of raw.split('\r\n')) {
+    if (!line || line.startsWith('#')) continue;
+    const idx = line.indexOf(':');
+    out[line.slice(0, idx)] = line.slice(idx + 1);
+  }
+  return out;
+}
+
+const info = parseInfo(await redis.info());
+const hits = Number(info.keyspace_hits);
+const misses = Number(info.keyspace_misses);
+const hitRate = hits + misses === 0 ? null : (hits / (hits + misses)) * 100;
+```
+
+`keyspace_hits`/`misses`는 서버 시작 이후 누적값이다. 현재 히트율을 보려면 두 시점의 차이를 계산해야 한다. 누적값으로 보면 재시작 직후를 제외하고는 거의 변하지 않아서 지표로 쓸모가 없다.
+
+### `rpop(key, count)`는 키가 없으면 `null`을 반환한다
+
+"Redis를 활용한 배치 작업 큐"의 워커는 큐가 빈 순간 죽는다.
+
+```
+rpop('batch:jobs', 10) on missing key = null
+jobs.length -> TypeError: Cannot read properties of null (reading 'length')
+```
+
+`jobs.length === 0`으로 빈 큐를 판정하는데, 빈 큐일 때 돌아오는 값이 빈 배열이 아니라 `null`이다. 워커 5개가 전부 이 지점에서 죽고, 큐에 작업이 다시 쌓여도 처리할 프로세스가 없다.
+
+```javascript
+const jobs = (await redis.rpop('batch:jobs', concurrency)) ?? [];
+if (jobs.length === 0) { await sleep(1000); continue; }
+```
+
+폴링 자체를 없애려면 `BRPOP`(블로킹)을 쓴다. 단 블로킹 명령은 커넥션을 점유하므로 워커마다 전용 커넥션이 필요하다. 그리고 `rpop`으로 꺼낸 작업은 **처리 중 프로세스가 죽으면 사라진다.** 유실이 곤란하면 `BRPOPLPUSH`로 처리 중 리스트에 옮겨두거나 Streams의 Consumer Group을 쓴다.
+
+### Rate Limiter 세 개가 모두 동시 요청에서 무너진다
+
+Sorted Set 방식(`checkRateLimitSliding`)을 그대로 두고 limit 100에 동시 요청 200건을 보냈다.
+
+```
+허용된 요청 수 = 200 (limit 100)
+ZSET 에 실제 기록된 건수 = 200
+```
+
+**한 건도 안 막혔다.** `ZREMRANGEBYSCORE` → `ZCARD` → `ZADD`가 세 번의 왕복이라, 200개 요청이 전부 `ZCARD`를 먼저 읽고 전부 0을 본 뒤 전부 통과한다. Token Bucket(`hgetall` → 계산 → `hset`)도 같은 구조라 같은 결과가 난다.
+
+Rate Limiter는 **판정과 기록이 한 번에 일어나야 한다.** 위 "슬라이딩 윈도우 Rate Limiter" Lua 스크립트가 그 형태다. 스크립트 하나로 보내면 Redis가 단일 스레드로 직렬화해서 실행하므로 중간에 끼어들 수 없다.
+
+Fixed Window에는 다른 문제가 있다.
+
+```javascript
+const current = await redis.incr(key);
+if (current === 1) await redis.expire(key, 60);
+```
+
+`INCR`와 `EXPIRE` 사이에서 프로세스가 죽거나 Redis 연결이 끊기면 그 키에는 TTL이 없다.
+
+```
+INCR 만 하고 EXPIRE 전 TTL = -1   (-1 = 만료 없음)
+```
+
+카운터가 영구히 남아 **그 사용자는 계속 429를 받는다.** 서비스는 멀쩡한데 특정 사용자만 안 되는, 재현도 안 되고 원인도 안 보이는 상태다. `SET key 0 EX 60 NX` 후 `INCR`로 나누거나 Lua로 묶는다.
+
+### `KEYS`를 100ms마다 부르는 워커
+
+Leaky Bucket 워커의 `redis.keys('leaky_bucket:*')`는 **전체 키스페이스를 스캔하는 O(N) 명령이고, 그동안 Redis는 다른 요청을 하나도 처리하지 못한다.** 초당 10회 호출이다. 키가 10만 개 있는 인스턴스에서 이 워커 하나가 서비스 전체를 멈춘다. 같은 문서 뒤쪽에서 `KEYS` 대신 `SCAN`을 쓰라고 적어둔 그 명령이다.
+
+목록이 필요하면 별도의 Set에 사용자 ID를 관리하고 그걸 순회한다. 키스페이스를 조회 대상으로 쓰지 않는다.
+
+### 분산 락을 `del`로 푸는 코드가 두 군데 남아 있다
+
+"#3 분산 락"과 "Thundering Herd 대응"의 `getDataSafe`는 락을 `redis.del(lockKey)`로 해제한다. 소유자 확인이 없다.
+
+```
+A: 락 획득 (TTL 10초)
+A: DB 조회가 12초 걸림 → 10초 시점에 락이 자동 만료
+B: 락 획득 (같은 키에 새 락)
+A: 작업 끝. finally 에서 del(lockKey) → B 의 락을 지운다
+C: 락 획득 → B 와 C 가 동시에 임계 영역
+```
+
+같은 문서의 `RedisLock` 클래스는 Lua로 소유자를 확인하고 지운다. 그쪽이 맞다. 다만 소유자 확인이 있어도 **A와 B가 동시에 도는 것 자체는 막지 못한다.** 락 TTL보다 작업이 길어질 수 있으면 작업 중 주기적으로 TTL을 연장하거나, 최종 쓰기에 조건(버전·상태값)을 걸어서 늦게 도착한 A의 결과를 거부해야 한다.
+
+`RedisLock.release()`에도 함정이 하나 있다. `acquire()`가 실패해서 `lockValue`가 그대로인 경로에서도 `finally`가 `release()`를 부른다. 결제 예제에서 409를 반환한 요청이 **다른 요청의 락을 대상으로 Lua를 실행한다.** 값이 다르므로 지워지지는 않지만, `acquired`가 false면 release를 호출하지 않는 편이 명확하다.
+
+### 확률적 조기 갱신 공식이 거의 발동하지 않는다
+
+"패턴 2"의 조건 `delta * Math.random() < beta`(beta=1)를 남은 시간별로 10만 회씩 돌린 결과다.
+
+| 남은 시간 | 이 문서 공식 | XFetch `delta·β·(−ln rand) ≥ remaining` |
+|---|---|---|
+| 60,000ms | 0.003% | 0.000% |
+| 1,000ms | 0.097% | 0.659% |
+| 200ms | 0.469% | 36.699% |
+| 50ms | 2.010% | 77.859% |
+
+만료 50ms 전에도 발동률이 2%다. 사실상 갱신이 안 걸리고 그냥 만료된다 — Stampede를 막으려고 넣은 코드가 아무 일도 하지 않는다. 여기서 `delta`는 "남은 시간"이 아니라 **재계산에 걸리는 시간**이어야 하고, 난수는 로그를 취해야 한다.
+
+```javascript
+const delta = 200;          // 이 값을 다시 만드는 데 걸리는 예상 시간(ms)
+const beta = 1.0;
+const remaining = entry.expiresAt - Date.now();
+const shouldRefresh = remaining > 0
+  && (delta * beta * -Math.log(Math.random())) >= remaining;
+```
+
+`delta`를 실제 조회 소요 시간으로 측정해서 저장해두면 무거운 쿼리일수록 더 일찍 갱신된다.
+
+### Redis 트랜잭션은 롤백하지 않는다
+
+`transferPoints`는 실패를 감지한 뒤 `throw`만 하는데, 그 시점에는 이미 반영이 끝나 있다.
+
+```
+실행 전: acct:a = 100, acct:b = (hash 타입)
+
+MULTI
+DECRBY acct:a 30      → QUEUED
+INCRBY acct:b 30      → QUEUED
+EXEC
+  1) 70
+  2) WRONGTYPE Operation against a key holding the wrong kind of value
+
+실행 후: acct:a = 70    ← 첫 번째 명령은 그대로 반영됐다
+```
+
+MULTI/EXEC는 **원자적으로 실행되지만 원자적으로 취소되지는 않는다.** 두 종류의 에러가 전혀 다르게 처리된다.
+
+```
+# 큐에 넣는 시점의 에러 → 트랜잭션 자체가 폐기된다
+MULTI
+NOSUCHCOMMAND a b   → ERR unknown command 'NOSUCHCOMMAND'
+INCR foo            → QUEUED
+EXEC                → EXECABORT Transaction discarded because of previous errors.
+
+# 실행 시점의 에러 → 그 명령만 실패하고 나머지는 반영된다  (위 예시)
+```
+
+포인트 이체는 후자에 해당한다. A에서 빠지고 B에 안 들어간 상태로 남는다.
+
+여러 키를 조건부로 바꿔야 하면 Lua를 쓴다. 스크립트 안에서 조건을 먼저 검사하고, 통과했을 때만 쓰기를 실행하면 "일부만 반영"이 생기지 않는다.
+
+### 파이프라인의 에러는 던져지지 않는다
+
+`pipeline.exec()`는 개별 명령이 실패해도 예외를 던지지 않는다. 결과 배열의 첫 번째 원소가 에러다.
+
+```
+results = [
+  [0] err= null       | val= { f: 'v' }
+  [1] err= WRONGTYPE… | val= undefined
+  [2] err= WRONGTYPE… | val= undefined
+]
+results[1][1] → undefined
+```
+
+`getUserDashboard`처럼 `results[0][1]`, `results[1][1]`만 읽으면 실패한 명령이 `undefined`로 조용히 흘러간다. 캐시 워밍이나 피드 fanout처럼 대량 파이프라인을 쓰는 곳에서는 `results.filter(([err]) => err)`로 실패 건수를 세고 로그에 남긴다.
+
+### 그 밖에
+
+- `const db = await mysql.createPool({...})`는 CommonJS 모듈 최상위에서 `await`을 쓸 수 없어 SyntaxError다. `createPool`은 Promise를 반환하지도 않으므로 `await` 자체가 불필요하다.
+- 피드 fanout은 팔로워 수만큼 파이프라인 명령을 만든다. 팔로워가 10만 명인 계정 하나가 글을 쓰면 명령 20만 개가 한 번에 나간다. 팔로워 수에 상한을 두고 그 이상은 조회 시점에 합치는(fanout on read) 방식으로 분리해야 한다.
+- `hasMore: posts.length === pageSize`는 마지막 페이지가 정확히 20건일 때 "다음 페이지 있음"으로 나온다. 한 페이지 더 요청해서 빈 결과를 받는 것으로 끝나지만, 무한 스크롤에서는 빈 화면이 한 번 깜빡인다. `pageSize + 1`을 조회해서 판단하는 편이 정확하다.
+
 ## 참고 자료
 
 ### Redis 관련

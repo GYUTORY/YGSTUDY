@@ -115,6 +115,27 @@ public class PaymentService {
 }
 ```
 
+위 두 예시는 서로 맞지 않는다. 첫 예시의 `CardPayment` 는 생성자로 카드번호를 받는다(`new CardPayment(request.getCardNumber())`). 두 번째 예시의 `@Component("CARD") CardPayment` 는 싱글턴 빈이라 요청마다 다른 카드번호를 가질 수 없다.
+
+**전략이 요청 데이터를 필드로 들고 있으면 빈으로 만들 수 없다.** 이 충돌은 Strategy 를 DI 컨테이너에 올릴 때 거의 항상 만난다. 해법은 하나뿐이다 — 요청 데이터를 생성자가 아니라 **메서드 인자로** 옮긴다.
+
+```java
+public interface PaymentStrategy {
+    PaymentResult pay(PaymentRequest request);   // 카드번호는 여기로
+}
+```
+
+이렇게 하면 전략은 무상태가 되고 싱글턴 빈으로 안전해진다. 대신 인터페이스가 모든 결제 수단의 입력을 합집합으로 받아야 해서 `PaymentRequest` 가 비대해진다. 카드에만 필요한 필드, 계좌이체에만 필요한 필드가 한 DTO 에 섞이고 각 전략은 자기 것만 꺼내 쓴다. 이 부풀어 오르는 파라미터 객체가 Strategy 를 무상태로 유지한 대가다.
+
+Map 주입에도 대가가 있다. **빈 이름이 곧 API 계약이 된다.** `@Component("KAKAO_PAY")` 의 문자열은 클라이언트가 보내는 `method` 값과 정확히 같아야 하는데, 둘을 잇는 것이 문자열뿐이라 컴파일러가 검사하지 못한다. 클래스를 리팩토링하다 어노테이션 값을 건드리거나, 프론트에서 `kakao_pay` 로 보내면 런타임에 `null` 이 나온다. 매핑을 타입으로 붙들고 싶으면 인터페이스에 판별 메서드를 두고 `List` 로 주입받는 편이 낫다.
+
+```java
+public interface PaymentStrategy {
+    boolean supports(PaymentMethod method);   // enum 으로 받는다
+    PaymentResult pay(PaymentRequest request);
+}
+```
+
 #### 언제 사용하는가
 
 | 상황 | 적합 여부 |
@@ -296,6 +317,24 @@ public class OrderCommandInvoker {
 | **트랜잭션** | 여러 커맨드를 하나의 트랜잭션으로 묶기 |
 | **매크로** | 여러 커맨드를 순서대로 실행 |
 
+#### undo 는 생각만큼 자주 성립하지 않는다
+
+Command 를 도입하는 이유의 절반이 Undo 인데, 위 코드가 보여주는 undo 는 **메모리 안의 값을 되돌리는 것**뿐이다. 실제 주문 처리에는 그 밖의 일이 붙는다.
+
+`PlaceOrderCommand.undo()` 는 `order.cancel()` 을 부른다. 이건 원상복구가 아니라 **"취소"라는 새 비즈니스 이벤트**다. 결제가 이미 승인됐다면 취소 API 를 따로 불러야 하고, 재고 차감을 되돌려야 하고, 발송된 주문 확인 메일은 회수할 방법이 없다. undo 가 이 모두를 알아야 하는 순간 커맨드는 execute 와 거의 같은 크기의 코드를 하나 더 갖게 된다.
+
+`CancelOrderCommand.undo()` 는 더 미묘하다. `previousStatus` 를 그대로 덮어쓰는데, execute 이후 다른 경로에서 주문 상태가 바뀌었다면 그 변경을 지운다. 이 스냅샷 되돌리기는 **그 사이에 아무도 같은 객체를 건드리지 않았을 때만** 맞다.
+
+| undo 가 성립하는 것 | 성립하지 않는 것 |
+|---|---|
+| 에디터의 텍스트 편집, 도형 이동 | 결제 승인, 메일·푸시 발송 |
+| 메모리 안의 상태 전이 | 외부 시스템 호출 |
+| 단일 사용자가 소유한 데이터 | 여러 주체가 동시에 바꾸는 데이터 |
+
+외부 부수효과가 있으면 undo 가 아니라 **보상 트랜잭션**을 설계해야 한다. 이름을 `undo()` 로 두면 "되돌릴 수 있다"고 읽히는 것 자체가 위험하다.
+
+`OrderCommandInvoker` 도 그대로 쓰면 안 된다. `history` 는 상한이 없어 계속 자라고, 이 클래스를 스프링 빈으로 등록하면 기본 스코프가 싱글턴이라 **모든 사용자가 한 스택을 공유한다.** A 사용자가 `undoLast()` 를 부르면 B 사용자의 마지막 커맨드가 취소된다. 이력을 쓸 거면 스코프를 세션·주문 단위로 좁히고 크기 상한을 둔다.
+
 ### 4. State 패턴
 
 객체의 **상태에 따라 행동을 변경**한다. if-else 상태 분기를 제거한다.
@@ -403,6 +442,35 @@ public class OrderContext {
 | **관계** | 상태 간 전이 관계 있음 | 전략 간 관계 없음 |
 | **사용처** | 주문 상태, 게임 캐릭터 상태 | 결제 방식, 정렬 알고리즘 |
 
+#### State 를 쓰면 전이 규칙이 흩어진다
+
+위 코드는 상태 5개 × 이벤트 4개 = 클래스 5개에 메서드 20개다. if-else 를 없앤 대신 **전체 상태 기계를 한눈에 볼 수 있는 자리가 사라진다.** 문서가 전이 다이어그램을 별도 코드 블록으로 그려 둔 것이 그 증거다 — 그 그림이 코드 어디에도 없기 때문에 따로 그려야 했고, 코드가 바뀌어도 그림은 따라오지 않는다.
+
+비용은 확장할 때 드러난다. `refund` 이벤트를 추가하면 인터페이스에 메서드가 하나 늘고 **모든 상태 클래스를 고쳐야 한다.** 대부분은 "이 상태에서는 불가"를 던지는 한 줄인데, 그 한 줄을 상태 수만큼 쓴다. 상태를 추가하면 반대로 메서드 수만큼 구현해야 한다. 상태와 이벤트가 각각 늘면 구현 지점은 곱으로 늘어난다.
+
+전이가 단순하고 부수효과가 적으면 **전이 표 하나**가 훨씬 읽기 쉽다.
+
+```java
+private static final Map<Transition, OrderStatus> TABLE = Map.of(
+    new Transition(PENDING,  APPROVE), APPROVED,
+    new Transition(PENDING,  REJECT),  REJECTED,
+    new Transition(PENDING,  CANCEL),  CANCELLED,
+    new Transition(APPROVED, SHIP),    SHIPPED,
+    new Transition(APPROVED, CANCEL),  CANCELLED
+);
+// 표에 없는 조합 = 불가. else 를 쓸 필요가 없다.
+```
+
+표는 전이 규칙 전체가 한 화면에 들어오고, 그대로 테스트 데이터가 되며, 다이어그램 대신 읽을 수 있다. 대신 상태별 행동이 길어질수록 표 밖으로 밀려난다.
+
+| State 클래스가 나은 경우 | 전이 표가 나은 경우 |
+|---|---|
+| 상태마다 실행할 로직이 길다 | 전이 자체가 관심사고 로직은 짧다 |
+| 상태별로 필요한 협력 객체가 다르다 | 전이 후 하는 일이 상태 저장 정도다 |
+| 상태 수가 적고 잘 안 늘어난다 | 상태·이벤트가 계속 추가된다 |
+
+영속화도 미리 정해야 한다. `OrderContext` 는 상태를 **객체 참조**로 들고 있는데 DB 에는 문자열이나 enum 으로 저장된다. 그래서 "저장할 때 객체 → 코드, 읽을 때 코드 → 객체" 변환 계층이 반드시 생기고, 이 매핑을 빠뜨리면 재시작 후 주문이 전부 초기 상태로 돌아간다. 상태 객체를 매번 `new` 하는 것도 다시 볼 만하다 — 위 상태 클래스들은 필드가 없으므로 enum 상수나 싱글턴으로 두면 객체 생성과 매핑이 동시에 정리된다.
+
 ### 5. Chain of Responsibility 패턴
 
 요청을 **체인으로 연결된 핸들러**에 전달하여, 처리할 수 있는 핸들러가 처리한다.
@@ -482,6 +550,42 @@ chain.handle(request);  // 순서대로 검증
 ```
 
 실무에서는 **Spring Security의 FilterChain**, **Servlet Filter**, **Spring Interceptor**가 이 패턴이다.
+
+#### 위 코드는 정의대로의 CoR 이 아니다
+
+패턴 설명에는 "처리 가능하면 처리, 아니면 다음으로 전달"이라고 적혀 있다. 처리한 핸들러가 나오면 거기서 멈춘다는 뜻이다. 그런데 `handle()` 은 `canHandle` 이 true 여서 처리한 뒤에도 **무조건** `next.handle(request)` 를 부른다. 멈추는 조건이 없다.
+
+옮겨서 실행해 보면 세 핸들러가 전부 실행되고, 중간 핸들러가 `canHandle` 로 false 를 돌려줘도 뒤 핸들러는 그대로 돈다.
+
+```
+문서 방식 실행 순서:        [ Auth, RateLimit, InputValidation ]
+중간 핸들러가 처리 거부 시:  [ Auth, Input ]   ← 체인이 끊기지 않는다
+```
+
+이건 CoR 이 아니라 **파이프라인(미들웨어)** 이다. 검증 체인이라는 용도에는 오히려 이쪽이 맞다 — 인증했다고 레이트 리밋을 건너뛰면 안 되니까. 다만 두 가지를 구분해 두는 편이 낫다.
+
+| | Chain of Responsibility | 파이프라인 |
+|---|---|---|
+| 종료 조건 | 처리한 핸들러가 나오면 중단 | 전부 통과하거나 예외로 중단 |
+| 각 단계의 답 | "내가 처리할 수 있나" | "다음으로 넘겨도 되나" |
+| 예 | 승인 금액대별 결재선, 예외 핸들러 탐색 | Servlet Filter, 검증 체인 |
+
+Spring Security 의 FilterChain 도 이름과 달리 파이프라인 쪽이다. 각 필터가 `chain.doFilter()` 로 직접 다음을 부르고, 부르지 않으면 거기서 끝난다. **"다음을 부를지 각 단계가 정한다"** 는 점이 위 코드와 다른 지점이고, 그래서 인증 실패 시 뒤 필터를 실행하지 않는 제어가 가능하다. 위 구조로 그렇게 하려면 `handle` 이 boolean 을 돌려주고 호출부가 그것을 보고 멈춰야 한다.
+
+**`setNext` 의 반환값도 함정이다.** `return next` 이므로 아래 두 줄은 다른 체인을 만든다.
+
+```java
+// 문서 방식 — 의도대로 Auth → RateLimit → Input
+ValidationHandler chain = new AuthenticationHandler();
+chain.setNext(new RateLimitHandler()).setNext(new InputValidationHandler());
+
+// 한 줄로 이어 쓰면 chain 이 마지막 핸들러가 된다 → Input 만 실행
+ValidationHandler chain = new AuthenticationHandler()
+    .setNext(new RateLimitHandler())
+    .setNext(new InputValidationHandler());
+```
+
+두 번째는 실행하면 `InputValidation` 하나만 돌고 인증이 통째로 빠진다. 예외도 안 난다. 빌더식 체이닝에 익숙할수록 아래처럼 쓰기 쉬우니, 조립은 리스트를 받아 한 곳에서 엮는 정적 메서드로 감싸 두는 편이 안전하다.
 
 ### 6. 패턴 선택 기준
 

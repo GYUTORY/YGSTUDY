@@ -873,6 +873,57 @@ jobs:
     timeout-minutes: 15
 ```
 
+## 초록불인데 나간 결과물이 다른 경우
+
+CI가 잡아주지 못하는 부류가 있다. **검증 스텝과 배포 스텝의 설정이 다른 경우**다. 두 스텝이 서로 다른 빌드를 만들면 검증은 통과하고 배포물만 망가진다. 에러가 안 나므로 몇 달을 방치하게 된다.
+
+### 위의 MkDocs 예제는 이 사이트의 실제 워크플로가 아니다
+
+"이 사이트에서 사용 중"이라고 적어뒀지만, `.github/workflows/deploy-docs.yml`과 대조하면 네 군데가 다르고 **차이 하나하나가 전부 과거에 사고를 냈던 지점**이다.
+
+| 위 예제 | 실제 워크플로 | 예제대로 하면 |
+|---|---|---|
+| `actions/checkout@v4` (기본 얕은 클론) | `with: fetch-depth: 0` | `git-revision-date-localized`가 히스토리를 못 읽어 문서마다 최종 수정일이 사라진다 |
+| `pip install mkdocs-material mkdocs-awesome-pages-plugin` | `pip install -r requirements-docs.txt` (7개) | redirects·rss·minify·git-revision-date 플러그인이 없다 |
+| 배포 스텝에 env 없음 | `env: FULL_BUILD: "true"` | minify·rss·git-revision-date가 꺼진 채로 배포된다 |
+| `working-directory: ./Develop` | 저장소 루트에서 실행 | `mkdocs.yml`은 루트에 있고 `docs_dir: Develop`이다. Develop 안에는 설정 파일이 없다 |
+
+`FULL_BUILD`를 검증 스텝에만 붙여놨던 시기의 결과는 CLAUDE.md §5-1에 남아 있다 — 1,349개 페이지가 존재하지 않는 RSS 피드를 광고하고(404), HTML은 비압축(2,864줄 vs 136줄)이었으며, 최종 수정일이 전부 없었다. **CI는 계속 초록불이었다.**
+
+배포 워크플로를 손볼 때 확인할 것은 하나다. 검증에 쓴 명령과 배포에 쓴 명령이 같은 환경변수·같은 의존성·같은 작업 디렉토리에서 도는가.
+
+### `cancel-in-progress: true`는 배포에서 의미가 다르다
+
+"비용 최적화" 항목의 `concurrency`는 테스트 워크플로에서는 낭비를 줄이지만, **배포 워크플로에 붙이면 진행 중인 배포를 중간에 끊는다.** 정적 사이트나 `gh-deploy`처럼 커밋이 누적되는 방식은 마지막 실행이 전부 반영하므로 손실이 없다. 반대로 `kubectl set image` → `rollout status`처럼 단계가 있는 배포는 이미지만 바꾸고 롤아웃 확인 없이 취소될 수 있다. 취소 로그를 보고 놀라기 전에, **이 배포가 중간에 끊겨도 되는 종류인지** 먼저 정한다.
+
+이 저장소는 정적 사이트라 `cancel-in-progress: true`가 맞는 선택이고, 배포는 10~14분 걸린다(CLAUDE.md §5-3).
+
+### `permissions`는 선언한 순간 나머지가 사라진다
+
+```yaml
+jobs:
+  docker:
+    permissions:
+      contents: read
+      packages: write     # 이 job 은 이 두 개만 갖는다
+  deploy:
+    # permissions 미선언 → 저장소 기본값을 그대로 받는다
+```
+
+`permissions` 블록은 더하는 게 아니라 **그 범위의 권한 집합을 통째로 대체한다.** job 하나에만 붙이면 다른 job은 기본값을 쓰므로 워크플로 안에서 권한이 들쭉날쭉해진다. 최소 권한을 의도했다면 워크플로 최상단에 `permissions: contents: read`를 두고, 필요한 job에서만 넓힌다.
+
+OIDC(`aws-actions/configure-aws-credentials`)를 쓰는 job에 `id-token: write`를 빠뜨리면 "Credentials could not be loaded" 계열로 실패한다. 이 권한은 상속되지 않는다.
+
+### 아티팩트와 시크릿
+
+- `actions/upload-artifact@v4`는 같은 이름으로 두 번 올릴 수 없다. 매트릭스 빌드에서 이름을 고정해두면 첫 조합만 성공하고 나머지가 실패한다. `name: app-jar-${{ matrix.os }}-${{ matrix.node-version }}`처럼 조합을 이름에 넣는다.
+- 시크릿은 **로그에서만** 마스킹된다. 아티팩트로 올린 파일, 빌드 결과물에 박힌 값, `toJSON(github)` 출력은 마스킹 대상이 아니다. "디버깅" 항목의 `echo '${{ toJSON(github) }}'`는 PR 본문·브랜치명 같은 사용자 입력을 그대로 찍으므로 상시로 켜두지 않는다.
+- 포크에서 온 `pull_request` 이벤트에는 시크릿이 주입되지 않고 `GITHUB_TOKEN`도 읽기 전용이다. 외부 기여 PR에서만 CI가 깨지면 이걸 먼저 의심한다.
+
+### 스케줄 워크플로는 조용히 멈춘다
+
+`schedule` 트리거는 정시에 돈다는 보장이 없고(러너 부하에 따라 밀린다), **공개 저장소에서 60일간 커밋이 없으면 자동으로 비활성화된다.** 주간 보안 스캔 같은 걸 걸어놨다면 "언제부터 안 돌았는지"를 Actions 탭에서 주기적으로 확인하거나, 실패·미실행을 외부에서 감시해야 한다.
+
 ## 참고
 
 - [GitHub Actions 공식 문서](https://docs.github.com/en/actions)

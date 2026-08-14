@@ -52,6 +52,33 @@ try {
 }
 ```
 
+이 예제는 실제로는 이렇게 동작하지 않는다. **자바스크립트에서 0으로 나누는 것은 에러가 아니다.** `catch` 는 한 번도 실행되지 않고 `try` 안의 `console.log(result)` 가 `Infinity` 를 찍는다.
+
+```javascript
+10 / 0;    // Infinity
+-10 / 0;   // -Infinity
+0 / 0;     // NaN
+typeof (0 / 0);   // 'number'
+```
+
+IEEE 754 부동소수점이 무한대와 `NaN` 을 정상적인 값으로 정의하고 있어서, 다른 언어의 `ZeroDivisionError` 같은 것이 없다. 나눗셈 결과가 이상해도 **아무 일도 일어나지 않은 것처럼 계속 흘러간다.**
+
+이게 실제로 문제가 되는 지점은 그 다음이다. `Infinity` 와 `NaN` 은 계산에 계속 참여하면서 뒤따르는 값을 전부 오염시킨다.
+
+```javascript
+const 평균 = 합계 / 개수;   // 개수가 0 이면 NaN
+평균 > 100;                  // false
+평균 < 100;                  // false — 두 비교가 모두 거짓이다
+```
+
+`NaN` 은 어떤 비교에도 `false` 라서 `if/else` 양쪽 어디로도 안 간다. 나눗셈을 감싸는 대신 **나누기 전에 분모를 확인**해야 하고, 결과를 신뢰해야 한다면 `Number.isFinite(x)` 로 검사한다. `try/catch` 로는 절대 잡히지 않는다.
+
+자바스크립트에서 산술이 던지는 경우는 사실상 `BigInt` 뿐이다.
+
+```javascript
+1n / 0n;   // RangeError: Division by zero
+```
+
 #### 변수 접근 오류 처리
 ```javascript
 try {
@@ -160,6 +187,54 @@ try {
 }
 ```
 
+`error.message` 를 고쳐서 다시 던지는 방식은 계층이 쌓이면 무너진다. 각 층이 자기 접두사를 붙이니까 메시지가 이렇게 된다.
+
+```
+요청 실패: 검증 실패: 이름 필요
+```
+
+층이 다섯이면 접두사도 다섯이다. 게다가 원본 메시지가 문자열 안에 섞여 버려서 프로그램이 다시 꺼낼 수 없고, `error.stack` 은 처음 던진 자리를 가리키는데 `message` 는 바깥 층의 문구라 로그에서 서로 안 맞는다.
+
+원본을 보존하려면 `cause` 를 쓴다. ES2022 표준이다.
+
+```javascript
+try {
+  validateUser(user);
+} catch (error) {
+  throw new Error('사용자 검증 실패', { cause: error });
+}
+
+// 받는 쪽
+catch (e) {
+  e.message;         // '사용자 검증 실패'
+  e.cause.message;   // '사용자 이름이 필요합니다.'
+}
+```
+
+층마다 새 에러를 만들고 원본을 `cause` 로 매달면 사슬이 그대로 남는다. Node 는 `console.error(e)` 에서 `[cause]` 를 함께 출력한다.
+
+던져진 것이 항상 `Error` 라고 가정하는 것도 위험하다. 자바스크립트는 **무엇이든 던질 수 있다.**
+
+```javascript
+try { throw '문자열 에러'; }
+catch (e) {
+  e.message;   // undefined
+  e.stack;     // undefined
+  typeof e;    // 'string'
+}
+
+try { throw { code: 500 }; }
+catch (e) { e instanceof Error; }   // false
+```
+
+`error.message` 로 로그를 남기는 코드가 `undefined` 만 찍고, 정작 원인은 어디에도 안 남는다. 라이브러리나 오래된 코드가 문자열이나 평범한 객체를 던지는 일이 실제로 있다. 경계에서 받는 에러는 한 번 확인하고 정규화한다.
+
+```javascript
+catch (e) {
+  const err = e instanceof Error ? e : new Error(String(e), { cause: e });
+}
+```
+
 #### 조건부 에러 발생
 ```javascript
 function divide(a, b) {
@@ -249,6 +324,34 @@ console.log(testFinally());
 // "try 블록 실행"
 // "finally 블록 실행"
 // "try에서 반환"
+```
+
+주석 처리된 `return 'finally에서 반환'` 이 하는 일은 반환값을 덮는 것만이 아니다. **던져진 에러까지 통째로 삼킨다.**
+
+```javascript
+function f() {
+  try { throw new Error('중요한 에러'); }
+  finally { return 'finally 값'; }
+}
+f();   // 'finally 값'  — 에러가 사라졌다. catch 도 없는데 아무 일 없이 끝난다
+```
+
+`finally` 안의 `return` 은 진행 중이던 흐름(반환이든 예외든)을 **폐기하고** 자기 것으로 바꾼다. 그래서 위 함수는 호출부에 실패를 알릴 방법이 없다. `break` 와 `continue` 도 똑같다.
+
+```javascript
+for (const x of [1]) {
+  try { throw new Error('x'); }
+  finally { break; }         // 에러가 사라지고 루프만 빠져나온다
+}
+```
+
+리소스 정리 코드를 `finally` 에 넣는 것은 맞지만, 그 안에서 흐름을 바꾸는 문장은 쓰지 않는다. 정리 중에 또 에러가 날 수 있다면 그쪽을 따로 `try/catch` 로 감싼다 — 정리 실패가 원래 에러를 덮어 버리면 진짜 원인을 잃는다.
+
+```javascript
+} finally {
+  try { releaseResource(resource); }
+  catch (cleanupError) { console.error('정리 실패:', cleanupError); }
+}
 ```
 
 ### 5. 중첩된 try-catch
@@ -352,6 +455,30 @@ fetchUserData(123)
     .then(user => console.log('사용자 정보:', user))
     .catch(error => console.error('오류:', error.message));
 ```
+
+이 `catch` 블록은 **에러 메시지 문자열로 분기한다.** `error.message.includes('HTTP 404')` 는 바로 위 `throw` 문이 만든 문자열에만 의존하는 판별이다.
+
+메시지는 그러라고 있는 값이 아니다. 로그 문구를 다듬거나, 다국어를 붙이거나, 다른 사람이 `HTTP 404` 를 `404 Not Found` 로 바꾸는 순간 분기가 조용히 무너진다. 에러는 없어지지 않고 그냥 "알 수 없는 오류" 쪽으로 떨어져서, 사용자에게 잘못된 안내가 나가기 시작한다.
+
+상태 코드는 값으로 들고 다녀야 한다.
+
+```javascript
+class HttpError extends Error {
+  constructor(status, statusText) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.name = 'HttpError';
+    this.status = status;      // ← 분기는 이걸로 한다
+  }
+}
+
+catch (error) {
+  if (error.status === 404) { /* ... */ }
+}
+```
+
+`error.name === 'TypeError' && error.message.includes('fetch')` 도 같은 문제다. 네트워크 실패를 감지하려고 브라우저마다 다른 문구에 기대고 있다. 이런 판별은 던지는 쪽에서 타입이나 코드로 표시해 주는 게 맞다.
+
+`catch` 로 감싸는 범위도 넓다. `await fetch(...)` 부터 `await response.json()` 까지가 한 블록이라, JSON 파싱 실패도 "서버에 연결할 수 없습니다"로 뭉뚱그려질 수 있다. 그리고 `try` 안에 있는 내 코드의 오타(`respose.ok` 같은 것)까지 잡혀서, 프로그래머 실수가 네트워크 오류로 둔갑해 사용자에게 표시된다. **`try` 블록은 짧을수록 좋다** — 잡으려던 것만 들어가게 한다.
 
 #### 파일 처리 에러 처리
 ```javascript

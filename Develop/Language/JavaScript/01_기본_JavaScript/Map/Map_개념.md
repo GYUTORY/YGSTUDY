@@ -75,6 +75,20 @@ userMap.clear();
 console.log(userMap.size); // 0
 ```
 
+키를 맞춰볼 때 Map 은 `===` 가 아니라 SameValueZero 규칙을 쓴다. 차이가 드러나는 곳이 두 군데다.
+
+```javascript
+const m = new Map();
+m.set(NaN, 'nan');
+m.get(NaN);        // 'nan'   — NaN === NaN 은 false 인데도 찾아진다
+
+m.set(-0, 'zero');
+m.get(0);          // 'zero'  — -0 과 +0 은 같은 키
+[...m.keys()];     // [NaN, 0] — -0 으로 넣어도 0 으로 보관된다
+```
+
+계산 결과를 키로 쓰다 `NaN` 이 섞여 들어가면 `===` 감각으로는 "절대 안 잡힐 것"이라 예상하지만 실제로는 전부 같은 한 칸에 쌓인다. 파싱 실패값이 조용히 한 슬롯으로 뭉치는 사고가 여기서 난다.
+
 ### 2. Map vs 일반 객체 비교
 
 #### 키 타입의 유연성
@@ -97,6 +111,38 @@ console.log(map.size); // 4
 console.log(Object.keys(obj).length); // 2
 console.log(obj); // { '1': 'string key', '[object Object]': 'object key' }
 ```
+
+객체를 키로 쓸 수 있다는 말은 **그 객체 자체**만 키가 된다는 뜻이다. 모양이 같은 새 객체로는 못 꺼낸다.
+
+```javascript
+const m = new Map();
+m.set({}, 'object key');
+m.get({});    // undefined — 리터럴이 같아도 다른 객체다
+m.size;       // 1  (값은 분명히 들어 있다)
+```
+
+키로 쓴 객체의 참조를 어딘가 붙들고 있어야 값을 다시 꺼낼 수 있다. `map.set(user, meta)` 로 저장해 두고 서버에서 다시 받아온 `user` 로 조회하면 언제나 `undefined` 다. 넣기는 되고 꺼내기만 안 되니 원인을 찾기 어렵다.
+
+반대로 객체를 Map 대신 사전으로 쓸 때 걸리는 것은 **프로토타입에서 상속받은 키**다.
+
+```javascript
+const obj = {}, map = new Map();
+'toString' in obj;      // true — 넣은 적이 없다
+obj['constructor'];     // function
+map.has('toString');    // false
+```
+
+사용자 입력을 그대로 키로 쓰는 코드에서 누가 `toString` 이나 `constructor` 를 입력하면 "이미 있는 값"으로 처리된다. 객체를 사전으로 써야 한다면 `Object.create(null)` 로 만든다 — 이건 `obj['toString']` 이 `undefined` 다.
+
+키 정렬 규칙도 다르다. 객체는 **정수처럼 생긴 키를 앞으로 당겨 오름차순으로 정렬한다.**
+
+```javascript
+const o = {};
+o.b = 1; o[2] = 2; o.a = 3; o[1] = 4;
+Object.keys(o);   // ['1', '2', 'b', 'a']
+```
+
+같은 순서로 Map 에 넣으면 `['b', 2, 'a', 1]` — 넣은 그대로다. "ES2015부터 객체도 순서를 보장한다"는 말은 **정수 키가 먼저, 그다음 문자열 키가 삽입 순서**라는 규칙을 보장한다는 뜻이지, 넣은 순서를 보장한다는 뜻이 아니다. ID 를 키로 쓰는 순간 순서가 바뀐다.
 
 #### 삽입 순서 보장
 ```javascript
@@ -124,6 +170,34 @@ for (const key in obj) {
     console.log(`${key}: ${obj[key]}`);
 }
 ```
+
+Map 의 순서에는 규칙이 하나 더 있다. **이미 있는 키에 값을 다시 넣어도 자리는 그대로다.**
+
+```javascript
+const m = new Map([['a', 1], ['b', 2], ['c', 3]]);
+m.set('a', 99);
+[...m.keys()];            // ['a','b','c'] — a 가 뒤로 가지 않는다
+
+m.delete('b'); m.set('b', 2);
+[...m.keys()];            // ['a','c','b'] — 지웠다 넣어야 맨 뒤로 간다
+```
+
+"최근에 쓴 것을 뒤로 보낸다"를 `set` 만으로 구현하려다 실패하는 이유가 이것이다. LRU 를 만들려면 `delete` 를 먼저 해야 한다.
+
+순회 중에 Map 을 고치는 것도 조심해야 한다. Map 의 이터레이터는 스냅샷이 아니라 **살아 있다.**
+
+```javascript
+const m = new Map([['a', 1], ['b', 2], ['c', 3]]);
+for (const [k] of m) { if (k === 'a') m.delete('b'); }
+// 방문 순서: a, c — 아직 안 본 b 를 지우면 그대로 건너뛴다
+
+const m2 = new Map([['a', 1]]);
+let n = 0;
+for (const [k] of m2) { n++; if (n < 4) m2.set('x' + n, n); }
+// n === 4 — 순회 도중 넣은 키까지 따라간다. 종료 조건이 없으면 무한 루프
+```
+
+배열의 `forEach` 는 시작 시점 길이를 기준으로 돌지만 Map 은 그렇지 않다. "순회하면서 조건에 맞는 것 지우기"를 짤 때는 `[...map.keys()]` 로 키 목록을 먼저 떠 놓는 편이 안전하다.
 
 #### 성능 비교
 ```javascript
@@ -389,6 +463,32 @@ setTimeout(() => {
 }, 6000);
 ```
 
+이 `Cache` 에는 앞 절의 순서 규칙 때문에 생긴 버그가 두 개 있다.
+
+**하나. 이미 있는 키를 갱신하면 엉뚱한 항목이 쫓겨나고 캐시가 줄어든다.** `set` 은 크기부터 보고 자리를 비우는데, 갱신은 자리를 새로 쓰지 않는다.
+
+```javascript
+const c = new Cache(3);
+c.set('a', 1); c.set('b', 2); c.set('c', 3);   // ['a','b','c']
+c.set('c', 33);                                 // c 를 갱신했을 뿐인데
+[...c.cache.keys()];                            // ['b','c']  ← a 가 사라졌다
+c.cache.size;                                   // 2 — 정원 3 인데 2개
+```
+
+같은 키를 반복해서 갱신하면 캐시가 계속 말라간다. `if` 조건에 `&& !this.cache.has(key)` 를 붙이면 막힌다.
+
+**둘. LRU 가 아니라 FIFO 다.** `keys().next().value` 는 "가장 오래 안 쓴 것"이 아니라 "가장 먼저 넣은 것"이다. `get` 은 순서를 바꾸지 않으니 아무리 자주 읽어도 순서상 맨 앞이면 밀려난다.
+
+```javascript
+const c = new Cache(3);
+c.set('hot', 1); c.set('b', 2); c.set('c', 3);
+for (let i = 0; i < 100; i++) c.get('hot');    // 100번 조회
+c.set('d', 4);
+c.get('hot');                                   // null — 그래도 쫓겨났다
+```
+
+LRU 로 만들려면 `get` 성공 시 `delete` 후 다시 `set` 해서 맨 뒤로 보내야 한다. 캐시 적중률이 이상하게 낮으면 이 둘 중 하나인 경우가 많다.
+
 ## 예시
 
 ### 1. 고급 패턴
@@ -541,6 +641,18 @@ const restoredMap = jsonToMap(jsonString);
 console.log('복원된 Map:', restoredMap);
 console.log('복원된 사용자 이름:', restoredMap.get('name')); // 'Alice'
 ```
+
+`Array.from(map.entries())` 를 거치는 이유는 `JSON.stringify` 가 Map 을 **에러 없이 빈 객체로 만들기** 때문이다.
+
+```javascript
+const m = new Map([['a', 1]]);
+JSON.stringify(m);          // '{}'
+JSON.stringify({ data: m }); // '{"data":{}}'
+```
+
+`stringify` 는 자기 소유 열거 가능 속성만 본다. Map 의 내용은 내부 슬롯에 있어서 하나도 안 보인다. 예외가 아니라 조용한 데이터 소실이라, 응답 객체 안 어딘가에 Map 이 섞여 있으면 그 필드만 `{}` 로 나가고 아무도 모른다. API 응답이나 로컬스토리지에 Map 을 넣기 전에는 반드시 배열로 바꾼다.
+
+역방향도 대칭이 아니다. `JSON.parse` 는 배열을 배열로 돌려줄 뿐이라 `new Map(entries)` 를 손으로 감싸야 하고, 이때 **키 타입이 바뀐다.** 숫자 키는 JSON 에서도 숫자로 남지만 객체 키는 복원할 방법이 없다.
 
 #### 복잡한 객체 직렬화
 ```javascript

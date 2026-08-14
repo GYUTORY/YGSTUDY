@@ -1043,6 +1043,136 @@ COMMIT;
 -- → 동일 작업을 중복 처리하지 않음
 ```
 
+### 11. 락 때문에 멈췄을 때 보는 순서
+
+"쿼리가 느리다"와 "쿼리가 락을 기다린다"는 대응이 완전히 다르다. 인덱스를 아무리 손봐도 후자는 안 풀린다.
+
+#### 먼저 구분한다
+
+```sql
+-- MySQL: 상태가 LOCK WAIT 인 트랜잭션이 있는가
+SELECT trx_id, trx_state, trx_started, trx_query
+FROM information_schema.innodb_trx
+WHERE trx_state = 'LOCK WAIT';
+```
+
+`LOCK WAIT`가 없으면 락 문제가 아니다. 있으면 **막고 있는 쪽**을 찾는다. 여기서 위 모니터링 쿼리에 함정이 하나 있다. 이 문서가 먼저 제시한 `information_schema.innodb_lock_waits`는 **MySQL 8.0에서 `INNODB_LOCKS`와 함께 제거되어 performance_schema로 옮겨갔다.** 장애 한복판에서 이 쿼리가 "Unknown table" 계열 에러로 죽으면 시간을 버린다. 어느 쪽이 있는지 평상시에 확인해두고, 확인된 쿼리를 런북에 박아둔다.
+
+```sql
+-- 이 서버에 무엇이 있는지 먼저 본다
+SELECT table_schema, table_name FROM information_schema.tables
+WHERE table_name IN ('INNODB_LOCK_WAITS','data_lock_waits');
+```
+
+`performance_schema.data_lock_waits`가 있으면 그쪽을 쓴다. **컬럼 이름이 구 테이블과 다르므로**(`REQUESTING_*` / `BLOCKING_*` 접두) 쿼리를 그대로 옮겨 쓸 수 없다. 먼저 컬럼을 확인하고 조합한다.
+
+```sql
+SHOW COLUMNS FROM performance_schema.data_lock_waits;
+```
+
+가장 확실한 건 서버가 직접 제공하는 요약이다. 버전을 안 타고, 대기 관계와 블로킹 트랜잭션의 쿼리를 한 번에 보여준다.
+
+```sql
+SHOW ENGINE INNODB STATUS\G
+-- TRANSACTIONS 섹션에서 "TRX HAS BEEN WAITING ... FOR THIS LOCK TO BE GRANTED" 를 찾는다
+```
+
+#### 막고 있는 쪽의 `trx_query`가 비어 있으면
+
+가장 흔한 형태다. **트랜잭션은 열려 있는데 지금 아무 쿼리도 실행하고 있지 않다.** 애플리케이션이 `BEGIN` 이후에 외부 API를 호출 중이거나, 커밋을 안 하고 커넥션을 반납한 경우다. 실행 중인 쿼리가 없으니 슬로우 쿼리 로그에도 안 남는다.
+
+이럴 때 범인을 찾는 단서는 `trx_started`다. 그 시각에 어떤 요청이 들어왔는지 애플리케이션 로그에서 역추적한다. §9의 "트랜잭션 안에서 외부 API 호출"이 정확히 이 그림을 만든다 — 결제 게이트웨이가 3초 응답하는 동안 그 트랜잭션이 잡은 행을 다른 요청들이 전부 기다린다.
+
+#### 인덱스가 없으면 행 락이 사실상 테이블 락이 된다
+
+InnoDB의 행 락은 **인덱스 레코드에 걸린다.** WHERE 조건이 인덱스를 못 타면 풀스캔을 하면서 훑는 모든 행에 락을 건다. 결과적으로 테이블 전체가 잠긴다.
+
+```sql
+-- status 에 인덱스가 없으면
+UPDATE orders SET status = 'DONE' WHERE status = 'PENDING';
+-- 조건에 맞는 행이 3건이어도 스캔한 100만 행이 전부 잠긴다
+```
+
+`SELECT ... FOR UPDATE`도 같다. 위 "재고 차감" 예제가 PK로 조회하니 안전한 것이지, 조건이 인덱스 없는 컬럼으로 바뀌는 순간 성격이 달라진다. 락 대기가 갑자기 늘었다면 최근에 추가된 `FOR UPDATE`나 `UPDATE`의 WHERE 절이 인덱스를 타는지 `EXPLAIN`으로 확인한다.
+
+REPEATABLE READ에서는 갭 락까지 붙어서 **조건에 맞는 행이 하나도 없어도 그 구간에 INSERT가 막힌다.** "조회 결과가 0건인데 왜 락이 걸리냐"의 답이 이것이다.
+
+#### 데드락이 나면 SAVEPOINT는 소용없다
+
+§5의 배치 처리 코드는 건별 실패를 `ROLLBACK TO SAVEPOINT`로 흡수한다. 애플리케이션 예외(검증 실패, 중복 키 등)에는 맞다. 문제는 **데드락(1213)**이다. InnoDB가 데드락을 감지하면 한쪽을 희생자로 골라 **트랜잭션 전체를 롤백한다.** 그 시점에 SAVEPOINT는 이미 존재하지 않으므로 `ROLLBACK TO SAVEPOINT`가 실패하거나, 통과하더라도 이후 작업이 트랜잭션 없이 도는 셈이 된다. 루프는 계속 돌고 `success` 카운터는 올라가는데 실제로는 아무것도 저장되지 않는, **성공했다고 보고하는 실패**가 만들어진다.
+
+```
+Deadlock found when trying to get lock; try restarting transaction   (1213)
+```
+
+메시지가 "try restarting transaction"인 이유가 그것이다 — 이 트랜잭션은 되살릴 수 없으니 처음부터 다시 하라는 뜻이다.
+
+락 대기 타임아웃(1205)은 성격이 다르다. **기본 설정에서는 실패한 문장 하나만 롤백되고 트랜잭션은 살아 있다.** `innodb_rollback_on_timeout`을 켜면 데드락처럼 전체가 롤백된다. 두 에러를 같은 분기에 넣기 전에 이 변수 값을 확인해야 한다.
+
+```sql
+SHOW VARIABLES LIKE 'innodb_rollback_on_timeout';
+SHOW VARIABLES LIKE 'innodb_lock_wait_timeout';
+```
+
+데드락은 루프를 중단하고 배치 단위로 재시도하는 게 맞다.
+
+```typescript
+catch (e: any) {
+  if (e.errno === 1213) {          // 데드락 — 트랜잭션이 이미 사라졌다
+    throw e;                        // 루프 중단, 배치 전체 재시도
+  }
+  if (e.errno === 1205) {          // 락 대기 타임아웃 — 위 변수 설정에 따라 갈린다
+    throw e;                        // 확인 전까지는 보수적으로 중단한다
+  }
+  await manager.query(`ROLLBACK TO SAVEPOINT sp_order_${order.id}`);
+  failed++;
+}
+```
+
+덧붙여 `SAVEPOINT sp_order_${order.id}`는 식별자를 데이터로 만든다. 주문 ID가 숫자라면 동작하지만 문자열 키가 섞이면 문법 오류나 인젝션이 된다. 인덱스 번호(`sp_${i}`)를 쓰는 편이 안전하다.
+
+#### 강제 종료는 마지막 수단이다
+
+```sql
+-- MySQL: 블로킹 트랜잭션의 스레드를 종료
+KILL 12345;
+
+-- PostgreSQL: 쿼리만 취소 → 그래도 안 되면 세션 종료
+SELECT pg_cancel_backend(12345);
+SELECT pg_terminate_backend(12345);
+```
+
+`KILL`은 그 트랜잭션을 롤백시킨다. 대량 UPDATE 중이었다면 **롤백 자체가 원래 작업보다 오래 걸릴 수 있고, 그동안 락은 그대로 잡혀 있다.** 죽였는데 더 안 풀리는 상황이 여기서 나온다. `trx_rows_modified`를 먼저 보고 판단한다.
+
+```sql
+SELECT trx_id, trx_rows_locked, trx_rows_modified,
+       TIMESTAMPDIFF(SECOND, trx_started, NOW()) AS age
+FROM information_schema.innodb_trx;
+```
+
+`trx_rows_modified`가 크면 죽이는 것보다 끝나기를 기다리는 게 빠를 수 있다.
+
+#### 재현되지 않는 락 문제를 잡으려면
+
+락 대기는 순간이라 사람이 조회할 때쯤이면 이미 풀려 있다. 상시로 남겨두는 설정이 필요하다.
+
+```sql
+-- MySQL: 데드락이 날 때마다 에러 로그에 기록 (기본 OFF)
+SET GLOBAL innodb_print_all_deadlocks = ON;
+
+-- 락 대기 한계. 기본 50초는 사용자 응답 기준으로 너무 길다
+SET GLOBAL innodb_lock_wait_timeout = 5;
+```
+
+```conf
+# PostgreSQL: postgresql.conf
+log_lock_waits = on
+deadlock_timeout = 1s          # 이 시간을 넘겨 대기하면 로그에 남는다
+log_min_duration_statement = 1000
+```
+
+`SHOW ENGINE INNODB STATUS`의 `LATEST DETECTED DEADLOCK`은 **마지막 한 건만** 보관한다. 다음 데드락이 나면 덮어쓴다. 사후 분석을 하려면 `innodb_print_all_deadlocks`로 로그에 쌓아두는 수밖에 없다.
+
 ## 참고
 
 - [MySQL InnoDB Locking](https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html)

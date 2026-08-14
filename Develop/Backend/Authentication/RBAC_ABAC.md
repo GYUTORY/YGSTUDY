@@ -423,6 +423,20 @@ export class RoleManagementController {
 
 캐시 TTL을 5분으로 설정했으므로, 이벤트가 누락되더라도 최대 5분 뒤에는 반영된다. NestJS `cache-manager`를 사용하며, Caffeine 대신 메모리 캐시(기본) 또는 Redis 스토어를 연결할 수 있다. 완전한 실시간은 아니지만 대부분의 서비스에서 충분하다.
 
+**여기서 "메모리 캐시(기본)"를 그대로 쓰면 회수가 한 대에만 적용된다.** `cache-manager` 의 기본 스토어는 프로세스 메모리다. 서버가 세 대면 `evictByRole()` 을 호출한 그 한 대만 캐시를 비우고, 나머지 두 대는 TTL 이 끝날 때까지 옛 권한으로 판정한다. 사용자 눈에는 **요청이 어느 서버로 갔느냐에 따라 되기도 하고 안 되기도 하는** 것으로 보인다.
+
+일반 캐시라면 5분 낡은 값이 괜찮다. 권한은 다르다. **권한 회수는 대개 사고 대응 중에 일어난다** — 계정이 털렸거나, 퇴사자를 막거나, 잘못 부여한 권한을 거두는 상황이다. "최대 5분"이 허용되는지는 그 5분에 무슨 일이 일어날 수 있는지로 판단해야 한다.
+
+| 상황 | 5분 지연이 괜찮은가 |
+|---|---|
+| 권한 **추가** | 대체로 괜찮다. 사용자가 다시 시도하면 된다 |
+| 역할 이름·설명 변경 | 괜찮다 |
+| 권한 **회수**, 계정 정지 | 괜찮지 않다. 그 사이 실행되는 요청은 전부 통과한다 |
+
+그래서 실무에서는 방향을 나눈다. 추가는 TTL 에 맡기고, **회수만 공유 저장소(Redis)에 즉시 반영**하거나 별도의 차단 목록을 두는 식이다. 어느 쪽이든 캐시가 프로세스 밖에 있어야 성립한다.
+
+무효화 자체도 완전하지 않다. `evictByRole` 은 **호출 시점에 그 역할을 가진 사용자**만 찾는다. 역할에서 사용자를 빼는 것과 역할의 권한을 바꾸는 것이 다른 트랜잭션이면 그 사이 사용자는 어느 목록에도 안 잡힐 수 있다. 사용자가 많은 역할이면 `Promise.all` 로 개별 삭제를 수만 번 날리는 것도 부담이다. 이런 이유로 개별 키 삭제 대신 **전역 버전 번호를 올려 캐시 키를 통째로 무효화**하는 방식을 쓰기도 한다 — 정확도 대신 캐시 히트율을 내주는 선택이다.
+
 ### 해결 방법 3: JWT + 짧은 만료 시간 + 블랙리스트
 
 JWT를 쓴다면 토큰에 권한을 넣지 않는 방법도 있다. 토큰에는 사용자 식별 정보만 넣고, 권한은 매번 서버에서 조회한다:
@@ -637,6 +651,65 @@ export class PolicyEvaluator {
 
 DENY 우선 방식을 쓴다. PERMIT과 DENY가 동시에 매칭되면 DENY가 이긴다. 보안 정책에서는 거부가 허용보다 우선해야 한다. TypeScript에서도 동일한 로직으로 구현한다.
 
+#### 선언은 했는데 검사하지 않는 조건이 셋 있다
+
+인터페이스와 `matches*` 구현을 대조하면 세 필드가 어디에서도 쓰이지 않는다.
+
+| 선언된 조건 | 검사하는 곳 |
+|---|---|
+| `SubjectCondition.position` | 없음 |
+| `ResourceCondition.resourceType` | 없음 |
+| `EnvironmentCondition.allowedIpRanges` | 없음 |
+
+**조건이 무시되면 정책이 더 넓게 열린다.** PERMIT 정책에 `allowedIpRanges: ['10.0.0.0/8']` 을 적어 두면 관리자는 사내 IP 제한이 걸렸다고 믿지만 실제로는 모든 IP 에서 통과한다. 정책 화면에도 그대로 보이니 검토를 해도 안 잡힌다. 이런 종류의 결함은 **거부가 아니라 허용 쪽으로 실패한다는 점**에서 위험하다.
+
+정책 엔진을 직접 만들 거면 **모르는 조건 키를 만났을 때 무시하지 말고 거부하거나 예외를 던지는 것**이 기본이어야 한다. 조건 스키마와 평가 구현을 한 자리에서 정의해 둘이 어긋날 수 없게 만드는 방법도 있다.
+
+```typescript
+const MATCHERS: Record<string, (v: unknown, req: AccessRequest) => boolean> = {
+  department: (v, r) => v === r.userDepartment,
+  minLevel:   (v, r) => (r.userLevel ?? 0) >= (v as number),
+};
+
+for (const [key, value] of Object.entries(policy.subject ?? {})) {
+  const matcher = MATCHERS[key];
+  if (!matcher) throw new Error(`알 수 없는 조건: ${key}`);  // 조용히 넘어가지 않는다
+  if (!matcher(value, request)) return false;
+}
+```
+
+#### 시간 조건이 자정을 넘으면 항상 거부한다
+
+`matchesEnvironment` 는 `HH:MM` 문자열을 사전순으로 비교한다. 시작이 끝보다 큰 구간에서는 두 조건을 동시에 만족할 수 없다.
+
+```
+업무시간 09:00~18:00
+  8시 → false    12시 → true    19시 → false      정상
+
+야간 당직 22:00~06:00
+  23시 → false   2시 → false    5시 → false       하루 종일 거부
+```
+
+`22:00~06:00`, `18:00~09:00` 같은 야간 구간은 당직·배치 작업 권한에서 흔하다. 정책을 등록한 사람은 야간에만 열린다고 생각하지만 실제로는 아무도 못 들어온다. 이쪽은 허용이 아니라 거부로 실패하니 발견은 되지만, 원인을 찾기 전까지는 "권한이 있는데 왜 안 되지" 로 시간을 쓴다. 자정을 넘는 경우를 나눠 처리한다.
+
+```typescript
+const from = condition.accessTimeFrom, to = condition.accessTimeTo;
+if (from != null && to != null) {
+  const inRange = from <= to
+    ? (hhmm >= from && hhmm <= to)      // 같은 날 안에서
+    : (hhmm >= from || hhmm <= to);     // 자정을 넘는 구간
+  if (!inRange) return false;
+}
+```
+
+시간대도 정해야 한다. `now.getHours()` 는 **서버의 로컬 타임존**을 쓴다. 서버가 UTC 로 돌고 정책은 KST 기준으로 적혀 있으면 창이 통째로 어긋난다. 시간 조건을 쓸 거면 정책에 타임존을 함께 저장하는 편이 안전하다.
+
+#### 요청마다 정책 전체를 읽는다
+
+`policyRepository.find({ where: { active: true } })` 가 인가 체크마다 돈다. 정책이 수십 개일 때는 문제가 없지만, 수백 개가 되고 요청마다 도는 순간 인가가 DB 부하의 원인이 된다. 정책은 자주 바뀌지 않으므로 캐싱하기 좋은 대상이고, 대신 위 권한 캐시와 똑같은 무효화 문제를 다시 떠안는다.
+
+리소스 목록을 조회하는 API 에서는 더 큰 문제가 생긴다. 문서 100건을 반환하려면 100번 평가해야 하고, 정책이 리소스 속성(`resourceSecurityLevel`)을 보는 이상 **먼저 100건을 다 읽은 뒤 걸러야 한다.** 페이지네이션과 맞지 않는다 — 20건을 요청했는데 걸러 보니 3건만 남는 식이다. ABAC 을 도입하기 전에 **목록 조회를 어떻게 처리할지** 먼저 정해야 하고, 대개는 정책 일부를 SQL 조건으로 내려보내는 별도 경로를 만들게 된다. 이게 ABAC 의 가장 큰 숨은 비용이다.
+
 ### NestJS Guard와 연동
 
 NestJS에서는 `AbacGuard`에서 `AbacPermissionService.check()`를 직접 호출한다:
@@ -773,6 +846,29 @@ async getDocument(@Param('id') id: string): Promise<Document> { /* ... */ return
 ```
 
 이 방식의 장점은 RBAC에서 걸러지면 ABAC 정책 평가를 하지 않는다는 것이다. ABAC 정책이 수십 개라도 RBAC에서 먼저 걸러내면 불필요한 연산을 줄일 수 있다. NestJS에서는 `HybridAuthorizationGuard`에서 `HybridAuthorizationService.check()`를 호출한다.
+
+#### 다만 ADMIN 지름길이 ABAC 정책을 통째로 건너뛴다
+
+첫 줄의 `if (this.hasRole(user, 'ADMIN')) return true;` 때문에 관리자에게는 어떤 DENY 정책도 적용되지 않는다. "업무 시간에만 접근", "사내 IP 에서만", "보안등급 이하만" — 위에서 예로 든 조건들이 전부 무력해진다. **가장 강한 계정이 가장 적은 통제를 받는 구조**이고, 계정이 탈취됐을 때 피해가 가장 큰 것도 그 계정이다.
+
+DENY 는 역할과 무관하게 먼저 평가하는 편이 안전하다.
+
+```typescript
+// DENY 정책은 ADMIN 지름길보다 앞에 둔다
+if (await this.abacEvaluator.hasMatchingDeny(request)) return false;
+if (this.hasRole(user, 'ADMIN')) return true;
+```
+
+#### 역할과 권한이 한 배열에 섞여 있다
+
+`hasRole` 과 `hasAuthority` 가 둘 다 `user.authorities.includes(x)` 를 본다. 이름만 다를 뿐 같은 검사다. 그래서 두 방향으로 사고가 난다.
+
+- `ADMIN` 이라는 이름의 **권한**을 누군가 만들면, 그 권한을 가진 사용자가 위 지름길로 전부 통과한다.
+- `DOCUMENT_READ` 라는 이름의 **역할**을 만들면 권한처럼 동작한다.
+
+스프링 시큐리티가 역할에 `ROLE_` 접두사를 붙이는 관행을 갖는 이유가 이것이다. 한 배열에 담을 거면 접두사로 이름 공간을 나누고, 그럴 게 아니면 `roles` 와 `permissions` 를 분리해서 검사 함수가 서로 다른 것을 보게 만든다.
+
+`requiredPermission = \`${resourceType}_${action}\`` 처럼 권한 이름을 문자열로 조립하는 것도 같은 부류의 위험이다. DB 에 등록된 권한명과 한 글자만 달라도 컴파일러가 잡지 못한다. 이쪽은 거부로 실패하니 그나마 낫지만, 새 리소스 타입을 추가할 때 권한 등록을 빠뜨리면 "권한을 줬는데 안 된다"는 문의로 돌아온다. 권한명은 상수나 enum 으로 모아 두고 조립은 그 안에서 한다.
 
 ### 실무에서 자주 쓰는 ABAC 조건들
 

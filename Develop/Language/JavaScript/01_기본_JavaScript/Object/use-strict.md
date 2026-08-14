@@ -65,6 +65,38 @@ export function moduleFunction() {
 }
 ```
 
+`"use strict"` 는 문자열 리터럴일 뿐이라 **위치를 틀리면 아무 일도 하지 않는다.** 스크립트나 함수 본문의 **첫 문장**이어야 한다.
+
+```javascript
+function notFirst() {
+  const a = 1;
+  "use strict";                       // ← 그냥 문자열. 무시된다
+  return (function () { return this; })();
+}
+notFirst();   // globalThis — 엄격 모드가 아니다
+
+function first() {
+  "use strict";
+  return (function () { return this; })();
+}
+first();      // undefined — 엄격 모드다
+```
+
+에러도 경고도 없다. 파일을 열어 보면 `"use strict"` 가 분명히 적혀 있으니 켜져 있다고 믿게 된다. 실제로 이 문제가 나는 자리는 대개 이렇다.
+
+- 주석이나 라이선스 헤더 위에 두는 것은 괜찮다(주석은 문장이 아니다). `import` 나 변수 선언 아래로 밀리면 죽는다.
+- 여러 파일을 **연결(concat)** 하는 번들 설정에서, 엄격 모드가 아닌 파일이 앞에 붙으면 뒤 파일의 지시어가 통째로 무효가 된다. 반대로 엄격 파일이 앞에 오면 비엄격 파일까지 엄격해진다.
+
+지금 이 지시어를 손으로 쓸 일이 남아 있는지부터 확인하는 편이 낫다. **ES 모듈과 `class` 본문은 언제나 엄격 모드다.**
+
+```javascript
+class C { m() { return this; } }
+const m = new C().m;
+m();          // undefined — "use strict" 를 쓴 적이 없다
+```
+
+`import`/`export` 를 쓰는 파일이나 클래스 안에서는 이 지시어가 아무것도 바꾸지 않는다. 남은 대상은 `<script>` 로 직접 넣는 옛 코드와 CommonJS 파일 정도다.
+
 ### 2. Strict Mode에서 달라지는 점
 
 #### 암시적 변수 선언 금지
@@ -146,6 +178,27 @@ function testArguments(a, b) {
 testArguments(1, 2);
 ```
 
+이 예제의 주석은 실제 동작과 다르다. **엄격 모드에서 `arguments[0] = 100` 은 던지지 않는다.** 대입은 그냥 성공한다. 달라지는 것은 매개변수와의 연동이다.
+
+```javascript
+function strictArgs(a, b) {
+  "use strict";
+  arguments[0] = 100;
+  return [a, arguments[0]];      // [1, 100]   ← a 는 그대로
+}
+
+function sloppyArgs(a, b) {
+  arguments[0] = 100;
+  return [a, arguments[0]];      // [100, 100] ← a 까지 바뀐다
+}
+```
+
+비엄격 모드의 `arguments` 는 매개변수와 **양방향으로 묶여 있다.** `a` 를 바꾸면 `arguments[0]` 이 바뀌고 그 반대도 된다. 엄격 모드는 이 연결을 끊어 스냅샷으로 만든다. 인자를 정규화하려고 `arguments` 를 수정하는 코드가 있으면, 엄격 모드로 바꾸는 순간 조용히 동작이 달라진다 — **에러가 나지 않아서 더 위험하다.**
+
+주석이 인용한 `'caller', 'callee', and 'arguments' properties may not be accessed` 는 다른 상황의 메시지다. 그건 엄격 모드 함수의 `fn.caller` 나 `arguments.callee` 에 **접근**할 때 나온다.
+
+애초에 `arguments` 를 쓸 이유가 거의 없다. 나머지 매개변수(`function f(...args)`)는 진짜 배열이라 `map`·`filter` 가 바로 된다. 화살표 함수는 자기 `arguments` 를 만들지 않는데, 이게 "없다"는 뜻은 아니다 — `this` 처럼 **바깥 함수의 것을 그대로 집어 온다.** 화살표 함수 안에서 `arguments` 를 읽으면 엉뚱한 함수의 인자 목록이 잡히고 에러도 나지 않는다.
+
 ### 3. 추가 제한사항
 
 #### 8진수 리터럴 금지
@@ -191,6 +244,28 @@ if (true) {
     blockFunction();
 }
 ```
+
+이 예제도 지금 기준으로는 맞지 않는다. **엄격 모드에서 블록 안 함수 선언은 문법 에러가 아니다.**
+
+```javascript
+'use strict';
+if (true) {
+  function f() { return 1; }
+  f();        // 1 — 정상 동작한다
+}
+```
+
+ES5 시절에는 정말 금지였다. ES6 가 블록 스코프 함수 선언을 정식으로 넣으면서 규칙이 바뀌었고, 지금은 `let` 처럼 **그 블록 안에서만 보이는 함수**가 된다.
+
+바뀐 것은 허용 여부가 아니라 스코프다.
+
+```javascript
+'use strict';
+if (true) { function f() {} }
+typeof f;      // 'undefined' — 블록 밖에서는 안 보인다
+```
+
+비엄격 모드는 호환성 때문에 이 이름을 바깥 함수 스코프로도 끌어올린다. 그래서 같은 코드가 모드에 따라 **바깥에서 보이기도 하고 안 보이기도 한다.** 문서가 권하는 대로 `const` + 함수 표현식을 쓰면 이 차이 자체가 사라진다 — 이유는 "금지되어서"가 아니라 "모드마다 다르게 동작해서"다.
 
 ## 예시
 
@@ -430,6 +505,30 @@ function nonStrictFunction() {
     return x;
 }
 ```
+
+이 블록의 두 함수는 **같은 파일 첫 줄의 `"use strict"` 아래에 있다.** 이름이 `nonStrictFunction` 이어도 비엄격 모드가 아니다. 엄격 모드는 파일이나 함수 단위로 걸리고, 한 번 켜지면 안쪽 함수가 전부 물려받는다. 함수 이름으로 모드를 끌 방법은 없다. 이 함수를 실제로 호출하면 `x = 1` 에서 `ReferenceError` 가 난다.
+
+"엄격 모드가 최적화 기회를 준다"는 서술도 이 문서에서 잰 적이 없다. 엄격 모드를 켤 이유는 속도가 아니라 **오타가 전역 변수가 되지 않는다**는 한 가지로 충분하다.
+
+```javascript
+function calc(count) {
+  let total = 0;
+  toal = count * 2;      // 오타
+  return total;
+}
+```
+
+비엄격 모드에서 이 코드는 전역에 `toal` 을 만들고 `0` 을 돌려준다. 에러 없이 틀린 값이 나오고, 게다가 전역이 오염돼 다른 파일까지 영향을 준다. 엄격 모드는 이 줄에서 바로 `ReferenceError` 를 던진다. 나머지 규칙들은 이 하나를 위한 덤에 가깝다.
+
+읽기 전용 속성도 같은 성격이다. 비엄격 모드는 대입을 **조용히 무시한다.**
+
+```javascript
+const o = Object.freeze({ a: 1 });
+o.a = 2;
+o.a;        // 1 — 비엄격 모드에서는 에러 없이 그냥 안 바뀐다
+```
+
+"분명히 값을 넣었는데 안 들어간다"를 디버깅하는 것보다 그 줄에서 터지는 쪽이 낫다.
 
 ### 에러 처리
 

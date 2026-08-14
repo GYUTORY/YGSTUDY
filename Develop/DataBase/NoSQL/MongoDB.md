@@ -1000,6 +1000,100 @@ async function searchUsers(criteria: UserSearchCriteria): Promise<User[]> {
 }
 ```
 
+## 조용히 어긋나는 자리
+
+MongoDB에서 골치 아픈 장애는 에러가 나는 쪽이 아니라 **아무 에러 없이 기대와 다르게 동작하는** 쪽이다. 아래는 그중 자주 걸리는 것들이다.
+
+### TTL 인덱스는 필드 타입이 틀리면 아무것도 안 지운다
+
+```javascript
+db.sessions.createIndex({ createdAt: 1 }, { expireAfterSeconds: 3600 });
+```
+
+이 인덱스는 **`createdAt`이 BSON Date 타입인 문서만** 만료시킨다. 값이 문자열(`"2026-04-12T10:30:00Z"`)이거나 숫자 타임스탬프면 그 문서는 영원히 남는다. 인덱스 생성도 성공하고, 에러도 없고, `getIndexes()`에도 정상으로 보인다. 세션 컬렉션이 계속 커지는데 원인이 안 보이는 상황이 여기서 나온다.
+
+애플리케이션에서 `createdAt: new Date().toISOString()`처럼 문자열로 넣는 코드가 하나만 섞여도 그 문서들만 안 지워진다.
+
+```javascript
+// 실제로 Date 로 저장되고 있는지 확인
+db.sessions.aggregate([
+  { $group: { _id: { $type: "$createdAt" }, count: { $sum: 1 } } }
+]);
+// { _id: "date", count: 12000 }, { _id: "string", count: 340 }  ← string 이 안 지워지는 것들
+```
+
+만료 시점도 정확하지 않다. TTL 백그라운드 스레드가 **60초 주기로 돌기 때문에** 문서는 만료 시각 이후 최대 1분가량 더 살아 있다. "1시간 후 삭제"를 보안 경계로 쓰면 안 된다. 세컨더리에서는 TTL 스레드가 삭제를 수행하지 않고 프라이머리의 oplog를 받아 반영하므로, 프라이머리가 밀리면 세컨더리도 같이 밀린다.
+
+### 트랜잭션 안의 읽기는 세컨더리로 가지 않는다
+
+```typescript
+const client = new MongoClient(uri, { readPreference: 'secondaryPreferred' });
+```
+
+이 설정을 해두고 `session.withTransaction()` 안에서 읽으면, 그 읽기는 세컨더리로 가지 않는다. 멀티 문서 트랜잭션은 프라이머리에서만 동작하기 때문이다. `secondaryPreferred`가 무시되는 게 아니라 트랜잭션이 그걸 허용하지 않는다 — 명시적으로 `readPreference: 'secondary'`를 트랜잭션에 주면 에러가 난다.
+
+의도한 읽기 분산이 트랜잭션 경로에서만 조용히 사라지므로, "세컨더리 부하가 예상보다 낮다"의 원인이 되기도 한다.
+
+### 세컨더리에서 읽으면 방금 쓴 값이 안 보인다
+
+`secondaryPreferred`는 복제 지연을 그대로 떠안는 설정이다. 저장 직후 조회하면 옛 값이 보이고, 새로고침하면 고쳐진다. 사용자에게는 "저장이 안 됐다"로 보이고 로그에는 아무것도 안 남는다. RDBMS 읽기 복제본과 완전히 같은 문제이므로 판단 기준도 같다 — [읽기 전용 복제본](../RDBMS/읽기_전용_복제본.md)의 "복제 지연은 버그가 아니라 전제다" 절을 그대로 적용한다.
+
+쓰기 직후 반드시 읽어야 하는 경로만 프라이머리로 고정한다.
+
+```typescript
+const orders = db.collection('orders', { readPreference: 'primary' });
+// 또는 쿼리 단위로
+await db.collection('orders').findOne({ _id }, { readPreference: 'primary' });
+```
+
+`writeConcern: { w: 'majority' }`는 쓰기가 과반에 반영될 때까지 기다리게 하지만, **읽는 쪽이 아직 못 받은 세컨더리라면 여전히 옛 값이 나온다.** 둘을 같이 맞추려면 `readConcern: 'majority'`까지 필요하고, 그만큼 지연이 붙는다.
+
+### 트랜잭션은 60초에 잘리고, 재시도가 전제다
+
+- 기본 트랜잭션 수명은 60초다(`transactionLifetimeLimitSeconds`). 넘으면 서버가 abort한다. 배치를 트랜잭션 하나로 묶으면 여기서 걸린다.
+- 트랜잭션은 `TransientTransactionError`(페일오버, 락 경합 등)로 실패할 수 있고 **재시도가 정상 운영의 일부다.** `session.withTransaction()`은 이 재시도를 내장하고 있지만, 위 mongo shell 예제처럼 `startTransaction` → `commitTransaction`을 직접 부르는 코드에는 재시도가 없다. 페일오버 때마다 그 요청이 실패한다.
+- 재시도가 된다는 건 **콜백이 두 번 이상 실행될 수 있다**는 뜻이다. `withTransaction` 콜백 안에 외부 API 호출이나 이메일 발송을 넣으면 중복 실행된다. 콜백에는 DB 작업만 둔다.
+
+### `$lookup`과 샤딩
+
+`$lookup`은 조인 대상 컬렉션을 각 문서마다 조회하는 형태라, 결과 문서 수만큼 조회가 발생한다. 인덱스가 `foreignField`에 없으면 매번 컬렉션 스캔이다. `explain()`에서 `$lookup` 단계의 시간이 전체를 지배하면 대개 이 경우다.
+
+애초에 샤딩된 컬렉션은 `$lookup`의 `from` 대상으로 쓸 수 없던 제약이 오래 있었고 버전에 따라 완화됐다. 샤딩 환경이라면 **쓰기 전에 그 버전에서 되는지 확인**해야 한다. 문서 설계 단계에서 조인이 필요하다고 판단되면, 그 관계는 참조가 아니라 내장으로 가는 게 맞는지 다시 본다.
+
+### 정렬이 메모리 한도에 걸린다
+
+인덱스를 못 타는 정렬은 메모리에서 처리되고 한도를 넘으면 실패한다.
+
+```
+QueryExceededMemoryLimitNoDiskUseAllowed:
+Sort exceeded memory limit of 104857600 bytes, but did not opt in to external sorting.
+```
+
+`allowDiskUse: true`로 넘길 수는 있지만 그건 증상 완화다. `explain("executionStats")`의 `winningPlan`에 `SORT` 단계가 보이면 **정렬 필드가 인덱스에 포함되어 있지 않다는 뜻**이고, 복합 인덱스에 정렬 컬럼을 넣으면 그 단계가 사라진다.
+
+복합 인덱스는 순서가 중요하다. `{ userId: 1, createdAt: -1 }`은 `userId`로 걸러 `createdAt` 내림차순 정렬까지 인덱스로 처리하지만, `{ createdAt: -1, userId: 1 }`은 그렇지 않다. 앞의 필드부터 순서대로 써야 뒤가 유효하다.
+
+### 커넥션 풀 계산
+
+`maxPoolSize`는 **서버(호스트)당** 값이다. 연결 문자열에 노드 3개를 적고 `maxPoolSize=100`이면 클라이언트 하나가 최대 300개까지 열 수 있다. 여기에 애플리케이션 인스턴스 수를 곱한 값이 서버가 실제로 받는 커넥션이다.
+
+```
+인스턴스 20대 × 노드 3개 × maxPoolSize 100 = 6,000
+```
+
+MongoDB는 커넥션마다 스레드와 스택 메모리를 쓰므로 이 숫자가 크면 서버 메모리가 그쪽으로 먹힌다. `db.serverStatus().connections`의 `current`를 보면서 조정한다. `available`이 줄어드는 속도가 이상하면 커넥션 누수(클라이언트 객체를 요청마다 새로 만드는 코드)를 의심한다. `MongoClient`는 애플리케이션당 하나만 만들어 재사용하는 게 원칙이다.
+
+### 프로파일러를 켜둔 채 잊는다
+
+`db.setProfilingLevel(1, { slowms: 50 })`은 **컬렉션 단위가 아니라 데이터베이스 단위**이고, 재시작하면 기본값으로 돌아간다. 반대로 `system.profile`은 기본 1MB 캡드 컬렉션이라 트래픽이 많으면 몇 분치만 남는다. 조사할 때 "최근 로그가 없다"면 이미 덮어써진 것이다.
+
+레벨 2(모든 쿼리)를 프로덕션에 켜두면 쓰기 부하가 그대로 늘어난다. 조사용으로 잠깐 켰다면 반드시 되돌린다.
+
+```javascript
+db.getProfilingStatus();               // { was: 2, slowms: 50 } ← 2면 지금 전량 기록 중
+db.setProfilingLevel(1, { slowms: 100 });
+```
+
 ## RDBMS vs MongoDB 비교
 
 | 항목 | RDBMS (PostgreSQL) | MongoDB |

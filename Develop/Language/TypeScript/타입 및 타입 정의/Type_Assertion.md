@@ -28,6 +28,17 @@ let someValue2: unknown = "Hello, TypeScript";
 let strLength2: number = (<string>someValue2).length;
 ```
 
+꺾쇠 문법이 "React JSX와 충돌 가능성"이 있다는 건 정확히는 **`.tsx` 파일에서 아예 파싱되지 않는다**는 뜻이다. 가능성이 아니라 확정이다.
+
+```
+ta.tsx(3,20): error TS17008: JSX element 'string' has no corresponding closing tag.
+ta.tsx(4,1): error TS1005: '</' expected.
+```
+
+컴파일러가 `<string>` 을 여는 JSX 태그로 읽어 버린다. 같은 코드가 `.ts` 에서는 통과한다. 파일 확장자에 따라 문법이 갈리는 자리이므로 **`as` 하나로 통일하는 게 맞다.** 아래 예제들도 전부 `as` 를 쓴다.
+
+한 가지 짚어 둘 것은 두 문법 모두 **런타임에는 아무것도 남기지 않는다**는 점이다. 타입 단언은 컴파일 시 통째로 지워진다. 값을 바꾸지도, 검사하지도 않는다. 이 문서 전체를 읽을 때 기준으로 삼아야 할 사실이다.
+
 ## 핵심
 
 ### 1. 컴파일러 타입 추론 한계 극복
@@ -85,6 +96,34 @@ image.src = "profile.webp";
 let form = document.getElementById("userForm") as HTMLFormElement;
 form.submit();
 ```
+
+이 절의 단언은 **두 가지를 한꺼번에 주장하는데, 그중 하나가 훨씬 위험하다.**
+
+`getElementById` 의 반환 타입은 `HTMLElement | null` 이다. `as HTMLInputElement` 는 "이건 input 이다"뿐 아니라 **"null 이 아니다"까지 함께 주장한다.** 앞쪽은 대개 맞지만 뒤쪽은 id 오타 하나로 무너진다.
+
+```typescript
+const el = document.getElementById("myInput");
+el.value = "x";
+// error TS18047: 'el' is possibly 'null'.
+// error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+
+const el2 = document.getElementById("myInput") as HTMLInputElement;
+el2.value = "x";   // 에러 없음 — 두 경고가 모두 사라졌다
+```
+
+단언을 붙이는 순간 컴파일러가 정확히 짚어 주던 두 문제가 동시에 침묵한다. 요소가 없으면 `Cannot read properties of null` 로 런타임에 터지는데, 그때는 어느 id 가 틀렸는지 스택만 보고 찾아야 한다.
+
+DOM 은 **HTML 이 바뀌면 조용히 깨지는 곳**이다. 마크업은 컴파일러가 검사하지 않으니 `as` 로 눌러 둔 가정을 지켜 줄 장치가 어디에도 없다. null 검사를 남기는 편이 낫다.
+
+```typescript
+const input = document.getElementById("myInput");
+if (!(input instanceof HTMLInputElement)) {
+    throw new Error("#myInput 이 없거나 input 요소가 아닙니다");
+}
+input.value = "Hello!";   // 여기서부터 타입도 존재도 보장된다
+```
+
+`instanceof` 는 런타임에 실제로 확인하므로 타입 좁히기와 존재 확인을 동시에 해결한다. `as` 와 달리 틀렸을 때 **원인이 적힌 에러**가 난다.
 
 ### 3. API 응답 처리
 
@@ -155,6 +194,34 @@ function processValue(value: unknown): string {
         // 타입 단언으로 기본값 처리
         return (value as any).toString() || 'unknown';
     }
+}
+```
+
+이중 단언 예제의 주석은 정확하다. 값은 그대로 문자열이다. 그런데 그 뒤가 더 중요하다. **타입 시스템만 `number` 로 믿고 있으므로 숫자처럼 쓰는 순간 전부 어긋난다.**
+
+```javascript
+numValue + 1         // "421"   ← 덧셈이 아니라 문자열 이어붙이기
+numValue.toFixed(2)  // TypeError: numValue.toFixed is not a function
+```
+
+`numValue.toFixed(2)` 는 컴파일을 통과한다. `number` 라고 단언했으니 컴파일러 입장에서는 있는 메서드다. **`as unknown as T` 는 TypeScript 가 제공하는 마지막 안전장치까지 끄는 문법**이라, 코드에서 발견되면 대개 타입 설계가 틀렸다는 신호로 읽어야 한다.
+
+**`processValue` 의 `else` 절은 `null` 과 `undefined` 에서 예외를 던진다.** 반환 타입은 `string` 인데 값을 돌려주지 못한다.
+
+```javascript
+processValue(null)       // TypeError: Cannot read properties of null (reading 'toString')
+processValue(undefined)  // TypeError: Cannot read properties of undefined (reading 'toString')
+processValue(true)       // "true"          정상
+processValue({})         // "[object Object]"
+```
+
+`|| 'unknown'` 이 기본값을 대준다고 착각하기 쉽지만, 그 자리에 닿기도 전에 `.toString()` 호출에서 터진다. `null` 과 `undefined` 는 `toString` 을 갖지 않는 유일한 두 값이고, 하필 **함수가 방어해야 할 대표적인 입력**이다.
+
+`(value as any)` 가 이걸 가렸다. `any` 로 바꾸는 순간 컴파일러는 `null` 가능성 검사를 그만둔다. `String(value)` 를 쓰면 이 부류를 전부 흡수한다 — `String(null)` 은 `'null'` 이고 예외가 아니다.
+
+```typescript
+} else {
+    return value == null ? 'unknown' : String(value);
 }
 ```
 
@@ -235,6 +302,44 @@ apiClient.fetchUser(1).then(user => {
     console.log(`사용자: ${user.name} (${user.email})`);
 });
 ```
+
+`fetchUser` 의 `try` 가 **자기가 던진 에러까지 다시 잡는다.** `throw new Error(apiResponse.message)` 는 같은 `try` 블록 안에 있으므로 곧바로 아래 `catch` 로 들어가 한 번 더 감싸진다.
+
+```
+사용자 조회 실패: Error: 사용자를 찾을 수 없습니다
+```
+
+`${error}` 로 문자열 보간을 하면 `Error` 객체가 `"Error: 메시지"` 로 변환되므로 접두어가 중첩된다. 호출한 쪽은 원본 `Error` 인스턴스도, 스택 트레이스도 받지 못한다 — 새 `Error` 가 만들어지면서 스택이 이 줄로 덮인다. 네트워크 오류와 API 가 정상 응답한 실패가 **구분 불가능해지는** 것도 문제다.
+
+`cause` 로 원인을 보존하고, 던질 범위를 좁힌다.
+
+```typescript
+const response = await fetch(`/api/users/${id}`);
+let result: unknown;
+try {
+    result = await response.json();
+} catch (error) {
+    throw new Error(`사용자 조회 실패(응답 파싱)`, { cause: error });
+}
+// 검증과 throw 는 try 밖에서 — 자기 에러를 자기가 잡지 않는다
+```
+
+`try` 블록은 **실제로 실패할 수 있는 호출만** 감싼다. 넓게 잡을수록 의도한 예외와 사고를 뭉뚱그리게 된다.
+
+`getUserFromApi` 에도 확인된 결함이 있다. `!user.id` 는 **`id` 가 `0` 일 때도 참**이다.
+
+```javascript
+!({ id: 0, name: 'a', role: 'user' }).id   // true → "유효하지 않은 사용자 데이터"
+!({ id: 1, name: '', role: 'user' }).name  // true → 빈 이름도 같은 에러로
+```
+
+`0` 은 유효한 ID 이고 빈 문자열은 이름 누락과 다른 문제인데, 셋 다 같은 메시지로 거절된다. 존재 여부를 물을 때는 falsy 검사 대신 `== null` 이나 `in` 을 쓴다.
+
+```typescript
+if (user.id == null || user.name == null || user.role == null) { ... }
+```
+
+그리고 이 함수의 `data as User` 는 `User` 가 `Admin | RegularUser` 유니온이라는 점에서 특히 위험하다. **`role` 값이 `'admin'` 도 `'user'` 도 아닌 문자열이어도 단언은 통과한다.** 그 뒤 `isAdmin` 이 거짓을 반환해 `RegularUser` 로 좁혀지고, 있지도 않은 `user.email` 을 읽어 `undefined` 가 나온다. 판별 유니온은 판별자 값을 실제로 검사해야 의미가 있다.
 
 ### 2. 고급 활용 패턴
 

@@ -335,6 +335,15 @@ ES6 모듈 시스템은 JavaScript의 공식 모듈 표준입니다. CommonJS와
 - 사용하지 않는 코드를 자동으로 제거
 - 번들 크기 최적화에 큰 도움
 
+트리 쉐이킹은 자동이 아니라 **조건부**다. 번들러는 "이 모듈을 평가해도 부수효과가 없다"고 확신할 때만 지운다. 아래 중 하나라도 걸리면 안 쓰는 코드가 그대로 남는다.
+
+- 모듈 최상단에서 뭔가를 실행한다(등록, 프로토타입 확장, 폴리필). 번들러는 그게 필요한지 판단할 수 없다.
+- 패키지가 `package.json` 에 `"sideEffects": false` 를 선언하지 않았다.
+- CommonJS 로 배포된 패키지다. `require` 는 동적이라 무엇을 쓰는지 정적으로 알 수 없다.
+- 배럴 파일(`index.js` 에 전부 re-export)을 거쳐 import 한다. 하나만 가져와도 배럴이 통째로 평가되면서 딸린 부수효과가 함께 들어온다.
+
+마지막 항목은 이 문서 뒤쪽의 "모듈 통합" 구조와 정면으로 부딪힌다. 진입점 하나로 몰아서 export 하면 import 문은 깔끔해지지만 **번들러가 잘라낼 수 있는 자리가 줄어든다.** 편의와 번들 크기를 맞바꾸는 것이라, 크기가 상관없는 서버 코드에서는 배럴이 이득이고 브라우저 번들에서는 손해다.
+
 ##### 비동기 로딩
 
 - 모듈을 비동기적으로 로드 가능
@@ -743,6 +752,60 @@ class AppConfig {
 const appConfig = new AppConfig();
 export default appConfig;
 ```
+
+#### 이 싱글톤이 하나라는 보장은 모듈 캐시에서 온다
+
+`AppConfig.instance` 트릭이 붙어 있지만, 인스턴스를 실제로 하나로 묶는 것은 **모듈 캐시**다. 캐시가 갈라지면 싱글톤도 갈라진다. 갈라지는 경로가 셋 있다.
+
+**같은 패키지가 두 번 설치된 경우.** 캐시 키는 해석된 파일 경로다. `node_modules/config` 와 `node_modules/a/node_modules/config` 는 다른 파일이라 인스턴스가 둘이 된다.
+
+**지정자가 다른 경우.** 같은 파일이어도 ESM 에서 쿼리스트링이 붙으면 별개 모듈로 평가된다.
+
+```javascript
+const a = await import('./cfg.mjs');
+const b = await import('./cfg.mjs?v=2');
+a.default === b.default;   // false
+```
+
+**CJS 빌드와 ESM 빌드를 함께 배포한 경우.** `exports` 필드로 `import` 와 `require` 에 다른 파일을 물려 두면 한 프로세스에서 두 진입점이 모두 로드될 수 있다. 실제로 돌려 보면 이렇다.
+
+```
+import 한 것: ESM 빌드 | require 한 것: CJS 빌드
+같은 객체인가? false | CJS 쪽에서 조회: undefined
+```
+
+ESM 쪽에서 설정을 넣고 CJS 쪽에서 읽으면 없는 값이 된다. 상태를 담은 모듈 싱글톤을 만들 거면 이 셋 중 어디에도 걸리지 않는지 봐야 하고, 확실히 하려면 `globalThis` 에 심볼 키로 붙들거나 애초에 인자로 넘긴다.
+
+덧붙여 `new AppConfig()` 가 기존 인스턴스를 반환하는 트릭은 **`new` 인데 새 객체가 아니라는 점**이 함정이다. 상속하면 서브클래스 인스턴스를 만들어도 부모 인스턴스가 나온다. `validate()` 도 `loadConfig()` 전에 부르면 항상 실패하는데, 이 순서 의존을 강제하는 장치가 없다.
+
+#### `get()` 이 `false` 와 `0` 을 기본값으로 덮어쓴다
+
+```javascript
+get(key, defaultValue = null) {
+    return this.config.get(key) || defaultValue;
+}
+```
+
+`||` 는 falsy 를 전부 걸러낸다. 저장된 값이 `false`, `0`, `''` 이면 있는데도 기본값이 나간다.
+
+```javascript
+cfg.set('feature.enabled', false);
+cfg.get('feature.enabled', true);   // → true   기능이 켜진다
+cfg.set('retry.count', 0);
+cfg.get('retry.count', 3);          // → 3      재시도를 끄려던 설정
+cfg.set('prefix', '');
+cfg.get('prefix', 'app-');          // → 'app-'
+```
+
+설정값은 `false` 와 `0` 이 의미를 갖는 자리라, 이 실수가 **기능 플래그를 반대로 켜는** 형태로 나타난다. `has()` 로 분기하거나 `??` 를 쓴다.
+
+```javascript
+get(key, defaultValue = null) {
+    return this.config.has(key) ? this.config.get(key) : defaultValue;
+}
+```
+
+같은 문제가 `loadConfig()` 안에도 있다. `parseInt(process.env.DB_PORT) || 5432` 는 포트를 `0` 으로 지정하면 5432 가 되고, `parseInt('3000abc')` 는 조용히 `3000` 을 통과시킨다. 환경변수는 전부 문자열이라 변환 실패를 명시적으로 걸러야 한다.
 
 #### 팩토리 패턴을 활용한 모듈
 
@@ -1933,6 +1996,35 @@ export default errorHandler;
 | **개발 경험** | 단순함 | 더 풍부한 기능 | ES6: 대규모 프로젝트 |
 
 > **📊 비교 요약**: CommonJS는 서버사이드에서 안정적이고, ES6 모듈은 클라이언트사이드에서 최적화에 유리합니다.
+
+### 위 표에서 세 줄은 지금 기준으로 맞지 않는다
+
+**"Node.js 지원: ES6 = 실험적(.mjs)"** 는 옛 상태다. 지금 Node 에서 ESM 은 플래그 없이 동작하며 `package.json` 의 `"type": "module"` 이나 `.mjs` 확장자로 켠다([Node.js ESM 문서](https://nodejs.org/api/esm.html)). "서버는 CommonJS, 브라우저는 ESM" 이라는 구분도 그래서 성립하지 않는다. 지금 CommonJS 를 고르는 이유는 안정성이 아니라 **기존 코드와 의존 패키지가 그쪽이기 때문**이다.
+
+**"로딩 방식: ES6 = 비동기적(컴파일 타임)"** 은 두 개념이 섞여 있다. 정확히는 의존성 해석이 실행 전에 끝나고, 그래서 **`import` 한 모듈이 그 파일의 첫 줄보다 먼저 평가된다.** 이 한 문장이 CommonJS 에서 넘어올 때 가장 자주 사고를 낸다.
+
+```javascript
+// t2.mjs
+process.env.APP_PORT = '8080';      // import 보다 위에 적었다
+import { PORT } from './env.mjs';   // env.mjs 는 process.env.APP_PORT 를 읽는다
+console.log(PORT);
+```
+
+실행하면 이렇게 나온다.
+
+```
+[env.mjs 평가] APP_PORT = undefined
+[main 실행] PORT = (없음)
+```
+
+같은 코드를 `require` 로 쓰면 위에서 아래로 실행되므로 `8080` 이 나온다. `dotenv.config()` 를 import 아래에 두고 "환경변수를 못 읽는다"고 헤매는 사고가 여기서 나온다. ESM 에서는 설정 로드를 **별도 모듈로 분리해 맨 위에서 import** 하거나, 그 시점 이후에 동적 `import()` 로 미룬다.
+
+```javascript
+import './load-env.mjs';           // 이 모듈 안에서 dotenv.config() 를 부른다
+import { PORT } from './env.mjs';  // 그 다음에 평가된다
+```
+
+**"순환 의존성: CommonJS 가 낫다"** 도 조건이 붙는다. CommonJS 는 순환이 생기면 **아직 채워지지 않은 `module.exports`** 를 그대로 넘겨준다. 받는 쪽은 `undefined` 를 쥐고도 그냥 진행하다가 한참 뒤 엉뚱한 자리에서 터진다. ESM 은 라이브 바인딩이라 나중에 채워지지만, 초기화 전에 접근하면 그 자리에서 `ReferenceError` 로 죽는다. **조용히 틀리는 쪽과 시끄럽게 죽는 쪽 중 무엇을 고르느냐**의 문제지 한쪽이 더 잘 지원하는 것이 아니다. 어느 쪽이든 순환 자체를 없애는 것이 답이고, 대개는 두 모듈이 함께 쓰는 것을 세 번째 모듈로 빼면 풀린다.
 
 ### 프로젝트별 모듈 시스템 선택
 

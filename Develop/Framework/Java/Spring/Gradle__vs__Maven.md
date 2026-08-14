@@ -394,6 +394,45 @@ buildScan {
 }
 ```
 
+**`-XX:MaxPermSize=512m` 은 죽은 옵션이다.** PermGen 은 Java 8 에서 사라졌고, 지금 JVM 은 이 플래그를 무시하며 경고만 낸다.
+
+```
+$ java -XX:MaxPermSize=512m -version
+OpenJDK 64-Bit Server VM warning: Ignoring option MaxPermSize; support was removed in 8.0
+openjdk version "11.0.26"
+```
+
+경고가 빌드 로그 맨 앞에 한 줄 지나갈 뿐이라 몇 년째 복사되며 살아남는다. 메모리를 튜닝하려던 의도였다면 Metaspace(`-XX:MaxMetaspaceSize`)가 후신이지만, 대부분은 **아무것도 지정하지 않는 게 맞다.** 기본값이 무제한에 가깝고, 여기서 터진다면 클래스로더 누수라는 다른 문제다.
+
+그리고 `org.gradle.jvmargs` 의 `-Xmx2048m` 은 **Gradle 데몬의 힙**이다. 테스트가 도는 JVM 은 별개다. 테스트 안에서 자기 힙을 찍게 해보면 바로 드러난다.
+
+```groovy
+// gradle.properties
+org.gradle.jvmargs=-Xmx2048m
+```
+
+```java
+@Test public void printHeap() {
+  System.out.println("테스트 JVM 힙 최대치(MB): " + Math.round(Runtime.getRuntime().maxMemory()/1024.0/1024.0));
+}
+```
+
+```
+테스트 JVM 힙 최대치(MB): 512      ← jvmargs 를 2048m 로 줬는데도
+```
+
+(Gradle 8.7 / JDK 11)
+
+512 는 Gradle 이 테스트 JVM 에 주는 기본값이다. **테스트가 OOM 으로 죽을 때 `org.gradle.jvmargs` 를 아무리 올려도 안 바뀌는 이유가 이것이다.** 올려야 할 곳은 `Test` 태스크다.
+
+```groovy
+test { maxHeapSize = '2g' }
+```
+
+```
+테스트 JVM 힙 최대치(MB): 2048     ← 이제 반영된다
+```
+
 #### Maven 성능 최적화
 ```xml
 <!-- settings.xml -->
@@ -444,6 +483,20 @@ dependencies {
     implementation libs.spring.boot.starter.data.jpa
 }
 ```
+
+이 스니펫은 **두 파일의 내용이 한 덩어리로 붙어 있다.** `dependencyResolutionManagement` 는 `settings.gradle` 전용이고, `dependencies` 는 `build.gradle` 것이다. 앞부분을 `build.gradle` 에 그대로 넣으면 이렇게 죽는다.
+
+```
+* Where: Build file '/tmp/ygg1/build.gradle' line: 4
+* What went wrong:
+> Could not find method dependencyResolutionManagement() ... on root project 'g1'
+```
+
+(Gradle 8.7)
+
+메서드를 못 찾았다는 메시지라 "플러그인을 안 넣었나" 하고 엉뚱한 데를 뒤지기 쉽다. 원인은 **파일을 잘못 골랐다**는 것뿐이다.
+
+카탈로그 별칭이 이름을 바꿔 나타나는 것도 짚어둔다. `library('spring-boot-starter-web', ...)` 로 선언한 것을 쓸 때는 `libs.spring.boot.starter.web` 이다. **하이픈이 점으로 바뀐다.** 위 두 파일을 제자리에 놓고 돌리면 그대로 해석된다.
 
 #### Maven 의존성 관리
 ```xml
@@ -546,6 +599,23 @@ jobs:
 | **의존성 관리**     | Gradle Wrapper를 통해 간편 관리       | Maven Central을 통한 관리           |
 | **IDE 지원**       | IntelliJ IDEA, Eclipse            | 모든 주요 IDE                     |
 | **커뮤니티**        | 활발한 커뮤니티                     | 매우 큰 커뮤니티                   |
+
+표의 "의존성 관리: Gradle Wrapper를 통해 간편 관리" 한 칸은 대상이 틀렸다. **Wrapper 가 고정하는 건 라이브러리가 아니라 Gradle 자신의 버전**이다. `gradle wrapper` 를 돌리면 나오는 게 전부 이것뿐이다.
+
+```
+gradle/wrapper/gradle-wrapper.jar
+gradle/wrapper/gradle-wrapper.properties
+gradlew
+gradlew.bat
+```
+
+```properties
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
+```
+
+의존성은 한 글자도 없다. Wrapper 의 값은 **팀원과 CI 가 전부 같은 Gradle 버전으로 빌드하도록 강제**하는 데 있다. Maven 에도 같은 게 있다(`mvn wrapper:wrapper` → `mvnw`). 그러니 이 항목은 두 도구를 가르는 차이가 아니다.
+
+`gradlew` 를 커밋하는 이유도 여기서 나온다. 저장소를 받은 사람은 Gradle 을 설치하지 않아도 되고, "내 머신에서는 되는데"의 한 종류가 사라진다.
 
 ### 선택 가이드
 

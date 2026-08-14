@@ -73,6 +73,28 @@ console.log(name); // 'Alice' (전역 변수로 설정됨)
 console.log(age); // 25 (전역 변수로 설정됨)
 ```
 
+이 "전역 변수로 설정됨"은 **비엄격 모드에서만** 일어난다. 그리고 지금 쓰는 코드 대부분은 비엄격 모드가 아니다.
+
+```javascript
+function Person(name) { this.name = name; }
+Person('Alice');
+globalThis.name;   // 'Alice'   ← 전역이 오염된다
+
+function StrictPerson(name) { 'use strict'; this.name = name; }
+StrictPerson('Bob');
+// TypeError: Cannot set properties of undefined (setting 'name')
+
+class CPerson { constructor(n) { this.n = n; } }
+CPerson('x');
+// TypeError: Class constructor CPerson cannot be invoked without 'new'
+```
+
+세 가지 결과가 다 다르다. 비엄격 함수는 조용히 전역을 더럽히고, 엄격 함수는 `undefined` 에 대입하려다 터지고, 클래스는 아예 호출 자체를 거부한다.
+
+셋 중 클래스가 가장 정확한 에러 메시지를 준다. `new` 를 빠뜨렸다는 사실을 **그 자리에서** 알려주기 때문이다. 엄격 함수의 `Cannot set properties of undefined` 는 원인이 `new` 누락이라는 것까지는 말해주지 않는다.
+
+ES 모듈에서는 지시어 없이도 엄격 모드라, `import`/`export` 를 쓰는 파일이라면 이 문서의 "전역 변수로 설정됨" 예제는 재현되지 않는다.
+
 #### new 키워드와 함께 호출
 ```javascript
 function Person(name, age) {
@@ -335,6 +357,29 @@ product1.removeStock(3);
 product2.removeStock(60); // 재고 부족
 ```
 
+`getPriceWithTax` 는 금액을 다루는 코드에서 하지 말아야 할 일을 하고 있다. **부동소수점으로 돈을 계산한다.**
+
+```javascript
+1000000 * 1.1;   // 1100000            문제없어 보인다
+15000 * 1.1;     // 16500              여기도 괜찮다
+12900 * 1.1;     // 14190.000000000002 ← 여기서 샌다
+```
+
+문서의 예제 두 값이 하필 딱 떨어져서 이 함수는 정상으로 보인다. 실제 상품 가격 중에는 안 떨어지는 값이 섞여 있고, 그게 화면에 `14,190.000000000002원` 으로 나가거나 결제 금액 대조에서 1원 차이로 걸린다.
+
+`toFixed` 로 덮는 것도 답이 아니다. 반올림 방향이 직관과 다르다.
+
+```javascript
+(1.005).toFixed(2);   // '1.00'   ← '1.01' 이 아니다
+(8.165).toFixed(2);   // '8.16'
+```
+
+`1.005` 가 이진수로 정확히 표현되지 않아 실제 저장된 값이 1.005보다 아주 조금 작기 때문이다. `(1.1).toFixed(20)` 을 찍어 보면 `1.10000000000000008882` 가 나온다 — 우리가 `1.1` 이라 부르는 값의 실제 모습이다.
+
+금액은 **정수 최소 단위로 다룬다.** 원 단위면 원으로, 센트가 필요하면 센트 정수로 계산하고 표시할 때만 나눈다. 통화가 여럿이거나 소수점 자릿수가 복잡하면 `Intl.NumberFormat` 으로 표시를 맡기고 값 자체는 정수나 `BigInt` 로 들고 있는다.
+
+`this.id = Date.now() + Math.random().toString(36).substr(2, 9)` 도 두 가지가 걸린다. `Date.now()` 는 숫자인데 문자열과 `+` 로 이어 붙었으니 결과는 **문자열**이다(`'1786683179626w9aem1kc4'`). 의도한 것이라면 상관없지만 숫자 ID 로 알고 비교하면 어긋난다. 그리고 `substr` 은 표준 본문이 아니라 하위 호환용 부록에 남아 있는 메서드다 — `slice` 를 쓴다. ID 가 목적이면 `crypto.randomUUID()` 가 있다.
+
 ### 2. 고급 패턴
 
 #### 팩토리 패턴
@@ -474,6 +519,30 @@ try {
     console.error('오류:', error.message);
 }
 ```
+
+`this instanceof SafeConstructor` 는 "`new` 로 불렸는가"를 정확히 판별하지 못한다. 프로토타입만 맞으면 통과한다.
+
+```javascript
+Safe.call(Object.create(Safe.prototype), 'c');
+// this instanceof Safe = true   ← new 로 부른 적이 없는데 통과
+// new.target = undefined        ← 이쪽이 진짜 답이다
+```
+
+`new.target` 은 `new` 로 호출됐을 때만 함수 자신을 가리키고 아니면 `undefined` 다. 판별이 목적이면 이걸 쓴다.
+
+다만 이 패턴 자체를 다시 생각해 볼 만하다. `new` 를 써도 되고 안 써도 되게 만들면 **호출부만 봐서는 어느 쪽인지 알 수 없다.** `new` 누락은 조용히 넘어가는 대신 즉시 터지는 편이 낫고, 클래스는 이미 그렇게 동작한다.
+
+```javascript
+class Safe {
+  constructor(name) {
+    if (typeof name !== 'string' || !name.trim()) throw new Error('이름 필요');
+    this.name = name.trim();
+  }
+}
+Safe('x');   // TypeError: Class constructor Safe cannot be invoked without 'new'
+```
+
+바로 위 "메모리 사용량 비교" 블록에도 비교가 없다. 두 배열에 1,000개씩 넣기만 하고 재는 코드가 없어서 실행해도 출력이 나오지 않는다. 프로토타입에 메서드를 두면 인스턴스마다 함수 객체가 생기지 않는다는 것은 구조상 맞는 말이지만, 그게 이 코드로 확인되지는 않는다.
 
 ## 참고
 

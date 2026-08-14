@@ -63,6 +63,21 @@ public class MyBean implements InitializingBean, DisposableBean {
 }
 ```
 
+주석의 번호는 실제 호출 순서와 맞다. Spring 5.3.31 컨테이너에 그대로 올려 확인한 출력이다.
+
+```
+생성자
+@PostConstruct
+afterPropertiesSet
+--- 컨테이너 기동 완료, 이제 close ---
+@PreDestroy
+DisposableBean.destroy
+```
+
+여기서 봐야 할 건 순서보다 **소멸 콜백이 언제 도는가**다. 위 출력의 `@PreDestroy` 와 `destroy` 는 `ctx.close()` 를 명시적으로 불렀기 때문에 나온 것이다. `close()` 없이 JVM 이 그냥 끝나면 **소멸 콜백은 아예 안 돈다.** 그래서 `@PreDestroy` 에 커넥션 반납이나 파일 flush 를 넣어두고 "종료 시 정리되겠지" 하면 안 된다. 웹 애플리케이션은 컨테이너가 `close()` 를 불러주지만, 배치나 `main()` 에서 띄운 컨텍스트는 직접 닫거나 `ctx.registerShutdownHook()` 을 걸어야 한다.
+
+또 하나 — **한 클래스에 초기화 콜백을 세 방식(`@PostConstruct` / `InitializingBean` / `@Bean(initMethod=)`)이나 겹쳐 쓸 이유는 없다.** 위 예제는 순서를 보여주려는 것이고, 실제 코드에서는 `@PostConstruct` 하나로 통일한다. `InitializingBean` 을 구현하면 그 클래스가 Spring 인터페이스에 묶여 순수 자바 테스트가 번거로워진다.
+
 ### 2. Spring Bean 등록 방법
 
 #### 자동 등록 (@Component 사용)
@@ -133,6 +148,27 @@ public class AppConfig {
         return new BasicDataSource();
     }
 }
+```
+
+`@Bean` 메서드 안에서 다른 `@Bean` 메서드를 **직접 호출**해도 `new` 가 두 번 되지 않는다. `@Configuration` 클래스는 CGLIB 로 프록시되어, 메서드 호출을 가로채 컨테이너의 싱글톤을 돌려준다.
+
+```java
+@Configuration
+static class Cfg {
+    @Bean MyBean myBean() { return new MyBean(); }
+    @Bean Holder holder() { return new Holder(myBean(), myBean()); }   // 두 번 호출
+}
+```
+
+```
+생성자                                    ← 딱 한 번
+  두 호출이 같은 인스턴스인가? true
+```
+
+여기서 `@Configuration` 을 `@Component` 로 바꾸면(또는 `@Configuration(proxyBeanMethods = false)`) 이 가로채기가 사라져 **호출할 때마다 진짜로 새 객체가 생긴다.** 같은 코드가 설정 애노테이션 하나로 정반대로 동작하는 지점이라, `@Bean` 메서드를 서로 부르는 스타일이라면 이 차이를 알고 있어야 한다. 애초에 필요한 빈을 **메서드 파라미터로 받는 편**이 프록시 유무와 무관해서 안전하다.
+
+```java
+@Bean Holder holder(MyBean myBean) { return new Holder(myBean, myBean); }   // ✓ 프록시에 의존하지 않는다
 ```
 
 ### 3. Spring Bean 주입 (DI, Dependency Injection)
@@ -212,6 +248,26 @@ public class SessionBean {
     // 세션 스코프
 }
 ```
+
+#### 스코프가 다른 빈을 주입하면 **주입하는 쪽의 수명이 이긴다**
+
+`@Scope("prototype")` 을 싱글톤에 주입하면 프로토타입이 아니게 된다. 주입은 싱글톤이 만들어질 때 딱 한 번 일어나기 때문이다.
+
+```java
+@Bean @Scope("prototype") Pb pb() { return new Pb(); }
+@Bean Sb sb(Pb pb) { return new Sb(pb); }   // 싱글톤이 프로토타입을 들고 있다
+```
+
+```
+컨테이너에서 직접 꺼낼 때: 2, 3, 4          ← 매번 새 인스턴스
+싱글톤이 들고 있는 프로토타입 id: 1, 다시 봐도 1   ← 처음 것 그대로
+```
+
+(Spring 5.3.31 실측)
+
+컨테이너에서 직접 꺼내면 `getBean` 마다 새 객체가 나오는데, 싱글톤 안에 박힌 것은 영원히 1번이다. **"프로토타입으로 선언했으니 매번 새것"이라고 믿고 상태를 담으면 그 상태가 전역으로 공유된다.** 매번 새 인스턴스가 정말 필요하면 `ObjectProvider<Pb>` 나 `@Lookup`, 혹은 `@Scope(value="prototype", proxyMode=ScopedProxyMode.TARGET_CLASS)` 를 쓴다.
+
+`request`/`session` 스코프도 같은 문제를 더 사납게 겪는다. 싱글톤 서비스에 그냥 주입하면 **기동 시점에는 HTTP 요청이 없어서** 빈을 만들 수조차 없다. 이쪽은 스코프드 프록시가 사실상 필수다.
 
 ## 예시
 
@@ -374,6 +430,31 @@ public class BankTransferProcessor implements PaymentProcessor {
 }
 ```
 
+이 팩토리 패턴은 구현체를 하나 더 붙일 때 조용히 깨진다. `Collectors.toMap` 은 **키가 겹치면 예외를 던진다.**
+
+```
+java.lang.IllegalStateException: Duplicate key credit
+  (attempted merging values CreditCardProcessor and AnotherCreditProcessor)
+```
+
+`getType()` 이 같은 구현체를 둘 만드는 순간(오타든, 복사해서 만들다 안 고쳤든) **애플리케이션이 기동 자체를 못 한다.** 메시지에 클래스 이름이 나오는 건 `toString()` 을 재정의했을 때뿐이라, 보통은 `com.example.Xxx@1a2b3c` 두 개를 보고 어느 쪽인지 헤맨다. 어느 쪽을 이기게 할지 정해서 3번째 인자를 주거나, 중복을 진짜 오류로 취급하려면 예외 메시지에 타입 이름이 남게 만든다.
+
+```java
+processors = processorList.stream().collect(Collectors.toMap(
+    PaymentProcessor::getType,
+    p -> p,
+    (a, b) -> { throw new IllegalStateException(
+        "결제 타입 중복: " + a.getType() + " → " + a.getClass() + ", " + b.getClass()); }));
+```
+
+반대편 함정도 있다. `getProcessor(type)` 은 **없는 타입에 `null` 을 반환한다.**
+
+```
+빈 목록 → {} / getProcessor("credit") → null
+```
+
+구현체를 담은 모듈이 컴포넌트 스캔 범위 밖이면 리스트가 비어도 기동은 성공하고, 결제 시점에 `NullPointerException` 이 난다. 기동 시 등록된 타입을 로그로 찍고, 조회 실패는 `Optional` 이나 명시적 예외로 드러낸다.
+
 ## 운영 팁
 
 ### 성능 최적화
@@ -467,6 +548,31 @@ public class ServiceB {
     }
 }
 ```
+
+순환 의존성에서 알아야 할 건 "피해야 한다"보다 **주입 방식에 따라 결과가 정반대**라는 사실이다. 같은 순환을 생성자 주입과 필드 주입으로 각각 만들어 돌려보면:
+
+```
+생성자 주입 순환 → UnsatisfiedDependencyException / 최종 원인: BeanCurrentlyInCreationException
+필드 주입 순환: 기동 성공, a.b.a == a ? true
+```
+
+(Spring 5.3.31 실측)
+
+**생성자 주입은 기동을 실패시키고, 필드 주입은 아무 일 없다는 듯 성공한다.** 필드 주입은 객체를 먼저 만들고 나중에 필드를 채우는 방식이라 순환을 만들어낼 수 있기 때문이다.
+
+그래서 아래 표의 "필드 주입 단점: 순환 의존성"은 정확히는 **순환 의존성을 만들어도 안 걸린다**는 뜻이다. 설계가 꼬여 있다는 신호를 컨테이너가 기동 실패로 알려주는 게 생성자 주입의 값이다. 순환을 못 만드는 게 아니라, 만들면 즉시 알려준다.
+
+Spring Boot 는 2.6.0 에서 이 구멍을 막았다. 각 버전의 `spring-configuration-metadata.json` 을 직접 열어보면 확인된다.
+
+```
+# spring-boot-2.5.7.jar → allow-circular-references 검색 결과: 0건
+# spring-boot-2.6.0.jar →
+{ "name": "spring.main.allow-circular-references",
+  "type": "java.lang.Boolean",
+  "defaultValue": false }
+```
+
+기본값이 `false` 라 2.6 이상에서는 필드 주입이어도 순환이 있으면 기동이 실패한다. 버전을 올리다 여기서 막히면 `spring.main.allow-circular-references=true` 로 되돌릴 수 있지만, 그건 유예지 해결이 아니다.
 
 ## 참고
 

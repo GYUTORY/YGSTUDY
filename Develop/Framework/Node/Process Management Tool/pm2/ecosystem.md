@@ -72,6 +72,42 @@ pm2 start ecosystem.config.js
 pm2 start ecosystem.config.js --env production
 ```
 
+#### `env` 는 "개발 환경"이 아니라 **모든 환경의 바탕**이다
+
+이름 때문에 `env` = 개발용, `env_production` = 운영용으로 갈린다고 읽기 쉽다. 아니다. `--env production` 은 **`env` 위에 `env_production` 을 덮어쓴다.** `env` 에만 있는 키는 운영에서도 그대로 살아 있다.
+
+```javascript
+// 확인용 설정
+env:            { NODE_ENV: 'development', ONLY_IN_ENV: 'yes', DB_HOST: 'localhost' },
+env_production: { NODE_ENV: 'production',                      DB_HOST: 'prod-db'   }
+```
+
+```
+$ pm2 start ecosystem.config.js
+NODE_ENV=development ONLY_IN_ENV=yes DB_HOST=localhost
+
+$ pm2 restart ecosystem.config.js --env production
+NODE_ENV=production ONLY_IN_ENV=yes DB_HOST=prod-db
+```
+
+(PM2 7.0.3 실측)
+
+`ONLY_IN_ENV` 가 운영까지 따라왔다. 그래서 `env` 에 디버그 플래그나 로컬 DB 주소를 넣어두면 **운영에서 조용히 살아난다.** `env_production` 에서 반드시 덮어쓰거나, 애초에 `env` 를 비워 두고 프로필마다 전부 명시한다.
+
+#### 없는 프로필 이름을 주면 경고 없이 `env` 로 떨어진다
+
+이게 더 위험하다. `env_staging` 을 정의하지 않은 설정에 `--env staging` 을 줘도, 오타로 `--env prod` 라고 써도, PM2 는 아무 말 없이 기본 `env` 로 띄운다.
+
+```
+$ pm2 start ecosystem.config.js --env staging     # env_staging 없음
+NODE_ENV=development ONLY_IN_ENV=yes DB_HOST=localhost
+
+$ pm2 start ecosystem.config.js --env prod        # production 오타
+NODE_ENV=development ONLY_IN_ENV=yes DB_HOST=localhost
+```
+
+에러도 경고도 없다. 운영 배포 명령을 한 글자 틀리면 개발 설정으로 뜨는데 `pm2 list` 는 초록불이다. 배포 스크립트에 프로필 이름을 하드코딩하고, 앱 부팅 로그에 `NODE_ENV` 를 반드시 찍는다.
+
 ## 예시
 
 ### 단일 애플리케이션 설정
@@ -285,6 +321,17 @@ module.exports = {
 };
 ```
 
+위 설정의 `JWT_SECRET: 'your-secret-key'` 와 `DB_URL: 'postgresql://user:pass@host:5432/db'` 는 그대로 두면 안 된다. **에코시스템 파일은 저장소에 커밋되는 코드다.** 비밀값은 파일 밖에 두고 프로세스 환경변수나 시크릿 매니저에서 읽는다.
+
+```javascript
+env_production: {
+    NODE_ENV: 'production',
+    JWT_SECRET: process.env.JWT_SECRET,   // 셸 환경에서 주입
+}
+```
+
+`ecosystem.config.js` 는 JSON 이 아니라 **PM2 가 `require` 하는 자바스크립트 모듈**이라 이렇게 코드를 쓸 수 있다. 다만 이 파일이 평가되는 시점은 `pm2 start` 를 실행한 셸이라, 그 셸에 값이 없으면 `undefined` 가 조용히 들어간다. 값이 비면 부팅을 실패시키는 검증을 앱 진입점에 둔다.
+
 ### 개발 환경 설정
 
 ```javascript
@@ -371,6 +418,20 @@ module.exports = {
     }]
 };
 ```
+
+이 설정에는 **`instances` 가 두 번 있다.** 위에서 `'max'`, 아래에서 `4`. 자바스크립트 객체 리터럴은 뒤에 온 키가 이긴다.
+
+```
+$ node -e "const o={instances:'max', exec_mode:'cluster', instances:4};
+> console.log(o.instances, Object.keys(o).join(','))"
+4 instances,exec_mode
+```
+
+에러도 경고도 없이 `'max'` 가 사라진다. `Object.keys` 에도 키는 하나뿐이라 나중에 설정을 덤프해 봐도 흔적이 없다. 설정 파일이 길어지면 이런 중복이 눈에 안 띈다 — ESLint 의 `no-dupe-keys` 를 설정 파일에도 걸어 두면 잡힌다.
+
+`instances: 4` 를 넣을 거면 `'max'` 줄을 지운다. 둘 다 남겨두고 "위에 max 라고 써 있으니 코어를 다 쓰겠지"라고 읽는 게 이 버그의 본체다.
+
+`UV_THREADPOOL_SIZE: 64` 도 그냥 크게 잡을 값이 아니다. 클러스터 인스턴스는 **각각 독립된 OS 프로세스**라(`pm2 list` 의 pid 가 전부 다르다) 이 값은 인스턴스 수만큼 곱해서 붙는다. 인스턴스 4개면 프로세스 4개가 각자 64짜리 스레드풀을 든다.
 
 ### 로그 관리
 
@@ -459,6 +520,34 @@ app.listen(process.env.PORT || 3000, () => {
     }
 });
 ```
+
+**`wait_ready: true` 를 켜놓고 `process.send('ready')` 를 빠뜨리면 앱은 그냥 뜬다.** 실패하지 않는다는 게 함정이다. PM2 는 `listen_timeout` 만큼 기다렸다가 포기하고 online 으로 표시한다.
+
+```
+$ pm2 start eco2.config.js          # wait_ready: true, listen_timeout: 3000, ready 신호 없음
+pm2 start 반환까지 걸린 시간(초): 3
+status: online  restarts: 0
+```
+
+`status: online` 이라 모니터링에도 안 걸린다. 대신 배포가 느려진다. `pm2 reload` 는 인스턴스를 하나씩 갈아끼우면서 매번 이 대기를 반복한다. `listen_timeout: 2000` 으로 재보면:
+
+| instances | reload 소요 |
+|---|---|
+| 1 | 4.4초 |
+| 2 | 8.6초 |
+| 4 | 8.6초 |
+
+(PM2 7.0.3, ready 신호 없는 앱. 인스턴스가 늘어도 무한정 늘지는 않는 걸 보면 PM2 가 일정 개수씩 묶어 처리한다)
+
+문서 예시대로 `listen_timeout: 10000` 을 주고 ready 신호를 안 보내면 배포 때마다 이만큼을 그냥 버린다. **`wait_ready` 를 켰으면 앱에 `process.send('ready')` 가 실제로 있는지 확인한다** — 켰는지 여부는 설정 파일에, 보내는지 여부는 앱 코드에 있어서 둘이 따로 논다.
+
+반대 방향도 있다. 같은 앱에서 `wait_ready` 만 빼고 재보면:
+
+```
+wait_ready 없음, instances=2 → reload 0.6초
+```
+
+PM2 가 **준비 여부를 확인하지 않고 곧장 다음 인스턴스로 넘어가서** 이렇게 빠른 것이다. 앱이 아직 DB 연결도 못 했는데 앞 인스턴스는 이미 내려간 상태가 되어, 무중단 배포라고 해놓고 배포 창에서 에러가 난다. 이 옵션의 값은 여기에 있다 — 켜되, 신호를 실제로 보낸다.
 
 ## 참고
 

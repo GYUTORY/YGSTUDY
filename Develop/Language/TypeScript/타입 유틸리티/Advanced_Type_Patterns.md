@@ -131,6 +131,27 @@ const width: CSSValue = '100px';   // ✅
 const height: CSSValue = '50vh';   // ❌ 'vh'는 CSSUnit이 아님
 ```
 
+`${number}` 가 어디까지 받아 주는지는 직관과 다르다. 실제로 컴파일해 보면 이렇게 갈린다.
+
+```typescript
+const a: CSSValue = '1e5px';       // ✅ 통과 — 지수 표기도 number 다
+const b: CSSValue = '-0px';        // ✅ 통과
+const c: CSSValue = 'Infinitypx';  // ❌ 거부
+const d: CSSValue = 'NaNpx';       // ❌ 거부
+```
+
+`'1e5px'` 는 CSS 로서 유효하지 않은데 타입은 통과한다. 템플릿 리터럴 타입의 `${number}` 는 **"숫자 리터럴로 쓸 수 있는 문자열"**을 뜻하지 CSS 문법을 아는 게 아니다. 타입으로 좁힐 수 있는 범위에는 이런 한계가 있으니, 형식 검증까지 필요하면 타입만으로 끝내려 하지 말고 런타임 검사를 함께 둔다.
+
+전개되는 경우의 수도 의식해야 한다. `Endpoint` 예제는 4 × 2 = 8 가지라 괜찮지만, 유니온을 곱하면 조합이 폭발한다. 숫자 한 자리(10가지)를 다섯 번 이어 붙이기만 해도 벽에 부딪힌다.
+
+```typescript
+type D = '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9';
+type P5 = `${D}${D}${D}${D}${D}`;
+// error TS2590: Expression produces a union type that is too complex to represent.
+```
+
+10⁵ = 100,000 에서 걸린다. 템플릿 리터럴 타입은 **유한하고 작은 집합**에만 쓸 수 있다고 보는 게 맞다. 경로 파라미터나 형식 있는 문자열 전체를 타입으로 표현하려다 이 한계에 부딪히는 경우가 흔하다.
+
 ### 4. Discriminated Unions (판별 유니온)
 
 공통 **판별 필드**로 유니온 타입을 좁힌다.
@@ -245,6 +266,31 @@ function isUser(data: unknown): data is User {
 }
 ```
 
+이 `isUser` 는 **키가 있는지만 보고 값의 타입은 확인하지 않는다.** 그래서 형태만 맞춘 엉뚱한 데이터가 `User` 로 통과한다.
+
+```typescript
+const bad: unknown = { id: 'not-a-number', name: 42, email: null };
+if (isUser(bad)) {
+    bad.id.toFixed(2);   // 컴파일 통과 → TypeError: bad.id.toFixed is not a function
+}
+```
+
+타입 술어는 **컴파일러가 검증하지 않는 약속**이다. `data is User` 라고 적으면 그 뒤로는 무조건 `User` 로 취급되므로, 술어 본문이 부실하면 그 거짓말이 통과 지점 이후 전 구간으로 퍼진다. `as` 를 함수 안에 감춘 것과 다르지 않다.
+
+값 타입까지 확인해야 실제 검증이 된다.
+
+```typescript
+function isUser(data: unknown): data is User {
+    if (typeof data !== 'object' || data === null) return false;
+    const d = data as Record<string, unknown>;
+    return typeof d.id === 'number'
+        && typeof d.name === 'string'
+        && typeof d.email === 'string';
+}
+```
+
+손으로 쓰는 술어는 **인터페이스가 바뀌어도 컴파일러가 갱신을 요구하지 않는다**는 근본 문제가 남는다. `User` 에 필드를 추가해도 `isUser` 는 조용히 예전 검사를 계속한다. 검사와 타입을 한 정의에서 함께 만들어 내는 zod·valibot 같은 스키마 라이브러리가 이 어긋남을 구조적으로 막아 준다. 신뢰 경계(API 응답·`localStorage`·URL 파라미터)에서는 그쪽이 맞다.
+
 ### 6. 내장 유틸리티 타입 심화
 
 ```typescript
@@ -311,6 +357,40 @@ type Mutable<T> = {
     -readonly [K in keyof T]: T[K];
 };
 ```
+
+**`DeepPartial` 과 `DeepReadonly` 는 `extends object` 때문에 배열·`Date`·함수를 망가뜨린다.** TypeScript 에서 `object` 는 원시 타입이 아닌 모든 것이라, 배열도 `Date` 도 함수도 전부 참 가지로 들어가 매핑 타입에 갈린다.
+
+```typescript
+interface Post { title: string; tags: string[]; createdAt: Date; meta: { a: string } }
+type DP = DeepPartial<Post>;
+
+const t: string[] | undefined = dp.tags;
+// error: Type '(string | undefined)[]' is not assignable to type 'string[]'
+
+const d: Date | undefined = dp.createdAt;
+// error: Types of property 'toString' are incompatible.
+//        Type 'DeepPartial<() => string> | undefined' is not assignable to type '() => string'
+```
+
+`tags` 는 원소마다 `undefined` 가 붙어 `(string | undefined)[]` 이 되고, `Date` 는 **메서드가 전부 선택적으로 바뀌어 더 이상 `Date` 가 아니게 된다.** 중첩 객체(`meta`)만 의도대로 동작한다.
+
+배열과 내장 객체를 먼저 걸러내야 한다.
+
+```typescript
+type DeepPartial<T> = T extends (infer U)[]
+    ? DeepPartial<U>[]                                  // 배열은 원소만 재귀
+    : T extends Date | RegExp | Function
+    ? T                                                 // 내장 타입은 그대로
+    : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
+```
+
+순서가 중요하다. **배열과 `Date` 검사가 `extends object` 보다 앞에 있어야** 한다. 뒤에 두면 이미 `object` 가지로 빠진 뒤라 도달하지 못한다.
+
+`Map` · `Set` 도 같은 이유로 망가지니 실제 도메인에 쓰는 타입을 제외 목록에 추가한다. 이 부류를 직접 관리하고 싶지 않으면 `type-fest` 의 `PartialDeep` 처럼 이미 예외 처리가 들어간 구현을 쓰는 편이 낫다.
+
+`RequireAtLeastOne` 과 달리 `DeepPartial` 이 위험한 이유는 **틀렸을 때 에러가 정의 지점이 아니라 사용 지점에서 나기 때문**이다. 위 에러 메시지도 `toString` 이 어떻다는 식이라 원인을 짐작하기 어렵다. 재귀 매핑 타입을 만들면 **배열·`Date` 를 포함한 타입으로 반드시 시험해 본다.**
 
 ### 7. const assertions & satisfies
 

@@ -638,6 +638,93 @@ fs.suid_dumpable = 0
 sudo sysctl -p /etc/sysctl.d/99-security.conf
 ```
 
+## sshd를 재시작하기 전에 확인할 것
+
+SSH 하드닝의 사고는 대부분 "설정을 넣었는데 안 먹거나, 넣자마자 못 들어가는" 두 가지다. 아래는 OpenSSH 10.2p1에서 직접 확인한 것이다.
+
+### `sshd -t`를 먼저 돌린다
+
+오타 난 지시어는 sshd가 아예 뜨지 않게 만든다.
+
+```bash
+sudo sshd -t                 # 문법 검사만
+# ProtokolTypo 2 가 있으면:
+#   /etc/ssh/sshd_config: line 2: Bad configuration option: ProtokolTypo
+#   terminating, 1 bad configuration options
+#   → 종료 코드 255
+```
+
+`systemctl restart sshd`는 이 상태에서 sshd를 죽인 뒤 새로 못 띄운다. **현재 SSH 세션은 살아 있으므로 즉시 알아채지 못하고**, 세션을 끊는 순간 서버에 못 들어간다. `-t`가 통과한 뒤에도 새 터미널로 접속을 확인하기 전까지 기존 세션을 닫지 않는다.
+
+### `Protocol 2`는 아무 일도 하지 않는다
+
+위 sshd_config 예시의 `Protocol 2`는 지금 OpenSSH에서 **조용히 무시된다.** 에러도 경고도 없다.
+
+```bash
+sshd -T -f /etc/ssh/sshd_config | grep -i '^protocol'
+# 아무것도 안 나온다 — 파싱은 되지만 유효 설정 목록에 없다
+```
+
+`Protocol 1`을 적어도 `sshd -t`가 통과한다. 프로토콜 1은 OpenSSH에서 이미 제거되었기 때문에 이 줄이 없어도 애초에 쓰이지 않는다. 문제는 이 줄이 있으면 "프로토콜 1을 막아뒀다"고 착각한다는 점이다. 설정이 실제로 반영됐는지 확인하는 방법은 하나다 — **`sshd -T`의 출력에 그 항목이 있는지 본다.**
+
+### `-T` 출력의 이름이 설정 파일의 이름과 다를 수 있다
+
+```bash
+# 설정 파일에는 ChallengeResponseAuthentication no 라고 썼는데
+sshd -T -f /etc/ssh/sshd_config | grep -i challenge      # 0건
+sshd -T -f /etc/ssh/sshd_config | grep -i kbdinteractive # kbdinteractiveauthentication no
+```
+
+`ChallengeResponseAuthentication`은 `KbdInteractiveAuthentication`의 옛 이름으로 아직 받아들여지지만, 정규화된 이름으로만 출력된다. 검증할 때 옛 이름으로 grep하면 "설정이 안 먹었다"고 오판한다.
+
+### 이 문서의 §1-1과 §1-3은 서로 반대다
+
+§1-1은 `ChallengeResponseAuthentication no`, §1-3(2FA)은 `ChallengeResponseAuthentication yes`다. 두 절을 순서대로 적용하면 나중 값이 이긴다고 생각하기 쉽지만 **sshd_config는 먼저 나온 값이 이긴다.** 같은 키를 두 번 쓰면 위의 것이 채택되고 아래는 무시된다. 2FA를 붙일 거면 §1-1의 그 줄을 지우거나 `yes`로 고쳐야 한다. 안 그러면 PAM 모듈은 설치했는데 OTP를 묻지 않는 상태가 된다.
+
+### `MaxAuthTries 3`과 ssh-agent에 쌓인 키
+
+`MaxAuthTries`는 "비밀번호 틀린 횟수"가 아니라 **인증 시도 횟수 전체**를 센다. ssh-agent에 키가 5개 들어 있으면 클라이언트가 순서대로 전부 제시하고, 각각이 1회로 계산된다. 맞는 키가 4번째면 그 전에 잘린다.
+
+```
+Received disconnect from ...: Too many authentication failures
+```
+
+서버 로그만 보면 공격처럼 보이지만 본인이다. 클라이언트 쪽에서 막는다.
+
+```
+# ~/.ssh/config
+Host prod-*
+    IdentityFile ~/.ssh/id_ed25519_prod
+    IdentitiesOnly yes      # 이 키만 제시. agent 의 나머지는 안 보낸다
+```
+
+### 순서를 틀리면 잠긴다
+
+이 문서의 절차대로 §1에서 포트를 2222로 바꾸고 §3에서 방화벽을 켜면, 그 사이에 다음 함정이 있다.
+
+- `sudo ufw enable`을 `ufw allow 2222/tcp` **전에** 실행하면 기본 정책이 deny incoming이라 그 자리에서 끊긴다.
+- 반대로 방화벽에 2222를 열어두고 sshd를 재시작하지 않으면 sshd는 여전히 22에서 듣는데 22는 막혀 있다.
+- RHEL 계열에서 SELinux가 enforcing이면 22 이외의 포트는 별도 등록이 필요하다. 먼저 확인한다.
+
+```bash
+getenforce                       # Enforcing 이면 아래 확인
+semanage port -l | grep ssh_port_t
+# 목록에 2222 가 없으면 sshd 가 바인딩에 실패한다
+```
+
+**순서**: 새 포트를 방화벽/SELinux에 먼저 열고 → sshd_config 수정 → `sshd -t` → reload → **기존 세션을 유지한 채** 새 터미널로 접속 확인 → 그 다음에 22 차단.
+
+### Fail2Ban은 조용히 안 켜진다
+
+`jail.local`의 `logpath`가 실제로 존재하지 않으면 해당 jail이 시작되지 않는다. systemd만 쓰는 배포판에서는 `/var/log/auth.log`가 없을 수 있다. 설치했다고 끝이 아니라 상태를 확인한다.
+
+```bash
+sudo fail2ban-client status          # 활성 jail 목록에 sshd 가 있는지
+sudo fail2ban-client status sshd     # currently banned / total failed 숫자가 도는지
+```
+
+`total failed`가 계속 0이면 로그 경로나 `port` 값(2222로 바꿨는지)이 어긋난 것이다. 차단 규칙이 도는지 보려면 실제로 실패 로그인을 `maxretry` 이상 만들어보는 게 가장 확실하다 — 단, 자기 IP를 `ignoreip`에 넣어두고 한다.
+
 ## 운영 팁
 
 ### SSH 보안 조합 비교

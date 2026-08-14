@@ -69,6 +69,24 @@ public class RateLimiterExample {
 }
 ```
 
+> **8.10.1 에서 이 API 는 전부 deprecated 다.** 위 코드를 그대로 컴파일하면:
+>
+> ```
+> $ javac -Xlint:deprecation -cp bucket4j-core-8.10.1.jar Rl.java
+> warning: [deprecation] Refill in io.github.bucket4j has been deprecated
+> warning: [deprecation] greedy(long,Duration) in Refill has been deprecated
+> warning: [deprecation] classic(long,Refill) in Bandwidth has been deprecated
+> ```
+>
+> 동작은 한다. 다만 `Bandwidth`·`Refill` 두 개념을 합친 빌더로 옮겨갔다.
+>
+> ```java
+> // 8.x 신 API — Refill 클래스 자체가 없어졌다
+> .addLimit(limit -> limit.capacity(10).refillGreedy(10, Duration.ofSeconds(60)))
+> ```
+>
+> 검색으로 찾은 예제 대부분이 구 API 라, 새로 쓰는 코드에서도 옛 형태를 복사하게 된다. 경고를 켜두면 바로 보인다.
+
 `Refill.greedy`는 토큰을 한꺼번에 채우고, `Refill.intervally`는 간격마다 나눠서 채운다. greedy를 쓰면 버스트 트래픽을 허용하고, intervally를 쓰면 요청이 고르게 분산된다.
 
 ```java
@@ -698,6 +716,19 @@ Retry-After: 23
 }
 ```
 
+앞서 필터 코드에 달린 `// RFC 6585에서 권장하는 Rate Limit 헤더` 주석은 정확하지 않다. RFC 6585 전문을 받아 세어보면:
+
+```
+$ curl -s https://www.rfc-editor.org/rfc/rfc6585.txt | grep -ci 'x-ratelimit'
+0
+$ curl -s https://www.rfc-editor.org/rfc/rfc6585.txt | grep -ci 'retry-after'
+2
+```
+
+**RFC 6585 가 정의하는 건 `429 Too Many Requests` 상태 코드이고, `X-RateLimit-*` 는 한 번도 나오지 않는다.** 이 헤더들은 GitHub·Twitter 같은 곳에서 굳어진 관행이라 서비스마다 이름과 의미가 조금씩 다르다(`X-RateLimit-Reset` 이 유닉스 타임스탬프인 곳도, 남은 초인 곳도 있다).
+
+표준에 기대려면 `Retry-After` 를 쓴다. 이건 RFC 에 있고, 초 단위 정수와 HTTP 날짜 두 형식을 모두 허용한다. `X-RateLimit-*` 를 함께 내보내는 건 좋지만, **클라이언트가 이 헤더에 의존하게 만들 거라면 의미를 문서에 명시**해야 한다. 이름만 보고 추측하게 두면 클라이언트마다 다르게 해석한다.
+
 ### 테스트
 
 Rate Limiting은 테스트가 까다롭다. 시간 기반이라 실제로 기다리면 테스트가 느려진다.
@@ -761,6 +792,48 @@ void rateLimitWithMockClock() {
     // 실제로는 커스텀 TimeMeter 구현에서 시간을 제어해야 한다
 }
 ```
+
+#### 위 mock clock 테스트는 컴파일되지 않는다
+
+마지막 줄이 문제다.
+
+```
+Rl.java:19: error: cannot find symbol
+    ((TimeMeter) timeMeter).addSeconds(60);
+                           ^
+  symbol:   method addSeconds(int)
+  location: interface TimeMeter
+```
+
+`addSeconds` 는 익명 클래스가 **추가로** 정의한 메서드지 `TimeMeter` 인터페이스의 것이 아니다. 변수를 `TimeMeter` 타입으로 선언한 순간 그 메서드는 보이지 않고, `TimeMeter` 로 다시 캐스팅해도 마찬가지다. 익명 클래스는 이름이 없어서 그 타입으로 캐스팅할 방법 자체가 없다.
+
+**익명 클래스에 메서드를 추가하면 그 메서드는 부를 수 없다.** 이름 있는 클래스로 빼면 해결된다.
+
+```java
+static class MockClock implements TimeMeter {
+    long nanos = System.nanoTime();
+    public long currentTimeNanos() { return nanos; }
+    public boolean isWallClockBased() { return false; }
+    void addSeconds(long s) { nanos += TimeUnit.SECONDS.toNanos(s); }
+}
+
+MockClock clock = new MockClock();          // 구체 타입으로 잡는다
+LocalBucket bucket = Bucket.builder()
+        .withCustomTimePrecision(clock)
+        .addLimit(l -> l.capacity(10).refillGreedy(10, Duration.ofSeconds(60)))
+        .build();
+
+for (int i = 0; i < 10; i++) bucket.tryConsume(1);
+```
+
+```
+11번째 tryConsume     : false
+가짜 시계 60초 이동 후 : true
+```
+
+(bucket4j-core 8.10.1 / JDK 11 실행 결과)
+
+이렇게 하면 **실제로 기다리지 않고도 리필 동작을 검증할 수 있다.** 원 코드의 `BucketConfiguration config` 변수도 만들어만 놓고 아무 데도 안 쓰인다 — 함께 지운다.
 
 통합 테스트에서는 실제 엔드포인트를 빠르게 호출해서 429가 돌아오는지 확인한다.
 

@@ -94,6 +94,21 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJ1c2VybmFtZSI6ImpvaG4
 - **Payload**: `{"userId":"123","username":"john","iat":1600000000}`
 - **Signature**: `HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)`
 
+이 "분해"를 **비밀키 없이 누구나 할 수 있다**는 점이 JWT 를 다룰 때 가장 먼저 새겨야 할 사실이다. 위 예시 토큰을 그대로 넣어보면:
+
+```
+$ node -e "console.log(require('jsonwebtoken').decode('eyJhbGciOi...'))"
+{ userId: '123', username: 'john', iat: 1600000000 }
+```
+
+Base64 는 **인코딩이지 암호화가 아니다.** 서명은 "내용이 변조되지 않았음"을 보장할 뿐, "내용을 못 읽음"을 보장하지 않는다. 그래서 페이로드에 넣으면 안 되는 것이 분명하다.
+
+- 주민번호·전화번호·이메일 같은 개인정보
+- 내부 시스템 식별자, 권한 정책의 상세 내용
+- "이 사람은 무료 체험 사용자" 처럼 노출되면 곤란한 비즈니스 상태
+
+토큰은 브라우저 개발자 도구, 프록시 로그, APM 트레이스, CDN 액세스 로그에 그대로 남는다. **`jwt.io` 에 붙여넣는 순간 남의 서버에도 남는다.** 페이로드에는 식별자와 권한 코드처럼 노출돼도 되는 최소한만 담고, 나머지는 그 식별자로 서버에서 조회한다.
+
 ### Header
 
 ```json
@@ -497,6 +512,51 @@ app.post('/logout', authenticateToken, async (req, res) => {
 });
 ```
 
+#### `addToken` 은 조건에 따라 아무 일도 하지 않는다
+
+```javascript
+async addToken(token, expirySeconds = 3600) {
+  const decoded = jwt.decode(token);
+  const expiry = decoded.exp - Math.floor(Date.now() / 1000);
+  if (expiry > 0) { /* Redis 저장 */ }
+}
+```
+
+두 가지가 걸린다.
+
+**1. `exp` 없는 토큰은 조용히 무시된다.** `expiresIn` 을 안 준 토큰은 `exp` 가 없고, `undefined - 숫자` 는 `NaN` 이다. `NaN > 0` 은 언제나 false 다.
+
+```
+exp 없는 토큰 decode: {"userId":"1","iat":1786683723}
+expiry = decoded.exp - now = NaN / (expiry > 0) = false
+```
+
+**만료 없는 토큰은 영원히 유효한 데다 로그아웃도 안 된다.** 가장 위험한 토큰이 정확히 블랙리스트를 빠져나간다. 에러도 안 나서 `/logout` 은 200 을 돌려주고, 사용자는 로그아웃됐다고 믿는다.
+
+**2. 잘못된 토큰이 오면 500 이 난다.** `jwt.decode` 는 파싱 실패 시 예외가 아니라 `null` 을 반환한다.
+
+```
+jwt.decode("garbage") = null
+decoded.exp 접근 → TypeError: Cannot read properties of null (reading 'exp')
+```
+
+여기서는 `authenticateToken` 을 먼저 통과하니 대부분 괜찮지만, 다른 경로에서 이 메서드를 부르면 그대로 터진다.
+
+그리고 `expirySeconds = 3600` 파라미터는 **선언만 되고 아무 데도 안 쓰인다.** 기본값이 있어 호출부는 멀쩡해 보이고, "TTL 을 조절할 수 있구나"라고 읽게 만든다. 안 쓸 거면 지운다.
+
+```javascript
+// ✓ 고친 버전
+async addToken(token) {
+  const decoded = jwt.decode(token);
+  if (!decoded) throw new Error('디코딩할 수 없는 토큰');
+  const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : null;
+  if (ttl === null) throw new Error('exp 없는 토큰 — 발급 정책을 먼저 고친다');
+  if (ttl > 0) await this.redisClient.setEx(`blacklist:${token}`, ttl, '1');
+}
+```
+
+블랙리스트 자체에 대해서도 한마디. 토큰 전체를 Redis 키로 쓰면 키가 길어지고, 같은 사용자의 토큰을 한꺼번에 지울 수도 없다. `jti` 를 키로 쓰면 짧아지고, `user:{id}:jti` 집합을 함께 두면 전체 로그아웃이 가능해진다. 위 `SecureJWTManager` 가 `jwtid` 를 넣는 이유가 이것인데, 정작 블랙리스트 쪽은 토큰 문자열을 쓰고 있어 둘이 안 맞물린다.
+
 ## JWT 보안 취약점 및 대응
 
 ### 주요 보안 취약점
@@ -544,6 +604,35 @@ if (decoded.header.alg !== 'HS256') {
   throw new Error('Invalid algorithm');
 }
 ```
+
+#### 다만 `jsonwebtoken` 9.x 는 이미 막아준다 — 직접 확인해 볼 것
+
+위 "취약한 예시"는 옛 라이브러리 기준이다. 지금 버전에서 `alg: none` 토큰을 만들어 던져보면 통과하지 않는다.
+
+```javascript
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+const noneToken = b64({alg:'none', typ:'JWT'}) + '.' + b64({userId:'admin', role:'admin'}) + '.';
+```
+
+```
+verify(token, secret)      → JsonWebTokenError: jwt signature is required
+verify(token, "")          → JsonWebTokenError: please specify "none" in "algorithms" to verify unsigned tokens
+verify(algorithms:['none']) → { userId: 'admin', role: 'admin' }
+```
+
+(jsonwebtoken 9.0.3)
+
+**직접 `algorithms: ['none']` 을 켜야만 통과한다.** HS/RS 혼동 공격도 마찬가지다. RSA 공개키를 HMAC 키로 삼아 HS256 으로 서명한 토큰을 만들어 검증시켜 보면:
+
+```
+정상 RS256 검증: user
+위조 토큰, algorithms 미지정  → JsonWebTokenError: invalid algorithm
+위조 토큰, algorithms:['RS256'] → JsonWebTokenError: invalid algorithm
+```
+
+키의 종류를 보고 허용 알고리즘을 좁히기 때문이다.
+
+그렇다고 `algorithms` 를 안 써도 된다는 뜻은 아니다. **의존하는 지점이 라이브러리 버전으로 옮겨갈 뿐**이다. 버전을 올리거나 다른 언어의 라이브러리로 옮기면 보장이 사라진다. 명시하는 비용은 한 줄이니 그냥 쓴다. 중요한 건 "우리 스택에서 실제로 어떻게 동작하는지 한 번은 쳐봤는가"다.
 
 ### 2. Secret 키 관리
 
@@ -650,6 +739,17 @@ const refreshToken = jwt.sign(payload, refreshSecret, {
 // 나쁜 예시: 만료 시간 없음
 const token = jwt.sign(payload, secret); // 위험!
 ```
+
+만료를 넣을 때 `expiresIn` 과 페이로드의 `exp` 를 같이 주면 서명 자체가 거부된다.
+
+```
+$ node -e "jwt.sign({userId:'1', exp: now+60}, 'k', {expiresIn:'1h'})"
+Error: Bad "options.expiresIn" option the payload already has an "exp" property.
+```
+
+기존 토큰의 페이로드를 그대로 복사해 새 토큰을 만들 때 잘 걸린다. `jwt.verify` 가 돌려준 객체에는 `iat`·`exp` 가 이미 들어 있기 때문이다. 위 `refreshAccessToken` 이 `decoded` 를 통째로 넘기지 않고 `userId`/`username`/`email` 만 골라 새 페이로드를 만드는 게 바로 이 때문이다 — **의도적인 코드지 장식이 아니다.**
+
+만료가 없는 토큰의 진짜 문제는 "오래 유효하다"가 아니라 **회수할 방법이 사실상 없다**는 것이다. 앞서 본 것처럼 블랙리스트도 `exp` 를 기준으로 TTL 을 잡기 때문에 `exp` 가 없으면 넣을 수조차 없다. 비밀키를 갈아치우는 것 말고는 손쓸 수단이 남지 않는다.
 
 ### 5. 클레임 검증
 

@@ -61,6 +61,40 @@ parentPort.on('message', (msg) => {
 
 워커는 메인과 별도 스레드라 이벤트 루프를 막지 않습니다.
 
+#### 워커는 공짜가 아니다 — 기동 비용부터 재본다
+
+`new Worker()` 는 **V8 아이솔레이트와 이벤트 루프를 새로 만든다.** 함수 호출처럼 가볍게 생각하면 안 된다. 기동부터 첫 메시지가 돌아오기까지를 5회 재보면:
+
+```javascript
+const { Worker, isMainThread, parentPort } = require('worker_threads');
+if (isMainThread) {
+  (async () => {
+    for (let i = 0; i < 5; i++) {
+      const t0 = process.hrtime.bigint();
+      await new Promise(res => {
+        const w = new Worker(__filename);
+        w.on('message', () => { w.terminate(); res(); });
+      });
+      console.log((Number(process.hrtime.bigint() - t0) / 1e6).toFixed(1));
+    }
+  })();
+} else {
+  parentPort.postMessage('ready');
+}
+```
+
+```
+14.1
+11.3
+11.2
+10.9
+13.8
+```
+
+(Node v22.21.1, 워커 본문이 `postMessage` 한 줄뿐일 때. 단위는 밀리초)
+
+즉 **작업 자체가 이 정도로 끝나는 일이라면 워커로 넘기는 순간 손해다.** 워커는 "수백 밀리초 이상 이벤트 루프를 붙잡는 계산"에나 값을 한다. 그보다 짧고 잦은 작업이면 워커 풀로 재사용하거나, 애초에 워커를 쓰지 않는 쪽이 낫다. 아래 예제들이 요청마다 `new Worker()` 를 만드는 형태인데, 그 비용이 여기에 있다.
+
 ### Worker Threads를 활용한 CPU 집약 작업
 
 #### 싱글 스레드에서 연산 실행 (비효율적)
@@ -293,6 +327,28 @@ parentPort.on('message', (data) => {
 });
 ```
 
+`processImageWithWorker` 의 세 핸들러는 순서를 따라가 보면 결과가 겹친다. `message` 에서 `resolve` 한 뒤 `worker.terminate()` 를 부르는데, **`terminate()` 로 끝난 워커의 종료 코드는 0 이 아니다.**
+
+```javascript
+const code = await w.terminate();
+console.log('exitCode =', code);   // → exitCode = 1
+```
+
+그래서 정상 처리 경로에서도 `exit` 핸들러가 반드시 한 번 더 돌면서 `reject(new Error('Worker exited with code 1'))` 를 시도한다. 이미 `resolve` 된 Promise 라 결과가 뒤집히지는 않지만(먼저 확정된 쪽이 이긴다), 로그를 붙여 두면 성공한 요청마다 에러 객체가 만들어지는 게 보인다. 종료 코드로 실패를 판정하려면 "내가 죽인 것"과 "저 혼자 죽은 것"을 플래그로 구분해야 한다.
+
+```javascript
+// ✓ 의도적 종료를 표시해 두고 exit 에서 걸러낸다
+let settled = false;
+worker.on('message', (result) => {
+  settled = true;
+  result.success ? resolve(result.processedImage) : reject(new Error(result.error));
+  worker.terminate();
+});
+worker.on('exit', (code) => {
+  if (!settled && code !== 0) reject(new Error(`Worker exited with code ${code}`));
+});
+```
+
 #### 데이터 분석 Worker
 ```javascript
 // main.js - 메인 스레드
@@ -434,6 +490,31 @@ process.on('SIGTERM', () => {
 });
 ```
 
+이 풀에는 **워커가 죽는 경로가 두 개인데 처리는 하나뿐**이다. `error` 이벤트는 잡지만 `exit` 이벤트는 아예 듣지 않는다. 워커 안에서 `process.exit()` 이 불리거나 OOM 으로 사라지면 `error` 없이 `exit` 만 온다. 그러면 `worker.currentTask` 에 매달린 Promise 는 resolve 도 reject 도 되지 않고 **영원히 대기**한다. HTTP 요청 하나가 응답 없이 매달린다는 뜻이다.
+
+`replaceWorker` 에도 구멍이 있다.
+
+```javascript
+replaceWorker(failedWorker) {
+    const index = this.workers.indexOf(failedWorker);
+    // ... this.workers[index] = newWorker;
+    this.availableWorkers.push(newWorker);
+}
+```
+
+`workers` 배열에서는 교체하지만 **`availableWorkers` 에 남아 있는 죽은 워커는 안 지운다.** 죽기 직전에 idle 이었다면 그 워커는 여전히 대기열에 있고, `processNextTask()` 가 그걸 꺼내 `postMessage` 를 한다. 여기서 예외라도 나면 좋겠지만 그렇지 않다.
+
+```
+$ node terminated.js
+terminate 완료, exitCode = 1
+postMessage: 예외 없이 통과 (아무 일도 안 일어남)
+1초 뒤에도 응답 없음 → Promise 는 영원히 대기
+```
+
+**끝난 워커에 보낸 메시지는 조용히 버려진다.** 에러도 없고 로그도 없다. 그래서 이 부류 장애는 "가끔 응답이 안 온다"로만 관측되고, 원인을 찾는 데 오래 걸린다. 최소한 이 셋은 갖춘다 — ① `exit` 핸들러에서 `currentTask` 를 reject ② 교체할 때 `availableWorkers` 에서도 제거 ③ 작업마다 타임아웃.
+
+
+
 ```javascript
 // data-analysis-worker.js - 데이터 분석 워커
 const { parentPort } = require('worker_threads');
@@ -562,6 +643,19 @@ parentPort.on('message', (data) => {
 ### 고급 Worker Threads 예제
 
 #### SharedArrayBuffer를 활용한 메모리 공유
+
+> **아래 두 파일은 첫 줄에서 터진다.** `worker_threads` 는 `SharedArrayBuffer` 도 `Atomics` 도 export 하지 않는데, 구조 분해로 받으면서 두 전역을 `undefined` 로 덮어쓴다.
+>
+> ```
+> $ node -e "const wt=require('worker_threads'); console.log('SharedArrayBuffer' in wt, 'Atomics' in wt)"
+> false false
+>
+> $ node -e "const { SharedArrayBuffer } = require('worker_threads'); new SharedArrayBuffer(1024)"
+> TypeError: SharedArrayBuffer is not a constructor
+> ```
+>
+> 둘 다 **JavaScript 전역**이라 아무것도 가져오지 않아도 쓸 수 있다. `require` 목록에서 이름만 지우면 된다. CommonJS 구조 분해는 없는 키를 예외 없이 `undefined` 로 내주기 때문에, 전역과 이름이 겹칠 때만 이렇게 조용히 전역을 가린다.
+
 ```javascript
 // main.js - 메인 스레드
 const { Worker, SharedArrayBuffer, Atomics } = require('worker_threads');
@@ -722,6 +816,59 @@ parentPort.on('message', (data) => {
         });
     }
 });
+```
+
+이 워커에는 이름이 무색한 코드가 셋 있다.
+
+**1. "원자적 연산으로 값 증가"가 원자적이지 않다.**
+
+```javascript
+const currentValue = Atomics.load(sharedArray, i);
+Atomics.store(sharedArray, i, currentValue + 1);
+```
+
+load 와 store 는 각각 원자적이지만 **둘 사이가 갈라져 있다.** 두 워커가 같은 인덱스를 동시에 건드리면 읽고-쓰는 사이에 끼어들어 증가분이 사라진다(lost update). 워커 2개가 같은 자리를 20만 번씩 증가시키게 하면 그대로 드러난다.
+
+```javascript
+// 워커 본문
+for (let i = 0; i < 200000; i++) {
+  if (mode === 'add') Atomics.add(arr, 0, 1);
+  else Atomics.store(arr, 0, Atomics.load(arr, 0) + 1);
+}
+```
+
+```
+load+store  기대값 400000 실제 211254
+add         기대값 400000 실제 400000
+```
+
+절반 가까이 증발했다. 이 예제가 멀쩡해 보이는 건 인덱스 구간을 0–50 / 50–100 으로 갈라 놔서 두 워커가 같은 자리를 안 건드리기 때문이다. 구간이 겹치는 순간 값이 틀어진다. 원자적 증가는 `Atomics.add(sharedArray, i, 1)` 한 줄이고, 이전 값을 반환한다.
+
+**2. `Atomics.wait` 이 대기하지 않는다.**
+
+```javascript
+const currentValue = Atomics.load(sharedArray, i);
+Atomics.store(sharedArray, i, currentValue + 1);   // ← 값을 이미 바꿔놓고
+Atomics.wait(sharedArray, i, currentValue, 1);     // ← 바뀌기 전 값으로 기다린다
+```
+
+`Atomics.wait(ta, idx, expected, timeout)` 은 **현재 값이 `expected` 와 다르면 즉시 반환한다.** 위 순서는 값을 먼저 바꿔놓고 옛 값을 기다리는 꼴이라 항상 `'not-equal'` 로 곧장 빠져나온다.
+
+```
+문서 순서 → 반환: not-equal , 실제 대기: 0
+값 일치   → 반환: timed-out , 실제 대기: 102
+```
+
+(두 번째 줄은 같은 호출을 값이 일치하는 상태에서 타임아웃 100으로 부른 것. 단위는 밀리초)
+
+"처리 지연 시뮬레이션"이라는 주석과 달리 아무 지연도 일어나지 않는다. 반환값(`'ok'` / `'not-equal'` / `'timed-out'`)을 안 보면 이런 게 안 보인다.
+
+**3. `process.threadId` 는 없다.**
+
+`workerId: process.threadId` 는 예외 없이 `undefined` 를 실어 보낸다. 스레드 ID 는 `worker_threads` 모듈에 있다.
+
+```javascript
+const { threadId } = require('worker_threads');   // ← 이쪽
 ```
 
 ## 운영 팁
@@ -986,6 +1133,24 @@ class MonitoredWorkerPool extends WorkerPool {
 }
 ```
 
+이 모니터가 대시보드에 내보내는 값은 두 상황에서 쓰레기가 된다.
+
+```
+$ node -e "
+> const m={completedTasks:3, totalTaskTime:0};
+> console.log((m.completedTasks/(m.totalTaskTime/1000)).toFixed(2)+' tasks/sec');
+> const empty=[];
+> console.log('median:', empty[Math.floor(empty.length/2)] + 'ms');"
+Infinity tasks/sec
+median: undefinedms
+```
+
+`throughput` 은 `completedTasks > 0` 만 확인하고 나누는데, `Date.now()` 기준이라 작업이 밀리초 미만이면 `totalTaskTime` 이 0 으로 쌓인다. 그러면 0 으로 나눠 `Infinity` 다. 작업이 빠를수록 지표가 망가지는 구조다. 애초에 `Date.now()` 대신 `process.hrtime.bigint()` 를 쓰면 이 경계에 안 걸린다.
+
+`getDetailedMetrics` 는 배열이 비었을 때 `undefined + 'ms'` 를 만들어 `"undefinedms"` 라는 문자열을 내보낸다. 숫자를 기대하는 수집기 쪽에서 파싱 에러가 나거나, 더 나쁘게는 문자열 그대로 저장된다. 지표는 **비어 있을 때 무엇을 반환할지**를 먼저 정하고 만든다 — `null` 이면 그래프에 구멍이 나고, `0` 이면 평균을 왜곡한다. 둘 중 어느 쪽이 덜 나쁜지는 그 지표를 보는 사람이 정한다.
+
+한 가지 더, `p95`/`p99` 를 정렬된 배열의 인덱스로 뽑는 이 방식은 표본이 적으면 의미가 없다. 표본 5개에서 p99 는 최댓값과 같은 값이다. 표본 수를 함께 내보내지 않으면 읽는 쪽이 이걸 구별할 수 없다.
+
 ### 오류 처리 및 복구
 
 #### 견고한 Worker Threads 구현
@@ -1177,6 +1342,50 @@ class RobustWorkerManager {
     }
 }
 ```
+
+이름은 "견고한"인데 동시 요청 세 개면 무너진다. 이 클래스의 워커 배분 부분만 떼어내 그대로 돌려보면:
+
+```javascript
+async function getAvailableWorker() {
+  for (const [, w] of workers) if (!w.currentTask && !w.isRestarting) return w;
+  if (workers.size < maxWorkers) return createWorker();
+  return new Promise(() => {});
+}
+async function executeTask(name) {
+  const worker = await getAvailableWorker();
+  return new Promise((resolve) => {
+    worker.currentTask = { name, resolve };   // ← await 이후에야 점유 표시
+    console.log(name, '→', worker.name);
+  });
+}
+executeTask('A'); executeTask('B'); executeTask('C');
+```
+
+```
+A → worker1
+B → worker1
+C → worker1
+생성된 워커 수: 1 / worker1 이 들고 있는 task: C
+```
+
+**점유 표시(`currentTask` 대입)가 `await` 보다 뒤에 있다.** 그 사이에 다른 요청이 끼어들어 같은 워커를 "놀고 있다"고 판정한다. maxWorkers 를 4 로 줬는데 워커는 하나만 만들어졌고, A 와 B 의 `currentTask` 는 C 가 덮어써서 **두 요청의 Promise 는 영영 안 끝난다.** 자바스크립트는 싱글 스레드니까 경쟁 상태가 없다는 말은 동기 코드에만 참이다. `await` 하나가 곧 양보 지점이다.
+
+고치는 방법은 단순하다 — **워커를 고르는 즉시, 같은 동기 블록 안에서 점유 표시를 한다.** 대여와 표시 사이에 `await` 를 두지 않는다.
+
+`restartWorker` 도 짚어둔다.
+
+```javascript
+restartWorker(worker) {
+    worker.isRestarting = true;
+    worker.terminate();
+    setTimeout(() => {
+        const newWorker = this.createWorker();
+        worker.isRestarting = false;   // ← 죽은 워커의 플래그를 되돌린다
+    }, 1000);
+}
+```
+
+죽은 워커는 `this.workers` 맵에서 지워지지 않는다. 1초 뒤 `isRestarting` 이 false 로 돌아오면 그 워커는 다시 "사용 가능"으로 보인다. 앞서 확인한 대로 **끝난 워커에 `postMessage` 를 해도 예외가 나지 않고 조용히 버려진다.** 맵 크기는 계속 늘고, 요청은 이유 없이 응답이 안 온다. 교체할 때는 `this.workers.delete(oldId)` 가 반드시 따라와야 한다.
 
 ## 참고
 

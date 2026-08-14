@@ -136,6 +136,47 @@ console.log(nestedObject.b.c); // 99 (원본도 변경됨)
 console.log(nestedCopy.b.c); // 99
 ```
 
+"얕은 복사"라는 말이 중첩 객체만 가리키는 것으로 읽히기 쉬운데, 실제로 잃는 것이 더 있다. 스프레드가 옮기는 것은 **자기 소유의 열거 가능한 속성값**뿐이다. 프로토타입은 따라오지 않는다.
+
+```javascript
+class P {
+  constructor(n) { this.name = n; }
+  get upper() { return this.name.toUpperCase(); }
+  greet() { return 'hi'; }
+}
+
+const copy = { ...new P('john') };
+copy;                     // { name: 'john' }
+typeof copy.greet;        // 'undefined'   ← 메서드가 사라졌다
+'upper' in copy;          // false          ← getter 도 사라졌다
+```
+
+클래스 메서드와 getter 는 프로토타입에 있어서 하나도 넘어오지 않는다. 인스턴스를 스프레드한 순간 그것은 더 이상 그 클래스가 아니라 일반 객체다. `instanceof` 도 당연히 실패한다.
+
+**객체 자신이 가진 getter 는 반대로 위험하다.** 값으로 굳어 버린다.
+
+```javascript
+const src = { _v: 1, get v() { return this._v * 10; } };
+const c = { ...src };
+
+src._v = 5;
+src.v;    // 50   ← 다시 계산된다
+c.v;      // 10   ← 복사한 순간의 값에 멈춰 있다
+```
+
+`c.v` 는 getter 가 아니라 그냥 숫자 `10` 이다. 원본을 아무리 바꿔도 따라오지 않는다. 계산 속성을 가진 설정 객체를 스프레드로 복사하면 이 시점에 계산이 한 번 일어나고 그대로 얼어붙는다.
+
+`Object.assign(target, src)` 와도 다르다. `assign` 은 **대상의 setter 를 호출**하지만 스프레드는 새 객체에 값을 직접 정의한다.
+
+```javascript
+const target = { set x(v) { console.log('setter 호출:', v); } };
+
+Object.assign(target, { x: 1 });   // 'setter 호출: 1'
+const r = { ...target, x: 1 };     // setter 호출 없음. r 은 { x: 1 }
+```
+
+둘을 바꿔 쓰면 검증 로직이 걸린 setter 가 조용히 건너뛰어진다.
+
 ### 3. 함수 인자에서의 Spread 연산자
 
 #### 함수 호출 시 사용
@@ -163,6 +204,35 @@ const array3 = [5, 6];
 const allNumbers = [...array1, ...array2, ...array3];
 console.log(allNumbers); // [1, 2, 3, 4, 5, 6]
 ```
+
+`Math.max(...values)` 는 배열이 작을 때만 쓸 수 있다. 스프레드로 넘긴 값은 전부 **개별 인자**가 되고, 인자 개수에는 엔진 한계가 있다.
+
+```javascript
+const big = new Array(200000).fill(1);
+Math.max(...big);
+// RangeError: Maximum call stack size exceeded
+```
+
+에러가 나는 경계는 엔진과 그때의 스택 상황에 따라 달라진다. 개발 중 1,000건으로 테스트할 때는 멀쩡하다가 운영에서 데이터가 늘면 터지는 전형적인 형태다. `values.reduce((a, b) => Math.max(a, b), -Infinity)` 는 인자 개수를 늘리지 않으니 이 한계가 없다.
+
+빈 배열도 조심해야 한다.
+
+```javascript
+Math.max(...[]);   // -Infinity
+Math.min(...[]);   //  Infinity
+```
+
+`0` 이나 `NaN` 이 아니라 무한대다. 최댓값 자리에 `-Infinity` 가 들어가면 이후 비교가 전부 통과해 버려서, 조회 결과가 비었을 때만 이상 동작하는 코드가 된다.
+
+스프레드가 인자를 만들 때 문자열이 섞여도 조용히 넘어간다. 문자열은 이터러블이라 글자 단위로 펼쳐진다.
+
+```javascript
+[...'a👍b'];         // ['a', '👍', 'b']   — 코드 포인트 단위
+'a👍b'.split('');    // ['a', '\ud83d', '\udc4d', 'b']  — 서로게이트가 쪼개진다
+'a👍b'.length;       // 4
+```
+
+이모지나 한자 확장 영역이 들어간 문자열을 다룰 때는 `split('')` 보다 스프레드가 안전하다. 다만 스프레드도 만능은 아니어서, 결합 문자나 여러 코드 포인트로 이뤄진 이모지(가족 이모지 등)는 여전히 여러 조각으로 나뉜다.
 
 #### Rest 매개변수와의 차이
 ```javascript
@@ -255,6 +325,35 @@ console.log(createUser('Jane', 16, false));
 // { name: 'Jane', age: 16 }
 ```
 
+이 패턴이 동작하는 이유는 **객체 스프레드가 어떤 값을 넣어도 던지지 않기** 때문이다.
+
+```javascript
+{...null}       // {}
+{...undefined}  // {}
+{...false}      // {}
+{...5}          // {}
+```
+
+조건이 falsy 면 그 falsy 값 자체가 스프레드되는데, 원시값에는 자기 소유 열거 속성이 없어서 아무것도 안 붙는다. 우연히 맞아떨어지는 동작이다.
+
+우연이 깨지는 값이 하나 있다. **문자열**이다.
+
+```javascript
+const name = 'ab';
+({ a: 1, ...(name && { x: 1 }) });   // { a: 1, x: 1 }   의도대로
+({ a: 1, ...(name && name) });       // { '0': 'a', '1': 'b', a: 1 }   ← 글자가 키가 됐다
+```
+
+조건 자리에 문자열이 들어가고 오른쪽을 실수로 빠뜨리면 인덱스 키가 객체에 박힌다. 에러 없이 이상한 객체가 만들어져서 나중에 직렬화 결과를 보고서야 알게 된다.
+
+배열 스프레드는 이렇게 관대하지 않다.
+
+```javascript
+[...null];   // TypeError: null is not iterable
+```
+
+그래서 문서 아래쪽 `safeSpread` 의 `if (!obj) return {}` 는 사실 필요 없고(`{...null}` 이 이미 `{}` 다), `safeArraySpread` 의 검사는 꼭 필요하다. 두 함수가 대칭으로 보이지만 위험도는 다르다.
+
 #### 깊은 복사 구현
 ```javascript
 // 간단한 깊은 복사 (제한적)
@@ -291,6 +390,49 @@ console.log(complexObject.e[1].f); // 6 (원본 유지)
 console.log(deepCopied.b.c); // 99
 console.log(deepCopied.e[1].f); // 99
 ```
+
+"제한적"이라는 단서가 붙어 있는데, 그 제한이 어디까지인지가 중요하다. 이 `deepCopy` 는 **평범한 객체와 배열, 원시값만** 다룬다. 나머지는 조용히 빈 객체가 된다.
+
+```javascript
+const src = {
+  when: new Date('2020-01-01'),
+  re:   /ab+/g,
+  m:    new Map([['k', 1]]),
+  s:    new Set([1, 2])
+};
+const out = deepCopy(src);
+
+out.when;                    // {}    ← 날짜가 사라졌다
+out.when instanceof Date;    // false
+out.re;                      // {}
+out.m.size;                  // undefined
+```
+
+`typeof new Date() === 'object'` 이고 `Array.isArray` 도 아니니 마지막 분기로 떨어져 속성을 훑는데, `Date` 는 값을 내부 슬롯에 들고 있어서 열거할 속성이 하나도 없다. 그래서 `{}` 가 나온다. 에러도 경고도 없다. **API 응답을 복사하다 날짜 필드만 빈 객체가 되는 사고**가 여기서 나온다.
+
+순환 참조는 더 직접적으로 터진다.
+
+```javascript
+const circ = { name: 'a' };
+circ.self = circ;
+deepCopy(circ);
+// RangeError: Maximum call stack size exceeded
+```
+
+트리 구조에 부모 참조를 넣어 두었거나 DOM 노드가 섞이면 바로 만난다.
+
+지금은 손으로 짤 이유가 별로 없다. `structuredClone` 이 이 셋을 다 처리한다.
+
+```javascript
+const sc = structuredClone({ when: new Date('2020-01-01'), m: new Map([['k', 1]]) });
+sc.when instanceof Date;   // true
+sc.m.size;                 // 1
+
+const c = { n: 1 }; c.self = c;
+structuredClone(c).self.n; // 1  — 순환 참조도 그대로 복원한다
+```
+
+대신 함수는 복사하지 못하고 예외를 던진다(`DOMException`). `JSON.parse(JSON.stringify(...))` 가 함수와 `undefined` 를 조용히 버리는 것과 반대다 — **못 하는 일을 소리 내서 알려주는 쪽**이 대체로 낫다.
 
 ## 운영 팁
 

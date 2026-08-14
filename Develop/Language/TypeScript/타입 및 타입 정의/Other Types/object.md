@@ -70,6 +70,33 @@ processValue('문자열');           // "객체가 아닙니다: 문자열"
 processValue(null);               // "객체가 아닙니다: null"
 ```
 
+**`isObject` 는 이름이 약속한 `object` 타입과 범위가 다르다.** TypeScript 의 `object` 는 함수도 포함하는데, `typeof` 는 함수를 `'function'` 으로 보고하므로 이 가드가 함수를 떨어뜨린다.
+
+```typescript
+let f: object = () => {};      // 통과 — 함수는 object 다
+let a: object = [1, 2, 3];     // 통과 — 배열도 object 다
+let n: object = null;          // error TS2322: Type 'null' is not assignable to type 'object'
+let s: object = 'str';         // error TS2322
+```
+
+```javascript
+isObject(() => {})     // false  ← 그런데 함수는 object 타입이다
+isObject([])           // true
+isObject(new Date())   // true
+```
+
+즉 `value is object` 라는 술어가 거짓말을 한다. 함수를 넘기면 "객체가 아닙니다"가 찍히지만 그 값은 `object` 자리에 얼마든지 대입된다. `typeof` 의 `'object'` 와 타입으로서의 `object` 는 **이름만 같고 경계가 다르다.**
+
+배열이 `true` 로 나오는 것도 실무에서 자주 문제가 된다. JSON 을 받아 "객체인지" 확인할 때 배열을 걸러내고 싶은 경우가 대부분인데 이 가드는 통과시킨다. 의도한 범위를 직접 적는 편이 낫다.
+
+```typescript
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+```
+
+`typeof null === 'object'` 는 JavaScript 초기부터 남아 있는 결함이고 고쳐질 계획이 없다. **`typeof x === 'object'` 를 쓸 때 `x !== null` 을 붙이는 건 선택이 아니라 의무다.** 위 코드가 그 점은 제대로 지키고 있다.
+
 ### 2. object 타입과 Record 타입
 
 #### Record 타입 사용
@@ -104,6 +131,33 @@ console.log(stringObj.name);     // '홍길동'
 console.log(numberObj.age);      // 30
 console.log(mixedObj.hobbies);   // ['독서', '운동']
 ```
+
+`Record<string, string>` 이 `object` 보다 나은 건 맞지만, **"모든 문자열 키"를 허용한다는 건 존재하지 않는 키도 허용한다는 뜻**이다. 오타가 컴파일을 통과한다.
+
+```typescript
+const t: string = stringObj.typoKey;   // 기본 설정에서는 에러가 없다
+console.log(t.toUpperCase());          // TypeError: Cannot read properties of undefined
+```
+
+`stringObj.typoKey` 의 타입은 `string` 인데 실제 값은 `undefined` 다. 타입과 값이 어긋난 채 통과하는 자리다. 이걸 잡아 주는 컴파일러 옵션이 따로 있다.
+
+```
+tsconfig: "noUncheckedIndexedAccess": true
+
+error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+```
+
+이 옵션은 `strict: true` 에 **포함되지 않는다.** 따로 켜야 한다. 켜면 인덱스 시그니처로 꺼낸 값이 전부 `| undefined` 가 붙어 코드 곳곳에서 검사를 요구하게 되는데, 그게 실제 런타임 동작과 맞는 타입이다.
+
+키 집합이 정해져 있다면 처음부터 `Record<string, T>` 대신 유니온으로 좁히는 게 낫다. 그러면 오타가 그 자리에서 잡힌다.
+
+```typescript
+type Lang = 'ko' | 'en' | 'ja';
+const labels: Record<Lang, string> = { ko: '한국어', en: 'English', ja: '日本語' };
+labels.kr;   // error TS2339: Property 'kr' does not exist
+```
+
+`Record<string, any>`(예제의 `MixedObject`)는 사실상 `any` 다. 값 타입에 `any` 를 두면 그 뒤 접근은 전부 검사되지 않는다. 값의 형태를 모를 때는 `unknown` 을 쓰는 편이 좁혀 쓰도록 강제해 준다.
 
 #### 동적 프로퍼티 처리
 ```typescript
@@ -347,6 +401,20 @@ const invalidUser = { name: '홍길동', age: '30', email: 'hong@example.com' };
 console.log(validateObject(validUser, userSchema));   // true
 console.log(validateObject(invalidUser, userSchema)); // false (age가 string)
 ```
+
+두 예제는 통과하지만, 이 검증기는 **`typeof` 를 스키마 언어로 쓴 탓에 세 종류의 값을 그대로 받아들인다.**
+
+```javascript
+validateObject({ cfg: null },   { cfg: 'object' })  // true  ← null 이 object 로 통과
+validateObject({ cfg: [1, 2] }, { cfg: 'object' })  // true  ← 배열도 object
+validateObject({ age: NaN },    { age: 'number' })  // true  ← NaN 도 number
+```
+
+앞의 두 줄은 `typeof` 의 알려진 한계 그대로다. 세 번째가 특히 조용하다. `NaN` 은 `typeof` 가 `'number'` 라서 나이 검증을 통과한 뒤 이후 계산을 전부 `NaN` 으로 만든다.
+
+`value === undefined` 로만 누락을 판정하는 것도 좁다. **`null` 은 누락으로 잡히지 않고** 타입 검사로 넘어가, 위처럼 `'object'` 스키마라면 통과한다. JSON 에는 `undefined` 가 없고 `null` 만 있으므로, API 응답 검증에서는 이쪽이 실제로 마주치는 경우다.
+
+`typeof` 로 표현할 수 있는 건 원시 타입 몇 가지뿐이라 이 방향은 금방 한계에 닿는다. 스키마 검증이 필요하면 zod 같은 라이브러리를 쓰는 편이 낫다. **검증 로직과 타입이 한 정의에서 함께 나오므로 둘이 어긋날 수 없다** — 손으로 쓴 스키마 문자열은 인터페이스가 바뀌어도 컴파일러가 갱신을 요구하지 않는다. 위 `userSchema` 에서 필드를 하나 빼도 아무 에러가 나지 않는다.
 
 ## 운영 팁
 

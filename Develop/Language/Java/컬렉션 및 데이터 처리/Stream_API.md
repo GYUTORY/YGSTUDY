@@ -119,6 +119,25 @@ Stream.of(1, 2, 3, 4, 5, 1, 2)
     .dropWhile(n -> n < 3)           // [3, 4, 5, 1, 2] (조건 실패 전까지 버림)
 ```
 
+**위 두 주석은 각 연산을 원본에 따로 적용했을 때의 결과지, 이 코드의 결과가 아니다.** 코드는 둘을 체이닝하고 있으므로 `dropWhile` 이 받는 입력은 원본이 아니라 `takeWhile` 이 걸러낸 `[1, 2, 3]` 이다. 실제로 실행하면 `[3]` 이 나온다.
+
+```
+takeWhile 단독 : [1, 2, 3]
+dropWhile 단독 : [3, 4, 5, 1, 2]
+둘을 체이닝    : [3]          ← 이 코드의 실제 결과
+```
+
+두 연산이 **정렬되지 않은 스트림에서 조건 실패 지점에 멈춘다**는 점도 자주 오해받는다. `filter` 는 전체를 훑지만 `takeWhile` 은 처음 실패한 순간 끝낸다. 위 원본의 뒤쪽 `1, 2` 는 `n < 4` 를 만족하는데도 `takeWhile` 결과에 없다 — 앞의 `4` 에서 이미 중단됐기 때문이다. 순서에 의존하는 연산이라 정렬 상태를 모르는 데이터에 쓰면 결과를 예측할 수 없다.
+
+`peek` 에도 함정이 있다. **최종 연산이 원소를 실제로 훑지 않아도 되면 `peek` 이 아예 실행되지 않는다.**
+
+```java
+long c = Stream.of("a","b","c").peek(s -> System.out.println("peek: " + s)).count();
+// 출력: 아무것도 없음. c = 3
+```
+
+`count()` 는 크기를 알 수 있으면 파이프라인을 건너뛴다. 그래서 `peek` 은 디버깅 로그 용도로만 쓰고, **부수 효과를 일으키는 실제 로직을 넣으면 안 된다.** 실행이 보장되지 않는다.
+
 #### flatMap 상세
 
 ```java
@@ -253,6 +272,52 @@ Set<String> immutableSet = stream.collect(Collectors.toUnmodifiableSet());
 | `summarizingInt()` | 통계 | `IntSummaryStatistics` |
 | `mapping()` | 다운스트림 변환 | 다운스트림 타입 |
 
+#### Collectors 에서 실제로 터지는 것들
+
+`Collectors.toMap` 은 표만 보면 순한 API 같지만 **두 가지 경우에 예외를 던진다.** 둘 다 운영 데이터에서 흔하다.
+
+```java
+// 1. 키가 중복되면 예외 — 위 예제의 toMap(User::getId, identity()) 가 그대로 해당된다
+List.of(new U(1,"a"), new U(1,"b")).stream()
+    .collect(Collectors.toMap(U::getId, Function.identity()));
+// java.lang.IllegalStateException: Duplicate key 1 (attempted merging values U@... and U@...)
+
+// 2. 값이 null 이면 NullPointerException
+Arrays.asList(new U(1, null)).stream()
+    .collect(Collectors.toMap(U::getId, U::getName));
+// java.lang.NullPointerException
+```
+
+키 중복은 병합 함수를 세 번째 인자로 주면 해결된다. **어느 쪽을 남길지 정하는 건 도메인 결정**이라 라이브러리가 기본값을 정해 주지 않는 것이다.
+
+```java
+Collectors.toMap(User::getId, Function.identity(), (oldV, newV) -> newV)
+```
+
+값이 `null` 인 경우는 병합 함수로도 못 막는다. `HashMap` 자체는 `null` 값을 허용하는데 `toMap` 이 내부적으로 `merge` 를 쓰기 때문에 거절된다. `null` 이 나올 수 있으면 `toMap` 전에 걸러내거나 `groupingBy` 를 쓴다 — **`groupingBy` 는 같은 데이터를 문제없이 처리한다.**
+
+반대로 `groupingBy` 는 **키가 `null` 이면 터진다.**
+
+```java
+users.stream().collect(Collectors.groupingBy(User::getDepartment));
+// 부서가 null 인 사용자가 하나라도 있으면 NullPointerException
+```
+
+정리하면 **`toMap` 은 값의 null 에, `groupingBy` 는 키의 null 에 취약하다.** 분류 기준이 선택적 필드(부서·카테고리·태그)면 기본값으로 치환하고 넘긴다.
+
+```java
+Collectors.groupingBy(u -> Optional.ofNullable(u.getDepartment()).orElse("미지정"))
+```
+
+`distinct()` 도 표의 설명대로 `equals`/`hashCode` 에 의존하는데, **재정의하지 않으면 아무것도 걸러내지 않는다.** 예외가 아니라 조용한 무동작이라 알아채기 어렵다.
+
+```java
+// P 가 equals/hashCode 를 재정의하지 않은 클래스일 때
+Stream.of(new P(1), new P(1), new P(2)).distinct()   // [P1, P1, P2] — 중복이 남는다
+```
+
+기본 `equals` 는 참조 동일성이라 `new` 로 만든 두 객체는 값이 같아도 다른 것으로 본다. `record` 를 쓰면 `equals`/`hashCode` 가 자동 생성돼 이 문제가 사라진다.
+
 ### 5. 기본형 특화 Stream
 
 박싱/언박싱 오버헤드를 피하기 위한 기본형 전용 Stream.
@@ -275,6 +340,33 @@ IntSummaryStatistics stats = ages.summaryStatistics();
 // 기본형 → 객체 Stream
 Stream<Integer> boxed = IntStream.range(1, 10).boxed();
 ```
+
+**위 블록의 `ages` 를 네 번 쓰는 코드는 실행하면 두 번째 줄에서 죽는다.** 표에 적힌 "일회성"이 바로 이것이고, 변수에 담아 두면 재사용하고 싶어지는 게 사람 심리라 실제로 자주 걸린다.
+
+```java
+IntStream ages = users.stream().mapToInt(User::getAge);
+int sum = ages.sum();              // 90 — 정상
+OptionalDouble avg = ages.average();
+// java.lang.IllegalStateException: stream has already been operated upon or closed
+```
+
+`sum()` 이 최종 연산이라 그 시점에 스트림이 닫힌다. 뒤의 `average()` · `max()` · `summaryStatistics()` 는 도달하지 못한다. 스트림은 컬렉션이 아니라 **한 번 흘려보내는 파이프**다.
+
+여러 통계가 필요하면 소스에서 스트림을 매번 새로 만들거나, 한 번에 다 계산하는 `summaryStatistics()` 하나만 쓴다.
+
+```java
+// 소스에서 매번 새로 만든다
+int sum = users.stream().mapToInt(User::getAge).sum();
+OptionalDouble avg = users.stream().mapToInt(User::getAge).average();
+
+// 또는 한 번 훑어 전부 얻는다 (권장 — 순회 1회)
+IntSummaryStatistics stats = users.stream().mapToInt(User::getAge).summaryStatistics();
+stats.getSum(); stats.getAverage(); stats.getMax(); stats.getMin(); stats.getCount();
+```
+
+아래쪽이 낫다. 위 방식은 같은 컬렉션을 두 번 순회한다.
+
+이 성질 때문에 **메서드 파라미터나 필드로 `Stream` 을 주고받는 설계는 피한다.** 받은 쪽이 이미 소비된 스트림인지 알 방법이 없고, 두 곳에서 쓰면 한쪽이 예외를 맞는다. 재사용이 필요하면 `List` 로 받고 쓰는 쪽에서 `stream()` 을 부르게 한다.
 
 | 메서드 | `Stream<T>` | `IntStream` |
 |--------|------------|-------------|
@@ -432,6 +524,39 @@ List<String> results = users.parallelStream()
     .map(User::getName)
     .collect(Collectors.toList());             // 내부적으로 안전하게 합침
 ```
+
+"데이터 손실"이 어느 정도인지 감이 안 오면 실제로 돌려 보는 게 빠르다. 원소 100,000 개를 `parallelStream().forEach` 로 `ArrayList` 에 담은 결과다(같은 코드, 세 번 실행).
+
+```
+trial 0: size=31843   (기대: 100000)
+trial 1: size=56410
+trial 2: size=16998
+
+collect(): size=100000
+```
+
+**절반 넘게 사라지는데 예외는 하나도 안 난다.** 실행할 때마다 결과가 달라지는 것도 중요하다. 재현이 안 되니 테스트로 잡히지 않고, 운영에서 "가끔 데이터가 빈다"는 형태로 나타난다.
+
+`ArrayList.add` 는 내부 배열 크기 확장과 인덱스 증가가 원자적이지 않아서 여러 스레드가 같은 칸에 쓰거나 크기 갱신을 덮어쓴다. 같은 코드를 40회 반복하면 손실 외에 다른 증상도 함께 나온다.
+
+```
+40회 실행 → 예외 발생 4회, 결과에 null 원소가 섞인 실행 35회
+```
+
+즉 **원소가 사라지는 것보다 `null` 이 끼어드는 쪽이 훨씬 흔하다.** 그 `null` 은 한참 뒤 다른 코드에서 `NullPointerException` 으로 터지므로 원인 지점과 증상 지점이 멀어진다.
+
+`Collections.synchronizedList` 로 감싸면 손실은 막히지만 매 `add` 마다 락을 잡느라 **병렬로 만든 이득이 사라진다.** `collect` 는 스레드마다 별도 컨테이너에 모은 뒤 합치는 방식이라 락 경합이 없다. 병렬 스트림에서 결과를 모으는 정답은 언제나 `collect` 다.
+
+같은 이유로 `forEach` 는 병렬에서 **순서를 보장하지 않는다.**
+
+```java
+IntStream.range(0,8).parallel().forEach(sb::append);         // 5460273  — 실행마다 다름
+IntStream.range(0,8).parallel().forEachOrdered(sb2::append); // 01234567 — 원본 순서
+IntStream.range(0,8).parallel().mapToObj(String::valueOf)
+                    .collect(Collectors.toList());           // [0..7]   — collect 는 순서 유지
+```
+
+`collect` 가 순서까지 지켜 준다는 점이 중요하다. **순서와 스레드 안전을 동시에 원하면 `collect` 하나로 해결된다.** `forEachOrdered` 는 순서를 위해 다시 직렬화하므로 병렬의 이득 상당 부분을 반납한다.
 
 ### 8. 성능 고려사항
 

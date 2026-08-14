@@ -491,7 +491,48 @@ function sanitizeObject(obj) {
 }
 ```
 
+#### 이 `sanitizeObject` 미들웨어는 넣으면 안 된다
+
+의도는 알겠는데 실제로 하는 일은 **응답 데이터 파괴**다. 세 가지가 한꺼번에 터진다.
+
+**1. 이스케이프가 누적된다.** 저장할 때 한 번, 응답할 때 또 한 번 걸면 값이 계속 자란다.
+
+```
+1회: O&#039;Brien &amp; Sons
+2회: O&amp;#039;Brien &amp;amp; Sons
+3회: O&amp;amp;#039;Brien &amp;amp;amp; Sons
+```
+
+`&` 를 `&amp;` 로 바꾼 뒤 그 결과에 또 걸면 `&amp;` 의 `&` 가 다시 잡힌다. 수정 화면에서 저장을 반복할 때마다 이름이 길어지는 버그가 이렇게 만들어진다.
+
+**2. `Date` 가 빈 객체가 된다.** `typeof date === 'object'` 라 마지막 분기로 들어가는데, `Object.entries(new Date())` 는 빈 배열이다.
+
+```
+JSON.stringify(sanitizeObject({ at: new Date('2020-01-01') }))
+→ {"at":{}}
+```
+
+**모든 API 응답의 모든 타임스탬프가 `{}` 로 나간다.** 에러도 안 나고 로그에도 안 남는다. `Buffer`, `Map`, `Set`, `BigInt` 도 같은 식으로 뭉개진다.
+
+**3. 애초에 XSS 를 막지 못한다.** JSON 응답은 HTML 이 아니다. `<script>` 가 위험해지는 건 브라우저가 그 문자열을 **HTML 로 렌더할 때**이고, 그 시점은 프론트엔드에 있다. React·Vue 는 기본적으로 텍스트를 이스케이프하므로 서버가 미리 `&lt;` 를 보내면 화면에 `&lt;` 라는 글자가 그대로 보인다. 반대로 프론트가 `dangerouslySetInnerHTML` 을 쓴다면 서버가 뭘 하든 뚫린다.
+
+원칙은 **"저장은 원본 그대로, 이스케이프는 출력 맥락에서"** 다. HTML 에 넣을 땐 HTML 이스케이프, URL 에 넣을 땐 URL 인코딩, JSON 으로 보낼 땐 아무것도 안 한다. 맥락 없이 입구에서 한 번 치는 방식은 데이터를 망가뜨리면서 방어는 안 된다.
+
+사용자가 HTML 을 입력할 수 있어야 하는 경우(리치 텍스트 에디터 등)라면 이스케이프가 아니라 **허용 태그 화이트리스트 방식의 sanitizer**(DOMPurify 같은)를 렌더 직전에 쓴다.
+
 ### CSRF 방어
+
+> **`csurf` 는 보관 처리된 패키지다.** npm 레지스트리에서 확인할 수 있다.
+>
+> ```
+> $ curl -s https://registry.npmjs.org/csurf | ...
+> latest: 1.11.0
+> deprecated: This package is archived and no longer maintained.
+>             For support, visit https://github.com/expressjs/express/discussions
+> 최근 발행: 2020-01-19
+> ```
+>
+> `npm install csurf` 는 지금도 되고 동작도 한다. 하지만 취약점이 나와도 패치가 없다. 새 프로젝트라면 아래 Double Submit Cookie 를 직접 구현하거나 유지되는 대안을 찾는다.
 
 ```javascript
 const csrf = require('csurf');
@@ -534,6 +575,27 @@ app.use((req, res, next) => {
   next();
 });
 ```
+
+이 Double Submit Cookie 조각에는 두 가지 함정이 있다.
+
+**1. 이 `app.use` 보다 먼저 등록된 라우트에는 아예 적용되지 않는다.** Express 미들웨어는 등록 순서대로 쌓인다. 위 코드처럼 라우트 정의를 다 마친 뒤 가드를 붙이면, 정작 지켜야 할 기존 엔드포인트가 통째로 빠진다.
+
+```javascript
+app.post('/before', ...);        // 가드 앞에 등록
+app.use(csrfGuard);              // 문서와 같은 위치
+app.post('/after',  ...);        // 가드 뒤에 등록
+```
+
+```
+POST /before  → 200 {"ok":"guard 앞에 등록된 라우트"}
+POST /after   → 403 {"error":"CSRF token mismatch"}
+```
+
+같은 서버에서 한쪽만 보호된다. **보안 미들웨어는 라우트보다 위에 놓는다.** 새로 추가되는 라우트가 자동으로 보호받게 하려면 이 순서 말고는 방법이 없다.
+
+**2. 위쪽 `csurf` 설정의 `httpOnly: true` 와 이 방식은 함께 못 쓴다.** Double Submit 은 **자바스크립트가 쿠키를 읽어 헤더에 실어 보내는** 구조다. `httpOnly` 쿠키는 자바스크립트가 못 읽는다. 그래서 이 패턴에서 쿠키는 의도적으로 `httpOnly: false` 여야 하고, 그래도 되는 이유는 **CSRF 공격자는 쿠키를 자동 전송시킬 수는 있어도 그 값을 읽어 헤더에 넣을 수는 없기** 때문이다(다른 출처의 응답을 읽지 못하므로).
+
+바꿔 말하면 이 방어는 XSS 앞에서는 무력하다. 스크립트가 실행되면 쿠키를 읽어 헤더를 만들 수 있다. CSRF 대책과 XSS 대책은 서로를 대신하지 못한다.
 
 ## 의존성 취약점 스캔
 
@@ -657,6 +719,38 @@ app.post('/login', async (req, res) => {
   res.json({ token });
 });
 ```
+
+#### bcrypt 는 **72바이트를 넘는 입력을 잘라낸다**
+
+경고도 예외도 없다. 73바이트째부터는 존재하지 않는 것처럼 취급된다.
+
+```javascript
+const base = 'A'.repeat(72);
+const h = bcrypt.hashSync(base, 10);
+bcrypt.compareSync(base + 'X', h);                  // → true
+bcrypt.compareSync(base + '완전히다른값입니다', h);   // → true
+```
+
+`compare` 가 `true` 를 돌려준다. **72바이트까지만 같으면 뒤가 뭐든 로그인이 된다.**
+
+한글이면 훨씬 짧은 지점에서 걸린다. UTF-8 에서 한글 한 글자는 3바이트라 **24글자가 곧 72바이트**다.
+
+```javascript
+Buffer.byteLength('가'.repeat(24));                  // → 72
+const hk = bcrypt.hashSync('가'.repeat(24), 10);
+bcrypt.compareSync('가'.repeat(24) + '전혀다름', hk);  // → true
+```
+
+(bcrypt 6.0.0 / Node v22.21.1 실측)
+
+패스프레이즈를 권장하는 정책과 정면으로 부딪힌다. "긴 비밀번호일수록 안전"이라고 안내해 놓고 뒤에서 잘라내면, 사용자가 체감하는 보안과 실제가 어긋난다.
+
+대응은 둘 중 하나다.
+
+- **입력 길이 상한을 72바이트로 두고 그 사실을 사용자에게 알린다.** 글자 수가 아니라 바이트 수로 재야 한다(`Buffer.byteLength`).
+- **해싱 전에 SHA-256 등으로 한 번 압축한다.** 원문 길이와 무관하게 고정 길이가 되므로 72바이트 문제가 사라진다. 다만 이건 저장 형식을 바꾸는 일이라 기존 해시를 전부 재발급해야 하고, 로그인 시점에 마이그레이션하는 경로가 필요하다.
+
+`saltRounds = 12` 는 합리적인 선택이지만, 이 값은 **하드웨어가 빨라질수록 올려야 하는 값**이다. 지금 서버에서 실제로 얼마나 걸리는지 재보고 정한다. 로그인 응답 시간 예산 안에서 최대한 큰 값이 답이다.
 
 ## 보안 트러블슈팅
 

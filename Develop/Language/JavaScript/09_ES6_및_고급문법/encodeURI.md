@@ -54,6 +54,25 @@ Object.entries(testCases).forEach(([name, value]) => {
 });
 ```
 
+이 목록에서 실제로 사고를 내는 것은 예약 문자를 **남긴다**는 쪽이다. 사용자 입력에 `&` 나 `#` 가 섞이면 URL 의 구조 자체가 바뀐다.
+
+```javascript
+'q=' + encodeURI('a&b=c#d');            // 'q=a&b=c#d'
+'q=' + encodeURIComponent('a&b=c#d');   // 'q=a%26b%3Dc%23d'
+```
+
+위쪽은 `q` 하나가 아니라 파라미터 두 개(`q=a`, `b=c`)에 프래그먼트 `#d` 까지 붙은 URL 이 된다. 서버는 `q` 값을 `'a'` 로만 받는다. 검색어에 `&` 하나 들어갔을 뿐인데 결과가 달라지고, 그 검색어를 넣어 본 사람만 재현할 수 있다.
+
+**값 하나를 넣을 때는 언제나 `encodeURIComponent`** 다. `encodeURI` 는 이미 완성된 URL 전체를 통째로 다듬을 때만 쓴다.
+
+`encodeURIComponent` 가 "예약 문자를 모두 인코딩한다"는 것도 정확하지는 않다. 여섯 글자를 남긴다.
+
+```javascript
+encodeURIComponent("!'()*");   // "!'()*"  — 그대로다
+```
+
+이 글자들은 RFC 3986 기준으로는 예약 문자(sub-delims)인데 함수는 건드리지 않는다. 대부분의 경우 문제가 없지만, 서명 문자열을 만들거나 다른 언어 구현과 결과를 대조해야 한다면 여기서 값이 어긋난다. OAuth 1.0 처럼 정확한 퍼센트 인코딩을 요구하는 규격에서는 이 여섯 글자를 따로 처리해야 한다.
+
 ## 사용법
 
 ### 기본 사용
@@ -132,6 +151,41 @@ const queryString = Object.entries(params)
 const finalUrl = `${baseUrl}?${queryString}`;
 console.log(finalUrl);
 ```
+
+쿼리 문자열을 손으로 이어 붙일 이유는 이제 없다. `URLSearchParams` 가 키와 값을 모두 인코딩하고, 같은 키가 여러 번 나오는 경우와 `undefined` 처리까지 맡는다.
+
+```javascript
+const url = new URL('https://example.com/api');
+url.searchParams.set('search', 'JavaScript 강의');
+url.searchParams.set('category', '프로그래밍');
+url.toString();
+```
+
+문서의 `createSafeUrl` 은 **값만** 인코딩하고 키는 그대로 붙인다. 키가 코드에 고정된 문자열이라면 괜찮지만, 키가 데이터에서 온다면 같은 문제가 생긴다.
+
+다만 `URLSearchParams` 에는 알아 둘 차이가 하나 있다. **공백을 `%20` 이 아니라 `+` 로 쓴다.**
+
+```javascript
+encodeURIComponent('a b');                       // 'a%20b'
+new URLSearchParams({ q: 'a b' }).toString();    // 'q=a+b'
+```
+
+둘 다 유효하다. `+` 는 `application/x-www-form-urlencoded` 방식이고 서버 프레임워크는 대개 둘 다 받아준다. 문제는 **직접 디코딩할 때**다.
+
+```javascript
+decodeURIComponent('a+b');   // 'a+b'   ← 공백으로 안 돌아온다
+```
+
+`decodeURIComponent` 는 `+` 를 모른다. `URLSearchParams` 로 만든 문자열을 손으로 쪼개서 `decodeURIComponent` 로 풀면 공백이 `+` 로 남는다. 파싱도 `new URLSearchParams(queryString)` 에 맡기면 이 차이가 사라진다.
+
+`decodeURI` 와 `decodeURIComponent` 도 짝을 맞춰야 한다. 각자 자기가 인코딩하지 않는 것은 디코딩도 하지 않는다.
+
+```javascript
+decodeURI('%26');            // '%26'   ← 그대로 둔다
+decodeURIComponent('%26');   // '&'
+```
+
+`encodeURIComponent` 로 인코딩한 값을 `decodeURI` 로 풀면 예약 문자만 인코딩된 채 남는다. 에러가 아니라 반쯤 풀린 문자열이 나와서, DB 에 `%26` 같은 것이 저장되고 나서야 발견된다.
 
 ### 주의사항
 

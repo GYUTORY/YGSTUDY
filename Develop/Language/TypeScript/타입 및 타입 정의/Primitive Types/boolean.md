@@ -162,6 +162,28 @@ console.log(objectToBoolean(null));     // false
 console.log(objectToBoolean(undefined)); // false
 ```
 
+`stringToBoolean` 이 `Boolean(value)` 대신 문자열을 직접 비교하는 건 우연이 아니다. **`Boolean('false')` 는 `true` 다.**
+
+```javascript
+Boolean('false')   // true   ← 비어있지 않은 문자열이면 전부 true
+Boolean('0')       // true
+Boolean('')        // false
+Boolean([])        // true   ← 빈 배열도 true
+Boolean({})        // true
+```
+
+`Boolean` 은 문자열의 *내용*을 보지 않고 *빈 문자열인지*만 본다. 그래서 환경변수나 쿼리스트링처럼 값이 항상 문자열로 오는 자리에 `Boolean(process.env.DEBUG)` 를 쓰면 `DEBUG=false` 로 꺼놨는데 켜진다. 설정이 안 꺼지는 버그의 흔한 정체다.
+
+`stringToBoolean` 도 완벽하진 않다. `'true'` 만 참으로 보므로 `'1'` · `'yes'` · `'on'` 은 전부 거짓이고, 공백이 붙은 `' true '` 도 거짓이다. 받아들일 표현을 명시하는 편이 낫다.
+
+```typescript
+function stringToBoolean(value: string): boolean {
+    return ['true', '1', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
+```
+
+핵심은 **문자열 → boolean 변환에 기본값이 없다**는 것이다. 어떤 문자열을 참으로 볼지는 도메인이 정하므로 직접 적어야 한다.
+
 ## 예시
 
 ### 1. 실제 사용 사례
@@ -454,6 +476,42 @@ console.log(cache.getCachedBoolean('check1', expensiveCheck)); // 연산 실행
 console.log(cache.getCachedBoolean('check1', expensiveCheck)); // 캐시된 값 사용
 ```
 
+**`processUser` 는 `boolean` 을 반환하지 않는다.** `&&` 는 참/거짓을 돌려주는 연산자가 아니라 **평가를 멈춘 지점의 피연산자를 그대로 돌려주는** 연산자다. 실행해 보면 반환 타입 선언이 지켜지지 않는다.
+
+```javascript
+processUser(null)                          // null       (boolean 아님)
+processUser(0)                             // 0
+processUser('')                            // ''
+processUser({ isActive: true })            // undefined  ← hasPermission 이 없어서
+processUser({ isActive: true, hasPermission: true })  // true
+```
+
+`if (processUser(x))` 로만 쓰면 드러나지 않지만, 값을 JSON 으로 내보내거나 `=== false` 로 비교하거나 React 에서 렌더하는 순간 문제가 된다. `0` 을 반환하면 화면에 `0` 이 찍힌다.
+
+**TypeScript 가 이걸 못 잡은 이유는 `user: any` 다.** `any` 에 `&&` 를 걸면 결과도 `any` 이고, `any` 는 `boolean` 자리에 무사통과한다. 파라미터 타입을 제대로 주면 그 자리에서 컴파일 에러가 난다.
+
+```typescript
+function processUser(user: { isActive: boolean; hasPermission: boolean } | null): boolean {
+    return user && user.isActive && user.hasPermission;
+}
+// error TS2322: Type 'boolean | null' is not assignable to type 'boolean'.
+```
+
+`any` 는 검사를 통과시키는 게 아니라 **검사를 끄는** 것이다. 고치려면 `!!` 로 감싸거나 `Boolean(...)` 을 씌운다.
+
+한편 `BooleanCache` 는 **드물게 제대로 짠 캐시**다. `if (!this.cache.has(key))` 로 존재 여부를 묻는 게 핵심인데, boolean 을 캐시할 때 흔히 쓰는 아래 방식은 망가진다.
+
+```javascript
+// ✗ false 를 캐시하면 매번 다시 계산한다 — 캐시가 없는 것과 같다
+if (!cache.get(key)) { cache.set(key, computeFn()); }
+
+const m = new Map();  m.set('k', false);
+m.has('k')    // true   ← 값은 분명히 있다
+!!m.get('k')  // false  ← 그런데 "없다"고 판정된다
+```
+
+`false` · `0` · `''` 처럼 **falsy 값이 정당한 캐시 값인 자리에서는 `has()` 로 물어야 한다.** 반환 타입의 `!` 단언(`this.cache.get(key)!`)도 바로 앞 `has()` 검사가 보증해 주기 때문에 여기서는 타당하다.
+
 ### 에러 처리
 
 #### 안전한 boolean 처리
@@ -504,6 +562,20 @@ console.log(result1); // { isValid: true, value: true }
 const result2 = validateBoolean('invalid');
 console.log(result2); // { isValid: false }
 ```
+
+두 함수를 나란히 두고 보면 **같은 입력에 다른 답을 낸다.**
+
+| 입력 | `safeBoolean` | `validateBoolean` |
+|---|---|---|
+| `'true'` | `true` | `{ isValid: true, value: true }` |
+| `'invalid'` | `false` | `{ isValid: false }` |
+| `'0'` | `false` | `{ isValid: false }` |
+
+`safeBoolean('invalid')` 이 `false` 를 돌려주는 게 문제다. **"거짓이다"와 "판단할 수 없다"를 같은 값으로 뭉갠다.** 호출한 쪽은 사용자가 실제로 `false` 를 넣은 건지 오타를 낸 건지 구분할 방법이 없다.
+
+`validateBoolean` 이 이 점에서 더 낫다. 판정 불가를 `isValid: false` 로 분리해서 알린다. 다만 이름과 달리 boolean 이 아닌 **숫자를 받지 않는다** — `validateBoolean(1)` 은 `{ isValid: false }` 다. `safeBoolean(1)` 은 `true` 인데. 두 함수가 인정하는 입력 집합이 다르니, 한 코드베이스에 둘 다 두면 어느 쪽을 탔느냐에 따라 결과가 갈린다.
+
+이런 변환 함수는 **실패를 값으로 돌려줄지 예외로 던질지 하나로 정하고 프로젝트 전체에서 통일**하는 게 맞다. 둘을 섞으면 위 표 같은 불일치가 생긴다.
 
 ## 참고
 
