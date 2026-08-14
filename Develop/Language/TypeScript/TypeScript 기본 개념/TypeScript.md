@@ -288,7 +288,13 @@ enum 은 **명목적(nominal)으로 동작한다**는 점도 이 언어에서 �
 enum A { X = 1 }
 enum B { X = 1 }
 const cross: A = B.X;   // error TS2322: Type 'B' is not assignable to type 'A'
-const n: A = 1;         // error TS2322: Type '1' is not assignable to type 'A'
+const bad: A = 7;       // error TS2322: Type '7' is not assignable to type 'A'
+```
+
+다만 **숫자 리터럴은 그 값이 멤버에 있으면 그냥 대입된다.** 명목적이라고 해서 숫자를 전부 막는 것은 아니다.
+
+```typescript
+const n: A = 1;   // 오류 없음 — 1 이 A.X 의 값이다
 ```
 
 구조적 타이핑이 기본인 TypeScript 에서 이것만 이름으로 판단한다. 값 실수를 막아 주지만, 라이브러리 경계를 넘나들 때는 같은 모양인데 대입이 안 돼 불편해진다.
