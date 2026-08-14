@@ -1247,6 +1247,70 @@ catch(error: any, host: ArgumentsHost): void {
 
 `grpcCode`를 응답 본문에 그대로 실어 보내는 것도 다시 볼 만하다. 내부 서비스 구조를 외부에 알려주는 값이라, 게이트웨이 응답에는 빼고 로그에만 남기는 쪽이 낫다.
 
+### 기본 수신 한도는 4MB — 넘으면 `RESOURCE_EXHAUSTED`
+
+응답 본문이 커지면 어느 날 갑자기 실패한다. 5MB짜리 문자열을 담아 보내봤다.
+
+```
+code=8 (RESOURCE_EXHAUSTED)
+Received message larger than max (5242893 vs 4194304)
+```
+
+한도는 **수신 측**에 걸린다. 서버는 문제없이 보냈고 클라이언트가 거부한 것이다. 그래서 서버 로그에는 아무것도 안 남고, 클라이언트만 실패한다. 원인을 서버에서 찾으면 오래 걸린다.
+
+목록 조회처럼 결과 개수가 데이터에 따라 늘어나는 RPC 가 이 한도에 걸린다. 개발 중에는 데이터가 적어 안 걸리다가, 운영 데이터가 쌓이면서 특정 계정만 실패하기 시작한다.
+
+한도는 채널 옵션으로 올린다.
+
+```typescript
+options: {
+  package: 'hero',
+  protoPath: '...',
+  channelOptions: {
+    'grpc.max_receive_message_length': 16 * 1024 * 1024,
+    'grpc.max_send_message_length': 16 * 1024 * 1024,
+  },
+}
+```
+
+**다만 숫자를 올리는 건 임시방편이다.** 한 응답에 수 MB 가 실린다는 건 페이지네이션이나 스트리밍으로 나눠야 한다는 신호다. gRPC 는 서버 스트리밍을 지원하므로, 큰 목록은 `stream` 으로 흘려보내면 한도 자체가 문제가 되지 않는다.
+
+### proto3 에서는 "값이 0" 과 "안 보냄" 이 구분되지 않는다
+
+서버가 `score` 와 `active` 를 아예 채우지 않고 응답했을 때 클라이언트가 받는 값이다.
+
+```
+수신: {"id":"1","name":"n","score":0,"active":false}
+score 가 "설정 안 됨"인지 "0으로 설정됨"인지 구분 가능? 불가능
+```
+
+`loader` 의 `defaults: true` 가 빠진 필드를 타입 기본값(`0`, `""`, `false`)으로 채운다. 문제는 **서버가 진짜 0을 보낸 경우와 결과가 똑같다**는 점이다. proto3 는 기본값과 같은 값을 아예 전송하지 않기 때문에, 와이어 상에서도 둘이 구분되지 않는다.
+
+이게 문제가 되는 자리는 정해져 있다.
+
+- **부분 수정(PATCH)** — "재고를 0으로 바꿔줘"와 "재고는 건드리지 마"가 같은 요청이 된다
+- **필터 조건** — `minScore: 0` 이 "조건 없음"인지 "0점 이상"인지 알 수 없다
+- **불리언 플래그** — `active: false` 로 끄려는 요청과 미지정이 같다
+
+해결책은 두 가지다. `optional` 키워드를 붙이면 presence 정보가 유지된다. 같은 실험을 `optional` 필드로 다시 해보면:
+
+```protobuf
+message Hero {
+  string id = 1;
+  optional int32 score = 2;
+  optional bool active = 3;
+}
+```
+
+```
+optional + 미지정     : {}                          / score typeof: undefined
+optional + 0 으로 지정 : {"score":0,"active":false}  / score typeof: number
+```
+
+**`defaults: true` 를 그대로 둔 채로도 두 경우가 갈린다.** 미지정 필드는 응답 객체에 아예 나타나지 않는다.
+
+아니면 `google.protobuf.Int32Value` 같은 wrapper 타입을 쓴다. 어느 쪽이든 **"이 필드는 없을 수 있다"를 스키마에 적어두는 것**이 핵심이다. 코드에서 `if (req.score)` 로 판단하는 순간 0이 미지정과 섞인다.
+
 ### `await setTimeout(2000)`은 기다리지 않는다 — 예외가 난다
 
 양방향 스트리밍 예제의 이 줄은 Node 22에서 그 자리에서 죽는다.

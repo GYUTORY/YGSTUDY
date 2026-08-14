@@ -100,6 +100,51 @@ const u = { id: 1 };
 
 이걸 **import elision** 이라 한다. TypeScript 가 "이 import 에서 값으로 쓰이는 게 하나도 없다"고 판단하면 구문 전체를 지운다. 그래서 타입만 들어 있는 모듈은 `tsc-alias` 가 고칠 대상 자체가 없다. 반대로 부수 효과를 위해 import 한 모듈이 값으로 안 쓰이면 **의도치 않게 지워지는** 문제도 여기서 나온다 — 그때는 `import './polyfill'` 처럼 바인딩 없이 쓰거나 `verbatimModuleSyntax` 를 켠다.
 
+#### 왜 이 도구가 따로 필요한가 — `tsc` 는 경로를 고치지 않는다
+
+`paths` 는 **타입을 찾을 때만** 쓰인다. 컴파일러가 `@utils/date` 를 어느 파일로 읽을지 정하는 데는 쓰이지만, 산출물의 `require`/`import` 문자열은 손대지 않는다. 그래서 `tsc` 만 돌리면 검사는 전부 통과하고 실행만 죽는다. 위 설정을 그대로 만들어 확인한 결과다.
+
+```
+$ tsc --noEmit
+오류 0건
+
+$ tsc && grep require dist/index.js
+const date_1 = require("@utils/date");     ← 별칭이 그대로 남는다
+
+$ node dist/index.js
+Error: Cannot find module '@utils/date'
+  code: 'MODULE_NOT_FOUND'
+
+$ tsc-alias -p tsconfig.json && grep require dist/index.js
+const date_1 = require("./utils/date");    ← 여기서 고쳐진다
+
+$ node dist/index.js
+오늘: 2026-08-14
+```
+
+**타입 검사와 실행 가능성이 별개**라는 것이 요점이다. CI 가 `tsc --noEmit` 만 돌린다면 이 사고를 절대 못 잡는다. `type-check` 와 `build` 를 둘 다 돌리고, 빌드 산출물을 한 번 실행해 보는 스모크 테스트가 있어야 걸린다.
+
+`tsc-alias` 를 안 쓰는 선택지도 있고, 각각 대가가 다르다.
+
+| 방법 | 대가 |
+|---|---|
+| `tsc-alias` 로 빌드 후 재작성 | 빌드 단계가 하나 늘고, 문자열이 아닌 동적 `require` 는 못 고친다 |
+| 런타임 해석기(`tsconfig-paths` 등) | 프로세스 시작 시 훅을 걸어야 하고, 번들러·워커·자식 프로세스마다 따로 챙겨야 한다 |
+| 번들러(esbuild·swc·webpack)에 맡김 | 번들러가 `paths` 를 읽는지 별도 설정이 필요한지 확인해야 한다 |
+| `paths` 를 안 쓰고 상대 경로만 | 아무 문제가 없다. `../../../` 이 길어지는 것만 감수한다 |
+| `imports` 필드(`#utils/*`) | Node 가 직접 해석하므로 후처리가 필요 없다. 지원 범위를 확인해야 한다 |
+
+**`paths` 는 편의를 위해 런타임 해석과 타입 해석을 갈라 놓는 설정**이고, 여기 나오는 문제 대부분이 그 틈에서 나온다. 별칭이 정말 필요한지 먼저 따져 보는 편이 낫다.
+
+> `baseUrl` 은 TypeScript 7 에서 제거됐다. 5.9 에서는 위 설정이 그대로 동작하지만 7.0 에서는 이렇게 막힌다.
+>
+> ```
+> error TS5102: Option 'baseUrl' has been removed. Please remove it from your configuration.
+>   Use '"paths": {"*": ["./src/*"]}' instead.
+> ```
+>
+> 대체 방법은 `paths` 값을 `baseUrl` 기준 상대 경로가 아니라 **`tsconfig.json` 위치 기준 상대 경로**로 적는 것이다(`"./src/*"` 처럼 `./` 로 시작해야 한다). 뒤에 나오는 `../../` 개수 문제도 이 규칙이 바뀌면서 함께 달라지므로, 올릴 때 `paths` 를 전부 다시 계산해야 한다.
+
 ### 2. workspace 기본 사용법
 
 #### pnpm workspace 설정
@@ -631,6 +676,17 @@ pnpm build:web     # 웹 앱
 }
 ```
 
+이 세 줄 중 `skipLibCheck` 는 캐싱 옵션이 아니다. **`.d.ts` 안의 타입 오류를 통째로 안 보는 설정**이다. 빌드가 빨라지는 것은 부수 효과이고, 그 대가로 손으로 쓴 정의의 오류까지 함께 숨는다.
+
+```
+skipLibCheck 끔 → error TS2304: Cannot find name 'NonExistentType'
+skipLibCheck 켬 → 오류 0건
+```
+
+원래 용도는 남의 `@types` 패키지끼리 충돌해서 빌드가 막힐 때 뚫는 것이다. 모노레포에서는 켜 둘 이유가 하나 더 있다 — 패키지마다 다른 버전의 `@types/node` 가 딸려 오면 그것만으로 빌드가 멈춘다. 다만 **그 상태를 해결한 것이 아니라 가린 것**이라는 점은 알고 있어야 하고, 자기 `.d.ts` 를 직접 쓰는 프로젝트라면 그 파일들만은 다른 방법으로 검사받아야 한다.
+
+`incremental` 과 `tsBuildInfoFile` 도 조건이 붙는다. `--noEmit` 과 함께 쓰면 버전에 따라 캐시가 안 만들어지거나 옵션 충돌이 나므로, `type-check` 스크립트와 `build` 스크립트가 같은 `tsconfig` 를 공유한다면 확인해 봐야 한다. 캐시 파일을 `node_modules/.cache` 에 두는 것도 의도를 알고 써야 한다 — `pnpm install` 이 `node_modules` 를 갈아엎으면 캐시가 사라진다. CI 에서 캐시를 살리려면 그 경로가 캐시 대상에 들어 있어야 한다.
+
 ### 에러 처리
 
 #### 경로 매핑 오류 해결
@@ -683,6 +739,10 @@ pnpm list --depth=0
 | `workspace:*` | 워크스페이스 내 패키지 | `@my-monorepo/shared` |
 | `workspace:^` | 워크스페이스 내 패키지 (호환성) | `@my-monorepo/ui` |
 | `workspace:~` | 워크스페이스 내 패키지 (패치) | `@my-monorepo/api` |
+
+세 패턴 모두 **개발 중에는 똑같이 동작한다** — 로컬 패키지에 심볼릭 링크를 건다. 차이는 `pnpm publish` 할 때 드러난다. 발행 시점에 `workspace:` 접두어가 실제 버전으로 치환되는데, `*` 는 고정 버전으로, `^` 와 `~` 는 각각 캐럿·틸드 범위로 바뀐다([pnpm workspace 문서](https://pnpm.io/workspaces)). 사내에서만 쓰는 비공개 모노레포라면 셋 중 무엇을 써도 차이가 없고, npm 에 발행하는 패키지라면 소비자가 받을 버전 범위를 정하는 설정이 된다.
+
+`workspace:` 를 쓰라는 권고에도 이유가 있다. 아래처럼 버전 범위로 적으면 그 범위를 만족하는 패키지가 로컬에 있을 때만 링크되고, 없으면 **레지스트리에서 남의 패키지를 받아 온다.** 이름이 겹치면 조용히 엉뚱한 코드가 들어오는 것이다. `workspace:` 접두어는 "로컬에 없으면 설치를 실패시켜라"라는 뜻이라 그 사고가 안 난다.
 
 ### 결론
 tsc-alias와 workspace를 함께 사용하면 모노레포 환경에서 효율적인 개발이 가능합니다.

@@ -70,6 +70,96 @@ Flux.interval(Duration.ofSeconds(1));  // 매 초마다 0, 1, 2, ...
 Flux.empty();
 ```
 
+#### `Mono.just(...)` 의 인자는 **조립 시점에 이미 실행된다**
+
+`Mono.defer` 가 목록에 함께 있는 이유가 여기 있다. `Mono.just(f())` 는 `f()` 를 지금 부르고 그 **결과값**을 감싼다. 지연되는 건 값의 전달이지 계산이 아니다.
+
+```java
+System.out.println("Mono.just(slow(\"A\")) 를 만들기만 함:");
+Mono<String> eager = Mono.just(slow("A"));
+System.out.println("Mono.defer(() -> Mono.just(slow(\"B\"))) 를 만들기만 함:");
+Mono<String> lazy = Mono.defer(() -> Mono.just(slow("B")));
+System.out.println("아직 subscribe 안 함. 이제 구독:");
+eager.subscribe(); lazy.subscribe();
+```
+
+```
+Mono.just(slow("A")) 를 만들기만 함:
+  [실행] A                       ← 구독 전에 이미 실행됐다
+Mono.defer(() -> Mono.just(slow("B"))) 를 만들기만 함:
+아직 subscribe 안 함. 이제 구독:
+  [실행] B
+```
+
+(reactor-core 3.6.11)
+
+**아무도 구독하지 않아도 부수효과가 일어난다.** 게다가 여러 번 구독해도 `just` 쪽은 처음 계산한 값을 그대로 재사용한다. 매 구독마다 새로 계산해야 하는 것(현재 시각, 랜덤 값, DB 조회)을 `just` 안에 넣으면 값이 고정된다.
+
+호출을 늦추려면 `Mono.fromCallable(() -> f())` 이나 `Mono.defer(...)` 를 쓴다. 리액티브 코드에서 "왜 구독도 안 했는데 쿼리가 나가지" 는 대개 이 형태다.
+
+#### `Mono.zip` 은 하나라도 비면 **통째로 빈 결과**가 된다
+
+아래 대시보드 예제처럼 여러 소스를 묶을 때 반드시 밟는다.
+
+```java
+Mono.zip(userMono, ordersMono, cartMono)   // ordersMono 가 empty 라면?
+    .map(tuple -> new Dashboard(tuple.getT1(), tuple.getT2(), tuple.getT3()));
+```
+
+```
+결과 개수: 0 → []  (에러도 나지 않는다)
+```
+
+**예외가 아니라 그냥 아무 값도 안 나온다.** 컨트롤러가 이 `Mono` 를 반환하면 200 에 빈 본문이거나 `defaultIfEmpty` 에 걸려 404 가 된다. "장바구니가 비어 있는 사용자만 대시보드가 안 뜬다" 같은 형태로 나타나서 원인을 찾기 어렵다.
+
+비어도 되는 소스는 **명시적으로 기본값을 준다.**
+
+```java
+Mono.zip(
+    userMono,
+    ordersMono.defaultIfEmpty(List.of()),   // 빈 값을 허용하는 자리를 드러낸다
+    cartMono.defaultIfEmpty(Cart.empty())
+)
+```
+
+`Flux.zip` 도 같다 — 가장 짧은 소스에 맞춰 끝나므로, 길이가 다르면 뒤가 조용히 잘린다.
+
+#### `flatMap` 은 순서를 보장하지 않는다
+
+이름이 비슷해서 `map` 의 비동기판으로 읽기 쉬운데, **완료되는 순서대로 흘려보낸다.**
+
+```java
+Flux.range(1, 5).flatMap(i  -> Mono.just(i).delayElement(Duration.ofMillis(60 - i * 10)))
+Flux.range(1, 5).concatMap(i -> Mono.just(i).delayElement(Duration.ofMillis(60 - i * 10)))
+```
+
+```
+flatMap  : [5, 4, 3, 2, 1]
+concatMap: [1, 2, 3, 4, 5]
+```
+
+늦게 시작한 것이 먼저 끝나면 먼저 나온다. **응답 순서가 의미를 갖는 API(정렬된 목록, 페이지네이션 결과)에서 `flatMap` 을 쓰면 순서가 뒤섞인다.** 로컬에서는 지연이 고르게 나와 잘 드러나지 않다가 운영에서 터진다.
+
+- 순서가 중요하면 `concatMap` — 앞의 것이 끝나야 다음을 시작한다(느리다)
+- 순서를 유지하면서 동시에 실행하려면 `flatMapSequential` — 병렬로 돌리되 출력만 원래 순서로 맞춘다
+
+```
+flatMapSequential: [1, 2, 3, 4, 5]
+```
+
+동시 실행 개수도 확인해 둘 값이다. 원소 1000개를 흘려보내며 동시에 실행 중인 개수를 세보면:
+
+```
+flatMap 동시 실행 최대치(기본): 256
+flatMap(fn, 8) 동시 실행 최대치: 8
+```
+
+기본값 256은 `Queues.SMALL_BUFFER_SIZE` 다. **외부 API 를 `flatMap` 안에서 부르면 상대 서버에 동시 요청 256개가 날아간다.** 상대가 레이트 리밋을 걸어두면 대량 429 를 받고, 안 걸어뒀으면 상대를 넘어뜨린다. 어느 쪽이든 우리 잘못이다. 두 번째 인자로 반드시 명시한다.
+
+```java
+.flatMap(id -> externalApi.fetch(id), 8)   // 동시 8개까지만
+```
+
 #### 변환 연산자
 
 ```java
