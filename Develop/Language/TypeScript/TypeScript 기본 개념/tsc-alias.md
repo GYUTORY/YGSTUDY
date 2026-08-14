@@ -168,10 +168,10 @@ npx tsc-alias --extensions .js,.mjs
 
 ```
 $ npx tsc-alias --config ./tsconfig.json
-error: unknown option '--config ./tsconfig.json'
+error: unknown option '--config'
 
 $ npx tsc-alias --extensions .js,.mjs
-error: unknown option '--extensions .js,.mjs'
+error: unknown option '--extensions'
 ```
 
 실제 옵션 목록은 이렇다(`tsc-alias --help`).

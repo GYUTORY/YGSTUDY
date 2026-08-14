@@ -81,7 +81,7 @@ public class RateLimiterExample {
 > 동작은 한다. 다만 `Bandwidth`·`Refill` 두 개념을 합친 빌더로 옮겨갔다.
 >
 > ```java
-> // 8.x 신 API — Refill 클래스 자체가 없어졌다
+> // 8.x 신 API — Refill 을 직접 만들지 않고 빌더 안에서 처리한다
 > .addLimit(limit -> limit.capacity(10).refillGreedy(10, Duration.ofSeconds(60)))
 > ```
 >

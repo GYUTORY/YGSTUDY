@@ -364,6 +364,43 @@ export class AwsEventBusService {
 }
 ```
 
+#### 토픽 ARN 을 문자열로 조립하는 부분이 뒤의 Terraform 과 맞지 않는다
+
+```typescript
+const topicArn = `${this.topicArnPrefix}:${event.eventType}`;
+```
+
+이 코드는 **이벤트 타입마다 토픽이 하나씩 있다**고 전제한다. `order.created`, `order.cancelled`, `user.registered` 각각에 토픽이 필요하다. 그런데 뒤의 Terraform 은 `order-events`, `user-events` 두 개만 만든다 — **도메인마다 하나**다. 둘 중 하나는 반드시 틀린다.
+
+거기에 이름 규칙도 걸린다. SNS 토픽 이름에는 영숫자와 하이픈·밑줄만 쓸 수 있다([CreateTopic 문서](https://docs.aws.amazon.com/sns/latest/api/API_CreateTopic.html)). `order.created` 처럼 점이 들어간 이름은 만들 수 없으므로, 위 문자열로 조립한 ARN 은 **존재할 수 없는 토픽을 가리킨다.** 발행은 런타임에 `NotFound` 로 실패한다.
+
+두 설계 중 무엇을 고를지는 취향이 아니라 운영 방식의 문제다.
+
+| | 이벤트 타입마다 토픽 | 도메인마다 토픽 + 속성 필터 |
+|---|---|---|
+| 새 이벤트 추가 | 인프라 변경(토픽 + 구독)이 필요하다 | 코드만 바꾸면 된다 |
+| 구독자가 원하는 것만 받기 | 토픽을 골라 구독 | `FilterPolicy` 로 거른다 |
+| 토픽 개수 | 이벤트 종류만큼 늘어난다 | 도메인 수로 유지된다 |
+| 권한 관리 | 토픽 단위로 세밀하게 | 도메인 단위로 뭉뚱그려진다 |
+
+**"새 이벤트를 추가할 때 인프라 코드를 고쳐야 하는가"** 가 실질적인 갈림길이다. 대부분은 후자를 고르고, 그러면 `MessageAttributes` 에 `event-type` 을 싣는 위 코드가 그대로 값을 한다 — 다만 **구독 쪽에 `FilterPolicy` 를 걸어야** 의미가 생긴다. 뒤의 Terraform 구독에는 필터가 없어서, 지금 상태로는 `order-events` 를 구독한 이메일 큐가 주문 취소·환불 이벤트까지 전부 받는다.
+
+#### `publishBatch` 는 실패를 삼킨다
+
+`Promise.allSettled` 로 결과를 모은 뒤 실패는 로그만 남기고, 반환값은 **성공한 messageId 배열**뿐이다. 호출자가 `events.length` 와 반환 길이를 비교하지 않는 한 일부가 안 나갔다는 사실을 알 방법이 없다.
+
+이름도 오해를 부른다. "배치 발행"이지만 원자적이지 않아서 **절반만 나가는 상태**가 정상 경로에 있다. 주문 하나에 이벤트 세 개를 함께 발행했는데 두 개만 나가면, 그 시점부터 다운스트림 상태가 어긋난다.
+
+```typescript
+async publishBatch(events: DomainEvent[]): Promise<{ succeeded: string[]; failed: DomainEvent[] }> {
+  // 실패 목록을 반환해 호출자가 재시도하거나 실패로 처리하게 한다
+}
+```
+
+동시성 제한이 없다는 것도 함께 봐야 한다. `events.map(publish)` 는 이벤트 수만큼 SNS 요청을 동시에 띄운다. 아웃박스에 밀린 이벤트 수천 건을 한 번에 넘기면 그대로 throttling 을 맞고, 그 실패는 위 로직에서 조용히 사라진다. 동시 실행 수에 상한을 두거나 SNS 의 `PublishBatch`(호출당 10건)를 쓴다.
+
+그리고 이 서비스는 **트랜잭션 안에서 부르면 안 된다.** 앞 절에서 `EventEmitter` 에 대해 말한 문제가 여기서는 더 나쁘다 — 커밋 전에 발행하고 뒤에서 롤백되면, 내부 이벤트와 달리 **SNS 로 나간 메시지는 되돌릴 수 없다.** 아웃박스 테이블에 쓰고 커밋 후 별도 프로세스가 발행하는 구조가 사실상 필수다.
+
 #### 이벤트 팩토리
 
 ```typescript
@@ -634,6 +671,22 @@ export class SqsEventConsumerService implements OnModuleInit, OnModuleDestroy {
 }
 ```
 
+#### 이 폴러가 조용히 메시지를 중복 처리하는 자리
+
+**메시지 10건을 `Promise.all` 로 동시에 처리하는데, 가시성 타임아웃(visibility timeout)에 대한 처리가 없다.** SQS 는 메시지를 꺼내준 뒤 정해진 시간 동안만 다른 소비자에게 숨긴다. 그 시간 안에 `DeleteMessage` 가 안 오면 메시지는 다시 보이게 되고, **첫 번째 처리가 아직 돌고 있는 중에 두 번째 소비자가 같은 메시지를 가져간다.**
+
+핸들러가 무거울수록, 배치가 클수록 이 확률이 올라간다. 10건을 동시에 처리하다 보면 뒤쪽 건이 늦게 끝나기 쉽다. 대응은 셋 중 하나다.
+
+- 큐의 가시성 타임아웃을 **최악의 처리 시간보다 넉넉하게** 잡는다
+- 처리가 길어지면 `ChangeMessageVisibility` 로 연장한다(하트비트)
+- 한 번에 가져오는 개수를 줄인다
+
+어느 쪽을 택하든 **중복 수신을 없앨 수는 없다.** SQS 표준 큐는 최소 한 번 전달이라, 네트워크 사정만으로도 같은 메시지가 두 번 온다. 핸들러는 두 번 실행돼도 결과가 같아야 한다.
+
+`catch` 블록의 주석도 정확하지 않다. "에러 발생 시 메시지는 삭제하지 않음 (재시도)" 는 맞지만, **재시도 횟수 제한이 없다.** 항상 실패하는 메시지 하나가 있으면 그것만 무한히 되돌아오며 큐를 붙잡는다. 큐에 **DLQ(Dead Letter Queue)와 `maxReceiveCount`** 를 붙여야 그 메시지가 빠져나간다. 아래 Terraform 절의 `redrive_policy` 가 그 설정이다 — 코드가 아니라 인프라 쪽에 있어서 잊기 쉽다.
+
+마지막으로 `poll()` 의 에러 경로는 항상 5초 후 재시도다. 자격증명 만료나 큐 삭제처럼 **회복되지 않는 오류에서도 같은 간격으로 영원히 반복**하며 에러 로그만 쌓는다. 지수 백오프와 상한을 둔다.
+
 #### 이벤트 핸들러 데코레이터
 
 ```typescript
@@ -791,6 +844,47 @@ async function updateInventory(productId: string, quantity: number) {
   console.log(`Updating inventory for product ${productId}: -${quantity}`);
 }
 ```
+
+#### `throw error; // 재시도 트리거` 는 **배치 전체**를 재시도한다
+
+이 한 줄이 이 코드에서 가장 위험하다. `serverless.yml` 의 `batchSize: 10` 과 맞물리면, 10건 중 7번째가 실패했을 때 **이미 성공한 1~6번까지 다시 온다.**
+
+> When your Lambda function encounters an error while processing a batch, all messages in that batch become visible in the queue again by default, including messages that Lambda processed successfully. As a result, your function can end up processing the same message several times.
+>
+> — [Handling errors for an SQS event source in Lambda](https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-errorhandling.html)
+
+이 핸들러가 하는 일이 DynamoDB 저장과 **재고 차감**이라는 점이 결정적이다. `updateInventory` 가 상대적 차감(`-quantity`)이라면 재시도마다 재고가 또 깎인다. 1~6번 주문의 재고가 두 번, 세 번 빠진다. 그리고 이건 에러가 아니라 **AWS 가 설계대로 동작한 결과**라서 어디에도 경고가 안 뜬다.
+
+거기에 더해, `for` 루프 안에서 `throw` 하면 **8~10번 레코드는 처리조차 되지 않는다.** 실패한 7번 하나 때문에 뒤쪽이 통째로 건너뛰어지고, 재시도 때 다시 1번부터 시작한다.
+
+고치는 방법은 이벤트 소스 매핑에 `ReportBatchItemFailures` 를 켜고, 실패한 메시지 ID 만 돌려주는 것이다.
+
+```typescript
+export const handler = async (event: SQSEvent): Promise<SQSBatchResponse> => {
+  const batchItemFailures: SQSBatchItemFailure[] = [];
+
+  for (const record of event.Records) {
+    try {
+      const snsMessage = JSON.parse(record.body);
+      await route(JSON.parse(snsMessage.Message));
+    } catch (error) {
+      console.error('record 처리 실패', record.messageId, error);
+      batchItemFailures.push({ itemIdentifier: record.messageId });   // 이 건만 되돌린다
+    }
+  }
+  return { batchItemFailures };
+};
+```
+
+```yaml
+# serverless.yml — 이 설정이 없으면 위 반환값은 무시된다
+functionResponseTypes:
+  - ReportBatchItemFailures
+```
+
+**설정과 코드가 둘 다 있어야 동작한다.** 코드만 고치고 이벤트 소스 매핑을 안 바꾸면 반환값이 버려지고, 예전처럼 배치 전체가 되돌아온다. 반대로 설정만 켜고 코드가 여전히 `throw` 하면 AWS 문서가 말하는 그대로다 — *"If your function throws an exception, the entire batch is considered a complete failure."*
+
+그리고 **재시도가 정상 동작이라는 전제를 코드에 반영해야 한다.** 부분 배치 응답을 켜도 같은 메시지가 두 번 올 수 있다(SQS 표준 큐는 최소 한 번 전달이다). 재고 차감처럼 반복하면 안 되는 작업은 이벤트 ID 로 처리 여부를 기록하고 건너뛰거나, 상대적 차감 대신 "이 주문 이후의 재고는 얼마"처럼 결과가 같아지는 형태로 만든다.
 
 ### Lambda 배포 설정
 
@@ -1045,6 +1139,34 @@ resource "aws_sqs_queue_policy" "order_email_queue_policy" {
   })
 }
 ```
+
+#### 이 구독 설정에서 나오는 두 가지
+
+**하나, 메시지가 봉투에 싸여 온다.** `aws_sns_topic_subscription` 에 `raw_message_delivery` 를 지정하지 않으면 기본값은 꺼짐이고, SQS 는 SNS 가 감싼 JSON 을 받는다. 그래서 앞의 소비자 코드가 두 번 파싱한다.
+
+```typescript
+const snsMessage = JSON.parse(message.Body);      // SNS 봉투
+const event: DomainEvent = JSON.parse(snsMessage.Message);   // 실제 이벤트
+```
+
+이 코드는 지금 설정과는 맞는다. 문제는 **나중에 `raw_message_delivery = true` 로 바꾸면 조용히 깨진다**는 점이다. 그때 `message.Body` 는 이벤트 JSON 자체라서 `snsMessage.Message` 가 `undefined` 가 되고, `JSON.parse(undefined)` 가 던진다. 인프라 설정 한 줄이 애플리케이션 파싱 코드의 전제라는 것을 어딘가에 적어 두지 않으면 반드시 밟는다.
+
+여기에 딸린 것이 **`MessageAttributes` 의 위치**다. 발행자는 `event-type` 등을 SNS 속성으로 실었고 소비자는 `MessageAttributeNames: ['All']` 로 요청한다. 그런데 봉투 방식에서는 그 속성들이 봉투 JSON 안에 들어가 있지 SQS 메시지 속성으로 올라오지 않는다. **소비자가 요청한 자리에는 아무것도 없다.** 속성을 SQS 레벨에서 쓰려면 raw 전달을 켜야 하고, 그러면 위 파싱을 고쳐야 한다. 둘은 한 세트로 결정한다.
+
+**둘, 구독에 필터가 없다.** `order-events` 토픽의 모든 이벤트가 `order-email-queue` 로 들어간다. 이메일 서비스는 자기와 무관한 이벤트까지 받아서 하나씩 걸러야 하고, 그 판별을 빠뜨리면 엉뚱한 메일이 나간다. 발행자가 이미 `event-type` 속성을 싣고 있으니 구독에서 받을 것을 선언하는 편이 낫다.
+
+```hcl
+resource "aws_sns_topic_subscription" "order_email_subscription" {
+  topic_arn     = aws_sns_topic.order_events.arn
+  protocol      = "sqs"
+  endpoint      = aws_sqs_queue.order_email_queue.arn
+  filter_policy = jsonencode({ "event-type" = ["order.created"] })
+}
+```
+
+큐 설정 자체는 잘 잡혀 있다 — `receive_wait_time_seconds = 20`(롱 폴링), DLQ + `maxReceiveCount = 3`, 14일 보존. 다만 `visibility_timeout_seconds = 300` 은 앞 절의 지적과 함께 봐야 한다. **가시성 타임아웃은 "한 메시지를 처리하는 데 걸리는 최악 시간"보다 커야 하고**, 람다를 연결한다면 람다 타임아웃보다도 커야 한다. 이 값이 처리 시간보다 짧으면 같은 이벤트가 중복 처리되고, DLQ 로 가기 전에 `maxReceiveCount` 만 축낸다.
+
+DLQ 도 만들어 두는 것으로 끝나지 않는다. **DLQ 에 메시지가 쌓이는 것을 알려 주는 경보가 없으면 그건 조용한 쓰레기통이다.** `ApproximateNumberOfMessagesVisible` 에 알람을 걸고, 원인을 고친 뒤 원래 큐로 되돌리는 절차까지 정해 둬야 이 구성이 완성된다.
 
 ---
 

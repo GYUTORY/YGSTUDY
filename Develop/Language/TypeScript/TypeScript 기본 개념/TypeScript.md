@@ -139,7 +139,34 @@ export default greet(u, 'admin');
 
 - **경계를 넘어 들어오는 값은 타입이 지켜 주지 않는다.** HTTP 응답, `JSON.parse`, `localStorage`, `process.env`, DB 드라이버가 준 행 — 전부 컴파일러가 본 적 없는 값이다. 그 자리에는 런타임 검증(zod·ajv 같은 스키마 검사나 직접 쓴 가드)이 따로 필요하다.
 - **타입으로 분기할 수 없다.** `if (x is User)` 같은 문법이 없는 이유다. 런타임에 남는 것은 `typeof`·`instanceof`·프로퍼티 존재 여부뿐이고, 그래서 판별 유니온에 `kind` 같은 **값**을 넣는다.
-- **타입은 성능에 영향을 주지 않는다.** 지워지므로 실행 코드가 늘지 않는다. 대신 `enum`·`namespace`·`class` 의 프로퍼티 초기화처럼 **코드를 생성하는** 문법은 예외다. 이 둘을 구분해 두면 "왜 이건 남고 저건 사라지지"에서 헤매지 않는다.
+- **타입은 성능에 영향을 주지 않는다.** 지워지므로 실행 코드가 늘지 않는다. 대신 `enum`·`namespace`·`class` 의 프로퍼티 초기화처럼 **코드를 생성하는** 문법은 예외다.
+
+`enum` 이 그 대표다. 같은 파일에서 `interface`·`type` 은 흔적도 없이 사라지는데 `enum` 만 실행 코드로 남는다.
+
+```typescript
+export enum Status { Active = 'ACTIVE', Inactive = 'INACTIVE' }
+export const enum Fast { A = 1 }
+export type Role = 'admin' | 'user';
+export interface U { id: number }
+export const x = Status.Active;
+```
+
+```javascript
+export var Status;
+(function (Status) {
+    Status["Active"] = "ACTIVE";
+    Status["Inactive"] = "INACTIVE";
+})(Status || (Status = {}));
+export const x = Status.Active;
+```
+
+`type Role` 과 `interface U` 는 사라졌고 `const enum Fast` 도 인라인돼 없다. 남은 `Status` 는 번들에 들어가는 진짜 객체이고, 트리 셰이킹으로 지우기도 어렵다(IIFE 라 부수 효과가 있는 것처럼 보인다). 그래서 값이 필요 없다면 유니온 리터럴 타입이 더 가볍다.
+
+```typescript
+type Status = 'ACTIVE' | 'INACTIVE';   // 런타임 흔적 0
+```
+
+이 구분을 알아 두면 "왜 이건 남고 저건 사라지지"에서 헤매지 않는다. 판별 기준은 하나다 — **그 이름을 값으로 쓸 수 있는가.** `Status.Active` 처럼 쓸 수 있으면 코드가 남고, 타입 자리에만 쓸 수 있으면 사라진다.
 
 #### 4. 점진적 타입 적용 (Gradual Typing)
 기존 JavaScript 프로젝트에 TypeScript를 점진적으로 도입할 수 있습니다.
@@ -856,6 +883,49 @@ type ReadonlyConfig = Readonly<Config>;
 - 클래스 구현: 인터페이스 사용
 - 재사용 가능한 타입 유틸리티: 타입 별칭 사용
 
+#### 선언 병합은 장점이자 사고 경로다
+
+표에 "선언 병합: 가능"이 장점처럼 적혀 있는데, 뒤집으면 **같은 이름의 인터페이스를 두 곳에서 선언해도 오류가 안 난다**는 뜻이다.
+
+```typescript
+interface Options { url: string; timeout?: number }
+// ... 수백 줄 뒤, 혹은 다른 파일에서
+interface Options { retries: number }
+
+const o: Options = { url: 'x' };
+// error TS2741: Property 'retries' is missing in type '{ url: string; }'
+//   but required in type 'Options'
+```
+
+오류는 **필드를 추가한 곳이 아니라 그 타입을 쓰는 곳**에서 난다. 이름이 겹친 줄 모르면 "분명히 맞게 썼는데 왜 필드가 더 필요하다고 하지"가 된다. 타입 별칭은 같은 이름을 두 번 선언하면 그 자리에서 `Duplicate identifier` 가 나므로 이 문제가 없다.
+
+병합이 필요한 자리는 분명하다 — 남의 타입을 확장할 때다(`interface Window`, `Express.Request`). **그래서 기준은 "확장을 허용할 것인가"** 다. 라이브러리의 공개 타입이면 인터페이스, 내부에서 닫아 두고 싶은 모양이면 타입 별칭이 낫다.
+
+#### 초과 프로퍼티 검사는 객체 리터럴에만 걸린다
+
+구조적 타이핑이라 "필요한 것만 있으면 통과"가 원칙인데, 객체 리터럴을 **직접** 넘길 때만 예외적으로 모르는 키를 잡아 준다.
+
+```typescript
+interface Options { url: string; timeout?: number }
+declare function connect(o: Options): void;
+
+connect({ url: 'x', timeoutt: 1000 });
+// error TS2561: 'timeoutt' does not exist in type 'Options'. Did you mean 'timeout'?
+
+const opts = { url: 'x', timeoutt: 1000 };
+connect(opts);
+// 오류 0건
+```
+
+같은 오타인데 변수 하나를 거치면 안 잡힌다. 선택 프로퍼티(`timeout?`)의 오타는 **아무 데서도 티가 안 나고 그 설정이 조용히 무시된다.** 타임아웃이 안 먹는다고 한참 헤매게 되는 부류다.
+
+이 검사는 리팩터링에도 약하다. 인자를 변수로 빼는 흔한 정리 작업만으로 검사가 사라진다. 설정 객체처럼 오타 비용이 큰 자리에는 변수에 타입을 명시해서 검사를 되살린다.
+
+```typescript
+const opts: Options = { url: 'x', timeoutt: 1000 };   // ← 여기서 잡힌다
+connect(opts);
+```
+
 #### 1.6 함수 타입 선언의 고급 패턴
 
 **함수 오버로드 (Function Overloads)**:
@@ -935,6 +1005,27 @@ function callWithArgs<T extends any[], R>(
 type FunctionType = typeof Math.max;
 // (value1: number, value2: number, ...values: number[]) => number
 ```
+
+#### 메서드로 쓰느냐 프로퍼티로 쓰느냐가 검사 강도를 바꾼다
+
+같은 모양인데 문법에 따라 매개변수 검사가 달라진다. `strict` 를 켜도 그렇다.
+
+```typescript
+interface A { handle(x: string | number): void }      // 메서드 문법
+interface B { handle: (x: string | number) => void }  // 프로퍼티 문법
+
+const narrow = (x: string) => {};
+
+const a: A = { handle: narrow };   // 오류 없음
+const b: B = { handle: narrow };   // error TS2322: '(x: string) => void' is not
+                                   //   assignable to '(x: string | number) => void'
+```
+
+`strictFunctionTypes` 는 매개변수를 반공변으로 엄격히 검사하는데, **메서드 문법으로 선언된 것은 그 검사에서 빠진다.** 배열 등 기존 라이브러리 타입과의 호환 때문에 의도적으로 남겨 둔 구멍이다.
+
+실제로 무슨 일이 생기냐면, `A` 를 만족한다고 통과한 `narrow` 에 `handle(42)` 가 들어온다. 함수 본문은 `x` 를 `string` 으로 믿고 `x.toUpperCase()` 를 부르고, 런타임에 `TypeError` 가 난다. **타입 검사를 통과한 코드가 타입 때문에 죽는** 몇 안 되는 경로다.
+
+콜백을 받는 자리처럼 매개변수 타입이 중요한 인터페이스는 프로퍼티 문법으로 쓰면 검사가 강해진다. 반대로 클래스가 구현할 인터페이스라면 메서드 문법이 자연스러우니, **그때는 이 구멍이 있다는 것을 알고 쓰는 것**으로 족하다.
 
 #### 1.7 클래스와 인터페이스의 관계
 
