@@ -138,7 +138,7 @@ echo '<?php system($_GET["cmd"]); ?>' >> polyglot.webp
 
 ```javascript
 const ALLOWED_EXTENSIONS = {
-  image: ['.webp', '.webp', '.webp', '.webp', '.webp'],
+  image: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
   document: ['.pdf', '.docx', '.xlsx'],
   archive: ['.zip']
 };
