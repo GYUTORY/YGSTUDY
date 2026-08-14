@@ -2240,8 +2240,14 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
    빈 상자로 나가는데도 콘솔이 깨끗해서 아무도 몰랐다. 깨지면 보여야 고친다. */
 .md-typeset .yg-mermaid { text-align: center; }
 .md-typeset .yg-mermaid > svg { max-width: 100%; height: auto; }
-/* 한글 라벨 넘침 마감 — mermaid 가 CJK 폭을 라틴 기준으로 계산해 박스가 작게 잡힘 */
-.md-typeset .yg-mermaid svg g.node foreignObject {
+/* 라벨 넘침 마감 — mermaid 가 자기 폰트 기준으로 상자를 잡은 뒤 위 규칙이 폰트를 바꾼다.
+   실제 글자가 상자보다 1~3px 넓어져 foreignObject 가 마지막 글자를 잘라먹었다
+   ("OrderCreated" -> "OrderCreatec"). 노드에만 걸려 있어 화살표 라벨은 계속 잘렸다 —
+   LLM 문서는 라벨 26개 중 13개가 잘려 있었다. 둘 다 상자 밖으로 넘치게 둔다. */
+.md-typeset .yg-mermaid svg g.node foreignObject,
+.md-typeset .yg-mermaid svg g.edgeLabel foreignObject,
+.md-typeset .yg-mermaid svg .edgeLabel foreignObject,
+.md-typeset .yg-mermaid svg foreignObject {
   overflow: visible !important;
 }
 .md-typeset .yg-mermaid foreignObject > div,

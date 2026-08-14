@@ -244,11 +244,28 @@ Saga는 긴 트랜잭션을 단계로 쪼개고, 각 단계의 실패를 보상 
 - 실패 시 `ShippingFailed` 이벤트를 발행한다
 
 **이벤트 흐름:**
+
+```mermaid
+flowchart TD
+    O["주문 서비스"] -->|OrderCreated| P["결제 서비스"]
+    P -->|PaymentCompleted| I["재고 서비스"]
+    I -->|InventoryReserved| S["배송 서비스"]
+    S -->|ShippingCreated| D(["완료"])
+
+    P -.->|PaymentFailed| C1["보상<br/>주문 취소"]
+    I -.->|InventoryFailed| C2["보상<br/>결제 환불"]
+    S -.->|ShippingFailed| C3["보상<br/>재고 해제"]
+
+    C3 --> C2 --> C1
+
+    classDef ok fill:#e8f1f5,stroke:#3D7387,color:#1f2937
+    classDef comp fill:#fdf0ee,stroke:#c2694f,color:#1f2937
+    class O,P,I,S,D ok
+    class C1,C2,C3 comp
 ```
-OrderCreated → PaymentCompleted → InventoryReserved → ShippingCreated
-                ↓ (실패 시)
-            PaymentFailed → (보상 이벤트 발행)
-```
+
+실선은 정상 경로, 점선은 실패 시 발행되는 이벤트다. 보상은 **성공한 단계를 역순으로** 되감는다 —
+배송에서 실패하면 재고를 해제하고, 그 다음 결제를 환불하고, 마지막에 주문을 취소한다.
 
 ### 장점
 
