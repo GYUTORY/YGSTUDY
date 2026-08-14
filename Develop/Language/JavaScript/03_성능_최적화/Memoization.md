@@ -63,6 +63,44 @@ console.log(expensiveCalculation(5)); // 새로운 계산 수행
 console.log(expensiveCalculation(5)); // 캐시된 결과 사용
 ```
 
+숫자 하나를 받는 함수라면 이대로 잘 돈다. 문제는 **`JSON.stringify` 를 캐시 키로 쓴다**는 점이고, 인자가 조금만 복잡해지면 조용히 틀린 답을 준다.
+
+**서로 다른 인자가 같은 키가 된다.** `JSON.stringify` 는 `undefined` 와 `NaN` 을 모두 `null` 로 바꾼다. 그래서 `f(undefined)` 와 `f(null)` 이 같은 칸을 쓰고, 먼저 부른 쪽 결과가 나중 호출에도 돌아간다. `Map` 과 `Set` 은 더 심해서 내용과 무관하게 전부 `{}` 로 직렬화된다 — 원소 2개짜리 Map 과 빈 Map 이 같은 키다.
+
+**같은 뜻의 객체가 다른 키가 된다.** `{a:1, b:2}` 와 `{b:2, a:1}` 은 문자열이 달라 캐시가 두 번 계산한다. 이쪽은 틀린 답은 아니고 캐시가 안 먹을 뿐이지만, 객체를 넘기는 함수에서는 적중률이 생각보다 훨씬 낮게 나온다.
+
+**메서드로 쓰면 인스턴스끼리 캐시를 공유한다.** `func.apply(this, args)` 로 `this` 는 살려 두는데 정작 캐시 키에는 `this` 가 안 들어간다. 같은 메모이즈 함수를 두 객체에 붙이면 나중 객체가 먼저 객체의 결과를 받는다.
+
+```javascript
+const shared = memoize(function () { return this.name; });
+const A = { name: 'A', get: shared };
+const B = { name: 'B', get: shared };
+
+A.get();  // 'A'
+B.get();  // 'A'  ← B.name 이 아니다
+```
+
+그래서 실무에서는 **키 만드는 함수를 밖에서 주입받게** 만든다. 인자 모양을 아는 쪽이 키를 정하는 게 맞다.
+
+```javascript
+function memoize(func, keyOf = (...args) => JSON.stringify(args)) {
+    const cache = new Map();
+    return function (...args) {
+        const key = keyOf.apply(this, args);
+        if (cache.has(key)) return cache.get(key);
+        const result = func.apply(this, args);
+        cache.set(key, result);
+        return result;
+    };
+}
+
+// 인자 모양을 아는 곳에서 키를 정한다
+const findUser = memoize(fetchUser, (id) => `user:${id}`);
+```
+
+그리고 이 기본 구현에는 **캐시를 비우는 수단이 없다.** 브라우저 탭이라면 새로고침으로 정리되지만 서버 프로세스에서는 계속 쌓인다. 아래 크기 제한·TTL 이 필요한 이유다.
+
+
 #### 고급 메모이제이션 함수
 ```javascript
 // 고급 메모이제이션 함수 (TTL, 크기 제한 등)

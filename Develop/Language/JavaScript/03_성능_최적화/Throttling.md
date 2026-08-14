@@ -50,6 +50,11 @@ const throttledScroll = throttle(() => {
 window.addEventListener('scroll', throttledScroll);
 ```
 
+`lastCall` 이 0에서 시작하니 첫 호출은 무조건 통과한다. 즉 이 구현은 **선행(leading) 방식**이다 — 이벤트가 들어온 순간 바로 한 번 실행하고, 그 뒤 `delay` 동안 막는다.
+
+문제는 **마지막 이벤트를 버린다**는 것이다. 사용자가 스크롤을 멈춘 직후의 위치는 창 안에 갇혀 사라진다. 스크롤 위치로 "지금 어느 섹션인지" 표시하는 UI라면 실제로 한 칸 어긋난 채 멈춘다. 마지막 상태가 중요하면 아래 후행(trailing) 옵션이 필요하다.
+
+
 #### 고급 쓰로틀링 함수 (선행/후행 옵션)
 ```javascript
 // 고급 쓰로틀링 함수
@@ -84,6 +89,15 @@ const throttledHandler = advancedThrottle(() => {
     console.log('고급 쓰로틀링 처리');
 }, 1000, { leading: true, trailing: true });
 ```
+
+옵션 이름과 실제 동작이 어긋나는 지점이 두 군데 있다. 직접 돌려보면 드러난다.
+
+**`leading: false` 가 첫 호출을 막지 못한다.** 선행 분기를 건너뛰면 곧장 후행 분기로 가는데, 이때 대기 시간이 `delay - timeSinceLastCall` 이다. 첫 호출에서는 `lastCall` 이 0이라 이 값이 큰 음수가 되고, `setTimeout` 은 음수를 0으로 취급한다. 결국 "선행 실행 안 함"으로 설정해도 첫 호출은 즉시 실행된다.
+
+**후행 실행이 쓰는 인자는 창 안의 마지막 호출이 아니라 첫 호출 것이다.** `!timeoutId` 로 막기 때문에 두 번째 이후 호출은 타이머만 못 걸 뿐 아니라 인자도 갱신하지 못한다. 스크롤 좌표처럼 "가장 최근 값"이 중요한 경우 낡은 값으로 실행된다. lodash 의 `throttle` 은 매 호출마다 인자를 갱신해 두고 마지막 것을 쓴다 — 직접 구현할 때 가장 자주 빠뜨리는 차이다.
+
+고치려면 호출마다 `lastArgs = args` 로 갱신해 두고 타이머 안에서 그걸 쓰면 된다.
+
 
 ### 2. 클래스 기반 쓰로틀링
 
@@ -497,6 +511,36 @@ const component = new ThrottledComponent();
 component.cleanup();
 ```
 
+여기서 `this.handler.cancel` 은 **항상 undefined 다.** 위에서 만든 `throttle` 이 평범한 함수를 반환할 뿐 `cancel` 을 달아주지 않기 때문이다. `if` 로 감싸 뒀으니 에러는 안 나지만, 정리하려던 것이 정리되지 않는다.
+
+리스너를 떼도 **이미 걸린 후행 타이머는 살아남아 그대로 실행된다.** 컴포넌트가 사라진 뒤 그 핸들러가 돌면서 없어진 DOM 을 만지면 그때 에러가 난다. 이 절이 막으려던 상황이 정확히 이것이다.
+
+`throttle` 이 반환하는 함수에 `cancel` 을 직접 달아야 한다.
+
+```javascript
+function throttle(func, delay) {
+    let lastCall = 0;
+    let timeoutId = null;
+
+    function throttled(...args) {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+            lastCall = now;
+            return func.apply(this, args);
+        }
+    }
+
+    // 정리 시점에 대기 중인 타이머를 확실히 끊는다
+    throttled.cancel = () => {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+    };
+
+    return throttled;
+}
+```
+
+
 ### 쓰로틀링과 디바운싱 조합
 
 #### 하이브리드 최적화
@@ -661,8 +705,13 @@ ThrottlePerformanceTester.measureThrottlePerformance(testThrottledFunc, 100, 10)
 ```
 
 ### 결론
-쓰로틀링은 빈번한 이벤트를 효율적으로 처리하는 강력한 기법입니다.
-적절한 시간 간격 설정이 성능 최적화의 핵심입니다.
-디바이스 성능에 따라 다른 쓰로틀링 간격을 적용하는 것이 좋습니다.
-메모리 누수를 방지하기 위해 컴포넌트 정리 시 쓰로틀링 함수도 함께 정리해야 합니다.
-쓰로틀링과 디바운싱을 적절히 조합하여 최적의 사용자 경험을 제공할 수 있습니다.
+
+쓰로틀링을 넣을지 말지는 **"중간 값이 의미가 있는가"** 로 갈린다.
+
+- **중간 값이 의미 있다** → 쓰로틀링. 스크롤 위치 표시, 드래그 중 미리보기처럼 진행 과정을 계속 보여줘야 하는 것들이다.
+- **마지막 값만 의미 있다** → 디바운싱. 검색어 입력, 창 크기 조절 완료 후 재계산처럼 중간 상태가 쓸모없는 것들이다.
+- **화면만 다시 그린다** → 둘 다 말고 `requestAnimationFrame`. 브라우저 프레임에 맞춰 실행되니 시간 간격을 손으로 고를 필요가 없고, 탭이 백그라운드로 가면 알아서 멈춘다. 스크롤·리사이즈로 스타일만 바꾸는 경우가 여기에 해당한다.
+
+직접 구현할 때 실제로 자주 깨지는 지점은 위에서 본 세 가지다 — 마지막 이벤트를 버리는 것, 후행 실행이 낡은 인자를 쓰는 것, 정리할 때 대기 중인 타이머가 남는 것. 셋 다 개발 중에는 잘 안 드러나고 사용자가 빠르게 조작할 때만 나타난다.
+
+간격 값은 근거 없이 고르지 말고 실제로 재서 정한다. 100ms 든 1초든 "화면이 끊겨 보이지 않는 가장 긴 간격"이 정답이고, 그건 하는 일마다 다르다.

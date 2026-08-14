@@ -45,6 +45,10 @@ console.log(firstFruit);        // 사과
 console.log(remainingFruits);   // ['바나나', '오렌지']
 ```
 
+배열 디스트럭처링은 **순서로** 꺼내고, 객체 디스트럭처링은 **이름으로** 꺼낸다. 그래서 배열 쪽은 중간을 건너뛰려면 `, ,` 처럼 자리를 비워야 한다.
+
+한 가지 제약이 있다. 배열 디스트럭처링은 **이터러블에만 쓸 수 있다.** 겉모습이 배열 같아도 이터러블이 아니면 `TypeError` 가 난다 — `const [y] = {}` 는 `{} is not iterable` 로 실패한다. `arguments` 나 `NodeList` 처럼 유사 배열은 이터러블이라 통과하지만, 평범한 객체는 안 된다.
+
 #### 고급 배열 디스트럭처링
 ```javascript
 // 기본값 설정
@@ -75,6 +79,22 @@ function getCoordinates() {
 
 const [latitude, longitude, altitude] = getCoordinates();
 console.log(latitude, longitude, altitude); // 10 20 30
+```
+
+**기본값은 `undefined` 일 때만 적용된다.** 이게 디스트럭처링에서 가장 자주 물리는 지점이다.
+
+```javascript
+const { a = '기본' } = { a: undefined };  // '기본'
+const { b = '기본' } = { b: null };       // null   ← 기본값이 안 먹는다
+const { c = '기본' } = { c: 0 };          // 0
+const { d = '기본' } = { d: '' };         // ''
+```
+
+`null` 은 "값이 없음"처럼 보이지만 엄연히 값이라 기본값이 발동하지 않는다. API 응답은 빈 필드를 `null` 로 주는 경우가 많아서, 기본값을 걸어 뒀는데 `null` 이 그대로 흘러 들어가 아래쪽에서 터진다. `null` 도 막으려면 `??` 를 따로 써야 한다.
+
+```javascript
+const { nickname } = user;
+const display = nickname ?? '이름 없음';   // null 과 undefined 둘 다 처리
 ```
 
 ### 2. 객체 디스트럭처링
@@ -153,6 +173,23 @@ const { id, name: newUserName, ...rest } = createUser();
 console.log(id, newUserName, rest);
 ```
 
+객체 디스트럭처링에는 문법상 걸리는 지점이 두 개 더 있다.
+
+**`null` 이나 `undefined` 는 풀 수 없다.** `const { x } = null` 은 `TypeError: Cannot destructure property 'x' of 'null'` 로 즉시 터진다. 값이 없을 수 있는 곳에서는 빈 객체를 기본값으로 깔아 둔다.
+
+```javascript
+function render({ title, body } = {}) { /* 인자를 아예 안 넘겨도 안전 */ }
+
+const { data } = response ?? {};        // response 가 null 이어도 통과
+```
+
+**이미 선언한 변수에 대입할 때는 괄호로 감싼다.** 줄 맨 앞의 `{` 를 자바스크립트가 블록으로 읽어서 `{p, q} = obj` 는 `SyntaxError` 다.
+
+```javascript
+let p, q;
+({ p, q } = { p: 1, q: 2 });   // 괄호가 있어야 대입식으로 해석된다
+```
+
 ### 3. 템플릿 리터럴
 
 #### 기본 사용법
@@ -181,6 +218,15 @@ const score = 85;
 const grade = `점수: ${score}, 등급: ${score >= 90 ? 'A' : score >= 80 ? 'B' : 'C'}`;
 console.log(grade); // 점수: 85, 등급: B
 ```
+
+`${}` 안의 값은 문자열로 바뀌어 들어간다. 이때 객체는 `[object Object]` 가 되고 배열은 콤마로 이어붙는다 — 로그를 찍었는데 내용이 안 보이는 흔한 원인이다.
+
+```javascript
+`${{ a: 1 }}`     // '[object Object]'
+`${[1, 2, 3]}`    // '1,2,3'
+```
+
+객체 내용을 보려면 `JSON.stringify` 를 거치거나, `console.log` 에 템플릿 대신 인자로 넘긴다 — 후자는 콘솔에서 펼쳐볼 수 있다.
 
 #### 고급 템플릿 리터럴
 ```javascript
