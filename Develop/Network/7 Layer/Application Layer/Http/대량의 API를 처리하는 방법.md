@@ -423,6 +423,9 @@ Redis: 0.1ms × 1,000 = 100ms (0.1초)
   총 처리 시간: 1,000,000ms (10배 이상 차이!)
 ```
 
+> 이 계산에는 오류가 있다. 문서 맨 아래 **"위 예제를 그대로 쓰기 전에 — 실측으로 확인한 것들"** 절에서 바로잡았다.
+
+
 #### 3. 분산 락 (Distributed Lock)
 
 **동시성 제어:**
@@ -3292,7 +3295,7 @@ results[1][1] → undefined
 
 ### 그 밖에
 
-- `const db = await mysql.createPool({...})`는 CommonJS 모듈 최상위에서 `await`을 쓸 수 없어 SyntaxError다. `createPool`은 Promise를 반환하지도 않으므로 `await` 자체가 불필요하다.
+- `const db = await mysql.createPool({...})`의 최상위 `await`은 프로젝트 설정에 따라 갈린다. `.cjs` 확장자이거나 `package.json`에 `"type": "commonjs"`가 있으면 SyntaxError지만, `type` 필드가 없는 흔한 설정에서는 Node가 ESM으로 재파싱해 그냥 실행된다(v22.21.1에서 세 경우 모두 확인). 어느 쪽이든 `createPool`은 Promise를 반환하지 않으므로 `await` 자체가 불필요하다.
 - 피드 fanout은 팔로워 수만큼 파이프라인 명령을 만든다. 팔로워가 10만 명인 계정 하나가 글을 쓰면 명령 20만 개가 한 번에 나간다. 팔로워 수에 상한을 두고 그 이상은 조회 시점에 합치는(fanout on read) 방식으로 분리해야 한다.
 - `hasMore: posts.length === pageSize`는 마지막 페이지가 정확히 20건일 때 "다음 페이지 있음"으로 나온다. 한 페이지 더 요청해서 빈 결과를 받는 것으로 끝나지만, 무한 스크롤에서는 빈 화면이 한 번 깜빡인다. `pageSize + 1`을 조회해서 판단하는 편이 정확하다.
 
