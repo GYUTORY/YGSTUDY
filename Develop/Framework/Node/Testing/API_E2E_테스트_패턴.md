@@ -292,6 +292,57 @@ describe('User Management API E2E', () => {
 });
 ```
 
+#### `toMatchObject` + `arrayContaining` 은 생각보다 훨씬 헐겁다
+
+위 목록 조회 테스트는 통과해도 안심할 수 없다. 두 매처의 성질을 한 번에 보자.
+
+```javascript
+const body = {
+  users: [
+    { id: '1', name: 'Test', email: 't@e.com' },
+    { id: '2', name: 'Leak', email: 'l@e.com', password: '$2b$10$해시가그대로' },  // 유출
+    null,                                                                          // 깨진 원소
+  ],
+  pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+};
+
+expect(body).toMatchObject({
+  users: expect.arrayContaining([
+    expect.objectContaining({ id: expect.any(String), name: expect.any(String), email: expect.any(String) }),
+  ]),
+  pagination: { page: 1, limit: 10, total: expect.any(Number), totalPages: expect.any(Number) },
+});
+```
+
+```
+→ password 가 실려 있고 null 원소가 섞여 있어도 통과했다
+```
+
+(Jest 30.4.1)
+
+**`arrayContaining` 은 "하나라도 맞으면" 통과한다.** 나머지 원소가 비밀번호 해시를 달고 있든, `null` 이든 보지 않는다. `objectContaining` 도 마찬가지로 **적어둔 필드만** 확인한다. 응답 첫 줄에 있는 `expect(response.body.password).toBeUndefined()` 같은 방어가 목록 조회 쪽에는 없는 이유가 여기서 드러난다.
+
+```javascript
+const res = { id: '1', name: 'a', email: 'a@a.com', createdAt: 'x', password: '평문비밀번호' };
+expect(res).toMatchObject({ id: expect.any(String), name: 'a', email: 'a@a.com', createdAt: expect.any(String) });
+// → password 필드가 있어도 toMatchObject 는 통과했다
+```
+
+`pagination.total: expect.any(Number)` 도 **0 을 통과시킨다.** 목록이 비어 있어도 이 테스트는 초록불이다.
+
+그래서 "민감 필드가 안 나가는가"를 검증할 거라면 매처를 뒤집어야 한다.
+
+```javascript
+// 있으면 안 되는 것을 명시한다
+for (const u of response.body.users) {
+  expect(Object.keys(u).sort()).toEqual(['createdAt', 'email', 'id', 'name']);
+}
+// 또는 개수를 못 박는다
+expect(response.body.users).toHaveLength(3);
+```
+
+`toEqual` 로 키 집합 전체를 비교하면 **새 필드가 응답에 추가되는 순간 테스트가 깨진다.** 번거롭게 느껴지지만, 응답에 뭔가 새로 실리는 걸 알아채는 유일한 방법이기도 하다. 최소한 인증·개인정보가 걸린 엔드포인트에는 이 방식을 쓴다.
+
 ### 2. 인증/인가 플로우 테스트
 
 #### JWT 인증 플로우 테스트
@@ -550,6 +601,36 @@ describe('Authentication API E2E', () => {
   });
 });
 ```
+
+#### 429 테스트는 뒤따르는 테스트를 오염시킨다
+
+앞의 `should return 429 for too many login attempts` 는 자기 할 일은 하지만, **레이트 리미터의 카운터를 그대로 남긴다.** 리미터는 보통 IP 를 키로 잡는데, 테스트에서는 모든 요청이 같은 IP 다. 같은 앱 인스턴스로 이어지는 로그인 테스트는 전부 429 를 받는다.
+
+```javascript
+// 문서의 429 테스트와 같은 흐름
+for (let i = 0; i < 5; i++) await request(app).post('/api/auth/login').send({ password: 'wrong' });
+const r6 = await request(app).post('/api/auth/login').send({ password: 'wrong' });
+
+// 그 뒤에 오는 "정상 로그인" 테스트
+const ok = await request(app).post('/api/auth/login').send({ password: 'password123' });
+```
+
+```
+6번째 시도(429 기대):        429
+이어지는 정상 로그인(200 기대): 429 {}
+```
+
+(express-rate-limit 8.6.2)
+
+**정상 로그인이 429 로 실패한다.** 그리고 이 실패는 429 테스트 *다음에* 오는 테스트에서 나기 때문에, 사람들은 방금 고친 로그인 코드를 의심한다. 게다가 `describe` 순서를 바꾸거나 `.only` 로 하나만 돌리면 통과해서 "재현이 안 된다"가 된다.
+
+세 가지 중 하나로 푼다.
+
+- **리미터를 리셋한다** — `afterEach` 에서 `limiter.resetKey(ip)` 나 스토어 초기화를 부른다. 리미터 인스턴스에 접근할 수 있어야 한다.
+- **429 테스트만 IP 를 다르게 준다** — `.set('X-Forwarded-For', '10.9.9.9')`. 앱이 프록시 헤더를 신뢰하도록 설정돼 있어야 하는데, 그 설정 자체가 운영에서 위험할 수 있으니 테스트 전용 분기는 피한다.
+- **429 테스트를 별도 파일로 분리한다** — Jest 는 파일마다 모듈 레지스트리를 새로 만들므로 인메모리 상태가 초기화된다. 가장 손이 덜 간다.
+
+**"상태를 남기는 테스트"는 429 말고도 많다.** 계정 잠금, 중복 방지 키, 캐시 워밍, 큐에 넣은 작업이 전부 같은 부류다. E2E 를 짤 때는 이 테스트가 **서버 안에 무엇을 남기는가**를 한 번씩 생각해 본다. DB 만 정리하면 된다고 여기는 순간 이 부류를 놓친다.
 
 ### 3. 에러 케이스 테스트
 

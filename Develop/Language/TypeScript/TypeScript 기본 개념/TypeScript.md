@@ -111,6 +111,36 @@ function greet(name: string): string {
 // greet(123); // Error: Argument of type 'number' is not assignable to parameter of type 'string'
 ```
 
+**"컴파일 타임 검사"의 뒷면은 "런타임에는 아무것도 없다"이다.** 타입은 컴파일하면서 전부 지워진다. 아래는 같은 파일의 입력과 출력이다.
+
+```typescript
+// 입력
+interface User { id: number; name: string }
+type Role = 'admin' | 'user';
+
+function greet(user: User, role: Role): string {
+  return `${user.name} (${role})`;
+}
+
+const u = JSON.parse('{"id":1,"name":"a"}') as User;
+export default greet(u, 'admin');
+```
+
+```javascript
+// 출력 — tsc 가 만든 .js
+function greet(user, role) {
+    return `${user.name} (${role})`;
+}
+const u = JSON.parse('{"id":1,"name":"a"}');
+export default greet(u, 'admin');
+```
+
+`interface`·`type`·`as`·매개변수 타입이 통째로 사라지고 실행되는 코드만 남는다. 여기서 나오는 결론이 몇 가지 있고, 전부 실무에서 반복해서 걸린다.
+
+- **경계를 넘어 들어오는 값은 타입이 지켜 주지 않는다.** HTTP 응답, `JSON.parse`, `localStorage`, `process.env`, DB 드라이버가 준 행 — 전부 컴파일러가 본 적 없는 값이다. 그 자리에는 런타임 검증(zod·ajv 같은 스키마 검사나 직접 쓴 가드)이 따로 필요하다.
+- **타입으로 분기할 수 없다.** `if (x is User)` 같은 문법이 없는 이유다. 런타임에 남는 것은 `typeof`·`instanceof`·프로퍼티 존재 여부뿐이고, 그래서 판별 유니온에 `kind` 같은 **값**을 넣는다.
+- **타입은 성능에 영향을 주지 않는다.** 지워지므로 실행 코드가 늘지 않는다. 대신 `enum`·`namespace`·`class` 의 프로퍼티 초기화처럼 **코드를 생성하는** 문법은 예외다. 이 둘을 구분해 두면 "왜 이건 남고 저건 사라지지"에서 헤매지 않는다.
+
 #### 4. 점진적 타입 적용 (Gradual Typing)
 기존 JavaScript 프로젝트에 TypeScript를 점진적으로 도입할 수 있습니다.
 
@@ -192,6 +222,71 @@ function throwError(message: string): never {
     throw new Error(message);
 }
 ```
+
+이 목록에서 **`enum` 만 성격이 다르다.** 나머지는 전부 컴파일하면 사라지는데 `enum` 은 실제 자바스크립트 객체를 만들어 낸다. 위 `Color` 가 이렇게 나간다.
+
+```javascript
+var Color;
+(function (Color) {
+    Color["Red"] = "red";
+    Color["Green"] = "green";
+    Color["Blue"] = "blue";
+})(Color || (Color = {}));
+```
+
+숫자 enum 은 여기서 한 걸음 더 간다. **양방향 매핑을 만들려고 각 멤버를 두 번 대입한다.**
+
+```javascript
+Status[Status["Active"] = 0] = "Active";
+```
+
+그 결과가 실무에서 자주 걸린다.
+
+```javascript
+Object.keys(Status)   // ['0','1','2','Active','Inactive','Pending']  ← 멤버 3개인데 키 6개
+Object.keys(Color)    // ['Red','Green','Blue']                       ← 문자열 enum 은 3개
+Status[0]             // 'Active'   역방향 조회가 된다
+Color['red']          // undefined  문자열 enum 은 역방향이 없다
+```
+
+**숫자 enum 을 `Object.keys` 나 `for...in` 으로 순회하면 값이 두 배로 나온다.** 셀렉트 박스 옵션을 만들다가 항목이 두 배가 되는 사고가 여기서 나온다. 순회할 일이 있으면 문자열 enum 을 쓰거나 숫자 키를 걸러 낸다.
+
+```typescript
+Object.keys(Status).filter(k => isNaN(Number(k)));   // ['Active','Inactive','Pending']
+```
+
+enum 은 **명목적(nominal)으로 동작한다**는 점도 이 언어에서 드문 특성이다. 값이 같아도 다른 enum 끼리는 대입되지 않는다.
+
+```typescript
+enum A { X = 1 }
+enum B { X = 1 }
+const cross: A = B.X;   // error TS2322: Type 'B' is not assignable to type 'A'
+const n: A = 1;         // error TS2322: Type '1' is not assignable to type 'A'
+```
+
+구조적 타이핑이 기본인 TypeScript 에서 이것만 이름으로 판단한다. 값 실수를 막아 주지만, 라이브러리 경계를 넘나들 때는 같은 모양인데 대입이 안 돼 불편해진다.
+
+이런 특수성 때문에 **enum 대신 리터럴 유니온과 `as const` 객체를 쓰는 쪽이 요즘 더 흔하다.**
+
+```typescript
+const Color = { Red: 'red', Green: 'green', Blue: 'blue' } as const;
+type Color = typeof Color[keyof typeof Color];   // 'red' | 'green' | 'blue'
+```
+
+런타임 객체가 평범한 객체 하나뿐이라 `Object.keys` 가 예상대로 동작하고, 타입은 문자열 리터럴 유니온이라 JSON 으로 오간 값과도 그대로 맞는다. 반대로 enum 은 API 응답의 문자열을 받을 때 `as Color` 단언이 필요해진다.
+
+`const enum` 은 아예 인라인돼 런타임 객체를 만들지 않는다.
+
+```typescript
+const enum Direction { Up, Down }
+export const d = Direction.Up;
+```
+
+```javascript
+exports.d = 0 /* Direction.Up */;   // 객체 없이 값만 박힌다
+```
+
+번들 크기에는 유리하지만 **선언을 보지 않고는 값을 알 수 없어서** 파일 단위로 트랜스파일하는 도구(Babel, esbuild, SWC)와 잘 맞지 않는다. 그런 빌드 체인을 쓴다면 `const enum` 은 피한다.
 
 ##### 함수 타입 선언
 ```typescript
@@ -438,6 +533,34 @@ function processResponse(response: ApiResponse) {
 }
 ```
 
+**`as` 는 검증이 아니라 검사 포기 선언이다.** 위 `processResponse` 가 정확히 그 모양이다. 실제로 돌려 보면 이렇게 된다.
+
+```typescript
+interface User { id: number; name: string; roles: string[] }
+
+const raw = '{"id":1}';                  // name 도 roles 도 없는 응답
+const user = JSON.parse(raw) as User;    // 컴파일 오류 0건
+
+user.name;                // 타입은 string, 값은 undefined
+user.name.toUpperCase();  // TypeError: Cannot read properties of undefined
+```
+
+컴파일러는 `raw` 안에 뭐가 들었는지 볼 방법이 없다. `as User` 는 "확인했으니 믿어라"가 아니라 **"확인하지 않을 테니 따지지 마라"** 에 가깝다. 그래서 단언이 많은 코드는 타입이 있는데도 런타임 오류가 나고, 오류가 나는 자리는 단언한 곳이 아니라 **한참 뒤에 그 값을 쓰는 곳**이다.
+
+`as` 로도 못 넘는 벽이 하나 있는데, 그걸 넘는 관용구가 더 위험하다.
+
+```typescript
+const n = '1' as number;              // error TS2352: 충분히 겹치지 않는 타입
+const n2 = '1' as unknown as number;  // 통과
+
+n2 + 1;      // 타입은 number, 실행하면 '11' (문자열 이어붙이기)
+typeof n2;   // 'string'
+```
+
+`as unknown as X` 는 컴파일러가 "이건 아무리 봐도 아니다"라고 막은 것을 강제로 뚫는 문법이다. 테스트 목킹처럼 정당한 쓰임이 있긴 하지만, **애플리케이션 코드에 있으면 대개 타입 설계가 잘못됐다는 신호**다. 코드베이스에서 이 패턴을 grep 해 보는 것만으로 위험 지점 목록이 나온다.
+
+들어오는 값을 정말 믿고 싶으면 단언 대신 검사를 쓴다. 아래 타입 가드가 그 방법이다.
+
 **타입 가드 (Type Guard)**:
 타입 가드는 런타임에 타입을 검사하여 TypeScript의 타입 좁히기(Type Narrowing)를 수행합니다.
 
@@ -528,6 +651,63 @@ function move(pet: Fish | Bird) {
 | **안전성** | 개발자 책임 (위험) | 타입 검사로 안전 |
 | **사용 시기** | 타입을 확실히 알 때 | 타입을 확인해야 할 때 |
 | **권장 여부** | 최소한으로 사용 | 가능한 많이 사용 |
+
+**다만 "타입 가드니까 안전"은 절반만 맞다.** `pet is Fish` 라는 반환 타입은 컴파일러에게 좁혀 달라고 부탁하는 것이지, 함수 본문이 실제로 검사한다는 보장이 아니다. 아래는 오류 없이 컴파일된다.
+
+```typescript
+function isUser(o: unknown): o is User { return true; }
+
+const anything: unknown = 42;
+if (isUser(anything)) {
+  anything.roles;   // 타입은 string[], 값은 undefined
+}
+```
+
+**`is` 를 쓰는 순간 그 함수 본문이 새로운 신뢰 경계가 된다.** 컴파일러는 본문을 검증하지 않으므로 여기가 틀리면 그 뒤 모든 좁히기가 틀린다. 위 `isFish` 의 `(pet as Fish).swim !== undefined` 도 같은 부류다 — 단언으로 프로퍼티를 들여다보고 그 결과로 다시 단언을 만들어 낸다. 대상이 `Fish | Bird` 로 이미 좁혀진 자리에서는 괜찮지만, `unknown` 을 받는 자리에서 이 형태를 쓰면 `null` 하나에 무너진다.
+
+경계에서 쓸 가드는 이 정도까지는 확인해야 한다.
+
+```typescript
+function isUser(o: unknown): o is User {
+  return typeof o === 'object' && o !== null
+    && typeof (o as Record<string, unknown>).id === 'number'
+    && typeof (o as Record<string, unknown>).name === 'string';
+}
+```
+
+필드가 늘수록 이 코드는 길어지고, 타입 정의와 가드가 따로 놀기 시작한다(필드를 추가했는데 가드를 안 고치면 조용히 통과한다). 그래서 실무에서는 **스키마를 한 번 정의하고 타입과 검증기를 함께 얻는** 도구(zod 같은 것)를 쓴다. 판단 기준은 단순하다.
+
+| 상황 | 방법 |
+|---|---|
+| 이미 좁혀진 유니온을 더 좁힐 때 | `typeof` · `instanceof` · `in` · 판별 필드 |
+| 내가 만든 값의 모양을 확인할 때 | 직접 쓴 `is` 가드 |
+| 외부에서 들어온 값(HTTP·파일·환경변수) | 스키마 검증기. 타입과 검사를 한 곳에서 |
+| "확실히 안다"고 느낄 때 | 그 근거를 주석이 아니라 코드로 남긴다 |
+
+또 하나, 위 `isUser` 예제는 클래스라 `instanceof` 가 통하지만 **인터페이스는 런타임에 없다.** `obj instanceof User` 에서 `User` 가 인터페이스면 컴파일 자체가 안 된다. 클래스와 인터페이스가 이 지점에서 갈린다.
+
+**구조적 타이핑의 빈틈도 함께 봐야 한다.** 타입스크립트는 이름이 아니라 모양으로 판단하므로, 별칭을 나눠도 서로 대입된다.
+
+```typescript
+type UserId = string;
+type OrderId = string;
+
+function findUser(id: UserId) { /* ... */ }
+
+const oid: OrderId = 'order-1';
+findUser(oid);   // 오류 없음
+```
+
+ID 를 뒤바꿔 넘기는 사고를 타입으로 막고 싶으면 모양을 실제로 다르게 만들어야 한다. 흔한 방법이 브랜드 타입이다.
+
+```typescript
+type UserId = string & { readonly __brand: 'UserId' };
+type OrderId = string & { readonly __brand: 'OrderId' };
+
+findUser(oid);   // error TS2345: Type 'OrderId' is not assignable to parameter of type 'UserId'
+```
+
+`__brand` 는 런타임에 존재하지 않는 가짜 필드다. 값을 만들 때 단언이 한 번 필요해지는 대신, 그 뒤로는 컴파일러가 두 ID 를 구분한다. **타입 이름을 나누는 것과 타입을 나누는 것은 다르다**는 점이 요점이다.
 
 ```typescript
 // 나쁜 예: 타입 단언 남용

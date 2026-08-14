@@ -697,6 +697,90 @@ private String resolveClientIp(HttpServletRequest request) {
 
 Spring Boot에서는 `server.forward-headers-strategy=framework`를 설정하면 `ForwardedHeaderFilter`가 자동으로 처리해준다.
 
+#### 위 `resolveClientIp`는 공격자가 키를 고르게 해준다
+
+주석은 "신뢰할 수 있는 프록시 개수만큼 뒤에서부터 읽는 게 안전"이라고 되어 있는데, 코드는 그렇게 동작하지 않는다. `HttpServletRequest` 부분만 문자열로 바꿔 그대로 실행해봤다(JDK 11).
+
+```
+[신뢰 프록시 1대: 클라이언트 -> LB -> 서버]
+정상 클라이언트(XFF 안 보냄)   XFF="1.2.3.4"                    -> 1.2.3.4   (기대: 1.2.3.4)
+공격자가 XFF 를 하나 위조      XFF="9.9.9.9, 1.2.3.4"           -> 9.9.9.9   (기대: 1.2.3.4)  <== 어긋남
+공격자가 XFF 를 두 개 위조     XFF="8.8.8.8, 9.9.9.9, 1.2.3.4"  -> 9.9.9.9   (기대: 1.2.3.4)  <== 어긋남
+```
+
+`X-Forwarded-For`는 프록시가 **오른쪽에 덧붙인다.** 클라이언트가 아무것도 안 보내면 LB가 붙인 값 하나만 남아 `ips.length == 1`이 되고, `ips[0]`을 읽어 정답이 나온다. 그런데 클라이언트가 헤더를 하나만 위조해 보내면 `ips.length == 2`가 되고, 코드는 `ips[length - 2]` 즉 **공격자가 써넣은 값**을 반환한다.
+
+결과는 Rate Limiting 우회다. 매 요청마다 앞쪽 값만 바꾸면 키가 계속 달라진다.
+
+```
+요청 1: XFF="5.5.5.1, 1.2.3.4" -> 레이트리밋 키 = 5.5.5.1
+요청 2: XFF="5.5.5.2, 1.2.3.4" -> 레이트리밋 키 = 5.5.5.2
+요청 3: XFF="5.5.5.3, 1.2.3.4" -> 레이트리밋 키 = 5.5.5.3
+```
+
+한 대의 클라이언트가 무제한으로 요청할 수 있게 된다. 게다가 정직한 사용자의 IP를 위조해 넣으면 **그 사용자를 차단**시킬 수도 있다.
+
+규칙은 단순하다. **신뢰하는 프록시가 N대면 오른쪽에서 N번째 값을 읽는다.** LB 한 대면 맨 오른쪽이다.
+
+```java
+// 신뢰 프록시 대수를 설정으로 관리한다
+@Value("${app.trusted-proxy-count:1}")
+private int trustedProxyCount;
+
+private String resolveClientIp(HttpServletRequest request) {
+    String xff = request.getHeader("X-Forwarded-For");
+    if (xff == null || xff.isBlank()) {
+        return request.getRemoteAddr();
+    }
+    String[] ips = xff.split(",");
+    int idx = ips.length - trustedProxyCount;
+    if (idx < 0) {
+        // 위조로 항목이 부족한 경우 — 프록시가 붙인 값을 신뢰할 수 없다
+        return request.getRemoteAddr();
+    }
+    return ips[idx].trim();
+}
+```
+
+같은 값으로 확인해보면 인덱스가 이렇게 갈린다.
+
+```
+XFF = "9.9.9.9, 1.2.3.4, 10.0.0.5"
+  N=1 -> ips[len-1] = 10.0.0.5
+  N=2 -> ips[len-2] = 1.2.3.4
+```
+
+**N을 코드에 상수로 박지 않는다.** 앞단에 CDN을 붙이거나 LB를 이중화하면 그 수가 바뀌고, 바뀐 걸 모르면 조용히 잘못된 키를 쓰게 된다. 더 안전한 쪽은 애초에 직접 파싱하지 않고 `server.forward-headers-strategy`와 `ForwardedHeaderFilter`에 맡기는 것이다. 이 경우 신뢰 대역 설정은 프록시·서버 설정 한 곳에서 관리된다.
+
+고친 버전을 여러 입력에 돌려보면 아직 남는 게 보인다.
+
+```
+정상                 XFF="1.2.3.4"                -> 1.2.3.4
+빈 문자열              XFF=""                       -> 10.0.0.1   (remoteAddr 로 폴백)
+공백만                XFF="   "                    -> 10.0.0.1
+뒤에 콤마              XFF="1.2.3.4,"               -> 1.2.3.4
+연속 콤마              XFF="9.9.9.9,,1.2.3.4"       -> 1.2.3.4
+IPv6                XFF="2001:db8::1"            -> 2001:db8::1
+IPv6 대괄호+포트        XFF="[2001:db8::1]:1234"     -> [2001:db8::1]:1234
+포트가 붙은 IPv4        XFF="1.2.3.4:5678"           -> 1.2.3.4:5678
+unknown 토큰         XFF="unknown, 1.2.3.4"       -> 1.2.3.4
+```
+
+**포트가 붙어 오면 그 문자열이 그대로 키가 된다.** 같은 클라이언트인데 포트가 매번 달라지므로 요청마다 다른 키를 쓰게 되고, Rate Limiting이 사실상 무력화된다. 일부 프록시는 IPv4에도 포트를 붙인다. 값을 키로 쓰기 전에 정규화하고, 파싱에 실패하면 `remoteAddr`로 떨어뜨린다.
+
+`String.split(",")`의 동작도 알아둘 만하다. 자바는 뒤쪽의 빈 문자열을 버린다.
+
+```
+"".split(",").length                 = 1   (빈 문자열 한 개짜리 배열)
+"   ".split(",").length              = 1
+"1.2.3.4,".split(",").length         = 1   (뒤 콤마는 무시)
+"9.9.9.9,,1.2.3.4".split(",").length = 3   (중간 빈 값은 남는다)
+```
+
+빈 헤더에서 길이 0이 아니라 1이 나오므로 `isBlank()` 검사를 빼면 빈 문자열이 키가 된다. **모든 익명 요청이 같은 키를 공유하게 되어 한 명이 전체를 막는다.**
+
+IP 기반 Rate Limiting 자체의 한계도 같이 본다. 사무실이나 학교처럼 NAT 뒤에 있는 사용자는 전부 같은 IP라 한 사람이 한도를 소진하면 나머지가 막힌다. 로그인 이후 구간은 IP 대신 사용자 ID나 API 키를 키로 쓴다. IP는 로그인 전 경로(회원가입, 로그인 시도, 비밀번호 재설정)에만 쓰는 게 맞다.
+
 ### 429 응답 설계
 
 Rate Limit 초과 시 클라이언트에게 충분한 정보를 줘야 한다. `Retry-After` 헤더가 있으면 클라이언트가 재시도 타이밍을 잡기 쉽다.

@@ -103,6 +103,38 @@ import { sayHello } from './utils/helper';
 import { Button } from './components/Button';
 ```
 
+이 도구가 왜 필요한지는 **직접 돌려 보면 한 번에 이해된다.** 위 tsconfig 로 `tsc` 만 실행한 결과와 실행 결과다.
+
+```javascript
+// dist/index.js — tsc 만 실행
+const helper_1 = require("@utils/helper");
+```
+
+```
+$ node dist/index.js
+Error: Cannot find module '@utils/helper'
+```
+
+```javascript
+// dist/index.js — tsc-alias 실행 후
+const helper_1 = require("./utils/helper");
+```
+
+```
+$ node dist/index.js
+Hello TypeScript
+```
+
+**컴파일은 성공하는데 실행이 안 된다**는 게 핵심이다. `paths` 는 타입 검사기에게 "이 별칭이 어느 파일인지" 알려 줄 뿐이고, **`tsc` 는 import 문자열을 다시 쓰지 않는다.** 타입 검사와 모듈 해석이 분리돼 있어서 생기는 간극이라, 별도 도구 없이는 메워지지 않는다.
+
+그래서 `paths` 를 쓰는 순간 **런타임 쪽에도 같은 매핑을 알려 줄 장치가 반드시 필요해진다.** 선택지는 셋이다.
+
+- **번들러를 쓴다** — webpack·vite·esbuild 는 자체 alias 설정으로 해결한다. 번들링하는 프로젝트라면 `tsc-alias` 가 필요 없다.
+- **런타임 해석기를 쓴다** — `tsconfig-paths` 를 `node -r tsconfig-paths/register` 로 물린다. 실행 시점에 해석하므로 산출물은 별칭 그대로 남는다.
+- **컴파일 후 산출물을 고친다** — `tsc-alias` 가 이쪽이다. 산출물이 순수 상대 경로가 되므로 실행할 때 추가 의존성이 없다. **라이브러리를 배포할 때는 이 방식이어야 한다.** 소비자에게 `tsconfig-paths` 를 깔라고 요구할 수 없기 때문이다.
+
+위 "컴파일 후" 예시가 `import` 구문인 점은 짚어 둘 만하다. tsconfig 가 `"module": "CommonJS"` 이므로 실제 산출물은 `require(...)` 다. `import` 형태로 남으려면 `"module"` 이 `ESNext`·`ES2020` 계열이어야 한다.
+
 ### 3. tsc-alias 실행 방법
 
 #### 기본 실행
@@ -131,6 +163,30 @@ npx tsc-alias --outDir ./dist --project ./tsconfig.json
 # 파일 확장자 지정
 npx tsc-alias --extensions .js,.mjs
 ```
+
+**위 세 줄 중 실제로 있는 옵션은 `--verbose` 와 `--outDir` · `--project` 뿐이다.** tsc-alias 1.8.10 에서 나머지는 전부 거부된다.
+
+```
+$ npx tsc-alias --config ./tsconfig.json
+error: unknown option '--config ./tsconfig.json'
+
+$ npx tsc-alias --extensions .js,.mjs
+error: unknown option '--extensions .js,.mjs'
+```
+
+실제 옵션 목록은 이렇다(`tsc-alias --help`).
+
+| 문서에 적힌 것 | 실제 |
+|---|---|
+| `--config <file>` | `-p, --project <file>` |
+| `--extensions .js,.mjs` | `--outputcheck <extensions...>` |
+| `--check` | 없음 |
+| `--files <path>` | `--inputglob <glob>` |
+| `--verbose` · `--debug` · `--outDir` · `--project` | 그대로 있음 |
+
+이 밖에 `-w, --watch`(변경 감시), `-f, --resolve-full-paths`(확장자까지 붙여 완전 경로로 해석), `-r, --replacer`(사용자 정의 치환기)가 있다. `--resolve-full-paths` 는 **ESM 산출물에서 특히 중요하다.** Node 의 ESM 로더는 확장자 생략을 허용하지 않으므로 `./utils/helper` 로는 실행되지 않고 `./utils/helper.js` 여야 한다.
+
+옵션 이름은 버전에 따라 달라지니 **`--help` 로 확인하는 습관이 문서를 믿는 것보다 안전하다.**
 
 ## 예시
 
@@ -312,6 +368,37 @@ jobs:
 }
 ```
 
+**이 모노레포 설정은 그대로 쓰면 컴파일되지 않는다.** 같은 구조를 만들어 돌려 보면 두 단계로 막힌다.
+
+첫째, **`../../` 의 깊이가 모자란다.** `baseUrl` 이 `./src` 이므로 상대 경로의 기준점은 패키지 루트가 아니라 `src` 안이다. `apps/web/src` 에서 두 단계만 올라가면 `apps/` 이고, 거기에는 `packages/` 가 없다.
+
+```
+error TS2307: Cannot find module '@shared/index' or its corresponding type declarations.
+```
+
+`../../../` 로 한 단계 더 올라가야 한다. **`baseUrl` 이 `src` 인지 패키지 루트인지에 따라 필요한 `../` 개수가 달라진다** — `paths` 를 복사해 쓸 때 가장 자주 어긋나는 지점이다.
+
+둘째, 깊이를 고쳐도 다음 에러가 기다린다.
+
+```
+error TS6059: File '.../packages/shared/src/index.ts' is not under 'rootDir' '.../apps/web/src'.
+             'rootDir' is expected to contain all source files.
+```
+
+`paths` 로 **다른 패키지의 소스 파일을 직접 가리켰기 때문**이다. `tsc` 는 그 파일도 컴파일 대상으로 끌어들이는데 `rootDir` 밖이라 출력 위치를 정할 수 없다.
+
+여기서 `rootDir` 을 지우는 것이 흔한 "해결책"인데, **이게 배포를 깨뜨린다.** `rootDir` 이 없으면 `tsc` 가 포함된 모든 파일의 공통 조상을 스스로 계산하고, 그만큼 출력 트리가 깊어진다.
+
+```
+rootDir 있을 때 : dist/index.js
+rootDir 지웠을 때: dist/apps/web/src/index.js
+                   dist/packages/shared/src/index.js
+```
+
+`package.json` 의 `main` 이 `dist/index.js` 를 가리키고 있으면 **빌드는 성공하고 실행만 `MODULE_NOT_FOUND` 로 죽는다.** `tsc --noEmit` 으로는 절대 안 잡힌다 — 파일을 내보내지 않으니 트리가 어떻게 생겼는지 알 수 없기 때문이다. 빌드 후 `find dist -name '*.js'` 로 실제 산출물 위치를 확인해야 한다.
+
+제대로 된 해법은 **다른 패키지의 소스를 `paths` 로 가리키지 않는 것**이다. 위 설정에 이미 `references` 가 있으니 프로젝트 참조를 쓰면 된다. 각 패키지를 독립적으로 빌드하고, 소비하는 쪽은 `paths` 대신 패키지 이름(`@my-monorepo/shared`)으로 import 해서 `node_modules` 심볼릭 링크를 통해 **빌드된 `dist` 와 `.d.ts`** 를 참조한다. 그러면 `rootDir` 도 지킬 수 있고 패키지 경계도 유지된다.
+
 ## 운영 팁
 
 ### 성능 최적화
@@ -387,6 +474,36 @@ npx tsc-alias --files src/index.ts
   }
 }
 ```
+
+**"잘못된 설정"으로 표시된 쪽은 잘못되지 않았다.** 실제로 만들어 컴파일하고 실행해 보면 위쪽과 똑같이 동작한다.
+
+```
+$ tsc -p tsconfig.alt.json && tsc-alias -p tsconfig.alt.json
+$ cat dist2/index.js
+const helper_1 = require("./utils/helper");
+$ node dist2/index.js
+Hello TypeScript
+```
+
+`baseUrl` 은 `paths` 의 기준점을 정할 뿐이다. `baseUrl: "./"` + `["src/*"]` 와 `baseUrl: "./src"` + `["*"]` 는 **같은 위치를 가리키는 두 가지 표기**이고 중복이 아니다. 오히려 전자가 널리 쓰인다 — `tsconfig.json` 이 프로젝트 루트에 있으니 기준점이 루트인 편이 읽기 쉽고, `src` 밖의 디렉터리(`tests/`·`scripts/`)에도 별칭을 붙일 수 있기 때문이다.
+
+진짜 "잘못된 설정"은 다른 데 있다. **이 문서 맨 앞 tsconfig 의 `"@types/*": ["types/*"]` 는 절대 동작하지 않는다.**
+
+```typescript
+import { User } from '@types/user';
+// error TS6137: Cannot import type declaration files.
+//              Consider importing 'user' instead of '@types/user'.
+```
+
+TypeScript 는 `@types/` 로 시작하는 import 를 **DefinitelyTyped 타입 선언 패키지**로 간주하고 값 import 를 거부한다. `paths` 로 뭘 매핑하든 이 판정이 먼저다. `@types` 는 예약된 이름이라 별칭으로 쓸 수 없으니 `@t/*` 나 `@models/*` 처럼 다른 접두어를 쓴다.
+
+별칭을 정할 때 피해야 할 이름을 정리하면 이렇다.
+
+- **`@types/*`** — 위 이유로 사용 불가
+- **`@` 로 시작하되 실제 npm 스코프와 겹치는 이름** — `@babel/*`·`@aws-sdk/*` 등. 별칭이 이기면 진짜 패키지를 못 찾고, 반대면 별칭이 안 먹는다
+- **`node_modules` 의 패키지 이름과 같은 접두어 없는 별칭** — `utils/*` 처럼 `@` 를 뗀 형태는 실제 `utils` 패키지와 충돌한다
+
+`@` 접두어를 붙이되 **널리 쓰이는 스코프가 아닌 이름**을 고르는 것이 안전하다.
 
 ## 참고
 

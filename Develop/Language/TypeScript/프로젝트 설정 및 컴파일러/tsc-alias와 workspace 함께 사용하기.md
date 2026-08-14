@@ -77,6 +77,29 @@ const formatDate = require("./utils/date");
 const User = require("./types/user");
 ```
 
+변환 전후는 실제로 이렇게 동작한다. 다만 **`@types/*` 별칭만은 여기까지 오지도 못한다.**
+
+```typescript
+import { User } from '@types/user';
+// error TS6137: Cannot import type declaration files.
+//              Consider importing 'user' instead of '@types/user'.
+```
+
+TypeScript 는 `@types/` 로 시작하는 import 를 **DefinitelyTyped 타입 선언 패키지**로 판정하고 값 import 를 거부한다. `paths` 에 뭘 적든 이 판정이 먼저라 매핑이 적용되지 않는다. `@types` 는 예약된 이름이므로 `@t/*` 나 `@models/*` 같은 다른 접두어를 쓴다.
+
+그리고 `const User = require("./types/user")` 라는 변환 결과 자체가 성립하지 않는다. `User` 는 **인터페이스라 컴파일하면 완전히 사라진다.** 타입만 import 하는 구문은 산출물에 `require` 를 남기지 않는다.
+
+```typescript
+// 컴파일 전
+import { User } from './types/user';
+const u: User = { id: 1 };
+
+// 컴파일 후 — import 문이 통째로 사라진다
+const u = { id: 1 };
+```
+
+이걸 **import elision** 이라 한다. TypeScript 가 "이 import 에서 값으로 쓰이는 게 하나도 없다"고 판단하면 구문 전체를 지운다. 그래서 타입만 들어 있는 모듈은 `tsc-alias` 가 고칠 대상 자체가 없다. 반대로 부수 효과를 위해 import 한 모듈이 값으로 안 쓰이면 **의도치 않게 지워지는** 문제도 여기서 나온다 — 그때는 `import './polyfill'` 처럼 바인딩 없이 쓰거나 `verbatimModuleSyntax` 를 켠다.
+
 ### 2. workspace 기본 사용법
 
 #### pnpm workspace 설정
@@ -188,6 +211,41 @@ my-monorepo/
   "exclude": ["node_modules", "dist"]
 }
 ```
+
+위 `apps/web/tsconfig.json` 은 그대로 쓰면 컴파일되지 않는다. 같은 구조를 만들어 확인한 결과 두 단계로 막힌다.
+
+**첫째, `../../` 의 깊이가 모자라다.** `baseUrl` 이 `./src` 이므로 상대 경로 기준점은 패키지 루트가 아니라 `apps/web/src` 다. 두 단계 올라가면 `apps/` 이고 거기엔 `packages/` 가 없다.
+
+```
+error TS2307: Cannot find module '@shared/index' or its corresponding type declarations.
+```
+
+`../../../` 이어야 한다. **`baseUrl` 을 `./src` 로 두느냐 `./` 로 두느냐에 따라 필요한 `../` 개수가 달라진다** — `paths` 를 다른 패키지에서 복사할 때 가장 자주 어긋나는 지점이다.
+
+**둘째, 깊이를 고치면 `rootDir` 이 막는다.**
+
+```
+error TS6059: File '.../packages/shared/src/index.ts' is not under 'rootDir' '.../apps/web/src'.
+```
+
+`paths` 가 다른 패키지의 **소스 파일**을 직접 가리키므로 `tsc` 가 그 파일까지 컴파일 대상으로 끌어들이는데, `rootDir` 밖이라 출력 위치를 정할 수 없다.
+
+여기서 `rootDir` 을 지우는 것이 흔한 대응이고, **그게 배포를 깨뜨린다.** `rootDir` 이 없으면 `tsc` 가 포함된 모든 파일의 공통 조상을 계산해 출력 트리가 그만큼 깊어진다.
+
+```
+rootDir 있을 때 : dist/index.js
+rootDir 지웠을 때: dist/apps/web/src/index.js
+                   dist/packages/shared/src/index.js
+```
+
+`package.json` 의 `main` 이 `dist/index.js` 를 가리키면 **빌드는 통과하고 실행만 `MODULE_NOT_FOUND` 로 죽는다.** `tsc --noEmit` 은 파일을 내보내지 않으므로 이걸 잡지 못한다. 빌드 뒤 `find dist -name '*.js'` 로 실제 위치를 확인해야 한다.
+
+**근본 원인은 같은 의존성을 두 방식으로 선언한 것**이다. 아래 `package.json` 은 `"@my-monorepo/shared": "workspace:*"` 로 패키지 의존성을 선언하는데, `tsconfig.json` 의 `paths` 는 그 패키지의 소스를 직접 가리킨다. 둘 중 하나만 써야 한다.
+
+- **`paths` 로 소스 직접 참조** — 빌드 없이 즉시 반영돼 개발이 빠르지만, 위 `rootDir` 문제가 따라오고 패키지 경계가 사라진다. 소비하는 쪽이 공유 패키지 전체를 매번 다시 컴파일한다.
+- **패키지 이름으로 import** — `import { User } from '@my-monorepo/shared'`. `node_modules` 심볼릭 링크를 통해 **빌드된 `dist` 와 `.d.ts`** 를 참조하므로 `rootDir` 을 지킬 수 있고 경계도 유지된다. 대신 공유 패키지를 먼저 빌드해야 한다.
+
+모노레포에서는 **후자가 기본**이고, 빌드 순서는 아래 "빌드 순서 최적화"처럼 수동으로 맞추는 대신 프로젝트 참조(`references`)나 turborepo·nx 같은 도구에 맡긴다.
 
 #### 패키지 간 의존성 설정
 ```json
@@ -421,6 +479,37 @@ export const UserList: React.FC = () => {
     );
 };
 ```
+
+첫 import 줄이 이 문서의 앞선 파일 구조와 맞지 않는다.
+
+```typescript
+import { User, validateUser, API_ENDPOINTS } from '@shared/types/user';
+```
+
+세 심볼이 **서로 다른 파일에 정의돼 있다.** 위 "공유 패키지 구현" 절을 보면 이렇다.
+
+| 심볼 | 실제 위치 |
+|---|---|
+| `User` | `packages/shared/src/types/user.ts` |
+| `validateUser` | `packages/shared/src/utils/validation.ts` |
+| `API_ENDPOINTS` | `packages/shared/src/constants/api.ts` |
+
+`@shared/types/user` 하나에서 셋을 다 가져올 수 없다. 세 줄로 나누거나, 공유 패키지에 배럴 파일(`packages/shared/src/index.ts`)을 두고 거기서 재수출한 뒤 패키지 이름으로 한 번에 가져오는 편이 낫다.
+
+```typescript
+// packages/shared/src/index.ts
+export * from './types/user';
+export * from './utils/validation';
+export * from './constants/api';
+```
+
+```typescript
+import { User, validateUser, API_ENDPOINTS } from '@my-monorepo/shared';
+```
+
+배럴 파일에는 대가가 있다. **하나만 import 해도 배럴이 재수출하는 모듈 전체가 로드된다.** 번들러의 트리 셰이킹이 걷어내 주기를 기대하지만, 부수 효과가 있는 모듈이 섞여 있으면 걷어내지 못한다. 서버 사이드 코드에서는 시작 시간이, 프런트에서는 번들 크기가 늘어난다. 공개 API 경계에만 두고 패키지 내부에서는 직접 경로로 import 하는 것이 절충안이다.
+
+`data.filter(validateUser)` 는 잘 쓴 부분이다. `validateUser` 가 `user is User` 술어라서 `filter` 결과가 `any[]` 가 아니라 `User[]` 로 좁혀진다. 다만 그 술어 본문이 `createdAt` 을 검사하지 않으므로 **`User` 라고 선언해 놓고 `createdAt` 이 없는 객체가 통과한다.** 술어는 컴파일러가 내용을 검증해 주지 않는다는 점을 여기서도 기억해야 한다.
 
 ### 2. 고급 패턴
 

@@ -548,6 +548,44 @@ public RequestContextListener requestContextListener() {
 }
 ```
 
+##### 방법 2를 스레드 풀에 쓰면 남의 토큰이 실려 나간다
+
+주석은 `InheritableThreadLocal`이라고 하는데 코드는 `RequestContextListener` 등록이라 서로 다른 얘기다. 그리고 `InheritableThreadLocal` 자체가 이 문제의 해법이 못 된다. **상속은 스레드를 만드는 순간 한 번만 일어나기 때문이다.** JDK 11에서 확인했다.
+
+```
+  새 Thread: req-AAA                          ← 직접 만든 스레드는 상속된다
+
+[요청1] CTX=req-111 상태에서 첫 제출 (이때 풀 스레드가 생성됨)
+  풀이 본 값: req-111
+[요청2] CTX=req-222 로 바꾼 뒤 다시 제출 (풀 스레드는 재사용)
+  풀이 본 값: req-111   <- 요청1 의 값이 그대로
+[요청3] CTX 를 지운 뒤 제출
+  풀이 본 값: req-111   <- 여전히 남아 있다
+```
+
+풀 스레드는 **처음 생성될 때 있던 값을 계속 들고 있다.** 이후 요청이 값을 바꾸든 지우든 반영되지 않는다. 이걸 토큰 릴레이에 쓰면 요청 2의 Feign 호출이 요청 1의 `Authorization` 헤더를 달고 나간다. 다른 사용자의 권한으로 내부 서비스를 호출하는 셈이라, 잘못된 데이터가 조회되거나 없어야 할 권한이 통과한다.
+
+증상이 조용하다는 게 특히 나쁘다. 예외가 안 나고, 토큰이 유효하기 때문에 인증도 통과한다. 부하가 낮으면 풀 스레드가 요청마다 새로 만들어지다시피 해서 재현도 안 된다.
+
+컨텍스트는 상속에 기대지 말고 **작업을 제출할 때 명시적으로 옮긴다.**
+
+```java
+// 제출 시점에 값을 캡처해서 작업 안에서 복원하고, 끝나면 반드시 정리한다
+String token = currentToken();
+executor.submit(() -> {
+    TokenHolder.set(token);
+    try {
+        return feignClient.call();
+    } finally {
+        TokenHolder.clear();   // 이 줄이 없으면 다음 작업이 이 값을 본다
+    }
+});
+```
+
+Spring이 제공하는 `DelegatingSecurityContextExecutor`나 `TaskDecorator`가 이 캡처-복원-정리를 대신해준다. 직접 `InheritableThreadLocal`을 도입하기 전에 그쪽을 먼저 본다.
+
+`RequestContextHolder` 자체에도 같은 성질이 있다. 비동기 스레드에서 값을 읽으려면 `RequestContextHolder.setRequestAttributes(attrs, true)`처럼 상속 가능 모드로 넣어야 하는데, 이 역시 스레드 풀에서는 위와 같은 함정을 그대로 갖는다. 그리고 원 요청이 끝나면 `ServletRequest`가 재활용될 수 있어, 비동기 작업이 늦게 읽으면 이미 다른 요청의 것일 수 있다. **비동기로 넘길 때는 요청 객체가 아니라 필요한 값만 복사해서 넘긴다.**
+
 #### 타임아웃과 재시도 설정
 
 Feign, Resilience4j, Spring Cloud LoadBalancer 각각에 타임아웃 설정이 있다. 어디에 걸리는지 모르면 디버깅이 힘들다.

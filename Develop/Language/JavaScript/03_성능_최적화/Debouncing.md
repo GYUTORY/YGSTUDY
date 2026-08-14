@@ -232,6 +232,46 @@ const suggestionsContainer = document.getElementById('suggestions');
 const autocomplete = new SearchAutocomplete(searchInput, suggestionsContainer);
 ```
 
+디바운스는 **요청 수를 줄일 뿐 순서를 보장하지 않는다.** 타이핑을 잠깐 멈췄다가 이어 치면 요청 두 개가 모두 나가고, 늦게 보낸 것이 먼저 도착할 수 있다.
+
+```
+화면 표시: 서울시 결과     ← 나중에 보낸 요청이 먼저 왔다
+화면 표시: 서울 결과       ← 먼저 보낸 요청이 뒤늦게 도착해 덮어썼다
+최종 화면 = 서울 결과       (마지막에 입력한 것은 '서울시')
+```
+
+`displaySuggestions` 가 도착 순서대로 화면을 갈아치우기 때문에 **마지막에 도착한 낡은 응답**이 남는다. 사용자에게는 검색어와 결과가 안 맞는 것으로 보이고, 재현이 네트워크 상황에 달려 있어 개발 중에는 거의 안 나타난다.
+
+디바운스 시간을 늘려도 해결되지 않는다. 두 요청이 모두 나가는 상황 자체를 막지 못하기 때문이다. 필요한 것은 **취소** 아니면 **순번 확인**이다.
+
+```javascript
+// 1) 이전 요청을 취소한다
+let controller;
+async function performSearch(query) {
+  controller?.abort();
+  controller = new AbortController();
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    this.displaySuggestions(await res.json());
+  } catch (e) {
+    if (e.name !== 'AbortError') throw e;   // 취소는 에러가 아니다
+  }
+}
+
+// 2) 취소할 수 없는 API 라면 순번을 붙여 늦게 온 것을 버린다
+let seq = 0;
+async function performSearch(query) {
+  const mine = ++seq;
+  const results = await this.searchAPI(query);
+  if (mine !== seq) return;                 // 그 사이 새 요청이 나갔으면 폐기
+  this.displaySuggestions(results);
+}
+```
+
+`AbortError` 를 일반 에러와 함께 잡아 `showError()` 를 부르면, 정상 취소마다 "검색 중 오류가 발생했습니다"가 뜬다. 취소는 에러 처리에서 걸러야 한다.
+
+같은 문제가 아래 `FormValidator` 에도 있다. `input` 은 500ms 디바운스인데 `blur` 는 `validateField` 를 **곧바로** 부른다. 입력하다 바로 다른 칸으로 옮기면 즉시 검증이 먼저 돌고, 대기 중이던 디바운스가 그 뒤에 옛 값으로 다시 돌아 방금 띄운 결과를 덮는다. 즉시 검증 쪽에서 `debouncedValidate.cancel()` 을 먼저 불러야 한다 — 그러려면 디바운스 함수가 `cancel` 을 제공해야 하고, 이 문서의 기본 `debounce` 에는 그게 없다.
+
 #### 폼 검증
 ```javascript
 // 폼 검증 컴포넌트
@@ -440,6 +480,39 @@ const saveHandler = debounceManager.debounce('save', (data) => {
 searchHandler('검색어');
 saveHandler({ user: 'data' });
 ```
+
+`maxWait` 를 준 `saveHandler` 는 **첫 호출부터 디바운스를 건너뛴다.**
+
+```
+저장 실행! 호출 후 1ms
+```
+
+`lastCallTime` 이 `0` 으로 시작하기 때문이다. 첫 호출에서 `timeSinceLastCall = Date.now() - 0` 은 1조가 넘는 값이고, `timeSinceLastCall >= maxWait` 가 당연히 참이라 곧바로 `func` 를 부르고 `return` 한다. "최대 5초까지는 미뤄도 된다"는 옵션이 "무조건 즉시 실행"으로 뒤집혔다.
+
+자동 저장에 붙였다면 편집을 시작하자마자 첫 저장 요청이 나간다. 두 번째 호출부터는 정상이라, 로그를 보면 첫 줄만 이상하고 나머지는 멀쩡해서 넘어가기 쉽다.
+
+`lastCallTime` 을 `0` 이 아니라 첫 호출 시각으로 초기화하거나, `maxWait` 판정 앞에 "대기 중인 타이머가 있을 때만"이라는 조건을 넣어야 한다. **`Date.now() - 0` 은 언제나 거대한 수**라는 것이 이 부류 버그의 공통점이다.
+
+`DebounceManager.debounce` 에도 함정이 있다. 같은 `key` 로 다시 부르면 **인자로 준 함수와 delay 를 통째로 무시하고** 처음 등록한 것을 돌려준다.
+
+```javascript
+const h1 = manager.debounce('search', () => console.log('첫 번째'), 300);
+const h2 = manager.debounce('search', () => console.log('두 번째'), 300);
+
+h2();            // '첫 번째'  ← 새로 준 함수가 아니다
+h1 === h2;       // true
+```
+
+컴포넌트가 다시 마운트되면서 새 클로저(새 상태를 참조하는)로 등록하면 옛 클로저가 계속 살아 있는다. 화면은 갱신됐는데 저장되는 값은 예전 것인 상황이 여기서 나온다. 캐시가 목적이라면 최소한 함수와 delay 가 같은지 확인하거나, 키에 그 정보를 포함해야 한다.
+
+`debounceWithLogging` 은 `func.apply(this, args)` 가 아니라 `func(...args)` 를 쓴다. **`this` 가 사라진다.**
+
+```javascript
+const obj = { name: 'OBJ', run: debounceWithLogging(function () { console.log(this?.name); }, 10) };
+obj.run();   // undefined
+```
+
+디버깅용 래퍼를 잠깐 끼웠을 뿐인데 동작이 달라진다. 래퍼는 원본과 호출 규약이 같아야 한다 — `this` 와 인자를 그대로 넘기고, 반환값도 돌려준다.
 
 ## 운영 팁
 

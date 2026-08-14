@@ -1134,3 +1134,133 @@ grpcurl -plaintext -d '{"id": "1"}' localhost:5000 hero.HeroService/FindOne
 ```
 
 NestJS에서 gRPC 리플렉션을 활성화하려면 `@grpc/reflection` 패키지를 써야 한다. NestJS 내장 gRPC 모듈이 직접 지원하지 않아서 별도 설정이 필요하다.
+
+
+## 실측으로 바로잡는 부분
+
+아래는 `@grpc/grpc-js` 1.14.4 + `@grpc/proto-loader` 0.8.1로 실제 서버와 클라이언트를 띄워 확인한 것이다.
+
+### 데드라인은 메타데이터로 설정되지 않는다
+
+위 "타임아웃" 절의 두 번째 방법은 동작하지 않는다. 서버가 3초 지연하도록 만들어 두고, 500ms 데드라인을 두 방식으로 걸어봤다.
+
+```
+metadata.set('deadline')  →  3015ms 걸림, 에러 없음, 응답 정상 수신
+options.deadline          →   501ms 만에 DEADLINE_EXCEEDED(4)
+```
+
+`Metadata`는 HTTP/2 헤더에 그대로 실리는 키-값일 뿐이다. `deadline`이라는 이름을 붙여도 gRPC 런타임은 그걸 데드라인으로 해석하지 않는다. 그냥 `deadline`이라는 이름의 헤더 하나가 서버로 전달될 뿐이고, **타임아웃은 전혀 걸리지 않는다.** 데드라인은 메타데이터가 아니라 호출 옵션(`CallOptions`)이다.
+
+```javascript
+client.FindOne({ id: '1' }, metadata, { deadline: Date.now() + 3000 }, cb);
+```
+
+NestJS의 `ClientGrpc.getService()`가 만들어 주는 스텁은 `(request, metadata, options)` 형태로 인자를 받는다. 세 번째 자리에 옵션을 넘긴다.
+
+```typescript
+return lastValueFrom(
+  this.heroService.findOne({ id: heroId }, metadata, { deadline: Date.now() + 3000 }),
+);
+```
+
+앞에 나온 RxJS `timeout(3000)`과는 성격이 다르다. `timeout()`은 **클라이언트 쪽에서 구독을 끊을 뿐** 서버는 계속 일한다. `deadline`은 gRPC 프로토콜 차원의 취소라 서버 핸들러의 `call.cancelled`가 켜지고, 그 서버가 또 다른 서비스를 부르고 있었다면 데드라인이 그 호출까지 전파된다. 호출 체인이 길면 이 차이가 크다. 둘 다 걸어두되 데드라인을 주 수단으로 삼는다.
+
+### 기본 설정에서 `int64`는 문자열이 아니라 `Long` 객체다
+
+타입 매핑 표는 `int64` → `string`이라고 적고 있는데, 그건 `longs: String`을 지정했을 때다. 같은 값을 옵션만 바꿔가며 받아봤다.
+
+```
+기본(옵션 없음)   => {"low":1,"high":2097152,"unsigned":false}   typeof object, ctor Long
+longs: String    => "9007199254740993"                          typeof string
+longs: Number    => 9007199254740992                            typeof number  ← 값이 바뀌었다
+```
+
+기본값으로 두면 응답 객체에 `Long` 인스턴스가 들어간다. 그대로 `JSON.stringify` 하면 `{"low":...,"high":...}`가 API 응답으로 나간다. `longs: Number`는 더 나쁘다 — `9007199254740993`이 `9007199254740992`로 조용히 바뀐다(`Number.MAX_SAFE_INTEGER`가 `9007199254740991`이다).
+
+그리고 NestJS는 `loader` 옵션에 기본값을 채워주지 않는다. `@nestjs/microservices` 11.1.29의 `helpers/grpc-helpers.js:16`을 보면 `loadSync(file, options['loader'])`로 받은 값을 그대로 넘긴다. **`loader`를 안 적으면 proto-loader 기본값이 적용된다.** 명시하는 편이 안전하다.
+
+```typescript
+options: {
+  package: 'hero',
+  protoPath: '...',
+  loader: { longs: String, enums: String, defaults: true, oneofs: true, keepCase: false },
+}
+```
+
+`enums`도 같다. 인터페이스에 `status: number`라고 적어뒀지만 `enums: String`을 주면 문자열로 온다. 코드 생성 스크립트에는 `--enums=String`을 쓰고 런타임 loader에는 안 적으면 **생성된 타입과 실제 값이 어긋난다.** 두 곳의 옵션을 같은 값으로 맞춘다.
+
+### snake_case로 응답을 채우면 필드가 조용히 사라진다
+
+"snake_case vs camelCase" 절의 경고가 실제로 어떻게 나타나는지 확인했다. proto에 `int64 created_at = 4;`로 정의하고, 서버 핸들러가 `created_at`이라는 키로 값을 채웠다.
+
+```
+서버가 보낸 객체: { id: '1', name: 'n', created_at: '12345' }
+클라이언트 수신 : {"id":"1","name":"n"}
+```
+
+**에러가 나지 않는다.** `keepCase: false`(기본값)에서 직렬화기가 찾는 키는 `createdAt`이라, `created_at`은 그냥 모르는 속성으로 무시된다. 필드가 빠진 채로 전송되고 수신 측에서는 `undefined`가 된다. 서버 코드에서 오타 하나로 필드가 통째로 사라져도 아무도 알려주지 않는다는 뜻이다.
+
+proto 정의는 snake_case로 쓰고 **JS 코드에서는 항상 camelCase로 다룬다.** 팀이 `keepCase: true`를 택했다면 반대로 전부 snake_case로 통일한다. 어느 쪽이든 응답 DTO에 필수 필드가 채워졌는지 확인하는 테스트가 있어야 이 부류가 잡힌다.
+
+### 상태 코드 표에 두 개가 빠졌다
+
+`@grpc/grpc-js`의 `status` enum을 그대로 찍으면 17개다.
+
+```
+0=OK 1=CANCELLED 2=UNKNOWN 3=INVALID_ARGUMENT 4=DEADLINE_EXCEEDED 5=NOT_FOUND
+6=ALREADY_EXISTS 7=PERMISSION_DENIED 8=RESOURCE_EXHAUSTED 9=FAILED_PRECONDITION
+10=ABORTED 11=OUT_OF_RANGE 12=UNIMPLEMENTED 13=INTERNAL 14=UNAVAILABLE
+15=DATA_LOSS 16=UNAUTHENTICATED
+```
+
+위 표에는 `11=OUT_OF_RANGE`와 `15=DATA_LOSS`가 없다. `GRPC_TO_HTTP` 매핑에도 빠져 있어서 두 코드는 500으로 떨어진다. `OUT_OF_RANGE`는 페이지네이션 범위 초과에 쓰이므로 400 쪽이 맞다.
+
+### `@Catch()`가 HTTP 예외까지 잡아서 전부 500으로 만든다
+
+`GrpcToHttpExceptionFilter`는 `@Catch()`를 인자 없이 선언했다. 이러면 **모든 예외**를 잡는다. 그런데 `catch()`는 `error.code`로만 매핑을 찾는다. NestJS의 `HttpException`에는 `code`가 없다.
+
+```
+gRPC NOT_FOUND        → HTTP 404
+NestJS BadRequest     → HTTP 500   (원래 의도: 400)
+NestJS NotFound       → HTTP 500   (원래 의도: 404)
+Node ECONNREFUSED     → HTTP 500
+```
+
+이 필터를 붙인 컨트롤러에서는 `ValidationPipe`가 던지는 400도, 직접 던진 `NotFoundException`도 전부 500이 된다. 클라이언트는 자기 요청이 잘못된 건지 서버가 죽은 건지 구분할 수 없고, 500이 늘어나니 알림도 오작동한다. 문서가 "전역으로 달면 일반 HTTP 에러까지 영향을 받는다"고 적어뒀는데, **컨트롤러 단위로 달아도 그 컨트롤러 안에서는 똑같이 발생한다.**
+
+`HttpException`을 먼저 걸러낸다.
+
+```typescript
+catch(error: any, host: ArgumentsHost): void {
+  const response = host.switchToHttp().getResponse<Response>();
+
+  if (error instanceof HttpException) {
+    const status = error.getStatus();
+    response.status(status).json(error.getResponse());
+    return;
+  }
+
+  const httpStatus = GRPC_TO_HTTP[error?.code] ?? HttpStatus.INTERNAL_SERVER_ERROR;
+  response.status(httpStatus).json({ statusCode: httpStatus, message: error?.message ?? 'Internal server error' });
+}
+```
+
+`grpcCode`를 응답 본문에 그대로 실어 보내는 것도 다시 볼 만하다. 내부 서비스 구조를 외부에 알려주는 값이라, 게이트웨이 응답에는 빼고 로그에만 남기는 쪽이 낫다.
+
+### `await setTimeout(2000)`은 기다리지 않는다 — 예외가 난다
+
+양방향 스트리밍 예제의 이 줄은 Node 22에서 그 자리에서 죽는다.
+
+```
+TypeError [ERR_INVALID_ARG_TYPE]: The "callback" argument must be of type function.
+Received type number (2000)
+```
+
+전역 `setTimeout`은 `(callback, delay)` 순서를 받는다. 숫자를 첫 인자로 주면 콜백 검증에 걸린다. 프로미스 버전은 `timers/promises`에 있다.
+
+```typescript
+import { setTimeout as sleep } from 'timers/promises';
+await sleep(2000);
+```
+
+이름이 같아서 import 한 줄 차이로 갈린다. `import { setTimeout } from 'timers/promises'`를 쓰면 같은 파일 안의 다른 `setTimeout(fn, ms)` 호출까지 프로미스 버전으로 바뀌므로, 위처럼 `sleep`으로 이름을 바꿔 받는 게 안전하다.

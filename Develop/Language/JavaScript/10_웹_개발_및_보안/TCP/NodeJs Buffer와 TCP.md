@@ -93,6 +93,70 @@ server.on('error', (err) => {
 });
 ```
 
+이 서버 코드에는 TCP 로 처음 뭔가를 만들 때 반드시 한 번은 밟는 함정이 들어 있다. **`data` 이벤트 한 번이 `write` 한 번과 짝이 아니다.**
+
+TCP 는 메시지를 주고받는 게 아니라 **바이트 스트림**을 흘려보낸다. 경계라는 개념 자체가 없다. `socket.on('data')` 는 "운영체제 버퍼에 뭔가 도착했다"는 신호일 뿐이고, 그 안에 무엇이 얼마나 들어 있는지는 아무도 약속하지 않는다.
+
+**여러 번 보낸 것이 한 번에 도착한다.**
+
+```javascript
+c.write('안녕'); c.write('하세'); c.write('요!');
+
+// 서버가 본 것:
+//   data #1: 16바이트 → "안녕하세요!"
+//   총 data 이벤트 = 1회   (write 는 3회 했다)
+```
+
+**한 번 보낸 것이 여러 번에 나뉘어 도착한다.**
+
+```javascript
+const ok = c.write(Buffer.alloc(1024 * 1024));   // 1MB 한 번에
+
+// write() 반환값 = false          ← 커널 버퍼가 찼다는 뜻
+// 서버의 data 이벤트 = 16회, 총 1048576바이트
+```
+
+여기서 문서 코드의 `receivedData.toString()` 이 무너진다. **한글은 한 글자가 3바이트**라, 조각이 글자 중간에서 잘리면 그 글자가 깨진다.
+
+```javascript
+const buf = Buffer.from('안녕하세요');   // 15바이트
+c.write(buf.subarray(0, 4));             // 4바이트만 먼저
+c.write(buf.subarray(4));                // 나머지 11바이트
+
+// 서버가 본 것:
+//   data: 4바이트  → "안�"
+//   data: 11바이트 → "��하세요"
+```
+
+깨진 글자가 화면에 `�` 로 찍힌다. 그리고 이건 **데이터 크기가 작을 때는 거의 안 나타난다.** 로컬에서 짧은 메시지로 테스트하면 항상 한 번에 오니까 잘 동작하는 것처럼 보이고, 운영에서 메시지가 길어지거나 네트워크가 나빠지면 그때부터 나온다.
+
+고치는 방법은 두 가지다.
+
+**하나, 문자열이면 `StringDecoder` 를 쓴다.** 잘린 바이트를 다음 조각까지 들고 있어 준다.
+
+```javascript
+const { StringDecoder } = require('string_decoder');
+const decoder = new StringDecoder('utf8');
+socket.on('data', chunk => {
+  const text = decoder.write(chunk);   // 불완전한 바이트는 내부에 보관
+  if (text) console.log(text);
+});
+```
+
+**둘, 메시지 경계를 직접 정한다.** 구분자를 넣거나(줄바꿈 등) 길이를 앞에 붙인다. 스트림에 없는 경계를 애플리케이션이 만들어야 한다.
+
+```javascript
+// 길이 접두사: 앞 4바이트에 본문 길이를 넣는다
+const body = Buffer.from(JSON.stringify(payload));
+const header = Buffer.alloc(4);
+header.writeUInt32BE(body.length);
+socket.write(Buffer.concat([header, body]));
+```
+
+받는 쪽은 조각을 계속 이어 붙이며 "헤더 4바이트가 모였는가 → 본문이 그 길이만큼 모였는가"를 확인하고 한 메시지씩 잘라 낸다. HTTP 의 `Content-Length`, WebSocket 의 프레임 헤더가 전부 이 문제를 푸는 장치다. **TCP 위에 프로토콜을 얹는다는 말이 곧 경계를 정한다는 뜻이다.**
+
+`write()` 가 `false` 를 돌려주는 것도 그냥 넘길 값이 아니다. 상대가 받아가는 속도보다 빠르게 밀어 넣으면 데이터가 메모리에 쌓인다. `false` 가 나오면 멈췄다가 `drain` 이벤트에서 재개해야 하고, 그게 귀찮으면 `pipe` 나 `pipeline` 에 맡긴다 — 배압 처리를 대신해 준다.
+
 ### TCP 클라이언트 만들기
 
 ```javascript
@@ -596,6 +660,57 @@ const copy = Buffer.alloc(buffer.length);
 buffer.copy(copy);
 console.log(copy.toString()); // "Hello World"
 ```
+
+`buffer.slice()` 를 배열의 `slice` 처럼 생각하면 안 된다. **복사본이 아니라 같은 메모리를 가리키는 창(view)이다.**
+
+```javascript
+const b = Buffer.from('Hello World');
+const s = b.slice(0, 5);
+
+s[0] = 0x4a;          // 'J'
+b.toString();         // 'Jello World'   ← 원본이 바뀌었다
+```
+
+잘라낸 조각을 다른 함수에 넘겨 놓고 그쪽에서 고치면 원본이 오염된다. 네트워크에서 받은 버퍼를 헤더와 본문으로 나눠 각각 처리하는 코드에서 실제로 만난다.
+
+이름이 헷갈리는 원인이라 지금은 `subarray` 를 쓰는 것이 권장된다. 동작은 같고 이름이 정직하다. 진짜 복사가 필요하면 `Buffer.from(b.subarray(0, 5))` 처럼 명시한다.
+
+바로 아래 파일 전송 예제의 `Buffer.concat` 도 이 차이와 이어진다. `concat` 은 **새 버퍼를 만들어 전부 복사한다.**
+
+```javascript
+socket.on('data', chunk => {
+  receivedData = Buffer.concat([receivedData, chunk]);   // 조각마다 전체를 다시 복사
+});
+```
+
+조각이 올 때마다 지금까지 받은 전부를 새 메모리에 옮긴다. 1MB 를 보내면 서버는 조각을 열 몇 번에 나눠 받는데, 그때마다 누적분 전체가 복사된다. 파일이 커질수록 복사량이 급격히 늘고, 순간적으로 옛 버퍼와 새 버퍼가 둘 다 메모리에 있게 된다.
+
+조각을 배열에 모아 두었다가 마지막에 한 번만 합치면 복사가 한 번으로 끝난다.
+
+```javascript
+const chunks = [];
+socket.on('data', chunk => chunks.push(chunk));
+socket.on('end', () => {
+  const data = Buffer.concat(chunks);
+});
+```
+
+파일이 정말 크면 메모리에 다 담지 말고 `socket.pipe(fs.createWriteStream(path))` 로 흘려보낸다. 예제의 `fs.writeFileSync` 는 이벤트 핸들러 안에서 **이벤트 루프를 멈추기** 때문에, 그동안 다른 클라이언트의 요청이 전부 대기한다. 서버 코드에서 `Sync` 계열은 시작 시점 설정 읽기 정도로만 쓴다.
+
+`Buffer.from(배열)` 이 값을 어떻게 다루는지도 알아 둘 만하다. 범위를 벗어난 수는 에러 없이 **잘린다.**
+
+```javascript
+Buffer.from([256, -1, 300, 65.9]);
+// <Buffer 00 ff 2c 41>
+//   256  → 0     (256 % 256)
+//   -1   → 255
+//   300  → 44
+//   65.9 → 65    (소수점 버림)
+```
+
+센서 값이나 계산 결과를 그대로 바이트 배열에 넣으면 조용히 다른 값이 된다.
+
+`Buffer.alloc` 과 `Buffer.allocUnsafe` 의 차이도 이름 그대로다. `alloc` 은 0 으로 채워 주고 `allocUnsafe` 는 **초기화를 건너뛴다.** 실제로 무엇이 들어 있을지는 그때그때 다르다 — 위에서 돌려 봤을 때는 마침 전부 0 이었지만, [Node 문서](https://nodejs.org/api/buffer.html#static-method-bufferallocunsafesize)는 옛 데이터가 남아 있을 수 있으니 **채우기 전에 읽거나 전송하지 말라**고 명시한다. 성능이 문제가 되는 것이 확인된 자리가 아니라면 `alloc` 을 쓴다.
 
 ---
 

@@ -474,6 +474,48 @@ Mono.deferContextual(ctx -> {
     .contextWrite(Context.of("traceId", UUID.randomUUID().toString()));
 ```
 
+### MDC가 왜 안 먹는지 — 두 가지 증상
+
+"ThreadLocal이 안 먹는다"는 말은 두 가지 다른 현상을 뭉뚱그린다. 대응이 다르므로 나눠 본다. MDC는 내부적으로 `ThreadLocal`이라, 그 성질만 떼어내 JDK 11에서 확인했다.
+
+**하나, 값이 안 보인다.**
+
+```
+메인 스레드에서 읽기 : trace-AAA
+풀 스레드에서 읽기   : null
+```
+
+`ThreadLocal`은 스레드마다 별도 저장소다. 리액티브 체인이 `subscribeOn`/`publishOn`으로 스레드를 옮기거나 `flatMap` 안에서 다른 워커로 넘어가면 그 값이 없다. 로그에 traceId가 빈 채로 남는다.
+
+**둘, 남의 값이 보인다.** 이쪽이 훨씬 위험하다.
+
+```
+[요청 1] 풀 스레드에 trace-111 을 심고 정리하지 않음
+[요청 2] 아무것도 안 심고 그냥 읽기
+   pool-1-thread-2 이 보는 값 = trace-111
+   pool-1-thread-1 이 보는 값 = null
+```
+
+이벤트 루프 스레드는 요청이 끝나도 죽지 않고 다음 요청을 받는다. `MDC.put()`만 하고 `MDC.remove()`를 빠뜨리면 **앞 요청의 traceId가 뒤 요청 로그에 그대로 찍힌다.** 값이 비어 있으면 "안 남네" 하고 알아채기라도 하는데, 이건 그럴듯한 값이 찍혀서 아무도 의심하지 않는다. 장애를 조사하며 traceId로 로그를 모으면 **관계없는 요청의 로그가 섞여 들어온다.**
+
+WebFlux는 스레드 수가 코어 수 수준으로 적어서 재사용 빈도가 MVC보다 훨씬 높다. 같은 실수의 파급도 그만큼 크다.
+
+아래 `copyContextToMdc`는 `MDC.put`만 하고 지우지 않는다. 최소한 종료 신호에서 정리해야 하고, 더 확실한 방법은 `MDC.setContextMap()`으로 통째로 교체한 뒤 원래 맵으로 되돌리는 것이다.
+
+```java
+private void copyContextToMdc(Context context) {
+    if (context.hasKey("traceId")) {
+        MDC.put("traceId", context.get("traceId"));
+    } else {
+        MDC.remove("traceId");   // 컨텍스트에 없으면 남은 값을 지운다
+    }
+}
+```
+
+`Hooks.onEachOperator`로 모든 연산자를 감싸는 방식은 비용이 있다. 체인의 연산자 하나하나에 래퍼가 붙는다. 아래에 나오는 `Hooks.enableAutomaticContextPropagation()`(Reactor 3.5+ / `context-propagation`)을 쓸 수 있는 버전이면 그쪽을 먼저 검토한다.
+
+**검증 방법**: traceId가 제대로 도는지는 눈으로 봐서 모른다. 부하를 주면서 서로 다른 두 요청의 traceId가 섞이는지 본다. 단건 요청으로 테스트하면 스레드 재사용이 안 일어나서 항상 통과한다.
+
 ### MDC 로깅 연동
 
 WebFlux에서 로그에 traceId를 남기려면 MDC와 Reactor Context를 연결해야 한다.

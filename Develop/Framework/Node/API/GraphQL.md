@@ -367,6 +367,38 @@ const resolvers = {
 };
 ```
 
+#### ⚠ DataLoader 는 **요청마다 새로 만든다** — 위 코드처럼 모듈 최상위에 두면 안 된다
+
+바로 위 예제는 `postLoader` 를 모듈 최상위에서 한 번 만든다. 그러면 프로세스가 살아 있는 동안 **캐시가 절대 비워지지 않는다.**
+
+```javascript
+const loader = new DataLoader(async keys => { calls++; return keys.map(k => db[k]); });
+
+console.log(await loader.load(1));   // 요청 A
+db[1] = '이름이 바뀜';                 // 그 사이 DB 가 바뀐다
+console.log(await loader.load(1));   // 요청 B
+```
+
+```
+요청 A: 홍길동
+요청 B: 홍길동   (배치 함수 호출 횟수: 1)
+clearAll 후: 이름이 바뀜 (호출: 2)
+```
+
+(dataloader 2.2.3)
+
+**다른 사용자의 요청에도 같은 캐시가 쓰인다.** 데이터가 바뀌어도 반영되지 않는 건 물론이고, 권한별로 다른 결과를 내야 하는 조회라면 **A 사용자가 받은 데이터를 B 사용자가 그대로 받는다.** 성능 최적화가 정보 유출로 바뀌는 지점이다.
+
+DataLoader 의 캐시는 "요청 한 번을 처리하는 동안 같은 키를 여러 번 조회하지 않기" 위한 것이지, 애플리케이션 캐시가 아니다. 그래서 **컨텍스트를 만들 때마다 새로 생성**해야 한다. 이 문서 아래쪽 "실전 예제"의 `createLoaders(db)` 가 그 형태다 — 그쪽이 맞고, 위쪽 `createContext` 가 모듈 최상위 `postLoader` 를 참조하는 게 틀렸다.
+
+```javascript
+const createContext = async ({ req }) => ({
+  db,
+  user,
+  loaders: createLoaders(db),   // ✓ 요청마다 새 인스턴스
+});
+```
+
 #### DataLoader의 장점
 
 | 기능 | 설명 | 효과 |
@@ -374,6 +406,14 @@ const resolvers = {
 | **배칭** | 여러 요청을 하나로 묶어 실행 | 쿼리 수 감소 |
 | **캐싱** | 요청 결과를 메모리에 저장 | 중복 쿼리 방지 |
 | **요청 순서 보장** | 입력 순서대로 결과 반환 | 데이터 일관성 |
+
+"요청 순서 보장"은 DataLoader 가 알아서 해주는 게 아니라 **배치 함수가 지켜야 하는 계약**이다. 반환 배열의 길이와 순서가 입력 키 배열과 정확히 일치해야 한다. 위 구현의 마지막 줄이 그 계약을 지키는 부분이다.
+
+```javascript
+return authorIds.map(id => postsByAuthor[id] || []);   // 길이·순서를 키에 맞춘다
+```
+
+여기서 `.map` 대신 `Object.values(postsByAuthor)` 같은 걸 쓰면 **게시글이 남의 사용자에게 붙는다.** 결과가 있는 키만 담기면서 순서가 밀리기 때문이다. 에러도 안 나고, 데이터가 조용히 뒤섞인다. `SELECT ... WHERE id IN (...)` 의 반환 순서는 보장되지 않으므로 이 재정렬은 반드시 필요하다.
 
 ## 인증/인가
 
@@ -530,6 +570,19 @@ const resolvers = {
 
 ### WebSocket 설정 (Apollo Server)
 
+> 이 문서의 Apollo Server 코드는 **v2/v3 API 이고, 두 버전 모두 지원이 끝났다.** npm 레지스트리에서 확인된다.
+>
+> ```
+> $ curl -s https://registry.npmjs.org/apollo-server-express | ...
+> latest: 3.13.0   (2023-11-14)
+> deprecated: The `apollo-server-express` package is part of Apollo Server v2 and v3,
+>             which are now end-of-life (as of October 22nd 2023 and October 22nd 2024,
+>             respectively). This package's functionality is now found in the
+>             `@apollo/server` package.
+> ```
+>
+> 새로 만든다면 `@apollo/server` 를 쓴다. 이 문서의 `subscriptions` 옵션·`installSubscriptionHandlers()`·`applyMiddleware({ app })`·`playground` 는 전부 v2/v3 시절 형태라 최신 버전에 그대로 옮겨지지 않는다. **GraphQL 서버 예제를 검색으로 찾을 때는 어느 메이저 버전 것인지부터 확인**해야 하는 이유가 이것이다 — 이름이 같은 옵션이 버전마다 다른 자리에 있거나 아예 없다.
+
 ```javascript
 const { ApolloServer } = require('apollo-server-express');
 const { createServer } = require('http');
@@ -600,6 +653,20 @@ const server = new ApolloServer({
   validationRules: [depthLimit(5)] // 최대 깊이 5
 });
 ```
+
+깊이 제한과 복잡도 제한은 **DataLoader 로 못 막는 종류의 공격**을 막는다. 배칭이 잘 돼 있어도 이런 쿼리는 막지 못한다.
+
+```graphql
+query {
+  users { posts { author { posts { author { posts { title } } } } } }
+}
+```
+
+스키마에 순환 참조(`User.posts` ↔ `Post.author`)가 있으면 클라이언트는 **깊이를 원하는 만큼 늘릴 수 있다.** 각 단계마다 결과 개수가 곱해지므로 쿼리 문자열 몇 줄로 서버를 재울 수 있다. 요청은 딱 한 번이라 Rate Limiting 에도 안 걸린다.
+
+**공개 GraphQL 엔드포인트라면 깊이 제한은 선택이 아니다.** 다만 `graphql-depth-limit` 은 마지막 발행이 2017-08-09 이라 새 프로젝트에서 채택하기 전에 대안을 살펴보는 편이 낫다(패키지 자체에 deprecated 표시는 없다).
+
+내부용이라 인증된 클라이언트만 붙는다면 우선순위는 낮다. **누가 쿼리를 쓰는지**가 이 방어의 필요성을 결정한다.
 
 ### 3. 캐싱
 
@@ -826,6 +893,33 @@ app.listen(PORT, () => {
   console.log(`GraphQL 서버가 http://localhost:${PORT}/graphql 에서 실행 중입니다.`);
 });
 ```
+
+"완전한" 예제인데 **N+1 이 그대로 하나 남아 있다.** `Post.author` 를 보자.
+
+```javascript
+Post: {
+  author: async (parent, args, context) => {
+    return await context.db.users.findById(parent.authorId);   // ← 로더를 안 쓴다
+  }
+}
+```
+
+`createLoaders` 는 `posts` 로더만 만든다. 그래서 `{ posts { author { name } } }` 를 요청하면 게시글 수만큼 사용자 조회가 나간다. **로더를 하나 만들었다고 N+1 이 사라지는 게 아니라, 로더를 안 쓴 필드마다 남아 있다.**
+
+여기에 더해 `User.posts` → `Post.author` 로 왕복하면 이미 가져온 사용자를 다시 조회한다. `users` 로더를 추가하면 두 문제가 함께 해결된다.
+
+```javascript
+const createLoaders = (db) => ({
+  posts: new DataLoader(/* ... */),
+  users: new DataLoader(async (ids) => {
+    const rows = await db.users.findByIds(ids);
+    const byId = new Map(rows.map(u => [String(u.id), u]));
+    return ids.map(id => byId.get(String(id)) || null);   // 없는 키는 null 로 자리를 채운다
+  }),
+});
+```
+
+`byId.get(String(id))` 로 키를 문자열로 맞추는 이유가 있다. GraphQL 의 `ID` 는 문자열로 직렬화되는데 DB 는 보통 숫자를 돌려준다. **DataLoader 의 캐시 키 비교는 `===` 라서 `1` 과 `'1'` 을 다른 키로 본다.** 타입이 섞이면 배칭이 절반만 먹거나 조회가 통째로 빗나간다.
 
 ## GraphQL 사용 시나리오
 
