@@ -10,5 +10,9 @@ nav:
     - + Prometheus 대시보드: Grafana_Prometheus_대시보드.md
     - Tempo: Grafana_Tempo.md
   - OpenTelemetry: OpenTelemetry.md
-  - Loki 로그 집계: Loki_Log_Aggregation.md
-  - Alerting Rules: Alerting_Rules.md
+  - Loki:
+    - 로그 집계: Loki_Log_Aggregation.md
+    - 레이블·Alloy·LogQL: Loki_로그_집계.md
+  - Alerting:
+    - 기본 구조: Alerting_Rules.md
+    - 규칙 설계: Alerting_규칙_설계.md
