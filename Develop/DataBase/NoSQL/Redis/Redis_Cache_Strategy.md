@@ -1,7 +1,7 @@
 ---
 title: Redis 캐시 설계 실무
 tags: [redis, cache, os, monitoring]
-updated: 2026-04-08
+updated: 2026-08-17
 ---
 
 # Redis 캐시 설계 실무
@@ -615,6 +615,269 @@ Hash를 쓸 때는 필드 수와 값 크기를 이 임계값 안에 들도록 �
 ```
 
 대부분의 캐시 사용 사례에서는 String + JSON이 단순하고 충분하다. Hash는 부분 읽기/수정이 자주 필요하거나 원자적 카운터가 필요한 경우에 쓴다.
+
+---
+
+## 7. Eviction Policy
+
+Redis는 `maxmemory`에 도달하면 `maxmemory-policy` 설정에 따라 키를 삭제하거나 쓰기를 거부한다. 이 설정을 잘못 고르면 무음 장애가 난다.
+
+### 7.1 정책 목록과 실제 동작
+
+| 정책 | 삭제 대상 | 알고리즘 |
+|---|---|---|
+| `noeviction` | 없음 — 쓰기 거부 | — |
+| `allkeys-lru` | 전체 키 | 최근 접근 시간 기준 |
+| `volatile-lru` | TTL 있는 키 | 최근 접근 시간 기준 |
+| `allkeys-lfu` | 전체 키 | 접근 빈도 기준 |
+| `volatile-lfu` | TTL 있는 키 | 접근 빈도 기준 |
+| `allkeys-random` | 전체 키 | 랜덤 |
+| `volatile-random` | TTL 있는 키 | 랜덤 |
+| `volatile-ttl` | TTL 있는 키 | TTL이 짧은 키 우선 |
+
+LRU는 "최근에 접근한 키를 남긴다"는 논리다. LFU는 "자주 접근한 키를 남긴다"는 논리다. 이 둘의 차이가 실무에서 드러나는 건 이벤트·프로모션 기간이다. 특정 상품 페이지에 트래픽이 몰렸다가 빠지면, LRU 기준으로는 그 키가 오랫동안 살아남는다. LFU는 이벤트 이후 접근이 줄면 자연스럽게 밀려난다.
+
+Redis의 LRU/LFU는 근사 알고리즘이다. `maxmemory-samples` 설정(기본 5)만큼 키를 샘플링해서 그 중 교체 대상을 고른다. 값을 높이면 정밀도가 오르지만 CPU 부하도 올라간다.
+
+### 7.2 캐시 전용이면 allkeys-lru나 allkeys-lfu
+
+캐시 목적이라면 `allkeys-lru`가 안전하다. `volatile-lru`를 쓰다가 실수로 TTL 없는 키가 들어가면 그 키는 메모리가 꽉 차도 절대 삭제되지 않는다.
+
+```bash
+redis-cli CONFIG SET maxmemory-policy allkeys-lru
+redis-cli CONFIG SET maxmemory 8gb
+
+# 현재 설정 확인
+redis-cli CONFIG GET maxmemory-policy
+redis-cli CONFIG GET maxmemory
+```
+
+`volatile-lru`가 적합한 경우는 Redis 하나에 영속 데이터(TTL 없는 키)와 캐시(TTL 있는 키)를 같이 쓸 때다. 영속 키는 지우면 안 되니까 volatile 계열을 써야 한다. 다만 이 구조 자체가 문제가 생기기 쉬워서, 가능하면 Redis 인스턴스를 분리하는 쪽이 낫다.
+
+### 7.3 noeviction의 함정
+
+`noeviction`은 기본값이다. `maxmemory`를 설정하지 않으면 메모리 제한이 없어서 noeviction 정책이 의미가 없다. 문제는 `maxmemory`를 설정하고 policy를 바꾸지 않은 경우다.
+
+메모리가 꽉 차면 SET, LPUSH 같은 쓰기 명령이 에러를 반환한다.
+
+```
+OOM command not allowed when used memory > 'maxmemory'
+```
+
+애플리케이션에서 이 에러를 처리하지 않으면 캐시 쓰기 실패가 조용히 발생한다. Cache-Aside 패턴이면 DB 부하가 올라가면서 알게 되지만, 캐시 갱신 실패로 오래된 데이터를 서빙하는 경우는 눈치채기 어렵다.
+
+의도적으로 noeviction을 쓰는 경우도 있다. 세션 저장소처럼 삭제되면 안 되는 데이터를 Redis에 넣을 때다. 이때는 메모리 모니터링이 필수다.
+
+### 7.4 evicted_keys 추세로 OOM 예측
+
+```bash
+redis-cli INFO stats | grep evicted_keys
+# evicted_keys:0
+```
+
+이 값이 올라가기 시작하면 Redis가 메모리 압박을 받고 있다는 신호다. eviction이 발생한다는 건 캐시 히트율이 저하될 수 있다는 뜻이기도 하다 — 아직 접근 중인 키가 삭제될 수 있다.
+
+```bash
+# 1분 간격으로 evicted_keys 추이를 확인하는 방법
+while true; do
+    ts=$(date '+%H:%M:%S')
+    ev=$(redis-cli INFO stats | grep evicted_keys | cut -d: -f2 | tr -d '\r')
+    mem=$(redis-cli INFO memory | grep used_memory_human | cut -d: -f2 | tr -d '\r ')
+    echo "${ts} evicted=${ev} mem=${mem}"
+    sleep 60
+done
+```
+
+분당 evicted_keys 증가분이 1,000을 넘어가면 maxmemory를 늘리거나, 캐시 대상 데이터를 줄이거나, TTL을 조정해야 한다. 증가분이 0이어도 used_memory가 maxmemory의 80%를 넘으면 미리 대응한다.
+
+Prometheus + Grafana로 수집한다면 `redis_evicted_keys_total`을 rate로 보는 것이 추세 파악에 낫다. 절대값보다 증가율이 중요하다.
+
+---
+
+## 8. Hot Key 문제
+
+Hot Key는 특정 키에 요청이 집중되는 현상이다. Redis는 싱글 스레드로 명령을 처리하기 때문에 한 키에 초당 수만 건이 들어오면 그 처리가 다른 명령을 지연시킨다. 클러스터를 써도 해당 슬롯을 담당하는 노드에만 부하가 몰린다.
+
+### 8.1 감지
+
+LFU 정책을 쓰면 `--hotkeys` 옵션으로 직접 확인할 수 있다.
+
+```bash
+redis-cli --hotkeys
+# Sampled 1000000 commands in 10.00 seconds
+# hot key found with counter: 950000  keyname: product:featured:top10
+# hot key found with counter: 32000   keyname: config:site-settings
+```
+
+`allkeys-lru`나 `volatile-lru`를 쓰고 있으면 `--hotkeys`가 동작하지 않는다. 이 경우엔 `MONITOR`로 실시간 명령을 잠깐 캡처하거나, 애플리케이션 APM에서 Redis 호출 패턴을 확인하는 수밖에 없다.
+
+```bash
+# MONITOR는 모든 명령을 출력하므로 운영 환경에서는 5초 이하로만 쓴다
+# 트래픽이 많으면 Redis 성능에 영향을 준다
+timeout 5 redis-cli MONITOR | grep "GET\|HGET" | awk '{print $NF}' | sort | uniq -c | sort -rn | head -20
+```
+
+`INFO stats`의 `keyspace_hits`와 `keyspace_misses`는 전체 통계라 특정 키를 찾는 데는 쓸 수 없다. 히트율이 99%여도 그 대부분이 한 키에서 온 것일 수 있다.
+
+### 8.2 키 샤딩
+
+핫키의 값을 N개 복사본으로 분산한다. 읽을 때 랜덤하게 고르면 요청이 N개 키에 분산된다.
+
+```typescript
+const SHARD_COUNT = 8;
+
+function hotKeyShardKey(base: string): string {
+    const shard = Math.floor(Math.random() * SHARD_COUNT);
+    return `${base}:shard:${shard}`;
+}
+
+// 쓸 때: 모든 샤드 갱신
+async function setFeaturedProducts(data: ProductList): Promise<void> {
+    const serialized = JSON.stringify(data);
+    const pipeline = redis.pipeline();
+    for (let i = 0; i < SHARD_COUNT; i++) {
+        pipeline.set(`product:featured:top10:shard:${i}`, serialized, 'EX', 300);
+    }
+    await pipeline.exec();
+}
+
+// 읽을 때: 랜덤 샤드
+async function getFeaturedProducts(): Promise<ProductList | null> {
+    const key = hotKeyShardKey('product:featured:top10');
+    const cached = await redis.get(key);
+    return cached ? JSON.parse(cached) : null;
+}
+```
+
+샤드 수를 높이면 분산 효과가 크지만, 갱신 시 모든 샤드를 업데이트해야 한다. 샤드 갱신 중에 일부 샤드는 새 데이터, 일부는 구 데이터를 서빙하는 짧은 구간이 생긴다. 캐시 특성상 이 정도 불일치는 보통 허용된다.
+
+### 8.3 로컬 캐시 앞단 배치
+
+애플리케이션 프로세스 메모리 내에 인메모리 캐시를 두고, Redis는 L2로 쓰는 패턴이다. 로컬 캐시 히트 시 Redis 요청이 발생하지 않아 핫키 압력이 완전히 사라진다.
+
+```java
+// Java + Caffeine 예시
+Cache<String, String> localCache = Caffeine.newBuilder()
+    .expireAfterWrite(30, TimeUnit.SECONDS)
+    .maximumSize(200)
+    .build();
+
+public ProductList getFeaturedProducts() {
+    String cached = localCache.getIfPresent("product:featured:top10");
+    if (cached != null) {
+        return deserialize(cached);
+    }
+
+    String fromRedis = redis.get("product:featured:top10");
+    if (fromRedis != null) {
+        localCache.put("product:featured:top10", fromRedis);
+        return deserialize(fromRedis);
+    }
+
+    return null;
+}
+```
+
+```typescript
+// Node.js + node-cache 예시
+import NodeCache from 'node-cache';
+
+const localCache = new NodeCache({ stdTTL: 30, checkperiod: 60 });
+
+async function getFeaturedProducts(): Promise<ProductList | null> {
+    const LOCAL_KEY = 'product:featured:top10';
+    const local = localCache.get<string>(LOCAL_KEY);
+    if (local !== undefined) {
+        return JSON.parse(local);
+    }
+
+    const fromRedis = await redis.get(LOCAL_KEY);
+    if (fromRedis) {
+        localCache.set(LOCAL_KEY, fromRedis);
+        return JSON.parse(fromRedis);
+    }
+
+    return null;
+}
+```
+
+주의할 점은 인스턴스마다 로컬 캐시가 따로 존재한다는 것이다. 배포 중에 일부 인스턴스는 새 로컬 캐시, 일부는 구 로컬 캐시를 갖게 된다. TTL을 30초~1분으로 짧게 두는 이유가 이 때문이다. 무효화 이벤트(Redis Pub/Sub, 카프카)로 로컬 캐시를 강제 만료시키면 정합성을 더 잘 맞출 수 있다.
+
+---
+
+## 9. Valkey 마이그레이션
+
+Redis 7.4부터 SSPL 라이선스로 전환됐다. 상업 서비스에서 쓰려면 라이선스를 검토해야 하는데, 그 대안으로 Valkey가 부상했다. Valkey는 Redis 7.2 코드베이스에서 포크한 LF(Linux Foundation) 프로젝트다.
+
+### 9.1 호환성
+
+클라이언트 라이브러리는 그대로 쓸 수 있다. Jedis, Lettuce, ioredis, go-redis 모두 TCP 프로토콜 수준에서 호환된다. 연결 URL이나 host 설정만 Valkey 인스턴스를 가리키도록 바꾸면 된다.
+
+`redis-cli`도 Valkey에 그대로 접속 가능하다. `valkey-cli`가 별도로 있지만 기능은 동일하다.
+
+명령어 호환성은 7.2 기준이므로, Redis 7.2 이전에 추가된 명령은 대부분 동작한다. Redis 7.4 이후 추가된 기능은 Valkey에 없다.
+
+### 9.2 설정 파일
+
+`redis.conf`를 그대로 사용할 수 있다. Valkey는 설정 형식과 키 이름을 Redis와 동일하게 유지한다. `maxmemory`, `maxmemory-policy`, `appendonly`, `save`, `requirepass` 등 모두 동일하다.
+
+### 9.3 Valkey 8.x에서 달라지는 설정 포인트
+
+**멀티스레드 I/O**
+
+Redis 6.0에서도 `io-threads` 설정이 있었지만 실제 성능 향상이 미미했다. Valkey 8.x는 I/O 스레딩을 개선해서 `io-threads`를 CPU 코어 수의 절반 정도로 설정하면 처리량이 유의미하게 올라간다.
+
+```
+# redis.conf (Valkey에서 그대로 사용)
+io-threads 4
+io-threads-do-reads yes
+```
+
+**latency-tracking 기본값 변경**
+
+Redis에서는 `latency-tracking`이 `no`가 기본이었다. Valkey에서는 `yes`가 기본이다. `LATENCY HISTORY`, `LATENCY LATEST` 명령으로 지연 이력을 바로 확인할 수 있다.
+
+```bash
+valkey-cli LATENCY LATEST
+# command       event_time      latency(ms) max_latency(ms)
+# command       1720000000      1           15
+```
+
+**active-expire-effort**
+
+만료 키를 적극적으로 정리하는 설정이다. Redis 기본값은 1(소극적)인데, Valkey에서도 1이 기본이다. 메모리 회수가 느리다고 느껴지면 5 정도로 올려본다. CPU 사용률이 올라가므로 피크 타임에 바꾸면 안 된다.
+
+```bash
+valkey-cli CONFIG SET active-expire-effort 5
+```
+
+### 9.4 Redis 모듈이 있으면 사전 확인 필수
+
+RedisJSON, RediSearch, RedisTimeSeries 같은 Redis 공식 모듈은 Valkey에서 동작하지 않는다. 이 모듈들은 Redis-specific API를 쓰기 때문에 별도 포팅이 필요하다.
+
+대안:
+- RedisJSON → ValkeyJSON (FalkorDB 제공, Apache 2.0)
+- RediSearch → 현재 Valkey용 공식 대안 없음. PostgreSQL의 full-text search나 Elasticsearch를 고려해야 한다.
+
+`MODULE LIST` 명령으로 현재 Redis에 로드된 모듈을 확인한다.
+
+```bash
+redis-cli MODULE LIST
+# 1) 1) "name"
+#    2) "ReJSON"
+#    3) "ver"
+#    4) (integer) 20009
+```
+
+모듈이 있으면 마이그레이션 전에 대체 방안을 먼저 확정해야 한다.
+
+### 9.5 Sentinel과 Cluster 전환
+
+Valkey Sentinel은 Redis Sentinel 프로토콜을 그대로 유지한다. Redis Sentinel을 쓰던 클라이언트는 Sentinel 주소만 Valkey Sentinel로 바꾸면 동작한다.
+
+Cluster도 마찬가지다. 클러스터 재구성 없이 노드를 교체하는 방식으로 마이그레이션하거나, 새 Valkey 클러스터로 데이터를 마이그레이션하면 된다.
+
+데이터 마이그레이션은 `redis-cli --cluster import` 또는 `DUMP`/`RESTORE` 명령으로 할 수 있다. AOF 파일을 Valkey로 재생하는 것도 가능하다.
 
 ---
 이 문서는 [캐싱 허브](../../../_hub/캐싱.md)의 일부입니다.

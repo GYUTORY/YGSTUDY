@@ -1,7 +1,7 @@
 ---
 title: Cache Warming
 tags: [cache, redis, monitoring, backend]
-updated: 2026-07-29
+updated: 2026-08-17
 ---
 
 # 캐시 워밍
@@ -121,6 +121,84 @@ public class ApplicationReadyWarmer {
 
 `ApplicationReadyEvent`는 HTTP 포트가 열린 후에 발생한다. 워밍이 끝나기 전에 로드밸런서가 트래픽을 보내면 Cold Start 상태에서 요청을 처리하게 된다. 헬스체크 연동이 없으면 이 방식만으로는 Cold Start를 막을 수 없다.
 
+## 동시 워밍 충돌
+
+Rolling deploy나 HPA에 의한 스케일아웃으로 인스턴스 여러 대가 동시에 뜨면, 각 인스턴스가 독립적으로 워밍 로직을 실행한다. Redis는 공유 저장소라 최종적으로 같은 키가 들어가지만 DB 쿼리는 인스턴스 수만큼 중복으로 나간다.
+
+인스턴스 5대가 동시에 뜨면서 각자 상품 500개를 DB에서 읽으면 2,500번의 쿼리가 거의 동시에 발생한다. 아무 조치 없이 스케일아웃하다가 DB 커넥션 풀이 바닥나는 상황이 이렇게 만들어진다.
+
+### 분산 락으로 단일 인스턴스만 워밍
+
+```java
+@Component
+public class DistributedCacheWarmer {
+
+    private static final String WARMING_LOCK_KEY = "cache:warming:lock";
+    private static final long LOCK_TTL_SECONDS = 300; // 워밍 최대 소요 시간의 2배
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    public void warmWithLock() throws InterruptedException {
+        Boolean acquired = redisTemplate.opsForValue()
+            .setIfAbsent(WARMING_LOCK_KEY, "locked", LOCK_TTL_SECONDS, TimeUnit.SECONDS);
+
+        if (!Boolean.TRUE.equals(acquired)) {
+            log.info("Cache warming skipped — another instance holds the lock");
+            waitForWarmingComplete();
+            return;
+        }
+
+        try {
+            warmCache();
+        } finally {
+            redisTemplate.delete(WARMING_LOCK_KEY);
+        }
+    }
+
+    private void waitForWarmingComplete() throws InterruptedException {
+        int attempts = 0;
+        while (Boolean.TRUE.equals(redisTemplate.hasKey(WARMING_LOCK_KEY)) && attempts < 60) {
+            Thread.sleep(5_000);
+            attempts++;
+        }
+    }
+}
+```
+
+락 TTL은 워밍 최대 소요 시간보다 충분히 길게 잡는다. 10초 워밍에 TTL을 15초로 잡으면, 서버가 워밍 도중 죽었을 때 락이 해제되기까지 15초 동안 다른 인스턴스들이 Readiness를 올리지 못한다. 반대로 TTL이 너무 짧으면 워밍이 끝나기 전에 다른 인스턴스가 락을 다시 잡고 중복 워밍이 시작된다. 실측 워밍 시간의 2배를 TTL로 쓰는 것이 실용적이다.
+
+### 키 존재 여부 확인 후 스킵
+
+```java
+public void warmIfEmpty() {
+    // 대표 키가 이미 존재하면 다른 인스턴스가 워밍을 완료한 것
+    Boolean exists = redisTemplate.hasKey("product::warming-done");
+    if (Boolean.TRUE.equals(exists)) {
+        log.info("Cache already warmed by another instance, skipping");
+        return;
+    }
+    warmCache();
+    redisTemplate.opsForValue().set("product::warming-done", "1", 3600, TimeUnit.SECONDS);
+}
+```
+
+락보다 단순하지만 인스턴스 수십 대가 거의 동시에 `hasKey`를 확인하면 모두 "없다"고 판단하고 동시에 워밍을 시작할 수 있다. 인스턴스가 2~3대이고 워밍이 멱등성을 가진다면(같은 키를 덮어써도 무방하다면) 이 방식으로 충분하다.
+
+### 쿠버네티스 Init Container 분리
+
+```yaml
+initContainers:
+- name: cache-warmer
+  image: myapp:latest
+  command: ["java", "-jar", "app.jar", "--spring.profiles.active=warmer"]
+  resources:
+    limits:
+      memory: "512Mi"
+```
+
+Init Container는 메인 컨테이너보다 먼저 실행되고, 종료 코드가 0이어야 메인 컨테이너가 시작된다. 파드가 여러 개여도 Init Container는 각 파드 안에서 실행되므로 중복 워밍 문제 자체는 남는다. 분산 락과 조합하거나, 아예 워밍 전용 Job을 Deployment 이전에 실행하는 방식으로 풀어야 한다.
+
 ## Redis SCAN 기반 키 재적재
 
 Redis 장애 복구 후 기존 키 패턴을 기반으로 재적재할 때 쓰는 방식이다.
@@ -169,6 +247,64 @@ public void reloadProductCache() {
 `count` 옵션은 Redis가 한 번에 반환할 개수의 힌트일 뿐 정확한 값이 아니다. Cursor를 끝까지 소진해야 전체 키셋 탐색이 완료된다.
 
 키가 수십만 개라면 SCAN 자체도 Redis에 부하를 준다. 새벽 트래픽이 적은 시간에 돌리거나, 처리 속도를 조절한다. 처리 속도 조절이 필요하면 루프마다 짧은 sleep을 넣거나 배치 크기를 줄인다.
+
+### maxmemory eviction과의 충돌
+
+SCAN으로 키를 수집한 뒤 Pipeline으로 대량 적재할 때 Redis가 `maxmemory`에 걸려 있으면 두 가지 방식으로 실패한다.
+
+`maxmemory-policy`가 `noeviction`이면 메모리가 꽉 찬 상태에서 쓰기 명령은 에러를 반환한다. Pipeline으로 보낸 명령은 서버 측에서 에러로 처리되지만 `executePipelined`가 예외를 던지지 않는 경우가 있다(Spring Data Redis 버전에 따라 다르다). 워밍이 정상적으로 완료됐다고 판단했는데 실제로는 하나도 적재되지 않은 상황이 만들어진다.
+
+`allkeys-lru`면 Redis가 자동으로 오래된 키를 제거하며 공간을 만든다. 문제는 방금 워밍해서 넣은 키들이 아직 접근된 적이 없어 LRU 스코어가 낮다는 점이다. 기존에 자주 쓰이던 키들 대신 방금 넣은 키들이 먼저 제거되는 상황이 발생한다.
+
+적재 전 메모리 여유를 먼저 확인한다:
+
+```java
+public void reloadWithMemoryCheck() {
+    Properties info = redisTemplate.execute(
+        (RedisCallback<Properties>) conn -> conn.info("memory")
+    );
+
+    long usedMemory = Long.parseLong(info.getProperty("used_memory"));
+    long maxMemory = Long.parseLong(info.getProperty("maxmemory")); // 0이면 무제한
+
+    if (maxMemory > 0) {
+        long available = maxMemory - usedMemory;
+        long estimatedNeeded = estimateWarmingBytes();
+
+        if (available < estimatedNeeded * 1.2) { // 20% 여유 포함
+            log.warn("Redis memory too tight. available={}MB, needed={}MB",
+                available / 1024 / 1024, estimatedNeeded / 1024 / 1024);
+            // 전체가 아닌 적재 가능한 수만 워밍
+            warmTopN(estimateFittableCount(available));
+            return;
+        }
+    }
+
+    reloadProductCache();
+}
+
+private long estimateWarmingBytes() {
+    // 대표 키 1개의 실제 메모리 사용량으로 전체 추정
+    // redis-cli에서: MEMORY USAGE product::1
+    Long sampleSize = redisTemplate.execute(
+        (RedisCallback<Long>) conn -> conn.memoryUsage("product::1".getBytes())
+    );
+    long perKey = (sampleSize != null) ? sampleSize : 4096L; // 측정 불가 시 4KB 가정
+    return perKey * warmingTargetCount;
+}
+```
+
+`volatile-lru`나 `volatile-ttl`을 쓰는 환경에서 워밍 시 TTL을 설정하지 않으면 해당 키는 eviction 대상에서 제외된다. 메모리 압박 시 TTL 있는 다른 키들이 먼저 제거되고 워밍 키는 남는다. 의도적으로 쓸 수 있는 방법이지만, TTL 없이 남은 키는 데이터가 변경돼도 캐시가 갱신되지 않는다. 이벤트 기반 무효화나 별도 갱신 주기 없이는 오래된 데이터를 계속 서빙하게 된다.
+
+워밍 전후 eviction 발생 여부를 확인한다:
+
+```bash
+# 워밍 전 기록
+redis-cli info stats | grep evicted_keys
+
+# 워밍 후 비교 — evicted_keys가 크게 늘었으면 메모리 계획을 재검토한다
+redis-cli info stats | grep evicted_keys
+```
 
 ## 워밍 완료 여부 헬스체크 연동
 
