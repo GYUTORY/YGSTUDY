@@ -6,18 +6,18 @@
 </span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a><span class=w>  </span>-p<span class=w> </span><span class=m>18083</span>:18083<span class=w> </span><span class=se>\</span>
 </span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a><span class=w>  </span>emqx/emqx:5.8.0
 </span></code></pre></div> <p>포트별 역할을 알아둬야 방화벽 열 때 헷갈리지 않는다.</p> <ul> <li>1883: MQTT TCP (평문)</li> <li>8883: MQTT TLS</li> <li>8083: MQTT over WebSocket</li> <li>8084: MQTT over WSS (TLS)</li> <li>18083: 관리 dashboard (HTTP)</li> </ul> <p>dashboard는 <code>http://localhost:18083</code>로 접속한다. 초기 계정은 <code>admin</code> / <code>public</code>이고, 첫 로그인 시 비밀번호를 바꾸라고 강제한다. 프로덕션에서 이 기본 계정을 안 바꾸고 18083을 외부에 노출했다가 사고 나는 경우가 실제로 있다. dashboard 포트는 내부망으로 막거나 reverse proxy 뒤에 둬야 한다.</p> <p>dashboard에서 Overview를 보면 현재 커넥션 수, 메시지 in/out rate, 노드별 부하를 한눈에 본다. 운영 중에는 이 화면을 제일 자주 본다.</p> <h2 id=리스너-설정>리스너 설정<a class=headerlink href=#리스너-설정 title="Permanent link">&para;</a></h2> <p>EMQX 5.x는 <code>emqx.conf</code>를 HOCON 포맷으로 쓴다. 리스너를 직접 손볼 일이 많다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>listeners.tcp.default {
-</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>  bind = &quot;0.0.0.0:1883&quot;
+</span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>  bind = "0.0.0.0:1883"
 </span><span id=__span-1-3><a id=__codelineno-1-3 name=__codelineno-1-3 href=#__codelineno-1-3></a>  max_connections = 1024000
 </span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>  acceptors = 16
 </span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>}
 </span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>
 </span><span id=__span-1-7><a id=__codelineno-1-7 name=__codelineno-1-7 href=#__codelineno-1-7></a>listeners.ssl.default {
-</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>  bind = &quot;0.0.0.0:8883&quot;
+</span><span id=__span-1-8><a id=__codelineno-1-8 name=__codelineno-1-8 href=#__codelineno-1-8></a>  bind = "0.0.0.0:8883"
 </span><span id=__span-1-9><a id=__codelineno-1-9 name=__codelineno-1-9 href=#__codelineno-1-9></a>  max_connections = 512000
 </span><span id=__span-1-10><a id=__codelineno-1-10 name=__codelineno-1-10 href=#__codelineno-1-10></a>  ssl_options {
-</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>    keyfile = &quot;/opt/emqx/etc/certs/key.pem&quot;
-</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a>    certfile = &quot;/opt/emqx/etc/certs/cert.pem&quot;
-</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a>    cacertfile = &quot;/opt/emqx/etc/certs/cacert.pem&quot;
+</span><span id=__span-1-11><a id=__codelineno-1-11 name=__codelineno-1-11 href=#__codelineno-1-11></a>    keyfile = "/opt/emqx/etc/certs/key.pem"
+</span><span id=__span-1-12><a id=__codelineno-1-12 name=__codelineno-1-12 href=#__codelineno-1-12></a>    certfile = "/opt/emqx/etc/certs/cert.pem"
+</span><span id=__span-1-13><a id=__codelineno-1-13 name=__codelineno-1-13 href=#__codelineno-1-13></a>    cacertfile = "/opt/emqx/etc/certs/cacert.pem"
 </span><span id=__span-1-14><a id=__codelineno-1-14 name=__codelineno-1-14 href=#__codelineno-1-14></a>    verify = verify_none
 </span><span id=__span-1-15><a id=__codelineno-1-15 name=__codelineno-1-15 href=#__codelineno-1-15></a>  }
 </span><span id=__span-1-16><a id=__codelineno-1-16 name=__codelineno-1-16 href=#__codelineno-1-16></a>}
@@ -31,18 +31,18 @@
 </span><span id=__span-2-8><a id=__codelineno-2-8 name=__codelineno-2-8 href=#__codelineno-2-8></a>    }
 </span><span id=__span-2-9><a id=__codelineno-2-9 name=__codelineno-2-9 href=#__codelineno-2-9></a>  }
 </span><span id=__span-2-10><a id=__codelineno-2-10 name=__codelineno-2-10 href=#__codelineno-2-10></a>]
-</span></code></pre></div> <p>사용자는 dashboard나 REST API로 등록한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>curl<span class=w> </span>-u<span class=w> </span>admin:public<span class=w> </span>-X<span class=w> </span>POST<span class=w> </span><span class=s1>&#39;http://localhost:18083/api/v5/authentication/password_based:built_in_database/users&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span>-H<span class=w> </span><span class=s1>&#39;Content-Type: application/json&#39;</span><span class=w> </span><span class=se>\</span>
-</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span>-d<span class=w> </span><span class=s1>&#39;{&quot;user_id&quot;: &quot;device001&quot;, &quot;password&quot;: &quot;secret&quot;}&#39;</span>
+</span></code></pre></div> <p>사용자는 dashboard나 REST API로 등록한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-3-1><a id=__codelineno-3-1 name=__codelineno-3-1 href=#__codelineno-3-1></a>curl<span class=w> </span>-u<span class=w> </span>admin:public<span class=w> </span>-X<span class=w> </span>POST<span class=w> </span><span class=s1>'http://localhost:18083/api/v5/authentication/password_based:built_in_database/users'</span><span class=w> </span><span class=se>\</span>
+</span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=w>  </span>-H<span class=w> </span><span class=s1>'Content-Type: application/json'</span><span class=w> </span><span class=se>\</span>
+</span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a><span class=w>  </span>-d<span class=w> </span><span class=s1>'{"user_id": "device001", "password": "secret"}'</span>
 </span></code></pre></div> <p>디바이스가 수만 대면 built-in DB에 일일이 넣기 힘들다. 그땐 외부 DB나 JWT를 쓴다.</p> <h3 id=mysqlpostgresql-연동>MySQL/PostgreSQL 연동<a class=headerlink href=#mysqlpostgresql-연동 title="Permanent link">&para;</a></h3> <p>디바이스 계정 정보가 이미 RDB에 있으면 거기서 바로 조회하게 한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>authentication = [
 </span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>  {
 </span><span id=__span-4-3><a id=__codelineno-4-3 name=__codelineno-4-3 href=#__codelineno-4-3></a>    mechanism = password_based
 </span><span id=__span-4-4><a id=__codelineno-4-4 name=__codelineno-4-4 href=#__codelineno-4-4></a>    backend = postgresql
-</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>    server = &quot;pg.internal:5432&quot;
-</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>    database = &quot;iot&quot;
-</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>    username = &quot;emqx&quot;
-</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>    password = &quot;emqx_pw&quot;
-</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>    query = &quot;SELECT password_hash, salt FROM devices WHERE username = ${username} LIMIT 1&quot;
+</span><span id=__span-4-5><a id=__codelineno-4-5 name=__codelineno-4-5 href=#__codelineno-4-5></a>    server = "pg.internal:5432"
+</span><span id=__span-4-6><a id=__codelineno-4-6 name=__codelineno-4-6 href=#__codelineno-4-6></a>    database = "iot"
+</span><span id=__span-4-7><a id=__codelineno-4-7 name=__codelineno-4-7 href=#__codelineno-4-7></a>    username = "emqx"
+</span><span id=__span-4-8><a id=__codelineno-4-8 name=__codelineno-4-8 href=#__codelineno-4-8></a>    password = "emqx_pw"
+</span><span id=__span-4-9><a id=__codelineno-4-9 name=__codelineno-4-9 href=#__codelineno-4-9></a>    query = "SELECT password_hash, salt FROM devices WHERE username = ${username} LIMIT 1"
 </span><span id=__span-4-10><a id=__codelineno-4-10 name=__codelineno-4-10 href=#__codelineno-4-10></a>    password_hash_algorithm {
 </span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a>      name = sha256
 </span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a>      salt_position = suffix
@@ -53,10 +53,10 @@
 </span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>  {
 </span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>    mechanism = jwt
 </span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>    use_jwks = false
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>    algorithm = &quot;hmac-based&quot;
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>    secret = &quot;my-jwt-secret&quot;
+</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>    algorithm = "hmac-based"
+</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>    secret = "my-jwt-secret"
 </span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>    verify_claims {
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>      username = &quot;${username}&quot;
+</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>      username = "${username}"
 </span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>    }
 </span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>  }
 </span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a>]
@@ -70,20 +70,20 @@
 </span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>  deny_action = disconnect
 </span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>}
 </span></code></pre></div> <p><code>no_match = deny</code>는 어떤 ACL 규칙에도 안 걸리면 거부한다는 뜻이다. 기본값이 <code>allow</code>라서 모르고 두면 ACL을 걸어도 규칙 밖 토픽은 다 통과한다. 화이트리스트로 운영하려면 반드시 <code>deny</code>로 바꾼다.</p> <p>규칙 예시는 디바이스가 자기 ID 하위 토픽만 쓰게 하는 형태다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a># device001은 device/device001/up 에만 publish, device/device001/down 만 subscribe
-</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>{allow, {username, &quot;device001&quot;}, publish, [&quot;device/device001/up&quot;]}.
-</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>{allow, {username, &quot;device001&quot;}, subscribe, [&quot;device/device001/down&quot;]}.
-</span></code></pre></div> <p><code>${username}</code> 같은 치환자를 ACL에 쓰면 디바이스마다 규칙을 만들 필요 없이 한 줄로 끝난다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>{allow, all, publish, [&quot;device/${username}/up&quot;]}.
-</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>{allow, all, subscribe, [&quot;device/${username}/down&quot;]}.
+</span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>{allow, {username, "device001"}, publish, ["device/device001/up"]}.
+</span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>{allow, {username, "device001"}, subscribe, ["device/device001/down"]}.
+</span></code></pre></div> <p><code>${username}</code> 같은 치환자를 ACL에 쓰면 디바이스마다 규칙을 만들 필요 없이 한 줄로 끝난다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>{allow, all, publish, ["device/${username}/up"]}.
+</span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>{allow, all, subscribe, ["device/${username}/down"]}.
 </span></code></pre></div> <h2 id=클러스터-구성>클러스터 구성<a class=headerlink href=#클러스터-구성 title="Permanent link">&para;</a></h2> <p>노드 한 대로 부족하면 클러스터로 묶는다. 노드들이 서로를 찾는 방법(디스커버리)을 먼저 정해야 한다.</p> <h3 id=디스커버리-방식>디스커버리 방식<a class=headerlink href=#디스커버리-방식 title="Permanent link">&para;</a></h3> <p><code>manual</code>은 노드를 띄운 뒤 <code>emqx_ctl cluster join</code>으로 직접 붙인다. 노드가 몇 개 안 되고 IP가 고정이면 쓴다.</p> <p><code>static</code>은 설정 파일에 노드 목록을 박아둔다. 노드 집합이 거의 안 바뀌는 온프레미스 환경에 맞다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>cluster {
 </span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>  discovery_strategy = static
 </span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>  static {
-</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>    seeds = [&quot;emqx@node1.internal&quot;, &quot;emqx@node2.internal&quot;, &quot;emqx@node3.internal&quot;]
+</span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a>    seeds = ["emqx@node1.internal", "emqx@node2.internal", "emqx@node3.internal"]
 </span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>  }
 </span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>}
 </span></code></pre></div> <p><code>dns</code>는 DNS A 레코드나 SRV 레코드로 노드를 찾는다. Kubernetes의 headless service와 조합하면 Pod가 늘고 줄 때 자동으로 클러스터에 붙고 빠진다. 오토스케일 환경이면 사실상 이걸 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>cluster {
 </span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>  discovery_strategy = dns
 </span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>  dns {
-</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>    name = &quot;emqx-headless.default.svc.cluster.local&quot;
+</span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>    name = "emqx-headless.default.svc.cluster.local"
 </span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>    record_type = srv
 </span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a>  }
 </span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a>}
@@ -91,7 +91,7 @@
 </span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>  role = replicant   # core 또는 replicant
 </span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>}
 </span></code></pre></div> <h3 id=쿠키-불일치-문제>쿠키 불일치 문제<a class=headerlink href=#쿠키-불일치-문제 title="Permanent link">&para;</a></h3> <p>클러스터가 안 붙을 때 십중팔구는 Erlang 쿠키 불일치다. Erlang 노드끼리 통신하려면 같은 쿠키 값을 공유해야 하는데, 노드마다 쿠키가 다르면 connection refused만 나고 원인 메시지가 친절하지 않다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a>docker<span class=w> </span>run<span class=w> </span>-d<span class=w> </span>--name<span class=w> </span>emqx1<span class=w> </span><span class=se>\</span>
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=w>  </span>-e<span class=w> </span><span class=nv>EMQX_NODE__COOKIE</span><span class=o>=</span><span class=s2>&quot;my-shared-cookie&quot;</span><span class=w> </span><span class=se>\</span>
+</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a><span class=w>  </span>-e<span class=w> </span><span class=nv>EMQX_NODE__COOKIE</span><span class=o>=</span><span class=s2>"my-shared-cookie"</span><span class=w> </span><span class=se>\</span>
 </span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=w>  </span>-e<span class=w> </span><span class=nv>EMQX_CLUSTER__DISCOVERY_STRATEGY</span><span class=o>=</span>static<span class=w> </span><span class=se>\</span>
 </span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a><span class=w>  </span>...
 </span></code></pre></div> <p>모든 노드에 <code>EMQX_NODE__COOKIE</code>를 같은 값으로 넣어야 한다. Docker Compose로 여러 노드 띄울 때 한 노드만 환경변수 오타가 나도 그 노드만 클러스터에서 빠진다. 클러스터가 안 붙으면 제일 먼저 <code>emqx_ctl cluster status</code>로 확인하고, 쿠키부터 의심한다. 노드 이름(<code>EMQX_NODE__NAME</code>)도 노드별로 유일해야 하고 hostname이 서로 resolve돼야 한다. 컨테이너 환경에서 hostname resolve가 안 돼서 안 붙는 경우도 흔하다.</p> <h2 id=rule-engine과-data-bridge>Rule Engine과 Data Bridge<a class=headerlink href=#rule-engine과-data-bridge title="Permanent link">&para;</a></h2> <p>EMQX의 진짜 쓸모는 메시지를 받아서 외부 시스템으로 흘려보내는 데 있다. Rule Engine이 SQL 비슷한 문법으로 메시지를 필터링/가공하고, Data Bridge가 목적지로 보낸다.</p> <p>규칙은 SQL로 작성한다. 토픽에서 메시지를 뽑아 필요한 필드만 추린다.</p> <div class="language-sql highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a><span class=k>SELECT</span>
@@ -100,31 +100,31 @@
 </span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a><span class=w>  </span><span class=n>clientid</span><span class=p>,</span>
 </span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a><span class=w>  </span><span class=k>timestamp</span>
 </span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a><span class=k>FROM</span>
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a><span class=w>  </span><span class=ss>&quot;device/+/up&quot;</span>
+</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a><span class=w>  </span><span class=ss>"device/+/up"</span>
 </span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a><span class=k>WHERE</span>
 </span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a><span class=w>  </span><span class=n>payload</span><span class=p>.</span><span class=n>temperature</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>80</span>
 </span></code></pre></div> <p><code>device/+/up</code> 토픽으로 들어온 메시지 중 온도가 80을 넘는 것만 골라낸다. 이 결과를 Data Bridge로 연결한다.</p> <h3 id=kafka-연동>Kafka 연동<a class=headerlink href=#kafka-연동 title="Permanent link">&para;</a></h3> <p>센서 데이터를 Kafka로 흘려서 다운스트림에서 스트림 처리하는 구조가 흔하다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>bridges.kafka_producer.to_analytics {
-</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>  bootstrap_hosts = &quot;kafka1:9092,kafka2:9092&quot;
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>  topic = &quot;iot-telemetry&quot;
+</span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>  bootstrap_hosts = "kafka1:9092,kafka2:9092"
+</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>  topic = "iot-telemetry"
 </span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>  message {
-</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>    key = &quot;${clientid}&quot;
-</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a>    value = &quot;${payload}&quot;
+</span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>    key = "${clientid}"
+</span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a>    value = "${payload}"
 </span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a>  }
 </span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a>  buffer {
 </span><span id=__span-14-9><a id=__codelineno-14-9 name=__codelineno-14-9 href=#__codelineno-14-9></a>    mode = disk
-</span><span id=__span-14-10><a id=__codelineno-14-10 name=__codelineno-14-10 href=#__codelineno-14-10></a>    per_partition_limit = &quot;2GB&quot;
+</span><span id=__span-14-10><a id=__codelineno-14-10 name=__codelineno-14-10 href=#__codelineno-14-10></a>    per_partition_limit = "2GB"
 </span><span id=__span-14-11><a id=__codelineno-14-11 name=__codelineno-14-11 href=#__codelineno-14-11></a>  }
 </span><span id=__span-14-12><a id=__codelineno-14-12 name=__codelineno-14-12 href=#__codelineno-14-12></a>}
 </span></code></pre></div> <p><code>buffer.mode = disk</code>로 두면 Kafka가 잠깐 죽어도 메시지를 디스크에 버퍼링했다가 복구되면 보낸다. memory로 두면 Kafka 장애 시 버퍼가 차서 메시지를 버린다. 데이터 유실이 곤란하면 disk로 둔다. 다만 디스크 버퍼가 무한정 쌓이면 디스크가 꽉 차니까 <code>per_partition_limit</code>을 반드시 건다.</p> <h3 id=postgresql-연동>PostgreSQL 연동<a class=headerlink href=#postgresql-연동 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a>bridges.pgsql.to_db {
-</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>  server = &quot;pg.internal:5432&quot;
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>  database = &quot;iot&quot;
-</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>  username = &quot;emqx&quot;
-</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>  sql = &quot;INSERT INTO telemetry(device_id, temp, ts) VALUES (${device_id}, ${temp}, ${timestamp})&quot;
+</span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>  server = "pg.internal:5432"
+</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>  database = "iot"
+</span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>  username = "emqx"
+</span><span id=__span-15-5><a id=__codelineno-15-5 name=__codelineno-15-5 href=#__codelineno-15-5></a>  sql = "INSERT INTO telemetry(device_id, temp, ts) VALUES (${device_id}, ${temp}, ${timestamp})"
 </span><span id=__span-15-6><a id=__codelineno-15-6 name=__codelineno-15-6 href=#__codelineno-15-6></a>}
 </span></code></pre></div> <p>여기서 자주 터지는 게 INSERT 부하다. 디바이스가 초당 수만 건 보내면 매 메시지마다 INSERT가 날아가서 DB가 못 버틴다. EMQX의 batch 설정으로 여러 메시지를 묶어 한 번에 INSERT하거나, 애초에 Kafka로 받아서 컨슈머가 배치 적재하는 구조로 가야 한다. 고빈도 텔레메트리를 RDB에 직접 꽂는 건 거의 항상 후회한다.</p> <h3 id=webhook-연동>Webhook 연동<a class=headerlink href=#webhook-연동 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a>bridges.webhook.to_alert {
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>  url = &quot;http://alert-service.internal/api/alert&quot;
+</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>  url = "http://alert-service.internal/api/alert"
 </span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a>  method = post
-</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a>  body = &quot;${payload}&quot;
+</span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a>  body = "${payload}"
 </span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a>  pool_size = 16
 </span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a>}
 </span></code></pre></div> <p>Webhook 대상 서비스가 느리면 EMQX 쪽 요청 큐가 밀린다. <code>pool_size</code>로 동시 요청 수를 조절하고, 대상 서비스에 타임아웃과 재시도 정책을 명확히 해둔다. 온도 임계 초과 같은 알림성 이벤트에만 Webhook을 쓰고, 전체 텔레메트리를 Webhook으로 보내려는 시도는 하지 않는다.</p> <h2 id=shared-subscription으로-부하-분산>Shared Subscription으로 부하 분산<a class=headerlink href=#shared-subscription으로-부하-분산 title="Permanent link">&para;</a></h2> <p>일반 구독은 한 토픽을 구독한 모든 컨슈머가 같은 메시지를 다 받는다. 백엔드 컨슈머를 여러 개 띄워 메시지를 나눠 처리하고 싶으면 Shared Subscription을 쓴다. <code>$share/&lt;group&gt;/</code> 접두사를 붙인다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a>$share/workers/device/+/up
@@ -138,7 +138,7 @@
 </span><span id=__span-20-2><a id=__codelineno-20-2 name=__codelineno-20-2 href=#__codelineno-20-2></a><span class=nb>ulimit</span><span class=w> </span>-n
 </span><span id=__span-20-3><a id=__codelineno-20-3 name=__codelineno-20-3 href=#__codelineno-20-3></a>
 </span><span id=__span-20-4><a id=__codelineno-20-4 name=__codelineno-20-4 href=#__codelineno-20-4></a><span class=c1># EMQX 프로세스 실제 사용량</span>
-</span><span id=__span-20-5><a id=__codelineno-20-5 name=__codelineno-20-5 href=#__codelineno-20-5></a>cat<span class=w> </span>/proc/<span class=k>$(</span>pgrep<span class=w> </span>-f<span class=w> </span>emqx<span class=k>)</span>/limits<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span><span class=s2>&quot;open files&quot;</span>
+</span><span id=__span-20-5><a id=__codelineno-20-5 name=__codelineno-20-5 href=#__codelineno-20-5></a>cat<span class=w> </span>/proc/<span class=k>$(</span>pgrep<span class=w> </span>-f<span class=w> </span>emqx<span class=k>)</span>/limits<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span><span class=s2>"open files"</span>
 </span></code></pre></div> <p>systemd로 띄우면 unit 파일에 <code>LimitNOFILE</code>을 올리고, Docker면 <code>--ulimit nofile=1048576:1048576</code>을 준다. 수십만 커넥션을 받을 노드는 fd를 백만 단위로 올려놔야 한다. 커널의 <code>fs.file-max</code>도 같이 확인한다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a>docker<span class=w> </span>run<span class=w> </span>-d<span class=w> </span>--name<span class=w> </span>emqx<span class=w> </span><span class=se>\</span>
 </span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a><span class=w>  </span>--ulimit<span class=w> </span><span class=nv>nofile</span><span class=o>=</span><span class=m>2097152</span>:2097152<span class=w> </span><span class=se>\</span>
 </span><span id=__span-21-3><a id=__codelineno-21-3 name=__codelineno-21-3 href=#__codelineno-21-3></a><span class=w>  </span>...

@@ -150,7 +150,7 @@
 </span></code></pre></div> <p>실무에서 겪는 문제:</p> <div class="language-java highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a><span class=c1>// WeakHashMap을 캐시로 쓸 때 주의</span>
 </span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a><span class=c1>// key가 Strong Reference로 다른 곳에서 참조되면 영원히 수거 안 됨</span>
 </span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a><span class=n>Map</span><span class=o>&lt;</span><span class=n>Key</span><span class=p>,</span><span class=w> </span><span class=n>Value</span><span class=o>&gt;</span><span class=w> </span><span class=n>cache</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>WeakHashMap</span><span class=o>&lt;&gt;</span><span class=p>();</span>
-</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=n>Key</span><span class=w> </span><span class=n>key</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Key</span><span class=p>(</span><span class=s>&quot;data&quot;</span><span class=p>);</span>
+</span><span id=__span-8-4><a id=__codelineno-8-4 name=__codelineno-8-4 href=#__codelineno-8-4></a><span class=n>Key</span><span class=w> </span><span class=n>key</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>Key</span><span class=p>(</span><span class=s>"data"</span><span class=p>);</span>
 </span><span id=__span-8-5><a id=__codelineno-8-5 name=__codelineno-8-5 href=#__codelineno-8-5></a><span class=n>cache</span><span class=p>.</span><span class=na>put</span><span class=p>(</span><span class=n>key</span><span class=p>,</span><span class=w> </span><span class=n>value</span><span class=p>);</span>
 </span><span id=__span-8-6><a id=__codelineno-8-6 name=__codelineno-8-6 href=#__codelineno-8-6></a><span class=c1>// key 변수가 살아있는 한 entry는 수거되지 않는다</span>
 </span><span id=__span-8-7><a id=__codelineno-8-7 name=__codelineno-8-7 href=#__codelineno-8-7></a>
@@ -258,7 +258,7 @@
 </span><span id=__span-14-12><a id=__codelineno-14-12 name=__codelineno-14-12 href=#__codelineno-14-12></a>  Minor GC 때 Card1, Card3만 확인
 </span><span id=__span-14-13><a id=__codelineno-14-13 name=__codelineno-14-13 href=#__codelineno-14-13></a>
 </span><span id=__span-14-14><a id=__codelineno-14-14 name=__codelineno-14-14 href=#__codelineno-14-14></a>G1의 Remembered Set:
-</span><span id=__span-14-15><a id=__codelineno-14-15 name=__codelineno-14-15 href=#__codelineno-14-15></a>  - 리전별로 &quot;나를 참조하는 리전&quot; 목록을 관리
+</span><span id=__span-14-15><a id=__codelineno-14-15 name=__codelineno-14-15 href=#__codelineno-14-15></a>  - 리전별로 "나를 참조하는 리전" 목록을 관리
 </span><span id=__span-14-16><a id=__codelineno-14-16 name=__codelineno-14-16 href=#__codelineno-14-16></a>  - 리전 A의 RSet = {B:card3, D:card7, ...}
 </span><span id=__span-14-17><a id=__codelineno-14-17 name=__codelineno-14-17 href=#__codelineno-14-17></a>  - 특정 리전만 수거할 때 RSet을 보면 어떤 리전을 확인해야 하는지 바로 알 수 있다
 </span><span id=__span-14-18><a id=__codelineno-14-18 name=__codelineno-14-18 href=#__codelineno-14-18></a>
@@ -283,7 +283,7 @@
 </span><span id=__span-15-13><a id=__codelineno-15-13 name=__codelineno-15-13 href=#__codelineno-15-13></a>
 </span><span id=__span-15-14><a id=__codelineno-15-14 name=__codelineno-15-14 href=#__codelineno-15-14></a>SATB 해결 방식:
 </span><span id=__span-15-15><a id=__codelineno-15-15 name=__codelineno-15-15 href=#__codelineno-15-15></a>  - 참조가 끊어질 때(B→C가 null이 될 때) 이전 값(C)을 SATB 큐에 기록
-</span><span id=__span-15-16><a id=__codelineno-15-16 name=__codelineno-15-16 href=#__codelineno-15-16></a>  - Write Barrier가 &quot;이전 참조 값&quot;을 캡처
+</span><span id=__span-15-16><a id=__codelineno-15-16 name=__codelineno-15-16 href=#__codelineno-15-16></a>  - Write Barrier가 "이전 참조 값"을 캡처
 </span><span id=__span-15-17><a id=__codelineno-15-17 name=__codelineno-15-17 href=#__codelineno-15-17></a>  - Marking 시작 시점에 살아있던 객체는 모두 살린다
 </span><span id=__span-15-18><a id=__codelineno-15-18 name=__codelineno-15-18 href=#__codelineno-15-18></a>  - 대신 이미 죽은 객체를 살릴 수 있다 (floating garbage)
 </span><span id=__span-15-19><a id=__codelineno-15-19 name=__codelineno-15-19 href=#__codelineno-15-19></a>  - floating garbage는 다음 GC 사이클에서 수거

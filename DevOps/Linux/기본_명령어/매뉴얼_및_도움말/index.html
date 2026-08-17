@@ -66,14 +66,14 @@
 </span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a>
 </span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a><span class=c1># type: 셸이 명령어를 어떻게 해석하는지 알려줌 (내장, 함수, alias 포함)</span>
 </span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a><span class=nb>type</span><span class=w> </span>ls
-</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=c1># ls is aliased to `ls --color=auto&#39;</span>
+</span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a><span class=c1># ls is aliased to `ls --color=auto'</span>
 </span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>
 </span><span id=__span-11-9><a id=__codelineno-11-9 name=__codelineno-11-9 href=#__codelineno-11-9></a><span class=nb>type</span><span class=w> </span><span class=nb>cd</span>
 </span><span id=__span-11-10><a id=__codelineno-11-10 name=__codelineno-11-10 href=#__codelineno-11-10></a><span class=c1># cd is a shell builtin</span>
 </span><span id=__span-11-11><a id=__codelineno-11-11 name=__codelineno-11-11 href=#__codelineno-11-11></a>
 </span><span id=__span-11-12><a id=__codelineno-11-12 name=__codelineno-11-12 href=#__codelineno-11-12></a><span class=c1># command -v: 스크립트에서 안전하게 쓸 수 있는 POSIX 표준</span>
 </span><span id=__span-11-13><a id=__codelineno-11-13 name=__codelineno-11-13 href=#__codelineno-11-13></a><span class=nb>command</span><span class=w> </span>-v<span class=w> </span>ls
-</span><span id=__span-11-14><a id=__codelineno-11-14 name=__codelineno-11-14 href=#__codelineno-11-14></a><span class=c1># alias ls=&#39;ls --color=auto&#39;</span>
+</span><span id=__span-11-14><a id=__codelineno-11-14 name=__codelineno-11-14 href=#__codelineno-11-14></a><span class=c1># alias ls='ls --color=auto'</span>
 </span></code></pre></div> <p><code>which</code>는 alias나 셸 빌트인을 인식 못 한다. 그래서 <code>which cd</code>를 치면 결과가 안 나오거나 <code>/usr/bin/cd</code>가 나오는데, 실제로 셸에서 <code>cd</code>를 입력하면 빌트인이 실행된다. 이걸 모르면 "왜 <code>cd</code>에는 <code>--help</code>가 없지?" 같은 데서 막힌다.</p> <div class="language-bash highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a><span class=c1># cd는 빌트인이라 별도 매뉴얼이 없음</span>
 </span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>man<span class=w> </span><span class=nb>cd</span>
 </span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a><span class=c1># No manual entry for cd</span>
@@ -174,7 +174,7 @@
 </span><span id=__span-23-12><a id=__codelineno-23-12 name=__codelineno-23-12 href=#__codelineno-23-12></a>man<span class=w> </span><span class=m>3</span><span class=w> </span>errno
 </span><span id=__span-23-13><a id=__codelineno-23-13 name=__codelineno-23-13 href=#__codelineno-23-13></a>
 </span><span id=__span-23-14><a id=__codelineno-23-14 name=__codelineno-23-14 href=#__codelineno-23-14></a><span class=c1># 파일 권한 비트 의미</span>
-</span><span id=__span-23-15><a id=__codelineno-23-15 name=__codelineno-23-15 href=#__codelineno-23-15></a>man<span class=w> </span><span class=m>2</span><span class=w> </span>stat<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-A<span class=w> </span><span class=m>30</span><span class=w> </span><span class=s2>&quot;S_IFMT&quot;</span>
+</span><span id=__span-23-15><a id=__codelineno-23-15 name=__codelineno-23-15 href=#__codelineno-23-15></a>man<span class=w> </span><span class=m>2</span><span class=w> </span>stat<span class=w> </span><span class=p>|</span><span class=w> </span>grep<span class=w> </span>-A<span class=w> </span><span class=m>30</span><span class=w> </span><span class=s2>"S_IFMT"</span>
 </span><span id=__span-23-16><a id=__codelineno-23-16 name=__codelineno-23-16 href=#__codelineno-23-16></a>
 </span><span id=__span-23-17><a id=__codelineno-23-17 name=__codelineno-23-17 href=#__codelineno-23-17></a><span class=c1># 환경 변수 매뉴얼</span>
 </span><span id=__span-23-18><a id=__codelineno-23-18 name=__codelineno-23-18 href=#__codelineno-23-18></a>man<span class=w> </span><span class=m>7</span><span class=w> </span>environ

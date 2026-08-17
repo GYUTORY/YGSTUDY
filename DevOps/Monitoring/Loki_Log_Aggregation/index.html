@@ -65,15 +65,15 @@
 </span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=w>    </span><span class=nt>env</span><span class=p>:</span>
 </span></code></pre></div> <h3 id=regex-파싱>regex 파싱<a class=headerlink href=#regex-파싱 title="Permanent link">&para;</a></h3> <p>JSON이 아닌 일반 텍스트 로그는 regex로 파싱한다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a><span class=nt>pipeline_stages</span><span class=p>:</span>
 </span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a><span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>regex</span><span class=p>:</span>
-</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>      </span><span class=nt>expression</span><span class=p>:</span><span class=w> </span><span class=s>&#39;(?P&lt;timestamp&gt;\d{4}-\d{2}-\d{2}</span><span class=nv> </span><span class=s>\d{2}:\d{2}:\d{2})</span><span class=nv> </span><span class=s>(?P&lt;level&gt;\w+)</span><span class=nv> </span><span class=s>(?P&lt;message&gt;.*)&#39;</span>
+</span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a><span class=w>      </span><span class=nt>expression</span><span class=p>:</span><span class=w> </span><span class=s>'(?P&lt;timestamp&gt;\d{4}-\d{2}-\d{2}</span><span class=nv> </span><span class=s>\d{2}:\d{2}:\d{2})</span><span class=nv> </span><span class=s>(?P&lt;level&gt;\w+)</span><span class=nv> </span><span class=s>(?P&lt;message&gt;.*)'</span>
 </span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a><span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>labels</span><span class=p>:</span>
 </span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a><span class=w>      </span><span class=nt>level</span><span class=p>:</span>
 </span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a><span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>timestamp</span><span class=p>:</span>
 </span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a><span class=w>      </span><span class=nt>source</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">timestamp</span>
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>      </span><span class=nt>format</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2006-01-02</span><span class=nv> </span><span class=s>15:04:05&quot;</span>
+</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a><span class=w>      </span><span class=nt>format</span><span class=p>:</span><span class=w> </span><span class=s>"2006-01-02</span><span class=nv> </span><span class=s>15:04:05"</span>
 </span></code></pre></div> <p>Go의 time 패키지 형식을 사용한다. <code>2006-01-02 15:04:05</code>는 Go 기준 시각으로, 자바의 <code>yyyy-MM-dd HH:mm:ss</code>에 해당한다.</p> <h3 id=multiline-처리>multiline 처리<a class=headerlink href=#multiline-처리 title="Permanent link">&para;</a></h3> <p>Java 스택 트레이스처럼 여러 줄에 걸친 로그를 하나의 로그 엔트리로 합쳐야 할 때 <code>multiline</code> 스테이지를 쓴다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=nt>pipeline_stages</span><span class=p>:</span>
 </span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a><span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>multiline</span><span class=p>:</span>
-</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>      </span><span class=nt>firstline</span><span class=p>:</span><span class=w> </span><span class=s>&#39;^\d{4}-\d{2}-\d{2}&#39;</span>
+</span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a><span class=w>      </span><span class=nt>firstline</span><span class=p>:</span><span class=w> </span><span class=s>'^\d{4}-\d{2}-\d{2}'</span>
 </span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=w>      </span><span class=nt>max_wait_time</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">3s</span>
 </span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a><span class=w>      </span><span class=nt>max_lines</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
 </span></code></pre></div> <p><code>firstline</code> 패턴에 매칭되는 줄이 새 로그 엔트리의 시작이다. <code>max_wait_time</code>이 지나거나 <code>max_lines</code>에 도달하면 강제로 플러시한다. 스택 트레이스가 128줄을 넘으면 잘리므로 운영 환경에서 값을 조정해야 한다.</p> <h3 id=match-스테이지로-조건부-파이프라인>match 스테이지로 조건부 파이프라인<a class=headerlink href=#match-스테이지로-조건부-파이프라인 title="Permanent link">&para;</a></h3> <p>특정 조건에 맞는 로그에만 다른 처리를 적용할 때 사용한다.</p> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=nt>pipeline_stages</span><span class=p>:</span>
@@ -81,7 +81,7 @@
 </span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>      </span><span class=nt>expressions</span><span class=p>:</span>
 </span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>        </span><span class=nt>level</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">level</span>
 </span><span id=__span-7-5><a id=__codelineno-7-5 name=__codelineno-7-5 href=#__codelineno-7-5></a><span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>match</span><span class=p>:</span>
-</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=w>      </span><span class=nt>selector</span><span class=p>:</span><span class=w> </span><span class=s>&#39;{job=&quot;backend-api&quot;}&#39;</span>
+</span><span id=__span-7-6><a id=__codelineno-7-6 name=__codelineno-7-6 href=#__codelineno-7-6></a><span class=w>      </span><span class=nt>selector</span><span class=p>:</span><span class=w> </span><span class=s>'{job="backend-api"}'</span>
 </span><span id=__span-7-7><a id=__codelineno-7-7 name=__codelineno-7-7 href=#__codelineno-7-7></a><span class=w>      </span><span class=nt>stages</span><span class=p>:</span>
 </span><span id=__span-7-8><a id=__codelineno-7-8 name=__codelineno-7-8 href=#__codelineno-7-8></a><span class=w>        </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>json</span><span class=p>:</span>
 </span><span id=__span-7-9><a id=__codelineno-7-9 name=__codelineno-7-9 href=#__codelineno-7-9></a><span class=w>            </span><span class=nt>expressions</span><span class=p>:</span>
@@ -92,80 +92,80 @@
 </span><span id=__span-7-14><a id=__codelineno-7-14 name=__codelineno-7-14 href=#__codelineno-7-14></a><span class=w>            </span><span class=nt>httpMethod</span><span class=p>:</span>
 </span></code></pre></div> <h2 id=logql-쿼리-작성>LogQL 쿼리 작성<a class=headerlink href=#logql-쿼리-작성 title="Permanent link">&para;</a></h2> <p>LogQL은 두 부분으로 구성된다. 로그 스트림 선택자와 파이프라인이다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>{레이블 선택자} | 파이프라인
 </span></code></pre></div> <h3 id=로그-스트림-선택자>로그 스트림 선택자<a class=headerlink href=#로그-스트림-선택자 title="Permanent link">&para;</a></h3> <p>레이블로 로그 스트림을 좁힌다. 선택자가 넓을수록 읽어야 할 청크가 많아져 쿼리가 느려진다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a># 특정 서비스의 에러 로그
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>{app=&quot;order-service&quot;, env=&quot;production&quot;, level=&quot;error&quot;}
+</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>{app="order-service", env="production", level="error"}
 </span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>
 </span><span id=__span-9-4><a id=__codelineno-9-4 name=__codelineno-9-4 href=#__codelineno-9-4></a># 연산자: =, !=, =~(정규식), !~(정규식 제외)
-</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>{app=~&quot;order-.*&quot;, env=&quot;production&quot;}
-</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>{namespace=&quot;backend&quot;, container!=&quot;sidecar&quot;}
+</span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>{app=~"order-.*", env="production"}
+</span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>{namespace="backend", container!="sidecar"}
 </span></code></pre></div> <h3 id=filter-expression>filter expression<a class=headerlink href=#filter-expression title="Permanent link">&para;</a></h3> <p>스트림 선택자로 걸러낸 로그를 내용으로 추가 필터링한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a># 문자열 포함
-</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>{app=&quot;api&quot;} |= &quot;ERROR&quot;
+</span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a>{app="api"} |= "ERROR"
 </span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a>
 </span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a># 문자열 제외
-</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>{app=&quot;api&quot;} != &quot;health-check&quot;
+</span><span id=__span-10-5><a id=__codelineno-10-5 name=__codelineno-10-5 href=#__codelineno-10-5></a>{app="api"} != "health-check"
 </span><span id=__span-10-6><a id=__codelineno-10-6 name=__codelineno-10-6 href=#__codelineno-10-6></a>
 </span><span id=__span-10-7><a id=__codelineno-10-7 name=__codelineno-10-7 href=#__codelineno-10-7></a># 정규식
-</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>{app=&quot;api&quot;} |~ &quot;timeout|connection refused&quot;
+</span><span id=__span-10-8><a id=__codelineno-10-8 name=__codelineno-10-8 href=#__codelineno-10-8></a>{app="api"} |~ "timeout|connection refused"
 </span><span id=__span-10-9><a id=__codelineno-10-9 name=__codelineno-10-9 href=#__codelineno-10-9></a>
 </span><span id=__span-10-10><a id=__codelineno-10-10 name=__codelineno-10-10 href=#__codelineno-10-10></a># 정규식 제외
-</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a>{app=&quot;api&quot;} !~ &quot;DEBUG|TRACE&quot;
+</span><span id=__span-10-11><a id=__codelineno-10-11 name=__codelineno-10-11 href=#__codelineno-10-11></a>{app="api"} !~ "DEBUG|TRACE"
 </span><span id=__span-10-12><a id=__codelineno-10-12 name=__codelineno-10-12 href=#__codelineno-10-12></a>
 </span><span id=__span-10-13><a id=__codelineno-10-13 name=__codelineno-10-13 href=#__codelineno-10-13></a># 조합
-</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a>{app=&quot;api&quot;} |= &quot;ERROR&quot; != &quot;expected error&quot;
+</span><span id=__span-10-14><a id=__codelineno-10-14 name=__codelineno-10-14 href=#__codelineno-10-14></a>{app="api"} |= "ERROR" != "expected error"
 </span></code></pre></div> <h3 id=label-filter>label filter<a class=headerlink href=#label-filter title="Permanent link">&para;</a></h3> <p>파싱된 레이블 값으로 필터링한다. <code>json</code> 또는 <code>regex</code> 파이프라인 스테이지 이후에 사용한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a># JSON 파싱 후 duration 필드로 필터
-</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>{app=&quot;api&quot;} | json | duration &gt; 1000
+</span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>{app="api"} | json | duration &gt; 1000
 </span><span id=__span-11-3><a id=__codelineno-11-3 name=__codelineno-11-3 href=#__codelineno-11-3></a>
 </span><span id=__span-11-4><a id=__codelineno-11-4 name=__codelineno-11-4 href=#__codelineno-11-4></a># 문자열 레이블 필터
-</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a>{app=&quot;api&quot;} | json | level=&quot;error&quot;
+</span><span id=__span-11-5><a id=__codelineno-11-5 name=__codelineno-11-5 href=#__codelineno-11-5></a>{app="api"} | json | level="error"
 </span><span id=__span-11-6><a id=__codelineno-11-6 name=__codelineno-11-6 href=#__codelineno-11-6></a>
 </span><span id=__span-11-7><a id=__codelineno-11-7 name=__codelineno-11-7 href=#__codelineno-11-7></a># 복합 조건
-</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>{app=&quot;api&quot;} | json | duration &gt; 500 | level!=&quot;debug&quot;
+</span><span id=__span-11-8><a id=__codelineno-11-8 name=__codelineno-11-8 href=#__codelineno-11-8></a>{app="api"} | json | duration &gt; 500 | level!="debug"
 </span></code></pre></div> <h3 id=파싱-파이프라인-내장>파싱 파이프라인 내장<a class=headerlink href=#파싱-파이프라인-내장 title="Permanent link">&para;</a></h3> <p>Promtail에서 파싱하지 않고 쿼리 시점에 파싱할 수도 있다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-12-1><a id=__codelineno-12-1 name=__codelineno-12-1 href=#__codelineno-12-1></a># JSON 파싱
-</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>{app=&quot;api&quot;} | json | line_format &quot;{{.level}} {{.message}}&quot;
+</span><span id=__span-12-2><a id=__codelineno-12-2 name=__codelineno-12-2 href=#__codelineno-12-2></a>{app="api"} | json | line_format "{{.level}} {{.message}}"
 </span><span id=__span-12-3><a id=__codelineno-12-3 name=__codelineno-12-3 href=#__codelineno-12-3></a>
 </span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a># logfmt 파싱
-</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>{app=&quot;api&quot;} | logfmt | duration &gt; 200ms
+</span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a>{app="api"} | logfmt | duration &gt; 200ms
 </span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>
 </span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a># regex 파싱
-</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>{app=&quot;api&quot;} | regexp &quot;(?P&lt;status&gt;\\d{3}) (?P&lt;path&gt;/\\S+)&quot;
+</span><span id=__span-12-8><a id=__codelineno-12-8 name=__codelineno-12-8 href=#__codelineno-12-8></a>{app="api"} | regexp "(?P&lt;status&gt;\\d{3}) (?P&lt;path&gt;/\\S+)"
 </span></code></pre></div> <h2 id=실무에서-자주-쓰는-쿼리-패턴>실무에서 자주 쓰는 쿼리 패턴<a class=headerlink href=#실무에서-자주-쓰는-쿼리-패턴 title="Permanent link">&para;</a></h2> <h3 id=에러-집계>에러 집계<a class=headerlink href=#에러-집계 title="Permanent link">&para;</a></h3> <p>특정 시간 동안 서비스별 에러 수를 집계한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a># 5분 단위 에러 발생 수 (메트릭 쿼리)
 </span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>sum by (app) (
-</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>  count_over_time({env=&quot;production&quot;, level=&quot;error&quot;}[5m])
+</span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>  count_over_time({env="production", level="error"}[5m])
 </span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>)
 </span><span id=__span-13-5><a id=__codelineno-13-5 name=__codelineno-13-5 href=#__codelineno-13-5></a>
 </span><span id=__span-13-6><a id=__codelineno-13-6 name=__codelineno-13-6 href=#__codelineno-13-6></a># 에러 비율 계산
-</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a>sum by (app) (rate({env=&quot;production&quot;, level=&quot;error&quot;}[5m]))
+</span><span id=__span-13-7><a id=__codelineno-13-7 name=__codelineno-13-7 href=#__codelineno-13-7></a>sum by (app) (rate({env="production", level="error"}[5m]))
 </span><span id=__span-13-8><a id=__codelineno-13-8 name=__codelineno-13-8 href=#__codelineno-13-8></a>/
-</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a>sum by (app) (rate({env=&quot;production&quot;}[5m]))
+</span><span id=__span-13-9><a id=__codelineno-13-9 name=__codelineno-13-9 href=#__codelineno-13-9></a>sum by (app) (rate({env="production"}[5m]))
 </span></code></pre></div> <p><code>count_over_time</code>은 지정한 범위 내 로그 라인 수를 반환한다. <code>rate</code>는 초당 평균으로 환산한다. Grafana에서 시계열 그래프로 그릴 때 <code>rate</code>를 쓰는 게 일반적이다.</p> <h3 id=응답시간-추출>응답시간 추출<a class=headerlink href=#응답시간-추출 title="Permanent link">&para;</a></h3> <p>JSON 로그에서 duration 필드를 추출해 분위수를 계산한다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a># 응답시간 분위수
 </span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>quantile_over_time(0.95,
-</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>  {app=&quot;order-service&quot;} | json | unwrap duration [5m]
+</span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>  {app="order-service"} | json | unwrap duration [5m]
 </span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>) by (app)
 </span><span id=__span-14-5><a id=__codelineno-14-5 name=__codelineno-14-5 href=#__codelineno-14-5></a>
 </span><span id=__span-14-6><a id=__codelineno-14-6 name=__codelineno-14-6 href=#__codelineno-14-6></a># 평균 응답시간
 </span><span id=__span-14-7><a id=__codelineno-14-7 name=__codelineno-14-7 href=#__codelineno-14-7></a>avg_over_time(
-</span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a>  {app=&quot;order-service&quot;} | json | unwrap duration [1m]
+</span><span id=__span-14-8><a id=__codelineno-14-8 name=__codelineno-14-8 href=#__codelineno-14-8></a>  {app="order-service"} | json | unwrap duration [1m]
 </span><span id=__span-14-9><a id=__codelineno-14-9 name=__codelineno-14-9 href=#__codelineno-14-9></a>) by (app)
 </span></code></pre></div> <p><code>unwrap</code>은 레이블 값을 숫자형으로 변환해 메트릭 함수에 쓸 수 있게 한다. duration이 밀리초 단위 숫자로 로그에 찍혀 있어야 동작한다. 단위 변환이 필요하면 <code>unwrap duration | __error__=""</code> 이후 <code>/ 1000</code> 같은 추가 연산을 붙인다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-15-1><a id=__codelineno-15-1 name=__codelineno-15-1 href=#__codelineno-15-1></a># HTTP 상태 코드별 p99 응답시간
 </span><span id=__span-15-2><a id=__codelineno-15-2 name=__codelineno-15-2 href=#__codelineno-15-2></a>quantile_over_time(0.99,
-</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>  {app=&quot;api&quot;} | json | unwrap responseTime [5m]
+</span><span id=__span-15-3><a id=__codelineno-15-3 name=__codelineno-15-3 href=#__codelineno-15-3></a>  {app="api"} | json | unwrap responseTime [5m]
 </span><span id=__span-15-4><a id=__codelineno-15-4 name=__codelineno-15-4 href=#__codelineno-15-4></a>) by (statusCode)
 </span></code></pre></div> <h3 id=correlationid로-요청-추적>correlationId로 요청 추적<a class=headerlink href=#correlationid로-요청-추적 title="Permanent link">&para;</a></h3> <p>분산 시스템에서 특정 요청을 전체 서비스에 걸쳐 추적할 때 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-16-1><a id=__codelineno-16-1 name=__codelineno-16-1 href=#__codelineno-16-1></a># 특정 traceId를 가진 로그 전체
-</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>{env=&quot;production&quot;} |= &quot;trace-id-abc123&quot;
+</span><span id=__span-16-2><a id=__codelineno-16-2 name=__codelineno-16-2 href=#__codelineno-16-2></a>{env="production"} |= "trace-id-abc123"
 </span><span id=__span-16-3><a id=__codelineno-16-3 name=__codelineno-16-3 href=#__codelineno-16-3></a>
 </span><span id=__span-16-4><a id=__codelineno-16-4 name=__codelineno-16-4 href=#__codelineno-16-4></a># JSON에서 traceId 파싱 후 필터
-</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a>{env=&quot;production&quot;} | json | traceId=&quot;trace-id-abc123&quot;
+</span><span id=__span-16-5><a id=__codelineno-16-5 name=__codelineno-16-5 href=#__codelineno-16-5></a>{env="production"} | json | traceId="trace-id-abc123"
 </span><span id=__span-16-6><a id=__codelineno-16-6 name=__codelineno-16-6 href=#__codelineno-16-6></a>
 </span><span id=__span-16-7><a id=__codelineno-16-7 name=__codelineno-16-7 href=#__codelineno-16-7></a># correlationId로 여러 서비스 로그를 한 번에 보기
-</span><span id=__span-16-8><a id=__codelineno-16-8 name=__codelineno-16-8 href=#__codelineno-16-8></a>{env=&quot;production&quot;, app=~&quot;order-service|payment-service|inventory-service&quot;}
+</span><span id=__span-16-8><a id=__codelineno-16-8 name=__codelineno-16-8 href=#__codelineno-16-8></a>{env="production", app=~"order-service|payment-service|inventory-service"}
 </span><span id=__span-16-9><a id=__codelineno-16-9 name=__codelineno-16-9 href=#__codelineno-16-9></a>  | json
-</span><span id=__span-16-10><a id=__codelineno-16-10 name=__codelineno-16-10 href=#__codelineno-16-10></a>  | correlationId=&quot;req-20240115-xyz&quot;
+</span><span id=__span-16-10><a id=__codelineno-16-10 name=__codelineno-16-10 href=#__codelineno-16-10></a>  | correlationId="req-20240115-xyz"
 </span></code></pre></div> <p>Grafana에서 Explore 화면을 열고 로그 라인 클릭 시 correlationId 값으로 바로 쿼리를 실행하는 파생 쿼리를 설정해 놓으면 편하다. Grafana의 "Data links" 기능으로 Loki 쿼리 링크를 만들 수 있다.</p> <h3 id=특정-시간대-로그-추출>특정 시간대 로그 추출<a class=headerlink href=#특정-시간대-로그-추출 title="Permanent link">&para;</a></h3> <p>인시던트 발생 시점 전후 로그를 추출할 때 쓴다.</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a># 특정 경로에 대한 5xx 에러
-</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a>{app=&quot;api&quot;} | json | status &gt;= 500 | path=&quot;/api/orders&quot;
+</span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a>{app="api"} | json | status &gt;= 500 | path="/api/orders"
 </span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a>
 </span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a># 에러 메시지 패턴별 집계
 </span><span id=__span-17-5><a id=__codelineno-17-5 name=__codelineno-17-5 href=#__codelineno-17-5></a>sum by (errorCode) (
 </span><span id=__span-17-6><a id=__codelineno-17-6 name=__codelineno-17-6 href=#__codelineno-17-6></a>  count_over_time(
-</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a>    {app=&quot;api&quot;} | json | level=&quot;error&quot; [10m]
+</span><span id=__span-17-7><a id=__codelineno-17-7 name=__codelineno-17-7 href=#__codelineno-17-7></a>    {app="api"} | json | level="error" [10m]
 </span><span id=__span-17-8><a id=__codelineno-17-8 name=__codelineno-17-8 href=#__codelineno-17-8></a>  )
 </span><span id=__span-17-9><a id=__codelineno-17-9 name=__codelineno-17-9 href=#__codelineno-17-9></a>)
 </span></code></pre></div> <h2 id=loki-스토리지-구성-시-주의사항>Loki 스토리지 구성 시 주의사항<a class=headerlink href=#loki-스토리지-구성-시-주의사항 title="Permanent link">&para;</a></h2> <h3 id=청크-설정>청크 설정<a class=headerlink href=#청크-설정 title="Permanent link">&para;</a></h3> <div class="language-yaml highlight"><pre><span></span><code><span id=__span-18-1><a id=__codelineno-18-1 name=__codelineno-18-1 href=#__codelineno-18-1></a><span class=nt>chunk_store_config</span><span class=p>:</span>

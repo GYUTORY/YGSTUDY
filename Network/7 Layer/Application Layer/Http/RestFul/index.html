@@ -6,8 +6,8 @@
 </span><span id=__span-0-6><a id=__codelineno-0-6 name=__codelineno-0-6 href=#__codelineno-0-6></a>Content-Type: application/json
 </span><span id=__span-0-7><a id=__codelineno-0-7 name=__codelineno-0-7 href=#__codelineno-0-7></a>
 </span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>{
-</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>  &quot;name&quot;: &quot;홍길동&quot;,
-</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>  &quot;email&quot;: &quot;hong@example.com&quot;
+</span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a>  "name": "홍길동",
+</span><span id=__span-0-10><a id=__codelineno-0-10 name=__codelineno-0-10 href=#__codelineno-0-10></a>  "email": "hong@example.com"
 </span><span id=__span-0-11><a id=__codelineno-0-11 name=__codelineno-0-11 href=#__codelineno-0-11></a>}
 </span></code></pre></div></p> <p><strong>실무 팁:</strong> GET은 멱등성이 보장되지만 POST는 그렇지 않다. PUT은 전체 교체, PATCH는 부분 수정에 사용한다.</p> <h4 id=put-vs-patch-비교>PUT vs PATCH 비교<a class=headerlink href=#put-vs-patch-비교 title="Permanent link">&para;</a></h4> <table> <tr> <th width=50% align=center>PUT (전체 교체)</th> <th width=50% align=center>PATCH (부분 수정)</th> </tr> <tr> <td valign=top> **개념** <div class="language-text highlight"><pre><span></span><code><span id=__span-1-1><a id=__codelineno-1-1 name=__codelineno-1-1 href=#__codelineno-1-1></a>┌─────────────┐
 </span><span id=__span-1-2><a id=__codelineno-1-2 name=__codelineno-1-2 href=#__codelineno-1-2></a>│  기존 자원   │  name: 김철수
@@ -35,16 +35,16 @@
 </span><span id=__span-3-2><a id=__codelineno-3-2 name=__codelineno-3-2 href=#__codelineno-3-2></a><span class=na>Content-Type</span><span class=o>:</span> <span class=l>application/json</span>
 </span><span id=__span-3-3><a id=__codelineno-3-3 name=__codelineno-3-3 href=#__codelineno-3-3></a>
 </span><span id=__span-3-4><a id=__codelineno-3-4 name=__codelineno-3-4 href=#__codelineno-3-4></a><span class=p>{</span>
-</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span><span class=nt>&quot;name&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;이영희&quot;</span><span class=p>,</span>
-</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span><span class=nt>&quot;email&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;new@example.com&quot;</span><span class=p>,</span>
-</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=w>  </span><span class=nt>&quot;age&quot;</span><span class=p>:</span><span class=w> </span><span class=mi>30</span>
+</span><span id=__span-3-5><a id=__codelineno-3-5 name=__codelineno-3-5 href=#__codelineno-3-5></a><span class=w>  </span><span class=nt>"name"</span><span class=p>:</span><span class=w> </span><span class=s2>"이영희"</span><span class=p>,</span>
+</span><span id=__span-3-6><a id=__codelineno-3-6 name=__codelineno-3-6 href=#__codelineno-3-6></a><span class=w>  </span><span class=nt>"email"</span><span class=p>:</span><span class=w> </span><span class=s2>"new@example.com"</span><span class=p>,</span>
+</span><span id=__span-3-7><a id=__codelineno-3-7 name=__codelineno-3-7 href=#__codelineno-3-7></a><span class=w>  </span><span class=nt>"age"</span><span class=p>:</span><span class=w> </span><span class=mi>30</span>
 </span><span id=__span-3-8><a id=__codelineno-3-8 name=__codelineno-3-8 href=#__codelineno-3-8></a><span class=p>}</span>
 </span><span id=__span-3-9><a id=__codelineno-3-9 name=__codelineno-3-9 href=#__codelineno-3-9></a>
 </span><span id=__span-3-10><a id=__codelineno-3-10 name=__codelineno-3-10 href=#__codelineno-3-10></a><span class=err>PATCH</span><span class=w> </span><span class=err>/users/</span><span class=mi>123</span><span class=w> </span><span class=err>HTTP/</span><span class=mf>1.1</span>
 </span><span id=__span-3-11><a id=__codelineno-3-11 name=__codelineno-3-11 href=#__codelineno-3-11></a><span class=err>Co</span><span class=kc>ntent</span><span class=mi>-</span><span class=err>Type</span><span class=p>:</span><span class=w> </span><span class=err>applica</span><span class=kc>t</span><span class=err>io</span><span class=kc>n</span><span class=err>/jso</span><span class=kc>n</span>
 </span><span id=__span-3-12><a id=__codelineno-3-12 name=__codelineno-3-12 href=#__codelineno-3-12></a>
 </span><span id=__span-3-13><a id=__codelineno-3-13 name=__codelineno-3-13 href=#__codelineno-3-13></a><span class=p>{</span>
-</span><span id=__span-3-14><a id=__codelineno-3-14 name=__codelineno-3-14 href=#__codelineno-3-14></a><span class=w>  </span><span class=nt>&quot;email&quot;</span><span class=p>:</span><span class=w> </span><span class=s2>&quot;new@example.com&quot;</span>
+</span><span id=__span-3-14><a id=__codelineno-3-14 name=__codelineno-3-14 href=#__codelineno-3-14></a><span class=w>  </span><span class=nt>"email"</span><span class=p>:</span><span class=w> </span><span class=s2>"new@example.com"</span>
 </span><span id=__span-3-15><a id=__codelineno-3-15 name=__codelineno-3-15 href=#__codelineno-3-15></a><span class=p>}</span>
 </span></code></pre></div> </td> </tr> </table> <p><strong>실무 팁:</strong> PUT은 전체 교체, PATCH는 부분 수정에 사용한다. PATCH가 더 효율적이다.</p> <h3 id=restful-api-설계-원칙>RESTful API 설계 원칙<a class=headerlink href=#restful-api-설계-원칙 title="Permanent link">&para;</a></h3> <h4 id=uri-설계-규칙>URI 설계 규칙<a class=headerlink href=#uri-설계-규칙 title="Permanent link">&para;</a></h4> <p><strong>올바른 URI 설계:</strong></p> <ul> <li>컬렉션 조회: <code>GET /users</code></li> <li>단일 자원 조회: <code>GET /users/123</code></li> <li>자원 생성: <code>POST /users</code></li> <li>자원 전체 수정: <code>PUT /users/123</code></li> <li>자원 부분 수정: <code>PATCH /users/123</code></li> <li>자원 삭제: <code>DELETE /users/123</code></li> <li>계층적 자원 표현: <code>GET /users/123/posts</code>, <code>GET /users/123/posts/456</code></li> </ul> <p><strong>핵심 원칙:</strong> - 명사 사용 - 복수형 권장 - 소문자 사용 - 하이픈(-) 사용</p> <p><strong>잘못된 URI 설계 (안티패턴):</strong></p> <ul> <li>동사 사용: <code>GET /getUsers</code>, <code>POST /createUser</code></li> <li>동사 + 명사: <code>GET /users/getById/123</code>, <code>POST /users/update/123</code></li> <li>모든 작업을 POST로: <code>POST /users/get</code>, <code>POST /users/delete</code></li> </ul> <p><strong>피해야 할 패턴:</strong> - 동사 사용 - 대문자 사용 - 언더스코어(_) - 파일 확장자</p> <p><strong>실무 팁:</strong> URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한다.</p> <h4 id=http-상태-코드-활용>HTTP 상태 코드 활용<a class=headerlink href=#http-상태-코드-활용 title="Permanent link">&para;</a></h4> <div class="language-text highlight"><pre><span></span><code><span id=__span-4-1><a id=__codelineno-4-1 name=__codelineno-4-1 href=#__codelineno-4-1></a>**2XX - 성공:**
 </span><span id=__span-4-2><a id=__codelineno-4-2 name=__codelineno-4-2 href=#__codelineno-4-2></a>   ├─ 200 OK               : 요청 성공 (조회, 수정)
@@ -70,11 +70,11 @@
 </span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>│ HTTP 200 OK         │
 </span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>├─────────────────────┤
 </span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>│ {                   │
-</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>│   &quot;status&quot;: &quot;success&quot;│
-</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>│   &quot;data&quot;: {         │
-</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>│     &quot;id&quot;: 123       │
-</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>│     &quot;name&quot;: &quot;김철수&quot;│
-</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>│     &quot;email&quot;: &quot;...&quot;  │
+</span><span id=__span-5-5><a id=__codelineno-5-5 name=__codelineno-5-5 href=#__codelineno-5-5></a>│   "status": "success"│
+</span><span id=__span-5-6><a id=__codelineno-5-6 name=__codelineno-5-6 href=#__codelineno-5-6></a>│   "data": {         │
+</span><span id=__span-5-7><a id=__codelineno-5-7 name=__codelineno-5-7 href=#__codelineno-5-7></a>│     "id": 123       │
+</span><span id=__span-5-8><a id=__codelineno-5-8 name=__codelineno-5-8 href=#__codelineno-5-8></a>│     "name": "김철수"│
+</span><span id=__span-5-9><a id=__codelineno-5-9 name=__codelineno-5-9 href=#__codelineno-5-9></a>│     "email": "..."  │
 </span><span id=__span-5-10><a id=__codelineno-5-10 name=__codelineno-5-10 href=#__codelineno-5-10></a>│   }                 │
 </span><span id=__span-5-11><a id=__codelineno-5-11 name=__codelineno-5-11 href=#__codelineno-5-11></a>│ }                   │
 </span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a>└─────────────────────┘
@@ -82,10 +82,10 @@
 </span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>│ HTTP 404 Not Found  │
 </span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>├─────────────────────┤
 </span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>│ {                   │
-</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>│   &quot;status&quot;: &quot;error&quot; │
-</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>│   &quot;message&quot;: &quot;...&quot;  │
-</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>│   &quot;code&quot;: &quot;NOT_FOUND&quot;│
-</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>│   &quot;details&quot;: [...]  │
+</span><span id=__span-6-5><a id=__codelineno-6-5 name=__codelineno-6-5 href=#__codelineno-6-5></a>│   "status": "error" │
+</span><span id=__span-6-6><a id=__codelineno-6-6 name=__codelineno-6-6 href=#__codelineno-6-6></a>│   "message": "..."  │
+</span><span id=__span-6-7><a id=__codelineno-6-7 name=__codelineno-6-7 href=#__codelineno-6-7></a>│   "code": "NOT_FOUND"│
+</span><span id=__span-6-8><a id=__codelineno-6-8 name=__codelineno-6-8 href=#__codelineno-6-8></a>│   "details": [...]  │
 </span><span id=__span-6-9><a id=__codelineno-6-9 name=__codelineno-6-9 href=#__codelineno-6-9></a>│ }                   │
 </span><span id=__span-6-10><a id=__codelineno-6-10 name=__codelineno-6-10 href=#__codelineno-6-10></a>└─────────────────────┘
 </span></code></pre></div> **포함 요소:** - 상태 표시 (status) - 에러 메시지 - 에러 코드 - 상세 정보 (선택) </td> </tr> </table> <hr> <h3 id=restful하지-않은-api의-안티패턴>RESTful하지 않은 API의 안티패턴<a class=headerlink href=#restful하지-않은-api의-안티패턴 title="Permanent link">&para;</a></h3> <p><strong>안티패턴 #1: 모든 작업을 POST로 처리</strong> <div class="language-text highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>POST /api/getUsers
@@ -94,9 +94,9 @@
 </span></code></pre></div> 문제점: HTTP 메서드의 의미 상실, 캐싱 불가능</p> <p><strong>안티패턴 #2: URI에 동사 사용</strong> <div class="language-text highlight"><pre><span></span><code><span id=__span-8-1><a id=__codelineno-8-1 name=__codelineno-8-1 href=#__codelineno-8-1></a>GET  /api/getUserById/123
 </span><span id=__span-8-2><a id=__codelineno-8-2 name=__codelineno-8-2 href=#__codelineno-8-2></a>POST /api/createUser
 </span><span id=__span-8-3><a id=__codelineno-8-3 name=__codelineno-8-3 href=#__codelineno-8-3></a>POST /api/updateUserName
-</span></code></pre></div> 문제점: REST 원칙 위반, 일관성 없는 인터페이스</p> <p><strong>안티패턴 #3: 일관성 없는 응답 형식</strong> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>API A: { &quot;user&quot;: {...} }
-</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>API B: { &quot;data&quot;: {...} }
-</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>API C: { &quot;result&quot;: {...} }
+</span></code></pre></div> 문제점: REST 원칙 위반, 일관성 없는 인터페이스</p> <p><strong>안티패턴 #3: 일관성 없는 응답 형식</strong> <div class="language-text highlight"><pre><span></span><code><span id=__span-9-1><a id=__codelineno-9-1 name=__codelineno-9-1 href=#__codelineno-9-1></a>API A: { "user": {...} }
+</span><span id=__span-9-2><a id=__codelineno-9-2 name=__codelineno-9-2 href=#__codelineno-9-2></a>API B: { "data": {...} }
+</span><span id=__span-9-3><a id=__codelineno-9-3 name=__codelineno-9-3 href=#__codelineno-9-3></a>API C: { "result": {...} }
 </span></code></pre></div> 문제점: 클라이언트 코드 복잡도 증가</p> <p><strong>안티패턴 #4: 버전 관리 없음</strong> <div class="language-text highlight"><pre><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a>/api/users  → 갑자기 응답 형식 변경
 </span></code></pre></div> 문제점: 기존 클라이언트 앱 오류 발생</p> <p><strong>실무 팁:</strong> RESTful API는 일관된 규칙을 따라야 한다. URI는 명사로, 동작은 HTTP 메서드로 표현한다.</p> <hr> <h3 id=restful-api의-장점>RESTful API의 장점<a class=headerlink href=#restful-api의-장점 title="Permanent link">&para;</a></h3> <div class="language-text highlight"><pre><span></span><code><span id=__span-11-1><a id=__codelineno-11-1 name=__codelineno-11-1 href=#__codelineno-11-1></a>┌───────────────────────────────────────────────────────────┐
 </span><span id=__span-11-2><a id=__codelineno-11-2 name=__codelineno-11-2 href=#__codelineno-11-2></a>│               RESTful API가 인기 있는 이유                 │
@@ -140,12 +140,12 @@
 </span><span id=__span-12-10><a id=__codelineno-12-10 name=__codelineno-12-10 href=#__codelineno-12-10></a>   - 응답: 200 OK + User Data
 </span><span id=__span-12-11><a id=__codelineno-12-11 name=__codelineno-12-11 href=#__codelineno-12-11></a>
 </span><span id=__span-12-12><a id=__codelineno-12-12 name=__codelineno-12-12 href=#__codelineno-12-12></a>2. POST /users
-</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a>   - 클라이언트 요청: { name: &quot;김철수&quot; }
+</span><span id=__span-12-13><a id=__codelineno-12-13 name=__codelineno-12-13 href=#__codelineno-12-13></a>   - 클라이언트 요청: { name: "김철수" }
 </span><span id=__span-12-14><a id=__codelineno-12-14 name=__codelineno-12-14 href=#__codelineno-12-14></a>   - 서버: DB에 저장
 </span><span id=__span-12-15><a id=__codelineno-12-15 name=__codelineno-12-15 href=#__codelineno-12-15></a>   - 응답: 201 Created + New User
 </span><span id=__span-12-16><a id=__codelineno-12-16 name=__codelineno-12-16 href=#__codelineno-12-16></a>
 </span><span id=__span-12-17><a id=__codelineno-12-17 name=__codelineno-12-17 href=#__codelineno-12-17></a>3. PUT /users/123
-</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a>   - 클라이언트 요청: { name: &quot;이영희&quot;, ... }
+</span><span id=__span-12-18><a id=__codelineno-12-18 name=__codelineno-12-18 href=#__codelineno-12-18></a>   - 클라이언트 요청: { name: "이영희", ... }
 </span><span id=__span-12-19><a id=__codelineno-12-19 name=__codelineno-12-19 href=#__codelineno-12-19></a>   - 서버: DB 전체 업데이트
 </span><span id=__span-12-20><a id=__codelineno-12-20 name=__codelineno-12-20 href=#__codelineno-12-20></a>   - 응답: 200 OK + Updated User
 </span><span id=__span-12-21><a id=__codelineno-12-21 name=__codelineno-12-21 href=#__codelineno-12-21></a>
@@ -216,12 +216,12 @@
 </span><span id=__span-17-12><a id=__codelineno-17-12 name=__codelineno-17-12 href=#__codelineno-17-12></a>
 </span><span id=__span-17-13><a id=__codelineno-17-13 name=__codelineno-17-13 href=#__codelineno-17-13></a>응답 형식
 </span><span id=__span-17-14><a id=__codelineno-17-14 name=__codelineno-17-14 href=#__codelineno-17-14></a>  {
-</span><span id=__span-17-15><a id=__codelineno-17-15 name=__codelineno-17-15 href=#__codelineno-17-15></a>    &quot;data&quot;: [...],
-</span><span id=__span-17-16><a id=__codelineno-17-16 name=__codelineno-17-16 href=#__codelineno-17-16></a>    &quot;pagination&quot;: {
-</span><span id=__span-17-17><a id=__codelineno-17-17 name=__codelineno-17-17 href=#__codelineno-17-17></a>      &quot;page&quot;: 1,
-</span><span id=__span-17-18><a id=__codelineno-17-18 name=__codelineno-17-18 href=#__codelineno-17-18></a>      &quot;limit&quot;: 10,
-</span><span id=__span-17-19><a id=__codelineno-17-19 name=__codelineno-17-19 href=#__codelineno-17-19></a>      &quot;total&quot;: 100,
-</span><span id=__span-17-20><a id=__codelineno-17-20 name=__codelineno-17-20 href=#__codelineno-17-20></a>      &quot;totalPages&quot;: 10
+</span><span id=__span-17-15><a id=__codelineno-17-15 name=__codelineno-17-15 href=#__codelineno-17-15></a>    "data": [...],
+</span><span id=__span-17-16><a id=__codelineno-17-16 name=__codelineno-17-16 href=#__codelineno-17-16></a>    "pagination": {
+</span><span id=__span-17-17><a id=__codelineno-17-17 name=__codelineno-17-17 href=#__codelineno-17-17></a>      "page": 1,
+</span><span id=__span-17-18><a id=__codelineno-17-18 name=__codelineno-17-18 href=#__codelineno-17-18></a>      "limit": 10,
+</span><span id=__span-17-19><a id=__codelineno-17-19 name=__codelineno-17-19 href=#__codelineno-17-19></a>      "total": 100,
+</span><span id=__span-17-20><a id=__codelineno-17-20 name=__codelineno-17-20 href=#__codelineno-17-20></a>      "totalPages": 10
 </span><span id=__span-17-21><a id=__codelineno-17-21 name=__codelineno-17-21 href=#__codelineno-17-21></a>    }
 </span><span id=__span-17-22><a id=__codelineno-17-22 name=__codelineno-17-22 href=#__codelineno-17-22></a>  }
 </span><span id=__span-17-23><a id=__codelineno-17-23 name=__codelineno-17-23 href=#__codelineno-17-23></a>
@@ -254,17 +254,17 @@
 </span><span id=__span-19-4><a id=__codelineno-19-4 name=__codelineno-19-4 href=#__codelineno-19-4></a>
 </span><span id=__span-19-5><a id=__codelineno-19-5 name=__codelineno-19-5 href=#__codelineno-19-5></a>기본 에러 형식
 </span><span id=__span-19-6><a id=__codelineno-19-6 name=__codelineno-19-6 href=#__codelineno-19-6></a>  {
-</span><span id=__span-19-7><a id=__codelineno-19-7 name=__codelineno-19-7 href=#__codelineno-19-7></a>    &quot;error&quot;: {
-</span><span id=__span-19-8><a id=__codelineno-19-8 name=__codelineno-19-8 href=#__codelineno-19-8></a>      &quot;code&quot;: &quot;VALIDATION_ERROR&quot;,
-</span><span id=__span-19-9><a id=__codelineno-19-9 name=__codelineno-19-9 href=#__codelineno-19-9></a>      &quot;message&quot;: &quot;입력 데이터가 올바르지 않습니다&quot;,
-</span><span id=__span-19-10><a id=__codelineno-19-10 name=__codelineno-19-10 href=#__codelineno-19-10></a>      &quot;details&quot;: [
+</span><span id=__span-19-7><a id=__codelineno-19-7 name=__codelineno-19-7 href=#__codelineno-19-7></a>    "error": {
+</span><span id=__span-19-8><a id=__codelineno-19-8 name=__codelineno-19-8 href=#__codelineno-19-8></a>      "code": "VALIDATION_ERROR",
+</span><span id=__span-19-9><a id=__codelineno-19-9 name=__codelineno-19-9 href=#__codelineno-19-9></a>      "message": "입력 데이터가 올바르지 않습니다",
+</span><span id=__span-19-10><a id=__codelineno-19-10 name=__codelineno-19-10 href=#__codelineno-19-10></a>      "details": [
 </span><span id=__span-19-11><a id=__codelineno-19-11 name=__codelineno-19-11 href=#__codelineno-19-11></a>        {
-</span><span id=__span-19-12><a id=__codelineno-19-12 name=__codelineno-19-12 href=#__codelineno-19-12></a>          &quot;field&quot;: &quot;email&quot;,
-</span><span id=__span-19-13><a id=__codelineno-19-13 name=__codelineno-19-13 href=#__codelineno-19-13></a>          &quot;message&quot;: &quot;올바른 이메일 형식이 아닙니다&quot;
+</span><span id=__span-19-12><a id=__codelineno-19-12 name=__codelineno-19-12 href=#__codelineno-19-12></a>          "field": "email",
+</span><span id=__span-19-13><a id=__codelineno-19-13 name=__codelineno-19-13 href=#__codelineno-19-13></a>          "message": "올바른 이메일 형식이 아닙니다"
 </span><span id=__span-19-14><a id=__codelineno-19-14 name=__codelineno-19-14 href=#__codelineno-19-14></a>        },
 </span><span id=__span-19-15><a id=__codelineno-19-15 name=__codelineno-19-15 href=#__codelineno-19-15></a>        {
-</span><span id=__span-19-16><a id=__codelineno-19-16 name=__codelineno-19-16 href=#__codelineno-19-16></a>          &quot;field&quot;: &quot;password&quot;,
-</span><span id=__span-19-17><a id=__codelineno-19-17 name=__codelineno-19-17 href=#__codelineno-19-17></a>          &quot;message&quot;: &quot;비밀번호는 8자 이상이어야 합니다&quot;
+</span><span id=__span-19-16><a id=__codelineno-19-16 name=__codelineno-19-16 href=#__codelineno-19-16></a>          "field": "password",
+</span><span id=__span-19-17><a id=__codelineno-19-17 name=__codelineno-19-17 href=#__codelineno-19-17></a>          "message": "비밀번호는 8자 이상이어야 합니다"
 </span><span id=__span-19-18><a id=__codelineno-19-18 name=__codelineno-19-18 href=#__codelineno-19-18></a>        }
 </span><span id=__span-19-19><a id=__codelineno-19-19 name=__codelineno-19-19 href=#__codelineno-19-19></a>      ]
 </span><span id=__span-19-20><a id=__codelineno-19-20 name=__codelineno-19-20 href=#__codelineno-19-20></a>    }

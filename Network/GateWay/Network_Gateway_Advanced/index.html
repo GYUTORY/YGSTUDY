@@ -92,7 +92,7 @@
 </span><span id=__span-12-4><a id=__codelineno-12-4 name=__codelineno-12-4 href=#__codelineno-12-4></a>
 </span><span id=__span-12-5><a id=__codelineno-12-5 name=__codelineno-12-5 href=#__codelineno-12-5></a># 양 방향 패킷이 어디로 흐르는지
 </span><span id=__span-12-6><a id=__codelineno-12-6 name=__codelineno-12-6 href=#__codelineno-12-6></a>$ traceroute -T -p 443 server.example.com   # outbound
-</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>$ tcpdump -i any -nn &#39;host CLIENT_IP and tcp port 443&#39;  # 서버측에서
+</span><span id=__span-12-7><a id=__codelineno-12-7 name=__codelineno-12-7 href=#__codelineno-12-7></a>$ tcpdump -i any -nn 'host CLIENT_IP and tcp port 443'  # 서버측에서
 </span></code></pre></div> <h3 id=nat-매핑-타임아웃>NAT 매핑 타임아웃<a class=headerlink href=#nat-매핑-타임아웃 title="Permanent link">&para;</a></h3> <p>증상: long-lived TCP 연결(SSH, DB persistent connection, WebSocket)이 일정 시간 idle 후 끊어짐. 양쪽 다 정상인데도.</p> <p>원인은 NAT/conntrack의 idle timeout 만료. 기본값이 너무 짧으면 idle 연결의 매핑이 지워지고, 그 후 패킷이 오면 매핑이 없으니 드롭된다.</p> <p>리눅스 conntrack 기본 타임아웃:</p> <div class="language-text highlight"><pre><span></span><code><span id=__span-13-1><a id=__codelineno-13-1 name=__codelineno-13-1 href=#__codelineno-13-1></a>$ sysctl net.netfilter.nf_conntrack_tcp_timeout_established
 </span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>net.netfilter.nf_conntrack_tcp_timeout_established = 432000   # 5일
 </span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>
