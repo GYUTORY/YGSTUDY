@@ -368,12 +368,17 @@
     document.querySelectorAll(".md-typeset .yg-mermaid").forEach(function (box) {
       if (!apply(box)) pending++;
     });
+    // 표도 같은 처지다 — Material 이 overflow:auto 래퍼에 넣어 옆으로 굴리는데
+    // 잘렸다는 표시가 없다(한 문서에서 표 6개 중 3개가 최대 220px 씩 숨었다).
+    document.querySelectorAll(".md-typeset__table").forEach(markScroll);
     return pending;
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    if (!document.querySelector(".md-typeset .yg-mermaid")) return;
+    if (!document.querySelector(".md-typeset .yg-mermaid, .md-typeset__table")) return;
     scan();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scan);
+    window.addEventListener("load", scan);
 
     // mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
     var mo = new MutationObserver(function (list) {
@@ -386,7 +391,8 @@
 
     document.addEventListener("scroll", function (e) {
       var t = e.target;
-      if (t && t.classList && t.classList.contains("yg-mermaid")) markScroll(t);
+      if (!t || !t.classList) return;
+      if (t.classList.contains("yg-mermaid") || t.classList.contains("md-typeset__table")) markScroll(t);
     }, true);
 
     var t = null;
@@ -474,10 +480,20 @@
       meta.setAttribute("aria-live", "polite");
       meta.setAttribute("role", "status");
     }
-    document.querySelectorAll("a.headerlink:not([aria-label])").forEach(function (a) {
-      var h = a.closest("h1,h2,h3,h4,h5,h6");
-      var t = h ? h.textContent.replace(/\u00b6/g, "").trim() : "";
-      a.setAttribute("aria-label", t ? t + " 링크" : "이 제목 링크");
+    // 제목 앵커는 접근성 트리에서 뺀다.
+    //
+    // 처음엔 aria-label 로 이름을 줬는데, 그 이름이 부모 heading 의 접근 이름
+    // 계산에 들어가는 바람에 제목이 두 번씩 읽혔다("부분 인덱스 부분 인덱스 링크").
+    // 한 문서에 제목이 63개면 63번 그렇다 — 고치기 전(Permanent link)보다 나빠졌다.
+    //
+    // 앵커는 제목 자체로 가는 중복 링크라 빼도 잃는 정보가 없고,
+    // 덤으로 문서당 수십 개의 불필요한 탭 정지점도 사라진다.
+    // aria-hidden 을 쓰므로 tabindex="-1" 을 함께 줘야 한다
+    // — 숨겨졌는데 포커스는 가능한 상태를 만들지 않기 위해서다.
+    document.querySelectorAll("a.headerlink").forEach(function (a) {
+      a.removeAttribute("aria-label");
+      a.setAttribute("aria-hidden", "true");
+      a.setAttribute("tabindex", "-1");
     });
   }
 

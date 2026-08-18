@@ -2193,8 +2193,11 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   .yg-crumbs a::after,
   .md-typeset .md-tag::after,
   .md-typeset .headerlink::after { content: none !important; }
+  /* 종이에서 누를 수 없는 것들 — 제목 앵커(¶), 코드 복사 버튼 */
   .md-typeset .headerlink,
-  .md-clipboard { display: none !important; }
+  .md-clipboard,
+  .md-code__nav,
+  .md-code__button { display: none !important; }
 
   .md-typeset pre,
   .md-typeset code { border: 1px solid #ccc !important; }
@@ -2229,6 +2232,25 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   /* 다이어그램은 화면 폭이 아니라 종이 폭에 맞춘다 */
   .md-typeset .yg-mermaid { overflow: visible !important; }
   .md-typeset .yg-mermaid > svg { max-width: 100% !important; min-width: 0 !important; height: auto; }
+
+  /* 표도 같은 이유로 잘렸다. Material 은 표를 overflow:auto 인 inline-block 래퍼에
+     넣는데, 화면에서는 그 안에서 옆으로 굴리면 되지만 종이에는 굴릴 데가 없어
+     오른쪽 열이 그대로 사라진다(A4 로 뽑은 EC2 문서에서 "주 용도" 열이 잘렸다).
+     종이에서는 굴리는 대신 칸을 접는다. */
+  .md-typeset__scrollwrap,
+  .md-typeset__table { overflow: visible !important; display: block !important; }
+  .md-typeset table:not([class]) {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed;
+    font-size: 0.82em;
+  }
+  .md-typeset table:not([class]) th,
+  .md-typeset table:not([class]) td {
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* ================================================
@@ -2618,6 +2640,27 @@ html {
   --yg-fade-r: linear-gradient(to left, var(--yg-fade-color), transparent);
 }
 body[data-md-color-scheme="slate"] .md-typeset .yg-mermaid {
+  --yg-fade-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 표도 옆으로 굴러가는데 잘렸다는 표시가 없었다(한 문서에서 표 6개 중 3개가
+   최대 220px 씩 숨음). 다이어그램과 같은 방식·같은 신호를 쓴다. */
+.md-typeset .md-typeset__table {
+  --yg-fade-l: none;
+  --yg-fade-r: none;
+  --yg-fade-color: rgba(28, 22, 18, 0.14);
+  background-image: var(--yg-fade-l), var(--yg-fade-r);
+  background-size: 40px 100%, 40px 100%;
+  background-position: left center, right center;
+  background-repeat: no-repeat;
+}
+.md-typeset .md-typeset__table[data-yg-scroll~="l"] {
+  --yg-fade-l: linear-gradient(to right, var(--yg-fade-color), transparent);
+}
+.md-typeset .md-typeset__table[data-yg-scroll~="r"] {
+  --yg-fade-r: linear-gradient(to left, var(--yg-fade-color), transparent);
+}
+body[data-md-color-scheme="slate"] .md-typeset .md-typeset__table {
   --yg-fade-color: rgba(0, 0, 0, 0.5);
 }
 body[data-md-color-scheme="slate"] .md-typeset .highlight::before {
