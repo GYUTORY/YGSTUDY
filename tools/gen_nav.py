@@ -144,24 +144,45 @@ LABEL_OVERRIDE = {
     'Develop/Backend/Messaging/Kafka_Consumer_Group_Rebalancing.md': 'Consumer Group 재조정',
     'Develop/Backend/Authentication/O_Auth2_OIDC_Flows.md': 'OAuth·OIDC Flow 심화',
     'Develop/Backend/Messaging/Kafka_Exactly_Once_Semantics.md': 'Kafka EOS',
-    'Develop/Backend/Resilience/Rate_Limiting_and_Bulkhead.md': 'Rate Limiting·Bulkhead',
+    'Develop/Backend/Resilience/Rate_Limiting_and_Bulkhead.md': 'Rate Limiting · Bulkhead',
     'Develop/Language/Java/컬렉션 및 데이터 처리/Serialization_Deserialization.md': '직렬화·역직렬화',
     'Develop/Language/Java/자바 디자인 패턴 및 원칙/단일 책임 원칙.md': '단일 책임 원칙',
     'Develop/Language/Java/멀티스레딩 및 동시성/Java_Util_Concurrent_Sync_Utilities.md': 'concurrent 유틸리티',
     'Develop/Network/7 Layer/Network Layer/MTU_MSS_PMTUD.md': 'MTU·MSS 심화',
-    'Develop/DevOps/Git/Git_Worktree_Submodule_LFS.md': 'Worktree·Submodule·LFS',
+    # 가운뎃점 양옆에 공백을 둔다. 사이드바는 word-break:keep-all 이라
+    # 'A·B·C' 는 한 덩어리로 취급돼 줄바꿈 대신 말줄임(...)으로 잘려나갔다.
+    # LFS 는 라벨에서 뺐다 — 셋 다 적으면 123px 칸에서 세 줄이 된다.
+    # 문서 제목('Worktree, Submodule, LFS 실무')에는 그대로 남아 검색에 걸린다.
+    'Develop/DevOps/Git/Git_Worktree_Submodule_LFS.md': 'Worktree · Submodule',
     'Develop/Language/TypeScript/타입 유틸리티/module과 moduleResolution.md': 'moduleResolution',
     'Develop/Language/TypeScript/TypeScript 기본 개념/Export_Default와_Default_New.md': 'export default 심화',
     'Develop/Language/TypeScript/프로젝트 설정 및 컴파일러/tsc-alias와 workspace 함께 사용하기.md': 'tsc-alias·workspace',
     'Develop/DataBase/DataRepresentation/엔디언과 2의 보수, IEEE 754 부동소수점.md': '엔디언·부동소수점',
     'Develop/Architecture/MSA/Expand_Migrate_Contract.md': 'EMC 패턴',
     'Develop/Architecture/Design Pattern/Abstract_Factory_Pattern.md': '추상 팩토리 패턴',
-    'Develop/Framework/Node/API/Rate_Limiting.md': 'Rate Limiting·Bulkhead',
+    'Develop/Framework/Node/API/Rate_Limiting.md': 'Rate Limiting · Bulkhead',
     'Develop/Backend/Standards/Instant_vs_Local_Date_Time.md': 'Instant vs LocalDT',
     'Develop/Language/Java/객체지향 프로그래밍 (OOP)/interface/Abstract Class__vs__Interface.md': 'Abstract vs Interface',
     'Develop/Framework/Node/Nodejs의 구조 및 작동 원리/Cluster와 Multi Thread.md': 'Cluster vs Worker',
     'Develop/Language/JavaScript/05_이벤트_루프_비동기/Async_Await_and_Promise.md': 'Async/Await & Promise',
-    'Develop/DataBase/RDBMS/pt_online_schema_change.md': 'Online Schema Change',
+    # 사이드바에서 두 줄로 접히던 라벨들. 상위 섹션이 맥락을 주므로 겹치는
+    # 접두사와 상투어를 뺐다. 문서 자체의 title 은 그대로 둔다(검색·브레드크럼용).
+    'Develop/DataBase/RDBMS/pt_online_schema_change.md': 'pt-osc',
+    'Develop/DataBase/Connection_Pool.md': '커넥션 풀',
+    'Develop/DataBase/마이그레이션_전략.md': '마이그레이션 전략',
+    'Develop/DataBase/RDBMS/Schema_Per_Tenant.md': '테넌트별 스키마',
+    'Develop/DataBase/RDBMS/Postgre_SQL_JSONB.md': 'JSONB 실무',
+    'Develop/DataBase/RDBMS/Postgre_SQL_Schema_Migration.md': 'PostgreSQL DDL',
+    'Develop/Backend/Authentication/RBAC_ABAC.md': 'RBAC·ABAC',
+    'Develop/Backend/Messaging/Message_Queue.md': '메시지 큐 기초',
+    'Develop/DevOps/Container_Registry/Container_Registry.md': '구축과 운영',
+    'Develop/DevOps/CI_CD/CI_CD_Pipeline.md': '파이프라인 설계',
+    'Develop/DevOps/Principles/Kubernetes_Disaster_Recovery.md': 'K8s 재해 복구',
+    'Develop/OS/Memory/Swap Memory.md': '스왑 메모리',
+    'Develop/OS/Process & Thread/Virtual_Memory.md': '프로세스 관점 가상 메모리',
+    'Develop/Network/Security/Network_Segmentation.md': '망분리와 세그멘테이션',
+    'Develop/Network/Observability/Packet_Capture_tcpdump.md': '패킷 캡처와 분석',
+    'Develop/Network/IO/Socket_IO_Multiplexing.md': '멀티플렉싱 심화',
     'Develop/Framework/Node/모듈 시스템/Pnpm_Lock_and_Catalog.md': 'pnpm-lock·catalog',
     'Develop/Security/Zero_Trust_Architecture.md': 'Zero Trust',
     'Develop/Algorithm/Graph_Traversal.md': '그래프 탐색 (DFS/BFS)',
@@ -504,9 +525,8 @@ MANUAL_GROUPS = {
             ('IPFS', 'IPFS.md'),
         ]),
         ('관측', [
-            ('tcpdump 패킷 캡처와 분석',
-             'Observability/Packet_Capture_tcpdump.md'),
-            ('소켓 I/O 멀티플렉싱', 'IO/Socket_IO_Multiplexing.md'),
+            ('tcpdump', 'Observability/Packet_Capture_tcpdump.md'),
+            ('소켓 I/O', 'IO/Socket_IO_Multiplexing.md'),
         ]),
     ],
     'Develop/Security': [
@@ -888,11 +908,14 @@ def label_ladder(path, ancestors):
 
 
 def make_label(path, ancestors, is_overview=False):
-    if is_overview:
-        return '개요'
+    # 직접 지정한 라벨이 '개요'보다 먼저다.
+    # (Container_Registry/Container_Registry.md 처럼 파일명이 디렉터리명과 같아
+    #  '개요'로 밀려나는데, 실제로는 그 폴더의 유일한 본문이라 이름이 필요하다)
     key = path.replace(os.sep, '/')
     if key in LABEL_OVERRIDE:
         return LABEL_OVERRIDE[key]
+    if is_overview:
+        return '개요'
     return label_ladder(path, ancestors)[0]
 
 
@@ -1242,8 +1265,27 @@ def write_pages(dirpath, entries, title=None, root=False):
     return path, content
 
 
+def nested_targets(entries):
+    """awesome-pages 가 파일로 해석하지 못하는 nav 타깃을 모은다.
+
+    .pages 의 nav 는 '바로 아래 자식의 이름'만 파일로 본다
+    (mkdocs_awesome_pages_plugin/navigation.py:118 items_by_basename, :133).
+    'DDD/Bounded_Context.md' 처럼 한 단계 아래 경로를 적으면 파일을 못 찾아
+    그 문자열 그대로인 링크가 되고, 눌러도 404 다. --strict 도 안 잡는다.
+    끝이 '/' 인 것은 URL 로 적은 의도적 링크라 제외한다 (HOIST_IN 참고).
+    """
+    out = []
+    for label, target in entries:
+        pairs = target if isinstance(target, list) else [(label, target)]
+        for lbl, tgt in pairs:
+            if isinstance(tgt, str) and '/' in tgt and not tgt.endswith('/'):
+                out.append((lbl, tgt))
+    return out
+
+
 def walk_and_generate():
-    generated = {}
+    plan = []       # (dirpath, entries, title)
+    removals = []   # 문서 1개짜리 디렉터리 — .pages 제거 대상
     for dirpath, dirnames, filenames in os.walk(ROOT):
         parts = dirpath.split(os.sep)
         if any(p in SKIP_DIRS for p in parts) or any(p.startswith('.') for p in parts[1:]):
@@ -1261,10 +1303,7 @@ def walk_and_generate():
         # 문서 1개짜리 디렉터리는 부모가 흡수했으므로 .pages 불필요.
         # 단 최상위 섹션은 흡수 대상이 아니므로 그대로 둔다.
         if only_md(dirpath) and os.path.dirname(dirpath) != ROOT:
-            p = os.path.join(dirpath, '.pages')
-            if os.path.exists(p) and WRITE:
-                os.remove(p)
-            generated[dirpath] = None
+            removals.append(dirpath)
             continue
         ancestors = parts[1:-1]
         depth = len(parts) - 1  # ROOT = 0, ROOT/child = 1, ...
@@ -1293,6 +1332,29 @@ def walk_and_generate():
             entries = build(dirpath, ancestors)
         key = dirpath.replace(os.sep, '/')
         title = TITLE_OVERRIDE.get(key, existing_title(dirpath))
+        plan.append((dirpath, entries, title))
+
+    # 쓰기 전에 죽은 링크가 될 항목이 있는지 먼저 본다.
+    # 한 번 쓰고 나면 사이드바 전체가 조용히 망가지므로 부분 적용도 하지 않는다.
+    risks = [(d, lbl, tgt) for d, entries, _ in plan
+             for lbl, tgt in nested_targets(entries)]
+    if risks:
+        print(f'중첩 경로 {len(risks)}건 — awesome-pages 가 파일로 못 읽어 404 링크가 된다:')
+        for d, lbl, tgt in risks:
+            print(f'  {d} :: {lbl}: {tgt}')
+        print('고치는 법: MANUAL_GROUPS 의 대상을 바로 아래 자식 이름으로 바꾸거나,')
+        print('           HOIST_IN 처럼 docs 루트 기준 URL(끝에 /)로 적는다.')
+        if WRITE:
+            print('아무것도 쓰지 않고 중단한다.')
+            sys.exit(1)
+
+    generated = {}
+    for dirpath in removals:
+        p = os.path.join(dirpath, '.pages')
+        if os.path.exists(p) and WRITE:
+            os.remove(p)
+        generated[dirpath] = None
+    for dirpath, entries, title in plan:
         generated[dirpath] = write_pages(dirpath, entries, title)[1]
     return generated
 
