@@ -2761,3 +2761,40 @@ html {
     margin-bottom: 0.9rem;
   }
 }
+
+
+/* ================================================
+   모바일 터치 영역.
+
+   섹션 인덱스 문서는 링크가 수십 개씩 세로로 늘어서는데, 폰에서 재 보니
+   링크 높이 18px 에 간격 12px 이었다. 손가락 너비(약 44px)보다 한참
+   작아서 옆 항목을 짚기 쉽다. 한 화면에 24개가 그렇게 붙어 있었다.
+
+   글자 크기는 그대로 두고 눌리는 면적만 넓힌다 — 목록이 길어지는 대신
+   오탭이 준다. 데스크톱은 마우스라 이대로 문제없어서 손대지 않는다.
+   ================================================ */
+@media screen and (max-width: 76.1875em) and (pointer: coarse) {
+  .md-content .md-typeset li > a {
+    display: inline-block;
+    padding: 7px 0;
+  }
+  .md-content .md-typeset li {
+    margin-bottom: 2px;
+  }
+  /* 코드 복사 버튼이 22.5px 이었다. 문서당 코드블록이 39개다. */
+  .md-clipboard {
+    width: 34px;
+    height: 34px;
+    padding: 7px;
+  }
+  /* 태그 칩 28px + 간격 7.5px */
+  .md-typeset .md-tag {
+    padding: 7px 12px;
+    margin: 0 6px 8px 0;
+  }
+  /* 헤딩 앵커(¶)는 폭이 12~21px 이라 누르기 어렵다 */
+  .md-typeset .headerlink {
+    padding: 6px;
+    margin-left: 2px;
+  }
+}
