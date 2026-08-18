@@ -1,7 +1,7 @@
 title: Messaging
 nav:
   - index.md
-  - 메시지 큐 & 이벤트 기반 아키텍처: Message_Queue.md
+  - 메시지 큐 기초: Message_Queue.md
   - Message Queue 심화: MQ_Delivery_Guarantee_Deep_Dive.md
   - DLQ 재처리 자동화: DLQ_Reprocessing_Strategy.md
   - Consumer Group 재조정: Kafka_Consumer_Group_Rebalancing.md

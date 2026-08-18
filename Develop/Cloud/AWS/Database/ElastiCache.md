@@ -714,29 +714,44 @@ await redis.setex(key, ttl, value);
 
 **해결 2: Locking**
 ```javascript
-async function getWithLock(key, fetchFn) {
+// 값 비교 후 삭제를 원자적으로 처리한다.
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
+async function getWithLock(key, fetchFn, depth = 0) {
   const cached = await redis.get(key);
   if (cached) return JSON.parse(cached);
-  
+
   // 락 획득 시도
   const lockKey = `lock:${key}`;
-  const locked = await redis.set(lockKey, '1', 'EX', 10, 'NX');
-  
+  // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+  const token = randomUUID();
+  const locked = await redis.set(lockKey, token, 'EX', 10, 'NX');
+
   if (locked) {
-    // 락을 획득한 요청만 데이터베이스 조회
-    const value = await fetchFn();
-    await redis.setex(key, 3600, JSON.stringify(value));
-    await redis.del(lockKey);
-    return value;
-  } else {
-    // 락을 획득하지 못한 요청은 대기
-    await sleep(100);
-    return getWithLock(key, fetchFn);
+    try {
+      // 락을 획득한 요청만 데이터베이스 조회
+      const value = await fetchFn();
+      await redis.setex(key, 3600, JSON.stringify(value));
+      return value;
+    } finally {
+      // finally 밖에 두면 fetchFn 이 던졌을 때 락이 TTL 10초를 다 채운다.
+      // 그동안 나머지 요청은 100ms 간격으로 재귀만 돈다.
+      // 그리고 내 락일 때만 지운다 — 무조건 del 하면 만료 뒤 남의 락을 푼다.
+      await redis.eval(UNLOCK, 1, lockKey, token);
+    }
   }
+
+  // 락을 획득하지 못한 요청은 대기 후 재시도.
+  // 깊이 제한이 없으면 DB 가 계속 느릴 때 스택이 무한히 쌓인다.
+  if (depth >= 20) throw new Error(`캐시 락 대기 초과: ${key}`);
+  await sleep(100);
+  return getWithLock(key, fetchFn, depth + 1);
 }
 ```
 
-한 요청만 데이터베이스를 조회한다. 나머지는 대기한다.
+정상 경로에서는 한 요청만 데이터베이스를 조회하고 나머지는 대기한다.
+DB 조회가 락 TTL(10초)보다 오래 걸리면 락이 먼저 만료돼 다른 요청도 들어올 수 있다 —
+그때는 TTL 을 늘리거나, 작업 중 주기적으로 TTL 을 연장(watchdog)해야 한다.
 
 ## 비용 최적화
 

@@ -8,7 +8,7 @@ nav:
   - 비밀번호 해싱과 저장: Password_Hashing.md
   - 다중 인증과 패스키: MFA_Passkey.md
   - 마이크로서비스 환경의 인증/인가: MSA_Auth.md
-  - RBAC/ABAC 권한 모델 설계와 구현: RBAC_ABAC.md
+  - RBAC·ABAC: RBAC_ABAC.md
   - API Key 인증 구현: API_Key_Auth.md
   - JWT 토큰 무효화: Token_Revocation.md
   - Refresh Token Rotation: Refresh_Token_Rotation.md

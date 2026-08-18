@@ -8,4 +8,4 @@ nav:
   - 네트워크 경계 방화벽 아키텍처: Network_Firewall_Architecture.md
   - Zero Trust 네트워크: Zero_Trust_Network.md
   - CI/CD Zero Trust: Zero_Trust_CICD_Pipeline.md
-  - 망분리와 네트워크 세그멘테이션: Network_Segmentation.md
+  - 망분리와 세그멘테이션: Network_Segmentation.md

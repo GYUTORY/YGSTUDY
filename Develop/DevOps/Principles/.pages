@@ -8,4 +8,4 @@ nav:
   - 고가용성 인프라 구성: Infrastructure_High_Availability.md
   - 인프라 네트워크 토폴로지 설계: Infrastructure_Network_Design.md
   - 인프라 관찰성 설계: Infrastructure_Observability.md
-  - 쿠버네티스 클러스터 재해 복구: Kubernetes_Disaster_Recovery.md
+  - K8s 재해 복구: Kubernetes_Disaster_Recovery.md

@@ -19,8 +19,8 @@ nav:
     - P2P 네트워크: P2P.md
     - IPFS: IPFS.md
   - 관측:
-    - tcpdump 패킷 캡처와 분석: Observability
-    - 소켓 I/O 멀티플렉싱: IO
+    - tcpdump: Observability
+    - 소켓 I/O: IO
   - 7 Layer
   - Protocol
   - Domain

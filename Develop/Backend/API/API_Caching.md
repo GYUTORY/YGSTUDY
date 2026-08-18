@@ -515,7 +515,9 @@ async findById(id: number): Promise<Product> {
     if (json) return JSON.parse(json) as Product;
 
     const lockKey = `lock:${key}`;
-    const acquired = await this.redis.set(lockKey, '1', 'EX', 5, 'NX');
+    // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+    const token = randomUUID();
+    const acquired = await this.redis.set(lockKey, token, 'EX', 5, 'NX');
 
     if (acquired === 'OK') {
         try {
@@ -527,7 +529,8 @@ async findById(id: number): Promise<Product> {
             await this.redis.set(key, JSON.stringify(product), 'EX', 600);
             return product;
         } finally {
-            await this.redis.del(lockKey);
+            // 내 락일 때만 지운다 — 무조건 del 하면 TTL 만료 뒤 남이 잡은 락을 푼다
+            await this.redis.eval(UNLOCK, 1, lockKey, token);
         }
     } else {
         // 락 획득 실패: 잠깐 대기 후 재시도

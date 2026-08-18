@@ -7,7 +7,7 @@ nav:
   - 인덱스 가능성: 인덱스_가능성.md
   - 소프트 삭제: Soft_Delete.md
   - 아카이브 테이블: Archive_Table.md
-  - Schema-Per-Tenant: Schema_Per_Tenant.md
+  - 테넌트별 스키마: Schema_Per_Tenant.md
   - Shared Table: Shared_Table.md
   - Row Level Security: Row_Level_Security.md
   - 테넌트 컬럼 JPA: Tenant_Column_JPA.md
@@ -17,11 +17,11 @@ nav:
   - MySQL utf8mb4: utf8mb4.md
   - EAV 패턴: EAV.md
   - 컬럼 접미 패턴: Column_Suffix_Pattern.md
-  - PostgreSQL JSONB 실무: Postgre_SQL_JSONB.md
-  - PostgreSQL 스키마 마이그레이션: Postgre_SQL_Schema_Migration.md
+  - JSONB 실무: Postgre_SQL_JSONB.md
+  - PostgreSQL DDL: Postgre_SQL_Schema_Migration.md
   - MySQL Online DDL: My_SQL_Online_DDL.md
   - gh-ost: gh_ost.md
-  - Online Schema Change: pt_online_schema_change.md
+  - pt-osc: pt_online_schema_change.md
   - 인덱스:
     - RDBMS에서의 Index: RDBMS에서의 index.md
     - B-Tree 페이지 분할: B_Tree_Page_Split.md

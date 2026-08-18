@@ -431,7 +431,12 @@ Redis: 0.1ms × 1,000 = 100ms (0.1초)
 **동시성 제어:**
 ```javascript
 // Redis를 사용한 분산 락
-const lock = await redis.set('lock:user:123', 'locked', 'NX', 'EX', 10);
+// 값 비교 후 삭제를 원자적으로 처리한다
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
+// 값은 내 식별자다. 'locked' 같은 상수를 넣으면 해제할 때 누구 락인지 알 수 없다
+const token = randomUUID();
+const lock = await redis.set('lock:user:123', token, 'NX', 'EX', 10);
 
 if (lock) {
   try {
@@ -439,7 +444,8 @@ if (lock) {
     const points = await redis.get('user:123:points');
     await redis.set('user:123:points', points - 100);
   } finally {
-    await redis.del('lock:user:123');
+    // 내 락일 때만 지운다 — 아래 "락을 del 로 푸는 것이 왜 위험한가" 참고
+    await redis.eval(UNLOCK, 1, 'lock:user:123', token);
   }
 }
 ```
@@ -691,7 +697,9 @@ async function getDataWithLock(key) {
   
   // 락 획득 시도
   const lockKey = `lock:${key}`;
-  const lockAcquired = await redis.set(lockKey, '1', 'NX', 'EX', 10);
+  // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+  const token = randomUUID();
+  const lockAcquired = await redis.set(lockKey, token, 'NX', 'EX', 10);
   
   if (lockAcquired) {
     try {
@@ -700,7 +708,8 @@ async function getDataWithLock(key) {
       await redis.setex(key, 3600, JSON.stringify(data));
       return data;
     } finally {
-      await redis.del(lockKey);
+      // 내 락일 때만 지운다 — 무조건 del 하면 TTL 만료 뒤 남이 잡은 락을 푼다
+      await redis.eval(UNLOCK, 1, lockKey, token);
     }
   } else {
     // 다른 프로세스가 데이터를 가져올 때까지 대기
@@ -2989,7 +2998,9 @@ async function getDataSafe(key, fetchFunction, ttl = 3600) {
   
   // 락 획득 시도
   const lockKey = `lock:${key}`;
-  const lockAcquired = await redis.set(lockKey, '1', 'NX', 'EX', 10);
+  // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+  const token = randomUUID();
+  const lockAcquired = await redis.set(lockKey, token, 'NX', 'EX', 10);
   
   if (lockAcquired) {
     try {
@@ -3003,7 +3014,8 @@ async function getDataSafe(key, fetchFunction, ttl = 3600) {
       
       return data;
     } finally {
-      await redis.del(lockKey);
+      // 내 락일 때만 지운다 — 무조건 del 하면 TTL 만료 뒤 남이 잡은 락을 푼다
+      await redis.eval(UNLOCK, 1, lockKey, token);
     }
   } else {
     // 락을 획득하지 못한 경우 대기 후 재시도
@@ -3206,9 +3218,10 @@ Leaky Bucket 워커의 `redis.keys('leaky_bucket:*')`는 **전체 키스페이�
 
 목록이 필요하면 별도의 Set에 사용자 ID를 관리하고 그걸 순회한다. 키스페이스를 조회 대상으로 쓰지 않는다.
 
-### 분산 락을 `del`로 푸는 코드가 두 군데 남아 있다
+### 락을 `del`로 푸는 것이 왜 위험한가
 
-"#3 분산 락"과 "Thundering Herd 대응"의 `getDataSafe`는 락을 `redis.del(lockKey)`로 해제한다. 소유자 확인이 없다.
+이 문서의 예제들은 한동안 락을 `redis.del(lockKey)`로 풀었다. 소유자 확인이 없었다.
+지금은 전부 토큰 + Lua 조건부 삭제로 고쳤지만, 왜 그래야 하는지는 남겨 둔다.
 
 ```
 A: 락 획득 (TTL 10초)
