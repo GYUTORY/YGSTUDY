@@ -179,3 +179,35 @@
       .catch(function () { /* 실패 시 placeholder 유지 */ });
   });
 })();
+
+/* 헤더의 저장소 스타·포크 숫자.
+ *
+ * 개인 블로그라 둘 다 0이고, 화면에는 "☆0 ⑂0" 으로 나온다.
+ * 숫자가 0인 배지는 정보가 아니라 덜 만든 자리처럼 읽힌다.
+ * 그렇다고 아예 지우면 나중에 스타가 붙어도 안 보이므로,
+ * 0일 때만 감춘다. Material 이 GitHub API 응답을 받아 채운 뒤 판단해야 해서
+ * 잠깐 기다렸다가 본다.
+ */
+(function () {
+  function hideZeroFacts() {
+    var facts = document.querySelectorAll(".md-source__fact");
+    if (!facts.length) return false;
+    var shown = 0;
+    facts.forEach(function (el) {
+      var n = parseInt((el.textContent || "").replace(/[^0-9]/g, ""), 10);
+      // 버전 표기 등 숫자가 아닌 항목은 건드리지 않는다
+      if (el.textContent.trim() && n === 0) el.style.display = "none";
+      else shown++;
+    });
+    var list = document.querySelector(".md-source__facts");
+    if (list && shown === 0) list.style.display = "none";
+    return true;
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var tries = 0;
+    var timer = setInterval(function () {
+      if (hideZeroFacts() || ++tries > 20) clearInterval(timer);
+    }, 300);
+  });
+})();
