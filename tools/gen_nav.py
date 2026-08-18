@@ -688,6 +688,14 @@ NO_OVERVIEW = {
 # (자식의 title 이 부모 nav 라벨보다 우선하므로 여기서 지정해야 한다)
 TITLE_OVERRIDE = {
     'Develop/_hub': '주제별 가이드',
+    # 상위 묶음 이름도 'Backend' 라 사이드바에 같은 이름이 두 번 나왔다.
+    # 안에 든 것(API 설계·인증·메시징·캐싱·로깅·표준)을 그대로 이름으로 쓴다.
+    'Develop/Backend': 'API·인증·메시징',
+    # 아래 셋은 부모 .pages 의 DIR_LABEL 을 자식 title 이 덮어써서
+    # 큐레이션한 한글 라벨이 사이드바에 안 나오던 곳이다. 둘을 같은 값으로 맞춘다.
+    'Develop/DataBase/DataRepresentation': '데이터 표현',
+    'Develop/DevOps/Infrastructure_as_Code': 'IaC',
+    'Develop/Cloud/AWS/Application_Integration': '메시징 연동',
     'Develop/Framework/Node/Nodejs의 구조 및 작동 원리': '런타임 구조',
     'Develop/Framework/Node/Testing': '테스트',
 }
@@ -703,6 +711,23 @@ DIR_LABEL = {
     'Develop/Cloud/AWS/Application_Integration': '메시징 연동',
     'Develop/DevOps/Infrastructure_as_Code': 'IaC',
     'Develop/DataBase/DataRepresentation': '데이터 표현',
+}
+
+# ---- 폴더 트리와 사이드바 위치를 일부러 다르게 두는 곳 ---------------------
+# Docker 문서 10개가 DevOps/Kubernetes/Docker/ 에 있다. Docker 는 Kubernetes 의
+# 하위 개념이 아니라 형제인데, 폴더를 옮기면 URL 이 통째로 깨진다.
+# 그래서 파일은 그대로 두고 사이드바에서만 형제로 올린다.
+#
+#   HOIST_OUT : 이 디렉터리를 부모의 nav 에서 뺀다
+#   HOIST_IN  : 이 디렉터리의 nav 에 (라벨, 링크, 이 항목 바로 뒤에) 를 끼운다
+#
+# 링크는 파일 경로가 아니라 URL 이다. awesome-pages 의 .pages nav 는 바로 아래
+# 자식 이름만 파일로 해석하고(navigation.py:118), 한 단계 아래 경로는 문자열
+# 그대로인 링크가 된다. 그 문자열은 docs 루트 기준 URL 로 해석되므로
+# 'DevOps/Kubernetes/Docker/' 처럼 루트부터 적어야 한다.
+HOIST_OUT = {'Develop/DevOps/Kubernetes/Docker'}
+HOIST_IN = {
+    'Develop/DevOps': [('Docker', 'DevOps/Kubernetes/Docker/', 'Kubernetes')],
 }
 
 DASHES = [' — ', ' – ', ' - ']
@@ -965,6 +990,8 @@ def build(dirpath, ancestors):
     files, dirs = children(dirpath)
     dirname = os.path.basename(dirpath)
     key = dirpath.replace(os.sep, '/')
+    # 사이드바에서 다른 자리로 옮긴 디렉터리는 여기서 뺀다 (HOIST_IN 이 다시 넣는다)
+    dirs = [d for d in dirs if f'{key}/{d}' not in HOIST_OUT]
     # override는 '앞에 오길 바라는 것'만 적는 힌트다.
     # 나머지는 기존 .pages 순서를 그대로 따른다.
     prev = old_order(dirpath)
@@ -1055,6 +1082,12 @@ def build(dirpath, ancestors):
                 and str(e[1]).endswith('.md')]
         tail = [e for e in entries if e not in head]
         entries = head + groups + tail
+
+    # 다른 폴더에 있지만 여기 형제로 보여야 하는 것 (Docker 등)
+    for label, link, after in HOIST_IN.get(key, []):
+        pos = next((i + 1 for i, (l, t) in enumerate(entries)
+                    if not isinstance(t, list) and t == after), len(entries))
+        entries.insert(pos, (label, link))
     return entries
 
 

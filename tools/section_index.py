@@ -46,11 +46,26 @@ BLURB = {
 
 SECOND_LEVEL = ["Cloud/AWS", "Cloud/GCP", "DevOps/Linux", "DevOps/Kubernetes", "Language/Java", "Language/JavaScript", "Language/TypeScript"]
 
+# 랜딩 페이지 제목을 폴더 이름 대신 이걸로 쓴다.
+# 사이드바 라벨(.pages 의 title)과 도착 페이지의 제목이 다르면 잘못 눌렀나 싶어진다.
+# 'Backend' 폴더를 눌렀는데 상위 묶음 이름도 'Backend' 라 같은 이름이 두 번 나오던
+# 문제 때문에 사이드바를 'API·인증·메시징' 으로 바꿨고, 그 짝을 여기서 맞춘다.
+# 키는 docs_dir 기준 경로. 값은 Develop/**/.pages 의 title 과 같아야 한다.
+LABEL_OVERRIDE = {
+    "Backend": "API·인증·메시징",
+    "DataBase/DataRepresentation": "데이터 표현",
+    "DevOps/Infrastructure_as_Code": "IaC",
+    "Cloud/AWS/Application_Integration": "메시징 연동",
+}
+
 # 사이드바 레벨 2 제한 지원: depth 1-3 디렉터리에 허브 페이지 자동 생성
 # gen_nav.py --write 이전에 단독 실행해 index.md 를 미리 만들어 둔다.
 MAX_HUB_DEPTH = 3   # docs_dir 기준 하위 디렉터리 깊이 상한
 
-SKIP_DIRS = {"assets", "javascripts", "stylesheets", "etc", ".omc", "_hub", "로드맵", "_group"}
+# 로드맵은 여기서 뺐다. 허브가 없으면 사이드바에서 '로드맵' 을 눌렀을 때
+# 목록이 아니라 첫 문서(AWS 실무 입문 15선)로 바로 떨어진다.
+# _hub 는 _build_hub_landing 이 따로 만들므로 그대로 건너뛴다.
+SKIP_DIRS = {"assets", "javascripts", "stylesheets", "etc", ".omc", "_hub", "_group"}
 FM_TITLE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
 
 
@@ -84,6 +99,8 @@ def _label_for(key, leaf_counts):
     Network·Testing 각 3개가 실제로 겹쳐 있었다).
     겹치는 이름에만 바로 위 폴더를 붙인다 — 안 겹치면 그대로 둬서 길어지지 않게.
     """
+    if key in LABEL_OVERRIDE:
+        return LABEL_OVERRIDE[key]
     parts = key.split("/")
     name = parts[-1]
     if leaf_counts.get(name, 0) > 1 and len(parts) > 1:
@@ -167,7 +184,15 @@ def _build_one(docs_dir, key, counts, leaf_counts=None):
         if os.path.exists(pages_path):
             with open(pages_path, "r", encoding="utf-8") as f:
                 txt = f.read()
-            if "index.md" not in txt and "\nnav:" in "\n" + txt:
+            # nav 항목 '- index.md' 가 이미 있는지를 본다. 문자열 포함으로 보면
+            # 'RDBMS에서의 index.md' 같은 파일명에 걸려 이미 있다고 착각한다.
+            # 실제로 DataBase/RDBMS 가 이 오탐으로 index.md 를 못 받아, 사이드바에서
+            # 'RDBMS' 를 누르면 섹션 목록이 아니라 첫 문서(부분_인덱스)로 갔다.
+            has_index = any(
+                line.strip() in ("- index.md", "- index.md:")
+                for line in txt.splitlines()
+            )
+            if not has_index and "\nnav:" in "\n" + txt:
                 txt = txt.replace("nav:\n", "nav:\n  - index.md\n", 1)
                 with open(pages_path, "w", encoding="utf-8") as f:
                     f.write(txt)
@@ -258,7 +283,7 @@ def _build_hub_landing(docs_dir):
 # 여기서 만든다.
 GROUPS = {
     "backend": ("Backend", "서버를 만들고 굴리는 일 — 프레임워크, API 와 인증, 구조 설계.",
-                [("Framework", "Framework"), ("Backend", "API·인증"), ("Architecture", "Architecture")]),
+                [("Framework", "Framework"), ("Backend", "API·인증·메시징"), ("Architecture", "Architecture")]),
     "infra": ("Infra", "돌아가게 만드는 쪽 — 클라우드, 컨테이너와 배포, 웹 서버.",
               [("Cloud", "Cloud"), ("DevOps", "DevOps"), ("WebServer", "WebServer")]),
     "cs": ("CS", "밑에 깔린 것들 — 네트워크, 운영체제, 알고리즘, 보안.",
@@ -270,6 +295,10 @@ def _build_groups(docs_dir, counts):
     """묶음 랜딩 페이지 — Develop/_group/{key}.md"""
     d = os.path.join(docs_dir, "_group")
     os.makedirs(d, exist_ok=True)
+    # 참고: 묶음 랜딩 페이지의 브레드크럼은 "홈 › group" 으로 나온다(_group 폴더 이름).
+    # _group/.pages 에 title 을 줘도 안 먹는다 — awesome-pages 는 nav 에서 걸러낸
+    # 섹션의 title 을 설정하지 않고(navigation.py:70 _nav -> 71 _process_child_sections),
+    # _group 은 Develop/.pages 의 nav 에 없어서 걸러지는 쪽이다.
     for key, (title, blurb, members) in GROUPS.items():
         total = sum(counts.get(m, 0) for m, _ in members)
         lines = [

@@ -3,18 +3,18 @@ nav:
   - 최근 변경 문서: 최근.md
   - Language
   - Backend:
-    - 백엔드 전체: _group/backend.md
+    - 백엔드 전체: _group/backend/
     - Framework
-    - API·인증: Backend
+    - API·인증·메시징: Backend
     - Architecture
   - Database: DataBase
   - Infra:
-    - 인프라 전체: _group/infra.md
+    - 인프라 전체: _group/infra/
     - Cloud
     - DevOps
     - WebServer
   - CS:
-    - CS 전체: _group/cs.md
+    - CS 전체: _group/cs/
     - Network
     - OS
     - Algorithm
@@ -27,3 +27,12 @@ nav:
   - tags.md
 # 이 파일은 gen_nav.py 로 재생성하지 않는다. 최상위 7개 그룹 구조는 수동으로 유지.
 # 새 카테고리 추가 시 여기에 직접 반영할 것.
+#
+# 묶음 랜딩(_group/*)은 파일 경로가 아니라 URL 로 적는다.
+# awesome-pages 의 .pages nav 는 '바로 아래 자식의 이름'만 파일로 해석한다
+# (navigation.py:118 items_by_basename, 133). '_group/backend.md' 처럼 한 단계
+# 아래 경로를 적으면 파일을 못 찾아 그 문자열 그대로인 링크가 되어 404 였다.
+# URL('_group/backend/')로 적으면 현재 페이지 기준 상대경로로 변환돼 제대로 열린다.
+#
+# 'API·인증·메시징' 라벨은 Develop/Backend/.pages 의 title 과 짝이다.
+# 자식 .pages 의 title 이 부모 nav 라벨을 이기므로 둘을 같이 고쳐야 한다.

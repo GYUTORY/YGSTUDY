@@ -5,6 +5,12 @@ nav:
   - GitOps
   - IaC: Infrastructure_as_Code
   - Kubernetes
+  # 폴더는 Kubernetes/Docker 지만 Docker 는 그 하위 개념이 아니다.
+  # 폴더를 옮기면 URL 이 깨지므로 사이드바에서만 형제로 올린다.
+  # awesome-pages 는 바로 아래 자식 이름만 파일로 해석하므로(navigation.py:118)
+  # 한 단계 아래 경로는 URL 로 적어야 링크가 산다.
+  # URL 은 docs 루트 기준이다 — 'Kubernetes/Docker/' 로 적으면 /Kubernetes/... 가 된다.
+  - Docker: DevOps/Kubernetes/Docker/
   - Monitoring
   - Service_Mesh
   - Service_Discovery

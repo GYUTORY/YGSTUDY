@@ -10,4 +10,6 @@ nav:
   - Kustomize: Kustomize.md
   - Helm: Helm.md
   - Argo Rollouts: Argo_Rollouts.md
-  - Docker
+# Docker 는 Kubernetes 의 하위 개념이 아니다. 폴더는 DevOps/Kubernetes/Docker 그대로
+# 두고(옮기면 URL 이 깨진다) 사이드바에서만 DevOps 바로 아래 형제로 올렸다.
+# 실제 항목은 Develop/DevOps/.pages 의 'Docker: Kubernetes/Docker/' 링크다.
