@@ -508,6 +508,10 @@ async findById(id: number): Promise<Product> {
 해결 방법은 분산 락을 걸어 하나의 요청만 DB에 접근하게 하는 것이다.
 
 ```typescript
+    // 값 비교 후 삭제를 원자적으로 처리한다.
+    // 두 단계로 나누면 비교와 삭제 사이에 TTL 이 만료돼 남의 락을 지울 수 있다.
+    private static readonly UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
 // 분산 락으로 Stampede 방지
 async findById(id: number): Promise<Product> {
     const key = `product:${id}`;
@@ -516,7 +520,7 @@ async findById(id: number): Promise<Product> {
 
     const lockKey = `lock:${key}`;
     // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
-    const token = randomUUID();
+    const token = randomUUID();  // node:crypto
     const acquired = await this.redis.set(lockKey, token, 'EX', 5, 'NX');
 
     if (acquired === 'OK') {
@@ -530,7 +534,7 @@ async findById(id: number): Promise<Product> {
             return product;
         } finally {
             // 내 락일 때만 지운다 — 무조건 del 하면 TTL 만료 뒤 남이 잡은 락을 푼다
-            await this.redis.eval(UNLOCK, 1, lockKey, token);
+            await this.redis.eval(ProductService.UNLOCK, 1, lockKey, token);
         }
     } else {
         // 락 획득 실패: 잠깐 대기 후 재시도

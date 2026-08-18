@@ -274,14 +274,22 @@ API 응답의 모든 datetime은 ISO8601 UTC다. 그런데 클리닉 운영자�
 Redis 분산 락으로 토큰 갱신을 직렬화하는 게 가장 단순한 해결책이다.
 
 ```ts
-async function getToken() {
+// 값 비교 후 삭제를 원자적으로 처리한다.
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+const LOCK_KEY = 'semble:token:lock';
+
+async function getToken(depth = 0) {
   const cached = await redis.get(TOKEN_KEY);
   if (cached) return cached;
 
-  const lock = await redis.set('semble:token:lock', '1', 'NX', 'EX', 30);
+  // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+  const lockToken = randomUUID();
+  const lock = await redis.set(LOCK_KEY, lockToken, 'NX', 'EX', 30);
   if (!lock) {
+    // 깊이 제한이 없으면 갱신이 계속 느릴 때 스택이 무한히 쌓인다
+    if (depth >= 20) throw new Error('토큰 갱신 락 대기 초과');
     await new Promise(r => setTimeout(r, 200));
-    return getToken();
+    return getToken(depth + 1);
   }
 
   try {
@@ -289,7 +297,10 @@ async function getToken() {
     if (recheck) return recheck;
     return await refreshToken();
   } finally {
-    await redis.del('semble:token:lock');
+    // 내 락일 때만 지운다. refreshToken 이 TTL 30초를 넘기면 락이 만료돼
+    // 다음 워커가 잡는데, 무조건 del 하면 그 락을 풀어
+    // 이 절이 없애려던 401 스파이크가 되살아난다.
+    await redis.eval(UNLOCK, 1, LOCK_KEY, lockToken);
   }
 }
 ```

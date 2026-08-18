@@ -280,11 +280,16 @@ if (tokenRecord.isUsed) {
 grace period보다 Redis 분산 락이 더 정확하다. 동일 토큰에 대한 요청을 직렬화하면 동시 요청 자체가 불가능해진다.
 
 ```javascript
+// 값 비교 후 삭제를 원자적으로 처리한다 — 두 단계로 나누면 그 사이에 TTL 이 만료될 수 있다.
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
 async function rotateWithLock(rawToken) {
   const tokenHash = sha256(rawToken);
   const lockKey = `lock:rt:${tokenHash}`;
 
-  const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 5);
+  // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+  const lockToken = randomUUID();
+  const acquired = await redis.set(lockKey, lockToken, 'NX', 'EX', 5);
   if (!acquired) {
     throw new AuthError('CONCURRENT_REQUEST');
   }
@@ -292,7 +297,10 @@ async function rotateWithLock(rawToken) {
   try {
     return await rotateRefreshToken(rawToken);
   } finally {
-    await redis.del(lockKey);
+    // 내 락일 때만 지운다. rotate 가 TTL 5초를 넘기면 락이 이미 만료돼
+    // 다른 요청이 잡고 있을 수 있는데, 무조건 del 하면 그 락을 푼다.
+    // 그러면 같은 리프레시 토큰으로 동시 회전이 뚫린다.
+    await redis.eval(UNLOCK, 1, lockKey, lockToken);
   }
 }
 ```
@@ -312,6 +320,9 @@ async function rotateWithLock(rawToken) {
 ## Node.js 전체 구현
 
 ```javascript
+// 값 비교 후 삭제를 원자적으로 처리한다 — 두 단계로 나누면 그 사이에 TTL 이 만료될 수 있다.
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
 // services/token.service.js
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
@@ -350,7 +361,9 @@ class TokenService {
     const tokenHash = this.#hash(rawRefreshToken);
     const lockKey = `lock:rt:${tokenHash}`;
 
-    const acquired = await this.redis.set(lockKey, '1', 'NX', 'EX', 5);
+    // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+    const lockToken = randomUUID();
+    const acquired = await this.redis.set(lockKey, lockToken, 'NX', 'EX', 5);
     if (!acquired) {
       throw Object.assign(new Error('CONCURRENT_REQUEST'), { status: 429 });
     }
@@ -358,7 +371,10 @@ class TokenService {
     try {
       return await this.#doRotate(tokenHash);
     } finally {
-      await this.redis.del(lockKey);
+      // 내 락일 때만 지운다. rotate 가 TTL 5초를 넘기면 락이 이미 만료돼
+      // 다른 요청이 잡고 있을 수 있는데, 무조건 del 하면 그 락을 푼다.
+      // 그러면 같은 리프레시 토큰으로 동시 회전이 뚫린다.
+      await this.redis.eval(UNLOCK, 1, lockKey, lockToken);
     }
   }
 
@@ -591,6 +607,17 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 ```
 
 ```java
+    // 값 비교 후 삭제를 원자적으로 처리한다 — 두 단계로 나누면 그 사이에 TTL 이 만료될 수 있다.
+    private static final RedisScript<Long> UNLOCK_SCRIPT = RedisScript.of("""
+        if redis.call('get', KEYS[1]) == ARGV[1] then
+          return redis.call('del', KEYS[1])
+        else
+          return 0
+        end
+        """, Long.class);
+    // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+    private final String lockToken = UUID.randomUUID().toString();
+
 // service/TokenService.java
 @Service
 @RequiredArgsConstructor
@@ -623,7 +650,8 @@ public class TokenService {
         String lockKey = "lock:rt:" + tokenHash;
 
         Boolean acquired = redis.opsForValue()
-            .setIfAbsent(lockKey, "1", LOCK_TTL);
+            // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+            .setIfAbsent(lockKey, lockToken, LOCK_TTL);
 
         if (!Boolean.TRUE.equals(acquired)) {
             throw new ConcurrentRequestException();
@@ -632,7 +660,8 @@ public class TokenService {
         try {
             return doRotate(tokenHash);
         } finally {
-            redis.delete(lockKey);
+            // 내 락일 때만 지운다 — 무조건 delete 하면 TTL 만료 뒤 남의 락을 푼다
+            redis.execute(UNLOCK_SCRIPT, List.of(lockKey), lockToken);
         }
     }
 

@@ -130,6 +130,13 @@ Rolling deploy나 HPA에 의한 스케일아웃으로 인스턴스 여러 대가
 ### 분산 락으로 단일 인스턴스만 워밍
 
 ```java
+// 값 비교 후 삭제를 원자적으로 처리한다.
+private static final RedisScript<Long> UNLOCK_SCRIPT = RedisScript.of(
+    "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+    Long.class);
+// 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
+private final String lockToken = UUID.randomUUID().toString();
+
 @Component
 public class DistributedCacheWarmer {
 
@@ -141,7 +148,7 @@ public class DistributedCacheWarmer {
 
     public void warmWithLock() throws InterruptedException {
         Boolean acquired = redisTemplate.opsForValue()
-            .setIfAbsent(WARMING_LOCK_KEY, "locked", LOCK_TTL_SECONDS, TimeUnit.SECONDS);
+            .setIfAbsent(WARMING_LOCK_KEY, lockToken, LOCK_TTL_SECONDS, TimeUnit.SECONDS);
 
         if (!Boolean.TRUE.equals(acquired)) {
             log.info("Cache warming skipped — another instance holds the lock");
@@ -152,7 +159,10 @@ public class DistributedCacheWarmer {
         try {
             warmCache();
         } finally {
-            redisTemplate.delete(WARMING_LOCK_KEY);
+            // 내 락일 때만 지운다. 아래 설명대로 TTL 이 짧으면 워밍 도중 다른
+            // 인스턴스가 락을 다시 잡는데, 무조건 delete 하면 그 락까지 풀어
+            // 세 번째 인스턴스가 들어온다.
+            redisTemplate.execute(UNLOCK_SCRIPT, List.of(WARMING_LOCK_KEY), lockToken);
         }
     }
 

@@ -688,6 +688,9 @@ DB 과부하!
 
 **해결 방법: 분산 락 사용**
 ```javascript
+// 값 비교 후 삭제를 원자적으로 처리한다.
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
 async function getDataWithLock(key) {
   let data = await redis.get(key);
   
@@ -2991,6 +2994,9 @@ async function updateProduct(productId, data) {
 
 **해결 방법:**
 ```javascript
+// 값 비교 후 삭제를 원자적으로 처리한다.
+const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
 async function getDataSafe(key, fetchFunction, ttl = 3600) {
   // 1차 캐시 확인
   let data = await redis.get(key);
