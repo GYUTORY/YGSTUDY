@@ -72,7 +72,7 @@ def _extract_md_links(text: str) -> list[str]:
     return results
 
 
-def resolve_link(src: Path, raw_link: str, tracked: set[str]) -> tuple[bool, str] | None:
+def resolve_link(src: Path, raw_link: str, tracked: set[str], md_rewritten: bool = False) -> tuple[bool, str] | None:
     """
     링크를 검사.
     반환값: None(스킵), (True, '') 정상, (False, resolved_str) 깨짐
@@ -94,10 +94,20 @@ def resolve_link(src: Path, raw_link: str, tracked: set[str]) -> tuple[bool, str
         # (예: AI/Concepts/LLM.md → 사이트 URL: AI/Concepts/LLM/)
         # 이미지 등 에셋의 상대 경로는 실제 URL 기준으로 작성되므로,
         # index.md가 아닌 파일에서 비-.md 경로를 해석할 때 한 단계 내려간다.
+        # 마크다운 문법(![](...))으로 쓴 이미지는 MkDocs 가 빌드하면서 경로를
+        # 다시 써 준다. LLM.md 의 images/x.svg 는 산출물에서 ../images/x.svg 가
+        # 되어 정상 동작한다. 그래서 원본 파일이 있는 자리에서 찾아야 맞다.
+        #
+        # 반면 raw <img src> 는 MkDocs 가 손대지 않고 그대로 내보낸다.
+        # use_directory_urls 때문에 LLM.md 는 /LLM/ 주소로 나가므로
+        # 브라우저는 한 단계 깊은 곳에서 찾는다 — 그 기준으로 봐야 한다.
+        #
+        # 이 구분을 안 해서 마크다운 이미지 56건이 전부 깨진 것으로 잡혔다.
+        # 실제로는 산출물 <img> 75건 중 깨진 것이 0건이다.
         suffix = Path(decoded).suffix.lower()
         is_asset = suffix and suffix not in ('.md',)
         is_non_index = src.name.lower() not in ('index.md', 'readme.md')
-        if is_asset and is_non_index:
+        if is_asset and is_non_index and not md_rewritten:
             base = src.parent / src.stem
         else:
             base = src.parent
@@ -141,7 +151,7 @@ def check_file(md: Path, tracked: set[str]) -> tuple[list[tuple[str, str]], list
 
     # Markdown 링크 — .md 링크는 링크 오류, 이미지 확장자는 이미지 오류로 분류
     for raw in _extract_md_links(clean):
-        result = resolve_link(md, raw, tracked)
+        result = resolve_link(md, raw, tracked, md_rewritten=True)
         if result is not None and not result[0]:
             rel_src = str(md.relative_to(REPO_ROOT))
             suffix = Path(raw.split('#')[0]).suffix.lower()
