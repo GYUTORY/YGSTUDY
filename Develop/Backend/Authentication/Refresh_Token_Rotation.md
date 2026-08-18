@@ -607,6 +607,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 ```
 
 ```java
+// service/TokenService.java
+@Service
+@RequiredArgsConstructor
+public class TokenService {
+
     // 값 비교 후 삭제를 원자적으로 처리한다 — 두 단계로 나누면 그 사이에 TTL 이 만료될 수 있다.
     private static final RedisScript<Long> UNLOCK_SCRIPT = RedisScript.of("""
         if redis.call('get', KEYS[1]) == ARGV[1] then
@@ -615,13 +620,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
           return 0
         end
         """, Long.class);
-    // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
-    private final String lockToken = UUID.randomUUID().toString();
-
-// service/TokenService.java
-@Service
-@RequiredArgsConstructor
-public class TokenService {
 
     private final RefreshTokenRepository tokenRepo;
     private final RedisTemplate<String, String> redis;
@@ -649,8 +647,14 @@ public class TokenService {
         String tokenHash = hash(rawToken);
         String lockKey = "lock:rt:" + tokenHash;
 
+        // 호출마다 새로 만든다. 필드로 두면 @Service 싱글턴이라 그 JVM 의 모든
+        // 요청이 같은 값을 쓰고, 소유자 검사가 같은 인스턴스 안에서는 무력해진다
+        // — 스레드 A 가 만료된 락을 B 가 다시 잡아도 값이 같아 A 가 지워 버린다.
+        // 리프레시 토큰 회전의 동시 요청은 대개 같은 인스턴스 안 경합이라
+        // 정작 막아야 할 경우가 안 막힌다.
+        String lockToken = UUID.randomUUID().toString();
+
         Boolean acquired = redis.opsForValue()
-            // 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
             .setIfAbsent(lockKey, lockToken, LOCK_TTL);
 
         if (!Boolean.TRUE.equals(acquired)) {

@@ -368,12 +368,17 @@
     document.querySelectorAll(".md-typeset .yg-mermaid").forEach(function (box) {
       if (!apply(box)) pending++;
     });
+    // 표도 같은 처지다 — Material 이 overflow:auto 래퍼에 넣어 옆으로 굴리는데
+    // 잘렸다는 표시가 없다(한 문서에서 표 6개 중 3개가 최대 220px 씩 숨었다).
+    document.querySelectorAll(".md-typeset__table").forEach(markScroll);
     return pending;
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    if (!document.querySelector(".md-typeset .yg-mermaid")) return;
+    if (!document.querySelector(".md-typeset .yg-mermaid, .md-typeset__table")) return;
     scan();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scan);
+    window.addEventListener("load", scan);
 
     // mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
     var mo = new MutationObserver(function (list) {
@@ -386,7 +391,8 @@
 
     document.addEventListener("scroll", function (e) {
       var t = e.target;
-      if (t && t.classList && t.classList.contains("yg-mermaid")) markScroll(t);
+      if (!t || !t.classList) return;
+      if (t.classList.contains("yg-mermaid") || t.classList.contains("md-typeset__table")) markScroll(t);
     }, true);
 
     var t = null;

@@ -130,15 +130,15 @@ Rolling deploy나 HPA에 의한 스케일아웃으로 인스턴스 여러 대가
 ### 분산 락으로 단일 인스턴스만 워밍
 
 ```java
-// 값 비교 후 삭제를 원자적으로 처리한다.
-private static final RedisScript<Long> UNLOCK_SCRIPT = RedisScript.of(
-    "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-    Long.class);
-// 값은 내 식별자다. 상수를 넣으면 해제할 때 누구 락인지 구분할 수 없다.
-private final String lockToken = UUID.randomUUID().toString();
-
 @Component
 public class DistributedCacheWarmer {
+
+    // 값 비교 후 삭제를 원자적으로 처리한다.
+    private static final RedisScript<Long> UNLOCK_SCRIPT = RedisScript.of(
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+        Long.class);
+    // 인스턴스당 워밍은 한 번이라 인스턴스 식별자로 충분하다.
+    private final String lockToken = UUID.randomUUID().toString();
 
     private static final String WARMING_LOCK_KEY = "cache:warming:lock";
     private static final long LOCK_TTL_SECONDS = 300; // 워밍 최대 소요 시간의 2배
