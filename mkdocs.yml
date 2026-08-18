@@ -406,7 +406,6 @@ plugins:
   - git-revision-date-localized:
       enabled: !ENV [BUILD_DATES, FULL_BUILD, false]
       enable_creation_date: true
-      enable_git_follow: false
       type: date
       locale: ko
       fallback_to_build_date: true
