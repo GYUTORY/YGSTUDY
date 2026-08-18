@@ -163,6 +163,46 @@
       });
   }
 
+  /**
+   * 테마를 바꾸면 그 페이지의 다이어그램을 다시 그린다.
+   *
+   * mermaid.initialize 를 한 번만 부르게 막아 둔 탓에 theme 값이 첫 렌더 시점에
+   * 굳는다. 그래서 라이트로 들어와 다크로 토글하면 페이지 배경만 어두워지고
+   * 다이어그램은 라이트 그대로 남았다 — 연결선 대비가 1.34:1 로 사실상 안 보였다.
+   * 다른 문서로 이동하면 정상이라 "토글한 그 페이지" 에서만 나던 문제다.
+   *
+   * 이미 그린 것을 원본 소스로 되돌리고 큐를 비운 뒤 처음부터 다시 세운다.
+   */
+  var lastScheme = null;
+
+  function redrawForTheme() {
+    var scheme = document.body && document.body.getAttribute("data-md-color-scheme");
+    if (scheme === lastScheme) return;
+    lastScheme = scheme;
+    if (!initialized) return; // 아직 한 번도 안 그렸으면 그냥 두면 된다
+
+    initialized = false;
+    queue.length = 0;
+    draining = false;
+
+    document.querySelectorAll("div.yg-mermaid[data-mermaid-done]").forEach(function (div) {
+      var src = div.getAttribute("data-mermaid-src");
+      if (!src) return;
+      div.removeAttribute("data-mermaid-done");
+      div.classList.remove("mermaid-error");
+      div.textContent = src;
+    });
+    render();
+  }
+
+  if (typeof MutationObserver === "function" && document.body) {
+    new MutationObserver(redrawForTheme).observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-md-color-scheme"],
+    });
+    lastScheme = document.body.getAttribute("data-md-color-scheme");
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", render);
   } else {
