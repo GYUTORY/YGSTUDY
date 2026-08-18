@@ -3,7 +3,7 @@ nav:
   - index.md
   - 프레임워크 문서 인덱스: Node_Framework_Index.md
   - 프레임워크:
-    - 개요: Nodejs_Framework_Overview.md
+    - Node.js 프레임워크 개요: Nodejs_Framework_Overview.md
     - 프레임워크 비교: Nest_Hapi_Express_fastify.md
     - 애플리케이션 라우팅: Application_Routing.md
     - 뷰 엔진 (Handlebars): View_Engine

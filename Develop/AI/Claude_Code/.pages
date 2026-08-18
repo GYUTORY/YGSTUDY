@@ -1,6 +1,6 @@
 nav:
   - index.md
-  - 개요: Claude_Code.md
+  - Claude Code: Claude_Code.md
   - 기능:
     - 모델 선택: Claude_Code_Model.md
     - Agent 시스템: Claude_Code_Agent.md

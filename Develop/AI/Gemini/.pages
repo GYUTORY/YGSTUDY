@@ -1,6 +1,6 @@
 nav:
   - index.md
-  - 개요: Gemini.md
+  - Gemini Code Assist: Gemini.md
   - Google AI Studio 웹 도구: Google_AI_Studio.md
   - API 실무: Gemini_API.md
   - API 심화: Gemini_API_Advanced.md

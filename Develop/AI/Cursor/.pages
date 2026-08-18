@@ -1,5 +1,5 @@
 nav:
   - index.md
-  - 개요: Cursor.md
+  - Cursor - AI 네이티브 IDE: Cursor.md
   - Rules: Cursor_Rules.md
   - Context 관리: Cursor_Context_Management.md

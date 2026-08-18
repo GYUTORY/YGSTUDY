@@ -2,7 +2,7 @@ title: Infrastructure as Code
 nav:
   - index.md
   - Terraform:
-    - 개요: Terraform.md
+    - Terraform: Terraform.md
     - 기초: Terraform_기초.md
     - 운영 실무: Terraform_운영_실무.md
   - AWS Terraform 실전: AWS_Terraform_실전.md

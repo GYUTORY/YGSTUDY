@@ -3,7 +3,7 @@ nav:
   - index.md
   - CNAME: CNAME.md
   - DNS:
-    - 개요: DNS.md
+    - DNS (Domain Name System): DNS.md
     - Lookup: DNS Lookup.md
     - DNS over HTTPS (DoH): DNS_over_HTTPS_Do_H.md
   - DNSSEC: DNSSEC.md

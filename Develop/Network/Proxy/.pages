@@ -1,7 +1,7 @@
 title: Proxy
 nav:
   - index.md
-  - 개요: Proxy.md
+  - 프록시 (Proxy): Proxy.md
   - 포워드 프록시: Forward_Proxy.md
   - 리버스 프록시: Reverse_Proxy.md
   - WebSocket 프록싱: Web_Socket_Proxy.md
