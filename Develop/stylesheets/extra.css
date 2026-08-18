@@ -2069,6 +2069,17 @@ body {
   .md-sidebar--primary .md-nav--primary > .md-nav__list {
     padding-top: 64px;
   }
+
+  /* 좌우 여백 축소.
+
+     인셋이 세 겹으로 겹쳐 있었다 —
+     .md-main__inner 24px + .md-content__inner 26px + .yg-section 20px = 한쪽 70px.
+     390px 화면에서 좌우 140px, 즉 **가로의 36%가 여백**이었다.
+     그 탓에 히어로 제목이 세 줄로 쪼개지고 카드가 250px 로 눌렸다.
+     모바일은 화면이 곧 자원이라 통상값(16~20px)에 맞춘다. */
+  .md-main__inner { margin-left: 0 !important; margin-right: 0 !important; }
+  .md-content__inner { margin-left: 0 !important; margin-right: 0 !important; padding: 0 16px 1.2rem; }
+  .yg-home .yg-section { padding-left: 0 !important; padding-right: 0 !important; }
 }
 
 /* 가로 스크롤 안전장치 — `clip`은 sticky를 깨지 않음 (`hidden`은 깸) */
@@ -2430,6 +2441,12 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
 .yg-cat-v2[data-cat="cs"] .yg-cat-v2-icon span {
   background: #213183;
   box-shadow: 0 0 0 4px rgba(33, 49, 131, 0.14);
+}
+/* 남색은 어두운 배경 위에서 사라진다 — 다크에서 CS 점만 대비 1.36:1 이었다
+   (다른 여섯 점은 3.4~7.3). 같은 계열의 밝은 파랑으로 올린다. */
+[data-md-color-scheme="slate"] .yg-cat-v2[data-cat="cs"] .yg-cat-v2-icon span {
+  background: #6C8AE4;
+  box-shadow: 0 0 0 4px rgba(108, 138, 228, 0.18);
 }
 .yg-cat-v2[data-cat="data"] .yg-cat-v2-icon span {
   background: #dc382d;
