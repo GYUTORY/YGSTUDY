@@ -855,6 +855,10 @@ body {
 .md-typeset p {
   letter-spacing: 0;
   line-height: 1.7;
+  /* 줄 간격이 34px 인데 문단 사이가 20px(Material 기본 1em)이라, 문단 경계가
+     줄바꿈보다 좁았다. 여러 화면을 연속으로 읽을 때 문단이 한 덩어리로 붙는다.
+     줄 간격보다 넓게 잡아 경계를 만든다. */
+  margin-bottom: 1.35em;
 }
 
 .md-typeset ul li,
@@ -2049,8 +2053,31 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
 /* 머메이드 렌더 실패를 CSS 로 숨기지 않는다.
    예전에 `.mermaid-error { display:none }` 로 덮어둔 탓에 938개 다이어그램이
    빈 상자로 나가는데도 콘솔이 깨끗해서 아무도 몰랐다. 깨지면 보여야 고친다. */
-.md-typeset .yg-mermaid { text-align: center; }
-.md-typeset .yg-mermaid > svg { max-width: 100%; height: auto; }
+/* 넓은 다이어그램은 칸에 맞춰 줄이는 대신 가로로 굴린다.
+   전에는 무조건 max-width:100% 라, 본래 1109px 짜리가 720px 칸에서 0.65배로,
+   390px 모바일에서는 0.19배까지 줄었다. 그러면 안의 글자가 데스크톱 최소
+   4.3px, 모바일은 중앙값 5.6px·최소 2.1px 가 된다(49개 표본). 읽으라고 그린
+   그림이 읽을 수 없는 그림이 된다. javascripts/extra.js 가 svg 마다
+   "본래 폭 × 0.8" 을 min-width 로 박아, 0.8배까지만 줄고 그 아래로는
+   스크롤로 넘긴다. 어느 쪽에 더 있는지는 코드블록과 같은 방식으로 표시한다. */
+.md-typeset .yg-mermaid {
+  text-align: center;
+  overflow-x: auto;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.md-typeset .yg-mermaid::-webkit-scrollbar { height: 8px; }
+.md-typeset .yg-mermaid::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.md-typeset .yg-mermaid > svg {
+  max-width: 100%;
+  height: auto;
+  /* extra.js 가 "본래 폭 × 0.8" 을 넣는다. 값이 없으면 예전과 똑같이 동작한다. */
+  min-width: var(--yg-diagram-min, 0);
+}
 /* 라벨 넘침 마감 — mermaid 가 자기 폰트 기준으로 상자를 잡은 뒤 위 규칙이 폰트를 바꾼다.
    실제 글자가 상자보다 1~3px 넓어져 foreignObject 가 마지막 글자를 잘라먹었다
    ("OrderCreated" -> "OrderCreatec"). 노드에만 걸려 있어 화살표 라벨은 계속 잘렸다 —
@@ -2149,13 +2176,59 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   .yg-pillbar { display: none !important; }
   .md-content { margin: 0 !important; max-width: 100% !important; }
   .md-typeset a { color: #000; text-decoration: underline; }
-  .md-typeset a[href]::after {
+
+  /* 종이에서만 쓸모 있는 주소만 남긴다.
+     전에는 a[href] 전부에 주소를 붙였다. Redis 문서 한 장에 링크가 514개인데
+     그중 513개가 사이트 내부고 496개가 같은 문서 안 앵커였다. 그래서
+     본문에 " (#7-1-기본-fallback-구조)" 같은 꼬리표가 496개 끼어들고,
+     한글 경로는 "(../Redis%20%EB%8B%A4%EB%A3%A8%EA%B8%B0/)" 로 찍혀
+     문장이 읽히지 않았다. 종이에서 찾아갈 수 있는 건 절대주소뿐이다. */
+  .md-typeset a[href^="http"]::after {
     content: " (" attr(href) ")";
     font-size: 0.8em;
     color: #666;
+    word-break: break-all;
   }
+  /* 브레드크럼·태그·헤더링크는 화면 장치라 주소를 붙이지 않는다 */
+  .yg-crumbs a::after,
+  .md-typeset .md-tag::after,
+  .md-typeset .headerlink::after { content: none !important; }
+  .md-typeset .headerlink,
+  .md-clipboard { display: none !important; }
+
   .md-typeset pre,
   .md-typeset code { border: 1px solid #ccc !important; }
+
+  /* 코드블록 가장자리 그림자는 "옆에 더 있다"는 화면용 신호다.
+     종이에서는 스크롤이 없으니 회색 띠만 남는다. */
+  .md-typeset .highlight::before,
+  .md-typeset .highlight::after { display: none !important; }
+
+  /* 페이지 넘김 — 전에는 아무 제어가 없어 코드블록이 장 사이에서 잘리고
+     제목만 페이지 바닥에 남았다. */
+  .md-typeset pre,
+  .md-typeset table,
+  .md-typeset blockquote,
+  .md-typeset .admonition,
+  .md-typeset .yg-mermaid,
+  .md-typeset img { break-inside: avoid; page-break-inside: avoid; }
+  .md-typeset h1,
+  .md-typeset h2,
+  .md-typeset h3,
+  .md-typeset h4 { break-after: avoid; page-break-after: avoid; break-inside: avoid; }
+  .md-typeset p { orphans: 2; widows: 2; }
+
+  /* 화면에서 가로 스크롤로 감췄던 코드가 종이에서는 잘려 사라진다.
+     인쇄에서만 접어서 전부 보이게 한다. */
+  .md-typeset pre > code {
+    white-space: pre-wrap;
+    overflow: visible;
+    word-break: break-word;
+  }
+
+  /* 다이어그램은 화면 폭이 아니라 종이 폭에 맞춘다 */
+  .md-typeset .yg-mermaid { overflow: visible !important; }
+  .md-typeset .yg-mermaid > svg { max-width: 100% !important; min-width: 0 !important; height: auto; }
 }
 
 /* ================================================
@@ -2524,6 +2597,29 @@ html {
 .md-typeset .highlight[data-yg-scroll~="r"]::after {
   opacity: 1;
 }
+/* 가로로 굴러가는 다이어그램도 같은 신호를 쓴다.
+   다만 코드블록과 달리 .yg-mermaid 자신이 스크롤 상자라, 여기에 얹은
+   position:absolute 가상요소는 내용과 함께 밀려나 가장자리에 머물지 못한다
+   (실측: 가운데까지 굴리면 왼쪽 표시가 사라짐). 배경 그라디언트는
+   background-attachment 기본값이 scroll 이라 상자 가장자리에 고정된다. */
+.md-typeset .yg-mermaid {
+  --yg-fade-l: none;
+  --yg-fade-r: none;
+  --yg-fade-color: rgba(28, 22, 18, 0.14);
+  background-image: var(--yg-fade-l), var(--yg-fade-r);
+  background-size: 40px 100%, 40px 100%;
+  background-position: left center, right center;
+  background-repeat: no-repeat;
+}
+.md-typeset .yg-mermaid[data-yg-scroll~="l"] {
+  --yg-fade-l: linear-gradient(to right, var(--yg-fade-color), transparent);
+}
+.md-typeset .yg-mermaid[data-yg-scroll~="r"] {
+  --yg-fade-r: linear-gradient(to left, var(--yg-fade-color), transparent);
+}
+body[data-md-color-scheme="slate"] .md-typeset .yg-mermaid {
+  --yg-fade-color: rgba(0, 0, 0, 0.5);
+}
 body[data-md-color-scheme="slate"] .md-typeset .highlight::before {
   background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
 }
@@ -2676,4 +2772,32 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
    — 라이트까지 바꾸면 2.27 로 오히려 나빠진다. */
 [data-md-color-scheme="slate"] .yg-hero-search-cta .yg-hero-kbd {
   color: #a8a29a;
+}
+
+
+/* 다크에서 다이어그램 화살촉이 검게 남아 방향을 알 수 없었다.
+   연결선 본체는 밝은 회색으로 잘 나오는데 화살촉만 rgb(11,11,11) 이라
+   배경(#1f1c1e)과 거의 같았다 — 대비 1.17:1, 한 문서에서 42개 중 30개.
+   테마 토글과 무관하게 처음부터 다크로 들어가도 같아서 mermaid 재렌더로는 안 잡힌다. */
+[data-md-color-scheme="slate"] .yg-mermaid svg .arrowMarkerPath,
+[data-md-color-scheme="slate"] .yg-mermaid svg marker path {
+  fill: #d3d3d3 !important;
+  stroke: #d3d3d3 !important;
+}
+
+/* 모바일 드로어에서 하위 레벨을 펼치면 그 뒤에 깔린 상위 레벨 링크 22개가
+   여전히 탭 대상으로 남는다. 포커스가 불투명 패널 뒤로 들어가 보이지 않는다.
+   앞서 고친 '닫힌 드로어' 와 같은 계열의, 한 겹 안쪽 문제다. */
+@media screen and (max-width: 76.1875em) {
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li {
+    visibility: hidden;
+  }
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
+    visibility: visible;
+  }
+  /* 펼쳐진 항목 자신의 제목 줄은 뒤로가기 헤더와 겹쳐 보이므로 숨긴다 */
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) > .md-nav__link,
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) > .md-nav__container {
+    visibility: hidden;
+  }
 }

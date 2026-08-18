@@ -315,6 +315,88 @@
   });
 })();
 
+/* 다이어그램이 읽을 수 없을 만큼 줄어드는 것 막기.
+ *
+ * mermaid SVG 는 max-width:100% 라 칸보다 넓으면 무조건 줄어든다. 표본 49개를
+ * 재보니 데스크톱(720px 칸)에서 13개가 0.8배 미만, 최소 0.39배였고, 모바일
+ * (390px)에서는 38개가 0.8배 미만에 최소 0.19배였다. 그 배율이면 그림 안
+ * 글자가 데스크톱 최소 4.3px, 모바일 중앙값 5.6px·최소 2.1px 가 된다.
+ *
+ * 그래서 "본래 폭 × 0.8" 을 min-width 로 박는다. 칸이 그보다 넓으면 아무 일도
+ * 일어나지 않고(작은 그림은 그대로), 좁으면 0.8배에서 멈추고 가로 스크롤로
+ * 넘어간다. 잘린 쪽 표시는 코드블록과 같은 data-yg-scroll 을 쓴다.
+ */
+(function () {
+  var FLOOR = 0.8;
+
+  function naturalWidth(svg) {
+    var vb = svg.getAttribute("viewBox");
+    if (vb) {
+      var n = parseFloat(vb.split(/[\s,]+/)[2]);
+      if (n > 0) return n;
+    }
+    var w = parseFloat(svg.getAttribute("width"));
+    return w > 0 ? w : 0;
+  }
+
+  function markScroll(box) {
+    var max = box.scrollWidth - box.clientWidth;
+    if (max <= 4) { box.removeAttribute("data-yg-scroll"); return; }
+    var sides = [];
+    if (box.scrollLeft > 2) sides.push("l");
+    if (box.scrollLeft < max - 2) sides.push("r");
+    box.setAttribute("data-yg-scroll", sides.join(" "));
+  }
+
+  function apply(box) {
+    var svg = box.querySelector(":scope > svg");
+    if (!svg) return false;
+    var nat = naturalWidth(svg);
+    if (nat > 0 && !box.dataset.ygFloor) {
+      // svg 의 style 속성에 직접 쓰면 안 된다 — mermaid 가 렌더 끝에
+      // style="max-width:...px" 를 통째로 덮어써서 지워진다(실측).
+      // 컨테이너의 커스텀 속성에 남기고 값 적용은 CSS 가 한다.
+      box.style.setProperty("--yg-diagram-min", Math.round(nat * FLOOR) + "px");
+      box.dataset.ygFloor = "1";
+    }
+    markScroll(box);
+    return true;
+  }
+
+  function scan() {
+    var pending = 0;
+    document.querySelectorAll(".md-typeset .yg-mermaid").forEach(function (box) {
+      if (!apply(box)) pending++;
+    });
+    return pending;
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".md-typeset .yg-mermaid")) return;
+    scan();
+
+    // mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
+    var mo = new MutationObserver(function (list) {
+      list.forEach(function (m) {
+        var box = m.target.closest && m.target.closest(".yg-mermaid");
+        if (box) apply(box);
+      });
+    });
+    mo.observe(document.querySelector(".md-typeset"), { childList: true, subtree: true });
+
+    document.addEventListener("scroll", function (e) {
+      var t = e.target;
+      if (t && t.classList && t.classList.contains("yg-mermaid")) markScroll(t);
+    }, true);
+
+    var t = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(t);
+      t = setTimeout(scan, 150);
+    }, { passive: true });
+  });
+})();
+
 /* 사이드바 펼침 토글에 이름 붙이기.
  *
  * Material 은 접히는 섹션마다 아이콘만 든 빈 label 을 만들고 tabindex="0" 을
@@ -370,5 +452,37 @@
   document.addEventListener("DOMContentLoaded", run);
   if (window.document$ && typeof window.document$.subscribe === "function") {
     window.document$.subscribe(run);
+  }
+})();
+
+
+/* 스크린리더가 놓치던 것 세 가지.
+ *
+ * 1) 본문 맨 위 태그 칩 목록(nav.md-tags)에 이름이 없다. 링크가 있는 진짜
+ *    내비게이션이라 랜드마크에서 뺄 수는 없고 이름만 주면 된다.
+ * 2) 검색 결과 건수가 바뀌어도 음성으로 전달되지 않는다. 페이지 전체에
+ *    aria-live 가 하나도 없어서, 결과가 나왔는지조차 알 수 없었다.
+ * 3) 제목 앵커가 한글 사이트에서 제목마다 "Permanent link" 로 읽힌다.
+ */
+(function () {
+  function label() {
+    document.querySelectorAll("nav.md-tags:not([aria-label])").forEach(function (n) {
+      n.setAttribute("aria-label", "문서 태그");
+    });
+    var meta = document.querySelector(".md-search-result__meta");
+    if (meta && !meta.getAttribute("aria-live")) {
+      meta.setAttribute("aria-live", "polite");
+      meta.setAttribute("role", "status");
+    }
+    document.querySelectorAll("a.headerlink:not([aria-label])").forEach(function (a) {
+      var h = a.closest("h1,h2,h3,h4,h5,h6");
+      var t = h ? h.textContent.replace(/\u00b6/g, "").trim() : "";
+      a.setAttribute("aria-label", t ? t + " 링크" : "이 제목 링크");
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", label);
+  if (window.document$ && typeof window.document$.subscribe === "function") {
+    window.document$.subscribe(label);
   }
 })();
