@@ -314,3 +314,61 @@
     }, { passive: true });
   });
 })();
+
+/* 사이드바 펼침 토글에 이름 붙이기.
+ *
+ * Material 은 접히는 섹션마다 아이콘만 든 빈 label 을 만들고 tabindex="0" 을
+ * 준다. 키보드로 멈추는 자리인데 읽어줄 글자가 없다. 게다가
+ * <nav aria-labelledby="__nav_8_label"> 이 그 빈 label 을 가리켜서
+ * nav 랜드마크 이름까지 빈 값이 된다 — 한 문서에서 nav 63개 중 40개가 그랬다.
+ *
+ * 섹션 이름은 바로 옆 <a> 에 이미 있다("AI", "개념"). 그걸 가져다 쓴다.
+ * 화면에 보이는 것은 아무것도 바뀌지 않는다.
+ */
+(function () {
+  function nameToggles() {
+    document.querySelectorAll("label.md-nav__link").forEach(function (label) {
+      if (label.getAttribute("aria-label")) return;
+      if (label.textContent.trim()) return;
+      var item = label.closest(".md-nav__item");
+      var link = item && item.querySelector(":scope > a.md-nav__link, :scope > .md-nav__container > a");
+      var name = link && link.textContent.trim();
+      if (!name) {
+        // index 페이지가 없는 섹션은 형제 a 가 없다. nav 안의 제목을 쓴다.
+        var nav = item && item.querySelector(":scope > nav > .md-nav__title");
+        name = nav && nav.textContent.trim();
+      }
+      if (!name) return;
+      label.setAttribute("aria-label", name + " 하위 목록 펼치기");
+
+      // aria-labelledby 는 가리킨 요소의 '글자' 만 읽는다. label 에 aria-label 을
+      // 달아도 그걸 참조하는 nav 는 여전히 이름이 빈 채로 남는다.
+      // 그래서 nav 쪽에 직접 이름을 준다.
+      var nested = item.querySelector(":scope > nav");
+      if (nested && !nested.getAttribute("aria-label")) {
+        nested.setAttribute("aria-label", name);
+      }
+    });
+  }
+
+  /* 코드블록의 복사 버튼은 <nav class="md-code__nav"> 로 감싸여 나온다.
+   * 링크가 하나도 없는데 랜드마크로 잡혀서, 스크린리더 랜드마크 목록이
+   * 이름 없는 nav 로 뒤덮인다(한 문서에 39개). 실제로 길찾기 영역이 아니므로
+   * 랜드마크에서 빼는 게 맞다. 버튼 자체는 title 로 이미 이름이 있다. */
+  function unmarkCodeNav() {
+    document.querySelectorAll("nav.md-code__nav").forEach(function (nav) {
+      if (nav.querySelector("a")) return;
+      nav.setAttribute("role", "presentation");
+    });
+  }
+
+  function run() {
+    nameToggles();
+    unmarkCodeNav();
+  }
+
+  document.addEventListener("DOMContentLoaded", run);
+  if (window.document$ && typeof window.document$.subscribe === "function") {
+    window.document$.subscribe(run);
+  }
+})();
