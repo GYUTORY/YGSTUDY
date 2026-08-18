@@ -12,3 +12,6 @@ Develop/*/index.md
 
 # 빌드가 생성하는 카운트 파일
 Develop/section_counts.json
+
+# 빌드 때 생성되는 묶음 랜딩 (tools/section_index.py)
+Develop/_group/

@@ -44,13 +44,13 @@ updated: 2026-08-11
       </div>
       <div class="yg-cat-v2-count" data-yg-count="Language">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="Framework" href="Framework/">
+    <a class="yg-cat-v2" data-cat="backend" data-yg-cat="Framework" href="_group/backend/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Backend</h3>
         <p>Spring · NestJS · API · Auth · MSA</p>
       </div>
-      <div class="yg-cat-v2-count" data-yg-count="Framework">—</div>
+      <div class="yg-cat-v2-count" data-yg-count="Framework,Backend,Architecture">—</div>
     </a>
     <a class="yg-cat-v2" data-cat="data" data-yg-cat="DataBase" href="DataBase/">
       <div class="yg-cat-v2-icon"><span></span></div>
@@ -60,21 +60,21 @@ updated: 2026-08-11
       </div>
       <div class="yg-cat-v2-count" data-yg-count="DataBase">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="infra" data-yg-cat="Cloud" href="Cloud/">
+    <a class="yg-cat-v2" data-cat="infra" data-yg-cat="Cloud" href="_group/infra/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>Infra</h3>
         <p>AWS · GCP · Kubernetes · Docker · CI/CD</p>
       </div>
-      <div class="yg-cat-v2-count" data-yg-count="Cloud">—</div>
+      <div class="yg-cat-v2-count" data-yg-count="Cloud,DevOps,WebServer">—</div>
     </a>
-    <a class="yg-cat-v2" data-cat="cs" data-yg-cat="Network" href="Network/">
+    <a class="yg-cat-v2" data-cat="cs" data-yg-cat="Network" href="_group/cs/">
       <div class="yg-cat-v2-icon"><span></span></div>
       <div class="yg-cat-v2-body">
         <h3>CS</h3>
         <p>Network · OS · Algorithm · Security</p>
       </div>
-      <div class="yg-cat-v2-count" data-yg-count="Network">—</div>
+      <div class="yg-cat-v2-count" data-yg-count="Network,OS,Algorithm,Security">—</div>
     </a>
     <a class="yg-cat-v2" data-cat="ai" data-yg-cat="AI" href="AI/">
       <div class="yg-cat-v2-icon"><span></span></div>

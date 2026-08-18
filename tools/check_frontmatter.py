@@ -18,7 +18,9 @@ DOCS_DIR = REPO_ROOT / "Develop"
 REQUIRED_FIELDS = ["title", "tags", "updated"]
 FRONT_MATTER_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 
-SKIP_DIRS = {"_hub"}
+# 빌드 때 만들어지는 랜딩 페이지들. 사람이 쓰는 문서가 아니라
+# updated 같은 필드를 요구할 대상이 아니다(section_index.py 가 생성).
+SKIP_DIRS = {"_hub", "_group"}
 SKIP_FILES = {"index.md", "todo.md", "404.md"}
 
 
@@ -46,14 +48,16 @@ def main():
     parser.add_argument("--strict", action="store_true", help="위반 시 exit 1")
     parser.add_argument(
         "--skip-hub", action="store_true", default=True,
-        help="_hub/ 디렉토리 건너뜀 (기본값 on)"
+        help="자동 생성 디렉터리(_hub·_group) 건너뜀 (기본값 on)"
     )
     args = parser.parse_args()
 
     violations: list[tuple[Path, list[str]]] = []
 
     for md in sorted(DOCS_DIR.rglob("*.md")):
-        if args.skip_hub and "_hub" in md.parts:
+        # SKIP_DIRS 는 선언만 돼 있고 정작 "_hub" 가 하드코딩돼 있어서,
+        # 목록에 디렉터리를 더해도 아무 일이 없었다. 선언을 실제로 쓴다.
+        if args.skip_hub and SKIP_DIRS.intersection(md.parts):
             continue
         if md.name in SKIP_FILES:
             continue

@@ -3,15 +3,18 @@ nav:
   - 최근 변경 문서: 최근.md
   - Language
   - Backend:
+    - 백엔드 전체: _group/backend.md
     - Framework
     - API·인증: Backend
     - Architecture
   - Database: DataBase
   - Infra:
+    - 인프라 전체: _group/infra.md
     - Cloud
     - DevOps
     - WebServer
   - CS:
+    - CS 전체: _group/cs.md
     - Network
     - OS
     - Algorithm

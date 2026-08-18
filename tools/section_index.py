@@ -50,7 +50,7 @@ SECOND_LEVEL = ["Cloud/AWS", "Cloud/GCP", "DevOps/Linux", "DevOps/Kubernetes", "
 # gen_nav.py --write 이전에 단독 실행해 index.md 를 미리 만들어 둔다.
 MAX_HUB_DEPTH = 3   # docs_dir 기준 하위 디렉터리 깊이 상한
 
-SKIP_DIRS = {"assets", "javascripts", "stylesheets", "etc", ".omc", "_hub", "로드맵"}
+SKIP_DIRS = {"assets", "javascripts", "stylesheets", "etc", ".omc", "_hub", "로드맵", "_group"}
 FM_TITLE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
 
 
@@ -248,6 +248,47 @@ def _build_hub_landing(docs_dir):
         fh.writelines(out)
 
 
+# 최상위 메뉴의 묶음. Develop/.pages 의 nav 와 짝을 이룬다.
+#
+# 왜 필요한가: 홈의 'Backend' 카드가 /Framework/ 로 갔다. 거기에 Kafka 도
+# 인증도 없다 — 그것들은 형제 폴더인 Backend/ 소속이다. 누른 이름과 도착한
+# 페이지 이름이 달라(Backend -> "Framework 전체 보기") 잘못 눌렀나 싶어진다.
+# 'Infra' 카드는 부제에 Kubernetes·Docker 를 적어 놓고 Cloud/ 로 보냈는데
+# 그 둘은 DevOps/ 에 있다. 묶음을 대표하는 페이지가 없어서 생긴 일이라
+# 여기서 만든다.
+GROUPS = {
+    "backend": ("Backend", "서버를 만들고 굴리는 일 — 프레임워크, API 와 인증, 구조 설계.",
+                [("Framework", "Framework"), ("Backend", "API·인증"), ("Architecture", "Architecture")]),
+    "infra": ("Infra", "돌아가게 만드는 쪽 — 클라우드, 컨테이너와 배포, 웹 서버.",
+              [("Cloud", "Cloud"), ("DevOps", "DevOps"), ("WebServer", "WebServer")]),
+    "cs": ("CS", "밑에 깔린 것들 — 네트워크, 운영체제, 알고리즘, 보안.",
+           [("Network", "Network"), ("OS", "OS"), ("Algorithm", "Algorithm"), ("Security", "Security")]),
+}
+
+
+def _build_groups(docs_dir, counts):
+    """묶음 랜딩 페이지 — Develop/_group/{key}.md"""
+    d = os.path.join(docs_dir, "_group")
+    os.makedirs(d, exist_ok=True)
+    for key, (title, blurb, members) in GROUPS.items():
+        total = sum(counts.get(m, 0) for m, _ in members)
+        lines = [
+            "---\n", f"title: {title}\n", "tags: []\n", "hide:\n  - toc\n", "---\n\n",
+            "<!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->\n\n",
+            f"# {title}\n\n", blurb + "\n\n", f"문서 {total}개.\n\n",
+        ]
+        for name, label in members:
+            n = counts.get(name, 0)
+            # index.md 까지 적어야 MkDocs 가 실제 문서로 인식해 주소를 다시 쓴다.
+            # "../Framework/" 처럼 폴더로만 적으면 그대로 남아서
+            # /_group/Framework/ 를 가리키는 죽은 링크가 된다.
+            lines.append(f"- [{label}](../{name}/index.md) — 문서 {n}개\n")
+        lines.append("\n")
+        with open(os.path.join(d, key + ".md"), "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        counts["group:" + key] = total
+
+
 def on_pre_build(config, **kwargs):
     docs_dir = config["docs_dir"]
     counts = {}
@@ -278,6 +319,7 @@ def on_pre_build(config, **kwargs):
     # (_hub 는 SKIP_DIRS 라 위 루프가 허브를 만들지 않는다.)
     # 첫 화면에서 1클릭에 막다른 길이라 여기서 따로 만든다.
     _build_hub_landing(docs_dir)
+    _build_groups(docs_dir, counts)
 
     import json
     with open(os.path.join(docs_dir, "section_counts.json"), "w", encoding="utf-8") as f:
