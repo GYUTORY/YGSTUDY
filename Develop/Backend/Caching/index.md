@@ -9,10 +9,12 @@ hide:
 
 # Caching 전체 보기
 
-문서 2개.
+문서 4개.
 
 ## 개요
 
 - [Cache Warming](Cache_Warming.md)
+- [Redis 운영 — Persistence, Replication, Sentinel, Cluster](Redis_운영.md)
+- [캐시 무효화](캐시_무효화.md)
 - [캐싱 전략 (Caching Strategies)](Caching_Strategies.md)
 
