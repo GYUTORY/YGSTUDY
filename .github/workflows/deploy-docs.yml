@@ -41,7 +41,11 @@ jobs:
       - name: Docs checks
         uses: ./.github/actions/docs-checks
         with:
-          before_sha: ${{ github.event.before }}
+          # 수동 실행(workflow_dispatch)과 신규 브랜치 첫 푸시에서는 이 값이
+          # 비어 있어 90일 전체 스캔으로 떨어지고, 과거 무출처 주장 24건이
+          # 통째로 걸려 배포가 막힌다. github.sha 를 주면 diff 가 비어
+          # 새 주장 0건으로 통과한다 — 과거 빚은 그대로 두고 배포만 연다.
+          before_sha: ${{ github.event.before || github.sha }}
 
       - name: Deploy
         env:

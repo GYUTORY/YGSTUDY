@@ -63,12 +63,30 @@ def test_markdown_image_broken_still_reported():
     )
 
 
-def test_nfd_content_detection():
-    """NFD 문자가 포함된 텍스트를 올바르게 감지한다."""
-    nfd_text = unicodedata.normalize("NFD", "한글 경로 테스트")
-    nfc_text = unicodedata.normalize("NFC", "한글 경로 테스트")
-    assert nfd_text != nfc_text, "NFD != NFC 전제 조건 실패"
-    assert nfd_text != unicodedata.normalize("NFC", nfd_text), "NFD → NFC 변환이 동일하면 안 됨"
+def test_nfd_path_matches_nfc_tracked_entry():
+    """NFD 로 쓴 한글 경로가 git 이 들고 있는 NFC 이름과 연결돼야 한다.
+
+    macOS 는 파일명을 NFD 로 내놓고 git 은 NFC 로 들고 있다. 정규화를 안 하면
+    멀쩡한 한글 링크가 전부 깨진 것으로 잡힌다. check_links 는 비교 직전에
+    NFC 로 맞춰 이걸 흡수한다 — 그 흡수가 실제로 되는지 본다.
+
+    일부러 디스크에 없는 파일을 대상으로 삼는다. macOS 파일시스템은 NFD/NFC 를
+    가리지 않고 열어주기 때문에, 실제 파일이 있으면 정규화를 꺼도 통과해 버려서
+    아무것도 검증하지 못한다. tracked 집합으로만 맞춰야 정규화 코드가 실제로 탄다.
+
+    이 자리에는 원래 unicodedata.normalize 가 NFD != NFC 를 내는지만 보는
+    테스트가 있었다. 표준 라이브러리만 확인하는 것이라 check_links 를 통째로
+    지워도 통과했다. 죽어서 안 도는 검사보다 살아서 아무것도 안 보는 검사가
+    더 오래 숨는다.
+    """
+    md = FIXTURES / "nfd_link.md"
+    # git 은 NFC 로 들고 있고, 디스크에는 없는 이름
+    nfc_name = unicodedata.normalize("NFC", "한글 대상 문서")
+    tracked = {
+        unicodedata.normalize("NFC", str((FIXTURES / f"{nfc_name}.md").relative_to(REPO_ROOT)))
+    }
+    links, _images = check_links.check_file(md, tracked)
+    assert links == [], f"NFD 경로가 NFC 추적 항목과 연결되지 않았다: {links}"
 
 
 if __name__ == "__main__":
@@ -77,7 +95,7 @@ if __name__ == "__main__":
         test_html_img_broken_reported,
         test_markdown_image_not_false_positive,
         test_markdown_image_broken_still_reported,
-        test_nfd_content_detection,
+        test_nfd_path_matches_nfc_tracked_entry,
     ]
     passed = 0
     for t in tests:

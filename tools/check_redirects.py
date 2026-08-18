@@ -7,8 +7,10 @@
 import os, re, sys
 from urllib.parse import unquote
 
-YGSTUDY = '/root/YGSTUDY'
-SITE = os.path.join(YGSTUDY, 'site')
+# 경로가 '/root/YGSTUDY' 로 박혀 있어 이 저장소를 옮긴 뒤로는 첫 줄에서 죽었다.
+# 호출처가 0곳이라 아무도 몰랐다.
+YGSTUDY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SITE = os.environ.get('SITE_DIR') or os.path.join(YGSTUDY, 'site')
 
 with open(os.path.join(YGSTUDY, 'mkdocs.yml'), encoding='utf-8') as f:
     content = f.read()

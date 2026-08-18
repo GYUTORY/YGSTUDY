@@ -24,7 +24,11 @@ FENCE = re.compile(r"```mermaid\n(.*?)```", re.S)
 
 def main():
     bad = []
-    for root, _, files in os.walk("Develop"):
+    # 저장소 루트가 아닌 곳에서 실행하면 상대경로 "Develop" 이 안 잡혀
+    # 0건을 훑고 OK 를 찍는다. 0건 통과는 통과가 아니라 미검사다.
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Develop")
+    fences = seq = 0
+    for root, _, files in os.walk(docs_dir):
         for f in files:
             if not f.endswith(".md"):
                 continue
@@ -35,8 +39,10 @@ def main():
                 continue
             for m in FENCE.finditer(text):
                 body = m.group(1)
+                fences += 1
                 if not body.strip().startswith("sequence"):
                     continue
+                seq += 1
                 base = text[: m.start()].count("\n") + 2
                 for i, line in enumerate(body.splitlines()):
                     if ENTITY.search(line):
@@ -47,7 +53,10 @@ def main():
         print("  → 〈 〉 같은 타이포그래픽 문자나 날것 < > 로 바꾸세요.")
         print("\n".join("  " + b for b in bad))
         return 1
-    print("OK: sequenceDiagram 엔티티 위반 없음")
+    if fences == 0:
+        print(f"검사 대상이 0건입니다 — {docs_dir} 를 못 찾았습니다.")
+        return 2
+    print(f"OK: mermaid {fences}블록 중 sequenceDiagram {seq}블록 검사 — 엔티티 위반 없음")
     return 0
 
 
