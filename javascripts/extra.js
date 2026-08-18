@@ -164,7 +164,14 @@
           if (k.indexOf("/") === -1) total += counts[k];
         });
         countTargets.forEach(function (el) {
-          var n = counts[el.getAttribute("data-yg-count")];
+          // 한 카드가 여러 폴더를 묶는 경우가 있다(가이드 = _hub + 로드맵 + Frontend).
+          // 쉼표로 여러 키를 받아 합산한다.
+          var n = el
+            .getAttribute("data-yg-count")
+            .split(",")
+            .reduce(function (sum, k) {
+              return sum + (counts[k.trim()] || 0);
+            }, 0);
           el.textContent = n ? n + "개" : "—";
         });
         if (totalTarget) totalTarget.textContent = total > 0 ? total : "—";
