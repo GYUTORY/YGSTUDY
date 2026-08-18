@@ -211,3 +211,106 @@
     }, 300);
   });
 })();
+
+/* 본문으로 건너뛰기.
+ *
+ * Material 은 목차 첫 항목을 목적지로 삼아 스킵 링크를 만든다. 대문은 toc 를
+ * 숨긴 raw HTML 이라 목적지가 없어 링크 자체가 안 나왔고, 키보드로 첫 카드까지
+ * 가는 데 Tab 16번이 걸렸다(문서 페이지는 1번). 없을 때만 같은 모양으로 만든다.
+ */
+(function () {
+  document.addEventListener("DOMContentLoaded", function () {
+    if (document.querySelector(".md-skip")) return;
+    var target = document.querySelector(".md-content__inner") || document.querySelector(".md-content");
+    if (!target) return;
+    if (!target.id) target.id = "yg-main";
+    target.setAttribute("tabindex", "-1");
+
+    var a = document.createElement("a");
+    a.href = "#" + target.id;
+    a.className = "md-skip";
+    a.textContent = "본문으로 건너뛰기";
+    // 해시 이동만으로는 포커스가 따라가지 않아, 그 다음 Tab 이 다시 헤더로 돌아간다.
+    a.addEventListener("click", function () {
+      setTimeout(function () { target.focus({ preventScroll: false }); }, 0);
+    });
+    document.body.insertBefore(a, document.body.firstChild);
+  });
+})();
+
+/* 히어로 검색 상자의 단축키 배지.
+ *
+ * "⌘K" 라고 적혀 있는데 실제로 눌러도 아무 일이 없었다(실측: Meta+K·Ctrl+K 모두
+ * 검색 안 열림, 열리는 건 "/" 뿐). 표기를 "/" 로 낮추는 대신 배지대로 동작하게
+ * 만든다 — Cmd/Ctrl+K 는 지금 대부분의 검색 UI 가 쓰는 조합이라 먼저 눌러보게 된다.
+ * 검색 열기는 Material 이 change 이벤트로 감지하므로 체크박스를 직접 클릭한다.
+ */
+(function () {
+  var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || "");
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!isMac) {
+      document.querySelectorAll("[data-yg-kbd]").forEach(function (el) {
+        el.textContent = "Ctrl K";
+      });
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.shiftKey) return;
+    if (!(e.metaKey || e.ctrlKey)) return;
+    if ((e.key || "").toLowerCase() !== "k") return;
+    var toggle = document.querySelector("#__search");
+    if (!toggle) return;
+    e.preventDefault();
+    if (!toggle.checked) toggle.click();
+    var input = document.querySelector(".md-search__input");
+    if (input) setTimeout(function () { input.focus(); input.select(); }, 20);
+  });
+})();
+
+/* 코드블록 가로 스크롤 표시.
+ *
+ * 한 문서에서 코드블록 88개 중 25개가 가로로 넘치고 최대 510px 이 숨는데
+ * (모바일은 54개·565px) 잘렸다는 표시가 없었다. macOS overlay 스크롤바는
+ * 스크롤을 시작해야 나타나서 가만히 있는 화면에서는 단서가 되지 않는다.
+ * 남은 내용이 있는 쪽에만 그림자를 켠다(그림자 자체는 extra.css).
+ */
+(function () {
+  function mark(code) {
+    var wrap = code.parentElement && code.parentElement.parentElement;
+    if (!wrap || !wrap.classList.contains("highlight")) return;
+    var max = code.scrollWidth - code.clientWidth;
+    if (max <= 4) {
+      wrap.removeAttribute("data-yg-scroll");
+      return;
+    }
+    var sides = [];
+    if (code.scrollLeft > 2) sides.push("l");
+    if (code.scrollLeft < max - 2) sides.push("r");
+    wrap.setAttribute("data-yg-scroll", sides.join(" "));
+  }
+
+  function scanAll() {
+    document.querySelectorAll(".md-typeset .highlight > pre > code").forEach(mark);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".md-typeset .highlight")) return;
+    scanAll();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scanAll);
+    window.addEventListener("load", scanAll);
+
+    // scroll 은 버블링하지 않으므로 캡처 단계에서 받는다.
+    document.addEventListener("scroll", function (e) {
+      var t = e.target;
+      if (t && t.tagName === "CODE") mark(t);
+    }, true);
+
+    var t = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(t);
+      t = setTimeout(scanAll, 150);
+    }, { passive: true });
+  });
+})();

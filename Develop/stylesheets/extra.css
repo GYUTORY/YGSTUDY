@@ -504,14 +504,30 @@ body {
 .md-sidebar--primary .md-nav__link { margin-top: 3px; line-height: 1.35; }
 .md-sidebar--primary .md-nav__item { margin-bottom: 1px; }
 
+/* 대분류 사이만 띄운다. 항목 간격이 전부 1px 로 같아 47개가 한 덩어리로 붙어
+   보였고, 하위 항목이 두 줄로 접히면 어디까지가 한 묶음인지 더 안 읽혔다. */
+.md-sidebar--primary .md-nav--primary > .md-nav__list > .md-nav__item + .md-nav__item {
+  margin-top: 12px;
+}
+
+/* md-nav__container 는 글자를 그리지 않는 껍데기(안쪽 a + 펼침 label 을 감싼다).
+   여기에도 링크 padding 이 걸려 안쪽 a 의 padding 과 겹쳤고, "지금 보고 있는"
+   항목만 형제보다 11px 더 들어가 보였다(형제 59px vs Database 70px). */
+.md-sidebar--primary .md-nav--primary .md-nav__list .md-nav__item > .md-nav__container.md-nav__link {
+  padding: 0;
+}
+
 /* 사이드바 상단 사이트명("YGSTUDY") 라벨 모두 제거 — 데스크톱·모바일 공통 */
 .md-nav--primary > .md-nav__title { display: none !important; }
 
 /* 기본 링크 — 두 줄까지 허용, 어절 단위 줄바꿈 (15px 하한) */
+/* color 에 !important 를 두면 아래 "Depth-based hierarchy" 의 레벨별 색이 전부
+   덮여, 실측상 L1~L3 이 밝기까지 똑같은 한 가지 색으로 나왔다(라이트 #3D3A38,
+   다크 #F0EDE9). 여기서는 빼고, 활성 항목만 !important 로 지킨다. */
 .md-nav__link {
   font-size: 0.75rem;
   padding: 7px 12px;
-  color: var(--text) !important;
+  color: var(--text);
   transition: color 0.15s ease, background-color 0.15s ease;
   overflow: hidden;
   min-width: 0;
@@ -583,17 +599,28 @@ body {
    SIDEBAR — Depth-based hierarchy (대→중→소→세분류)
    ================================================ */
 
-/* L1 대분류: Language / Algorithm / Framework / AI / AWS ... (18px) */
-.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link {
+/* navigation.indexes 를 켠 섹션 중 "지금 보고 있는" 항목만 Material 이
+   <div class="md-nav__link md-nav__container"><a class="md-nav__link">글자</a>…</div>
+   구조로 감싼다. 아래 레벨 규칙은 바깥 div 에만 걸리고 글자를 그리는 안쪽 a 는
+   기본값으로 떨어져, 실측상 Database(L1)가 15px/500, RDBMS(L2)가 13.2px 로
+   자기 하위 항목들(16px/600, 15px/500)보다 작게 나왔다. 위계가 뒤집힌 셈이고,
+   13.2px 는 이 파일이 정한 15px 하한도 깬다. 안쪽 a 까지 같이 지정한다. */
+
+/* L1 대분류: Language / Algorithm / Framework / AI / AWS ... (18px)
+   L2 와 굵기가 600 으로 같아 18px/16px 2px 차이만으로 단계를 읽어야 했다.
+   700 으로 올려 크기·굵기가 함께 내려가는 사다리로 만든다. */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link:not(.md-nav__container),
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__container > .md-nav__link {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.15px;
   padding: 0.32rem 0.55rem;
   color: var(--text);
 }
 
 /* L2 중분류: AI > Claude Code, Framework > Node.js ... (16px) */
-.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link:not(.md-nav__container),
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__container > .md-nav__link {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: -0.1px;
@@ -602,7 +629,8 @@ body {
 }
 
 /* L3 소분류: 15px 하한 고정 — 이 이하로 내려가지 않는다 */
-.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link:not(.md-nav__container),
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__container > .md-nav__link {
   font-size: 0.75rem;
   font-weight: 500;
   padding: 0.2rem 0.5rem;
@@ -610,21 +638,24 @@ body {
 }
 
 /* L4+ 세분류: 동일 하한 유지 */
-.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item .md-nav__link {
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item .md-nav__link:not(.md-nav__container) {
   font-size: 0.75rem;
   font-weight: 500;
   padding: 0.18rem 0.45rem;
   color: var(--warm-gray-500);
 }
 
-/* 다크모드 색 위계 */
-[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link {
+/* 다크모드 색 위계 (라이트와 같은 이유로 md-nav__container 안쪽까지 지정) */
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link,
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__container > .md-nav__link {
   color: #ffffff;
 }
-[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link,
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__container > .md-nav__link {
   color: #ebe8e3;
 }
-[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link,
+[data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav__container > .md-nav__link {
   color: #b7b3ad;
 }
 [data-md-color-scheme="slate"] .md-nav--primary > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item > .md-nav > .md-nav__list > .md-nav__item .md-nav__link {
@@ -1493,6 +1524,22 @@ body {
   transition: transform 0.4s ease;
 }
 .yg-proj:hover .yg-proj-thumb img { transform: scale(1.04); }
+
+/* 세로 스크린샷(602x1316)을 16:10 가로 슬롯에 cover 로 넣으면 가운데만 2.5배로
+   확대돼, 옆 카드들이 화면 전체를 보여주는 사이에서 이 카드만 글자가 거대하게
+   나왔다. 배지도 확대된 앱 UI 위에 겹쳐 앉았다. 전체가 보이도록 담고,
+   남는 자리는 카드 배경으로 채운다. */
+.yg-proj-thumb--portrait {
+  padding: 12px 0;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(127, 179, 213, 0.14), rgba(127, 179, 213, 0) 70%),
+    var(--badge-soft-bg);
+}
+/* 크기는 옆 카드와 같은 100%/100% 로 두고 object-fit 만 바꾼다. height 를 %로
+   따로 주면 aspect-ratio 컨테이너 안에서 기준이 어긋나 596px 로 튀었다. */
+.yg-proj-thumb--portrait img {
+  object-fit: contain;
+}
 .yg-proj-badge {
   position: absolute;
   top: 12px;
@@ -1536,7 +1583,12 @@ body {
   font-weight: 400;
   letter-spacing: -0.05px;
 }
-.yg-proj--wip { opacity: 0.55; cursor: default; }
+/* 카드 전체에 opacity 0.55 를 걸면 글자까지 흐려진다. 제목 #3D3A38 이 실효
+   #949291 (흰 배경 대비 3.0:1), 설명 #57524E 가 #A2A09E (2.6:1) 로 내려앉아
+   18px 굵은 글자·14px 본문 둘 다 AA 4.5:1 미달이었다. "준비 중" 배지가 이미
+   상태를 말하므로 흐리게 하는 건 썸네일까지만 한다. */
+.yg-proj--wip { cursor: default; }
+.yg-proj--wip .yg-proj-thumb { opacity: 0.72; }
 .yg-proj--wip:hover {
   transform: none;
   border-color: rgba(0, 0, 0, 0.06);
@@ -2214,10 +2266,18 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
 [data-md-color-scheme="slate"] .yg-hero-search-cta {
   border-color: rgba(127, 179, 213, 0.2);
 }
+/* 손가락으로 쓰는 화면에는 누를 키가 없다. 데스크톱에는 영향 없다. */
+@media (pointer: coarse) {
+  .yg-hero-search-cta .yg-hero-kbd { display: none; }
+}
 
 /* 히어로 섹션 — 큰 타이틀 + 검색 */
+/* 히어로는 첫 섹션이라 위로 띄울 대상이 없다. 그런데도 .yg-section 의 섹션 간격
+   96px 을 그대로 받고 자기 padding 56px 을 더해, 헤더 아래 162px 이 빈 채로
+   첫 화면이 시작됐다(900px 뷰포트의 18%). 간격은 섹션 "사이"에만 필요하다. */
 .yg-hero-block {
-  padding-top: 56px !important;
+  margin-top: 0 !important;
+  padding-top: 40px !important;
   padding-bottom: 0 !important;
   margin-bottom: 0 !important;
   text-align: center;
@@ -2243,9 +2303,16 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
 
 /* 모바일 */
 @media screen and (max-width: 600px) {
-  .yg-hero-block { padding-top: 32px !important; }
+  .yg-hero-block { padding-top: 22px !important; }
   .yg-hero-headline { font-size: 1.55rem; margin-bottom: 20px; }
   .yg-hero-search-cta { padding: 12px 18px; font-size: 0.9rem; }
+}
+
+/* "본문으로 건너뛰기" 는 Material 이 z-index 10 으로 띄운다. 이 사이트는 헤더를
+   z-index 200 으로 올려 써서, 포커스를 받아도 헤더 뒤에 가려 아무것도 안 보였다
+   (대문뿐 아니라 문서 페이지도 마찬가지였다). 헤더보다 위로 올린다. */
+.md-skip:focus {
+  z-index: 300;
 }
 
 /* navigation.instant 사이드바 스크롤 위치 튐 방지 */
@@ -2394,16 +2461,63 @@ html {
   scroll-behavior: smooth;
 }
 
-/* 코드블록이 가로로 잘렸다는 단서가 없었다(최대 1,496px 숨음). */
-.md-typeset .highlight > pre {
+/* 코드블록이 가로로 잘렸다는 단서가 없었다(한 문서에서 88개 중 25개가 넘치고
+   최대 510px 이 숨음. 모바일은 54개/565px).
+
+   1) 실제로 가로 스크롤되는 요소는 pre 가 아니라 pre > code 다(Material 이
+      code 에 overflow:auto 와 padding 을 준다). pre 에 건 스크롤바 규칙은
+      닿지 않아 실측 스크롤바 두께가 0px 이었다.
+   2) macOS 의 overlay 스크롤바는 스크롤을 시작해야 나타나므로, 가만히 있는
+      화면에서는 스크롤바만으로 단서가 되지 않는다. 오른쪽 끝 그림자를 같이 둔다. */
+.md-typeset .highlight > pre,
+.md-typeset .highlight > pre > code {
   scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
-.md-typeset .highlight > pre::-webkit-scrollbar {
+.md-typeset .highlight > pre::-webkit-scrollbar,
+.md-typeset .highlight > pre > code::-webkit-scrollbar {
   height: 8px;
 }
-.md-typeset .highlight > pre::-webkit-scrollbar-thumb {
+.md-typeset .highlight > pre::-webkit-scrollbar-thumb,
+.md-typeset .highlight > pre > code::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
+}
+
+/* 가려진 쪽 끝에만 그림자를 켠다. 어느 쪽에 내용이 남았는지는
+   javascripts/extra.js 가 data-yg-scroll="l r" 로 알려준다. */
+.md-typeset .highlight {
+  position: relative;
+  border-radius: var(--radius-md);
+}
+.md-typeset .highlight::before,
+.md-typeset .highlight::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 40px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.md-typeset .highlight::before {
+  left: 1px;
+  background: linear-gradient(to right, rgba(28, 22, 18, 0.14), rgba(28, 22, 18, 0));
+}
+.md-typeset .highlight::after {
+  right: 1px;
+  background: linear-gradient(to left, rgba(28, 22, 18, 0.14), rgba(28, 22, 18, 0));
+}
+.md-typeset .highlight[data-yg-scroll~="l"]::before,
+.md-typeset .highlight[data-yg-scroll~="r"]::after {
+  opacity: 1;
+}
+body[data-md-color-scheme="slate"] .md-typeset .highlight::before {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+}
+body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
 }
 
 

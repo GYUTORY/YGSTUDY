@@ -21,7 +21,8 @@ updated: 2026-08-11
       <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
     </svg>
     <span>문서 검색...</span>
-    <span class="yg-hero-kbd">⌘K</span>
+    <!-- 표기는 Mac 기준. Windows·Linux 는 javascripts/extra.js 가 Ctrl K 로 바꾼다. -->
+    <span class="yg-hero-kbd" data-yg-kbd>⌘K</span>
   </label>
 </section>
 
@@ -294,7 +295,7 @@ updated: 2026-08-11
       </div>
     </a>
     <div class="yg-proj yg-proj--wip">
-      <div class="yg-proj-thumb">
+      <div class="yg-proj-thumb yg-proj-thumb--portrait">
         <img src="assets/images/trip_planner.webp" alt="AI Trip Planner" loading="lazy" decoding="async" width="602" height="1316">
         <span class="yg-proj-badge">준비 중</span>
       </div>
