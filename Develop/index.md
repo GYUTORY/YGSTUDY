@@ -118,7 +118,7 @@ updated: 2026-08-11
       <span class="yg-section-kicker">ABOUT</span>
       <h2 class="yg-about-title">Kang Young Gyu</h2>
       <p class="yg-about-tagline">
-        운영하면서 <span class="yg-intro-accent">직접 부딪힌 것</span>들의 기록.
+        운영하면서 <span class="yg-intro-accent">직접 부딪힌 것들</span>의 기록.
       </p>
       <p class="yg-about-desc">
         백엔드 엔지니어로 일하면서 마주친 문제와 그 해결 과정을 씁니다. 쿠버네티스, 인프라 자동화, 그리고 그 사이 — 코드가 아니라 시스템이 어떻게 돌아가는지 더 신경 씁니다.

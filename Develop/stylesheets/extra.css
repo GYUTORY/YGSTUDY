@@ -2647,3 +2647,22 @@ body:has(#tag\:ai) .md-content h2 + ul > li > a:hover {
   border-color: var(--notion-blue);
   color: var(--notion-blue) !important;
 }
+
+
+/* ================================================
+   푸터 정렬 — 푸터만 max-width:1200px + margin:auto 로 가운데 정렬돼 있어
+   위쪽 어느 열과도 맞지 않았다(사이드바 24px / 본문 380px / 푸터 120px).
+   화면 아래에서 시선이 한 번 어긋나는 지점이라 본문 열에 맞춘다.
+   좁은 화면(사이드바가 드로어로 빠지는 폭)에서는 원래대로 둔다.
+   ================================================ */
+@media (min-width: 76.25em) {
+  .md-footer__inner,
+  .md-footer-meta__inner {
+    max-width: none;
+    margin: 0;
+    padding-left: calc(var(--md-sidebar-width) + 1.6rem + 24px);
+    padding-right: 24px;
+  }
+  /* Material 기본 여백이 12px 더 밀어 본문선과 어긋난다 */
+  .md-copyright { margin-left: 0; }
+}
