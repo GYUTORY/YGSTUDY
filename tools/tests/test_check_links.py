@@ -27,17 +27,39 @@ def _tracked() -> set[str]:
 def test_code_fence_links_ignored():
     """코드 펜스 안의 깨진 링크는 보고되면 안 된다."""
     md = FIXTURES / "code_fence.md"
-    broken = check_links.check_file(md, _tracked())
-    # 깨진 링크가 0개여야 한다
-    assert broken == [], f"코드 펜스 안 링크가 잘못 보고됨: {broken}"
+    links, images = check_links.check_file(md, _tracked())
+    assert links == [] and images == [], f"코드 펜스 안 링크가 잘못 보고됨: {links} {images}"
 
 
 def test_html_img_broken_reported():
     """<img src="없는파일.png">는 반드시 보고돼야 한다."""
     md = FIXTURES / "html_img.md"
-    broken = check_links.check_file(md, _tracked())
-    assert any("nonexistent-image-fixture" in link for link, _ in broken), (
-        f"html img 깨진 링크가 보고되지 않음. broken={broken}"
+    _links, images = check_links.check_file(md, _tracked())
+    assert any("nonexistent-image-fixture" in raw for raw, _ in images), (
+        f"html img 깨진 링크가 보고되지 않음. images={images}"
+    )
+
+
+def test_markdown_image_not_false_positive():
+    """마크다운 이미지는 MkDocs 가 경로를 다시 써 주므로 오탐이 나면 안 된다.
+
+    실제로 이 규칙을 안 지켜서 멀쩡한 이미지 56건이 매번 깨진 것으로 보고됐다.
+    raw <img> 는 재작성되지 않아 한 단계 깊은 URL 기준이 맞지만,
+    ![](...) 는 원본이 있는 자리에서 찾아야 한다.
+    """
+    md = FIXTURES / "md_image.md"
+    _links, images = check_links.check_file(md, _tracked())
+    assert not any("real-image-fixture" in raw for raw, _ in images), (
+        f"실제로 있는 마크다운 이미지가 깨진 것으로 보고됨: {images}"
+    )
+
+
+def test_markdown_image_broken_still_reported():
+    """오탐을 없앴다고 진짜 깨진 것까지 놓치면 안 된다."""
+    md = FIXTURES / "md_image.md"
+    _links, images = check_links.check_file(md, _tracked())
+    assert any("missing-image-fixture" in raw for raw, _ in images), (
+        f"없는 마크다운 이미지가 보고되지 않음: {images}"
     )
 
 
@@ -50,7 +72,13 @@ def test_nfd_content_detection():
 
 
 if __name__ == "__main__":
-    tests = [test_code_fence_links_ignored, test_html_img_broken_reported, test_nfd_content_detection]
+    tests = [
+        test_code_fence_links_ignored,
+        test_html_img_broken_reported,
+        test_markdown_image_not_false_positive,
+        test_markdown_image_broken_still_reported,
+        test_nfd_content_detection,
+    ]
     passed = 0
     for t in tests:
         try:

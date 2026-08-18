@@ -11,6 +11,7 @@ echo "── 문서 검사 ──"
 run "gen_tags"            python3 tools/gen_tags.py --strict
 run "check_frontmatter"   python3 tools/check_frontmatter.py --strict
 run "check_mermaid"       python3 tools/check_mermaid_entities.py
+run "checker_tests"       python3 tools/tests/test_check_links.py
 run "check_links"         python3 tools/check_links.py --strict
 
 echo "── 빌드 (약 55초, minify·rss·git-date 제외) ──"
