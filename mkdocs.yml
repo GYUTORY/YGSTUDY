@@ -44,6 +44,8 @@ theme:
     - navigation.tracking
     - navigation.indexes
     - navigation.footer
+    # 문서 하나가 4만 픽셀(53화면)이라 맨 위로 돌아갈 방법이 필요하다
+    - navigation.top
     - search.suggest
     - search.highlight
     - search.share

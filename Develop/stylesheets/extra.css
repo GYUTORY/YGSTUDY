@@ -193,6 +193,25 @@ body[data-md-color-scheme="slate"] {
   height: 56px;
 }
 
+/* ================================================
+   [치명] 폰·태블릿에서 검색 결과가 한 건도 안 보이던 문제.
+
+   backdrop-filter 가 none 이 아닌 요소는 position:fixed 자손의
+   컨테이닝 블록이 된다. 그래서 Material 의
+   [data-md-toggle=search]:checked ~ .md-header .md-search__inner{height:100%}
+   가 뷰포트(844px)가 아니라 헤더(56px) 기준으로 계산됐다.
+   결과 2,930px 가 7px 창에 잘려 310건을 찾고도 화면이 백지였다.
+
+   검색이 열린 동안만 서리 효과를 끈다 — 어차피 오버레이가 덮어
+   보이지 않는 효과라 잃는 것이 없다.
+   ================================================ */
+[data-md-toggle="search"]:checked ~ .md-header {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--warm-white) !important;
+  height: auto;
+}
+
 .md-header__inner {
   display: flex;
   align-items: center;
@@ -511,7 +530,9 @@ body {
 }
 .md-nav__link:hover {
   color: var(--notion-blue);
-  background: var(--warm-white);
+  /* --warm-white 는 페이지 배경과 같은 값이라 호버해도 픽셀이 하나도 안 바뀌었다.
+     좌측 내비와 우측 목차 전체가 "눌리는 것" 으로 보이지 않았다. */
+  background: rgba(61, 115, 135, 0.07);
 }
 .md-nav__link--active,
 .md-nav__item .md-nav__link--active {
@@ -638,7 +659,9 @@ body {
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--warm-gray-500);
-  background: transparent !important;
+  /* sticky 제목인데 배경이 투명이라 항목이 그 밑을 지나며 글자끼리 포개졌다.
+     페이지 배경색을 깔아 밑을 가린다. */
+  background: var(--warm-white);
   box-shadow: none !important;
   padding: 0.35rem 0.5rem;
 }
@@ -654,7 +677,9 @@ body {
 }
 .md-nav--secondary .md-nav__link:hover {
   color: var(--notion-blue);
-  background: var(--warm-white);
+  /* --warm-white 는 페이지 배경과 같은 값이라 호버해도 픽셀이 하나도 안 바뀌었다.
+     좌측 내비와 우측 목차 전체가 "눌리는 것" 으로 보이지 않았다. */
+  background: rgba(61, 115, 135, 0.07);
 }
 .md-nav--secondary .md-nav__link--active {
   color: var(--notion-blue) !important;
@@ -663,6 +688,7 @@ body {
 /* 목차 제목은 다크 오버라이드가 없어 warm-gray-500 그대로였다 (2.19:1) */
 [data-md-color-scheme="slate"] .md-nav--secondary .md-nav__title {
   color: var(--text-sub);
+  background: var(--warm-white);
 }
 [data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link {
   color: #c0bdb8;
@@ -2665,4 +2691,36 @@ body:has(#tag\:ai) .md-content h2 + ul > li > a:hover {
   }
   /* Material 기본 여백이 12px 더 밀어 본문선과 어긋난다 */
   .md-copyright { margin-left: 0; }
+}
+
+
+/* ================================================
+   남은 마감 — 평가단 지적 반영
+   ================================================ */
+
+/* 카드 호버가 툭 튀던 문제. transform·border-color 를 선언했는데
+   Material 의 .md-typeset a 규칙이 이겨서 계산값은 transition: color 하나뿐이었다. */
+.md-typeset .yg-cat-v2,
+.md-typeset .yg-series,
+.md-typeset .yg-card {
+  transition: transform 0.18s ease, border-color 0.18s ease,
+              box-shadow 0.18s ease, background-color 0.18s ease, color 0.125s;
+}
+
+/* 목차 앵커로 순간이동하던 것 — 어디로 갔는지 감이 안 잡힌다.
+   prefers-reduced-motion 은 기존 전역 규칙이 이미 끈다. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 코드블록이 가로로 잘렸다는 단서가 없었다(최대 1,496px 숨음). */
+.md-typeset .highlight > pre {
+  scrollbar-width: thin;
+}
+.md-typeset .highlight > pre::-webkit-scrollbar {
+  height: 8px;
+}
+.md-typeset .highlight > pre::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }
