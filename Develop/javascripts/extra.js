@@ -454,3 +454,35 @@
     window.document$.subscribe(run);
   }
 })();
+
+
+/* 스크린리더가 놓치던 것 세 가지.
+ *
+ * 1) 본문 맨 위 태그 칩 목록(nav.md-tags)에 이름이 없다. 링크가 있는 진짜
+ *    내비게이션이라 랜드마크에서 뺄 수는 없고 이름만 주면 된다.
+ * 2) 검색 결과 건수가 바뀌어도 음성으로 전달되지 않는다. 페이지 전체에
+ *    aria-live 가 하나도 없어서, 결과가 나왔는지조차 알 수 없었다.
+ * 3) 제목 앵커가 한글 사이트에서 제목마다 "Permanent link" 로 읽힌다.
+ */
+(function () {
+  function label() {
+    document.querySelectorAll("nav.md-tags:not([aria-label])").forEach(function (n) {
+      n.setAttribute("aria-label", "문서 태그");
+    });
+    var meta = document.querySelector(".md-search-result__meta");
+    if (meta && !meta.getAttribute("aria-live")) {
+      meta.setAttribute("aria-live", "polite");
+      meta.setAttribute("role", "status");
+    }
+    document.querySelectorAll("a.headerlink:not([aria-label])").forEach(function (a) {
+      var h = a.closest("h1,h2,h3,h4,h5,h6");
+      var t = h ? h.textContent.replace(/\u00b6/g, "").trim() : "";
+      a.setAttribute("aria-label", t ? t + " 링크" : "이 제목 링크");
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", label);
+  if (window.document$ && typeof window.document$.subscribe === "function") {
+    window.document$.subscribe(label);
+  }
+})();

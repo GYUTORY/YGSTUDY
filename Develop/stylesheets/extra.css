@@ -855,6 +855,10 @@ body {
 .md-typeset p {
   letter-spacing: 0;
   line-height: 1.7;
+  /* 줄 간격이 34px 인데 문단 사이가 20px(Material 기본 1em)이라, 문단 경계가
+     줄바꿈보다 좁았다. 여러 화면을 연속으로 읽을 때 문단이 한 덩어리로 붙는다.
+     줄 간격보다 넓게 잡아 경계를 만든다. */
+  margin-bottom: 1.35em;
 }
 
 .md-typeset ul li,
@@ -2593,35 +2597,28 @@ html {
 .md-typeset .highlight[data-yg-scroll~="r"]::after {
   opacity: 1;
 }
-/* 가로로 굴러가는 다이어그램도 같은 신호를 쓴다 */
-.md-typeset .yg-mermaid::before,
-.md-typeset .yg-mermaid::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.18s ease;
+/* 가로로 굴러가는 다이어그램도 같은 신호를 쓴다.
+   다만 코드블록과 달리 .yg-mermaid 자신이 스크롤 상자라, 여기에 얹은
+   position:absolute 가상요소는 내용과 함께 밀려나 가장자리에 머물지 못한다
+   (실측: 가운데까지 굴리면 왼쪽 표시가 사라짐). 배경 그라디언트는
+   background-attachment 기본값이 scroll 이라 상자 가장자리에 고정된다. */
+.md-typeset .yg-mermaid {
+  --yg-fade-l: none;
+  --yg-fade-r: none;
+  --yg-fade-color: rgba(28, 22, 18, 0.14);
+  background-image: var(--yg-fade-l), var(--yg-fade-r);
+  background-size: 40px 100%, 40px 100%;
+  background-position: left center, right center;
+  background-repeat: no-repeat;
 }
-.md-typeset .yg-mermaid::before {
-  left: 0;
-  background: linear-gradient(to right, rgba(28, 22, 18, 0.14), rgba(28, 22, 18, 0));
+.md-typeset .yg-mermaid[data-yg-scroll~="l"] {
+  --yg-fade-l: linear-gradient(to right, var(--yg-fade-color), transparent);
 }
-.md-typeset .yg-mermaid::after {
-  right: 0;
-  background: linear-gradient(to left, rgba(28, 22, 18, 0.14), rgba(28, 22, 18, 0));
+.md-typeset .yg-mermaid[data-yg-scroll~="r"] {
+  --yg-fade-r: linear-gradient(to left, var(--yg-fade-color), transparent);
 }
-.md-typeset .yg-mermaid[data-yg-scroll~="l"]::before,
-.md-typeset .yg-mermaid[data-yg-scroll~="r"]::after {
-  opacity: 1;
-}
-body[data-md-color-scheme="slate"] .md-typeset .yg-mermaid::before {
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
-}
-body[data-md-color-scheme="slate"] .md-typeset .yg-mermaid::after {
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+body[data-md-color-scheme="slate"] .md-typeset .yg-mermaid {
+  --yg-fade-color: rgba(0, 0, 0, 0.5);
 }
 body[data-md-color-scheme="slate"] .md-typeset .highlight::before {
   background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
@@ -2775,4 +2772,32 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
    — 라이트까지 바꾸면 2.27 로 오히려 나빠진다. */
 [data-md-color-scheme="slate"] .yg-hero-search-cta .yg-hero-kbd {
   color: #a8a29a;
+}
+
+
+/* 다크에서 다이어그램 화살촉이 검게 남아 방향을 알 수 없었다.
+   연결선 본체는 밝은 회색으로 잘 나오는데 화살촉만 rgb(11,11,11) 이라
+   배경(#1f1c1e)과 거의 같았다 — 대비 1.17:1, 한 문서에서 42개 중 30개.
+   테마 토글과 무관하게 처음부터 다크로 들어가도 같아서 mermaid 재렌더로는 안 잡힌다. */
+[data-md-color-scheme="slate"] .yg-mermaid svg .arrowMarkerPath,
+[data-md-color-scheme="slate"] .yg-mermaid svg marker path {
+  fill: #d3d3d3 !important;
+  stroke: #d3d3d3 !important;
+}
+
+/* 모바일 드로어에서 하위 레벨을 펼치면 그 뒤에 깔린 상위 레벨 링크 22개가
+   여전히 탭 대상으로 남는다. 포커스가 불투명 패널 뒤로 들어가 보이지 않는다.
+   앞서 고친 '닫힌 드로어' 와 같은 계열의, 한 겹 안쪽 문제다. */
+@media screen and (max-width: 76.1875em) {
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li {
+    visibility: hidden;
+  }
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
+    visibility: visible;
+  }
+  /* 펼쳐진 항목 자신의 제목 줄은 뒤로가기 헤더와 겹쳐 보이므로 숨긴다 */
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) > .md-nav__link,
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) > .md-nav__container {
+    visibility: hidden;
+  }
 }
