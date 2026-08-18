@@ -219,6 +219,21 @@ def on_pre_build(config, **kwargs):
 
     # 홈 카드가 읽을 단일 소스. 카드와 섹션 페이지가 같은 값을 쓰게 해서
     # "카드는 74개인데 들어가면 64개" 같은 불일치를 원천 차단한다.
+    #
+    # SKIP_DIRS 의 _hub·로드맵 은 "허브 페이지를 만들지 않는다"는 뜻이지
+    # "세지 않는다"는 뜻이 아니다. 둘을 구분하지 않아 홈의 '가이드' 카드만
+    # 개수가 비어 `—` 로 남아 있었다(다른 카드는 전부 숫자라 미완성으로 보였다).
+    # 허브는 그대로 만들지 않고 개수만 따로 센다.
+    for extra in ("_hub", "로드맵"):
+        d = os.path.join(docs_dir, extra)
+        if not os.path.isdir(d):
+            continue
+        n = 0
+        for root, dirs, files in os.walk(d):
+            dirs[:] = [x for x in dirs if not x.startswith(".")]
+            n += len([f for f in files if f.endswith(".md") and f not in ("index.md", "README.md")])
+        counts[extra] = n
+
     import json
     with open(os.path.join(docs_dir, "section_counts.json"), "w", encoding="utf-8") as f:
         json.dump(counts, f, ensure_ascii=False)

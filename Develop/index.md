@@ -90,7 +90,7 @@ updated: 2026-08-11
         <h3>가이드</h3>
         <p>주제별 허브 · 로드맵 · 심화 시리즈</p>
       </div>
-      <div class="yg-cat-v2-count">—</div>
+      <div class="yg-cat-v2-count" data-yg-count="_hub,로드맵,Frontend">—</div>
     </a>
   </div>
 </section>
