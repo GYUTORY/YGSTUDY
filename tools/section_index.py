@@ -208,6 +208,46 @@ def _leaf_counts(keys):
     return c
 
 
+def _build_hub_landing(docs_dir):
+    """_hub/index.md — 주제별 가이드 목록."""
+    d = os.path.join(docs_dir, "_hub")
+    if not os.path.isdir(d):
+        return
+    items = []
+    for f in sorted(os.listdir(d)):
+        if not f.endswith(".md") or f == "index.md":
+            continue
+        path = os.path.join(d, f)
+        title = _title_of(path, os.path.splitext(f)[0])
+        blurb = ""
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                body = fh.read(1600).split("---", 2)[-1]
+            for line in body.split("\n"):
+                line = line.strip()
+                if line and not line.startswith(("#", "<!--", "!!!", "|", "-")):
+                    blurb = line[:80]
+                    break
+        except Exception:
+            pass
+        items.append((title, f, blurb))
+    if not items:
+        return
+
+    out = [
+        "---\n", "title: 주제별 가이드\n", "tags: []\n", "hide:\n  - toc\n", "---\n\n",
+        "<!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->\n\n",
+        "# 주제별 가이드\n\n",
+        "메뉴는 문서를 폴더 하나에만 놓는다. 실제로 하나를 이해하려면 여러 폴더를 오가야 한다.\n",
+        "아래 가이드는 그 흩어진 문서들을 읽는 순서대로 다시 엮은 것이다.\n\n",
+    ]
+    for title, f, blurb in items:
+        out.append("- [%s](%s)%s\n" % (title, _md_link(f), (" — " + blurb) if blurb else ""))
+    out.append("\n")
+    with open(os.path.join(d, "index.md"), "w", encoding="utf-8") as fh:
+        fh.writelines(out)
+
+
 def on_pre_build(config, **kwargs):
     docs_dir = config["docs_dir"]
     counts = {}
@@ -233,6 +273,11 @@ def on_pre_build(config, **kwargs):
             dirs[:] = [x for x in dirs if not x.startswith(".")]
             n += len([f for f in files if f.endswith(".md") and f not in ("index.md", "README.md")])
         counts[extra] = n
+
+    # 홈 '가이드' 카드가 _hub/ 로 보내는데 거기엔 인덱스가 없어서 404 였다.
+    # (_hub 는 SKIP_DIRS 라 위 루프가 허브를 만들지 않는다.)
+    # 첫 화면에서 1클릭에 막다른 길이라 여기서 따로 만든다.
+    _build_hub_landing(docs_dir)
 
     import json
     with open(os.path.join(docs_dir, "section_counts.json"), "w", encoding="utf-8") as f:
