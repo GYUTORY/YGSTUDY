@@ -33,6 +33,15 @@ _FM_TITLE_RE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
 _META_PAGES = {"index.md", "최근.md", "404.md", "tags.md", "todo.md"}
 
 
+def _is_generated(abs_path):
+    """tools/section_index.py 가 빌드마다 다시 만드는 페이지인가."""
+    try:
+        with open(abs_path, "r", encoding="utf-8") as f:
+            return "AUTO-SECTION-INDEX" in f.read(500)
+    except Exception:
+        return False
+
+
 def _doc_title(abs_path, fallback):
     """프론트매터 title 을 우선 사용. 없으면 파일명 기반 fallback."""
     try:
@@ -105,10 +114,19 @@ def _recent_docs(repo_root, docs_dir, limit=60):
             rel = line.replace("Develop/", "", 1)
             # 메타 페이지는 "최근에 쓴 글"이 아니다. 404·태그·todo 가 목록에 섞이면
             # 새 글을 보러 온 사람에게 노이즈가 된다.
-            if rel in seen or rel in _META_PAGES:
+            # rel 은 'Backend/Caching/index.md' 같은 전체 경로인데 _META_PAGES 는
+            # 파일명 집합이라, 이 비교는 사이트 루트 index.md 하나에만 걸렸다.
+            # 하위 섹션 인덱스는 전부 통과해서 "Caching 전체 보기" 같은 자동 생성
+            # 목록 페이지가 최근 글에 올라왔다.
+            #
+            # 파일명(basename)으로 거르면 사람이 직접 쓴 섹션 랜딩까지 날아간다.
+            # 자동 생성물에만 들어가는 마커를 보고 판단한다.
+            if rel in seen or os.path.basename(rel) in _META_PAGES:
                 continue
             seen.add(rel)
             abs_path = os.path.join(docs_dir, rel)
+            if os.path.basename(rel) == "index.md" and _is_generated(abs_path):
+                continue
             # 이후 커밋에서 삭제·이동된 문서는 목록에 남기지 않는다(죽은 링크 방지).
             if not os.path.isfile(abs_path):
                 continue
