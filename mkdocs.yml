@@ -13,8 +13,8 @@ hooks:
   - tools/volatility_banner.py
   - tools/inject_build_meta.py
   - tools/related_docs.py
-  # 빌드 후 검색 인덱스 다듬기 (46MB -> 절반). 산출물을 고치므로 맨 끝
-  - tools/trim_search_index.py
+  # 빌드 후 검색 인덱스 손질 (용량 절반 + 한글 음차). 산출물을 고치므로 맨 끝
+  - tools/search_index_post.py
 
 theme:
   name: material
