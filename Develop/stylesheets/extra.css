@@ -677,19 +677,42 @@ body {
 
 /* 모바일 드로어에서는 sticky 해제 (드로어 자체가 fixed) */
 @media (max-width: 76.1875em) {
+  /* 드로어 폭.
+
+     원래 width:auto 였다. position:fixed 에 left/right 를 주지 않으면 auto 는
+     shrink-to-fit 이라 드로어가 1px 로 쪼그라들어 모바일 메뉴가 아예 안 열렸다
+     (햄버거를 눌러도 배경만 어두워지고 항목이 0개).
+
+     그런데 폭만 바꾸면 안 된다. Material 은 닫힌 드로어를 `left: -12.1rem` 으로 밀어두고
+     열 때 `translateX(12.1rem)` 을 건다 — 둘 다 폭과 같은 고정값이다.
+     폭만 320px 로 키우면 left 는 -242px 그대로라 **닫혀도 78px 이 화면에 남는다.**
+     실제로 그렇게 새어나와 홈 화면 본문을 밀어냈다.
+
+     그래서 위치를 폭에 묶는다 — left 를 0 으로 놓고 transform 으로만 여닫으면
+     폭을 어떻게 바꾸든 닫힘/열림이 정확히 맞는다. */
   .md-sidebar {
     position: fixed !important;
     top: 0 !important;
     height: 100% !important;
-    /* width:auto 였다. position:fixed 에 left/right 를 주지 않으면 auto 는
-       shrink-to-fit 이라 드로어가 1px 로 쪼그라들어 모바일 메뉴가 아예 안 열렸다.
-       (햄버거를 눌러도 배경만 어두워지고 항목이 0개)
-       화면 밖으로 넘지 않게 vw 로 상한을 두고, 오른쪽 여백은 탭해서 닫는 자리로 남긴다. */
     width: min(82vw, 17rem);
   }
-  /* 오른쪽 목차 드로어도 같은 규칙을 공유하므로 폭을 함께 준다 */
+  .md-sidebar--primary {
+    left: 0 !important;
+    transform: translateX(-100%);
+  }
+  [data-md-toggle="drawer"]:checked ~ .md-container .md-sidebar--primary {
+    transform: translateX(0);
+  }
+  /* 오른쪽 목차 드로어는 반대쪽에서 나온다 */
   .md-sidebar--secondary {
     width: min(82vw, 17rem);
+    right: 0 !important;
+    left: auto !important;
+    transform: translateX(100%);
+  }
+  [data-md-toggle="search"]:not(:checked) ~ .md-container .md-sidebar--secondary:target,
+  .md-sidebar--secondary:target {
+    transform: translateX(0);
   }
   .md-sidebar__scrollwrap {
     max-height: 100% !important;
