@@ -396,9 +396,17 @@ plugins:
         'Linux/Linux_배포판_계열.md': 'DevOps/Linux/Linux_배포판_계열.md'
         'Linux/SA__PSACCT.md': 'DevOps/Linux/SA__PSACCT.md'
         'Linux/WSL.md': 'DevOps/Linux/WSL.md'
+  # 빌드가 느린 원인은 아래 셋(git-revision-date-localized · rss · minify)이다.
+  # 위 훅 5개는 다 합쳐 0.5% 였다(cProfile 실측). 앞의 둘은 문서 1,363개마다
+  # git 을 부르고, minify 는 htmlmin 이 순수 파이썬이라 HTML 을 통째로 다시 판다.
+  # 셋 다 FULL_BUILD 를 따르되, 앞에 자기 이름의 스위치를 하나씩 뒀다.
+  # 로컬에서 "운영과 같되 느린 것만 뺀" 빌드를 하려고:
+  #   FULL_BUILD=true BUILD_DATES=false mkdocs build
+  # 이름을 지정하지 않으면 예전처럼 FULL_BUILD 만 본다 — CI 동작은 그대로다.
   - git-revision-date-localized:
-      enabled: !ENV [FULL_BUILD, false]
+      enabled: !ENV [BUILD_DATES, FULL_BUILD, false]
       enable_creation_date: true
+      enable_git_follow: false
       type: date
       locale: ko
       fallback_to_build_date: true
@@ -406,13 +414,13 @@ plugins:
         - "*/index.md"
         - "최근.md"
   - rss:
-      enabled: !ENV [FULL_BUILD, false]
+      enabled: !ENV [BUILD_RSS, FULL_BUILD, false]
       match_path: ".*"
       date_from_meta:
         as_creation: date
       length: 30
   - minify:
-      minify_html: !ENV [FULL_BUILD, false]
+      minify_html: !ENV [BUILD_MINIFY, FULL_BUILD, false]
 
 markdown_extensions:
   - pymdownx.highlight:
