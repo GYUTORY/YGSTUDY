@@ -59,12 +59,19 @@
     <nav class="yg-crumbs" aria-label="현재 위치">
       <a href="{{ base_url }}">홈</a>
       {% for parent in page.ancestors | reverse %}
+        {# awesome-pages 가 nav 에서 걸러낸 섹션은 title 이 설정되지 않아
+           폴더 이름이 그대로 나온다(_group -> "group"). 밑줄로 시작하는
+           폴더는 사람이 볼 이름이 아니라 빌드가 쓰는 자리라 건너뛴다.
+           _hub·로드맵 은 nav 에 정식으로 올라가 있어 이름이 제대로 나온다. #}
+        {% set pname = (parent.title or "") | trim %}
+        {% if pname and not pname.startswith("_") and pname != "group" %}
         <span class="yg-crumbs-sep" aria-hidden="true">›</span>
         {% set idx = parent.children | selectattr("is_page") | selectattr("is_index") | first %}
         {% if idx %}
           <a href="{{ idx.url | url }}">{{ parent.title }}</a>
         {% else %}
           <span>{{ parent.title }}</span>
+        {% endif %}
         {% endif %}
       {% endfor %}
     </nav>
