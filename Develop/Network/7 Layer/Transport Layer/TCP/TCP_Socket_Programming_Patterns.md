@@ -226,10 +226,10 @@ setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
 ```
 
 ```javascript
-socket.setNoDelay(true); // Node 기본은 true
+socket.setNoDelay(true); // Node 기본은 Nagle 켜짐 — 직접 꺼야 한다
 ```
 
-Node는 `net.Socket`에서 기본적으로 `TCP_NODELAY`를 켠다. 직접 C로 짜는 RPC 서버는 꼭 켜야 한다. 안 켜면 위 시나리오가 그대로 재현된다.
+Node의 `net.Socket`은 연결이 만들어질 때 Nagle이 켜진 상태다. 즉 `TCP_NODELAY`는 꺼져 있고, 위 한 줄을 직접 불러야 꺼진다. C로 짜는 RPC 서버도 마찬가지다. 안 켜면 위 시나리오가 그대로 재현된다.
 
 반대로 켜면 안 되는 경우도 있다. 작은 패킷을 자주 보내는 모니터링 에이전트나 텔레메트리 같은 곳. Nagle을 끄면 40바이트 헤더 + 4바이트 페이로드 같은 패킷이 그대로 나간다. 대역폭이 모자란 환경에서는 부담이 된다.
 

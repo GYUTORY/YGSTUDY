@@ -299,7 +299,7 @@ with open('data.txt', encoding='utf-8-sig') as f:
     content = f.read()
 ```
 
-Python 3.10부터 `PYTHONUTF8=1` 환경변수 또는 `-X utf8` 플래그로 UTF-8 모드를 활성화할 수 있다.
+Python 3.7부터 `PYTHONUTF8=1` 환경변수 또는 `-X utf8` 플래그로 UTF-8 모드를 활성화할 수 있다.
 
 ```bash
 PYTHONUTF8=1 python my_script.py

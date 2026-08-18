@@ -178,7 +178,7 @@ QUESTION 섹션에 보낸 케이스 그대로 응답이 와야 한다. 일부 �
 1. A와 AAAA를 동시에 질의하고, AAAA가 먼저 와도 A를 50ms 정도 더 기다린다(반대도 마찬가지).
 2. 두 family로 동시에 TCP `connect()`를 시도하되 IPv6를 약간 우대한다. 먼저 SYN-ACK이 오는 쪽을 쓰고, 진 쪽은 RST.
 
-`curl`은 `--happy-eyeballs-timeout-ms` 옵션으로 이 값을 만진다. Node.js는 18부터 `autoSelectFamily`(기본 false였다가 19에서 true로) 옵션을 지원한다. happy eyeballs가 켜져 있어도 DNS 단계의 AAAA 지연은 별개 문제로 남는다.
+`curl`은 `--happy-eyeballs-timeout-ms` 옵션으로 이 값을 만진다. Node.js는 18부터 `autoSelectFamily` 옵션을 지원하고, 기본값이 true로 바뀐 건 20.0.0 과 18.18.0 이다. happy eyeballs가 켜져 있어도 DNS 단계의 AAAA 지연은 별개 문제로 남는다.
 
 ## 5초 지연 — 가장 자주 만나는 DNS 트러블슈팅
 

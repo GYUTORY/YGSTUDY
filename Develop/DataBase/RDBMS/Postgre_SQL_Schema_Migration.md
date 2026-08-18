@@ -98,7 +98,7 @@ ALTER TABLE orders ALTER COLUMN status_code SET DEFAULT 0;
 
 기존 컬럼에 `NOT NULL` 제약을 추가하면 PostgreSQL은 NULL인 행이 없다는 걸 확인하기 위해 전체 테이블 스캔을 한다. 이 시간 동안 `ACCESS EXCLUSIVE`가 유지된다.
 
-PostgreSQL 12부터는 `NOT VALID` 옵션으로 락 노출 시간을 줄일 수 있다.
+`NOT VALID` 옵션 자체는 9.x 부터 있었고, PostgreSQL 12부터는 검증된 CHECK 제약이 있으면 `SET NOT NULL` 이 테이블을 다시 훑지 않아 락 노출 시간이 크게 줄어든다.
 
 ```sql
 -- 1단계: CHECK 제약 추가. 신규 행만 검사하고 기존 행은 넘어감

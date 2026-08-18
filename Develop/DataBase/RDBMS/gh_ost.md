@@ -29,7 +29,7 @@ binlog를 직접 소비하기 때문에 gh-ost 프로세스는 MySQL 복제 슬�
 -- 사전 확인
 SHOW VARIABLES LIKE 'log_bin';
 SHOW VARIABLES LIKE 'binlog_format';
--- binlog_format이 ROW 또는 MIXED여야 한다
+-- binlog_format이 ROW 여야 한다 (MIXED·STATEMENT 면 거부하고, --switch-to-rbr 을 줘야 전환한다)
 -- STATEMENT이면 gh-ost가 거부한다
 ```
 

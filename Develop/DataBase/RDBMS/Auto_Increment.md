@@ -34,7 +34,7 @@ INSERT마다 테이블 수준의 `AUTO-INC` 락을 획득한다. 트랜잭션 A�
 
 bulk INSERT 실행 중 다른 INSERT가 끼어들면 값이 섞인다. 예를 들어 트랜잭션 A의 `INSERT ... SELECT`가 1000~1050을 예약했더라도, 트랜잭션 B가 중간에 끼어들어 1025를 가져갈 수 있다. statement-based replication에서는 마스터와 슬레이브의 값이 달라지므로 row-based replication과 같이 써야 한다.
 
-MySQL 8.0에서 기본값이 1에서 2로 바뀌면서 바이너리 로그 포맷도 STATEMENT에서 ROW로 바뀐 이유가 여기 있다.
+MySQL 8.0에서 기본값이 1에서 2로 바뀐 배경이 여기 있다. 바이너리 로그 포맷 기본값이 STATEMENT에서 ROW로 넘어간 건 그보다 앞선 5.7.7 이고, 순서가 그랬기에 8.0 에서 2로 올릴 수 있었다.
 
 ```sql
 -- 현재 모드 확인

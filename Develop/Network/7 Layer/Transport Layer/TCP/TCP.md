@@ -141,7 +141,7 @@ CLOSE_WAIT은 커널이 자동으로 정리하지 않는다. 프로세스가 직
 
 **TIME_WAIT 누적**: Active Close를 한 쪽에서 발생한다. HTTP 서버가 먼저 연결을 끊으면 서버에 TIME_WAIT이 쌓이고, 클라이언트가 먼저 끊으면 클라이언트에 쌓인다.
 
-TIME_WAIT은 2MSL(Maximum Segment Lifetime) 동안 유지된다. 리눅스에서 MSL은 60초이므로 TIME_WAIT은 기본 60초 유지된다(2MSL이지만 리눅스는 MSL 값 자체를 60초로 하드코딩해둠).
+TIME_WAIT은 원래 2MSL(Maximum Segment Lifetime) 동안 유지하도록 정의돼 있다. 다만 리눅스는 MSL 을 재서 곱하지 않고 지속시간 자체를 `TCP_TIMEWAIT_LEN` 60초로 커널에 박아 뒀다. 그래서 실제로는 60초다.
 
 TIME_WAIT이 존재하는 이유:
 1. 마지막 ACK가 유실됐을 때 재전송된 FIN을 처리하기 위해

@@ -577,4 +577,4 @@ metadata:
     config.linkerd.io/proxy-await: "enabled"
 ```
 
-이 어노테이션을 붙이면 메인 컨테이너가 사이드카의 준비 상태를 기다린 뒤 시작한다. Kubernetes 1.28부터는 sidecar container가 정식 기능으로 들어와서 이 문제가 자동 해결되지만, 그 이전 버전에서는 명시적으로 켜야 한다.
+이 어노테이션을 붙이면 메인 컨테이너가 사이드카의 준비 상태를 기다린 뒤 시작한다. Kubernetes 1.33부터는 sidecar container가 정식 기능(GA)으로 들어와서(1.28 alpha, 1.29 beta) 이 문제가 자동 해결되지만, 그 이전 버전에서는 명시적으로 켜야 한다.

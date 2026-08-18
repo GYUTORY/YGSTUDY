@@ -903,10 +903,10 @@ claude --print --output-format json "package.json 의존성 분석해줘" \
 ### 7.3 모델 선택
 
 ```bash
-claude                            # 기본 모델 (Sonnet)
-claude --model claude-opus-4-6    # 복잡한 설계 작업
-claude --model claude-sonnet-4-6  # 일반 개발 (기본값)
-claude --model claude-haiku-4-5   # 단순 작업, 빠른 응답
+claude                          # 기본 모델 (Sonnet)
+claude --model claude-opus-5     # 복잡한 설계 작업
+claude --model claude-sonnet-5   # 일반 개발 (기본값)
+claude --model claude-haiku-4-5  # 단순 작업, 빠른 응답
 ```
 
 세션 중에 `/model` 명령이나 Shift+Tab으로 모델을 전환할 수 있다.

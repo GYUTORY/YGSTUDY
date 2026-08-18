@@ -98,11 +98,12 @@ MCP 서버가 갑자기 응답을 멈추거나 프로세스가 죽는 경우가 
 # MCP 서버 상태 확인
 claude mcp list
 
-# 특정 서버 재시작
-claude mcp restart <server-name>
+# 특정 서버 설정 확인
+claude mcp get <server-name>
 
-# 서버 로그 확인
-claude mcp logs <server-name>
+# 서버를 지웠다 다시 등록 (재시작 명령은 없다)
+claude mcp remove <server-name>
+claude mcp add <server-name> <command> [args...]
 ```
 
 ### stdio vs SSE 선택 기준

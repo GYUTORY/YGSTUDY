@@ -677,7 +677,7 @@ io_uring_wait_cqe(&ring, &cqe);
 // cqe->res에 실제 read 결과
 ```
 
-JVM에는 표준 io_uring API가 없다. Netty 5의 incubator 모듈(`netty-incubator-transport-io_uring`)이나 Helidon Níma가 사용한다. PostgreSQL 17부터 io_uring 기반 비동기 I/O가 들어왔다. 운영체제 커널 버전이 5.6 이상이면 stable, 그 이하라면 보안 패치 이슈로 비활성화된 배포판도 있다.
+JVM에는 표준 io_uring API가 없다. Netty 5의 incubator 모듈(`netty-incubator-transport-io_uring`)이나 Helidon Níma가 사용한다. PostgreSQL 18부터 io_uring 기반 비동기 I/O(`io_method`)가 들어왔다. 운영체제 커널 버전이 5.6 이상이면 stable, 그 이하라면 보안 패치 이슈로 비활성화된 배포판도 있다.
 
 ### 버퍼 풀링
 
