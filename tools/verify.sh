@@ -14,6 +14,10 @@ run "check_frontmatter"   python3 tools/check_frontmatter.py --strict
 run "check_mermaid"       python3 tools/check_mermaid_entities.py
 run "checker_tests"       bash -c 'set -e; n=0; for t in tools/tests/test_*.py; do [ -e "$t" ] || continue; python3 "$t"; n=$((n+1)); done; [ "$n" -gt 0 ]'
 run "check_links"         python3 tools/check_links.py --strict
+# .pages 의 nav 는 적은 것만 싣는다 — 목록에서 빠진 문서는 사이드바에서 조용히
+# 사라지고 빌드도 --strict 도 안 잡는다. 반대 방향(nav 에 적었는데 파일이 없다)은
+# awesome-pages 가 strict 기본값으로 예외를 던지므로 이미 막혀 있다.
+run "gen_nav --audit"     python3 tools/gen_nav.py --audit
 # CI 에는 있는데 여기 없어서 "로컬 전부 통과 → CI 빨간불" 이 가능했다.
 # BEFORE_SHA 를 안 주면 90일 전체를 훑어 과거 빚에 걸리므로 CI 와 같은 범위로 좁힌다.
 BEFORE_SHA="$(git merge-base origin/main HEAD 2>/dev/null || echo '')" \

@@ -11,6 +11,15 @@ MkDocs hook: 최상위 섹션마다 랜딩 페이지(index.md)를 빌드 시점�
 
 import os
 import re
+import sys
+
+# 손으로 짠 묶음(MANUAL_GROUPS)의 정본은 gen_nav.py 하나다. 여기서 베껴 두면
+# 사이드바를 고칠 때마다 같이 고쳐야 하고, 그러다 어긋난다(라벨 표가 그랬다).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import gen_nav as _GEN
+except Exception:          # 생성기가 없어도 허브는 만들어져야 한다
+    _GEN = None
 
 # 섹션별 한 줄 설명. 없으면 이름만 쓴다.
 BLURB = {
@@ -146,6 +155,42 @@ def _label_for(docs_dir, key, leaf_counts):
     return label
 
 
+def _curated_sections(docs_dir, key, groups):
+    """gen_nav.py 의 손으로 짠 묶음을 허브의 ## 절로 옮긴다.
+
+    왜: 그 묶음은 사이드바용인데, 사이드바는 깊이 2까지만 펼친다
+    (gen_nav.MAX_SIDEBAR_DEPTH). 그래서 깊이 3 인 NestJS·Spring·AWS Network·
+    AWS Security 네 곳의 큐레이션 20묶음 94편이 어디에도 나오지 않았다 —
+    그 문서들은 허브에서 제목 알파벳순 한 줄 목록으로만 보였다(NestJS 43편).
+    사이드바에 못 펴는 대신 허브에서 편다.
+
+    반환: ([(제목, [(라벨, 상대경로), ...]), ...], 이미 가져간 상대경로 집합)
+    """
+    gen_key = os.path.basename(docs_dir.rstrip("/")) + "/" + key
+    manual = _GEN.MANUAL_GROUPS.get(gen_key) if _GEN else None
+    if not manual:
+        return [], set()
+
+    have = {rel: title for items in groups.values() for title, rel in items}
+    out, taken = [], set()
+    for glabel, members in manual:
+        items = []
+        for label, target in members:
+            if target in have:                      # 문서 하나를 콕 집은 것
+                hits = [target]
+            else:                                   # 디렉터리를 통째로 가져간 것
+                hits = sorted(r for r in have if r.startswith(target + "/"))
+            # 한 편이면 큐레이션한 이름을 쓰고, 여럿이면 각자의 제목을 쓴다.
+            for rel in hits:
+                if rel in taken:
+                    continue
+                items.append((label if len(hits) == 1 else have[rel], rel))
+                taken.add(rel)
+        if items:
+            out.append((glabel, items))
+    return out, taken
+
+
 def _build_one(docs_dir, key, counts, leaf_counts=None):
     """key 는 docs_dir 기준 상대 경로. 최상위든 2단계든 같은 처리를 한다."""
     name = key.split("/")[-1]
@@ -202,17 +247,25 @@ def _build_one(docs_dir, key, counts, leaf_counts=None):
             lines.append(blurb + "\n\n")
         lines.append(f"문서 {total}개.\n\n")
 
+        # 손으로 짠 묶음이 있으면 그걸 먼저 쓴다. 남는 것만 폴더별로 붙인다.
+        curated, taken = _curated_sections(docs_dir, key, groups)
+        for g in groups:
+            groups[g] = [it for it in groups[g] if it[1] not in taken]
+        groups = {g: v for g, v in groups.items() if v}
+
         # 그룹 제목도 사이드바가 쓰는 이름으로. 'IaC' 를 눌러 들어온 페이지 안에
         # '## Infrastructure as Code' 가 있으면 같은 폴더인지 알 수 없다.
         # 정렬도 폴더명이 아니라 보이는 이름으로 한다 — 안 그러면 '개념'(Concepts)이
         # Codex 와 Cursor 사이에 끼어 순서가 아무렇게나 놓인 것처럼 보인다.
         heading = {g: _sidebar_label(docs_dir, key + "/" + g) if g else "개요"
                    for g in groups}
-        for group in sorted(groups, key=lambda g: (g == "", heading[g])):
-            items = sorted(groups[group], key=lambda x: x[0])
-            lines.append("## %s\n\n" % heading[group])
-            for title, rel in items:
-                lines.append(f"- [{title}]({_md_link(rel)})\n")
+        rest = [(heading[g], sorted(groups[g], key=lambda x: x[0]))
+                for g in sorted(groups, key=lambda g: (g == "", heading[g]))]
+
+        for title_, items in curated + rest:
+            lines.append("## %s\n\n" % title_)
+            for label_, rel in items:
+                lines.append(f"- [{label_}]({_md_link(rel)})\n")
             lines.append("\n")
 
         with open(index_path, "w", encoding="utf-8") as f:
@@ -289,11 +342,21 @@ def _build_hub_landing(docs_dir):
         try:
             with open(path, "r", encoding="utf-8") as fh:
                 body = fh.read(1600).split("---", 2)[-1]
+            # 코드 펜스 안은 건너뛴다. 안 그러면 첫 본문 줄이 다이어그램인 문서에서
+            # 요약이 "```mermaid" 로 잡힌다 — 캐싱 허브가 실제로 그렇게 나갔다.
+            in_fence = False
             for line in body.split("\n"):
                 line = line.strip()
-                if line and not line.startswith(("#", "<!--", "!!!", "|", "-")):
-                    blurb = line[:80]
-                    break
+                if line.startswith("```"):
+                    in_fence = not in_fence
+                    continue
+                if in_fence or not line:
+                    continue
+                # 제목·주석·어드모니션·표·목록·인용·raw HTML 은 요약이 아니다
+                if line.startswith(("#", "<!--", "<", "!!!", "???", "|", "-", "*", "+", ">", "=")):
+                    continue
+                blurb = line[:80]
+                break
         except Exception:
             pass
         items.append((title, f, blurb))
@@ -405,4 +468,7 @@ if __name__ == "__main__":
     leaf_counts = _leaf_counts(keys)
     for key in keys:
         _build_one(docs_dir, key, counts, leaf_counts)
-    print(f"허브 페이지 생성 완료: {len(counts)}개 섹션")
+    # CLI 로 돌릴 때도 빌드 훅과 같은 것을 만든다. 예전엔 on_pre_build 만
+    # 허브 랜딩을 만들어서, 손으로 돌려 놓고 "안 고쳐졌다" 로 읽히는 자리였다.
+    _build_hub_landing(docs_dir)
+    print(f"허브 페이지 생성 완료: {len(counts)}개 섹션 + 주제별 가이드")

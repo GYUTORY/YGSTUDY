@@ -11,22 +11,34 @@ hide:
 
 문서 16개.
 
+## 설정
+
+- [Caddyfile 문법 심화](Caddyfile_Syntax.md)
+- [Admin API와 JSON 설정](Admin_API.md)
+- [정적 파일 서빙](Static_File_Serving.md)
+
+## 프록시와 라우팅
+
+- [reverse_proxy 디렉티브 심화](Reverse_Proxy.md)
+- [서브도메인 라우팅과 와일드카드 인증서](Subdomain_Routing.md)
+- [헤더 처리와 CORS](Headers_CORS.md)
+
+## 보안
+
+- [SSL/TLS 심화](SSL_TLS.md)
+- [인증 처리](Authentication.md)
+- [Rate Limiting](Rate_Limiting.md)
+
+## 운영
+
+- [로깅과 관찰성](Logging_Monitoring.md)
+- [커스텀 xcaddy 이미지 CI/CD](Docker_Caddy_Image_CICD_Pipeline.md)
+- [Nginx에서 Caddy로 마이그레이션](Nginx_To_Caddy_Migration.md)
+
 ## 개요
 
 - [Caddy](Caddy.md)
-- [Caddy Admin API와 JSON 설정](Admin_API.md)
-- [Caddy Rate Limiting 처리 방식과 Nginx 비교](Rate_Limiting.md)
-- [Caddy SSL/TLS 심화](SSL_TLS.md)
-- [Caddy reverse_proxy 디렉티브 심화](Reverse_Proxy.md)
-- [Caddy 로깅과 관찰성](Logging_Monitoring.md)
-- [Caddy 서브도메인 라우팅과 와일드카드 인증서 실무](Subdomain_Routing.md)
-- [Caddy 인증 처리 (basic_auth, forward_auth, JWT)](Authentication.md)
-- [Caddy 정적 파일 서빙](Static_File_Serving.md)
-- [Caddy 헤더 처리와 CORS](Headers_CORS.md)
-- [Caddyfile 문법 심화](Caddyfile_Syntax.md)
 - [Docker Caddy 로컬 개발 환경 구성](Docker_Caddy_Local_Dev.md)
 - [Docker 환경에서 Caddy 운영](Docker_Caddy.md)
 - [Docker 환경에서 Caddy 운영 심화](Docker_Caddy_Operations_Advanced.md)
-- [Nginx에서 Caddy로 마이그레이션](Nginx_To_Caddy_Migration.md)
-- [커스텀 xcaddy 이미지 CI/CD 파이프라인](Docker_Caddy_Image_CICD_Pipeline.md)
 

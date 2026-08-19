@@ -20,7 +20,9 @@ SKIP_DIRS = {'assets', 'javascripts', 'stylesheets', '.omc', 'etc', 'images',
              # 빌드가 만드는 묶음 랜딩(section_index.py). 사이드바에 올리지 않으므로
              # .pages 도 만들지 않는다 — 만들면 gitignore 된 폴더만 지저분해진다.
              '_group'}
-WRITE = '--write' in sys.argv
+# 쓰기 여부는 CLI 로 실행될 때만 정한다. 모듈로 import 될 때(빌드 훅이
+# MANUAL_GROUPS 를 읽어 간다) 남의 argv 를 읽으면 안 된다.
+WRITE = False
 
 # 사이드바 라벨 길이 목표 (넘으면 부제를 떼어낸다)
 LABEL_SOFT_MAX = 20
@@ -109,18 +111,12 @@ TOP_ORDER = [
 
 # 특정 디렉터리의 자식 순서 지정 (여기 없는 항목은 뒤에 알파벳순)
 ORDER_OVERRIDE = {
-    # 기초를 실전보다 앞에
-    # README.md는 MkDocs가 섹션 index로 매핑하므로 맨 앞에 와야 한다
-    'Develop/Framework/Node': ['README.md', '함수형 프로그래밍.md',
+    # 목차 성격의 문서를 맨 앞에
+    'Develop/Framework/Node': ['Node_Framework_Index.md', '함수형 프로그래밍.md',
                                'Functional_Programming.md'],
     # 개요격 문서를 맨 앞으로
     'Develop/Architecture/MSA': ['Microservices_Architecture.md'],
     'Develop/Architecture/OMO': ['Online_Merge_Offline.md', 'OMO_운영_실무.md'],
-    'Develop/AI': [
-        'Concepts', 'Claude', 'Claude_Code', 'Cursor', 'GitHub_Copilot',
-        'Codex', 'Gemini', 'GPT', 'Grok', 'Qwen', 'DeepSeek', 'Ollama',
-        'MCP', 'CodeSight', 'Clawsweeper', 'GBrain', 'OMO',
-    ],
 }
 
 
@@ -355,8 +351,7 @@ MANUAL_GROUPS = {
     ],
     'Develop/Cloud/AWS/Network': [
         ('VPC 네트워킹', [
-            ('Private·Public Subnet',
-             'Private_Subnet__vs__Public_Subnet.md'),
+            ('Private·Public Subnet', 'Private_vs_Public_Subnet.md'),
             ('라우팅 테이블', 'Route_Table.md'),
             ('ENI', 'Elastic_Network_Interface.md'),
             ('NAT Gateway', 'Nat_Gateway.md'),
@@ -1042,14 +1037,11 @@ def only_md(dirpath):
     return None
 
 
-def old_order(dirpath):
-    """기존 .pages의 나열 순서 (정렬 기준으로만 쓴다)."""
-    p = os.path.join(dirpath, '.pages')
+def parse_nav_order(text):
+    """.pages 본문의 nav 나열 순서. 항목마다 '가리키는 대상' 만 남긴다."""
     order = []
-    if not os.path.exists(p):
-        return order
     in_nav = False
-    for line in open(p, encoding='utf-8'):
+    for line in text.splitlines():
         raw = line.rstrip('\n')
         if re.match(r'^nav:\s*$', raw):
             in_nav = True
@@ -1072,6 +1064,14 @@ def old_order(dirpath):
             # rank('Loki') 가 못 찾아 묶음이 순서 밖으로 밀린다.
             order.append(item.rstrip(':').strip())
     return order
+
+
+def old_order(dirpath):
+    """기존 .pages의 나열 순서 (정렬 기준으로만 쓴다)."""
+    p = os.path.join(dirpath, '.pages')
+    if not os.path.exists(p):
+        return []
+    return parse_nav_order(open(p, encoding='utf-8').read())
 
 
 def existing_title(dirpath):
@@ -1473,6 +1473,19 @@ def walk_and_generate():
             print('아무것도 쓰지 않고 중단한다.')
             sys.exit(1)
 
+    # 가리키는 대상이 사라진 줄이 있으면 그대로 쓰지 않는다.
+    # 그냥 쓰면 붙잡지 못한 문서가 묶음 밖으로 떨어져 나가는데, 링크가 깨지는
+    # 것도 문서가 없어지는 것도 아니라서 화면만 봐서는 알 수 없다.
+    stale = audit_paths()
+    if stale:
+        print(f'가리키는 대상이 없는 설정 {len(stale)}건 — 문서 이름이 바뀌었다:')
+        for s in stale:
+            print(f'  {s}')
+        print('고치는 법: tools/gen_nav.py 의 해당 줄을 새 이름으로 고친다.')
+        if WRITE:
+            print('아무것도 쓰지 않고 중단한다.')
+            sys.exit(1)
+
     generated = {}
     for dirpath in removals:
         p = os.path.join(dirpath, '.pages')
@@ -1486,8 +1499,103 @@ def walk_and_generate():
     return generated
 
 
+def audit_tree(entries, pages):
+    """.pages 의 nav 가 빠뜨린 항목을 찾는다.
+
+    entries: {'Develop/AI': (['a.md', ...], ['Claude', ...]), ...}  — 디렉터리별 자식
+    pages:   {'Develop/AI': '.pages 본문', ...}                     — 없으면 키를 뺀다
+
+    디스크와 git 트리 양쪽에서 같은 판정을 쓰려고 순수 함수로 뽑았다.
+    """
+    missing = []
+    for key in sorted(entries):
+        if key.count('/') > MAX_SIDEBAR_DEPTH:
+            continue          # 깊이 3+ 는 index.md 만 싣는 것이 설계다
+        text = pages.get(key)
+        if text is None:
+            continue
+        nav = set(parse_nav_order(text))
+        if '...' in nav:
+            continue          # 나머지를 자동으로 싣는 자리가 있다
+        files, dirs = entries[key]
+        for name in files + dirs:
+            if name == 'index.md' or name in nav:
+                continue
+            if f'{key}/{name}' in HIDDEN:
+                continue      # 일부러 메뉴·검색에서 뺀 것
+            if f'{key}/{name}' in HOIST_OUT:
+                continue      # 일부러 다른 자리로 옮긴 것
+            missing.append(f'{key}/.pages :: {name}')
+    return missing
+
+
+def audit_paths(exists=os.path.exists, isdir=os.path.isdir):
+    """이 파일의 경로 키가 전부 실제 파일·폴더를 가리키는지 본다.
+
+    라벨·묶음·순서 힌트는 전부 경로 문자열로 대상을 붙잡는다. 문서 이름이 바뀌면
+    그 줄은 아무것도 가리키지 않게 되는데, 붙잡지 못한 문서는 그냥 낱장으로
+    떨어질 뿐이라 화면만 봐서는 알 수 없다. 실제로 이 검사를 처음 돌렸을 때
+    세 건이 이미 그 상태였다(Private_Subnet__vs__Public_Subnet.md 이름 변경,
+    Node 의 README.md 이름 변경, Develop/AI 의 없는 하위 폴더).
+
+    문서 이름은 앞으로도 바뀐다. 바뀌는 것을 막을 수는 없으니, 바뀌었을 때
+    조용히 넘어가지 않게 만든다.
+    """
+    stale = []
+
+    def want(kind, where, name, label):
+        p = f'{where}/{name}' if name else where
+        ok = isdir(p) if kind == 'd' else exists(p)
+        if not ok:
+            stale.append(f'{label}: {p}')
+
+    for k in LABEL_OVERRIDE:
+        want('f', k, '', 'LABEL_OVERRIDE')
+    for k in LEAD_LABEL:
+        want('f', k, '', 'LEAD_LABEL')
+    for k in NO_OVERVIEW:
+        want('f', k, '', 'NO_OVERVIEW')
+    for k in HIDDEN:
+        want('f', k, '', 'HIDDEN')
+    for name, table in (('DIR_LABEL', DIR_LABEL), ('TITLE_OVERRIDE', TITLE_OVERRIDE),
+                        ('MANUAL_DIRS', MANUAL_DIRS), ('HOIST_OUT', HOIST_OUT),
+                        ('HOIST_IN', HOIST_IN), ('HOIST_NOTE', HOIST_NOTE),
+                        ('HOIST_OUT_NOTE', HOIST_OUT_NOTE),
+                        ('MANUAL_GROUPS', MANUAL_GROUPS),
+                        ('ORDER_OVERRIDE', ORDER_OVERRIDE)):
+        for k in table:
+            want('d', k, '', f'{name} 키')
+    for k, groups in MANUAL_GROUPS.items():
+        for glabel, members in groups:
+            for _, rel in members:
+                want('e', k, rel, f'MANUAL_GROUPS[{glabel}]')
+    for k, names in ORDER_OVERRIDE.items():
+        for name in names:
+            want('e', k, name, 'ORDER_OVERRIDE 값')
+    return stale
+
+
+def scan_disk():
+    """audit_tree 가 받을 (entries, pages) 를 디스크에서 모은다."""
+    entries, pages = {}, {}
+    for dirpath, dirnames, _ in os.walk(ROOT):
+        parts = dirpath.split(os.sep)
+        if any(p in SKIP_DIRS for p in parts) or \
+                any(p.startswith('.') for p in parts[1:]):
+            dirnames[:] = []
+            continue
+        dirnames[:] = [d for d in dirnames
+                       if d not in SKIP_DIRS and not d.startswith('.')]
+        key = dirpath.replace(os.sep, '/')
+        entries[key] = children(dirpath)
+        p = os.path.join(dirpath, '.pages')
+        if os.path.exists(p):
+            pages[key] = open(p, encoding='utf-8').read()
+    return entries, pages
+
+
 def audit():
-    """디스크에 있는데 지금 .pages 의 nav 에는 없는 것을 찾는다.
+    """사이드바에서 조용히 빠진 항목을 보고한다.
 
     .pages 의 nav 는 명시한 것만 싣는다. 목록에 없는 파일은 경고 없이 빠진다
     (`- ...` 를 적은 루트만 예외). 그래서 손으로 .pages 를 고치다 한 줄을
@@ -1496,33 +1604,7 @@ def audit():
 
     깊이 3+ 는 index.md 만 싣는 것이 설계라서(MAX_SIDEBAR_DEPTH) 대상이 아니다.
     """
-    missing = []
-    for dirpath, dirnames, filenames in os.walk(ROOT):
-        parts = dirpath.split(os.sep)
-        if any(p in SKIP_DIRS for p in parts) or \
-                any(p.startswith('.') for p in parts[1:]):
-            dirnames[:] = []
-            continue
-        dirnames[:] = [d for d in dirnames
-                       if d not in SKIP_DIRS and not d.startswith('.')]
-        if len(parts) - 1 > MAX_SIDEBAR_DEPTH:
-            continue
-        p = os.path.join(dirpath, '.pages')
-        if not os.path.exists(p):
-            continue
-        nav = set(old_order(dirpath))
-        if '...' in nav:
-            continue                      # 나머지를 자동으로 싣는 자리가 있다
-        key = dirpath.replace(os.sep, '/')
-        files, dirs = children(dirpath)
-        for name in files + dirs:
-            if name == 'index.md' or name in nav:
-                continue
-            if f'{key}/{name}' in HIDDEN:
-                continue                  # 일부러 메뉴·검색에서 뺀 것
-            if f'{key}/{name}' in HOIST_OUT:
-                continue                  # 일부러 다른 자리로 옮긴 것
-            missing.append(f'{p} :: {name}')
+    missing = audit_tree(*scan_disk())
     if missing:
         print(f'사이드바에서 빠진 항목 {len(missing)}건'
               ' (파일은 있는데 .pages 의 nav 에 없다):')
@@ -1531,10 +1613,21 @@ def audit():
         print('고치는 법: python3 tools/gen_nav.py --write 로 다시 만든다.')
     else:
         print('사이드바 누락 없음 — 디스크의 문서·폴더가 모두 .pages 에 있다.')
-    return missing
+
+    stale = audit_paths()
+    if stale:
+        print(f'\n가리키는 대상이 없는 설정 {len(stale)}건'
+              ' (문서 이름이 바뀌었는데 이 파일이 따라가지 못했다):')
+        for s in stale:
+            print('  ', s)
+        print('고치는 법: tools/gen_nav.py 의 해당 줄을 새 이름으로 고친다.')
+    else:
+        print('설정이 가리키는 경로 전부 실재 — 이름 변경에 뒤처진 줄 없음.')
+    return missing + stale
 
 
 if __name__ == '__main__':
+    WRITE = '--write' in sys.argv
     if '--audit' in sys.argv:
         sys.exit(1 if audit() else 0)
     gen = walk_and_generate()

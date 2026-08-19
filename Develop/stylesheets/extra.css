@@ -808,6 +808,17 @@ body {
   .md-typeset table:not([class]) { font-size: 0.78rem; }
 }
 
+/* 폰을 가로로 눕히면 폭이 844px 이 되어 위 600px 규칙을 빠져나가고 본문이
+   20px 로 되돌아간다. 그런데 그때 모자란 건 폭이 아니라 높이다 — 세로가
+   390px 뿐이라 한 화면에 9줄(351자)밖에 안 들어간다. 세로로 들었을 때
+   30줄 870자의 40% 다. 같은 문서가 50화면에서 125화면이 된다.
+   폭 대신 높이로 판단한다. 마우스 환경은 창을 낮게 쓰는 일이 드물고
+   그때 15px 는 과하게 작아서 터치 기기로 한정한다. */
+@media screen and (max-height: 500px) and (pointer: coarse) {
+  .md-typeset { font-size: 15px !important; line-height: 1.7; }
+  .md-typeset h1 { font-size: 1.5rem; }
+}
+
 .md-typeset h1,
 .md-typeset h2,
 .md-typeset h3,
@@ -2771,7 +2782,14 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
     display: inline-block;
     padding: 7px 0;
   }
-  .md-content .md-typeset li {
+  /* 위 padding 이 만드는 여백과 겹치지 않게 항목 마진을 줄이는 규칙인데,
+     선택자가 모든 li 를 잡아 본문 산문 목록까지 눌렀다. 실제 폰에서 재 보니
+     항목 경계 27px 대 항목 안 줄바꿈 25px — 비율 1.08 로, 마우스 환경(1.36)은
+     물론 손대기 전(1.21)보다도 나빴다. 목록 여백을 0.6em 으로 올린 수정이
+     정작 폰에서는 적용되지 않고 있었다.
+     여백이 겹치는 건 a 가 항목 전체를 채우는 링크 목록(섹션 인덱스·관련 문서)
+     뿐이다. 그쪽만 남긴다. */
+  .md-content .md-typeset li:has(> a:only-child) {
     margin-bottom: 2px;
   }
   /* 코드 복사 버튼이 22.5px 이었다. 문서당 코드블록이 39개다. */
