@@ -2210,7 +2210,12 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   .md-typeset .highlight::after { display: none !important; }
 
   /* 페이지 넘김 — 전에는 아무 제어가 없어 코드블록이 장 사이에서 잘리고
-     제목만 페이지 바닥에 남았다. */
+     제목만 페이지 바닥에 남았다.
+
+     쪽수 비용을 실측했다(A4, PDF 출력):
+       Redis 문서 34 → 37쪽 (+8.8%) · LLM 문서 61 → 64쪽 (+4.9%)
+     기술 문서에서 코드가 장 사이에서 끊기면 앞뒤를 넘겨 가며 읽어야 한다.
+     5~9% 쪽수와 맞바꿀 값이라고 봤다. 되돌리려면 pre 만 빼면 된다. */
   .md-typeset pre,
   .md-typeset table,
   .md-typeset blockquote,
@@ -2840,9 +2845,55 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
     visibility: visible;
   }
-  /* 펼쳐진 항목 자신의 제목 줄은 뒤로가기 헤더와 겹쳐 보이므로 숨긴다 */
-  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) > .md-nav__link,
-  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) > .md-nav__container {
+  /* 펼쳐진 항목 자신의 제목 줄은 뒤로가기 헤더와 겹쳐 보이므로 숨긴다.
+     단 그 항목의 하위 목록이 비어 있으면(사이드바가 깊이 2까지만 펼치므로
+     깊은 문서에서는 실제로 빈다) 숨길 게 아니라 그것만 남는 화면이 된다.
+     조건 없이 숨겼더니 깊이 4 문서에서 드로어가 통째로 비어 있었다. */
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked):has(> nav.md-nav > ul > li) > .md-nav__link,
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked):has(> nav.md-nav > ul > li) > .md-nav__container {
     visibility: hidden;
+  }
+  /* 하위가 빈 항목은 형제들과 함께 보여야 길이 막히지 않는다 */
+  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked):not(:has(> ul > li > input.md-nav__toggle:checked ~ nav.md-nav > ul > li)) > ul > li {
+    visibility: visible;
+  }
+}
+
+
+/* 깊은 단계일수록 들여쓰기를 줄인다.
+   레벨당 20px(margin 7 + padding 13)을 균일하게 밀다 보니 4단에서는
+   글자칸이 82px 밖에 안 남아 한글 5자면 접힌다(L1 167 · L2 135 · L3 107 · L4 82).
+   위계는 이미 크기·굵기·색 사다리와 안내선이 만들고 있으므로,
+   들여쓰기는 계층을 알아볼 최소한만 남기고 깊은 쪽에서 회수한다. */
+.md-nav__item--nested .md-nav .md-nav__item--nested .md-nav {
+  margin-left: 5px;
+  padding-left: 9px;
+}
+.md-nav__item--nested .md-nav .md-nav__item--nested .md-nav
+  .md-nav__item--nested .md-nav {
+  margin-left: 3px;
+  padding-left: 7px;
+}
+
+
+/* 아주 넓은 화면에서 산문만 폭을 제한한다.
+   .md-grid 의 max-width 를 푼 덕에 코드·표·다이어그램은 화면을 잘 쓰는데,
+   본문 문장까지 같이 늘어나 2560px 에서 한 줄이 한글 106자가 됐다
+   (1440px 은 55자). 눈이 줄 끝에서 다음 줄 머리로 돌아오지 못한다.
+
+   폭을 넓게 쓰는 요소(코드블록·표·다이어그램·이미지·홈 섹션)는 그대로 두고
+   글자만 잡는다. 실측 2560px 기준 106자 -> 69자. */
+@media screen and (min-width: 90em) {
+  .md-typeset > p,
+  .md-typeset > ul,
+  .md-typeset > ol,
+  .md-typeset > blockquote,
+  .md-typeset > h1,
+  .md-typeset > h2,
+  .md-typeset > h3,
+  .md-typeset > h4,
+  .md-typeset > h5,
+  .md-typeset > h6 {
+    max-width: 1100px;
   }
 }
