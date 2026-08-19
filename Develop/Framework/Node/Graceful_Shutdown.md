@@ -199,7 +199,7 @@ Pod에 삭제 명령이 떨어지면 kubelet은 다음을 동시에 시작한다
 - preStop이 끝나면 컨테이너의 PID 1에 SIGTERM 전송
 - `terminationGracePeriodSeconds`(기본 30초)가 지나면 SIGKILL 전송
 
-여기서 함정이 두 개 있다.
+여기서 함정이 세 개 있다.
 
 ### 함정 1: Endpoint 제거가 즉시 반영되지 않는다
 

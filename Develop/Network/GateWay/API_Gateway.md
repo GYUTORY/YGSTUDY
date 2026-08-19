@@ -516,6 +516,7 @@ TLS 종료는 Gateway에서 처리하면 내부 서비스는 HTTP로만 통신�
 - [Kong Gateway 공식 문서](https://docs.konghq.com/gateway/)
 - [Envoy Proxy 공식 문서](https://www.envoyproxy.io/docs)
 - [게이트웨이 개요](Definition.md) — 게이트웨이 기본 개념
-- [MSA 아키텍처](../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — 마이크로서비스 패턴
+- [MSA 아키텍처](../../Architecture/MSA/Microservices_Architecture.md) — 마이크로서비스 개론
+- [Saga 패턴](../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — 분산 트랜잭션
 - [Kubernetes Ingress](../../DevOps/Kubernetes/Kubernetes.md) — K8s 인그레스 라우팅
 - [Nginx 리버스 프록시](../../WebServer/Nginx/Reverse_Proxy_and_Load_Balancing.md) — Nginx LB 설정

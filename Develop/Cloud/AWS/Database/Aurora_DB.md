@@ -244,13 +244,13 @@ while True:
 | 인스턴스 (Writer/Reader 또는 Primary/Standby) | 약 $560 (Multi-AZ 2배) | 약 $480 (Writer 1대 기준) | 약 $620 (단가 ~30% 높음) |
 | 스토리지 (200GB) | 약 $46 (gp3, Multi-AZ 2배) | 약 $20 | 약 $45 |
 | IOPS | 12,000 IOPS 프로비저닝 약 $96 | 월 26억 I/O 요청 약 $520 | 0 (포함) |
-| **합계 (대략)** | **약 $700** | **약 $1,020** | **약 $720** |
+| **합계 (대략)** | **약 $700** | **약 $1,020** | **약 $665** |
 
 이 표에서 두 가지를 읽을 수 있다.
 
 첫째, **Aurora Standard는 I/O가 폭발하는 워크로드에서 RDS보다 훨씬 비싸진다**. Aurora Standard는 read I/O와 write I/O를 100만 건당 약 $0.20씩 따로 청구한다. 1만 IOPS를 한 달 내내 쓰면 26억 건이 되고, $520이 추가된다. RDS gp3는 12,000 IOPS를 정액으로 프로비저닝하면 끝이다.
 
-둘째, **I/O 1만 IOPS 부근부터 Aurora I/O-Optimized가 RDS와 가격이 비슷해지고, 그 이상에서는 더 싸진다**. AWS 자체 가이드도 "월 I/O 비용이 인스턴스 비용의 25%를 넘으면 I/O-Optimized로 전환 고려"라고 안내한다. I/O-Optimized는 한 번 켜면 30일간 변경할 수 없으니 한 달 정도 메트릭을 보고 결정하는 게 안전하다.
+둘째, **I/O 1만 IOPS 부근에서 Aurora I/O-Optimized는 이미 RDS보다 싸고, 그 이상에서는 격차가 벌어진다**(위 표에서 $665 대 $700). AWS 자체 가이드도 "월 I/O 비용이 인스턴스 비용의 25%를 넘으면 I/O-Optimized로 전환 고려"라고 안내한다. I/O-Optimized는 한 번 켜면 30일간 변경할 수 없으니 한 달 정도 메트릭을 보고 결정하는 게 안전하다.
 
 ```bash
 # CloudWatch에서 Aurora I/O 비용 추정 (월간 read + write I/O 합산)

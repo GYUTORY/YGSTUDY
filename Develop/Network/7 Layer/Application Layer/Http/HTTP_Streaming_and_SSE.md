@@ -395,9 +395,9 @@ WebTransport는 QUIC 위에서 동작한다. QUIC은 UDP 기반이고 스트림�
 
 ### 현재 사용 시 제약
 
-서버 구현이 아직 부족하다. Node.js는 `node:http3` 모듈에서 실험적으로 지원하고, Spring Boot는 정식 지원이 없다. 보통 aioquic(Python), quinn(Rust), msquic(.NET) 같은 QUIC 라이브러리 위에 직접 구현해야 한다.
+서버 구현이 아직 부족하다. Node.js 에는 `node:quic`(`--experimental-quic`)이 있지만 QUIC 전송과 HTTP/3 까지고 WebTransport 상위 API 는 아직 없다., Spring Boot는 정식 지원이 없다. 보통 aioquic(Python), quinn(Rust), msquic(.NET) 같은 QUIC 라이브러리 위에 직접 구현해야 한다.
 
-브라우저는 Chromium 계열에서만 동작한다. Safari, Firefox는 아직 본격 지원 전이다. 프로덕션에서는 WebSocket으로 폴백하는 구조가 필요하다.
+브라우저는 Chromium 계열과 Firefox(114부터 기본 활성)에서 동작한다. Safari 는 아직이다. 프로덕션에서는 WebSocket으로 폴백하는 구조가 필요하다.
 
 방화벽 환경에서 UDP가 차단되는 경우도 있다. 기업 네트워크에서 UDP 443번 포트가 막혀 있으면 WebTransport 연결 자체가 안 된다.
 

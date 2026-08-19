@@ -181,7 +181,7 @@ aws ecs describe-tasks \
 
 ## 트러블슈팅
 
-ECS Exec이 안 될 때 에러 메시지가 도움 안 되는 경우가 많다. 대표적인 케이스 네 가지가 있다.
+ECS Exec이 안 될 때 에러 메시지가 도움 안 되는 경우가 많다. 대표적인 케이스 다섯 가지가 있다.
 
 ### 케이스 1: TargetNotConnected 에러
 

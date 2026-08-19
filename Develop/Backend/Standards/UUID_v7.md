@@ -106,12 +106,23 @@ BINARY(16) 컬럼에 인덱스를 걸면 CHAR(36)보다 인덱스 크기가 작�
 
 ## PostgreSQL에서 사용
 
-PostgreSQL 13까지는 `gen_random_uuid()`가 UUIDv4를 반환한다. PostgreSQL에는 아직 UUIDv7 네이티브 함수가 없어서 확장 모듈이나 애플리케이션에서 생성해야 한다.
-
-`pg_uuidv7` 확장을 쓰면 DB 수준에서 생성할 수 있다.
+`gen_random_uuid()` 는 UUIDv4 를 반환한다. **PostgreSQL 18부터 `uuidv7()` 이 코어에 들어왔다.** 확장 없이 그냥 쓰면 된다.
 
 ```sql
--- pg_uuidv7 확장 설치 후
+-- PostgreSQL 18 이상
+CREATE TABLE orders (
+    id      UUID NOT NULL DEFAULT uuidv7(),
+    user_id BIGINT NOT NULL,
+    PRIMARY KEY (id)
+);
+```
+
+같이 들어온 `uuid_extract_timestamp()` 로 값에서 생성 시각을 꺼낼 수 있고, `uuid_extract_version()` 으로 버전을 확인할 수 있다.
+
+17 이하에서만 `pg_uuidv7` 확장이 필요하다. 운영 DB 에 확장을 추가하는 건 되돌리기 번거로우니, 18 로 올릴 계획이 있으면 애플리케이션에서 생성하다가 넘어가는 쪽이 낫다.
+
+```sql
+-- PostgreSQL 17 이하
 CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
 
 CREATE TABLE orders (
