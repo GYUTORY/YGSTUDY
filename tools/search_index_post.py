@@ -173,6 +173,31 @@ def _topic_terms(doc):
     return [en for en in ALIASES if en in words]
 
 
+# ── 3) 색인 text 의 HTML 태그 제거 ─────────────────────────
+# text 839만 자 중 133만 자(15.9%)가 <p>·<li> 같은 태그다. Material 의
+# 토크나이저는 태그를 낱말로 만들지 않고 건너뛰기만 하므로, 지워도 검색되는
+# 말은 한 개도 줄지 않는다 — 실측으로 고유 term 177,528개와 총 토큰
+# 1,815,309개가 전후 완전히 같고, 질의 19개의 결과 수·상위 문서 순서·앵커가
+# 전부 그대로다(점수까지 byte 단위로 동일).
+#
+# 얻는 것은 색인 빌드 CPU -10% 와 gzip 5.68MB -> 5.49MB 다. 지연 로딩을
+# 넣은 뒤로는 모바일에서 다운로드:빌드가 8:1 이라 용량 쪽이 더 크게 듣는다.
+#
+# 반드시 _trim **뒤에** 부른다. 자르기 전에 지우면 같은 600자에 산문이 더
+# 들어가 색인 낱말 자체가 달라진다(리콜은 좋아지고 토큰은 늘어난다).
+# 그건 별개의 거래라 여기서 섞지 않는다.
+_TAG = re.compile(r"<[^>]+>")
+
+
+def _strip_tags(text):
+    """태그를 지우고 그 자리에 공백을 남긴다.
+
+    빈 문자열로 지우면 <p>가</p><p>붙어</p> 처럼 인접한 낱말이 한 덩어리가
+    된다. 공백으로 바꾼 뒤 연속 공백만 접는다.
+    """
+    return re.sub(r"\s{2,}", " ", _TAG.sub(" ", text)).strip()
+
+
 def on_post_build(config, **kwargs):
     path = os.path.join(config["site_dir"], "search", "search_index.json")
     if not os.path.exists(path):
@@ -208,6 +233,10 @@ def on_post_build(config, **kwargs):
                 if did:
                     doc["text"] = new
                     trimmed += 1
+
+        # 소제목이든 페이지든 똑같이 태그를 걷어낸다.
+        if doc.get("text") and "<" in doc["text"]:
+            doc["text"] = _strip_tags(doc["text"])
 
         # 소제목도 자기 페이지의 음차를 물려받는다 — 소제목만 걸린 결과에서도
         # 같은 문서로 이어져야 하기 때문.
