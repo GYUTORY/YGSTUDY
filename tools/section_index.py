@@ -46,17 +46,57 @@ BLURB = {
 
 SECOND_LEVEL = ["Cloud/AWS", "Cloud/GCP", "DevOps/Linux", "DevOps/Kubernetes", "Language/Java", "Language/JavaScript", "Language/TypeScript"]
 
-# 랜딩 페이지 제목을 폴더 이름 대신 이걸로 쓴다.
-# 사이드바 라벨(.pages 의 title)과 도착 페이지의 제목이 다르면 잘못 눌렀나 싶어진다.
-# 'Backend' 폴더를 눌렀는데 상위 묶음 이름도 'Backend' 라 같은 이름이 두 번 나오던
-# 문제 때문에 사이드바를 'API·인증·메시징' 으로 바꿨고, 그 짝을 여기서 맞춘다.
-# 키는 docs_dir 기준 경로. 값은 Develop/**/.pages 의 title 과 같아야 한다.
-LABEL_OVERRIDE = {
-    "Backend": "API·인증·메시징",
-    "DataBase/DataRepresentation": "데이터 표현",
-    "DevOps/Infrastructure_as_Code": "IaC",
-    "Cloud/AWS/Application_Integration": "메시징 연동",
-}
+# 랜딩 페이지 제목과 그 안의 그룹 제목은 폴더 이름이 아니라 사이드바 라벨을 쓴다.
+# 누른 이름과 도착한 페이지 이름이 다르면 잘못 눌렀나 싶어진다.
+# 예전엔 여기에 짝을 손으로 적어 뒀는데, 사이드바를 고칠 때마다 같이 고쳐야 해서
+# 넷만 맞고 다섯은 어긋나 있었다('IaC' 로 들어간 페이지 안에 '## Infrastructure as
+# Code' 가 있는 식). 지금은 .pages 에서 직접 읽는다 — 어긋날 수가 없다.
+PAGES_TITLE = re.compile(r"^title\s*:\s*(.+?)\s*$", re.MULTILINE)
+
+
+def _pages_title(pages_path):
+    """<dir>/.pages 의 title: (사이드바가 그 폴더에 붙이는 이름)"""
+    try:
+        with open(pages_path, "r", encoding="utf-8") as f:
+            m = PAGES_TITLE.search(f.read())
+    except OSError:
+        return None
+    return m.group(1).strip().strip('"').strip("'") if m else None
+
+
+def _pages_child_label(pages_path, folder):
+    """부모 .pages 의 nav 가 이 폴더에 붙인 라벨.  '- IaC: Infrastructure_as_Code'"""
+    try:
+        with open(pages_path, "r", encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return None
+    for raw in lines:
+        item = raw.strip()
+        if not item.startswith("- "):
+            continue
+        item = item[2:].strip()
+        if ": " in item:
+            label, target = item.split(": ", 1)
+            if target.strip() == folder:
+                return label.strip()
+        elif item == folder:
+            return None      # 라벨 없이 폴더명 그대로 — 기본 규칙에 맡긴다
+    return None
+
+
+def _sidebar_label(docs_dir, key):
+    """docs_dir 기준 경로가 사이드바에 나타나는 이름."""
+    parts = key.split("/")
+    own = _pages_title(os.path.join(docs_dir, *parts, ".pages"))
+    if own:
+        return own
+    if len(parts) > 1:
+        parent = _pages_child_label(
+            os.path.join(docs_dir, *parts[:-1], ".pages"), parts[-1])
+        if parent:
+            return parent
+    return parts[-1].replace("_", " ")
 
 # 사이드바 레벨 2 제한 지원: depth 1-3 디렉터리에 허브 페이지 자동 생성
 # gen_nav.py --write 이전에 단독 실행해 index.md 를 미리 만들어 둔다.
@@ -91,7 +131,7 @@ def _md_link(rel):
     return "<%s>" % rel if " " in rel else rel
 
 
-def _label_for(key, leaf_counts):
+def _label_for(docs_dir, key, leaf_counts):
     """섹션 표시 이름.
 
     폴더 이름만 쓰면 Backend/Security 와 Cloud/AWS/Security 가 둘 다
@@ -99,19 +139,17 @@ def _label_for(key, leaf_counts):
     Network·Testing 각 3개가 실제로 겹쳐 있었다).
     겹치는 이름에만 바로 위 폴더를 붙인다 — 안 겹치면 그대로 둬서 길어지지 않게.
     """
-    if key in LABEL_OVERRIDE:
-        return LABEL_OVERRIDE[key]
     parts = key.split("/")
-    name = parts[-1]
-    if leaf_counts.get(name, 0) > 1 and len(parts) > 1:
-        return "%s · %s" % (parts[-2].replace("_", " "), name.replace("_", " "))
-    return name.replace("_", " ")
+    label = _sidebar_label(docs_dir, key)
+    if leaf_counts.get(parts[-1], 0) > 1 and len(parts) > 1:
+        return "%s · %s" % (parts[-2].replace("_", " "), label)
+    return label
 
 
 def _build_one(docs_dir, key, counts, leaf_counts=None):
     """key 는 docs_dir 기준 상대 경로. 최상위든 2단계든 같은 처리를 한다."""
     name = key.split("/")[-1]
-    label = _label_for(key, leaf_counts or {})
+    label = _label_for(docs_dir, key, leaf_counts or {})
     section = os.path.join(docs_dir, *key.split("/"))
     if not os.path.isdir(section):
         return
@@ -164,12 +202,15 @@ def _build_one(docs_dir, key, counts, leaf_counts=None):
             lines.append(blurb + "\n\n")
         lines.append(f"문서 {total}개.\n\n")
 
-        for group in sorted(groups, key=lambda g: (g == "", g)):
+        # 그룹 제목도 사이드바가 쓰는 이름으로. 'IaC' 를 눌러 들어온 페이지 안에
+        # '## Infrastructure as Code' 가 있으면 같은 폴더인지 알 수 없다.
+        # 정렬도 폴더명이 아니라 보이는 이름으로 한다 — 안 그러면 '개념'(Concepts)이
+        # Codex 와 Cursor 사이에 끼어 순서가 아무렇게나 놓인 것처럼 보인다.
+        heading = {g: _sidebar_label(docs_dir, key + "/" + g) if g else "개요"
+                   for g in groups}
+        for group in sorted(groups, key=lambda g: (g == "", heading[g])):
             items = sorted(groups[group], key=lambda x: x[0])
-            if group:
-                lines.append(f"## {group.replace('_', ' ')}\n\n")
-            else:
-                lines.append("## 개요\n\n")
+            lines.append("## %s\n\n" % heading[group])
             for title, rel in items:
                 lines.append(f"- [{title}]({_md_link(rel)})\n")
             lines.append("\n")

@@ -16,7 +16,10 @@ import os, re, sys
 
 ROOT = 'Develop'
 SKIP_DIRS = {'assets', 'javascripts', 'stylesheets', '.omc', 'etc', 'images',
-             'example', 'snippets', 'img'}
+             'example', 'snippets', 'img',
+             # 빌드가 만드는 묶음 랜딩(section_index.py). 사이드바에 올리지 않으므로
+             # .pages 도 만들지 않는다 — 만들면 gitignore 된 폴더만 지저분해진다.
+             '_group'}
 WRITE = '--write' in sys.argv
 
 # 사이드바 라벨 길이 목표 (넘으면 부제를 떼어낸다)
@@ -27,6 +30,10 @@ LABEL_SOFT_MAX = 20
 # 허브 페이지(index.md)는 section_index.py 가 빌드 시점에 자동 생성한다.
 # 예) Develop/Cloud/AWS/Compute = depth 3 > 2 → index.md 만 노출
 MAX_SIDEBAR_DEPTH = 2
+
+# 사이드바에 일부러 올리지 않는 문서. mkdocs.yml 의 search match_path 도
+# 같은 파일을 빼 두었다 — 메뉴에도 검색에도 안 나오는 개인 메모다.
+HIDDEN = {'Develop/todo.md'}
 
 # 이 디렉터리의 .pages 는 수동으로 관리한다. gen_nav.py 가 덮어쓰지 않는다.
 # Develop/.pages 는 이미 루트 스킵 로직으로 보호되므로 여기엔 포함하지 않는다.
@@ -189,12 +196,46 @@ LABEL_OVERRIDE = {
     'Develop/DevOps/Kubernetes/Docker/Docker_Compose_Port_Forwarding.md': 'Port Forwarding',
     'Develop/_hub/JavaScript_TypeScript.md': 'JS & TypeScript',
     'Develop/Network/Security/Zero_Trust_CICD_Pipeline.md': 'CI/CD Zero Trust',
+    # 섹션 대표 문서(파일명 = 폴더명). 자동 규칙은 폴더 이름을 접두사로 보고
+    # 떼어내는데, 대표 문서에서 그걸 떼면 'Kubernetes 핵심 개념 및 운영' 이
+    # '핵심 개념 및 운영' 이 되어 무엇을 가리키는지 사라진다. 반대로 폴더 이름이
+    # 바로 위에 있어 빼는 편이 나은 곳(Codex/Grok 의 '사용법')도 있어서
+    # 한 규칙으로 정해지지 않는다. 각각 손으로 고른 이름을 쓴다.
+    'Develop/AI/Codex/Codex.md': '사용법',
+    'Develop/AI/Cursor/Cursor.md': 'Cursor - AI 네이티브 IDE',
+    'Develop/AI/DeepSeek/Deep_Seek.md': '모델과 실무 사용',
+    'Develop/AI/Gemini/Gemini.md': 'Gemini Code Assist',
+    'Develop/AI/GitHub_Copilot/GitHub_Copilot.md': '사용법',
+    'Develop/AI/Grok/Grok.md': '사용법',
+    'Develop/AI/MCP/MCP.md': 'MCP 핵심 개념',
+    'Develop/AI/Ollama/Ollama.md': '로컬 LLM 서빙',
+    'Develop/AI/Qwen/Qwen.md': '모델과 실무 사용',
+    'Develop/DataBase/NoSQL/NoSQL.md': 'NoSQL 데이터베이스 개요',
+    'Develop/DevOps/Kubernetes/Kubernetes.md': 'Kubernetes 핵심 개념 및 운영',
+    'Develop/OS/Process & Thread/Process & Thread.md': '프로세스와 스레드',
+    # 라벨이 길어 괄호가 잘리던 것. 괄호 안이 뜻의 절반이라 원제목을 그대로 쓴다.
+    'Develop/Network/Domain/DNS.md': 'DNS (Domain Name System)',
+}
+
+# 자동으로 묶인 그룹에서, 그룹 이름과 라벨이 똑같아진 대표 문서에만 쓰는 이름.
+# 'Dynamic Programming' 묶음 아래에 'Dynamic Programming' 이 또 나오면 우스운데,
+# 제목('Dynamic Programming (동적 계획법)')에서 한글만 뽑는 규칙은 만들 수 없다.
+# LABEL_OVERRIDE 에 넣으면 라벨이 먼저 바뀌어 묶음 자체가 안 만들어지므로 따로 둔다.
+LEAD_LABEL = {
+    'Develop/Algorithm/Dynamic_Programming.md': '동적 계획법',
 }
 
 # 손으로 짠 묶음.
 # 자동 규칙은 crypto와 fs가 '코어 모듈'이라는 걸 알 수 없다. 낱장 문서가
 # 20개 넘게 평평하게 늘어서는 곳만 여기서 직접 묶는다.
-# 형식:  경로 -> [(묶음 이름, [(라벨, 상대경로), ...]), ...]
+# 형식:  경로 -> [(묶음 이름, [(라벨, 대상), ...]), ...]
+#
+# 대상은 '바로 아래 자식의 이름' 하나여야 한다 — 파일이면 'Foo.md',
+# 디렉터리면 'Foo'. awesome-pages 는 nav 항목을 자식 basename 으로만 찾으므로
+# ('View_Engine/Handlebars.md' 같은) 한 단계 아래 경로는 파일로 해석되지 않고
+# 문자열 링크로 떨어져 404 가 된다(nested_targets 가 이걸 잡는다).
+# 문서가 하위 디렉터리 안에 있으면 그 디렉터리 이름을 적는다 — 라벨은 그대로
+# 붙고, 안의 문서는 그 섹션 아래에 그대로 남는다.
 MANUAL_GROUPS = {
     'Develop/Language/Go': [
         ('동시성', [
@@ -283,7 +324,6 @@ MANUAL_GROUPS = {
         ]),
         ('내부 동작', [
             ('하네스', 'Claude_Code_Harness.md'),
-            ('Fable 5 릴리스 정리', 'Claude_Code_Fable_5.md'),
         ]),
     ],
     'Develop/WebServer/Nginx': [
@@ -525,8 +565,8 @@ MANUAL_GROUPS = {
             ('IPFS', 'IPFS.md'),
         ]),
         ('관측', [
-            ('tcpdump', 'Observability/Packet_Capture_tcpdump.md'),
-            ('소켓 I/O', 'IO/Socket_IO_Multiplexing.md'),
+            ('tcpdump', 'Observability'),
+            ('소켓 I/O', 'IO'),
         ]),
     ],
     'Develop/Security': [
@@ -602,6 +642,18 @@ MANUAL_GROUPS = {
             ('DID', 'DID.md'),
         ]),
     ],
+    # Loki·Alerting 은 짝이 둘뿐이라 자동 묶기(GROUP_MIN=3)에 안 걸린다.
+    # 묶지 않으면 'Loki 수집 구성과 운영' 같은 긴 라벨이 낱장으로 늘어선다.
+    'Develop/DevOps/Monitoring': [
+        ('Loki', [
+            ('수집 구성과 운영', 'Loki_Log_Aggregation.md'),
+            ('레이블 설계와 카디널리티', 'Loki_레이블_설계와_카디널리티.md'),
+        ]),
+        ('Alerting', [
+            ('기본 구조', 'Alerting_Rules.md'),
+            ('규칙 설계', 'Alerting_규칙_설계.md'),
+        ]),
+    ],
     'Develop/Framework/Node/NestJS': [
         ('핵심 구조', [
             ('부트스트랩과 모듈 시스템', 'Nest_JS_부트스트랩_및_모듈_시스템.md'),
@@ -659,16 +711,16 @@ MANUAL_GROUPS = {
     ],
     'Develop/Framework/Node': [
         ('프레임워크', [
-            ('개요', 'Nodejs_Framework_Overview.md'),
+            ('Node.js 프레임워크 개요', 'Nodejs_Framework_Overview.md'),
             ('프레임워크 비교', 'Nest_Hapi_Express_fastify.md'),
             ('애플리케이션 라우팅', 'Application_Routing.md'),
-            ('뷰 엔진 (Handlebars)', 'View_Engine/Handlebars.md'),
+            ('뷰 엔진 (Handlebars)', 'View_Engine'),
         ]),
         ('코어 모듈', [
             ('HTTP / HTTPS', 'HTTP_Module.md'),
             ('fs', 'File_System.md'),
             ('net (TCP)', 'Net_Module.md'),
-            ('Stream', '데이터 처리 및 통신/스트림(Stream).md'),
+            ('Stream', '데이터 처리 및 통신'),
             ('crypto', 'Crypto_Module.md'),
             ('child_process', 'Child_Process.md'),
             ('AbortController', 'Abort_Controller.md'),
@@ -683,17 +735,16 @@ MANUAL_GROUPS = {
         ]),
         ('운영', [
             ('에러 처리', 'Error_Handling.md'),
-            ('에러 처리 심화', '에러_핸들링/에러_핸들링_전략.md'),
+            ('에러 처리 심화', '에러_핸들링'),
             ('그레이스풀 셧다운', 'Graceful_Shutdown.md'),
-            ('로깅 전략', '로깅/로깅_전략.md'),
-            ('Observability 전략', '모니터링/Observability_전략.md'),
-            ('성능 최적화와 프로파일링',
-             'Performance/Node.js_성능_최적화_및_프로파일링.md'),
-            ('부하 테스트 전략', '성능/부하_테스트_전략.md'),
-            ('보안 모범사례', '보안/Node.js_보안_모범사례.md'),
-            ('JWT 구현과 보안', '인증/JWT_구현_및_보안.md'),
-            ('작업 큐 처리', '백그라운드_작업/작업_큐_처리.md'),
-            ('파일 업로드와 처리', '파일_처리/파일_업로드_및_처리.md'),
+            ('로깅 전략', '로깅'),
+            ('Observability 전략', '모니터링'),
+            ('성능 최적화와 프로파일링', 'Performance'),
+            ('부하 테스트 전략', '성능'),
+            ('보안 모범사례', '보안'),
+            ('JWT 구현과 보안', '인증'),
+            ('작업 큐 처리', '백그라운드_작업'),
+            ('파일 업로드와 처리', '파일_처리'),
         ]),
     ],
 }
@@ -749,6 +800,28 @@ HOIST_OUT = {'Develop/DevOps/Kubernetes/Docker'}
 HOIST_IN = {
     'Develop/DevOps': [('Docker', 'DevOps/Kubernetes/Docker/', 'Kubernetes')],
 }
+
+# .pages 를 읽는 사람에게 남기는 설명. 생성기가 덮어써도 살아남게 여기서 다시 쓴다.
+# HOIST_NOTE 는 HOIST_IN 항목 바로 앞에, HOIST_OUT_NOTE 는 빠져나간 쪽 파일 끝에.
+HOIST_NOTE = {
+    'Develop/DevOps': [
+        '# 폴더는 Kubernetes/Docker 지만 Docker 는 그 하위 개념이 아니다.',
+        '# 폴더를 옮기면 URL 이 깨지므로 사이드바에서만 형제로 올린다.',
+        '# awesome-pages 는 바로 아래 자식 이름만 파일로 해석하므로(navigation.py:118)',
+        '# 한 단계 아래 경로는 URL 로 적어야 링크가 산다.',
+        "# URL 은 docs 루트 기준이다 — 'Kubernetes/Docker/' 로 적으면 /Kubernetes/... 가 된다.",
+    ],
+}
+HOIST_OUT_NOTE = {
+    'Develop/DevOps/Kubernetes': [
+        '# Docker 는 Kubernetes 의 하위 개념이 아니다. 폴더는 DevOps/Kubernetes/Docker 그대로',
+        '# 두고(옮기면 URL 이 깨진다) 사이드바에서만 DevOps 바로 아래 형제로 올렸다.',
+        "# 실제 항목은 Develop/DevOps/.pages 의 'Docker: Kubernetes/Docker/' 링크다.",
+    ],
+}
+
+# nav 항목이 아니라 주석 줄임을 알리는 라벨
+COMMENT = object()
 
 DASHES = [' — ', ' – ', ' - ']
 
@@ -833,7 +906,10 @@ def looks_broken(label):
         return True
     if BAD_HEAD.match(s):
         return True
-    if s[0] in '([{)]}':
+    # 부호로 시작하는 라벨은 잘린 흔적이다.
+    # 'CodeSight --wiki' 에서 접두사를 떼면 '--wiki' 가 남는데,
+    # 사이드바에 그것만 놓이면 무엇의 옵션인지 알 수 없다.
+    if s[0] in '([{)]}-–—':
         return True
     return False
 
@@ -907,15 +983,10 @@ def label_ladder(path, ancestors):
     return out
 
 
-def make_label(path, ancestors, is_overview=False):
-    # 직접 지정한 라벨이 '개요'보다 먼저다.
-    # (Container_Registry/Container_Registry.md 처럼 파일명이 디렉터리명과 같아
-    #  '개요'로 밀려나는데, 실제로는 그 폴더의 유일한 본문이라 이름이 필요하다)
+def make_label(path, ancestors):
     key = path.replace(os.sep, '/')
     if key in LABEL_OVERRIDE:
         return LABEL_OVERRIDE[key]
-    if is_overview:
-        return '개요'
     return label_ladder(path, ancestors)[0]
 
 
@@ -984,6 +1055,11 @@ def old_order(dirpath):
             in_nav = True
             continue
         if in_nav:
+            # 주석 줄에서 멈추면 그 아래 순서를 통째로 잃는다.
+            # DevOps/.pages 가 그랬다 — HOIST_IN 설명 주석 다섯 줄 뒤의
+            # Monitoring 이하 열한 개가 순서 없는 것으로 취급돼 알파벳순으로 밀렸다.
+            if raw.lstrip().startswith('#'):
+                continue
             m = re.match(r'^\s+-\s+(.*)$', raw)
             if not m:
                 if raw.strip():
@@ -992,7 +1068,9 @@ def old_order(dirpath):
             item = m.group(1).strip()
             if ': ' in item:
                 item = item.split(': ', 1)[1].strip()
-            order.append(item.strip())
+            # '- Loki:' 처럼 묶음 머리글은 콜론만 남는다. 그대로 두면
+            # rank('Loki') 가 못 찾아 묶음이 순서 밖으로 밀린다.
+            order.append(item.rstrip(':').strip())
     return order
 
 
@@ -1029,17 +1107,29 @@ def build(dirpath, ancestors):
 
     entries = []
 
-    # 0) 손으로 짠 묶음이 있으면 거기 들어간 문서는 따로 배치하지 않는다
+    # 0) 손으로 짠 묶음이 있으면 거기 들어간 것은 따로 배치하지 않는다.
+    #    묶음의 대상은 파일 이름이거나 디렉터리 이름이다(MANUAL_GROUPS 주석 참고).
+    #    디렉터리를 통째로 가져간 경우 그 디렉터리는 여기서 빼야 한다 —
+    #    안 그러면 묶음 안에 한 번, 하위 섹션 목록에 또 한 번, 두 번 나온다.
     manual = MANUAL_GROUPS.get(key, [])
     taken = {rel for _, members in manual for _, rel in members}
-    taken_top = {rel.split('/', 1)[0] for rel in taken}
+    taken_dirs = {r for r in taken
+                  if os.path.isdir(os.path.join(dirpath, r))}
     files = [f for f in files if f not in taken]
-    dirs = [d for d in dirs
-            if d not in taken_top or any(
-                m for m in children(os.path.join(dirpath, d))[0]
-                if f'{d}/{m}' not in taken)]
+    dirs = [d for d in dirs if d not in taken_dirs]
 
-    # 1) 디렉터리 대표 문서를 맨 앞에
+    # 0.5) 허브 페이지를 맨 앞에. navigation.indexes 가 켜져 있어서 이 항목이 있어야
+    #      섹션 제목 자체가 "전체 보기" 페이지로 가는 링크가 된다.
+    #      section_index.py 도 빌드할 때마다 같은 줄을 넣는다. 여기서 미리 넣어 둬야
+    #      --write 와 빌드가 서로 상대의 결과를 되돌리지 않는다(90개 파일이 그랬다).
+    if 'index.md' in files:
+        entries.append((None, 'index.md'))
+
+    # 1) 디렉터리 대표 문서를 맨 앞에.
+    #    라벨은 '개요'가 아니라 문서 이름 그대로 쓴다. 섹션 제목 자체가 이미
+    #    허브 페이지(index.md)로 가는 링크라, 그 바로 아래에 '개요'가 또 있으면
+    #    같은 자리에 뜻이 겹치는 항목이 둘이 된다. 무엇에 대한 개요인지도
+    #    라벨만 봐서는 알 수 없어 검색 결과에서 구분이 안 된다.
     overview = None
     for f in files:
         if norm(f[:-3]) == norm(dirname):
@@ -1048,9 +1138,13 @@ def build(dirpath, ancestors):
             overview = f
             break
     if overview:
-        entries.append(('개요', overview))
+        entries.append((make_label(os.path.join(dirpath, overview),
+                                   ancestors + [dirname]), overview))
 
-    # 2) 'DDD/' 와 형제 'DDD.md' 처럼 짝이 지는 건 하나로 합친다
+    # 2) 'DDD/' 와 형제 'DDD.md' 처럼 짝이 지는 건 그 .md 를 디렉터리의 개요로 본다.
+    #    한때 둘을 한 묶음으로 접었지만, 그러려면 nav 에 'DDD/Bounded_Context.md'
+    #    같은 한 단계 아래 경로를 적어야 해서 awesome-pages 가 파일로 못 읽고
+    #    링크가 통째로 404 가 됐다. 지금은 개요 문서를 디렉터리 바로 앞에 놓는다.
     merged = {}
     for d in dirs:
         sibling = f'{d}.md'
@@ -1071,46 +1165,61 @@ def build(dirpath, ancestors):
                                        ancestors + [dirname]), name))
         else:
             sub = os.path.join(dirpath, name)
+            sub_key = f'{key}/{name}'
+            dlabel = DIR_LABEL.get(sub_key, name.replace('_', ' '))
             solo = only_md(sub)
-            if solo:
-                # 문서 1개짜리 디렉터리 -> 부모로 끌어올린다
-                lbl = hoisted_label(sub, solo, ancestors + [dirname])
-                entries.append((lbl, f'{name}/{solo}'))
-            elif name in merged:
-                # 개요 파일 + 하위 디렉터리를 한 그룹으로 묶는다 (파일 이동 없이)
-                sub_entries = [('개요', merged[name])]
-                for sf in sorted(children(sub)[0]):
-                    sub_entries.append(
-                        (make_label(os.path.join(sub, sf),
-                                    ancestors + [dirname, name]),
-                         f'{name}/{sf}'))
-                for sd in sorted(children(sub)[1]):
-                    sub_entries.append((sd.replace('_', ' '), f'{name}/{sd}'))
-                entries.append((name.replace('_', ' '), sub_entries))
-            else:
-                sub_key = f'{key}/{name}'
-                entries.append((DIR_LABEL.get(sub_key, name.replace('_', ' ')),
+            if name in merged:
+                # 개요 문서를 디렉터리 바로 앞에 — 둘 다 바로 아래 자식이라 안전하다
+                entries.append((f'{dlabel} 개요', merged[name]))
+                entries.append((dlabel, name))
+            elif solo:
+                # 문서 1개짜리 디렉터리 -> 부모로 끌어올린다.
+                # 디렉터리 이름으로 걸어야 awesome-pages 가 찾는다.
+                entries.append((hoisted_label(sub, solo, ancestors + [dirname]),
                                 name))
+            else:
+                entries.append((dlabel, name))
 
     entries = dedupe(entries, dirpath, ancestors + [dirname])
-    entries = group_siblings(entries, dirname)
+    entries = group_siblings(entries, dirname, dirpath)
 
-    # 손으로 짠 묶음은 낱장 문서 뒤, 하위 섹션 앞에 놓는다
+    # 손으로 짠 묶음은 문서(낱장 + 자동 묶음) 뒤, 하위 섹션 앞에 놓는다.
+    # 자동 묶음도 결국 이 폴더의 문서라, 그 사이에 수동 묶음이 끼면
+    # '문서 다음에 섹션' 이라는 한 줄 규칙이 깨진다.
     if manual:
-        groups = [(gl, [(ml, rel) for ml, rel in members
-                        if os.path.exists(os.path.join(dirpath, rel))])
-                  for gl, members in manual]
-        groups = [(gl, ms) for gl, ms in groups if ms]
-        head = [e for e in entries if not isinstance(e[1], list)
-                and str(e[1]).endswith('.md')]
+        groups = []
+        for gl, members in manual:
+            ms = [(ml, rel) for ml, rel in members
+                  if os.path.exists(os.path.join(dirpath, rel))]
+            missing = [rel for _, rel in members
+                       if not os.path.exists(os.path.join(dirpath, rel))]
+            for rel in missing:
+                print(f'  [묶음 대상 없음] {dirpath} :: {gl} -> {rel}',
+                      file=sys.stderr)
+            if ms:
+                groups.append((gl, ms))
+        head = [e for e in entries
+                if isinstance(e[1], list) or str(e[1]).endswith('.md')]
         tail = [e for e in entries if e not in head]
-        entries = head + groups + tail
+        # 대표 문서는 늘 맨 앞에 둔다 (기존 순서에 없으면 정렬로 밀려난다)
+        pinned = {'index.md'} | ({overview} if overview else set())
+        pin = []
+        while head and not isinstance(head[0][1], list) and head[0][1] in pinned:
+            pin.append(head.pop(0))
+
+        def ident(e):
+            return e[0] if isinstance(e[1], list) else e[1]
+
+        head = sorted(head + groups, key=lambda e: rank(ident(e)))
+        entries = pin + head + tail
 
     # 다른 폴더에 있지만 여기 형제로 보여야 하는 것 (Docker 등)
+    note = HOIST_NOTE.get(key, [])
     for label, link, after in HOIST_IN.get(key, []):
         pos = next((i + 1 for i, (l, t) in enumerate(entries)
                     if not isinstance(t, list) and t == after), len(entries))
-        entries.insert(pos, (label, link))
+        entries[pos:pos] = [(COMMENT, c) for c in note] + [(label, link)]
+        note = []
     return entries
 
 
@@ -1136,7 +1245,7 @@ def build_top():
     return entries
 
 
-def group_siblings(entries, dirname=''):
+def group_siblings(entries, dirname='', dirpath=''):
     """같은 이름으로 시작하는 형제들을 접기 가능한 그룹으로 묶는다.
 
     'ECS', 'ECS Exec', 'ECS Task Placement', ... 30여 개가 평평하게 늘어서 있으면
@@ -1198,22 +1307,26 @@ def group_siblings(entries, dirname=''):
         if owner is None:
             out.append((label, target))
             continue
-        members = []
+        members, lead = [], []
         for j in plan[owner]:
             consumed.add(j)
             jl, jt = entries[j]
             rest = jl[len(owner):]
             if not rest.strip():
-                rest = '개요'
-            elif not rest.startswith(' '):
+                # 그룹 이름과 라벨이 같은 항목 = 그 그룹의 대표 문서.
+                # '개요'로 바꾸지 않는다 — 사이드바 여기저기에 '개요'가 흩어지면
+                # 무엇의 개요인지 라벨만 봐서는 알 수 없다.
+                key = os.path.join(dirpath, jt).replace(os.sep, '/')
+                lead.append((LEAD_LABEL.get(key, jl), jt))
+                continue
+            if not rest.startswith(' '):
                 rest = jl          # 조사가 바로 붙은 경우는 원래 라벨을 유지
             else:
                 rest = rest.strip()
                 if looks_broken(rest):
                     rest = jl
             members.append((rest, jt))
-        members.sort(key=lambda m: 0 if m[0] == '개요' else 1)
-        out.append((owner, members))
+        out.append((owner, lead + members))
     return out
 
 
@@ -1221,6 +1334,8 @@ def dedupe(entries, dirpath, ancestors):
     """형제끼리 라벨이 겹치면, 겹치지 않는 '가장 짧은' 후보로 올라간다."""
     taken = set()
     for i, (lbl, tgt) in enumerate(entries):
+        if not isinstance(lbl, str):     # index.md 처럼 라벨 없는 항목
+            continue
         if lbl.lower() not in taken:
             taken.add(lbl.lower())
             continue
@@ -1236,16 +1351,25 @@ def dedupe(entries, dirpath, ancestors):
             # 사다리를 다 올라가도 겹치면 파일명으로 구분
             entries[i] = (os.path.basename(tgt)[:-3].replace('_', ' '), tgt)
             lbl = entries[i][0]
+        if lbl.lower() in taken:
+            # 파일명까지 같은 뜻이면 자동으로는 갈라놓을 수 없다.
+            # (Loki_Log_Aggregation.md 와 Loki_로그_집계.md 는 title 이 글자까지 같았다)
+            print(f'  [형제 라벨 중복] {dirpath} :: {lbl} <- {tgt}'
+                  ' — MANUAL_GROUPS 나 LABEL_OVERRIDE 로 이름을 직접 줘야 한다',
+                  file=sys.stderr)
         taken.add(lbl.lower())
     return entries
 
 
-def write_pages(dirpath, entries, title=None, root=False):
+def write_pages(dirpath, entries, title=None, root=False, tail_note=()):
     lines = []
     if title:
         lines.append(f'title: {title}')
     lines.append('nav:')
     for label, target in entries:
+        if label is COMMENT:
+            lines.append(f'  {target}')
+            continue
         if isinstance(target, list):
             lines.append(f'  - {label}:')
             for sl, st in target:
@@ -1258,6 +1382,7 @@ def write_pages(dirpath, entries, title=None, root=False):
             lines.append(f'  - {label}: {target}')
     if root:
         lines.append('  - ...')
+    lines.extend(tail_note)
     content = '\n'.join(lines) + '\n'
     path = os.path.join(dirpath, '.pages')
     if WRITE:
@@ -1276,6 +1401,8 @@ def nested_targets(entries):
     """
     out = []
     for label, target in entries:
+        if label is COMMENT:
+            continue
         pairs = target if isinstance(target, list) else [(label, target)]
         for lbl, tgt in pairs:
             if isinstance(tgt, str) and '/' in tgt and not tgt.endswith('/'):
@@ -1323,11 +1450,9 @@ def walk_and_generate():
                      dirname.replace('_', '').lower()), None)
                 entries = []
                 for f in files:
-                    if f == overview_f:
-                        entries.insert(0, ('개요', f))
-                    else:
-                        entries.append((make_label(os.path.join(dirpath, f),
-                                                    ancestors + [dirname]), f))
+                    e = (make_label(os.path.join(dirpath, f),
+                                    ancestors + [dirname]), f)
+                    entries.insert(0, e) if f == overview_f else entries.append(e)
         else:
             entries = build(dirpath, ancestors)
         key = dirpath.replace(os.sep, '/')
@@ -1355,11 +1480,63 @@ def walk_and_generate():
             os.remove(p)
         generated[dirpath] = None
     for dirpath, entries, title in plan:
-        generated[dirpath] = write_pages(dirpath, entries, title)[1]
+        note = HOIST_OUT_NOTE.get(dirpath.replace(os.sep, '/'), ())
+        generated[dirpath] = write_pages(dirpath, entries, title,
+                                         tail_note=note)[1]
     return generated
 
 
+def audit():
+    """디스크에 있는데 지금 .pages 의 nav 에는 없는 것을 찾는다.
+
+    .pages 의 nav 는 명시한 것만 싣는다. 목록에 없는 파일은 경고 없이 빠진다
+    (`- ...` 를 적은 루트만 예외). 그래서 손으로 .pages 를 고치다 한 줄을
+    지우면 문서가 사이드바에서 조용히 사라진다 — 빌드도 --strict 도 안 잡는다.
+    실제로 Security 의 문서 하나가 그렇게 목록 밖으로 나갔다.
+
+    깊이 3+ 는 index.md 만 싣는 것이 설계라서(MAX_SIDEBAR_DEPTH) 대상이 아니다.
+    """
+    missing = []
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        parts = dirpath.split(os.sep)
+        if any(p in SKIP_DIRS for p in parts) or \
+                any(p.startswith('.') for p in parts[1:]):
+            dirnames[:] = []
+            continue
+        dirnames[:] = [d for d in dirnames
+                       if d not in SKIP_DIRS and not d.startswith('.')]
+        if len(parts) - 1 > MAX_SIDEBAR_DEPTH:
+            continue
+        p = os.path.join(dirpath, '.pages')
+        if not os.path.exists(p):
+            continue
+        nav = set(old_order(dirpath))
+        if '...' in nav:
+            continue                      # 나머지를 자동으로 싣는 자리가 있다
+        key = dirpath.replace(os.sep, '/')
+        files, dirs = children(dirpath)
+        for name in files + dirs:
+            if name == 'index.md' or name in nav:
+                continue
+            if f'{key}/{name}' in HIDDEN:
+                continue                  # 일부러 메뉴·검색에서 뺀 것
+            if f'{key}/{name}' in HOIST_OUT:
+                continue                  # 일부러 다른 자리로 옮긴 것
+            missing.append(f'{p} :: {name}')
+    if missing:
+        print(f'사이드바에서 빠진 항목 {len(missing)}건'
+              ' (파일은 있는데 .pages 의 nav 에 없다):')
+        for m in missing:
+            print('  ', m)
+        print('고치는 법: python3 tools/gen_nav.py --write 로 다시 만든다.')
+    else:
+        print('사이드바 누락 없음 — 디스크의 문서·폴더가 모두 .pages 에 있다.')
+    return missing
+
+
 if __name__ == '__main__':
+    if '--audit' in sys.argv:
+        sys.exit(1 if audit() else 0)
     gen = walk_and_generate()
     n = sum(1 for v in gen.values() if v)
     rm = sum(1 for v in gen.values() if v is None)
