@@ -522,3 +522,51 @@
     window.document$.subscribe(label);
   }
 })();
+
+/* 검색이 준비되는 동안 그렇다고 알린다.
+ *
+ * 왜: 검색 색인은 페이지가 뜨자마자 워커에서 만들어지는데, 그게 데스크톱에서
+ * 6.7초, 모바일 3G·저사양 CPU 에서는 39초가 걸린다(실측). 그동안 검색창은
+ * 멀쩡히 열리고 글자도 쳐지는데 결과 영역은 "검색 초기화" 그대로다.
+ * 다운로드는 71ms 라 회선 문제가 아니라 전부 CPU 다 — 즉 기다리면 되는데,
+ * 기다리라는 말이 없어서 고장 난 것처럼 보인다.
+ *
+ * 색인 자체를 줄이는 일은 따로 하고, 여기서는 상태만 정직하게 보여 준다.
+ * 워커가 처음 응답하면 Material 이 이 자리를 결과 건수로 덮어쓰므로
+ * 우리 문구는 그때 저절로 사라진다.
+ */
+(function () {
+  var PREPARING = "검색 준비 중입니다. 처음 한 번만 걸립니다…";
+
+  function wire() {
+    var meta = document.querySelector(".md-search-result__meta");
+    var input = document.querySelector(".md-search__input");
+    if (!meta || !input || meta.hasAttribute("data-yg-wait")) return;
+    meta.setAttribute("data-yg-wait", "1");
+
+    var ready = false;
+    var initial = (meta.textContent || "").trim();
+
+    // 워커가 처음 응답하면 Material 이 이 자리 문구를 결과 건수로 바꾼다.
+    // 그 변화를 준비 완료 신호로 쓴다 — 결과가 0건이어도 문구는 바뀐다.
+    var obs = new MutationObserver(function () {
+      var now = (meta.textContent || "").trim();
+      if (now !== initial && now !== PREPARING) {
+        ready = true;
+        obs.disconnect();
+      }
+    });
+    obs.observe(meta, { childList: true, characterData: true, subtree: true });
+
+    input.addEventListener("input", function () {
+      if (ready || !input.value.trim()) return;
+      if ((meta.textContent || "").trim() === PREPARING) return;
+      meta.textContent = PREPARING;
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", wire);
+  if (window.document$ && typeof window.document$.subscribe === "function") {
+    window.document$.subscribe(wire);
+  }
+})();
