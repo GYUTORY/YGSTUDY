@@ -375,7 +375,7 @@ export class OrderBatchRepository {
         }
     }
 }
-```sql
+```
 
 INSERT 후 생성된 id가 필요하면 `RETURNING` 절을 사용한다(PostgreSQL) 또는 `insertId`를 활용한다(MySQL).
 

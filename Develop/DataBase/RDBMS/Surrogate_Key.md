@@ -91,7 +91,7 @@ export class Order {
     @PrimaryGeneratedColumn()
     id: number;
 }
-```sql
+```
 
 INSERT 후 DB가 생성한 값을 `LAST_INSERT_ID()` / `RETURNING id`로 조회한다. MySQL의 `AUTO_INCREMENT`와 1:1 대응한다.
 

@@ -243,6 +243,9 @@ graph TD
 - **@default()**: 기본값 설정
 - **@unique**: 유니크 제약조건
 - **@db.타입**: 데이터베이스별 타입 지정
+
+```prisma
+model User {
   password  String   @db.VarChar(255)
   posts     Post[]
   createdAt DateTime @default(now()) @map("created_at")
@@ -651,6 +654,8 @@ graph TD
 - **마이그레이션**: 자동 실행 비활성화, 수동 관리
 - **재시도**: 연결 실패 시 재시도 로직
 - **모니터링**: 연결 상태 및 쿼리 성능 모니터링
+
+```typescript
     connectionTimeoutMillis: 2000
   }
 });

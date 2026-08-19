@@ -240,7 +240,7 @@ public class Stock {
         this.quantity -= quantity;
     }
 }
-```sql
+```
 
 UPDATE 시 `WHERE id = ? AND version = ?`이 자동으로 붙고, 영향받은 row가 0이면 `OptimisticLockException`이 던져진다 (Spring에서는 `ObjectOptimisticLockingFailureException`).
 

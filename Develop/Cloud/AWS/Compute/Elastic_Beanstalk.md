@@ -61,7 +61,7 @@ packages:
     htop: []
     jq: []
     ImageMagick: []
-```bash
+```
 
 yum 외에 `rpm`, `python`, `rubygems` 같은 키도 있다. 빈 배열은 "버전 지정 없이 최신"이라는 뜻이다. 특정 버전이 필요하면 `git: "2.40.1"`처럼 적는다. AL2023 플랫폼에서는 `dnf`가 기본이지만 EB가 yum을 alias로 처리해 준다.
 
