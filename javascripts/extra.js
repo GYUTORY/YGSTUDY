@@ -450,9 +450,29 @@
     });
   }
 
+  /* 중첩 nav 를 랜드마크에서 뺀다.
+   *
+   * 목차 섹션마다, 사이드바 하위 목록마다 nav 가 하나씩 생겨서 다이어그램 문서에서
+   * 랜드마크가 30개까지 늘어난다. "랜드마크로 건너뛰기" 목록이 쓸모없어진다.
+   *
+   * role="presentation" 은 여기서 무시된다 — 이 nav 들은 aria-labelledby 와
+   * aria-expanded 를 갖고 있어 presentational role 충돌 해소 규칙에 걸린다.
+   * (코드블록 nav 는 aria 속성이 없어서 먹혔다.) group 은 랜드마크가 아니면서
+   * 이름을 유지한다. list 는 안 된다 — 이 nav 안에는 label 제목과 ul 이 함께 있다.
+   *
+   * 최상위 목차(md-nav--secondary)는 좁은 화면에서 드로어 안으로 들어가므로
+   * 반드시 제외한다.
+   */
+  function ungroupNestedNav() {
+    document.querySelectorAll("nav.md-nav nav.md-nav:not(.md-nav--secondary)").forEach(function (nav) {
+      nav.setAttribute("role", "group");
+    });
+  }
+
   function run() {
     nameToggles();
     unmarkCodeNav();
+    ungroupNestedNav();
   }
 
   document.addEventListener("DOMContentLoaded", run);

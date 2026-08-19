@@ -2842,7 +2842,14 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li {
     visibility: hidden;
   }
-  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
+  /* 되살리는 쪽에는 '드로어가 열렸을 때만' 가드를 건다.
+     Material 은 드로어 개폐와 무관하게 활성 경로의 토글을 checked 로 둔다.
+     가드가 없으면 닫힌 드로어(x=-328) 안의 링크가 visibility:visible 로
+     되살아나 조상의 hidden 을 뚫고 탭 순서에 남는다 — CSS visibility 는
+     자손이 다시 visible 을 선언하면 조상의 hidden 이 뚫린다.
+     실측 깊이1~5 에서 각각 9·41·46·11·10개가 화면 밖에서 포커스를 받았다. */
+  [data-md-toggle="drawer"]:checked ~ .md-container
+    .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
     visibility: visible;
   }
   /* 펼쳐진 항목 자신의 제목 줄은 뒤로가기 헤더와 겹쳐 보이므로 숨긴다.
@@ -2853,8 +2860,10 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked):has(> nav.md-nav > ul > li) > .md-nav__container {
     visibility: hidden;
   }
-  /* 하위가 빈 항목은 형제들과 함께 보여야 길이 막히지 않는다 */
-  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked):not(:has(> ul > li > input.md-nav__toggle:checked ~ nav.md-nav > ul > li)) > ul > li {
+  /* 하위가 빈 항목은 형제들과 함께 보여야 길이 막히지 않는다.
+     여기에도 같은 가드가 필요하다 — 이 규칙이 깊이4~5 구간의 탭 침입을 만들었다. */
+  [data-md-toggle="drawer"]:checked ~ .md-container
+    .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked):not(:has(> ul > li > input.md-nav__toggle:checked ~ nav.md-nav > ul > li)) > ul > li {
     visibility: visible;
   }
 }
@@ -2882,18 +2891,35 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
    (1440px 은 55자). 눈이 줄 끝에서 다음 줄 머리로 돌아오지 못한다.
 
    폭을 넓게 쓰는 요소(코드블록·표·다이어그램·이미지·홈 섹션)는 그대로 두고
-   글자만 잡는다. 실측 2560px 기준 106자 -> 69자. */
-@media screen and (min-width: 90em) {
-  .md-typeset > p,
-  .md-typeset > ul,
-  .md-typeset > ol,
-  .md-typeset > blockquote,
-  .md-typeset > h1,
-  .md-typeset > h2,
-  .md-typeset > h3,
-  .md-typeset > h4,
-  .md-typeset > h5,
-  .md-typeset > h6 {
-    max-width: 1100px;
-  }
+   글자만 잡는다. 실측 2560px 기준 raw 106자 -> 53자, 한글 글자폭 환산 82자 -> 42자.
+   WCAG 1.4.8(AAA) 의 CJK 상한이 환산 40자다. */
+.md-typeset > p,
+.md-typeset > ul,
+.md-typeset > ol,
+.md-typeset > blockquote,
+.md-typeset > h1,
+.md-typeset > h2,
+.md-typeset > h3,
+.md-typeset > h4,
+.md-typeset > h5,
+.md-typeset > h6 {
+  /* em 이라 글꼴 크기를 따라간다. 이 사이트는 넓은 화면에서 본문 글꼴이
+     20 -> 24px 로 커지므로 px 로 잡으면 넓어질수록 글자가 더 들어간다.
+     36em 이면 어느 폭에서도 한글 42자로 고정되고,
+     1600px 미만에서는 현재 폭이 이미 그 아래라 아무것도 안 바뀐다. */
+  max-width: 36em;
+}
+
+
+/* 다이어그램 관계 설명 — 스크린리더 전용. 화면에서는 보이지 않는다.
+   mermaid-init.js 가 렌더 직후 채운다. */
+.yg-mermaid-desc {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

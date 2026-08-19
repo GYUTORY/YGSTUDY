@@ -90,6 +90,145 @@
     });
   }
 
+  /* 다이어그램에 이름과 관계 설명을 준다.
+   *
+   * 왜: SVG 941개가 role="graphics-document" 인데 이름이 없다. 게다가 안쪽은
+   * subgraph 제목 -> 엣지 라벨 -> 노드 라벨 순으로, 각 무리가 소스와 역순으로
+   * 읽힌다. 시간 흐름 다이어그램이 2020 -> 1990 으로 거꾸로 읽히는 식이다.
+   * "무엇에서 무엇으로" 가 사라져 읽어도 뜻이 통하지 않는다.
+   *
+   * 소스는 우리가 파싱하지 않는다. mermaid 가 getDiagramFromText 로 파싱 결과를
+   * 그대로 내준다 — 941개 전부 성공, 중앙 0.7ms. 정규식으로 흉내내면 체인 엣지
+   * (A --> B --> C)와 <br/> 가 섞인 라벨에서 무너져 20.6% 밖에 못 읽는다.
+   *
+   * role="img" 만으로는 안쪽이 안 감춰진다 — Chromium 은 SVG 자식을 계속
+   * 노출한다(실측 333노드 그대로). 자식에 aria-hidden 을 직접 건다.
+   * 단 설명을 못 만들었으면 감추지 않는다. 감추면 정보가 사라진다.
+   */
+  function clean(v) {
+    return String(v == null ? "" : v)
+      .replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "")
+      .replace(/\\n/g, " ").replace(/[─━]{2,}/g, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+
+  /** 다이어그램 바로 앞의 제목. 941개 전부 하나씩 있다(누락 0). */
+  function nearestHeading(el) {
+    var n = el, h = null;
+    while (n && !h) {
+      var prev = n.previousElementSibling;
+      while (prev) {
+        if (/^H[1-6]$/.test(prev.tagName)) { h = prev; break; }
+        var q = prev.querySelectorAll && prev.querySelectorAll("h1,h2,h3,h4,h5,h6");
+        if (q && q.length) { h = q[q.length - 1]; break; }
+        prev = prev.previousElementSibling;
+      }
+      n = n.parentElement;
+    }
+    if (!h) return null;
+    var c = h.cloneNode(true);
+    c.querySelectorAll(".headerlink").forEach(function (x) { x.remove(); });
+    return c.textContent.trim();
+  }
+
+  function relations(db) {
+    var i, out = [];
+    if (db.getVertices && db.getEdges) {                    // flowchart / graph 649
+      var V = db.getVertices(), E = db.getEdges();
+      var L = function (id) { return clean((V[id] && V[id].text) || id); };
+      for (i = 0; i < E.length; i++)
+        out.push(L(E[i].start) + " → " + L(E[i].end) + (E[i].text ? " (" + clean(E[i].text) + ")" : ""));
+      if (!out.length) for (var k in V) out.push(L(k));     // 관계 없는 나열형
+    } else if (db.getActors && db.getMessages) {            // sequence 227
+      var A = db.getActors(), M = db.getMessages();
+      var LA = function (id) { return clean((A[id] && (A[id].description || A[id].name)) || id); };
+      for (i = 0; i < M.length; i++) if (M[i].from && M[i].to)
+        out.push(LA(M[i].from) + " → " + LA(M[i].to) + (M[i].message ? " (" + clean(M[i].message) + ")" : ""));
+    } else if (db.getRootDocV2 || db.getRootDoc) {          // state 12
+      // getStates() 는 렌더 중에 채워져 파싱 시점엔 비어 있다. 원문서를 훑는다.
+      var doc = (db.getRootDocV2 && db.getRootDocV2()) || db.getRootDoc();
+      (function walk(list) {
+        (list || []).forEach(function (st) {
+          if (st.stmt === "relation") out.push(
+            stateName(st.state1) + " → " + stateName(st.state2) +
+            (st.description ? " (" + clean(st.description) + ")" : ""));
+          if (st.doc) walk(st.doc);
+          if (st.state1 && st.state1.doc) walk(st.state1.doc);
+          if (st.state2 && st.state2.doc) walk(st.state2.doc);
+        });
+      })(doc.doc || doc);
+    } else if (db.getRelations && db.getClasses) {          // class 6
+      var R = db.getRelations();
+      for (i = 0; i < R.length; i++) out.push(clean(R[i].id1) + " → " + clean(R[i].id2));
+    } else if (db.getSections && db.getShowData !== undefined) {   // pie 3
+      var P = db.getSections();
+      for (var key in P) out.push(clean(key) + ": " + P[key]);
+    } else if (db.getTasks) {                               // gantt 5 / timeline 2
+      var T = db.getTasks();
+      for (i = 0; i < T.length; i++)
+        out.push(clean(T[i].task) + (T[i].events ? ": " + T[i].events.map(clean).join(", ") : ""));
+    } else if (db.getMindmap) {                             // mindmap 11 (계층은 평평해진다)
+      (function w(nd) { if (!nd) return; out.push(clean(nd.descr || nd.nodeId)); (nd.children || []).forEach(w); })(db.getMindmap());
+    } else if (db.getBlocksFlat) {                          // block 9
+      db.getBlocksFlat().forEach(function (bk) { if (bk.label) out.push(clean(bk.label)); });
+    } else if (db.getDrawableElem) {                        // xychart 16
+      db.getDrawableElem().forEach(function (g) { (g.data || []).forEach(function (d) { if (d.text) out.push(clean(d.text)); }); });
+    } else if (db.getQuadrantData) {                        // quadrant 1
+      (db.getQuadrantData().points || []).forEach(function (pt) { out.push(clean(pt.text && pt.text.text)); });
+    }
+    return out.filter(Boolean);
+  }
+
+  /** mermaid 가 [*] 에 붙이는 내부 id 를 사람이 읽는 말로 바꾼다. */
+  function stateName(st) {
+    var v = clean((st && (st.description || st.id)) || "");
+    if (v === "root_start") return "시작";
+    if (v === "root_end") return "끝";
+    return v;
+  }
+
+  function describe(mermaid, node, src) {
+    if (!mermaid.mermaidAPI || !mermaid.mermaidAPI.getDiagramFromText) return;
+    return mermaid.mermaidAPI.getDiagramFromText(src).then(function (d) {
+      var db = d.db, svg = node.querySelector("svg");
+      if (!svg || !db) return;
+
+      // 이름: 소스에 title 이 있으면 그것(25개), 없으면 바로 앞 제목
+      var name = clean((db.getDiagramTitle && db.getDiagramTitle()) ||
+                       (db.getAccTitle && db.getAccTitle()) || "");
+      if (!name) {
+        var h = nearestHeading(node);
+        if (h) {
+          // 순번은 카운터로 세지 않는다. 재렌더가 일어나면 같은 다이어그램이
+          // 두 번 세어져 "(2번째)" 가 붙는다. 문서 순서로 그때그때 계산하면
+          // 몇 번을 다시 그려도 같은 값이 나온다.
+          var all = [].slice.call(document.querySelectorAll("div.yg-mermaid"));
+          var same = all.filter(function (el) { return nearestHeading(el) === h; });
+          var idx = same.indexOf(node) + 1;
+          name = h + (same.length > 1 ? " (" + idx + "번째)" : "") + " 다이어그램";
+        } else {
+          name = "다이어그램";
+        }
+      }
+      svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", name);
+
+      var rel = relations(db);
+      if (!rel.length) return;   // 설명을 못 만들었으면 안쪽을 감추지 않는다
+
+      var descId = (svg.id || "mmd") + "-desc";
+      var prev = node.querySelector(".yg-mermaid-desc");
+      if (prev) prev.remove();   // 다시 그렸으면 이전 설명을 갈아끼운다
+      var box = document.createElement("div");
+      box.id = descId;
+      box.className = "yg-mermaid-desc";
+      box.textContent = rel.join(". ") + ".";
+      node.appendChild(box);
+      svg.setAttribute("aria-describedby", descId);
+      for (var i = 0; i < svg.children.length; i++) svg.children[i].setAttribute("aria-hidden", "true");
+    })["catch"](function () { /* 파싱 실패 시 지금 상태 그대로 둔다 */ });
+  }
+
   function render() {
     var nodes = collect();
     if (!nodes.length) return;
@@ -151,6 +290,7 @@
           node.innerHTML = out.svg;
           node.setAttribute("data-mermaid-done", "1");
           if (typeof out.bindFunctions === "function") out.bindFunctions(node);
+          return describe(mermaid, node, src);
         });
       })
       ["catch"](function (err) {
@@ -189,6 +329,8 @@
       var src = div.getAttribute("data-mermaid-src");
       if (!src) return;
       div.removeAttribute("data-mermaid-done");
+      var old = div.querySelector(".yg-mermaid-desc");
+      if (old) old.remove();
       div.classList.remove("mermaid-error");
       div.textContent = src;
     });
