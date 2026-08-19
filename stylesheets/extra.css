@@ -2986,3 +2986,15 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   white-space: nowrap;
   border: 0;
 }
+
+
+/* 다크 모드에서 테마 토글에만 포커스 표시가 없었다.
+   Material 규칙이 .md-option.focus-visible + label 로 **인접** 형제만 겨냥하는데,
+   DOM 이 input#__palette_0 → label[for=__palette_1] → input#__palette_1 → label[for=__palette_0]
+   이라 Tab 이 닿는 #__palette_0 의 인접 라벨은 다크에서 hidden 이다.
+   실측: 포커스 전후 헤더 픽셀 변화가 라이트 332px, 다크 0px(대조군 검색창은 양쪽 6~7만px).
+   일반 형제로 넓혀 보이는 라벨에 링을 준다. */
+.md-header__option .md-option.focus-visible ~ label:not([hidden]) {
+  outline: var(--md-accent-fg-color) auto 1px;
+  outline-offset: 2px;
+}

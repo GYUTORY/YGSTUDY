@@ -220,7 +220,21 @@
  */
 (function () {
   document.addEventListener("DOMContentLoaded", function () {
-    if (document.querySelector(".md-skip")) return;
+    // Material 이 이미 skip 을 만든 문서 페이지에서는, 그 링크가 해시만 옮기고
+    // 포커스는 안 옮긴다(실측: Enter 후 activeElement 가 BODY). 그러면 포커스 링이
+    // 사라져 지금 어디인지 알 수 없다. 만들지는 말고 동작만 보태 준다.
+    var made = document.querySelector(".md-skip");
+    if (made) {
+      var href = made.getAttribute("href") || "";
+      var dst = href.charAt(0) === "#" && document.getElementById(href.slice(1));
+      if (dst) {
+        if (!dst.hasAttribute("tabindex")) dst.setAttribute("tabindex", "-1");
+        made.addEventListener("click", function () {
+          setTimeout(function () { dst.focus({ preventScroll: false }); }, 0);
+        });
+      }
+      return;
+    }
     var target = document.querySelector(".md-content__inner") || document.querySelector(".md-content");
     if (!target) return;
     if (!target.id) target.id = "yg-main";
@@ -563,6 +577,108 @@
       if ((meta.textContent || "").trim() === PREPARING) return;
       meta.textContent = PREPARING;
     });
+  }
+
+  document.addEventListener("DOMContentLoaded", wire);
+  if (window.document$ && typeof window.document$.subscribe === "function") {
+    window.document$.subscribe(wire);
+  }
+})();
+
+
+/* 키보드로만 쓸 때 막히는 자리들.
+ *
+ * 실측(Playwright, Tab 전수 추적)으로 나온 것 셋을 고친다.
+ *
+ * 1) 375px 에서 사이트 내비게이션에 아예 못 간다. 햄버거가
+ *    <label class="md-header__button" for="__drawer"> 인데 label 은 기본
+ *    포커스 대상이 아니고 tabindex 도 없다. 375px 4개 페이지 전수 Tab 에서
+ *    primary nav 정지점이 0개였다 — 검색이 유일한 통로였다.
+ * 2) Esc 로 검색을 닫으면 포커스가 body 로 사라진다. 다음 Tab 이 페이지
+ *    맨 처음부터 다시 시작한다.
+ * 3) .md-search__scrollwrap 이 Material 템플릿에서 tabindex="0" 으로 박혀 있어,
+ *    검색이 닫혀 있어도 페이지마다 아무 데도 안 보이는 정지점이 하나 생긴다.
+ */
+(function () {
+  function wire() {
+    // 1) 햄버거를 키보드로
+    var burger = document.querySelector('label.md-header__button[for="__drawer"]');
+    var drawer = document.getElementById("__drawer");
+    if (burger && drawer && !burger.hasAttribute("data-yg-kbd")) {
+      burger.setAttribute("data-yg-kbd", "1");
+      burger.setAttribute("tabindex", "0");
+      burger.setAttribute("role", "button");
+      burger.setAttribute("aria-label", "내비게이션 메뉴 열기");
+      burger.setAttribute("aria-expanded", String(drawer.checked));
+      // 여는 일 자체는 브라우저가 한다. tabindex 만 주면 Enter 로 라벨이 활성화되고
+      // for= 대상 체크박스가 켜진다(실측). 여기서 또 토글하면 두 번 뒤집혀
+      // 도로 닫힌다 — 처음에 그렇게 짰다가 "Enter 를 눌러도 안 열린다" 로 한참 헤맸다.
+      // 우리가 할 일은 상태를 알리고 포커스를 안으로 넣는 것뿐이다.
+      burger.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        setTimeout(function () {
+          burger.setAttribute("aria-expanded", String(drawer.checked));
+          if (!drawer.checked) return;
+          // 안 그러면 연 다음 Tab 이 드로어를 지나쳐 본문으로 가버린다.
+          // 드로어가 transform 으로 미끄러져 들어오는 동안은 visibility 가 hidden 이라
+          // focus() 가 조용히 무시된다. 보일 때까지 몇 번 다시 시도한다.
+          // 첫 번째 링크를 그냥 집으면 안 된다 — 접혀 있는 하위 항목이 앞에 오는
+          // 경우가 있어 visibility:hidden 인 요소를 잡고, focus() 가 조용히 무시된다
+          // (실측: 링크 53개 중 43개만 보이는데 첫 번째가 숨은 쪽이었다).
+          // 드로어가 미끄러져 들어오는 동안도 hidden 이라 보일 때까지 다시 시도한다.
+          var tries = 0;
+          (function grab() {
+            var nav = document.querySelector(".md-sidebar--primary");
+            var links = nav ? nav.querySelectorAll("a.md-nav__link") : [];
+            for (var i = 0; i < links.length; i++) {
+              // visibility 만 보면 안 된다 — display:none 인 요소도 visibility 는
+              // visible 로 계산된다(현재 문서 링크가 실제로 그렇다). 실제로 자리를
+              // 차지하는지로 판단해야 focus() 가 먹는다.
+              if (getComputedStyle(links[i]).visibility === "visible" &&
+                  links[i].getClientRects().length > 0) {
+                links[i].focus();
+                return;
+              }
+            }
+            if (++tries < 12) setTimeout(grab, 50);
+          })();
+        }, 60);
+      });
+      drawer.addEventListener("change", function () {
+        burger.setAttribute("aria-expanded", String(drawer.checked));
+      });
+    }
+
+    // 2) Esc 로 검색을 닫으면 원래 자리로 포커스를 돌려준다
+    var search = document.getElementById("__search");
+    if (search && !search.hasAttribute("data-yg-kbd")) {
+      search.setAttribute("data-yg-kbd", "1");
+      var from = null;
+      document.addEventListener("focusin", function (e) {
+        if (search.checked) return;
+        if (e.target && e.target.closest && e.target.closest(".md-search")) return;
+        from = e.target;
+      }, true);
+      search.addEventListener("change", function () {
+        if (search.checked || !from || !document.contains(from)) return;
+        var back = from;
+        setTimeout(function () { try { back.focus(); } catch (err) {} }, 0);
+      });
+    }
+
+    // 3) 닫힌 검색의 빈 정지점 제거
+    var wrap = document.querySelector(".md-search__scrollwrap");
+    if (wrap && search) {
+      var sync = function () {
+        if (search.checked) wrap.setAttribute("tabindex", "0");
+        else wrap.removeAttribute("tabindex");
+      };
+      sync();
+      if (!wrap.hasAttribute("data-yg-kbd")) {
+        wrap.setAttribute("data-yg-kbd", "1");
+        search.addEventListener("change", sync);
+      }
+    }
   }
 
   document.addEventListener("DOMContentLoaded", wire);
