@@ -16,6 +16,88 @@
     media="print" 로 받아 두고 onload 에서 all 로 바꾸면 첫 화면을 막지 않는다.
     extra_css 로는 media 를 못 붙여서 이 자리에서 직접 쓴다.
   #}
+  {#
+    검색 인덱스를 "검색을 하려는 순간" 까지 미룬다.
+
+    왜: Material 은 페이지가 뜨자마자 search_index.json 을 받아 워커에서 색인을
+    만든다. 문제는 그게 페이지를 옮길 때마다 처음부터 다시 일어난다는 것이다.
+    실측(n=5 중앙값):
+      - 인덱스가 첫 페인트 앞에 끼어들어 FCP 를 -188ms ~ -1,044ms 만큼 늦춘다.
+        캐시가 찰수록 심해져서 지금은 웜이 콜드보다 FCP 가 나쁜 역전이 난다
+        (heavy_code 콜드 168ms -> 웜 592ms).
+      - Fast 3G 에서는 gzip 5.95MB 를 받느라 31초가 걸린다. 검색을 안 해도 받는다.
+
+    검색을 한 번도 안 쓰는 사람이 문서를 옮길 때마다 그 값을 낸다.
+    그래서 검색창을 건드리기 전에는 요청을 붙잡아 두고, 건드리는 순간 흘려보낸다.
+    검색을 쓰는 사람은 focus 시점부터 시작하므로 타이핑하는 동안 진행된다.
+
+    head 안에 인라인으로 둔 이유: Material 번들보다 먼저 돌아야 요청을 잡을 수 있다.
+  #}
+  <script>
+    (function () {
+      var wanted = false, held = [];
+      function isIndex(u) {
+        return typeof u === "string" && u.indexOf("search_index.json") !== -1;
+      }
+      var open = XMLHttpRequest.prototype.open;
+      var send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function (method, url) {
+        this.__ygHold = isIndex(url);
+        return open.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function () {
+        var xhr = this, args = arguments;
+        if (xhr.__ygHold && !wanted) {
+          held.push(function () { send.apply(xhr, args); });
+          return;
+        }
+        return send.apply(xhr, args);
+      };
+      if (typeof window.fetch === "function") {
+        var fetch0 = window.fetch;
+        window.fetch = function (input) {
+          var url = typeof input === "string" ? input : (input && input.url);
+          if (isIndex(url) && !wanted) {
+            var rest = arguments;
+            return new Promise(function (resolve, reject) {
+              held.push(function () { fetch0.apply(window, rest).then(resolve, reject); });
+            });
+          }
+          return fetch0.apply(window, arguments);
+        };
+      }
+      function release() {
+        if (wanted) return;
+        wanted = true;
+        var q = held.splice(0);
+        for (var i = 0; i < q.length; i++) q[i]();
+      }
+      // 검색을 하려는 신호. Material 의 단축키(s · / · f · Ctrl/Cmd+K)도 포함한다.
+      //
+      // 진입 경로를 하나라도 빠뜨리면 검색이 영영 준비되지 않는다. 그래서
+      // 마지막 안전망으로 검색 토글(#__search)의 change 를 본다 — Material 이
+      // 검색을 여는 모든 경로가 결국 이 체크박스를 거친다.
+      document.addEventListener("change", function (e) {
+        if (e.target && e.target.id === "__search" && e.target.checked) release();
+      }, true);
+      document.addEventListener("focusin", function (e) {
+        if (e.target && e.target.closest && e.target.closest(".md-search")) release();
+      }, true);
+      document.addEventListener("click", function (e) {
+        if (e.target && e.target.closest &&
+            e.target.closest(".md-search, [for='__search'], [data-md-component='search']")) release();
+      }, true);
+      document.addEventListener("keydown", function (e) {
+        var k = (e.key || "").toLowerCase();
+        if ((e.metaKey || e.ctrlKey) && k === "k") return release();
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        var t = e.target, tag = t && t.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || (t && t.isContentEditable)) return;
+        if (k === "s" || k === "f" || k === "/") release();
+      }, true);
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
