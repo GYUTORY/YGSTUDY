@@ -29,9 +29,20 @@ runs:
     # 도구 자체 회귀 테스트. 걸어 두지 않아서 반환값이 튜플로 바뀐 뒤에도
     # 아무도 모른 채 깨져 있었다(ValueError). 검사 도구가 조용히 죽으면
     # 그 뒤의 모든 통과가 의미가 없다.
-    - name: Test link checker
+    # 테스트 파일을 하나씩 손으로 등록하면 다음에 추가한 것을 잊는다 —
+    # 이 스텝이 막으려던 사고와 같은 유형이라 전수로 돌린다.
+    - name: Test checkers
       shell: bash
-      run: python3 tools/tests/test_check_links.py
+      run: |
+        set -e
+        found=0
+        for t in tools/tests/test_*.py; do
+          [ -e "$t" ] || continue
+          echo "── $t"
+          python3 "$t"
+          found=$((found+1))
+        done
+        [ "$found" -gt 0 ] || { echo "tools/tests 에 테스트가 하나도 없다"; exit 1; }
 
     - name: Check internal links
       shell: bash

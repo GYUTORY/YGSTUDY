@@ -90,13 +90,11 @@ def test_nfd_path_matches_nfc_tracked_entry():
 
 
 if __name__ == "__main__":
-    tests = [
-        test_code_fence_links_ignored,
-        test_html_img_broken_reported,
-        test_markdown_image_not_false_positive,
-        test_markdown_image_broken_still_reported,
-        test_nfd_path_matches_nfc_tracked_entry,
-    ]
+    # 테스트 함수를 손으로 목록에 적으면, 함수를 추가하고 목록에 안 넣었을 때
+    # 조용히 안 돈다 — 통과 개수만 늘지 않을 뿐 아무도 눈치채지 못한다.
+    # 모듈에 정의된 test_* 를 전부 찾아 돈다.
+    tests = [v for k, v in sorted(globals().items())
+             if k.startswith("test_") and callable(v)]
     passed = 0
     for t in tests:
         try:
