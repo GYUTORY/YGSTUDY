@@ -139,7 +139,7 @@ api.example.com {
 
 이 구조가 핵심이다. preflight 매처를 하나 만들고, 그 매처에 걸린 요청은 백엔드로 보내지 않고 Caddy가 204로 직접 답한다. 그 외 요청만 reverse_proxy로 흘러간다. 백엔드까지 OPTIONS가 들어가게 두면 백엔드 프레임워크에서 405 Method Not Allowed를 돌려주는 일이 자주 생기고, 그러면 브라우저는 본 요청을 시도조차 하지 않는다.
 
-`Access-Control-Max-Age`는 preflight 결과를 클라이언트가 캐시해도 되는 시간을 초 단위로 알려준다. 86400(24시간)이면 같은 origin/method/header 조합의 preflight를 24시간 동안 다시 보내지 않는다. 짧게 잡으면 매 요청마다 preflight가 두 번씩 가는 꼴이라 응답 속도가 두 배로 늘어난다.
+`Access-Control-Max-Age`는 preflight 결과를 클라이언트가 캐시해도 되는 시간을 초 단위로 알려준다. 다만 브라우저가 자체 상한을 둔다 — Chrome 은 2시간(7200초), Firefox 는 24시간이다. 86400 을 줘도 Chrome 에서는 2시간까지만 캐시된다. 짧게 잡으면 매 요청마다 preflight가 두 번씩 가는 꼴이라 응답 속도가 두 배로 늘어난다.
 
 ### Origin을 동적으로 처리하기
 

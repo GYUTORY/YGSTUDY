@@ -55,7 +55,7 @@ helm install tenant-${TENANT_SLUG} ./charts/tenant \
 
 ## NetworkPolicy로 파드 간 통신 차단
 
-NetworkPolicy는 실제 패킷 필터링을 직접 하는 게 아니다. CNI(Container Network Interface) 플러그인이 이 정책을 읽고 실제 네트워크 규칙을 만든다. Calico, Cilium, Weave 같은 CNI만 NetworkPolicy를 지원한다. 기본 kubenet이나 flannel 일부 버전은 NetworkPolicy를 무시한다. 클러스터 CNI 설정을 먼저 확인해야 한다.
+NetworkPolicy는 실제 패킷 필터링을 직접 하는 게 아니다. CNI(Container Network Interface) 플러그인이 이 정책을 읽고 실제 네트워크 규칙을 만든다. Calico·Cilium 이 대표적이고, EKS 의 VPC CNI 도 1.25 부터 지원한다(애드온에서 활성화). Flannel 처럼 지원하지 않는 것도 있으니 쓰는 CNI 를 먼저 확인해야 한다. 기본 kubenet이나 flannel 일부 버전은 NetworkPolicy를 무시한다. 클러스터 CNI 설정을 먼저 확인해야 한다.
 
 ### Default Deny-All 정책
 

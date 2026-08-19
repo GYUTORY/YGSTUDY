@@ -432,7 +432,7 @@ server {
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-Request-ID' always;
         add_header 'Access-Control-Allow-Credentials' 'true' always;
-        add_header 'Access-Control-Max-Age' '86400' always;  # Preflight 캐시 24시간
+        add_header 'Access-Control-Max-Age' '86400' always;  # Chrome 2시간·Firefox 24시간이 상한이라 그 이상은 무시
 
         # Preflight 요청 처리
         if ($request_method = 'OPTIONS') {

@@ -844,7 +844,7 @@ spec:
               - 169.254.170.2/32    # ECS metadata
 ```
 
-NetworkPolicy를 적용하려면 Calico 같은 CNI가 필요하다. 기본 VPC CNI는 NetworkPolicy를 지원하지 않으므로 별도 설치(예: Calico, Cilium)가 필요하다.
+NetworkPolicy 를 적용하려면 CNI 가 그걸 지원해야 한다. EKS 의 기본 VPC CNI 는 오래 지원하지 않았지만 EKS 1.25 부터 지원이 들어왔다 — 애드온 설정에서 켜야 한다. 그 이전 클러스터라면 Calico·Cilium 을 따로 설치해야 한다.
 
 ### http-put-response-hop-limit 1의 의미
 

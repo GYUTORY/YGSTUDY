@@ -209,7 +209,7 @@ print(f"캐시 읽기: {response.usage.cache_read_input_tokens}")
 print(f"캐시 쓰기: {response.usage.cache_creation_input_tokens}")
 ```
 
-첫 호출에서 `cache_creation_input_tokens`에 50K가 잡히고, 5분 내 동일 프리픽스로 재호출하면 `cache_read_input_tokens`에 50K가 잡힌다. 읽기는 기본 입력 단가의 10%다. Opus 기준 $15/1M이 $1.5/1M로 떨어진다.
+첫 호출에서 `cache_creation_input_tokens`에 50K가 잡히고, 5분 내 동일 프리픽스로 재호출하면 `cache_read_input_tokens`에 50K가 잡힌다. 읽기는 기본 입력 단가의 10%다. Opus 기준 $5/1M이 $0.5/1M로 떨어진다.
 
 ### 5.4 Python — Extended Thinking
 
