@@ -102,7 +102,7 @@ $ ls -la /proc/1234/fd | wc -l
 ```
 
 <div align="center">
-    <img src="../../../etc/image/OS/Process1.webp" alt="Process1" width="50%">
+    <img src="../../../etc/image/OS/Process1.webp" alt="프로그램이 실행되어 메모리에 적재된 것이 프로세스임을 나타낸 그림" width="50%">
 </div>
 
 ---

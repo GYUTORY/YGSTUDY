@@ -30,7 +30,7 @@ const result = remoteFunction("hello"); // 실제로는 네트워크를 통해 �
 - 코드 생성 — .proto 파일에서 클라이언트/서버 스텁 자동 생성
 - 다국어 지원 — Java, Go, Python, C++, Node.js 등
 
-![gRPC.svg](../../../../../etc/image/Network_image/7Layer/gRPC/gRPC.svg)
+![C++ gRPC 서버가 Ruby 클라이언트·Android Java 클라이언트의 스텁과 Proto 요청·응답을 주고받는 구조](../../../../../etc/image/Network_image/7Layer/gRPC/gRPC.svg)
 
 ---
 
@@ -45,7 +45,7 @@ const result = remoteFunction("hello"); // 실제로는 네트워크를 통해 �
 | 스트리밍 | 네이티브 지원 | 제한적 |
 | 브라우저 지원 | 제한적 (gRPC-Web 필요) | 완전 지원 |
 
-![gRPC & Rest.png](../../../../../etc/image/Network_image/7Layer/gRPC/gRPC%20%26%20Rest.webp)
+![Protocol Buffers 와 JSON 의 전달을 곧은 선과 헤매는 선으로 대비한 그림](../../../../../etc/image/Network_image/7Layer/gRPC/gRPC%20%26%20Rest.webp)
 
 ### 데이터 크기 비교
 
@@ -62,7 +62,7 @@ const result = remoteFunction("hello"); // 실제로는 네트워크를 통해 �
 // 바이너리 형태로 저장되어 크기가 훨씬 작음
 ```
 
-![Protocol Buffer.png](../../../../../etc/image/Network_image/7Layer/gRPC/Protocol%20Buffer.webp)
+![같은 데이터를 JSON 과 Protocol Buffers 로 나타낸 비교 — 필드 태그·타입·길이 바이트까지 분해해 총 33바이트임을 보인다](../../../../../etc/image/Network_image/7Layer/gRPC/Protocol%20Buffer.webp)
 
 ---
 

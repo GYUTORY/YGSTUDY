@@ -2258,6 +2258,9 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   .md-typeset blockquote,
   .md-typeset .admonition,
   .md-typeset .yg-mermaid,
+  /* 화면에서 캡션을 그림에 9px 로 붙여 놨다. 종이에서 둘이 장 사이로 갈리면
+     캡션 없는 그림과 떠도는 한 줄이 남는다. figure 는 8개뿐이라 쪽수 비용 0. */
+  .md-typeset figure,
   .md-typeset img { break-inside: avoid; page-break-inside: avoid; }
   .md-typeset h1,
   .md-typeset h2,
@@ -2606,7 +2609,8 @@ body:has(#tag\:ai) .md-content h2 + ul > li > a:hover {
 }
 
 /* 목차 앵커로 순간이동하던 것 — 어디로 갔는지 감이 안 잡힌다.
-   prefers-reduced-motion 은 기존 전역 규칙이 이미 끈다. */
+   축소 모드에서 끄는 건 아래 prefers-reduced-motion 블록이다. Material 의
+   전역 규칙은 transition 만 다뤄서 이걸 못 끈다. */
 html {
   scroll-behavior: smooth;
 }
@@ -2846,6 +2850,10 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
    전역 규칙이 transition·animation 만 끄고 scroll-behavior 는 포함하지 않는다. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  /* Material 의 축소모드 규칙은 transition 만 끈다. 본문 fadeIn 은 keyframes 라
+     그 그물에 안 걸리고, translateY(4px) 라 투명도만이 아니라 실제 이동이 남는다
+     — 페이지를 열 때마다 본문 전체가 4px 올라온다. */
+  .md-content__inner { animation: none; }
 }
 
 /* 브레드크럼 구분자에 테두리 토큰을 써서 1.25:1 로 사실상 안 보였다.
