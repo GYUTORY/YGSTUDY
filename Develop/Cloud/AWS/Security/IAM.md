@@ -562,4 +562,4 @@ IAM은 시간 들여서 패턴을 외우는 게 빠르다. 신뢰 정책과 권�
 - [IAM 정책 평가 로직](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html)
 - [IAM Policy Simulator](https://policysim.aws.amazon.com/)
 - [AWS Access Analyzer](https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html)
-- [STS API 레퍼런스](https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html)
+- [STS API 레퍼런스](https://docs.aws.amazon.com/STS/latest/APIReference/Welcome.html)

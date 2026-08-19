@@ -485,4 +485,4 @@ AL2 → AL2023, Node 18 → 20처럼 메이저 플랫폼 변경에서는 nginx �
 - AWS Elastic Beanstalk 개발자 가이드: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/Welcome.html
 - 옵션 namespace 레퍼런스: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html
 - 플랫폼 히스토리: https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platform-history.html
-- EB CLI 명령: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb-cli3-getting-started.html
+- EB CLI 명령: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb3-cmd-commands.html

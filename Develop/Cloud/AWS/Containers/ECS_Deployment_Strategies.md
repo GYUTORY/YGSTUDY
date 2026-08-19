@@ -318,7 +318,7 @@ Blue/Green은 CodeDeploy, 이중 타깃 그룹, 리스너 규칙, Lambda 훅까�
 
 ## 참고
 
-- [Amazon ECS deployment types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-types.html)
+- [Amazon ECS deployment types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-type-ecs.html)
 - [Deployment circuit breaker](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-circuit-breaker.html)
 - [AWS CodeDeploy — Tutorial: Amazon ECS](https://docs.aws.amazon.com/codedeploy/latest/userguide/tutorial-ecs-deployment.html)
 - [ALB Target Group — Deregistration delay](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html#deregistration-delay)

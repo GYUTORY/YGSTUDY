@@ -742,5 +742,5 @@ $0.60
 - AWS WAF 개발자 가이드: https://docs.aws.amazon.com/waf/
 - WAF 요금: https://aws.amazon.com/waf/pricing/
 - Managed Rules: https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups.html
-- 모범 사례: https://docs.aws.amazon.com/waf/latest/developerguide/waf-chapter-best-practices.html
+- 모범 사례: https://docs.aws.amazon.com/waf/latest/developerguide/waf-managed-protections-best-practices.html
 

@@ -31,7 +31,7 @@ export class OrderService {
 
 내장 Logger는 개발 단계까지는 쓸 만하다. 색깔도 입혀주고 context도 붙여준다. 운영에 올리면 세 가지가 발목을 잡는다.
 
-첫째, 출력이 사람이 읽는 텍스트 포맷이다. JSON이 아니라서 로그 수집기에서 필드 단위로 쿼리할 수 없다. `level:error AND userId:1234` 같은 검색이 불가능하다.
+첫째, 기본 출력이 사람이 읽는 텍스트 포맷이다. 그대로 두면 로그 수집기에서 `level:error AND userId:1234` 같은 필드 단위 검색이 안 된다. NestJS 11 부터는 `ConsoleLogger` 에 `json: true` 옵션이 생겨서 내장 Logger 만으로도 JSON 한 줄 출력이 된다(10.x 에는 없다). 다만 켜는 순간 `timestamp` 와 `prefix` 옵션이 무시되고 필드 스키마를 손볼 여지도 없다.
 
 둘째, 동기 출력이다. 내장 Logger는 `process.stdout.write`를 동기로 호출한다. 초당 로그가 수천 건이면 이 동기 write가 이벤트 루프를 붙잡는다. 부하 테스트를 돌려보면 로그를 끄는 것만으로 처리량이 올라가는 경우가 있는데, 원인이 이거다.
 

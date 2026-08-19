@@ -193,6 +193,6 @@ has insufficient CPU units available.
 
 ## 참고
 
-- [Amazon ECS Capacity Providers 공식 문서](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html)
+- [Amazon ECS Capacity Providers 공식 문서](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/asg-capacity-providers.html)
 - [Managed Scaling 동작 원리](https://aws.amazon.com/blogs/containers/deep-dive-on-amazon-ecs-cluster-auto-scaling/)
 - [Fargate Spot 가이드](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html)

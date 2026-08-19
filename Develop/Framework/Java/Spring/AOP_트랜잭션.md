@@ -278,7 +278,7 @@ public void saveOne(Item item) { ... }
 | REPEATABLE_READ | 방지 | 방지 | 발생(표준) / 방지(MySQL InnoDB) |
 | SERIALIZABLE | 방지 | 방지 | 방지 |
 
-여기서 주의할 점이 두 가지다. 첫째, MySQL InnoDB의 `REPEATABLE_READ`는 표준과 달리 Phantom Read도 막는다. 갭 락(Gap Lock)을 사용해서 범위 자체를 잠그기 때문이다. 둘째, PostgreSQL의 `READ_UNCOMMITTED`는 사실상 `READ_COMMITTED`로 동작한다. PostgreSQL은 MVCC 기반이라 dirty read 자체가 불가능하다.
+여기서 주의할 점이 두 가지다. 첫째, MySQL InnoDB 의 `REPEATABLE_READ` 는 표준보다 Phantom Read 에 강하다. 일반 SELECT 는 트랜잭션 첫 읽기에서 잡은 스냅샷을 계속 보고, 잠금 읽기(`FOR UPDATE`/`FOR SHARE`)와 UPDATE·DELETE 는 갭 락과 넥스트 키 락으로 범위 자체를 잠근다. 다만 완전히 막히는 건 아니다. 스냅샷은 SELECT 에만 적용되고 DML 에는 적용되지 않아서, 다른 트랜잭션이 커밋한 행을 SELECT 로는 못 보는데 같은 조건의 UPDATE 는 그걸 건드리는 상황이 나온다. 매뉴얼도 한 트랜잭션 안에서 잠금문과 비잠금 SELECT 를 섞지 말라고, 그럴 거면 `SERIALIZABLE` 을 쓰라고 적어 뒀다. 둘째, PostgreSQL의 `READ_UNCOMMITTED`는 사실상 `READ_COMMITTED`로 동작한다. PostgreSQL은 MVCC 기반이라 dirty read 자체가 불가능하다.
 
 ```java
 @Transactional(isolation = Isolation.REPEATABLE_READ)

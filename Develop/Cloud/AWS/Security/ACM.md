@@ -519,5 +519,5 @@ ACM은 완전히 무료다. AWS의 큰 혜택이다. Let's Encrypt와 달리 AWS
 - AWS ACM 개발자 가이드: https://docs.aws.amazon.com/acm/
 - ACM 요금: https://aws.amazon.com/certificate-manager/pricing/
 - SSL/TLS 모범 사례: https://docs.aws.amazon.com/acm/latest/userguide/acm-bestpractices.html
-- Private CA: https://docs.aws.amazon.com/acm-pca/
+- Private CA: https://docs.aws.amazon.com/privateca/latest/userguide/PcaWelcome.html
 

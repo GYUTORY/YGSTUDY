@@ -14,7 +14,7 @@ updated: 2026-06-04
 
 ### Node.js 버전 확인
 
-NestJS 10.x 이상은 Node.js 18.x 또는 20.x를 권장한다. 16.x는 더이상 지원하지 않는다.
+NestJS 10.x 는 Node.js 16 이상을 요구한다. Node 12 가 EOL 을 맞으면서 잘려나갔다. NestJS 11 부터는 기준이 한 번 더 올라가 16 과 18 이 잘리고 20 이상만 남았다 — `@nestjs/core` 의 `engines` 에 `>= 20` 으로 박혀 있다(10.x 에는 `engines` 필드 자체가 없다). 새로 시작한다면 20 이나 22 를 쓰면 된다.
 
 ```bash
 node -v   # v20.11.0

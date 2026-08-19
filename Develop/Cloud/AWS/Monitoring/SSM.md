@@ -479,5 +479,5 @@ SSM Agent가 정상 동작하지 않으면 CloudWatch Logs에서 에러 로그�
 ## 참고
 
 - AWS Systems Manager 공식 문서: https://docs.aws.amazon.com/systems-manager/
-- AWS Systems Manager Best Practices: https://aws.amazon.com/blogs/mt/best-practices-for-aws-systems-manager/
-- AWS Parameter Store 활용 가이드: https://aws.amazon.com/blogs/security/how-to-use-parameter-store-secure-string-parameters/
+- AWS Systems Manager Best Practices: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-best-practices.html
+- AWS Parameter Store 활용 가이드: https://docs.aws.amazon.com/systems-manager/latest/userguide/secure-string-parameter-kms-encryption.html

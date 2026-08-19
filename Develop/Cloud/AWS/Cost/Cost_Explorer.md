@@ -588,6 +588,6 @@ EC2 비용 1,200달러/월. Rightsizing Recommendations에 m5.xlarge 5개가 m5.
 
 - Cost Explorer 사용자 가이드: https://docs.aws.amazon.com/cost-management/latest/userguide/ce-what-is.html
 - Cost Explorer API 레퍼런스: https://docs.aws.amazon.com/aws-cost-management/latest/APIReference/
-- Cost Categories: https://docs.aws.amazon.com/cost-management/latest/userguide/manage-cost-categories.html
+- Cost Categories: https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html
 - Savings Plans 추천: https://docs.aws.amazon.com/savingsplans/latest/userguide/sp-recommendations.html
 - AWS Compute Optimizer: https://aws.amazon.com/compute-optimizer/

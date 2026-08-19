@@ -711,4 +711,3 @@ docker compose -f docker-compose.test.yml down
 
 - [Docker Compose 공식 문서](https://docs.docker.com/compose/)
 - [Compose 파일 레퍼런스](https://docs.docker.com/compose/compose-file/)
-- [Compose V2 마이그레이션](https://docs.docker.com/compose/migrate/)

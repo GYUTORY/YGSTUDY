@@ -377,7 +377,7 @@ fields @timestamp, terminatingRuleId, action, httpRequest.uri, httpRequest.clien
 ## 참고
 
 - JSON 본문 검사: https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-statement-fields-list.html
-- 본문 검사 크기 한계와 OversizeHandling: https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-statement-request-component-body.html
+- 본문 검사 크기 한계와 OversizeHandling: https://docs.aws.amazon.com/waf/latest/developerguide/waf-oversize-request-components.html
 - 라벨과 규칙 체이닝: https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-label-match.html
 - ATP 룰 그룹: https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-atp.html
 - Firewall Manager WAF 정책: https://docs.aws.amazon.com/waf/latest/developerguide/fms-chapter.html

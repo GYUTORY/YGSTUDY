@@ -595,6 +595,6 @@ $0.50 per 1 million traces retrieved
 
 - AWS X-Ray 개발자 가이드: https://docs.aws.amazon.com/xray/
 - X-Ray 요금: https://aws.amazon.com/xray/pricing/
-- X-Ray SDK: https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk.html
+- X-Ray SDK: https://docs.aws.amazon.com/xray/latest/devguide/xray-instrumenting-your-app.html
 - Sampling: https://docs.aws.amazon.com/xray/latest/devguide/xray-console-sampling.html
 

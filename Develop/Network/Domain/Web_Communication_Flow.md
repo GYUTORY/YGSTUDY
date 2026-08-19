@@ -544,5 +544,5 @@ sequenceDiagram
 - RFC 9114 (HTTP/3): https://www.rfc-editor.org/rfc/rfc9114
 - RFC 8446 (TLS 1.3): https://www.rfc-editor.org/rfc/rfc8446
 - RFC 1035 (DNS): https://www.rfc-editor.org/rfc/rfc1035
-- curl `-w` 변수 목록: https://everything.curl.dev/usingcurl/verbose/writeout
+- curl `-w` 변수 목록: https://everything.curl.dev/usingcurl/verbose/writeout.html
 - MDN PerformanceResourceTiming: https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming

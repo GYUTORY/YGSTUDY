@@ -477,4 +477,4 @@ Member Account가 조직에서 빠지려면 결제 정보·세금 정보·전화
 - Organizing Your AWS Environment Using Multiple Accounts (백서): https://docs.aws.amazon.com/whitepapers/latest/organizing-your-aws-environment/
 - SCP 평가 로직: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
 - AWS Control Tower 사용자 가이드: https://docs.aws.amazon.com/controltower/latest/userguide/
-- Centralized Root Access: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user-access-management.html
+- Centralized Root Access: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html

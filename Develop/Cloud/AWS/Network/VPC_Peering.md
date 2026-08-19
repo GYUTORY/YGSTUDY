@@ -504,6 +504,6 @@ aws ec2 describe-route-tables --filters "Name=vpc-id,Values=vpc-11111111"
 
 - VPC Peering 가이드: https://docs.aws.amazon.com/vpc/latest/peering/
 - VPC Peering 요금: https://aws.amazon.com/vpc/pricing/
-- Transit Gateway vs VPC Peering: https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-peering.html
+- Transit Gateway vs VPC Peering: https://docs.aws.amazon.com/vpc/latest/tgw/tgw-peering.html
 - VPC Peering 제약사항: https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html#vpc-peering-limitations
 

@@ -301,4 +301,4 @@ Preventive Guardrail(SCP)은 상대적으로 빠르게 붙는다. SCP는 Organiz
 - AWS Control Tower 사용자 가이드: https://docs.aws.amazon.com/controltower/latest/userguide/
 - Account Factory for Terraform (AFT): https://docs.aws.amazon.com/controltower/latest/userguide/aft-overview.html
 - Customizations for Control Tower (CfCT): https://aws.amazon.com/solutions/implementations/customizations-for-aws-control-tower/
-- Control Tower Guardrail 목록: https://docs.aws.amazon.com/controltower/latest/userguide/guardrails-reference.html
+- Control Tower Guardrail 목록: https://docs.aws.amazon.com/controltower/latest/controlreference/controls.html

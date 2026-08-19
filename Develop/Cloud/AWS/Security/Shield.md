@@ -491,5 +491,5 @@ AWS Support에 DDoS 테스트 요청. 승인 받은 후 테스트한다.
 - AWS Shield 개발자 가이드: https://docs.aws.amazon.com/shield/
 - Shield 요금: https://aws.amazon.com/shield/pricing/
 - DDoS 모범 사례: https://docs.aws.amazon.com/whitepapers/latest/aws-best-practices-ddos-resiliency/
-- Shield Advanced 기능: https://docs.aws.amazon.com/shield/latest/developerguide/ddos-advanced.html
+- Shield Advanced 기능: https://docs.aws.amazon.com/waf/latest/developerguide/shield-chapter.html
 

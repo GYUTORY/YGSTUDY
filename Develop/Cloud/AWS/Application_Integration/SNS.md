@@ -806,7 +806,7 @@ exports.handler = async (event) => {
 - [SNS 구독 DLQ (redrive policy)](https://docs.aws.amazon.com/ko_kr/sns/latest/dg/sns-dead-letter-queues.html)
 - [SNS FIFO 토픽](https://docs.aws.amazon.com/ko_kr/sns/latest/dg/sns-fifo-topics.html)
 - [SNS와 Lambda 연동](https://docs.aws.amazon.com/ko_kr/sns/latest/dg/sns-lambda-as-subscriber.html)
-- [CloudWatch와 SNS 연동](https://docs.aws.amazon.com/ko_kr/AmazonCloudWatch/latest/monitoring/US_SetupSNS.html)
+- [CloudWatch와 SNS 연동](https://docs.aws.amazon.com/ko_kr/AmazonCloudWatch/latest/monitoring/Notify_Users_Alarm_Changes.html)
 
 ### SDK 및 도구
 

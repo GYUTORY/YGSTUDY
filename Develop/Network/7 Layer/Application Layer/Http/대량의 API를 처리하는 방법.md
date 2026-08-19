@@ -3328,11 +3328,11 @@ results[1][1] → undefined
 | 2 | [Redis 명령어 레퍼런스](https://redis.io/commands) | 레퍼런스 | 모든 명령어 상세 설명 |
 | 3 | [ioredis](https://github.com/luin/ioredis) | 라이브러리 | Node.js Redis 클라이언트 |
 | 4 | [Caching Strategies](https://codeahoy.com/2017/08/11/caching-strategies-and-how-to-choose-the-right-one/) | 아티클 | 캐싱 전략 선택 |
-| 5 | [Redis Best Practices](https://redis.io/topics/best-practices) | 실무 가이드 | Redis 사용 시 주의사항 |
-| 6 | [Scaling Redis](https://redis.io/topics/cluster-tutorial) | 튜토리얼 | 고가용성 및 클러스터링 |
-| 7 | [Performance Optimization](https://redis.io/topics/optimization) | 최적화 | 성능 튜닝 방법 |
+| 5 | [Redis Best Practices](https://redis.io/tutorials/redis-anti-patterns-every-developer-should-avoid/) | 실무 가이드 | Redis 사용 시 주의사항 |
+| 6 | [Scaling Redis](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/) | 튜토리얼 | 고가용성 및 클러스터링 |
+| 7 | [Performance Optimization](https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/) | 최적화 | 성능 튜닝 방법 |
 | 8 | [Rate Limiting Patterns](https://redis.io/commands/incr#pattern-rate-limiter) | 패턴 | Rate Limiting 구현 |
-| 9 | [Distributed Locks](https://redis.io/topics/distlock) | 패턴 | 분산 락 구현 |
+| 9 | [Distributed Locks](https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/) | 패턴 | 분산 락 구현 |
 
 ---
 

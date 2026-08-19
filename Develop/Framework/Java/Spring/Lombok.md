@@ -11,7 +11,7 @@ Java 코드에서 반복되는 getter/setter/생성자/toString 같은 보일러
 심화 주제 — 어노테이션 프로세싱 내부 동작, JPA/JSON 직렬화와의 충돌, 모듈 시스템 대응 — 는 [Lombok_Deep_Dive.md](./Lombok_Deep_Dive.md)에 정리해 두었다.
 
 참고 문서:
-- [Project Lombok 공식 문서](https://projectlombok.org/features/all)
+- [Project Lombok 공식 문서](https://projectlombok.org/features/)
 
 ## 1. 환경 설정
 

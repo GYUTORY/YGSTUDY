@@ -629,6 +629,6 @@ repl-backlog-size 256mb  # 기본 1MB는 너무 작다. 쓰기 부하에 맞게 
 ## 참조
 
 - Redis 소스코드 (ae.c, server.c): https://github.com/redis/redis
-- Redis 내부 구조 문서: https://redis.io/docs/reference/internals/
+- Redis 내부 구조 문서: https://redis.io/docs/latest/operate/oss_and_stack/reference/internals/
 - Redis 설정 레퍼런스: https://redis.io/docs/management/config/
 - jemalloc: https://github.com/jemalloc/jemalloc

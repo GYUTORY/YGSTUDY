@@ -380,7 +380,7 @@ Helm 업그레이드 시 CRD는 자동으로 업데이트되지 않는다. Traef
 
 ```bash
 # CRD 수동 업데이트
-kubectl apply -f https://raw.githubusercontent.com/traefik/traefik-helm-chart/main/traefik/crds/ingressroute.yaml
+kubectl apply -f https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/traefik.io_ingressroutes.yaml
 # 또는 helm repo에서 직접
 helm show crds traefik/traefik | kubectl apply -f -
 ```
@@ -426,7 +426,7 @@ kubectl get crd | grep traefik
 helm install traefik traefik/traefik ...
 
 # 별도 설치 시
-kubectl apply -f https://raw.githubusercontent.com/traefik/traefik-helm-chart/v28.0.0/traefik/crds/ingressroute.yaml
+kubectl apply -f https://raw.githubusercontent.com/traefik/traefik-helm-chart/master/traefik/crds/traefik.io_ingressroutes.yaml
 ```
 
 Traefik 버전을 올리면서 CRD 버전이 올라갔는데 적용을 빠뜨린 경우에도 같은 현상이 생긴다. `traefik.io/v1alpha1`에서 `traefik.io/v1`으로 API 버전이 바뀐 마이너 업데이트가 있어서, 기존 YAML의 `apiVersion`을 함께 바꾸지 않으면 apply는 되어도 동작하지 않는다.

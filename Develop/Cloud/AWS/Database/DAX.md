@@ -729,7 +729,7 @@ VPC Lambda는 Cold Start가 느리다. 트레이드오프를 고려한다.
 ## 참고
 
 - AWS DAX 개발자 가이드: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DAX.html
-- DAX 요금: https://aws.amazon.com/dynamodb/dax/pricing/
+- DAX 요금: https://aws.amazon.com/dynamodb/pricing/
 - DAX SDK: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DAX.client.html
 - 모범 사례: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DAX.client.run-application-nodejs.html
 

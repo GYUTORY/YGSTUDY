@@ -252,7 +252,7 @@ ALTER SERVER remote_billing
 
 ## 크로스 스키마 FK 제약 없는 설계에서 정합성 관리
 
-PostgreSQL에서는 같은 DB 안의 서로 다른 스키마 간 FK를 걸 수 있다. 하지만 MySQL(cross-database)과 FDW로 연결된 원격 스키마는 FK가 불가능하다.
+PostgreSQL 에서는 같은 DB 안의 서로 다른 스키마 간 FK 를 걸 수 있다. MySQL 도 같은 인스턴스 안이라면 다른 database(MySQL 에서는 이게 곧 스키마다)의 테이블을 참조하는 FK 를 걸 수 있다. `information_schema.KEY_COLUMN_USAGE` 에 `REFERENCED_TABLE_SCHEMA` 가 `TABLE_SCHEMA` 와 별개 컬럼으로 있고 그 설명이 '참조되는 데이터베이스 이름' 인 것도 그래서다. 넘지 못하는 건 스키마 경계가 아니라 인스턴스 경계다. FDW 로 연결한 원격 스키마나 물리적으로 분리된 다른 서버의 테이블은 FK 대상이 되지 못한다.
 
 ```sql
 -- PostgreSQL: 크로스 스키마 FK 가능
@@ -260,11 +260,15 @@ ALTER TABLE billing.orders
 ADD CONSTRAINT fk_orders_user
 FOREIGN KEY (user_id) REFERENCES public.users(id);
 
--- MySQL: cross-database FK 불가
--- ERROR: Cross database foreign key is not allowed
+-- MySQL: 같은 인스턴스라면 cross-database FK 가능
+ALTER TABLE billing.orders
+ADD CONSTRAINT fk_orders_user
+FOREIGN KEY (user_id) REFERENCES app.users(id);
+
+-- 인스턴스가 다르면(FDW·원격 서버) FK 자체가 성립하지 않는다
 ```
 
-FK 없이 정합성을 유지하는 방법은 몇 가지다.
+DB 를 물리적으로 쪼갰다면 FK 를 못 쓰니 정합성을 다른 방법으로 유지해야 한다.
 
 **애플리케이션 레이어 검증.** INSERT/UPDATE 전에 참조 대상 존재 여부를 확인한다. 단, 확인과 INSERT 사이에 참조 대상이 삭제되는 TOCTOU 문제가 있다. 고빈도 환경에서는 고아 데이터가 생길 수 있다.
 

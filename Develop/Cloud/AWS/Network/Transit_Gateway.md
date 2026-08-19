@@ -673,6 +673,6 @@ Peering이 여전히 저렴하다. 하지만 관리가 복잡하다.
 
 - AWS Transit Gateway 개발자 가이드: https://docs.aws.amazon.com/vpc/latest/tgw/
 - Transit Gateway 요금: https://aws.amazon.com/transit-gateway/pricing/
-- Transit Gateway vs VPC Peering: https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-peering.html
+- Transit Gateway vs VPC Peering: https://docs.aws.amazon.com/vpc/latest/tgw/tgw-peering.html
 - 모범 사례: https://docs.aws.amazon.com/vpc/latest/tgw/tgw-best-design-practices.html
 

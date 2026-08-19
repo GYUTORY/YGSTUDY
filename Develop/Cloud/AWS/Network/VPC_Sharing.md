@@ -224,4 +224,4 @@ aws ram get-resource-share-associations \
 - VPC 공유 문서: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html
 - RAM 사용자 가이드: https://docs.aws.amazon.com/ram/latest/userguide/what-is.html
 - VPC 공유 지원 리소스 목록: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html#vpc-share-limitations
-- Shared VPC 비용 고려사항: https://docs.aws.amazon.com/whitepapers/latest/building-scalable-secure-multi-vpc-network-infrastructure/vpc-sharing.html
+- Shared VPC 비용 고려사항: https://docs.aws.amazon.com/whitepapers/latest/building-scalable-secure-multi-vpc-network-infrastructure/amazon-vpc-sharing.html

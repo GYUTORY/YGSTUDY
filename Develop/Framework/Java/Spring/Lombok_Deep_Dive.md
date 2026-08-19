@@ -655,7 +655,7 @@ public class RegisterRequest {
 
 ## 참고
 
-- [Project Lombok 공식 문서](https://projectlombok.org/features/all)
+- [Project Lombok 공식 문서](https://projectlombok.org/features/)
 - [Hibernate ORM User Guide — Equality](https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html#mapping-identifiers-derived)
 - [JEP 395: Records](https://openjdk.org/jeps/395)
 - [SLF4J Manual](https://www.slf4j.org/manual.html)

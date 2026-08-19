@@ -564,6 +564,6 @@ def lambda_handler(event, context):
 
 - CloudWatch Alarms 가이드: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
 - CloudWatch 요금: https://aws.amazon.com/cloudwatch/pricing/
-- SNS 통합: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/US_SetupSNS.html
+- SNS 통합: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Notify_Users_Alarm_Changes.html
 - Auto Scaling 통합: https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-instance-monitoring.html
 
