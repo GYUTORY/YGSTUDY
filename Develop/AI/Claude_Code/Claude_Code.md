@@ -40,7 +40,7 @@ Anthropic이 만든 CLI 기반 에이전틱 코딩 도구다. 터미널에서 �
 ### 2.1 시스템 요구사항
 
 - **Node.js**: 18 이상
-- **OS**: macOS, Linux, Windows (WSL2 필수)
+- **OS**: macOS, Linux, Windows (네이티브 지원. WSL2 는 선택)
 - **Git**: 프로젝트 내에서 사용 시 필요
 
 ### 2.2 설치

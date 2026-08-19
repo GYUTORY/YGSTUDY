@@ -360,16 +360,16 @@ Monitor를 쓰지 않으면 LLM은 백그라운드 프로세스가 끝났는지 
 
 ## 11. OS별 차이
 
-| 항목 | macOS/Linux | Windows |
-|------|-------------|---------|
-| 셸 | bash/zsh | WSL2 필수 |
-| 경로 구분자 | `/` | WSL 안에서 `/` |
-| 훅 스크립트 | shebang 인식 | WSL 안에서 실행 |
-| 권한 모드 | `default` 권장 | 동일 |
-| MCP stdio | 기본 동작 | WSL 안에서 동일 |
-| 프로세스 그룹 | setpgid 사용 | WSL 안에서 동일 |
+| 항목 | macOS/Linux | Windows 네이티브 | Windows + WSL2 |
+|------|-------------|------------------|----------------|
+| 셸 | bash/zsh | Git Bash(있으면) 또는 PowerShell | bash/zsh |
+| 경로 구분자 | `/` | `\` (도구가 변환) | `/` |
+| 훅 스크립트 | shebang 인식 | `.ps1` 또는 Git Bash 경유 | shebang 인식 |
+| 권한 모드 | `default` 권장 | 동일 | 동일 |
+| MCP stdio | 기본 동작 | 동일 | 동일 |
+| 프로세스 그룹 | setpgid 사용 | Job Object | setpgid 사용 |
 
-Windows 네이티브에서 직접 돌리는 경로는 공식적으로 지원하지 않는다. PowerShell에서 시작하려는 시도는 빠르게 막힌다. 처음부터 WSL2 안에서 돌리는 게 안전하다.
+Windows 네이티브도 1급 지원 플랫폼이다. PowerShell 한 줄로 설치되고 관리자 권한도 필요 없다. Git for Windows 가 있으면 Bash 도구가 Git Bash 로 붙고, 없으면 PowerShell 자체가 셸 도구가 된다. WSL2 는 이제 필수가 아니라 리눅스 툴체인이나 샌드박스 실행이 필요할 때 고르는 선택지다.
 
 macOS와 Linux 사이에서도 차이가 있다. macOS는 BSD 계열 유틸이라 `sed`, `find`, `xargs`의 동작이 GNU 계열과 다르다. 훅 스크립트를 macOS에서 만들었다가 Linux 컨테이너에서 안 도는 경우가 자주 있다. POSIX 호환 옵션만 쓰거나, 양쪽을 분기 처리한다.
 

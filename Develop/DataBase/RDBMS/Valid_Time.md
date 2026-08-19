@@ -209,7 +209,7 @@ WHERE product_id = 1;
 
 ### PostgreSQL
 
-PostgreSQL은 SQL:2011 APPLICATION_TIME을 네이티브로 지원하지 않는다. `tsrange`/`daterange` 타입과 GiST 인덱스로 유사한 기능을 구현한다.
+PostgreSQL 18부터 application time 제약이 네이티브로 들어왔다 — temporal PK/UNIQUE 의 `WITHOUT OVERLAPS` 와 `PERIOD` 절을 쓰는 temporal FK 다. 동작 기반이 range 타입과 GiST 라, 아래에서 우회책으로 소개하는 그 조합이 그대로 표준 문법으로 승격된 셈이다. 다만 제약을 강제하는 데까지고 `FOR APPLICATION_TIME AS OF` 같은 **질의 문법은 아직 없다**. 17 이하에서는 `tsrange`/`daterange` + GiST 로 직접 구현해야 한다.
 
 ```sql
 -- PostgreSQL: daterange 타입 활용

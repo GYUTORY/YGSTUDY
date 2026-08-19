@@ -221,7 +221,7 @@ MariaDB 10.4부터는 서버 기본 charset이 `utf8mb4`로 바뀌었다. `utf8`
 
 MySQL과 MariaDB를 섞어 쓰는 환경에서는 `SHOW CREATE TABLE` 결과를 양쪽에서 비교해두는 게 안전하다. 특히 Galera Cluster나 replication으로 MySQL과 MariaDB를 연결하는 경우 charset 불일치로 복제가 깨질 수 있다.
 
-MariaDB에서 `utf8mb4_0900_ai_ci`는 10.6 이전에는 지원하지 않는다. MySQL 8.0 덤프를 MariaDB에 복원하면 이 collation 때문에 실패한다. 덤프할 때 `--skip-set-charset` 또는 sed로 collation을 바꿔서 임포트해야 한다.
+MariaDB는 `utf8mb4_0900_ai_ci` 를 **어느 버전에서도 지원하지 않는다**. `0900` 계열은 MySQL 8.0 의 UCA 9.0.0 collation 이고, MariaDB 가 따로 도입한 건 UCA 14.0.0 계열(`utf8mb4_uca1400_*`, 10.10+)이라 계보가 다르다. 10.6 이든 11.4 든 `ERROR 1273 unknown collation` 이 난다. MySQL 8.0 덤프를 MariaDB에 복원하면 이 collation 때문에 실패한다. 덤프할 때 `--skip-set-charset` 또는 sed로 collation을 바꿔서 임포트해야 한다.
 
 ```bash
 # MySQL 8.0 덤프를 MariaDB로 임포트할 때

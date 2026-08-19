@@ -155,7 +155,7 @@ import lodash from 'lodash';    // default로 전체 객체
 import { merge } from 'lodash'; // Node.js가 추측 — 불완전할 수 있음
 ```
 
-**CJS에서 ESM 로드**: `require()`로는 ESM을 불러올 수 없다. ESM 로딩이 비동기라서 동기인 `require()`와 구조적으로 맞지 않는다. 동적 `import()`를 써야 한다.
+**CJS에서 ESM 로드**: 예전에는 `require()`로 ESM 을 부를 수 없었다. ESM 로딩이 비동기라 동기인 `require()` 와 맞지 않기 때문이었다. Node 20.19·22.12·24 부터는 **동기 ESM 그래프에 한해** 플래그 없이 된다 — 그래프 안에 top-level await 가 있으면 여전히 `ERR_REQUIRE_ASYNC_MODULE` 이 난다. 그 경우에는 동적 `import()` 를 써야 한다.
 
 ```javascript
 // CJS 파일에서 ESM 로드
@@ -180,7 +180,7 @@ async function loadESM() {
 
 ## 동적 import()
 
-`import()`는 런타임에 조건부로 모듈을 불러올 수 있다. CJS 파일에서도 쓸 수 있고, `require()`가 ESM을 못 부르는 제약을 우회하는 유일한 방법이기도 하다.
+`import()`는 런타임에 조건부로 모듈을 불러올 수 있다. CJS 파일에서도 쓸 수 있고, top-level await 가 있는 ESM 을 CJS 에서 부르는 유일한 방법이기도 하다.
 
 ```javascript
 // 조건부 로드

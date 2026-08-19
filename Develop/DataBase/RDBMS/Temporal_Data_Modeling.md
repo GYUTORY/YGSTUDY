@@ -524,7 +524,7 @@ ORDER BY ROW_START;
 
 `ROW_START`와 `ROW_END`는 DB가 관리하는 컬럼이다. 직접 수정할 수 없다.
 
-PostgreSQL은 SQL:2011 temporal tables를 네이티브로 지원하지 않는다. 트리거나 `pg_temporal` 확장을 써야 한다.
+PostgreSQL은 SQL:2011 temporal tables를 네이티브로 지원하지 않는다. 트리거나 `temporal_tables` 확장을 써야 한다.
 
 ### 이력 테이블 분리 패턴
 
