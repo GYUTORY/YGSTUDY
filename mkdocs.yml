@@ -73,6 +73,9 @@ plugins:
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
       redirect_maps:
+        # Loki 문서 2편이 H1·title 이 글자까지 같아서 index.md 에 동일한 링크가
+        # 두 줄 나란히 있었다. 내용은 수집 구성 / 레이블 설계로 갈린다 (2026-08-19)
+        'DevOps/Monitoring/Loki_로그_집계.md': 'DevOps/Monitoring/Loki_레이블_설계와_카디널리티.md'
         # SQL 문서 3편이 공격·방어·진단으로 나뉘어 있는데 이름이 서로를 못 구별했다.
         # SQL_Injection.md 옆의 SQL_인젝션.md 는 어느 쪽이 뭔지 알 방법이 없다 (2026-08-19)
         'Security/SQL_인젝션.md': 'Security/SQL_Injection_Defense.md'

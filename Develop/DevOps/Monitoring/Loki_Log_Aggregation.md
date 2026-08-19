@@ -1,10 +1,13 @@
 ---
-title: Loki 로그 집계
+title: Loki 수집 구성과 운영
 tags: [monitoring, observability, devops]
 updated: 2026-07-31
 ---
 
-# Loki 로그 집계
+# Loki 수집 구성과 운영
+
+> 이 문서는 **로그를 어떻게 받아서 굴리는가**를 다룬다 — Promtail 설정, pipeline_stages, 스토리지·보존·멀티테넌시. 무엇을 레이블로 삼을지와 카디널리티가 터졌을 때의 대응은 [레이블 설계와 카디널리티](Loki_레이블_설계와_카디널리티.md)에 있다.
+
 
 Loki는 Prometheus와 동일한 레이블 모델을 로그에 적용한다. 로그 내용 자체를 인덱싱하지 않고 레이블만 인덱싱하기 때문에 Elasticsearch에 비해 인덱스 크기가 훨씬 작다. 대신 LogQL로 쿼리할 때 로그 내용 검색은 전체 청크를 읽어 필터링하므로, 레이블 선택자를 얼마나 잘 쓰느냐가 쿼리 성능에 직결된다.
 

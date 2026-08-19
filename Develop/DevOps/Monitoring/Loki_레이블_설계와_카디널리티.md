@@ -1,10 +1,13 @@
 ---
-title: Loki 로그 집계
+title: Loki 레이블 설계와 카디널리티
 tags: [monitoring, observability, devops, kubernetes, docker]
 updated: 2026-08-16
 ---
 
-# Loki 로그 집계
+# Loki 레이블 설계와 카디널리티
+
+> 이 문서는 **무엇을 레이블로 삼을 것인가**를 다룬다 — 카디널리티 진단, Alloy, LogQL 필터 순서. Promtail 설정과 스토리지·보존 구성은 [수집 구성과 운영](Loki_Log_Aggregation.md)에 있다.
+
 
 Loki는 로그 내용을 인덱싱하지 않는다. 레이블만 인덱싱하고 내용은 청크로 압축해 오브젝트 스토리지에 저장한다. 쿼리할 때 청크를 읽어 각 줄을 필터링하는 방식이라 풀텍스트 검색 속도는 Elasticsearch보다 느리지만, 저장 비용이 낮고 Grafana와 통합이 자연스럽다.
 
