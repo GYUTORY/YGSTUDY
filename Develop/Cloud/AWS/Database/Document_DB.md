@@ -250,6 +250,8 @@ CloudWatch Logs로 audit log 와 profiler log를 내보내는 옵션도 있다. 
 
 해결: 접속 URI에 `retryWrites=false`를 명시한다. 프레임워크(예: Spring Data Mongo)에서는 설정 속성으로 내리면 된다.
 
+단 예외가 하나 있다. 레거시 `mongo` 셸(`mongosh` 가 아닌 쪽)에서는 이 옵션을 넣으면 안 된다 — AWS 문서가 명시적으로 경고하는데, 평범한 읽기 명령까지 실패할 수 있다. 드라이버 접속에만 쓴다.
+
 ### 8.2 "Replica에 붙어서 읽으니 오래된 데이터가 보인다"
 
 증상: 방금 쓴 값이 Reader 엔드포인트로 읽으면 안 보일 때가 있다.
