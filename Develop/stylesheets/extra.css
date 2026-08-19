@@ -2210,7 +2210,12 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   .md-typeset .highlight::after { display: none !important; }
 
   /* 페이지 넘김 — 전에는 아무 제어가 없어 코드블록이 장 사이에서 잘리고
-     제목만 페이지 바닥에 남았다. */
+     제목만 페이지 바닥에 남았다.
+
+     쪽수 비용을 실측했다(A4, PDF 출력):
+       Redis 문서 34 → 37쪽 (+8.8%) · LLM 문서 61 → 64쪽 (+4.9%)
+     기술 문서에서 코드가 장 사이에서 끊기면 앞뒤를 넘겨 가며 읽어야 한다.
+     5~9% 쪽수와 맞바꿀 값이라고 봤다. 되돌리려면 pre 만 빼면 된다. */
   .md-typeset pre,
   .md-typeset table,
   .md-typeset blockquote,
