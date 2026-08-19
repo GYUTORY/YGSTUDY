@@ -495,7 +495,9 @@ const processUsers = FunctionalUtils.pipe(
 );
 
 const result = processUsers(users);
-console.log(result); // ['0: Alice (25세)', '2: Charlie (35세)']
+console.log(result); // ['0: Alice (25세)', '1: Charlie (35세)']
+// 원본 인덱스가 아니다 — filter 로 걸러낸 배열에 map 이 0,1 을 새로 매긴다.
+// 원본 위치를 남기려면 filter 전에 인덱스를 붙여야 한다.
 
 // 객체 변환
 const user = { id: 1, name: 'Alice', age: 25, email: 'alice@example.com' };

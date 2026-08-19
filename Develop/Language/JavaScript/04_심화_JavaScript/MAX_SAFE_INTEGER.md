@@ -147,7 +147,7 @@ const nanoTs = 1706789012345678901; // JSON.parse 후 이미 손상
 ```javascript
 const data = JSON.parse('{"amount": 9007199254740993}');
 console.log(data.amount); // 9007199254740992
-console.log(data.amount === 9007199254740993); // false
+console.log(data.amount === 9007199254740993); // true — 비교 대상 리터럴도 같은 값으로 반올림되므로 이 비교로는 손실을 못 잡는다
 ```
 
 응답 스펙을 보면 숫자처럼 생겼는데 실제로는 손실이 생겨 있는 상태다. 겉으로는 드러나지 않기 때문에 데이터 정합성 문제로 한참 지나서 발견된다.

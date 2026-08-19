@@ -226,12 +226,16 @@ from datetime import datetime, timedelta
 tz = ZoneInfo('America/New_York')
 
 # tzinfo 파라미터로 직접 전달해도 올바르게 동작
-dt = datetime(2024, 3, 9, 2, 0, tzinfo=tz)
+dt = datetime(2024, 3, 9, 12, 0, tzinfo=tz)
 print(dt.utcoffset())  # -1 day, 19:00:00 (-05:00, EST)
 
 # 날짜 연산 후 자동으로 DST 재계산
 next_day = dt + timedelta(days=1)
 print(next_day.utcoffset())  # -1 day, 20:00:00 (-04:00, EDT)
+
+# 새벽 2시를 기준으로 잡으면 이게 안 된다. 2024-03-10 02:00 은 DST 전환으로
+# 존재하지 않는 시각이라 fold 기본값이 전환 이전(EST)을 준다 — 재계산이
+# 안 된 것처럼 보인다. 전환 시각을 걸치는 계산은 정오 기준으로 잡는 편이 안전하다.
 ```
 
 `zoneinfo`는 OS tzdata를 사용한다. `pip install tzdata`로 별도 데이터 패키지를 설치하면 OS tzdata 없이도 동작한다. Docker Alpine 같이 tzdata가 설치 안 된 이미지에서 `zoneinfo`를 쓰면 `ZoneInfoNotFoundError`가 뜨는데, `tzdata` 패키지 설치로 해결한다.
