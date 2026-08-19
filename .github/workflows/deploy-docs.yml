@@ -47,12 +47,16 @@ jobs:
           # 새 주장 0건으로 통과한다 — 과거 빚은 그대로 두고 배포만 연다.
           before_sha: ${{ github.event.before || github.sha }}
 
+      # 위 docs-checks 가 이미 FULL_BUILD=true 로 site/ 를 만들었다.
+      # 예전에는 여기서 mkdocs gh-deploy 를 불러 같은 빌드를 한 번 더 했다
+      # — 풀 빌드가 266초라 매 배포에서 그만큼을 두 번 낸 셈이다.
+      # 만들어진 site/ 를 그대로 올린다. ghp-import 는 mkdocs 의존성이라
+      # 이미 설치돼 있고, gh-deploy 가 내부에서 쓰는 도구도 이것이다.
+      #
+      # 검증 스텝이 실패하면 site/ 가 없거나 낡은 상태로 남으므로 배포도 진행되지 않는다
+      # (composite action 의 실패가 job 을 멈춘다).
       - name: Deploy
-        env:
-          # FULL_BUILD 가 없으면 minify·rss·git-revision-date 가 전부 꺼진 채 배포된다.
-          # 검증 스텝(docs-checks)에만 붙어 있어서, 실제로 나가는 사이트는
-          # RSS 피드가 없는데 1,349개 페이지가 피드 링크를 광고하고(404),
-          # HTML 은 압축되지 않고(2,864줄 vs 136줄), 문서마다 최종 수정일이 사라졌다.
-          FULL_BUILD: "true"
-          DISABLE_MKDOCS_2_WARNING: "true"
-        run: mkdocs gh-deploy --force
+        run: |
+          test -f site/index.html || { echo "site/ 가 없다 — 검증 스텝의 빌드를 확인하라"; exit 1; }
+          ghp-import --no-jekyll --push --force \
+            --message "Deployed ${{ github.sha }} with MkDocs" site
