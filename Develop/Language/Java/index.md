@@ -11,13 +11,18 @@ hide:
 
 문서 58개.
 
-## JVM 관련
+## AOP
+
+- [Java AOP 심화](<관점지향 프로그래밍(AOP)/AOP_Deep_Dive.md>)
+- [관점지향 프로그래밍 (AOP)](<관점지향 프로그래밍(AOP)/관점지향 프로그래밍.md>)
+
+## JVM
 
 - [JVM Garbage Collection 심화](<JVM 관련/GC_Deep_Dive.md>)
 - [JVM 구조 및 메모리 관리](<JVM 관련/JVM 구조 및 메모리 관리.md>)
 - [JVM 옵션 및 메모리 관리](<JVM 관련/JVM_Options_and_Memory_Management.md>)
 
-## Java 기본 개념
+## Java 기본
 
 - [Enum](<Java 기본 개념/Enum.md>)
 - [Java Annotation](<Java 기본 개념/Annotation.md>)
@@ -32,7 +37,7 @@ hide:
 - [자바 메모리 구조](<Java 기본 개념/자바 메모리 구조.md>)
 - [지역 변수와 캡쳐](<Java 기본 개념/지역 변수와 캡쳐.md>)
 
-## 객체지향 프로그래밍 (OOP)
+## OOP
 
 - [Abstract Class vs Interface](<객체지향 프로그래밍 (OOP)/interface/Abstract Class__vs__Interface.md>)
 - [Getter와 Setter](<객체지향 프로그래밍 (OOP)/Getter_and_Setter.md>)
@@ -54,12 +59,17 @@ hide:
 - [Override Overriding](<객체지향 프로그래밍 (OOP)/Override과 Overriding.md>)
 - [다형적 참조 (Polymorphic Reference)](<객체지향 프로그래밍 (OOP)/Polymorphic_Reference.md>)
 
-## 관점지향 프로그래밍(AOP)
+## 디자인 패턴 & 원칙
 
-- [Java AOP 심화](<관점지향 프로그래밍(AOP)/AOP_Deep_Dive.md>)
-- [관점지향 프로그래밍 (AOP)](<관점지향 프로그래밍(AOP)/관점지향 프로그래밍.md>)
+- [Java - Dependency Injection (의존성 주입)](<자바 디자인 패턴 및 원칙/Dependency_Injection.md>)
+- [Java - IoC (Inversion of Control, 제어의 역전)](<자바 디자인 패턴 및 원칙/Ioc(Inversion of Control).md>)
+- [Java - Proxy Pattern (프록시 패턴)](<자바 디자인 패턴 및 원칙/Java_Proxy_Pattern.md>)
+- [Java Generics](<자바 디자인 패턴 및 원칙/Generics.md>)
+- [Java Reflection](<자바 디자인 패턴 및 원칙/Reflection.md>)
+- [Java 함수형 인터페이스 실무 활용](<자바 디자인 패턴 및 원칙/Java_Functional_Interface.md>)
+- [Single Responsibility Principle](<자바 디자인 패턴 및 원칙/단일 책임 원칙.md>)
 
-## 멀티스레딩 및 동시성
+## 멀티스레딩 & 동시성
 
 - [Java 가상 스레드 (Virtual Threads)](<멀티스레딩 및 동시성/Java_Virtual_Threads.md>)
 - [Java 동시성 심화](<멀티스레딩 및 동시성/Java_Concurrency.md>)
@@ -72,17 +82,7 @@ hide:
 - [Java EE (Jakarta EE)](<애플리케이션 서버/Java EE.md>)
 - [Java Servlet](<애플리케이션 서버/Java Servlet.md>)
 
-## 자바 디자인 패턴 및 원칙
-
-- [Java - Dependency Injection (의존성 주입)](<자바 디자인 패턴 및 원칙/Dependency_Injection.md>)
-- [Java - IoC (Inversion of Control, 제어의 역전)](<자바 디자인 패턴 및 원칙/Ioc(Inversion of Control).md>)
-- [Java - Proxy Pattern (프록시 패턴)](<자바 디자인 패턴 및 원칙/Java_Proxy_Pattern.md>)
-- [Java Generics](<자바 디자인 패턴 및 원칙/Generics.md>)
-- [Java Reflection](<자바 디자인 패턴 및 원칙/Reflection.md>)
-- [Java 함수형 인터페이스 실무 활용](<자바 디자인 패턴 및 원칙/Java_Functional_Interface.md>)
-- [Single Responsibility Principle](<자바 디자인 패턴 및 원칙/단일 책임 원칙.md>)
-
-## 컬렉션 및 데이터 처리
+## 컬렉션 & 데이터 처리
 
 - [Java EnumSet](<컬렉션 및 데이터 처리/Collection_Framework/EnumSet.md>)
 - [Java EnumSet 심화](<컬렉션 및 데이터 처리/Collection_Framework/Enum_Set_Deep_Dive.md>)

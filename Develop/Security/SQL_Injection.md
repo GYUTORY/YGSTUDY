@@ -1,10 +1,13 @@
 ---
-title: SQL Injection 심화
+title: SQL Injection 공격 원리와 ORM 함정
 tags: [security, database, java]
 updated: 2026-04-30
 ---
 
-# SQL Injection 심화
+# SQL Injection 공격 원리와 ORM 함정
+
+> 이 문서는 **공격이 어떻게 성립하는가**를 다룬다. 막는 법은 [방어와 권한 설계](SQL_Injection_Defense.md), 취약점이 실제로 있는지 확인하는 법은 [진단과 테스트](SQL_Injection_Testing.md)에 있다.
+
 사용자 입력을 SQL 쿼리에 그대로 끼워 넣어 의도하지 않은 쿼리가 실행되는 공격이다. 1998년 Phrack 매거진에서 처음 공개적으로 다뤄진 이후 30년 가까이 OWASP Top 10 상위권에 있다. 오래된 공격이라 이제 안 통할 것 같지만, 매년 신규 보고가 끊이지 않는다. 프레임워크가 막아준다고 안심하다가 동적 컬럼명 한 줄에 뚫리는 경우가 가장 흔하다.
 
 핵심 원리는 단순하다. 데이터로 다뤄야 할 사용자 입력이 SQL 문법의 일부로 해석되는 순간 모든 것이 무너진다. 따옴표 하나, 세미콜론 하나만 잘못 처리해도 DB 전체가 노출된다.

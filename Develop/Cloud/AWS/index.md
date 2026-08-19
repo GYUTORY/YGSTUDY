@@ -25,20 +25,7 @@ hide:
 - [AWS Redshift (데이터 웨어하우스)](Analytics/Redshift.md)
 - [Amazon QuickSight](Analytics/Quick_Sight.md)
 
-## Application Integration
-
-- [AWS AppSync (관리형 GraphQL API)](Application_Integration/App_Sync.md)
-- [AWS EventBridge](Application_Integration/EventBridge.md)
-- [AWS Kinesis](Application_Integration/Kinesis.md)
-- [AWS MSK (Managed Streaming for Apache Kafka)](Application_Integration/MSK.md)
-- [AWS SES (Simple Email Service)](Application_Integration/SES.md)
-- [AWS SNS (Simple Notification Service)](Application_Integration/SNS.md)
-- [AWS SNS/SQS/Lambda 통합 메시지 파이프라인](Application_Integration/SNS_SQS_Lambda_통합_메시지_파이프라인.md)
-- [AWS SQS와 SNS 연동](Application_Integration/SQS.md)
-- [AWS Step Functions](Application_Integration/Step_Functions.md)
-- [Amazon MQ 운영 노트](Application_Integration/Amazon_MQ.md)
-
-## CICD
+## CI/CD
 
 - [AWS CloudFormation](CICD/CloudFormation.md)
 - [AWS CodeBuild](CICD/CodeBuild.md)
@@ -233,6 +220,19 @@ hide:
 - [S3 Multipart Upload 심층 정리](Storage/S3_Multipart_Upload.md)
 - [S3 Presigned URL 심층 정리](Storage/S3_Presigned_URL.md)
 - [S3 라이프사이클](Storage/S3_Lifecycle.md)
+
+## 메시징 연동
+
+- [AWS AppSync (관리형 GraphQL API)](Application_Integration/App_Sync.md)
+- [AWS EventBridge](Application_Integration/EventBridge.md)
+- [AWS Kinesis](Application_Integration/Kinesis.md)
+- [AWS MSK (Managed Streaming for Apache Kafka)](Application_Integration/MSK.md)
+- [AWS SES (Simple Email Service)](Application_Integration/SES.md)
+- [AWS SNS (Simple Notification Service)](Application_Integration/SNS.md)
+- [AWS SNS/SQS/Lambda 통합 메시지 파이프라인](Application_Integration/SNS_SQS_Lambda_통합_메시지_파이프라인.md)
+- [AWS SQS와 SNS 연동](Application_Integration/SQS.md)
+- [AWS Step Functions](Application_Integration/Step_Functions.md)
+- [Amazon MQ 운영 노트](Application_Integration/Amazon_MQ.md)
 
 ## 개요
 

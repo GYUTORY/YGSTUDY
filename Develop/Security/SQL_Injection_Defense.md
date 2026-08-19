@@ -1,10 +1,13 @@
 ---
-title: SQL Injection
+title: SQL Injection 방어와 권한 설계
 tags: [database, security]
 updated: 2026-03-28
 ---
 
-# SQL Injection
+# SQL Injection 방어와 권한 설계
+
+> 이 문서는 **어떻게 막는가**를 다룬다. 공격이 성립하는 원리와 ORM 함정은 [공격 원리](SQL_Injection.md), 취약점이 실제로 있는지 확인하는 법은 [진단과 테스트](SQL_Injection_Testing.md)에 있다.
+
 ## 정의
 
 SQL 인젝션은 사용자 입력값이 SQL 쿼리의 일부로 해석되면서, 공격자가 의도하지 않은 쿼리를 실행할 수 있는 취약점이다. 2024년 기준 OWASP Top 10에 여전히 포함되어 있고, 실무에서도 자주 발견된다.

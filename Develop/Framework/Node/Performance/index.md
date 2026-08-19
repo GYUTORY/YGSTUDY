@@ -1,5 +1,5 @@
 ---
-title: Node · Performance 전체 보기
+title: Node · 성능 최적화와 프로파일링 전체 보기
 tags: []
 hide:
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# Node · Performance 전체 보기
+# Node · 성능 최적화와 프로파일링 전체 보기
 
 문서 1개.
 

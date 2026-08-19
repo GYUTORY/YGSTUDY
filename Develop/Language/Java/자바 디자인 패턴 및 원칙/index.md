@@ -1,5 +1,5 @@
 ---
-title: 자바 디자인 패턴 및 원칙 전체 보기
+title: 디자인 패턴 & 원칙 전체 보기
 tags: []
 hide:
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# 자바 디자인 패턴 및 원칙 전체 보기
+# 디자인 패턴 & 원칙 전체 보기
 
 문서 7개.
 

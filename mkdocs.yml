@@ -73,6 +73,9 @@ plugins:
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
       redirect_maps:
+        # SQL 문서 3편이 공격·방어·진단으로 나뉘어 있는데 이름이 서로를 못 구별했다.
+        # SQL_Injection.md 옆의 SQL_인젝션.md 는 어느 쪽이 뭔지 알 방법이 없다 (2026-08-19)
+        'Security/SQL_인젝션.md': 'Security/SQL_Injection_Defense.md'
         # GCP IAM 중복 문서 통합 — 더 포괄적인 GCP_IAM.md 를 남김
         'Cloud/GCP/Security/IAM.md': 'Cloud/GCP/Security/GCP_IAM.md'
         # Claude_Code_Fable_5.md 폐기 — 전제가 틀린 환각 문서, Claude.md로 임시 연결 (2026-08-07)

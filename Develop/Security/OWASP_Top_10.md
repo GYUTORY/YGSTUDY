@@ -163,7 +163,7 @@ SQL Injection, XSS, Command Injection 등이 이 항목에 포함된다. 사용�
 
 SQL Injection과 XSS는 별도 문서에서 상세하게 다루고 있으므로 여기서는 핵심만 정리한다.
 
-**SQL Injection** - 파라미터 바인딩(PreparedStatement, ORM의 쿼리 파라미터)을 사용하면 근본적으로 차단된다. 동적 쿼리 빌딩이 필요한 경우에도 문자열 연결이 아닌 Criteria API나 QueryDSL을 사용한다. → [SQL 인젝션 상세](../Security/SQL_Injection.md)
+**SQL Injection** - 파라미터 바인딩(PreparedStatement, ORM의 쿼리 파라미터)을 사용하면 근본적으로 차단된다. 동적 쿼리 빌딩이 필요한 경우에도 문자열 연결이 아닌 Criteria API나 QueryDSL을 사용한다. → [SQL 인젝션 방어](SQL_Injection_Defense.md)
 
 **XSS** - 서버에서 렌더링하는 경우 출력 시점에 이스케이핑 처리가 핵심이다. React 같은 프레임워크는 기본적으로 이스케이핑을 해주지만, `dangerouslySetInnerHTML`이나 `v-html` 사용 시 취약해진다. → [XSS 상세](../Security/XSS.md)
 

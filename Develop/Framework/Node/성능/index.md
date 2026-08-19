@@ -1,5 +1,5 @@
 ---
-title: 성능 전체 보기
+title: 부하 테스트 전략 전체 보기
 tags: []
 hide:
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# 성능 전체 보기
+# 부하 테스트 전략 전체 보기
 
 문서 1개.
 

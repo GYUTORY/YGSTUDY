@@ -11,7 +11,7 @@ hide:
 
 문서 38개.
 
-## TypeScript 기본 개념
+## TypeScript 기본
 
 - [TypeScript](<TypeScript 기본 개념/TypeScript.md>)
 - [TypeScript export default와 default new](<TypeScript 기본 개념/Export_Default와_Default_New.md>)
@@ -20,7 +20,14 @@ hide:
 - [TypeScript 생성자](<TypeScript 기본 개념/생성자.md>)
 - [tsc와 ts-node의 차이](<TypeScript 기본 개념/tsc vs ts-node.md>)
 
-## 타입 및 타입 정의
+## 타입 유틸리티
+
+- [TypeScript module과 moduleResolution](<타입 유틸리티/module과 moduleResolution.md>)
+- [TypeScript 고급 타입 패턴](<타입 유틸리티/Advanced_Type_Patterns.md>)
+- [TypeScript 유틸리티 타입](<타입 유틸리티/유틸리티 타입.md>)
+- [TypeScript 제네릭 (Generics)](<타입 유틸리티/Generics.md>)
+
+## 타입 정의
 
 - [TypeScript Class](<타입 및 타입 정의/Object Types/Class.md>)
 - [TypeScript Enum](<타입 및 타입 정의/Object Types/Enum.md>)
@@ -46,14 +53,7 @@ hide:
 - [TypeScript 타입 단언](<타입 및 타입 정의/Type_Assertion.md>)
 - [TypeScript 타입 정의 파일](<타입 및 타입 정의/타입 정의 파일.md>)
 
-## 타입 유틸리티
-
-- [TypeScript module과 moduleResolution](<타입 유틸리티/module과 moduleResolution.md>)
-- [TypeScript 고급 타입 패턴](<타입 유틸리티/Advanced_Type_Patterns.md>)
-- [TypeScript 유틸리티 타입](<타입 유틸리티/유틸리티 타입.md>)
-- [TypeScript 제네릭 (Generics)](<타입 유틸리티/Generics.md>)
-
-## 프로젝트 설정 및 컴파일러
+## 프로젝트 설정
 
 - [TypeScript ESLint와 Prettier 설정](<프로젝트 설정 및 컴파일러/ESLint와 Prettier.md>)
 - [TypeScript Workspace와 ts-paths](<프로젝트 설정 및 컴파일러/Workspace와 ts_paths.md>)

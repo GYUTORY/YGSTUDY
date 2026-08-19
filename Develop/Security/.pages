@@ -71,6 +71,6 @@ nav:
     - AI로 보안 강화하기: AI_for_Security.md
     - DID: DID.md
   - SQL Injection:
-    - SQL Injection: SQL_인젝션.md
-    - 심화: SQL_Injection.md
+    - 공격 원리와 ORM 함정: SQL_Injection.md
+    - 방어와 권한 설계: SQL_Injection_Defense.md
     - 진단과 테스트: SQL_Injection_Testing.md

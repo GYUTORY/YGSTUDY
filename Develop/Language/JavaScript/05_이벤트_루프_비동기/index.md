@@ -1,5 +1,5 @@
 ---
-title: 05 이벤트 루프 비동기 전체 보기
+title: 이벤트 루프 & 비동기 전체 보기
 tags: []
 hide:
   - toc
@@ -7,7 +7,7 @@ hide:
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
-# 05 이벤트 루프 비동기 전체 보기
+# 이벤트 루프 & 비동기 전체 보기
 
 문서 3개.
 
