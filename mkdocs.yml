@@ -414,7 +414,12 @@ plugins:
         - "최근.md"
   - rss:
       enabled: !ENV [BUILD_RSS, FULL_BUILD, false]
-      match_path: ".*"
+      # 자동 생성 목록 페이지를 피드에서 뺀다.
+      # 그 전에는 상위 12개 중 11개가 "Language 전체 보기", "Infra" 같은
+      # 목차였다 — 구독자가 새 글 대신 목차 갱신 알림을 받았다.
+      # 빠지는 것: 섹션 index.md · _group/ 묶음 랜딩 · 최근·tags·todo
+      # 남는 것: 사람이 쓴 문서 전부(_hub/ 의 주제 가이드 8개 포함)
+      match_path: "(?!(?:.*/)?_group/)(?!.*(?:^|/)(?:index|최근|tags|todo)\\.md$).*"
       date_from_meta:
         as_creation: date
       length: 30
