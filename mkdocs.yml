@@ -73,6 +73,10 @@ plugins:
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
       redirect_maps:
+        # 모듈 시스템 문서 3편 통합 — 유입 링크가 가장 많고 내용의 무게중심이
+        # 런타임인 Node 편으로 수렴 (2026-08-19)
+        'Language/JavaScript/04_심화_JavaScript/Module_System.md': 'Framework/Node/모듈 시스템/CommonJS vs ESM.md'
+        'Language/JavaScript/09_ES6_및_고급문법/ESM과 CommonJS.md': 'Framework/Node/모듈 시스템/CommonJS vs ESM.md'
         # Loki 문서 2편이 H1·title 이 글자까지 같아서 index.md 에 동일한 링크가
         # 두 줄 나란히 있었다. 내용은 수집 구성 / 레이블 설계로 갈린다 (2026-08-19)
         'DevOps/Monitoring/Loki_로그_집계.md': 'DevOps/Monitoring/Loki_레이블_설계와_카디널리티.md'
@@ -97,7 +101,7 @@ plugins:
         'Language/Java/JVM 관련/JVM/JVM 구조 및 메모리 관리.md': 'Language/Java/JVM 관련/JVM 구조 및 메모리 관리.md'
         'Language/Java/JVM 관련/JVM/JVM_Options_and_Memory_Management.md': 'Language/Java/JVM 관련/JVM_Options_and_Memory_Management.md'
         'Language/JavaScript/09_ES6_및_고급문법/ES6/ES6 Class.md': 'Language/JavaScript/09_ES6_및_고급문법/ES6 Class.md'
-        'Language/JavaScript/09_ES6_및_고급문법/ES6/ESM과 CommonJS.md': 'Language/JavaScript/09_ES6_및_고급문법/ESM과 CommonJS.md'
+        'Language/JavaScript/09_ES6_및_고급문법/ES6/ESM과 CommonJS.md': 'Framework/Node/모듈 시스템/CommonJS vs ESM.md'
         'Language/JavaScript/09_ES6_및_고급문법/ES6/Getter & Setter.md': 'Language/JavaScript/09_ES6_및_고급문법/Getter & Setter.md'
         'Language/TypeScript/타입 및 타입 정의/TypeScript Types/Object Types/Arrays.md': 'Language/TypeScript/타입 및 타입 정의/Object Types/Arrays.md'
         'Language/TypeScript/타입 및 타입 정의/TypeScript Types/Object Types/Class.md': 'Language/TypeScript/타입 및 타입 정의/Object Types/Class.md'

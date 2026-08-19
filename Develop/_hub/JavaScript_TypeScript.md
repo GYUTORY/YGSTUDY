@@ -159,7 +159,7 @@ console.log('B');
 | [Map 개념](../Language/JavaScript/01_기본_JavaScript/Map/Map_개념.md) | Map vs Object, 키 타입·순서 보장·성능 차이 | 입문 |
 | [Stack](../Language/JavaScript/04_심화_JavaScript/Stack.md) | 콜 스택과 메모리 스택 자료구조 | 입문 |
 | [Child Process Spawn](../Language/JavaScript/04_심화_JavaScript/Child_Process_Spawn.md) | Node.js에서 자식 프로세스 생성·통신 | 실무 |
-| [모듈 시스템](../Language/JavaScript/04_심화_JavaScript/Module_System.md) | CommonJS vs ESM 차이, .cjs/.mjs 확장자 문제, 동적 import(), Top-level await | 실무 |
+| [모듈 시스템](../Framework/Node/모듈 시스템/CommonJS vs ESM.md) | CommonJS vs ESM 차이, .cjs/.mjs 확장자 문제, 동적 import(), Top-level await | 실무 |
 
 ---
 
@@ -316,7 +316,7 @@ type C = ElementOf<number>;     // never
 
 - **이벤트 루프 전용 문서** (`../Language/JavaScript/05_이벤트_루프_비동기/Event_Loop.md`) — Task Queue·Microtask Queue·rAF 큐의 처리 순서를 다이어그램과 함께 정리한 단독 문서
 - **Symbol·WeakRef·FinalizationRegistry** (`../Language/JavaScript/04_심화_JavaScript/Symbol_WeakRef.md`) — ES2021+ 메모리 관리 API 문서
-- **JavaScript 모듈 시스템** (`../Language/JavaScript/04_심화_JavaScript/Module_System.md`) — CommonJS vs ESM, 동적 import(), Top-level await 비교
+- **JavaScript 모듈 시스템** (`../Framework/Node/모듈 시스템/CommonJS vs ESM.md`) — CommonJS vs ESM, 동적 import(), Top-level await 비교
 - **TS 프로젝트 레퍼런스(Project References)** (`../Language/TypeScript/프로젝트%20설정%20및%20컴파일러/Project_References.md`) — 모노레포에서 tsc --build로 증분 빌드 구성
 - **JSDoc 심화** (`../Language/TypeScript/TypeScript%20기본%20개념/JSDoc.md`) — `@template`, `@overload`, `@satisfies` 등 TS 호환 JSDoc 전용 문서
 - **Proxy 심화** (`../Language/JavaScript/07_프록시_리플렉션/Proxy_Reactive.md`) — Proxy로 반응형(Reactive) 시스템 구현하는 패턴 (Vue Reactivity 원리 등)

@@ -8,6 +8,15 @@ export PATH=/tmp/v3/bin:$PATH
 run() { printf '  %-34s' "$1"; shift; if "$@" >/tmp/_v.log 2>&1; then echo "OK"; else echo "FAIL"; tail -12 /tmp/_v.log|sed 's/^/      /'; FAIL=1; fi; }
 
 [ -x .git/hooks/pre-commit ] || echo "  ⚠ git 훅 미설치 — bash tools/install_hooks.sh (NFD 차단·updated 자동갱신이 안 걸려 있다)"
+# 생성물을 먼저 다시 만든다.
+#
+# 왜: check_links 는 section_index.py 가 만드는 index.md 를 검사하는데,
+# 그걸 다시 만드는 건 아래 mkdocs build 다. 순서가 거꾸로라 문서를 지우거나
+# 이름을 바꾸면 첫 실행이 반드시 실패하고 두 번째가 통과한다. 실제로 이번에
+# 세 번 겪었다. 더 나쁜 건 "다시 돌리면 통과" 가 학습되면 진짜 깨진 링크도
+# 같은 방식으로 넘어간다는 것이다.
+python3 tools/section_index.py >/dev/null
+
 echo "── 문서 검사 ──"
 run "gen_tags"            python3 tools/gen_tags.py --strict
 run "check_frontmatter"   python3 tools/check_frontmatter.py --strict

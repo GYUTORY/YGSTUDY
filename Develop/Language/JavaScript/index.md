@@ -9,13 +9,12 @@ hide:
 
 # JavaScript 전체 보기
 
-문서 60개.
+문서 58개.
 
 ## ES6 & 고급 문법
 
 - [Base64·encodeURI·URLSearchParams 비교](09_ES6_및_고급문법/Base64_Encode_URI_Component_URL_Search_Params.md)
 - [ES6 Class](<09_ES6_및_고급문법/ES6 Class.md>)
-- [ESM과 CommonJS](<09_ES6_및_고급문법/ESM과 CommonJS.md>)
 - [JavaScript Getter Setter](<09_ES6_및_고급문법/Getter & Setter.md>)
 - [JavaScript Truthy와 Falsy](09_ES6_및_고급문법/Truthy__Falsy.md)
 - [Spread & Rest 연산자](<09_ES6_및_고급문법/Spread & Rest 연산자.md>)
@@ -71,7 +70,6 @@ hide:
 
 - [JavaScript Stack (스택) 자료구조](04_심화_JavaScript/Stack.md)
 - [JavaScript 디스트럭처링과 템플릿 리터럴](04_심화_JavaScript/Destructuring_and_Template_Literals.md)
-- [JavaScript 모듈 시스템](04_심화_JavaScript/Module_System.md)
 - [JavaScript에서 2진수, 10진수, 16진수 다루기](<04_심화_JavaScript/JavaScript에서 2진수, 10진수, 16진수 다루기.md>)
 - [MAX_SAFE_INTEGER](04_심화_JavaScript/MAX_SAFE_INTEGER.md)
 - [PWA (Progressive Web App)](04_심화_JavaScript/PWA.md)
