@@ -1,7 +1,11 @@
 mkdocs>=1.6.0
 mkdocs-material>=9.5.0
 mkdocs-awesome-pages-plugin>=2.9.0
-mkdocs-git-revision-date-localized-plugin>=1.2.0
+# 버전을 낮춰 고정하지 말 것. 1.5.x 가 페이지마다 git tag --points-at 를
+# 3번씩 불러(이 저장소는 태그가 0개라 전부 헛일) 느려 보이지만, 실제로 재면
+# 1.3.0 이 30~40% 더 느리다 — 순서 교대 2회 실측 126/131초 vs 90/99초.
+# 1.5.x 가 다른 곳에서 그보다 큰 이득을 낸다.
+mkdocs-git-revision-date-localized-plugin>=1.5.0
 mkdocs-minify-plugin>=0.8.0
 mkdocs-redirects>=1.2.0
 mkdocs-rss-plugin>=1.6.0
