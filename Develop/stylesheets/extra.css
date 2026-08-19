@@ -2874,3 +2874,26 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   margin-left: 3px;
   padding-left: 7px;
 }
+
+
+/* 아주 넓은 화면에서 산문만 폭을 제한한다.
+   .md-grid 의 max-width 를 푼 덕에 코드·표·다이어그램은 화면을 잘 쓰는데,
+   본문 문장까지 같이 늘어나 2560px 에서 한 줄이 한글 106자가 됐다
+   (1440px 은 55자). 눈이 줄 끝에서 다음 줄 머리로 돌아오지 못한다.
+
+   폭을 넓게 쓰는 요소(코드블록·표·다이어그램·이미지·홈 섹션)는 그대로 두고
+   글자만 잡는다. 실측 2560px 기준 106자 -> 69자. */
+@media screen and (min-width: 90em) {
+  .md-typeset > p,
+  .md-typeset > ul,
+  .md-typeset > ol,
+  .md-typeset > blockquote,
+  .md-typeset > h1,
+  .md-typeset > h2,
+  .md-typeset > h3,
+  .md-typeset > h4,
+  .md-typeset > h5,
+  .md-typeset > h6 {
+    max-width: 1100px;
+  }
+}
