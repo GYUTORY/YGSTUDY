@@ -222,6 +222,10 @@
       var box = document.createElement("div");
       box.id = descId;
       box.className = "yg-mermaid-desc";
+      // 트리에 두 번 싣지 않는다. aria-describedby 가 직접 가리키는 요소는
+      // aria-hidden 이어도 설명 계산에 그대로 쓰인다(accname 규격). 이게 없으면
+      // 같은 문장이 그림의 설명으로 한 번, 본문 텍스트로 또 한 번 올라간다.
+      box.setAttribute("aria-hidden", "true");
       box.textContent = rel.join(". ") + ".";
       node.appendChild(box);
       svg.setAttribute("aria-describedby", descId);

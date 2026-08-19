@@ -866,7 +866,11 @@ body {
 .md-typeset ul li,
 .md-typeset ol li {
   line-height: 1.65;
-  margin-bottom: 0.35em;
+  /* 항목 셋 중 하나는 두 줄을 넘긴다(실측 52/156). 그때 항목 경계가 40px,
+     항목 안 줄바꿈이 33px 이라 둘이 거의 같아 여러 항목이 한 덩어리로 뭉갰다.
+     문단에 이미 쓴 처방(20 -> 27px)과 같은 이유다. 다만 불릿이 경계를 한 번 더
+     알려주므로 문단만큼 벌리지 않는다 — 45px 대 33px. */
+  margin-bottom: 0.6em;
 }
 
 .md-typeset a {
@@ -1029,6 +1033,39 @@ body {
 .md-typeset img {
   max-width: 100%;
   height: auto;
+}
+
+/* 그림과 캡션.
+   캡션이 본문과 같은 크기(20px)·같은 색(#3D3A38)이라 그림 설명인지 본문 한
+   문단인지 구분되지 않았다. 게다가 자기 그림에서 27px, 다음 문단까지 20px —
+   설명해야 할 그림보다 다음 문단에 더 붙어 있었다. 캡션을 그림 쪽으로 당기고
+   덩어리 전체를 앞뒤 산문에서 떼어낸다. */
+.md-typeset figure {
+  margin: 1.6em auto 2em;
+}
+/* 마크다운이 figure 안에 남긴 래퍼. markdown="1" 은 이미지를 <p> 로 감싸고,
+   markdown="span" 은 들여쓴 줄바꿈을 <br> 로 바꾼다. 둘 다 저자가 쓴 게 아니라
+   파서 산물인데, 이게 캡션을 그림에서 27px(<p>)·46px(<br>) 밀어냈다. */
+.md-typeset figure > p {
+  margin: 0;
+}
+.md-typeset figure > br {
+  display: none;
+}
+.md-typeset figure img {
+  margin-bottom: 0;
+  /* 인라인 이미지 아래 baseline 여백(디센더 자리) 제거 */
+  vertical-align: bottom;
+}
+.md-typeset figcaption {
+  margin-top: 0.55em;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);   /* 라이트 4.89:1 / 다크 5.62:1 */
+  /* 한글에는 진짜 기울임꼴이 없어 이탤릭이 글자를 억지로 눕힌 모양이 된다.
+     두 줄짜리 한글 캡션이 특히 뭉갰다. */
+  font-style: normal;
+  letter-spacing: 0;
 }
 
 /* 인라인 코드만 핑크 — 코드블록(pre > code)은 제외 */
@@ -2221,6 +2258,9 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   .md-typeset blockquote,
   .md-typeset .admonition,
   .md-typeset .yg-mermaid,
+  /* 화면에서 캡션을 그림에 9px 로 붙여 놨다. 종이에서 둘이 장 사이로 갈리면
+     캡션 없는 그림과 떠도는 한 줄이 남는다. figure 는 8개뿐이라 쪽수 비용 0. */
+  .md-typeset figure,
   .md-typeset img { break-inside: avoid; page-break-inside: avoid; }
   .md-typeset h1,
   .md-typeset h2,
@@ -2569,7 +2609,8 @@ body:has(#tag\:ai) .md-content h2 + ul > li > a:hover {
 }
 
 /* 목차 앵커로 순간이동하던 것 — 어디로 갔는지 감이 안 잡힌다.
-   prefers-reduced-motion 은 기존 전역 규칙이 이미 끈다. */
+   축소 모드에서 끄는 건 아래 prefers-reduced-motion 블록이다. Material 의
+   전역 규칙은 transition 만 다뤄서 이걸 못 끈다. */
 html {
   scroll-behavior: smooth;
 }
@@ -2809,6 +2850,10 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
    전역 규칙이 transition·animation 만 끄고 scroll-behavior 는 포함하지 않는다. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  /* Material 의 축소모드 규칙은 transition 만 끈다. 본문 fadeIn 은 keyframes 라
+     그 그물에 안 걸리고, translateY(4px) 라 투명도만이 아니라 실제 이동이 남는다
+     — 페이지를 열 때마다 본문 전체가 4px 올라온다. */
+  .md-content__inner { animation: none; }
 }
 
 /* 브레드크럼 구분자에 테두리 토큰을 써서 1.25:1 로 사실상 안 보였다.
