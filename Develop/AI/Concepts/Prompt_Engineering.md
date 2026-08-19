@@ -437,7 +437,7 @@ for case in test_cases:
 
 반복 사용하는 프롬프트는 변수 부분과 고정 부분을 분리해서 템플릿으로 만든다.
 
-```python
+````python
 REVIEW_PROMPT = """
 다음 코드를 리뷰해줘.
 
@@ -464,7 +464,7 @@ result = call_llm(
         code=code_content
     )
 )
-```
+````
 
 템플릿의 고정 부분을 바꾸면 전체 서비스에 영향이 가니, 반드시 테스트 후 배포해야 한다.
 

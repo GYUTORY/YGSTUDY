@@ -518,7 +518,7 @@ flowchart TD
 
 **자동 로테이션이 필요할 때** — RDS 비밀번호를 30일마다 바꿔야 하는 컴플라이언스 요건이 있다면, Secrets Manager 외에 선택지가 없다. Lambda 기반 로테이션을 직접 구현할 수도 있지만, AWS가 제공하는 RDS/Aurora/Redshift용 로테이션 템플릿을 쓰면 검증된 방식으로 처리된다.
 
-**Cross-account 시크릿 공유가 필요할 때** — 여러 AWS 계정에서 같은 시크릿에 접근해야 하는 경우. Parameter Store는 이걸 지원하지 않는다.
+**Cross-account 시크릿 공유가 필요할 때** — 여러 AWS 계정에서 같은 시크릿에 접근해야 하는 경우. Parameter Store 도 2024년부터 AWS RAM 으로 공유할 수 있지만 advanced tier 전용이고, SecureString 이면 고객 관리형 키로 암호화한 뒤 그 키를 KMS 에서 따로 공유해야 한다. 손이 더 간다.
 
 **시크릿 버전 관리가 필요할 때** — 로테이션 후 이전 값으로 롤백해야 하는 상황. `AWSCURRENT`, `AWSPREVIOUS` 레이블로 관리된다.
 

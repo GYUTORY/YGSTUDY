@@ -104,13 +104,13 @@ GET은 멱등성이 보장되지만 POST는 그렇지 않다. PUT은 전체 교�
 
 #### PUT vs PATCH 비교
 
-<table>
-<tr>
-<th width="50%" align="center">PUT (전체 교체)</th>
-<th width="50%" align="center">PATCH (부분 수정)</th>
+<table markdown="1">
+<tr markdown="1">
+<th width="50%" align="center" markdown="1">PUT (전체 교체)</th>
+<th width="50%" align="center" markdown="1">PATCH (부분 수정)</th>
 </tr>
-<tr>
-<td valign="top">
+<tr markdown="1">
+<td valign="top" markdown="1">
 
 **개념**
 ```
@@ -137,7 +137,7 @@ GET은 멱등성이 보장되지만 POST는 그렇지 않다. PUT은 전체 교�
 - 모든 필드를 알고 있을 때
 
 </td>
-<td valign="top">
+<td valign="top" markdown="1">
 
 **개념**
 ```
@@ -253,13 +253,13 @@ URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한�
 
 #### 응답 형식 표준화
 
-<table>
-<tr>
-<th width="50%" align="center">성공 응답</th>
-<th width="50%" align="center">에러 응답</th>
+<table markdown="1">
+<tr markdown="1">
+<th width="50%" align="center" markdown="1">성공 응답</th>
+<th width="50%" align="center" markdown="1">에러 응답</th>
 </tr>
-<tr>
-<td valign="top">
+<tr markdown="1">
+<td valign="top" markdown="1">
 
 **일관된 성공 응답 구조**
 ```
@@ -283,7 +283,7 @@ URI는 자원을 명사로 표현하고, 동작은 HTTP 메서드로 표현한�
 - 메타 정보 (선택)
 
 </td>
-<td valign="top">
+<td valign="top" markdown="1">
 
 **일관된 에러 응답 구조**
 ```
@@ -417,14 +417,14 @@ RESTful API는 일관된 규칙을 따라야 한다. URI는 명사로, 동작은
 
 #### 각 메서드별 처리 흐름
 
-<table>
-<tr>
-<th width="33%">조회 (GET)</th>
-<th width="33%">생성 (POST)</th>
-<th width="33%">삭제 (DELETE)</th>
+<table markdown="1">
+<tr markdown="1">
+<th width="33%" markdown="1">조회 (GET)</th>
+<th width="33%" markdown="1">생성 (POST)</th>
+<th width="33%" markdown="1">삭제 (DELETE)</th>
 </tr>
-<tr>
-<td valign="top">
+<tr markdown="1">
+<td valign="top" markdown="1">
 
 ```
 요청
@@ -441,7 +441,7 @@ DB 조회
 ```
 
 </td>
-<td valign="top">
+<td valign="top" markdown="1">
 
 ```
 요청
@@ -458,7 +458,7 @@ DB 저장
 ```
 
 </td>
-<td valign="top">
+<td valign="top" markdown="1">
 
 ```
 요청
@@ -626,9 +626,9 @@ URL 경로에 버전 명시:
 ### 요약
 RESTful API는 현대 웹 서비스 개발의 사실상 표준이 되었다.
 
-<table>
-<tr>
-<td width="50%" valign="top">
+<table markdown="1">
+<tr markdown="1">
+<td width="50%" valign="top" markdown="1">
 
 #### RESTful API를 선택해야 하는 이유
 
@@ -650,7 +650,7 @@ RESTful API는 현대 웹 서비스 개발의 사실상 표준이 되었다.
 ```
 
 </td>
-<td width="50%" valign="top">
+<td width="50%" valign="top" markdown="1">
 
 #### 설계 시 기억할 것
 

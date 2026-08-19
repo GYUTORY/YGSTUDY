@@ -274,7 +274,7 @@ aws ecs register-task-definition \
   --cli-input-json file://task-definition.json
 ```
 
-리비전 번호가 1부터 올라간다. 이미지 태그를 바꾸거나 환경변수를 바꿀 때마다 새 리비전이 생긴다. 운영에서는 Service가 리비전 번호를 명시적으로 가리키게 두는 편이 안전하다. `order-api:LATEST` 같은 별칭 참조는 ECS Service에서는 지원하지 않는다.
+리비전 번호가 1부터 올라간다. 이미지 태그를 바꾸거나 환경변수를 바꿀 때마다 새 리비전이 생긴다. 운영에서는 Service가 리비전 번호를 명시적으로 가리키게 두는 편이 안전하다. 리비전을 빼고 family 이름만 쓰면(`order-api`) 최신 ACTIVE 리비전이 자동으로 잡히는데, 이러면 의도치 않은 리비전이 배포에 끼어들 수 있다. `:LATEST` 같은 별칭 토큰은 따로 없다.
 
 ## 6. ECS Cluster 생성
 

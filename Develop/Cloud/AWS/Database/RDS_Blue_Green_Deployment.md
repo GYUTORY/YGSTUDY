@@ -31,7 +31,7 @@ switchover 후:
 
 Blue/Green Deployment를 쓰려면 blue 인스턴스에 binlog가 켜져 있어야 한다. binlog가 꺼진 상태면 green 생성 자체가 실패한다.
 
-RDS에서 binlog가 활성화되려면 두 조건을 충족해야 한다. 첫째, 자동 백업 보존 기간(`backup_retention_period`)이 1일 이상이어야 한다. 이 값이 0이면 자동 백업이 꺼진 것이고, binlog도 켜지지 않는다. 둘째, `binlog_format`이 `ROW` 또는 `MIXED`여야 한다. `STATEMENT` 포맷은 지원하지 않는다. RDS MySQL 기본값이 `ROW`라 보통 따로 건드릴 일은 없지만, 파라미터 그룹을 커스텀하게 관리하는 환경이라면 확인해둬야 한다.
+RDS에서 binlog가 활성화되려면 두 조건을 충족해야 한다. 첫째, 자동 백업 보존 기간(`backup_retention_period`)이 1일 이상이어야 한다. 이 값이 0이면 자동 백업이 꺼진 것이고, binlog도 켜지지 않는다. 둘째, `binlog_format` 설정이다. RDS for MySQL 은 `ROW`·`MIXED`·`STATEMENT` 셋 다 지원하지만, 복제 불일치 위험 때문에 `ROW` 를 쓰는 게 맞다. RDS 기본값이 `ROW` 라 보통 따로 손댈 일은 없다. RDS MySQL 기본값이 `ROW`라 보통 따로 건드릴 일은 없지만, 파라미터 그룹을 커스텀하게 관리하는 환경이라면 확인해둬야 한다.
 
 ```sql
 -- blue 인스턴스에서 확인
