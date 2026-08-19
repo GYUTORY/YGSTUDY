@@ -966,7 +966,7 @@ AWS Application Load Balancer는 기본 idle timeout이 60초다. 60초 동안 �
 
 해결 순서는 두 가지다. ALB의 idle timeout을 늘릴 수 있다(최대 4000초). 또는 ping을 30초 정도 간격으로 보내 트래픽을 유지한다. 후자가 일반적이다. ALB 설정을 늘려도 NLB나 Cloudflare 등 다른 장비가 그 앞에 있으면 거기서 끊긴다.
 
-ALB는 WebSocket 자체는 잘 지원하지만 RFC 8441(HTTP/2 위 WebSocket)은 지원하지 않는다. 클라이언트가 HTTP/2 멀티플렉싱을 기대하고 보낸 CONNECT는 거절된다.
+ALB는 WebSocket 자체는 잘 지원하지만 2024년 기준으로 RFC 8441(HTTP/2 위 WebSocket)은 지원하지 않는다. 클라이언트가 HTTP/2 멀티플렉싱을 기대하고 보낸 CONNECT는 거절된다.
 
 ### Cloudflare 100초 제한
 

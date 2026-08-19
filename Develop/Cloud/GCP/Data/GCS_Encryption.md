@@ -96,7 +96,7 @@ gcloud kms keys create my-hsm-key \
   --protection-level=hsm
 ```
 
-HSM은 모든 리전에서 지원되지 않는다. 사용 전에 해당 리전의 HSM 지원 여부를 확인해야 한다.
+HSM 은 일부 리전에서는 지원되지 않는다. 사용 전에 해당 리전의 HSM 지원 여부를 확인해야 한다.
 
 ```bash
 # 리전별 HSM 지원 여부 확인

@@ -227,7 +227,7 @@ Sequential이 커넥션을 덜 오래 점유하는 경향이 있지만, 차이�
 
 ### 중첩 트랜잭션과 Savepoint 제한
 
-Prisma는 중첩 트랜잭션을 지원하지 않는다. `tx` 안에서 `tx.$transaction()`을 호출하려고 하면 `tx`에 `$transaction` 메서드 자체가 없어서 타입 에러가 난다. 데이터베이스 레벨의 `SAVEPOINT`도 Prisma가 노출하지 않는다.
+Prisma 5 기준 중첩 트랜잭션을 지원하지 않는다. `tx` 안에서 `tx.$transaction()`을 호출하려고 하면 `tx`에 `$transaction` 메서드 자체가 없어서 타입 에러가 난다. 데이터베이스 레벨의 `SAVEPOINT`도 Prisma가 노출하지 않는다.
 
 이 제한이 문제가 되는 경우는 대개 서비스 계층이 서로를 호출하는 구조에서다. A 서비스가 트랜잭션을 열고, 그 안에서 B 서비스 메서드를 호출하는데 B 메서드 내부에도 `$transaction`이 있으면 중첩이 된다.
 

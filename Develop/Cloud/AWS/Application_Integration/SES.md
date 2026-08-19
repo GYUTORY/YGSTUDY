@@ -678,7 +678,7 @@ Gmail Postmaster Tools(gmail.com/postmaster)에 도메인을 등록하면 Gmail�
 
 ### 첨부파일 보낼 때
 
-`SendEmail`은 첨부파일을 지원하지 않는다. 첨부파일이 있으면 `SendRawEmail`을 써서 MIME 메시지를 직접 만들어 보내야 한다. Node.js에서는 `nodemailer`로 MIME을 만들고 SES SMTP 인터페이스로 보내는 게 가장 깔끔하다.
+SES v1 의 `SendEmail` 은 첨부파일을 지원하지 않는다. 첨부파일이 있으면 `SendRawEmail` 로 MIME 메시지를 직접 만들어 보내야 한다. SES v2 의 `SendEmail` 은 `Content.Raw` 로 MIME 을 넘길 수 있어 별도 API 가 필요 없다. Node.js에서는 `nodemailer`로 MIME을 만들고 SES SMTP 인터페이스로 보내는 게 가장 깔끔하다.
 
 ```javascript
 import nodemailer from "nodemailer";

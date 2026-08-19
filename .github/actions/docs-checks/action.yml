@@ -68,6 +68,14 @@ runs:
     # redirect_maps 315개의 스텁 페이지가 실제로 생성됐고 meta refresh 와
     # 목적지까지 살아 있는지 본다. 경로가 '/root/YGSTUDY' 로 박혀 있어
     # 오래 죽어 있던 도구다 — 호출처가 0곳이라 아무도 몰랐다.
+    # 게이트가 아니다. 낡은 전제 후보를 목록으로만 뽑는다.
+    # 자동 검사가 구조적으로 불가능한 축이라(바깥이 움직였는지를 알아야 판정된다)
+    # 사람이 분기에 한 번 훑을 대상을 좁혀 두는 용도다.
+    # 스코프가 붙은 문장은 자동으로 빠지므로 규약이 정착할수록 목록이 줄어든다.
+    - name: List support claims (non-blocking)
+      shell: bash
+      run: python3 tools/list_support_claims.py --stats
+
     - name: Check redirects
       shell: bash
       env:

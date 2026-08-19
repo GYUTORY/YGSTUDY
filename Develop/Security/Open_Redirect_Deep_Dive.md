@@ -305,7 +305,7 @@ export default function handler(req, res) {
 }
 ```
 
-Next.js는 `redirect()` 자체에 URL 검증을 내장하지 않는다. 검증은 애플리케이션 코드에서 해야 한다.
+Next.js 13+ 기준 `redirect()` 자체에는 URL 검증이 내장돼 있지 않다. 검증은 애플리케이션 코드에서 해야 한다.
 
 ```typescript
 function safeRedirectUrl(returnUrl: string | null): string {
