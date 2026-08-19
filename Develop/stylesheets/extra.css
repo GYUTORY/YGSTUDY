@@ -2842,7 +2842,14 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li {
     visibility: hidden;
   }
-  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
+  /* 되살리는 쪽에는 '드로어가 열렸을 때만' 가드를 건다.
+     Material 은 드로어 개폐와 무관하게 활성 경로의 토글을 checked 로 둔다.
+     가드가 없으면 닫힌 드로어(x=-328) 안의 링크가 visibility:visible 로
+     되살아나 조상의 hidden 을 뚫고 탭 순서에 남는다 — CSS visibility 는
+     자손이 다시 visible 을 선언하면 조상의 hidden 이 뚫린다.
+     실측 깊이1~5 에서 각각 9·41·46·11·10개가 화면 밖에서 포커스를 받았다. */
+  [data-md-toggle="drawer"]:checked ~ .md-container
+    .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked) {
     visibility: visible;
   }
   /* 펼쳐진 항목 자신의 제목 줄은 뒤로가기 헤더와 겹쳐 보이므로 숨긴다.
@@ -2853,8 +2860,10 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
   .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked) > ul > li:has(> input.md-nav__toggle:checked):has(> nav.md-nav > ul > li) > .md-nav__container {
     visibility: hidden;
   }
-  /* 하위가 빈 항목은 형제들과 함께 보여야 길이 막히지 않는다 */
-  .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked):not(:has(> ul > li > input.md-nav__toggle:checked ~ nav.md-nav > ul > li)) > ul > li {
+  /* 하위가 빈 항목은 형제들과 함께 보여야 길이 막히지 않는다.
+     여기에도 같은 가드가 필요하다 — 이 규칙이 깊이4~5 구간의 탭 침입을 만들었다. */
+  [data-md-toggle="drawer"]:checked ~ .md-container
+    .md-sidebar--primary nav.md-nav:has(> ul > li > input.md-nav__toggle:checked):not(:has(> ul > li > input.md-nav__toggle:checked ~ nav.md-nav > ul > li)) > ul > li {
     visibility: visible;
   }
 }
@@ -2882,7 +2891,8 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
    (1440px 은 55자). 눈이 줄 끝에서 다음 줄 머리로 돌아오지 못한다.
 
    폭을 넓게 쓰는 요소(코드블록·표·다이어그램·이미지·홈 섹션)는 그대로 두고
-   글자만 잡는다. 실측 2560px 기준 106자 -> 69자. */
+   글자만 잡는다. 실측 2560px 기준 raw 106자 -> 53자, 한글 글자폭 환산 82자 -> 42자.
+   WCAG 1.4.8(AAA) 의 CJK 상한이 환산 40자다. */
 .md-typeset > p,
 .md-typeset > ul,
 .md-typeset > ol,

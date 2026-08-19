@@ -54,7 +54,7 @@ RDS for Oracle은 라이선스가 두 종류다. License Included(AWS가 라이�
 
 Oracle은 옵션 그룹(Option Group)을 반드시 다룬다. Oracle Statspack, TDE(투명한 데이터 암호화), S3 연동 같은 기능이 옵션 그룹으로 활성화된다. MySQL/PostgreSQL은 파라미터 그룹으로 대부분 제어하지만, Oracle은 파라미터 그룹 + 옵션 그룹 두 가지를 관리한다.
 
-멀티 테넌트(CDB/PDB) 구조는 RDS에서 지원하지 않는다. Single-Tenant 방식만 된다.
+멀티 테넌트(CDB/PDB) 구조도 쓸 수 있다. 2021년에 PDB 하나짜리 CDB 가 먼저 들어왔고, 2023년부터 19c·21c(EE·SE2)에서 여러 PDB 를 한 CDB 에 올릴 수 있다. 기존 비-CDB 인스턴스를 CDB 로 전환하는 것도 된다.
 
 ### SQL Server
 
