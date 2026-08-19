@@ -72,6 +72,29 @@
         var q = held.splice(0);
         for (var i = 0; i < q.length; i++) q[i]();
       }
+
+      // 첫 화면이 끝나고 한가해지면 알아서 받아 둔다.
+      //
+      // 왜: 요청을 검색 클릭까지 완전히 미루면 다운로드가 검색의 임계경로로
+      // 들어온다. 3G 에서 gzip 5.9MB 는 30.8초라, 글을 한참 읽다 검색하면
+      // 예전에는 이미 받아져 있던 것을 이제 그 자리에서 기다리게 된다.
+      // 그래서 "첫 페인트를 막지 않는다" 만 지키고, 그 뒤에는 미리 받는다.
+      //
+      // 다만 느린 회선과 데이터 절약 모드에서는 미루기를 유지한다. 5.9MB 는
+      // 그쪽에서 공짜가 아니고, 검색을 안 쓰면 통째로 낭비다.
+      function idlePrefetch() {
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (c) {
+          if (c.saveData) return;
+          var t = c.effectiveType || "";
+          if (t === "slow-2g" || t === "2g" || t === "3g") return;
+        }
+        var go = function () { release(); };
+        if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 3000 });
+        else setTimeout(go, 1500);
+      }
+      if (document.readyState === "complete") setTimeout(idlePrefetch, 300);
+      else window.addEventListener("load", function () { setTimeout(idlePrefetch, 300); });
       // 검색을 하려는 신호. Material 의 단축키(s · / · f · Ctrl/Cmd+K)도 포함한다.
       //
       // 진입 경로를 하나라도 빠뜨리면 검색이 영영 준비되지 않는다. 그래서
