@@ -75,7 +75,7 @@ pm2 resurrect
 
 #### 1. 간단한 서버 생성
 
-```javascript:app.js
+```javascript title="app.js"
 const http = require('http');
 
 const server = http.createServer((req, res) => {
@@ -344,7 +344,7 @@ pm2 start app.js --env staging
 
 설정 파일을 사용하면 더 체계적으로 애플리케이션을 관리할 수 있습니다.
 
-```javascript:ecosystem.config.js
+```javascript title="ecosystem.config.js"
 module.exports = {
   apps: [{
     name: 'my-app',
@@ -517,7 +517,7 @@ rm -rf ~/.pm2
 
 ### 프로덕션 최적화 설정
 
-```javascript:ecosystem.config.js
+```javascript title="ecosystem.config.js"
 // 프로덕션 최적화 설정
 module.exports = {
   apps: [{
@@ -573,7 +573,7 @@ pm2 set pm2-logrotate:retain 30
 
 ### Dockerfile 예시
 
-```dockerfile:Dockerfile
+```dockerfile title="Dockerfile"
 FROM node:18-alpine
 
 WORKDIR /app
@@ -592,7 +592,7 @@ CMD ["pm2-runtime", "start", "ecosystem.config.js", "--env", "production"]
 
 ### Docker Compose 예시
 
-```yaml:docker-compose.yml
+```yaml title="docker-compose.yml"
 version: '3.8'
 services:
   app:
