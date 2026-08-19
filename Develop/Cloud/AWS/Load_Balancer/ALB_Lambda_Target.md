@@ -247,7 +247,7 @@ WebSocket이 필요하면 API Gateway WebSocket API밖에 없다. Lambda 응답 
 
 IAM 기반 요청 서명(Sigv4), API 키 관리, 사용량 계획(Usage Plan), 요청/응답 매핑 템플릿이 필요하면 API Gateway를 써야 한다. ALB는 이런 기능이 없다.
 
-Lambda 별칭 기반 트래픽 분산(Canary)도 API Gateway 쪽이 낫다. ALB는 가중치 기반 타겟 그룹으로 카나리를 구현할 수 있지만 Lambda ARN이 별칭을 지원하지 않아서 함수를 두 개 만들어야 한다.
+Lambda 별칭 기반 트래픽 분산(Canary)은 API Gateway 쪽이 손에 익다. ALB 로도 된다 — 타겟 그룹당 Lambda 함수는 하나만 등록되지만 ARN 에 별칭을 포함할 수 있으므로, 같은 함수의 서로 다른 별칭(`:blue` / `:green`)을 두 타겟 그룹에 각각 등록하고 가중치를 나누면 된다. AWS 는 오히려 별칭 ARN 등록을 권장한다 — 함수를 새로 배포해도 타겟 그룹을 다시 손댈 필요가 없다.
 
 ## Terraform 설정 예제
 

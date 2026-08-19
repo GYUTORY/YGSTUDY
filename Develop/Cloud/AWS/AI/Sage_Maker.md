@@ -166,7 +166,7 @@ predictor = model.deploy(
 )
 ```
 
-Serverless는 GPU를 지원하지 않는다. CPU 기반 모델(전통적인 ML, 작은 임베딩 모델 등)에만 쓸 수 있다.
+Serverless 는 GPU 를 지원하지 않는다. Lambda 기반이라 그렇다 — Lambda 가 GPU 를 받기 전에는 바뀌지 않는다. CPU 기반 모델(전통적인 ML, 작은 임베딩 모델 등)에만 쓸 수 있고, GPU 가 필요하면 Real-time 엔드포인트나 Async Inference 를 쓴다.
 
 ### Asynchronous Inference
 
