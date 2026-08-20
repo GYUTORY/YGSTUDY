@@ -8,7 +8,7 @@ updated: 2025-11-30
 
 ## 개요
 
-GraphQL은 Facebook에서 개발한 쿼리 언어이자 런타임으로, 클라이언트가 필요한 데이터를 정확히 요청할 수 있게 해주는 API 아키텍처입니다.
+GraphQL은 Facebook이 만든 쿼리 언어이자 런타임이다. 클라이언트가 필요한 데이터를 정확히 요청하는 API 아키텍처다.
 
 ### GraphQL의 핵심 개념
 
@@ -75,9 +75,9 @@ graph TB
 
 ## GraphQL 구조
 
-### 1⃣ Schema 정의
+### 1. Schema 정의
 
-Schema는 GraphQL의 핵심으로, API에서 사용 가능한 모든 타입과 작업을 정의합니다.
+Schema는 GraphQL의 핵심이다. API에서 쓸 수 있는 모든 타입과 작업을 여기서 정의한다.
 
 ```mermaid
 graph TD
@@ -159,11 +159,11 @@ input UpdateUserInput {
 }
 ```
 
-### 2⃣ Type 시스템
+### 2. Type 시스템
 
 #### Scalar Types
 
-GraphQL의 기본 타입들:
+GraphQL의 기본 타입은 다음과 같다.
 
 | 타입 | 설명 | 예시 |
 |------|------|------|
@@ -214,9 +214,9 @@ type Post {
 }
 ```
 
-### 3⃣ Resolver 패턴
+### 3. Resolver 패턴
 
-Resolver는 GraphQL 쿼리를 실제 데이터로 변환하는 함수입니다.
+Resolver는 GraphQL 쿼리를 실제 데이터로 바꾸는 함수다.
 
 ```mermaid
 sequenceDiagram
@@ -315,7 +315,7 @@ const resolvers = {
 
 ### DataLoader로 해결
 
-DataLoader는 배칭과 캐싱을 통해 N+1 문제를 해결합니다.
+DataLoader는 배칭과 캐싱으로 N+1 문제를 해결한다.
 
 ```mermaid
 graph TB
@@ -367,7 +367,7 @@ const resolvers = {
 };
 ```
 
-#### ⚠ DataLoader 는 **요청마다 새로 만든다** — 위 코드처럼 모듈 최상위에 두면 안 된다
+#### DataLoader 는 요청마다 새로 만든다 — 위 코드처럼 모듈 최상위에 두면 안 된다
 
 바로 위 예제는 `postLoader` 를 모듈 최상위에서 한 번 만든다. 그러면 프로세스가 살아 있는 동안 **캐시가 절대 비워지지 않는다.**
 
@@ -996,7 +996,7 @@ const createLoaders = (db) => ({
 - 팀이 GraphQL에 익숙하지 않은 경우
 
 ## 요약
-GraphQL은 현대적인 API 아키텍처로, 클라이언트의 요구사항에 맞춘 유연한 데이터 페칭을 제공합니다. N+1 문제 해결, 인증/인가, 실시간 구독 등의 기능을 올바르게 구현하면 강력하고 확장 가능한 API를 구축할 수 있습니다.
+GraphQL은 클라이언트의 요구사항에 맞춘 유연한 데이터 페칭을 제공하는 API 아키텍처다. N+1 문제 해결, 인증/인가, 실시간 구독을 제대로 구현하면 확장 가능한 API를 만들 수 있다.
 
 ### 주요 내용
 
