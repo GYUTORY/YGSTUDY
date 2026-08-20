@@ -182,8 +182,14 @@ sudo mkdir -p /nfs/shared
 
 # 권한 설정
 sudo chown nobody:nogroup /nfs/shared
-sudo chmod 777 /nfs/shared
+sudo chmod 2775 /nfs/shared   # setgid + 그룹 쓰기. 777 은 쓰지 않는다
 ```
+
+권한을 `777` 로 여는 예제를 흔히 보는데 그러면 안 된다. NFS 는 UID·GID 를 그대로 실어 나르므로,
+접근 통제는 마운트하는 쪽 사용자·그룹과 `exports` 옵션으로 하는 것이지 파일 모드를 다 여는 게 아니다.
+`2775` 는 setgid 비트를 세워 새로 만드는 파일이 디렉터리 그룹을 물려받게 하고, 그룹에만 쓰기를 준다.
+왜 `777` 이 안 되는지는 [파일 권한 및 소유권](../../../../../DevOps/Linux/파일_시스템/파일_권한_및_소유권.md)의
+`chmod 777 안티패턴` 절에 정리돼 있다.
 
 #### 3단계: NFS 공유 설정
 ```bash
