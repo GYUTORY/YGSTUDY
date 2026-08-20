@@ -13,6 +13,8 @@ hooks:
   - tools/volatility_banner.py
   - tools/inject_build_meta.py
   - tools/related_docs.py
+  # 사이드바 전체 트리를 nav.json 으로. prune 으로 잘린 가지를 펼칠 때 쓴다
+  - tools/nav_index.py
   # 빌드 후 검색 인덱스 손질 (용량 절반 + 한글 음차). 산출물을 고치므로 맨 끝
   - tools/search_index_post.py
 
