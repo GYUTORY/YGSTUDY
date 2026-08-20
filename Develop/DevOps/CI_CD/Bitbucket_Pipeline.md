@@ -542,6 +542,19 @@ pipelines:
 또는 특정 브랜치나 태그에만 파이프라인을 실행하도록 제한할 수 있다.
 
 ```yaml
+definitions:
+  steps:
+    - step: &build-test
+        name: Build and Test
+        script:
+          - npm ci
+          - npm run test
+    - step: &deploy-prod
+        name: Deploy to Production
+        deployment: production
+        script:
+          - ./deploy.sh
+
 pipelines:
   branches:
     develop:
@@ -551,6 +564,14 @@ pipelines:
       - step: *deploy-prod
   # 다른 브랜치는 파이프라인 실행 안 함
 ```
+
+`*이름`을 쓰려면 그 앵커 `&이름`이 같은 파일 안에 있어야 한다. 없으면 파이프라인이 아예 시작되지 않는다.
+
+```
+found undefined alias 'deploy-prod'
+```
+
+`definitions:` 블록에서 재사용할 step을 몰아 정의하고 `pipelines:`에서 참조하는 게 기본 구성이다. 위 예제는 참조 부분만 떼어 보기 좋게 만든 게 아니라 실제로 붙여 넣어 돌아가는 형태로 적었다.
 
 ## 실제 배포 패턴
 
