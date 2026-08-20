@@ -227,7 +227,7 @@ except* KeyError as eg:
         print(f"키 오류: {exc}")
 ```
 
-`except*`는 일반 `except`와 같은 `try` 블록에서 섞어 쓸 수 없다. `ExceptionGroup`이 아닌 일반 예외에는 `except*`가 동작하지 않는다.
+`except*`는 일반 `except`와 같은 `try` 블록에서 섞어 쓸 수 없다. `ExceptionGroup`이 아닌 일반 예외도 `except*`가 잡는다 — 인터프리터가 단일 예외를 자동으로 `ExceptionGroup`으로 포장해 넘긴다. 그래서 `except* ValueError as eg` 로 받으면 `eg.exceptions` 에 원래 예외 하나가 들어 있다.
 
 `asyncio.TaskGroup`을 쓸 때 이 구조가 자연스럽게 나온다.
 

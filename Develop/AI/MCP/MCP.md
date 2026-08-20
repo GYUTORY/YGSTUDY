@@ -832,7 +832,10 @@ def handle_exception(loop, context):
     msg = context.get("exception", context["message"])
     print(f"[FATAL] unhandled exception: {msg}", file=sys.stderr)
 
-loop = asyncio.get_event_loop()
+# get_event_loop() 를 쓰면 Python 3.14 에서 RuntimeError 로 죽는다.
+# 실행 중인 루프가 없을 때 3.10 은 조용히 만들었고 3.13 은 경고, 3.14 는 예외다.
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 loop.set_exception_handler(handle_exception)
 ```
 

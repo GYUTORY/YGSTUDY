@@ -246,7 +246,9 @@ async def main():
     )
 
     for i, result in enumerate(results):
-        if isinstance(result, Exception):
+        if isinstance(result, asyncio.CancelledError):
+            print(f"task {i} cancelled")
+        elif isinstance(result, Exception):
             print(f"task {i} failed: {result}")
         else:
             print(f"task {i} succeeded: {result}")
@@ -254,7 +256,7 @@ async def main():
 
 예외 Task만 재시도하거나 개별 처리할 때 `return_exceptions=True`가 편하다.
 
-한 가지 주의점이 있다. `CancelledError`도 `return_exceptions=True`로 잡힌다. Python 3.8 이후 `CancelledError`는 `Exception`의 하위 클래스다. `gather()`가 취소되면 `CancelledError`가 결과 배열에 들어온다.
+한 가지 주의점이 있다. `CancelledError`도 `return_exceptions=True`로 잡히는데, **Python 3.8부터 `CancelledError`는 `Exception`이 아니라 `BaseException`을 직접 상속한다.** 즉 `isinstance(result, Exception)` 으로는 안 걸러진다. 위 예제처럼 `CancelledError` 를 **먼저** 검사하지 않으면 취소된 태스크가 `else` 로 떨어져 '성공' 으로 보고된다. `gather()`가 취소되면 `CancelledError`가 결과 배열에 들어온다.
 
 ```python
 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -366,7 +368,7 @@ finally:
     loop.close()
 ```
 
-`asyncio.get_event_loop()`는 현재 실행 중인 루프를 반환한다. 코루틴 안에서는 `asyncio.get_running_loop()`를 써야 한다. `get_event_loop()`는 실행 중인 루프가 없을 때 경고 없이 새 루프를 만들 수 있어서 예상치 못한 동작이 생긴다.
+`asyncio.get_event_loop()` 는 버전에 따라 동작이 다르다. 실행 중인 루프가 없을 때 3.10 까지는 조용히 새 루프를 만들었고, 3.13 에서는 `DeprecationWarning` 이 붙으며, 3.14 는 `RuntimeError: There is no current event loop` 를 던진다(로컬 실측). 어느 버전이든 코루틴 안에서는 `asyncio.get_running_loop()` 를, 밖에서는 `asyncio.run()` 을 쓰는 게 맞다. `get_event_loop()`는 실행 중인 루프가 없을 때 경고 없이 새 루프를 만들 수 있어서 예상치 못한 동작이 생긴다.
 
 ```python
 async def get_loop_example():

@@ -213,7 +213,7 @@ encoded_binary = base64.b64encode(binary_data)
 print(encoded_binary)  # b'/9j/4A=='
 ```
 
-Python의 `base64` 모듈은 `bytes` 타입을 받는다. 문자열을 넘기면 `TypeError`가 발생한다. `.encode('utf-8')`을 빼먹는 실수가 잦다.
+Python 의 `b64encode` 계열은 `bytes` 만 받는다. 문자열을 넘기면 `TypeError` 가 난다. 반대로 `b64decode` 계열은 ASCII 문자열도 그대로 받는다 — 인코드 쪽만 까다롭다. `.encode('utf-8')`을 빼먹는 실수가 잦다.
 
 ### JavaScript (Node.js)
 

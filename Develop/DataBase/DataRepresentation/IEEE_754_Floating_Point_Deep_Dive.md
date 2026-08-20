@@ -531,13 +531,15 @@ print(kahan_sum(values))   # 1.001  (정확)
 
 `c` 가 매 스텝마다 흡수된 양을 기억해서 다음 스텝에 보상한다. 연산량은 4배 늘지만 정밀도가 크게 개선된다.
 
-NumPy의 `np.sum` 은 기본적으로 pairwise summation을 쓴다. Kahan보다 빠르면서 단순 누적보다 정확하다. 진짜 정확한 합산이 필요하면 `math.fsum` 을 쓴다. 이건 정확한 합산을 보장한다 (Shewchuk's algorithm).
+NumPy의 `np.sum` 은 기본적으로 pairwise summation을 쓴다. Kahan보다 빠르면서 단순 누적보다 정확하다. `math.fsum` 은 그보다 강해서 **입력 순서와 무관하게 정확한 반올림 결과**를 보장한다 — 보상 합산인 요즘 `sum()` 도 이 보장까지는 없다. 진짜 정확한 합산이 필요하면 `math.fsum` 을 쓴다. 이건 정확한 합산을 보장한다 (Shewchuk's algorithm).
 
 ```python
 import math
 
 print(math.fsum([0.1] * 10))    # 1.0 (정확)
-print(sum([0.1] * 10))           # 0.9999999999999999
+print(sum([0.1] * 10))           # 3.10: 0.9999999999999999 / 3.13: 1.0
+# 앞에서 적은 대로 요즘 sum() 은 보상 합산을 해서 이 입력으로는 차이가 안 난다.
+# fsum 이 필요한 이유는 이 예제가 아니라 아래 문단의 성질에서 온다.
 ```
 
 ---
