@@ -8,12 +8,12 @@ updated: 2025-12-16
 
 ## 배경
 
-TypeScript는 2012년 Microsoft에서 개발한 JavaScript의 상위 집합(Superset) 언어입니다. JavaScript에 정적 타입 시스템을 추가하여 대규모 애플리케이션 개발에서 발생하는 문제들을 해결하고, 개발자 경험을 향상시키기 위해 만들어졌습니다.
+TypeScript는 2012년 Microsoft가 만든 JavaScript의 상위 집합(Superset) 언어다. JavaScript에 정적 타입 시스템을 얹어 대규모 애플리케이션에서 터지는 문제를 잡고, 개발자 경험을 끌어올리려고 나왔다.
 
 ### TypeScript의 필요성
 
 #### 1. 타입 안전성 (Type Safety)
-JavaScript는 동적 타입 언어로, 런타임에 타입 오류가 발생할 수 있습니다. TypeScript는 컴파일 타임에 타입 오류를 감지하여 런타임 오류를 방지합니다.
+JavaScript는 동적 타입 언어라 타입 오류가 런타임에 가서야 터진다. TypeScript는 그걸 컴파일 타임에 잡아 런타임 오류를 막는다.
 
 ```typescript
 // JavaScript - 런타임 오류 발생 가능
@@ -49,7 +49,7 @@ function add(a: number, b: number): number {
 ### 기본 개념
 
 #### 1. 정적 타입 시스템 (Static Type System)
-TypeScript는 변수, 함수 매개변수, 반환값, 객체 프로퍼티 등에 타입을 명시적으로 선언할 수 있습니다.
+TypeScript는 변수, 함수 매개변수, 반환값, 객체 프로퍼티 등에 타입을 명시해서 선언할 수 있다.
 
 ```typescript
 // 기본 타입 선언
@@ -73,7 +73,7 @@ interface User {
 ```
 
 #### 2. JavaScript 상위 집합 (JavaScript Superset)
-모든 유효한 JavaScript 코드는 TypeScript 코드로도 유효합니다. 기존 JavaScript 프로젝트에 점진적으로 TypeScript를 도입할 수 있습니다.
+모든 유효한 JavaScript 코드는 그대로 유효한 TypeScript 코드다. 그래서 기존 JavaScript 프로젝트에 TypeScript를 조금씩 얹어 갈 수 있다.
 
 ```typescript
 // 기존 JavaScript 코드
@@ -98,7 +98,7 @@ const mathUtils: MathUtils = {
 ```
 
 #### 3. 컴파일 타임 검사 (Compile-time Checking)
-TypeScript 컴파일러(tsc)가 코드를 분석하여 타입 오류를 감지합니다.
+TypeScript 컴파일러(tsc)가 코드를 훑어서 타입 오류를 잡아낸다.
 
 ```typescript
 // 타입 오류 예시
@@ -169,7 +169,7 @@ type Status = 'ACTIVE' | 'INACTIVE';   // 런타임 흔적 0
 이 구분을 알아 두면 "왜 이건 남고 저건 사라지지"에서 헤매지 않는다. 판별 기준은 하나다 — **그 이름을 값으로 쓸 수 있는가.** `Status.Active` 처럼 쓸 수 있으면 코드가 남고, 타입 자리에만 쓸 수 있으면 사라진다.
 
 #### 4. 점진적 타입 적용 (Gradual Typing)
-기존 JavaScript 프로젝트에 TypeScript를 점진적으로 도입할 수 있습니다.
+기존 JavaScript 프로젝트에 TypeScript를 점진적으로 도입할 수 있다.
 
 ```typescript
 // 1단계: 기존 JavaScript 파일을 .ts로 변경
@@ -188,7 +188,7 @@ let userData: User = fetchData();
 
 #### 1.1 정적 타입 지원 (Static Type Support)
 
-TypeScript는 다양한 타입을 지원하여 코드의 안전성과 가독성을 높입니다.
+TypeScript가 지원하는 타입은 종류가 꽤 된다. 그만큼 코드의 안전성과 가독성이 올라간다.
 
 ##### 기본 타입 (Primitive Types)
 ```typescript
@@ -408,7 +408,7 @@ const user: User = {
 
 #### 1.2 JavaScript와의 하위 호환성 (JavaScript Compatibility)
 
-TypeScript는 JavaScript의 상위 집합이므로 기존 JavaScript 코드를 그대로 사용할 수 있습니다.
+TypeScript는 JavaScript의 상위 집합이라 기존 JavaScript 코드를 그대로 쓸 수 있다.
 
 ```typescript
 // 기존 JavaScript 코드를 그대로 사용 가능
@@ -472,7 +472,7 @@ console.log(mathUtils.divide(10, 2));    // 5
 
 #### 1.3 타입 추론 (Type Inference)
 
-TypeScript는 명시적으로 타입을 지정하지 않아도 값으로부터 타입을 자동으로 추론합니다.
+타입을 따로 적지 않아도 TypeScript가 값을 보고 타입을 추론한다.
 
 **기본 타입 추론**:
 ```typescript
@@ -544,7 +544,7 @@ numbers.map(function(n) {
 #### 1.4 타입 단언 (Type Assertion) vs 타입 가드 (Type Guard)
 
 **타입 단언 (Type Assertion)**:
-타입 단언은 개발자가 TypeScript에게 "이 값은 특정 타입이다"라고 알려주는 방법입니다. 런타임에는 아무 영향이 없으며, 컴파일 타임에만 사용됩니다.
+타입 단언은 개발자가 TypeScript에 "이 값은 특정 타입이다"라고 알려 주는 방법이다. 런타임에는 아무 영향이 없고 컴파일 타임에만 쓴다.
 
 ```typescript
 // as 문법 사용
@@ -595,7 +595,7 @@ typeof n2;   // 'string'
 들어오는 값을 정말 믿고 싶으면 단언 대신 검사를 쓴다. 아래 타입 가드가 그 방법이다.
 
 **타입 가드 (Type Guard)**:
-타입 가드는 런타임에 타입을 검사하여 TypeScript의 타입 좁히기(Type Narrowing)를 수행합니다.
+타입 가드는 런타임에 타입을 검사해서 TypeScript의 타입 좁히기(Type Narrowing)를 수행한다.
 
 ```typescript
 // typeof 타입 가드
@@ -762,7 +762,7 @@ function goodExample(data: unknown) {
 #### 1.5 인터페이스 vs 타입 별칭 상세 비교
 
 **인터페이스 (Interface)**:
-인터페이스는 객체의 구조를 정의하는 TypeScript의 주요 방법입니다. 선언 병합(Declaration Merging)이 가능합니다.
+인터페이스는 객체 구조를 정의하는 TypeScript의 대표 수단이다. 선언 병합(Declaration Merging)도 된다.
 
 ```typescript
 // 기본 인터페이스 정의
@@ -792,7 +792,7 @@ interface SuperAdmin extends User, Admin {
 ```
 
 **타입 별칭 (Type Alias)**:
-타입 별칭은 타입에 이름을 부여하는 방법입니다. 인터페이스보다 더 유연하며, 유니온, 교집합, 튜플 등 다양한 타입을 표현할 수 있습니다.
+타입 별칭은 타입에 이름을 붙이는 방법이다. 인터페이스보다 유연해서 유니온, 교집합, 튜플 등도 표현한다.
 
 ```typescript
 // 기본 타입 별칭
@@ -935,7 +935,7 @@ connect(opts);
 #### 1.6 함수 타입 선언의 고급 패턴
 
 **함수 오버로드 (Function Overloads)**:
-동일한 함수 이름으로 여러 시그니처를 정의할 수 있습니다.
+같은 함수 이름에 시그니처를 여러 개 붙일 수 있다.
 
 ```typescript
 // 오버로드 시그니처
@@ -1036,7 +1036,7 @@ const b: B = { handle: narrow };   // error TS2322: '(x: string) => void' is not
 #### 1.7 클래스와 인터페이스의 관계
 
 **implements 키워드**:
-클래스가 인터페이스를 구현한다는 것을 명시합니다.
+클래스가 그 인터페이스를 구현한다는 것을 명시한다.
 
 ```typescript
 // 인터페이스 정의
@@ -1209,7 +1209,7 @@ export { default as formatCurrency } from './utils';
 #### 1.9 네임스페이스와 모듈의 차이점
 
 **네임스페이스 (Namespace)**:
-네임스페이스는 관련된 코드를 논리적으로 그룹화하는 방법입니다. 전역 스코프에 추가됩니다.
+네임스페이스는 관련 있는 코드를 논리적으로 묶는 방법이다. 전역 스코프에 얹힌다.
 
 ```typescript
 // 네임스페이스 정의
@@ -1243,7 +1243,7 @@ namespace MathUtils {
 ```
 
 **모듈 (Module)**:
-모듈은 파일 기반의 코드 조직화 방법입니다. 각 파일이 자체 스코프를 가지며, 명시적으로 export/import해야 합니다.
+모듈은 파일 단위로 코드를 나누는 방법이다. 파일마다 자기 스코프가 있고, export/import를 직접 적어 줘야 한다.
 
 ```typescript
 // math.ts (모듈)
@@ -1266,7 +1266,7 @@ import { add } from './math';
 | **권장 여부** | 레거시 코드 | 현대적 프로젝트 |
 
 **현대적 권장사항**:
-- **모듈 사용 권장**: 대부분의 경우 모듈을 사용하는 것이 좋습니다
+- **모듈 사용 권장**: 대부분은 모듈을 쓰는 쪽이 낫다
 - **네임스페이스 사용 시기**: 
   - 타입 정의 파일(.d.ts)에서 전역 타입 정의
   - 레거시 코드와의 호환성
@@ -1550,7 +1550,7 @@ node dist/app.js
 
 #### 1.1 사용자 관리 시스템
 
-실제 프로덕션 환경에서 사용할 수 있는 완전한 사용자 관리 시스템을 구현해보겠습니다.
+실제 프로덕션에 올릴 만한 사용자 관리 시스템을 통째로 구현해 본다.
 ```typescript
 // src/types/user.ts
 export interface User {
@@ -1681,7 +1681,7 @@ console.log("모든 사용자:", allUsers);
 
 #### 2.1 제네릭 (Generics)
 
-제네릭을 사용하여 타입 안전성을 유지하면서 재사용 가능한 코드를 작성할 수 있습니다.
+제네릭을 쓰면 타입 안전성을 지키면서 재사용 가능한 코드를 짤 수 있다.
 
 ##### 기본 제네릭
 ```typescript
@@ -2007,7 +2007,7 @@ apiService.post<typeof newUser, User>('/users', newUser)
 
 #### 1.1 컴파일 최적화
 
-TypeScript 컴파일 성능을 향상시키기 위한 다양한 최적화 기법을 알아보겠습니다.
+TypeScript 컴파일 성능을 끌어올리는 최적화 기법을 살펴본다.
 
 ##### 증분 컴파일 설정
 ```json
@@ -2128,7 +2128,7 @@ TypeScript 컴파일 성능을 향상시키기 위한 다양한 최적화 기법
 
 #### 2.1 타입 안전한 에러 처리
 
-TypeScript에서 에러를 안전하고 체계적으로 처리하는 방법을 알아보겠습니다.
+TypeScript에서 에러를 안전하고 체계적으로 다루는 방법을 본다.
 
 ##### Result 패턴 구현
 ```typescript
@@ -2349,11 +2349,11 @@ try {
 | **5.x** | 데코레이터, const 타입 매개변수, 다중 설정 파일 |
 
 ### 결론
-TypeScript는 JavaScript의 상위 집합으로 정적 타입 시스템을 제공합니다.
-컴파일 타임에 타입 오류를 감지하여 런타임 오류를 방지합니다.
-대규모 프로젝트의 유지보수성과 개발자 경험을 향상시킵니다.
-기존 JavaScript 코드와 완전 호환되어 점진적 도입이 가능합니다.
-적절한 설정과 도구를 활용하여 효율적인 TypeScript 개발을 진행하세요.
+TypeScript는 JavaScript의 상위 집합이고 정적 타입 시스템을 제공한다.
+컴파일 타임에 타입 오류를 잡아 런타임 오류를 막는다.
+대규모 프로젝트의 유지보수성과 개발자 경험을 끌어올린다.
+기존 JavaScript 코드와 완전히 호환되니 점진적으로 도입할 수 있다.
+설정과 도구를 적절히 갖춰 두고 TypeScript 개발을 진행하면 된다.
 
 ## 참조
 
