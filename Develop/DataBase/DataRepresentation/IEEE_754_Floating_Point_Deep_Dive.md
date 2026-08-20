@@ -398,7 +398,7 @@ ULP를 직접 측정하는 함수도 있다.
 ```java
 System.out.println(Math.ulp(1.0f));        // 1.1920929E-7
 System.out.println(Math.ulp(1_000_000f));  // 0.0625
-System.out.println(Math.ulp(1.0e30f));     // 약 1.4e23
+System.out.println(Math.ulp(1.0e30f));     // 7.5557864E22 (2^76)
 ```
 
 ### 머신 엡실론

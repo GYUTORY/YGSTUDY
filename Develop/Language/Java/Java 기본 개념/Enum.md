@@ -329,13 +329,13 @@ Enum과 switch는 잘 어울리지만 알고 써야 할 점이 몇 가지 있다
 
 ### case에 상수 이름만 적는다
 
-switch가 Enum 타입을 알고 있어서 `case OrderStatus.PENDING`이 아니라 `case PENDING`이라고 쓴다. 이걸 모르고 정규화된 이름을 쓰면 컴파일 에러가 난다.
+switch 가 Enum 타입을 알고 있어서 `case OrderStatus.PENDING` 이 아니라 `case PENDING` 이라고 쓴다. 정규화된 이름은 **Java 20 이하에서 컴파일 에러**였고 21부터 허용된다(`--release` 로 갈라 확인). 오래된 코드베이스라면 여전히 짧은 이름으로 써야 한다.
 
 ```java
 switch (status) {
     case PENDING:    // OK
         break;
-    case OrderStatus.CONFIRMED:  // 컴파일 에러
+    case OrderStatus.CONFIRMED:  // Java 20 이하는 컴파일 에러, 21부터 허용
         break;
 }
 ```

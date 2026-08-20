@@ -87,21 +87,26 @@ Spring이 `@Autowired`로 private 필드에 의존성을 주입하는 게 이 �
 
 ### 주의할 점
 
-**final 필드 수정은 예측 불가능하다.** Java 12 이전에는 `setAccessible(true)` 후 final 필드를 바꿀 수 있었지만, JIT 컴파일러가 final 필드를 상수로 인라이닝해버리면 리플렉션으로 바꿔도 이전 값이 읽히는 현상이 발생한다. Java 12부터는 `Field.set()`이 final 필드에 대해 `IllegalAccessException`을 던진다.
+**final 필드 수정은 되지만 읽는 쪽이 안 바뀔 수 있다.** 두 가지가 자주 뒤섞여 이야기되는데 나눠 보면 이렇다.
+
+`static final` 은 `setAccessible(true)` 를 해도 `Field.set()` 이 `IllegalAccessException` 을 던진다. 이건 Java 12 변경이 아니라 8에서도 그랬다. 반면 **인스턴스 final 은 지금도 바뀐다** — JDK 8·11·21·25 에서 모두 `set()` 이 성공한다.
+
+그런데도 바꾼 값이 안 보이는 경우가 있는데, 원인은 JIT 가 아니라 **javac 의 상수 폴딩**이다. `private final int timeout = 3000;` 처럼 컴파일 타임 상수(JLS §4.12.4)면 읽는 자리에 리터럴이 박힌다. `-Xint` 로 JIT 를 완전히 꺼도 3000 이 나오고, `javap -c` 로 보면 바이트코드에 `sipush 3000` 이 그대로 있다. 필드 자체는 5000 으로 바뀌어 있고(리플렉션으로 읽으면 5000) 그걸 읽는 코드가 없을 뿐이다. 생성자에서 대입하는 final 필드처럼 상수가 아닌 경우에는 직접 읽어도 5000 이 나온다.
 
 ```java
 public class Settings {
     private final int timeout = 3000;
 }
 
-// Java 11까지
 Field f = Settings.class.getDeclaredField("timeout");
 f.setAccessible(true);
-f.set(settings, 5000); // 동작은 하지만...
-System.out.println(settings.timeout); // 3000이 출력될 수 있다 (JIT 인라이닝)
+f.set(settings, 5000);                 // 성공 (JDK 8·11·21·25 동일)
 
-// Java 12+
-f.set(settings, 5000); // IllegalAccessException
+System.out.println(settings.timeout);  // 3000 — javac 가 리터럴로 접어 둔 자리
+System.out.println(f.get(settings));   // 5000 — 필드는 실제로 바뀌어 있다
+
+// static final 은 버전과 무관하게 막힌다
+// IllegalAccessException: Can not set static final int field ...
 ```
 
 **테스트에서의 사용.** 테스트 코드에서 private 필드를 세팅해야 할 때 리플렉션을 직접 쓰기도 하는데, Spring 프로젝트라면 `ReflectionTestUtils.setField()`를 쓰는 게 낫다. 내부적으로 같은 일을 하지만 에러 메시지가 명확하다.

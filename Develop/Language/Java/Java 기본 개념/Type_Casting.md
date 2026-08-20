@@ -36,7 +36,7 @@ byte → short → int → long → float → double
 ```java
 long bigValue = 1234567890123456789L;
 float f = bigValue;
-System.out.println(f);              // 1.23456794E18
+System.out.println(f);              // 1.234568E18 (JDK 21) / 1.23456794E18 (JDK 11)
 System.out.println((long) f);       // 1234567939550609408
 
 // 원래 값과 완전히 다른 숫자가 된다

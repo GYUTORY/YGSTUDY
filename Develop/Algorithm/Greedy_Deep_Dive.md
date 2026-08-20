@@ -199,7 +199,7 @@ public class JobSequencing {
             new Job(4, 1, 100),
             new Job(5, 3, 50)
         };
-        System.out.println(schedule(jobs)); // 250 (작업 4, 5, 1)
+        System.out.println(schedule(jobs)); // 220 (작업 4, 5, 1)
     }
 }
 ```

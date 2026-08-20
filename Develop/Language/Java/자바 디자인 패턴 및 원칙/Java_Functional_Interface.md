@@ -449,18 +449,20 @@ private OrderDto toOrderDto(Order order) {
 void process(Function<String, String> f) { }
 void process(UnaryOperator<String> f) { }
 
-// 컴파일 에러: 어떤 process를 호출할지 모호함
-process(s -> s.toUpperCase());
+// 이건 모호하지 않다. UnaryOperator<String> 이 Function<String,String> 의
+// 하위 타입이라 더 구체적인 UnaryOperator 오버로드가 선택된다.
+process(s -> s.toUpperCase());   // -> UnaryOperator 쪽
 
-// 명시적 캐스팅으로 해결
+// 진짜로 모호해지는 건 상속 관계가 없을 때다
+interface StringMapper { String map(String s); }
+void process(StringMapper f) { }
+process(s -> s.toUpperCase());   // error: reference to process is ambiguous
+
+// 이럴 때 캐스팅이나 변수 타입 명시로 고른다
 process((Function<String, String>) s -> s.toUpperCase());
-
-// 또는 변수에 타입을 명시
-Function<String, String> upper = s -> s.toUpperCase();
-process(upper);
 ```
 
-메서드 오버로딩을 설계할 때 함수형 인터페이스 파라미터가 겹치지 않도록 신경 써야 한다. 시그니처가 같은 함수형 인터페이스를 두 개의 오버로딩에 쓰면 호출하는 쪽에서 항상 캐스팅이 필요해진다.
+메서드 오버로딩을 설계할 때 함수형 인터페이스 파라미터가 겹치지 않도록 신경 써야 한다. 다만 시그니처가 같다고 무조건 모호해지는 건 아니다 — 한쪽이 다른 쪽의 하위 타입이면 컴파일러가 더 구체적인 것을 고른다. 문제가 되는 건 **상속 관계가 없는 두 인터페이스**를 나란히 두는 경우이고, 그때는 호출하는 쪽에서 캐스팅이나 변수 타입 명시가 필요해진다. 게다가 그렇게 고르는 순간 어느 오버로드가 불릴지가 호출부 표기에 달리므로, 둘의 동작이 다르면 조용한 버그가 된다.
 
 ### 성능 관련
 
