@@ -81,7 +81,7 @@ async function fetchWithCancel(url, userSignal, timeoutMs = 5000) {
 }
 ```
 
-`AbortSignal.any()`는 Node 20부터 지원한다. 합친 signal 중 하나라도 취소되면 결과 signal이 취소된다. 이전에는 직접 두 컨트롤러를 연결하는 헬퍼를 짜야 했는데, 이게 의외로 메모리 누수 원인이 많이 됐다. 이제 표준 API로 깔끔해졌다.
+`AbortSignal.any()` 는 Node 20에 들어왔고 **18 LTS 에도 백포트돼 있다**(18.20.4 에서 정상 동작 확인). 18 을 쓴다고 폴리필을 짤 필요는 없다. 합친 signal 중 하나라도 취소되면 결과 signal이 취소된다. 이전에는 직접 두 컨트롤러를 연결하는 헬퍼를 짜야 했는데, 이게 의외로 메모리 누수 원인이 많이 됐다. 이제 표준 API로 깔끔해졌다.
 
 axios의 경우 0.22 이상부터 `signal` 옵션을 받는다. 그 전 버전은 CancelToken을 썼는데 deprecated 됐으니 가능하면 옮겨라.
 

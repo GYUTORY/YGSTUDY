@@ -187,7 +187,7 @@ ENV TZ=UTC
 
 `new Date()`는 항상 UTC 기반 유닉스 타임스탬프를 갖지만, `toString()`이나 `toLocaleString()` 같은 출력 메서드는 로컬 타임존을 따른다. `TZ=UTC`로 설정하지 않은 상태에서 `new Date().toString()`을 로그에 찍으면 서버 OS 타임존 기준으로 출력된다.
 
-타임존 처리가 필요하면 `Temporal` API(Node.js 21+)나 `date-fns-tz`, `luxon` 같은 라이브러리를 쓴다. `moment-timezone`은 번들 크기가 크고 유지보수가 사실상 종료된 상태라 새 프로젝트엔 쓰지 않는다.
+타임존 처리가 필요하면 `date-fns-tz` 나 `luxon` 같은 라이브러리를 쓴다. `Temporal` 은 아직 표준 제안 단계라 **Node 24 기준으로도 `--harmony-temporal` 플래그 없이는 전역에 없다**(v18·20·22·24 에서 모두 `undefined` 실측). 플래그를 붙여야 비로소 나타난다. `moment-timezone`은 번들 크기가 크고 유지보수가 사실상 종료된 상태라 새 프로젝트엔 쓰지 않는다.
 
 ```typescript
 import { formatInTimeZone } from 'date-fns-tz';

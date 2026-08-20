@@ -266,7 +266,7 @@ TypeScript를 쓴다면 `tsconfig.json`에서 `"module": "NodeNext"` 이상으�
 
 ### ESM에서 JSON import
 
-CJS에서는 `require('./data.json')`이 바로 된다. ESM에서는 import attributes 구문 `with { type: 'json' }`을 써야 한다. 이 구문은 Node.js v20.10(v21.0)에 들어왔고, v22.12(v23.1)에서 실험 딱지를 뗐다.
+CJS에서는 `require('./data.json')`이 바로 된다. ESM에서는 import attributes 구문 `with { type: 'json' }`을 써야 한다. 이 구문은 Node.js v20.10(v21.0)에 들어왔고, v22.12(v23.1)에서 실험 딱지를 뗐다. 18 LTS 에도 백포트돼 있어 18.20.4 에서 그대로 동작한다(실측).
 
 ```javascript
 import data from './config.json' with { type: 'json' };

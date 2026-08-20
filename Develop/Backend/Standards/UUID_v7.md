@@ -170,7 +170,7 @@ public class UuidUtil {
 
 ### Node.js
 
-Node.js 21부터 `crypto.randomUUID()`가 UUIDv4만 반환한다. UUIDv7은 `uuidv7` 패키지를 쓴다.
+`crypto.randomUUID()` 는 도입된 14.17 이래 **줄곧 UUIDv4만** 반환한다(16·18·20·22·24 에서 버전 니블이 모두 4). 어느 버전에서 바뀐 적이 없다. UUIDv7은 `uuidv7` 패키지를 쓴다.
 
 ```typescript
 import { uuidv7 } from 'uuidv7';
