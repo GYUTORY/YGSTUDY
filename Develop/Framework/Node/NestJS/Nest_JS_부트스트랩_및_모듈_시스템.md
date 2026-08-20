@@ -1892,7 +1892,11 @@ async function bootstrap() {
 bootstrap();
 ```
 
-`enableShutdownHooks()`를 호출하지 않으면 `OnModuleDestroy`·`BeforeApplicationShutdown`·`OnApplicationShutdown` 셋 다 **실행되지 않는다.** 이걸 빠뜨리는 경우가 많다. 로컬에서 Ctrl+C로 종료할 때는 문제없어 보이지만, 쿠버네티스에서 Pod이 SIGTERM을 받을 때 리소스 정리가 안 되는 원인이 된다.
+`enableShutdownHooks()`가 켜는 건 **시그널로 죽을 때의 정리**다. 이걸 빼면 SIGTERM·SIGINT를 받았을 때 `OnModuleDestroy`·`BeforeApplicationShutdown`·`OnApplicationShutdown` 셋 다 실행되지 않고 프로세스가 그냥 사라진다.
+
+반대로 `app.close()`를 직접 부르는 경로에서는 이 옵션과 무관하게 셋 다 정상으로 돈다. 그래서 e2e 테스트는 `app.close()`를 쓰기 때문에 훅이 잘 도는 것처럼 보이고, 배포하면 안 도는 상황이 나온다.
+
+로컬 Ctrl+C도 SIGINT라서 쿠버네티스의 SIGTERM과 똑같이 안 돈다. 즉 이 문제는 로컬에서 그대로 재현된다 — 종료 훅에 로그 한 줄 심고 Ctrl+C를 눌러보면 바로 드러난다.
 
 ### 훅 순서와 주의사항
 

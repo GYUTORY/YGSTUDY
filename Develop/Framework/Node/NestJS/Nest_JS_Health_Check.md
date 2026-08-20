@@ -435,7 +435,7 @@ Pod가 종료될 때 시퀀스를 이해해야 한다. Kubernetes가 Pod를 종�
 5. DB 연결 정리, 큐 작업 commit, Redis subscriber 정리
 6. 프로세스 종료
 
-NestJS에서는 `enableShutdownHooks()`를 켜야 lifecycle hook이 동작한다.
+NestJS에서는 `enableShutdownHooks()`를 켜야 시그널로 죽을 때 lifecycle hook이 동작한다.
 
 ```ts
 async function bootstrap() {
@@ -446,18 +446,29 @@ async function bootstrap() {
 bootstrap()
 ```
 
-`enableShutdownHooks()`를 호출하지 않으면 `OnModuleDestroy`, `OnApplicationShutdown`이 전혀 동작하지 않는다. 이걸 빼먹고 "왜 종료 시 정리 로직이 안 도냐"고 고민하는 케이스가 자주 나온다.
+이걸 호출하지 않으면 SIGTERM·SIGINT를 받았을 때 `OnModuleDestroy`, `OnApplicationShutdown`이 동작하지 않는다. `app.close()`를 직접 부르는 경로에서는 옵션과 무관하게 돌기 때문에, e2e 테스트에서는 멀쩡한데 배포하면 정리가 안 되는 형태로 나타난다.
 
-readiness probe를 의도적으로 실패시키는 패턴은 이렇게 짠다.
+readiness probe를 의도적으로 실패시키는 패턴을 짤 때, **어느 훅에서 플래그를 켜느냐가 이 패턴의 전부다.** 종료 훅은 세 단계로 나뉘고 순서가 정해져 있다.
+
+```
+onModuleDestroy  →  beforeApplicationShutdown  →  onApplicationShutdown
+```
+
+세 단계 모두 모듈 그래프의 역순(의존하는 쪽 먼저, 의존받는 쪽 나중)으로 돈다. 그리고 DB·Redis 연결을 닫는 자리가 보통 첫 단계인 `onModuleDestroy`다.
+
+여기서 `onApplicationShutdown`에 플래그를 켜면 순서가 뒤집힌다. 연결은 첫 단계에서 이미 닫혔는데 readiness는 마지막 단계까지 200을 반환한다. 위에 적은 "올바른 시퀀스"의 2번이 5번 뒤로 밀리는 셈이고, 그 사이에 들어온 요청은 닫힌 커넥션을 만나 5xx가 된다 — 이 문서가 앞에서 피하자고 한 바로 그 상황이다.
+
+플래그는 첫 단계에서 켠다. `ShutdownState`를 **루트 모듈**에 두면 역순 규칙 덕에 하위 모듈의 DB 정리보다 먼저 돈다.
 
 ```ts
-import { Injectable, OnApplicationShutdown } from '@nestjs/common'
+import { Injectable, OnModuleDestroy } from '@nestjs/common'
 
 @Injectable()
-export class ShutdownState implements OnApplicationShutdown {
+export class ShutdownState implements OnModuleDestroy {
   private shuttingDown = false
 
-  onApplicationShutdown(signal?: string) {
+  // 루트 모듈에 등록해야 한다. 역순이라 루트가 가장 먼저 정리된다.
+  onModuleDestroy() {
     this.shuttingDown = true
   }
 
@@ -466,6 +477,22 @@ export class ShutdownState implements OnApplicationShutdown {
   }
 }
 ```
+
+모듈 배치에 의존하는 게 불안하면 SIGTERM 리스너를 직접 등록한다. `enableShutdownHooks()` 호출 전에 걸어두면 Nest의 정리 로직보다 먼저 돈다.
+
+```ts
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule)
+  const state = app.get(ShutdownState)
+
+  process.on('SIGTERM', () => state.markShuttingDown())
+  app.enableShutdownHooks()
+
+  await app.listen(3000)
+}
+```
+
+이쪽은 Nest가 정리를 마친 뒤 SIGTERM을 한 번 더 흘려보내기 때문에 리스너가 두 번 호출된다. 불리언 플래그를 켜는 정도면 상관없지만, 여기서 부수효과가 있는 일을 하면 두 번 실행된다.
 
 ```ts
 @Get('ready')
@@ -479,7 +506,7 @@ readiness() {
 }
 ```
 
-SIGTERM이 오면 `onApplicationShutdown`이 호출되고, 그 순간부터 readiness가 503을 반환한다. Kubernetes의 다음 probe 주기(보통 5초)에 endpoint에서 제거된다.
+SIGTERM이 오면 정리 첫 단계에서 플래그가 켜지고, 그 순간부터 readiness가 503을 반환한다. Kubernetes의 다음 probe 주기(보통 5초)에 endpoint에서 제거된다.
 
 `preStop` hook으로 강제 대기를 거는 것도 같이 쓴다.
 
