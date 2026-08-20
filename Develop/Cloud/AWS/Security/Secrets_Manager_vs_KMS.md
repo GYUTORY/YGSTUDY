@@ -634,7 +634,7 @@ DB 접속 정보와 DB 저장 데이터를 각각 다른 CMK로 암호화하는 
 
 ### 패턴 2: ECS + Parameter Store + Secrets Manager
 
-```python
+```hcl
 # ECS Task Definition (Terraform)
 container_definitions = jsonencode([{
   name = "myapp"

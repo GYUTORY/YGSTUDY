@@ -24,7 +24,7 @@ Data Catalog는 데이터베이스(논리적 묶음)와 테이블 메타데이�
 
 S3에 파일이 수백 개 쌓여 있을 때 컬럼 타입을 일일이 손으로 적기 귀찮다. Crawler를 S3 경로에 걸어두면 파일 일부를 샘플링해서 스키마를 추론하고 카탈로그에 테이블을 만들어준다. 파티션 구조(`year=2026/month=06/day=16` 같은 Hive 스타일 경로)도 자동으로 인식한다.
 
-```python
+```text
 # Crawler가 인식하는 전형적인 S3 파티션 구조
 s3://my-bucket/logs/
   year=2026/month=06/day=15/part-0000.parquet

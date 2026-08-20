@@ -22,7 +22,7 @@ Karpathy가 2024년에 공개한 "Let's reproduce GPT-2" 영상과 nanoGPT 코�
 
 이걸 수조 토큰에 반복하면, 모델은 언어 구조, 사실 관계, 추론 패턴을 전부 파라미터에 새긴다. 목적함수는 cross-entropy loss다.
 
-```python
+```text
 loss = -sum(log P(t_i | t_1, ..., t_{i-1})) / N
 ```
 
