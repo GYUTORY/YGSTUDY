@@ -71,7 +71,7 @@ sequenceDiagram
 
 서버가 폭주할 때 두 가지 한계가 동시에 걸린다. 하나는 OS 커널의 SYN backlog 큐, 다른 하나는 Node 레벨의 `server.maxConnections`다.
 
-`server.listen(port, host, backlog)`의 세 번째 인자가 backlog인데, 기본값은 `511`이다. 리눅스에서는 이 값이 `net.core.somaxconn` 커널 파라미터와 `min` 처리되니, 기본 128짜리 시스템에선 511을 줘봐야 128로 잘린다. 부하 테스트에서 connection이 갑자기 거부된다면 dmesg에 `possible SYN flooding` 메시지가 떠 있는지부터 보는 게 빠르다.
+`server.listen(port, host, backlog)`의 세 번째 인자가 backlog인데, 기본값은 `511`이다. 리눅스에서는 이 값이 `net.core.somaxconn` 커널 파라미터와 `min` 처리된다. `somaxconn`이 511보다 작으면 511을 줘봐야 그 값으로 잘린다는 뜻이다. 커널 기본값은 5.4에서 128에서 4096으로 올라갔으므로([TCP 소켓 프로그래밍 패턴](../../Network/7%20Layer/Transport%20Layer/TCP/TCP_Socket_Programming_Patterns.md) 참고), 오래된 커널이나 컨테이너 이미지에서만 128로 잘린다. 부하 테스트에서 connection이 갑자기 거부된다면 dmesg에 `possible SYN flooding` 메시지가 떠 있는지부터 보는 게 빠르다.
 
 `server.maxConnections`는 별개로 동시 연결 수의 상한이다. 넘으면 Node가 새 연결을 즉시 끊는다. 메모리 보호 차원에서 의도적으로 잡아두는 편이 좋다. 한 번은 자체 TCP 게이트웨이가 메모리 누수로 죽었는데, 원인은 클라이언트가 끊지 않은 idle 연결이 5만 개 쌓여서 RSS가 8GB까지 올라간 거였다. 그 뒤로는 `server.maxConnections`를 명시적으로 잡고, 별도로 idle 타임아웃도 건다.
 
@@ -154,7 +154,18 @@ graph LR
 
 ## 3. socket.write 반환값과 drain — 백프레셔 처리
 
-`socket.write(chunk)`가 `boolean`을 반환한다는 사실은 자주 잊힌다. `false`가 떴다는 건 내부 송신 버퍼가 `highWaterMark`(기본 16KB)를 넘었다는 뜻이고, 더 쓰면 메모리에 계속 쌓인다. 클라이언트 회선이 느리거나 상대가 데이터를 안 읽어가면 이게 즉시 문제가 된다.
+`socket.write(chunk)`가 `boolean`을 반환한다는 사실은 자주 잊힌다. `false`가 떴다는 건 내부 송신 버퍼가 `highWaterMark`를 넘었다는 뜻이고, 더 쓰면 메모리에 계속 쌓인다.
+
+이 기본값이 Node 22에서 바뀌었다. 소켓 기준으로 20까지는 16KB(16384)였고 22부터 64KB(65536)다. 버전별로 직접 찍어보면 이렇다.
+
+```
+v18.20.4   net.Socket = 16384
+v20.19.2   net.Socket = 16384
+v22.21.1   net.Socket = 65536
+v24.11.0   net.Socket = 65536
+```
+
+같은 트래픽에서 `false`가 뜨는 시점이 네 배 늦어졌다는 뜻이라, 버퍼가 쌓이는 걸 이 신호로 감지하던 코드는 감지가 늦어진다. 값에 기대는 로직이 있으면 `socket.writableHighWaterMark`를 읽어서 쓴다. `fs.createReadStream`은 예외로 예전부터 계속 64KB라 이 변경과 무관하다. 클라이언트 회선이 느리거나 상대가 데이터를 안 읽어가면 이게 즉시 문제가 된다.
 
 전형적인 사고 시나리오: 서버가 로그 스트리밍을 TCP로 흘려보내는데, 한 클라이언트의 회선이 느려서 1MB/s밖에 못 받는다. 서버는 초당 100MB를 만들어내고 있다. `socket.write`의 반환값을 무시하면 99MB/s씩 노드 프로세스 안에 쌓인다. 몇 분 안에 OOM이다.
 

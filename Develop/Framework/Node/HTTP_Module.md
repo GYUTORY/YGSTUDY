@@ -124,7 +124,9 @@ app.get('/big', (req, res) => {
 })
 ```
 
-`res.write`가 `false`를 반환하면 내부 버퍼가 `highWaterMark`(기본 16KB)를 넘었다는 뜻이다. 이 신호를 무시하고 계속 쓰면 메모리에 쌓이다가 OOM이 난다. 정석은 `pipeline`을 쓰는 거다.
+`res.write`가 `false`를 반환하면 내부 버퍼가 `highWaterMark`를 넘었다는 뜻이다. 이 신호를 무시하고 계속 쓰면 메모리에 쌓이다가 OOM이 난다. 정석은 `pipeline`을 쓰는 거다.
+
+기본값은 소켓을 따라간다. Node 20까지 16KB, 22부터 64KB다(`net.Socket`의 `highWaterMark`가 22에서 65536으로 올라갔다). 버전을 넘나드는 코드라면 숫자를 박지 말고 `res.writableHighWaterMark`를 읽는다.
 
 ```js
 const { pipeline } = require('node:stream/promises')
