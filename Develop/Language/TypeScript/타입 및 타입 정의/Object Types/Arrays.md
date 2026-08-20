@@ -223,13 +223,18 @@ function sortedCopy<T>(
 
 첫째, 인덱스 접근은 타입 시스템이 `undefined`를 반환하지 않는다고 본다. `xs[10]`은 배열 길이를 넘어도 타입상 `T`다. 이게 의외로 런타임 오류의 주범이다. `tsconfig.json`에서 `noUncheckedIndexedAccess: true`를 켜면 인덱스 접근 결과가 `T | undefined`로 바뀐다. 새 프로젝트는 켜고 시작하는 게 낫고, 기존 프로젝트는 켜는 순간 오류가 수백 개 뜰 수 있어서 팀 논의가 필요하다.
 
-둘째, 빈 배열 리터럴의 타입 추론. `const xs = []`의 타입은 `never[]`가 되는데, 이후 어떤 요소를 `push`해도 타입이 넓혀지지 않는 함정이 있다. 명시적으로 타입을 달아야 한다.
+둘째, 빈 배열 리터럴의 타입 추론. 흔히 `const xs = []` 가 `never[]` 라고 알려져 있는데 지역 변수는 그렇지 않다. 제어 흐름 분석이 닿는 자리라 **진화하는 배열(evolving array)** 로 취급되고, `push` 한 요소로 타입이 확정된다. 진짜 `never[]` 가 되는 건 클래스 프로퍼티처럼 흐름 분석이 닿지 않는 자리다. 명시적으로 타입을 달아야 한다.
 
 ```typescript
-const xs = [];           // never[]
-xs.push(1);              // 오류: Argument of type 'number' is not assignable to 'never'
+const xs = [];           // 아직 요소 타입 미정 (진화하는 배열)
+xs.push(1);              // 정상. 이 시점에 xs 는 number[] 로 확정된다
+xs.push('a');            // 정상. (string | number)[] 로 넓어진다
 
-const ys: number[] = []; // 정상
+class Box {
+  items = [];            // 이쪽이 진짜 never[] — 클래스 프로퍼티는 진화하지 않는다
+}
+
+const ys: number[] = []; // 처음부터 못 박고 싶으면 이렇게
 ys.push(1);
 ```
 

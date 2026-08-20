@@ -418,7 +418,7 @@ interface는 이름이 그대로 노출되어 에러 메시지가 짧고 잡기 
 
 ### 재귀 타입
 
-type alias로 재귀를 정의하면 일부 케이스에서 "Type alias 'X' circularly references itself" 에러가 난다. interface는 같은 자기참조에서 더 관대하다.
+type alias 로 재귀를 정의하면 **자기 자신을 곧바로 가리키는 경우에만** "Type alias 'X' circularly references itself" 에러가 난다. 배열 요소나 객체 프로퍼티처럼 한 겹 감싸인 자리는 지연 평가라 통과한다. interface는 같은 자기참조에서 더 관대하다.
 
 ```typescript
 interface TreeNode {
@@ -431,8 +431,12 @@ type TreeNodeT = {
   children: TreeNodeT[]; // 이것도 OK
 };
 
-type Bad = Bad[]; // 에러: 직접 자기참조
-interface Good extends Array<Good> {} // 동일 의미인데 통과
+type Bad = Bad[];             // 정상 — 배열 요소 위치는 지연 평가라 순환이 허용된다
+interface Good extends Array<Good> {}
+
+// 진짜로 막히는 건 지연 평가가 안 되는 자리다
+type Really = Really;         // error TS2456: circularly references itself
+type Union = Union | string;  // error TS2456
 ```
 
 직접 재귀가 필요한 트리/그래프 타입은 interface로 정의하는 게 안정적이다.

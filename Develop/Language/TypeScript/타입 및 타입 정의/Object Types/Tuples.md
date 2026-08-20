@@ -438,12 +438,12 @@ const c: [number, number, number] = [1, 2, 3]; // [number, number, number]
 `as const`로 만든 readonly 튜플을 스프레드하면 readonly가 풀린다.
 
 ```typescript
-const ro = [1, 2, 3] as const; // readonly [1, 2, 3]
-const copy = [...ro];          // number[]
-const copy2: [1, 2, 3] = [...ro]; // 에러: number[]는 [1, 2, 3]에 할당 불가
+const ro = [1, 2, 3] as const;    // readonly [1, 2, 3]
+const copy = [...ro];             // (1 | 2 | 3)[] — readonly 만 풀리고 리터럴 타입은 남는다
+const copy2: [1, 2, 3] = [...ro]; // 정상. 받는 쪽이 튜플이면 튜플로 추론된다
 ```
 
-스프레드된 결과는 일반 배열로 풀려서, 다시 튜플로 받으려면 타입 어노테이션을 다시 걸어야 한다. 라이브러리 유틸 함수를 만들 때 입력 readonly를 결과까지 보존하고 싶다면 Variadic Tuple로 시그니처를 짜야 한다.
+풀리는 건 readonly 와 길이 고정뿐이다. 요소의 리터럴 타입은 그대로 남고, 받는 쪽에 튜플 타입을 적어 두면 그 형태로 추론된다. 다시 튜플로 쓰려면 타입 어노테이션을 걸어 주면 된다. 라이브러리 유틸 함수를 만들 때 입력 readonly를 결과까지 보존하고 싶다면 Variadic Tuple로 시그니처를 짜야 한다.
 
 ```typescript
 function clone<T extends readonly unknown[]>(t: T): [...T] {

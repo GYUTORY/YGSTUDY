@@ -213,13 +213,13 @@ const b: Array<any> = [];
 type Same = typeof a extends typeof b ? true : false; // true
 ```
 
-### any[]는 안에 들어 있는 모든 메서드 호출을 통과시킨다
+### any[]에서 검사가 풀리는 건 요소부터다
 
 ```typescript
 const arr: any[] = [];
 arr.push(1);
-arr.somethingThatDoesNotExist();  // OK, 런타임 에러
-arr[0].foo.bar();                  // OK, 런타임 에러
+arr.somethingThatDoesNotExist();  // error TS2339 — arr 자신은 Array<any> 라 멤버가 검사된다
+arr[0].foo.bar();                 // OK — 요소가 any 라 여기서부터 검사가 풀린다
 ```
 
 ### unknown[]는 요소 접근 시점에서 좁히기를 강제한다
