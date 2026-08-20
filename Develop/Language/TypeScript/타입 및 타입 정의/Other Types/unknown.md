@@ -7,7 +7,7 @@ updated: 2025-08-10
 # TypeScript unknown 타입
 ## 배경
 
-TypeScript에서 `unknown` 타입은 모든 타입의 슈퍼 타입으로, 타입 안전성을 유지하면서도 유연한 타입 처리를 제공합니다.
+TypeScript에서 `unknown` 타입은 모든 타입의 슈퍼 타입이다. 타입 안전성을 지키면서도 값을 유연하게 다룬다.
 
 ### unknown 타입의 필요성
 - **타입 안전성**: any보다 안전한 타입 처리
@@ -500,10 +500,10 @@ console.log(safeUnknownOperation(true, stringOperation, isString)); // "처리�
 | **object** | 객체만 | 있음 | 중간 | 일반적인 객체 처리 |
 
 ### 결론
-TypeScript의 unknown 타입은 타입 안전성을 유지하면서도 유연한 타입 처리를 제공합니다.
-any보다 안전한 대안으로 사용하여 런타임 오류를 방지하세요.
-타입 가드를 사용하여 unknown 값을 안전하게 처리하세요.
-외부 API나 동적 데이터 처리에 unknown 타입을 활용하세요.
-점진적 타입화 과정에서 unknown 타입을 활용하여 안전한 마이그레이션을 진행하세요.
-unknown 타입의 특성을 이해하고 적절한 상황에서 사용하세요.
+TypeScript의 unknown 타입은 타입 안전성을 유지하면서도 타입을 유연하게 처리한다.
+any보다 안전한 대안으로 쓰면 런타임 오류를 막는다.
+unknown 값은 타입 가드를 거쳐 안전하게 처리한다.
+외부 API나 동적 데이터를 다룰 때 unknown 타입을 쓴다.
+점진적 타입화 과정에서도 unknown 타입을 끼우면 마이그레이션이 안전해진다.
+unknown 타입의 특성을 이해하고 맞는 상황에 쓴다.
 

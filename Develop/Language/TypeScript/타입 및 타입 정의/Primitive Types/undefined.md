@@ -7,7 +7,7 @@ updated: 2025-08-10
 # TypeScript undefined 타입
 ## 배경
 
-TypeScript에서 `undefined` 타입은 값이 할당되지 않은 변수의 상태를 나타내는 특별한 타입입니다.
+TypeScript에서 `undefined` 타입은 값이 할당되지 않은 변수의 상태를 나타내는 타입이다.
 
 ### undefined 타입의 필요성
 - **초기화되지 않은 변수**: 값이 할당되지 않은 변수 표현
@@ -18,7 +18,7 @@ TypeScript에서 `undefined` 타입은 값이 할당되지 않은 변수의 상�
 ### 기본 개념
 - **원시 타입**: JavaScript의 원시 타입 중 하나
 - **값의 부재**: 값이 없음을 나타내는 특별한 값
-- **타입 가드**: undefined 체크를 통한 안전한 처리
+- **타입 가드**: undefined 체크로 안전하게 처리
 - **선택적 프로퍼티**: 객체에서 선택적으로 존재하는 프로퍼티
 
 ## 핵심
@@ -49,13 +49,13 @@ console.log(checkUndefined(null));      // false
 console.log(checkUndefined('hello'));   // false
 ```
 
-**`let uninitialized: string;` 뒤의 `console.log` 는 `strict` 에서 컴파일되지 않는다.** 주석은 `undefined` 가 찍힌다고 하지만 그 지점에 도달하지 못한다.
+`let uninitialized: string;` 뒤의 `console.log` 는 `strict` 에서 컴파일되지 않는다. 주석은 `undefined` 가 찍힌다고 하지만 그 지점에 도달하지 못한다.
 
 ```
 error TS2454: Variable 'uninitialized' is used before being assigned.
 ```
 
-런타임 값이 `undefined` 인 건 맞다. TypeScript 가 그 상태를 **읽지 못하게 막는 것**이고, 이게 `strictNullChecks` 가 하는 일이다. 그래서 `string` 으로 선언한 변수는 `undefined` 를 담을 수 있는 시점이 있어도 타입에는 그게 안 보인다. 실제로 값이 없을 수 있으면 `string | undefined` 로 적어야 타입과 사실이 맞는다.
+런타임 값이 `undefined` 인 건 맞다. TypeScript 가 그 상태를 읽지 못하게 막는 것이고, 이게 `strictNullChecks` 가 하는 일이다. 그래서 `string` 으로 선언한 변수는 `undefined` 를 담을 수 있는 시점이 있어도 타입에는 그게 안 보인다. 실제로 값이 없을 수 있으면 `string | undefined` 로 적어야 타입과 사실이 맞는다.
 
 `checkUndefined(null)` 이 `false` 인 것도 짚어 둘 만하다. `undefined` 와 `null` 은 다른 값이고 `===` 로는 구분된다. 반면 `==` 는 둘을 같게 본다.
 
@@ -167,7 +167,7 @@ console.log(user2); // { name: '김철수', age: 20, email: undefined }
 console.log(user3); // { name: '이영희', age: 25, email: undefined }
 ```
 
-주석의 `email: undefined` 를 그냥 넘기면 안 된다. **`createUser` 는 선택적 프로퍼티를 생략하지 않고 `undefined` 값으로 채워 넣는다.** 둘은 읽을 때만 같아 보이고 실제로는 다른 객체다.
+주석의 `email: undefined` 를 그냥 넘기면 안 된다. `createUser` 는 선택적 프로퍼티를 생략하지 않고 `undefined` 값으로 채워 넣는다. 둘은 읽을 때만 같아 보이고 실제로는 다른 객체다.
 
 ```javascript
 const u2 = createUser('김철수');        // { name, age, email: undefined }
@@ -182,7 +182,7 @@ Object.keys(u2)   // ['name', 'age', 'email']
 Object.keys(u3)   // ['name', 'age']
 ```
 
-차이가 실제로 터지는 곳은 **병합**이다. 스프레드와 `Object.assign` 은 키의 존재만 보고 값을 덮어쓰므로, 명시적 `undefined` 가 기본값을 지운다.
+차이가 실제로 터지는 곳은 병합이다. 스프레드와 `Object.assign` 은 키의 존재만 보고 값을 덮어쓰므로, 명시적 `undefined` 가 기본값을 지운다.
 
 ```javascript
 const defaults = { email: 'default@x.com' };
@@ -193,7 +193,7 @@ const defaults = { email: 'default@x.com' };
 
 설정 병합이나 PATCH 요청 본문을 만드는 코드에서 기본값이 사라지는 사고가 여기서 나온다. "값을 안 보냈다"와 "값을 비우라고 보냈다"가 구분되지 않기 때문이다.
 
-`JSON.stringify` 는 또 다르게 동작해서 **명시적 `undefined` 를 조용히 버린다.**
+`JSON.stringify` 는 또 다르게 동작해서 명시적 `undefined` 를 조용히 버린다.
 
 ```javascript
 JSON.stringify(u2)   // {"name":"김철수","age":20}   ← email 이 사라진다
@@ -471,7 +471,7 @@ const user: RequiredUser = {
 processUser(user); // "이름: 홍길동, 나이: 30, 이메일: hong@example.com"
 ```
 
-주석의 결과 `{ name: string; age: number; email: string }` 는 맞다. 다만 **`NonUndefined<T[K]>` 는 있으나 없으나 결과가 같다.** 매핑 타입의 `-?` 수식자가 선택성만 없애는 게 아니라 프로퍼티 타입에서 `undefined` 까지 함께 제거하기 때문이다.
+주석의 결과 `{ name: string; age: number; email: string }` 는 맞다. 다만 `NonUndefined<T[K]>` 는 있으나 없으나 결과가 같다. 매핑 타입의 `-?` 수식자가 선택성만 없애는 게 아니라 프로퍼티 타입에서 `undefined` 까지 함께 제거하기 때문이다.
 
 ```typescript
 type Without = { [K in keyof OptionalUser]-?: OptionalUser[K] };   // NonUndefined 없이
@@ -485,7 +485,7 @@ const z: Without = { name: 'a', age: undefined, email: 'e' };
 type RequiredUser = Required<OptionalUser>;   // 동일한 결과
 ```
 
-`NonUndefined<T>` 자체가 쓸모없다는 뜻은 아니다. **매핑 타입 밖에서** 유니온의 `undefined` 를 걷어낼 때는 제 역할을 한다. 이것도 표준으로 `NonNullable<T>` 가 있는데, 그쪽은 `null` 까지 같이 제거한다는 점이 다르다. 둘 중 무엇이 필요한지 정해서 쓴다.
+`NonUndefined<T>` 자체가 쓸모없다는 뜻은 아니다. 매핑 타입 밖에서 유니온의 `undefined` 를 걷어낼 때는 제 역할을 한다. 이것도 표준으로 `NonNullable<T>` 가 있는데, 그쪽은 `null` 까지 같이 제거한다는 점이 다르다. 둘 중 무엇이 필요한지 정해서 쓴다.
 
 ## 운영 팁
 
@@ -538,13 +538,13 @@ console.log(UndefinedOptimizer.safeGetWithDefault(data, 'email', 'unknown')); //
 UndefinedOptimizer.executeIfDefined(data.name, name => console.log(`이름: ${name}`)); // "이름: 홍길동"
 ```
 
-**`'email'` 을 넘기는 두 줄은 컴파일되지 않는다.** `data` 는 `{ name: string; age: number }` 로 추론되므로 `keyof` 에 `'email'` 이 없다.
+`'email'` 을 넘기는 두 줄은 컴파일되지 않는다. `data` 는 `{ name: string; age: number }` 로 추론되므로 `keyof` 에 `'email'` 이 없다.
 
 ```
 error TS2345: Argument of type '"email"' is not assignable to parameter of type '"age" | "name"'.
 ```
 
-이건 결함이 아니라 `K extends keyof T` 가 제대로 일한 결과다. 주석이 기대한 `undefined` 반환은 **자바스크립트의 동작**이고, TypeScript 는 그 접근 자체를 오타로 보고 막는다. 없는 키를 조회하는 게 정말 의도라면 시그니처를 `key: string` 으로 넓히거나 인덱스 시그니처가 있는 타입을 받아야 한다. 지금 상태에서는 예제와 구현이 서로 다른 걸 가정하고 있다.
+이건 결함이 아니라 `K extends keyof T` 가 제대로 일한 결과다. 주석이 기대한 `undefined` 반환은 자바스크립트의 동작이고, TypeScript 는 그 접근 자체를 오타로 보고 막는다. 없는 키를 조회하는 게 정말 의도라면 시그니처를 `key: string` 으로 넓히거나 인덱스 시그니처가 있는 타입을 받아야 한다. 지금 상태에서는 예제와 구현이 서로 다른 걸 가정하고 있다.
 
 `safeGet` 이 반환 타입에 `| undefined` 를 붙인 것도 실제로는 겉돈다. `T[K]` 는 이미 `keyof T` 로 좁혀진 실재하는 키의 타입이라 `undefined` 가 추가로 나올 일이 없다. 인덱스 접근이 정말 `undefined` 를 낼 수 있다고 타입에 반영하려면 `noUncheckedIndexedAccess` 를 켜야 하는데, 그건 인덱스 시그니처에만 적용되고 `keyof` 로 좁힌 접근에는 적용되지 않는다.
 
@@ -636,11 +636,11 @@ console.log(safeUser); // { name: '홍길동', age: 30, email: 'unknown@example.
 | **void** | 반환값이 없음 | 함수의 반환 타입 |
 
 ### 결론
-TypeScript의 undefined 타입은 값이 할당되지 않은 상태를 나타냅니다.
-선택적 프로퍼티와 함께 사용하여 유연한 객체 구조를 만들 수 있습니다.
-타입 가드를 사용하여 undefined 값을 안전하게 처리하세요.
-undefined와 null의 차이점을 이해하고 적절히 사용하세요.
-제네릭과 조건부 타입을 활용하여 undefined를 효과적으로 처리하세요.
-안전한 undefined 처리를 통해 런타임 오류를 방지하세요.
-undefined 타입의 특성을 이해하고 타입 안전성을 보장하세요.
+TypeScript의 undefined 타입은 값이 할당되지 않은 상태를 나타낸다.
+선택적 프로퍼티와 같이 쓰면 유연한 객체 구조를 만들 수 있다.
+undefined 값은 타입 가드로 걸러서 안전하게 처리한다.
+undefined와 null의 차이를 알고 상황에 맞게 쓴다.
+제네릭과 조건부 타입으로 undefined를 처리한다.
+undefined를 안전하게 처리해서 런타임 오류를 막는다.
+undefined 타입의 특성을 이해하고 타입 안전성을 지킨다.
 
