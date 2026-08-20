@@ -686,3 +686,183 @@
     window.document$.subscribe(wire);
   }
 })();
+
+
+/* 잘린 가지를 눌러서 펼친다.
+
+   navigation.prune 은 현재 경로 밖 섹션의 자식을 렌더하지 않는다. 그런데
+   화살표는 남는다. 펼쳐질 것처럼 보이는데 눌러도 아무 일이 없었다.
+   화살표와 글자가 한 <a> 안에 있어서, 화살표를 눌러도 그냥 페이지가 이동했다.
+
+   prune 을 끄면 펼쳐지긴 한다. 대신 사이드바 항목이 페이지당 135개에서
+   1,158개로 늘고(8.6배) 페이지가 201KB → 640KB, 사이트가 205MB → 781MB 다.
+   메뉴 하나 펼치자고 모든 페이지가 그 값을 치를 이유가 없다.
+
+   그래서 트리를 nav.json 하나로 빼 뒀다(gzip 13.9KB). 처음 펼칠 때 한 번만
+   받고 브라우저가 캐시한다. 화면에 그리는 것도 누른 가지의 한 단계뿐이라
+   DOM 은 계속 작게 유지된다.
+
+   페이지를 긁어오는 방법을 먼저 만들었다가 버렸다. Backend·Infra·CS 는
+   여러 최상위 폴더를 묶은 가상 섹션이라 자기 index 페이지가 없다. 그래서
+   _group/backend/ 에 가도 그 섹션이 pruned 로 나온다 — 긁어올 원본이 없다.
+   11개 중 3개가 못 펼치는 채로 남았고, 그 셋이 하필 최상위 메뉴였다. */
+(function () {
+  var seq = 0;
+  var treeP = null;                      // nav.json 로드 약속 (한 번만)
+  var data = new WeakMap();              // li -> 트리 노드
+  var root = null;                       // 사이트 루트 절대 URL
+
+  function siteRoot() {
+    if (root) return root;
+    var el = document.getElementById("__config");
+    var base = ".";
+    if (el) {
+      try { base = JSON.parse(el.textContent).base || "."; } catch (e) {}
+    }
+    root = new URL(base.replace(/\/?$/, "/"), location.href).href;
+    return root;
+  }
+
+  function norm(u) {
+    try { return new URL(u, siteRoot()).href.replace(/\/$/, ""); } catch (e) { return ""; }
+  }
+
+  function loadTree() {
+    if (treeP) return treeP;
+    treeP = fetch(siteRoot() + "nav.json", { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+    return treeP;
+  }
+
+  /* 제목과 URL 이 함께 맞는 노드를 찾는다.
+     섹션과 그 첫 자식이 같은 URL 을 갖는 경우가 있어(예: Backend 와 "백엔드 전체")
+     URL 만으로 고르면 자식 없는 쪽이 걸린다. */
+  function find(nodes, title, href) {
+    var byBoth = null, byUrl = null;
+    (function walk(list) {
+      for (var i = 0; i < list.length; i++) {
+        var n = list[i];
+        if (n.c) {
+          var u = n.u ? norm(n.u) : "";
+          if (n.t === title && u === href) { byBoth = byBoth || n; }
+          else if (!byUrl && u === href) { byUrl = n; }
+          walk(n.c);
+        }
+      }
+    })(nodes);
+    return byBoth || byUrl;
+  }
+
+  function el(tag, cls, attrs) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    for (var k in attrs || {}) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function makeLink(node) {
+    var a = el("a", "md-nav__link");
+    a.href = node.u ? new URL(node.u, siteRoot()).href : "#";
+    var s = el("span", "md-ellipsis");
+    s.textContent = node.t;
+    a.appendChild(s);
+    return a;
+  }
+
+  /* 자식 하나를 <li> 로. 자식이 또 있으면 펼칠 수 있는 모양으로 만들되
+     안쪽은 아직 그리지 않는다 — 누를 때 그린다. */
+  function makeItem(node, level) {
+    var li = el("li", "md-nav__item");
+    if (!node.c) {
+      li.appendChild(makeLink(node));
+      return li;
+    }
+    li.className = "md-nav__item md-nav__item--nested";
+    data.set(li, node);
+    attach(li, makeLink(node), node.t, level);
+    return li;
+  }
+
+  function makeNav(node, id, level) {
+    var nav = el("nav", "md-nav", {
+      "data-md-level": String(level),
+      "aria-labelledby": id + "_label",
+      "aria-expanded": "true",
+    });
+    var title = el("label", "md-nav__title", { for: id });
+    title.appendChild(el("span", "md-nav__icon md-icon"));
+    title.appendChild(document.createTextNode(node.t));
+    var ul = el("ul", "md-nav__list", { "data-md-scrollfix": "" });
+    node.c.forEach(function (child) { ul.appendChild(makeItem(child, level + 1)); });
+    nav.appendChild(title);
+    nav.appendChild(ul);
+    return nav;
+  }
+
+  /* 글자(링크)와 화살표(펼침)를 분리한다. 지금까지 둘이 한 <a> 였던 게
+     "눌러도 안 열린다"의 직접 원인이다. */
+  function attach(li, anchor, title, level) {
+    var id = "__ygnav_" + (++seq);
+    var input = el("input", "md-nav__toggle md-toggle", { type: "checkbox", id: id });
+    var box = el("div", "md-nav__link md-nav__container");
+    var label = el("label", "md-nav__link", {
+      for: id, id: id + "_label", tabindex: "0",
+      "aria-label": title + " 펼치기",
+    });
+    label.appendChild(el("span", "md-nav__icon md-icon"));
+    box.appendChild(anchor);
+    box.appendChild(label);
+    li.insertBefore(input, li.firstChild);
+    li.appendChild(box);
+    li.setAttribute("data-yg-lazy", "1");
+
+    // label 은 키보드로 기본 활성화가 안 된다.
+    label.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); }
+    });
+
+    input.addEventListener("change", function () {
+      if (!input.checked || li.querySelector(":scope > nav.md-nav")) return;
+      var node = data.get(li);
+      if (node && node.c) { li.appendChild(makeNav(node, id, level)); return; }
+      // 서버가 그린 항목이라 아직 노드를 모른다 — 트리를 받아 찾는다.
+      li.setAttribute("data-yg-loading", "1");
+      loadTree().then(function (tree) {
+        li.removeAttribute("data-yg-loading");
+        var hit = tree && find(tree, title, norm(anchor.href));
+        if (!hit) {
+          // 못 찾으면 거짓 화살표로 남기지 않는다. 링크로 되돌린다.
+          li.setAttribute("data-yg-failed", "1");
+          input.checked = false;
+          label.remove();
+          return;
+        }
+        data.set(li, hit);
+        li.appendChild(makeNav(hit, id, level));
+      });
+    });
+  }
+
+  function upgrade(li) {
+    if (li.hasAttribute("data-yg-lazy")) return;
+    var a = li.querySelector(":scope > a.md-nav__link");
+    if (!a) return;
+    var icon = a.querySelector(":scope > .md-nav__icon");
+    if (!icon) return;
+    icon.remove();
+    var nav = li.closest("nav.md-nav[data-md-level]");
+    var level = nav ? Number(nav.getAttribute("data-md-level")) + 1 : 1;
+    attach(li, a, (a.textContent || "").trim(), level);
+  }
+
+  function wire() {
+    var side = document.querySelector(".md-sidebar--primary") || document;
+    side.querySelectorAll("li.md-nav__item--pruned").forEach(upgrade);
+  }
+
+  document.addEventListener("DOMContentLoaded", wire);
+  if (window.document$ && typeof window.document$.subscribe === "function") {
+    window.document$.subscribe(wire);
+  }
+})();
