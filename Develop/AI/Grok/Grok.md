@@ -702,4 +702,3 @@ API 호환성이 높아 `base_url`과 `api_key`, `model`만 변경하면 기존 
 - [xAI 모델 및 가격](https://docs.x.ai/developers/models)
 - [Grok Code Fast 1 발표](https://x.ai/news/grok-code-fast-1)
 - [xAI API 튜토리얼](https://docs.x.ai/docs/tutorial)
-- [Grok Build](https://grokai.build)

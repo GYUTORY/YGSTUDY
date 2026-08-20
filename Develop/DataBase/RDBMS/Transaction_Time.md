@@ -22,7 +22,7 @@ SQL:2011 표준에서 transaction time을 공식 지원하는 방법이 추가�
 
 ### MariaDB 구현
 
-MariaDB 10.3부터 SYSTEM_VERSIONED 테이블을 지원한다. MySQL은 지원하지 않는다.
+MariaDB 는 10.3부터 SYSTEM_VERSIONED 테이블을 지원한다. 정확히는 10.3.4 에 들어왔고, 10.3 정식 릴리스인 10.3.7 에는 당연히 포함돼 있다. MySQL 은 지원하지 않는다.
 
 ```sql
 CREATE TABLE employee_salaries (

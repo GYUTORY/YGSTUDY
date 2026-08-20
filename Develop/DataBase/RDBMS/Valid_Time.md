@@ -171,7 +171,9 @@ SQL:2011 표준에서 valid time을 공식 지원하는 구문이 추가됐다. 
 
 ### MariaDB 지원
 
-MariaDB 10.4부터 APPLICATION_TIME PERIOD를 지원한다. MySQL은 지원하지 않는다.
+MariaDB 는 10.4부터 애플리케이션 시간 기간을 지원한다. MySQL 은 지원하지 않는다.
+
+이름은 짚고 넘어갈 게 있다. MariaDB 문법은 `PERIOD FOR <기간이름>(시작컬럼, 끝컬럼)` 형태이고 기간 이름 자리는 그냥 식별자다. `APPLICATION_TIME` 은 예약어가 아니라 관례로 쓰는 이름일 뿐이라 다른 이름을 붙여도 똑같이 동작한다. 전용 키워드로 처리되는 건 `SYSTEM_TIME` 쪽뿐이다.
 
 ```sql
 -- MariaDB 10.4+
