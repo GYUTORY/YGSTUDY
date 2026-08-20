@@ -307,7 +307,7 @@ npx madge --circular --extensions ts packages/
 
 VSCode에서 `@utils/date`가 빨간 줄로 뜨고 자동완성이 안 될 때 점검 순서.
 
-1. `baseUrl`이 빠지지 않았는지 확인. `paths`만 있고 `baseUrl`이 없으면 TypeScript 5.0 이전 버전에서는 동작하지 않는다(5.0부터는 paths 단독 사용 허용).
+1. `paths` 의 기준 경로가 의도한 곳인지 확인. `baseUrl` 이 있으면 그 기준으로, 없으면 **tsconfig.json 이 있는 디렉터리 기준**으로 해석된다. '`baseUrl` 이 없으면 옛 버전에서 안 된다' 는 말이 돌지만 실측으로는 4.9.5·5.0.4·5.9.3 모두 `paths` 단독으로 정상 해석한다 (`--traceResolution` 으로 `matched pattern` 확인). 5.0 이 바꾼 건 동작 여부가 아니라 `baseUrl` 을 권장하지 않게 된 쪽이다.
 2. tsconfig.json이 여러 개일 때 어느 것이 활성인지 확인. VSCode는 워크스페이스 루트의 tsconfig를 우선하지만, `"typescript.tsconfig"` 설정으로 바꿀 수 있다.
 3. `extends` 체인이 길 때 paths가 상위에서 정의되고 하위에서 빈 객체로 덮였는지 확인. paths는 **머지되지 않고 통째로 덮인다**.
 4. VSCode 우하단의 TypeScript 버전 표시를 클릭해 워크스페이스의 TypeScript를 쓰는지 확인. 글로벌 TypeScript와 버전이 다르면 동작이 미묘하게 달라진다.
