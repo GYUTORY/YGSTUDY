@@ -346,7 +346,7 @@ export class AppModule {}
 
 ## 모듈 라이프사이클 훅
 
-NestJS는 4개의 라이프사이클 훅을 제공한다. 실행 순서가 중요하다.
+NestJS는 5개의 라이프사이클 훅을 제공한다. 실행 순서가 중요하다.
 
 ### 실행 순서
 
@@ -362,7 +362,11 @@ NestJS는 4개의 라이프사이클 훅을 제공한다. 실행 순서가 중�
 ```
 3. OnModuleDestroy           — 종료 시그널(SIGTERM 등) 수신 후
 4. BeforeApplicationShutdown — 모든 OnModuleDestroy 완료 후, 서버 연결 종료 전
+5. OnApplicationShutdown     — HTTP 서버 close 이후, 마지막 정리
 ```
+
+마지막 훅을 빠뜨리기 쉬운데, DB 커넥션을 끊는 자리가 바로 거기다. 자세한 것은
+[라이프사이클 훅](Nest_JS_Lifecycle_Hooks.md) 문서를 보라.
 
 ### OnModuleInit
 
@@ -1888,7 +1892,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-`enableShutdownHooks()`를 호출하지 않으면 `OnModuleDestroy`와 `BeforeApplicationShutdown`이 **실행되지 않는다.** 이걸 빠뜨리는 경우가 많다. 로컬에서 Ctrl+C로 종료할 때는 문제없어 보이지만, 쿠버네티스에서 Pod이 SIGTERM을 받을 때 리소스 정리가 안 되는 원인이 된다.
+`enableShutdownHooks()`를 호출하지 않으면 `OnModuleDestroy`·`BeforeApplicationShutdown`·`OnApplicationShutdown` 셋 다 **실행되지 않는다.** 이걸 빠뜨리는 경우가 많다. 로컬에서 Ctrl+C로 종료할 때는 문제없어 보이지만, 쿠버네티스에서 Pod이 SIGTERM을 받을 때 리소스 정리가 안 되는 원인이 된다.
 
 ### 훅 순서와 주의사항
 
@@ -1902,6 +1906,8 @@ OnModuleDestroy (모든 모듈)
 BeforeApplicationShutdown (모든 모듈)
     ↓
 HTTP 서버 close (리스닝 소켓 닫힘)
+    ↓
+OnApplicationShutdown (모든 모듈)
     ↓
 프로세스 종료
 ```
