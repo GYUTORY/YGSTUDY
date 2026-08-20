@@ -45,12 +45,25 @@ WHERE position = 'TEAM_LEAD'
   AND valid_to   >  '2023-08-01';
 ```
 
-transaction time 조회는 감사 질문에 답한다.
+transaction time 조회는 감사 질문에 답한다. 다만 이 질문에 답하려면 테이블에 축이 하나 더 있어야 한다. 아래 쿼리는 valid time만 있는 앞의 테이블로는 돌지 않는다 — 두 축을 다 가진 형태를 먼저 놓는다.
+
+```sql
+CREATE TABLE employee_positions_bitemporal (
+    id             BIGINT      NOT NULL AUTO_INCREMENT,
+    employee_id    BIGINT      NOT NULL,
+    position       VARCHAR(50) NOT NULL,
+    valid_from     DATE        NOT NULL,              -- 현실에서 유효한 기간
+    valid_to       DATE        NOT NULL DEFAULT '9999-12-31',
+    recorded_from  DATETIME    NOT NULL,              -- DB가 이 사실을 알게 된 시점
+    recorded_to    DATETIME    NOT NULL DEFAULT '9999-12-31 23:59:59',
+    PRIMARY KEY (id)
+);
+```
 
 ```sql
 -- "2023년 6월 20일에 시스템이 알고 있던 팀장 목록은?"
 SELECT employee_id
-FROM employee_positions
+FROM employee_positions_bitemporal
 WHERE position = 'TEAM_LEAD'
   AND recorded_from <= '2023-06-20'
   AND recorded_to   >  '2023-06-20'
@@ -58,7 +71,7 @@ WHERE position = 'TEAM_LEAD'
   AND valid_to      >  CURDATE();
 ```
 
-두 축을 다 관리하면 bitemporal이 된다. valid time만 관리하는 게 훨씬 흔한 케이스다.
+`recorded_*` 조건이 "그때 시스템이 뭘 알고 있었나"를 자르고, `valid_*` 조건이 "그 시점 기준으로 현재 유효한가"를 자른다. 두 축을 다 관리하면 bitemporal이 된다. valid time만 관리하는 게 훨씬 흔한 케이스다.
 
 ---
 

@@ -87,8 +87,10 @@ MySQL 8.0부터 `UUID_TO_BIN()` 함수가 두 번째 인자로 swap_flag를 받�
 
 ```sql
 CREATE TABLE orders (
-    id      BINARY(16) NOT NULL DEFAULT (UUID_TO_BIN(UUID(), 1)),
+    id      BINARY(16)     NOT NULL DEFAULT (UUID_TO_BIN(UUID(), 1)),
     -- UUIDv7 사용 시: id BINARY(16) NOT NULL
+    user_id BIGINT         NOT NULL,
+    amount  DECIMAL(12,2)  NOT NULL,
     PRIMARY KEY (id)
 );
 

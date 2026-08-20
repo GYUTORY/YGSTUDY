@@ -27,6 +27,12 @@ MySQL 기준으로 두 타입의 가장 큰 차이는 타임존 처리다.
 TIMESTAMP는 서버의 `time_zone` 설정에 따라 조회 결과가 달라진다.
 
 ```sql
+CREATE TABLE logs (
+    id         BIGINT    NOT NULL AUTO_INCREMENT,
+    created_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (id)
+);
+
 SET time_zone = 'Asia/Seoul';
 INSERT INTO logs (created_at) VALUES ('2024-01-01 10:00:00');
 -- 내부에서는 UTC 2024-01-01 01:00:00 으로 저장
@@ -39,6 +45,12 @@ SELECT created_at FROM logs;
 DATETIME은 넣은 값 그대로 나온다. 타임존 변환이 없다.
 
 ```sql
+CREATE TABLE events (
+    id       BIGINT   NOT NULL AUTO_INCREMENT,
+    start_at DATETIME NOT NULL,      -- 위 logs.created_at 은 TIMESTAMP
+    PRIMARY KEY (id)
+);
+
 SET time_zone = 'Asia/Seoul';
 INSERT INTO events (start_at) VALUES ('2024-01-01 10:00:00');
 
