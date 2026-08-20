@@ -702,7 +702,7 @@ pnpm list --depth=0
 ```
 
 #### 일반적인 문제 해결
-```typescript
+```jsonc
 // 문제: 워크스페이스 패키지 import 오류
 // 해결: package.json의 dependencies 확인
 

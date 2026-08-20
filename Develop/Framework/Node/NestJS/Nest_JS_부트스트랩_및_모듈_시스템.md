@@ -1815,7 +1815,7 @@ export * from './common.service';
 
 NestJS CLI의 `nest build`는 내부적으로 이걸 처리해준다. 하지만 `tsc`를 직접 실행하거나, `ts-node`로 실행할 때는 `tsconfig-paths` 패키지를 별도로 등록해야 한다.
 
-```typescript
+```jsonc
 // ts-node로 실행할 때
 // tsconfig-paths/register를 먼저 로드해야 한다
 // package.json

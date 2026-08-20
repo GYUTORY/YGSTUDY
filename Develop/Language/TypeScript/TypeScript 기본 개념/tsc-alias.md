@@ -450,7 +450,7 @@ npx tsc-alias --files src/index.ts
 ```
 
 #### 일반적인 문제 해결
-```typescript
+```jsonc
 // 문제: 경로 별칭이 제대로 변환되지 않음
 // 해결: tsconfig.json의 paths 설정 확인
 

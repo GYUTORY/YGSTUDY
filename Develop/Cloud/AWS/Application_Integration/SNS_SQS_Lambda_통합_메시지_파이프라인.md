@@ -232,7 +232,7 @@ npm install --save-dev @types/node
 
 #### 2. 환경 변수 설정
 
-```typescript
+```bash
 // .env
 AWS_REGION=ap-northeast-2
 AWS_ACCESS_KEY_ID=your-access-key
@@ -687,7 +687,7 @@ exports.handler = async (event) => {
 
 #### Standard Queue 재시도
 
-```typescript
+```hcl
 // SQS Queue 설정 (Terraform 예제)
 resource "aws_sqs_queue" "email_queue" {
   name                      = "email-queue"
@@ -708,7 +708,7 @@ resource "aws_sqs_queue" "email_dlq" {
 
 #### Lambda 재시도 설정
 
-```typescript
+```hcl
 // Lambda 함수 설정
 resource "aws_lambda_event_source_mapping" "email_processor" {
   event_source_arn = aws_sqs_queue.email_queue.arn
@@ -815,7 +815,7 @@ exports.handler = async (event) => {
 
 #### CloudWatch 대시보드 설정
 
-```typescript
+```hcl
 // Terraform으로 CloudWatch 대시보드 생성
 resource "aws_cloudwatch_dashboard" "message_pipeline" {
   dashboard_name = "message-pipeline-dashboard"
@@ -1019,7 +1019,7 @@ await snsClient.send(new SubscribeCommand({
 
 #### 4. Lambda 프로비저닝된 동시성 (예측 가능한 트래픽)
 
-```typescript
+```hcl
 // Terraform으로 프로비저닝된 동시성 설정
 resource "aws_lambda_provisioned_concurrency_config" "email_processor" {
   function_name                     = aws_lambda_function.send_email.function_name
