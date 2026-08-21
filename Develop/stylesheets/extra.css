@@ -51,7 +51,7 @@ body {
   --notion-blue-active: #2F5B6B;
   /* 아이콘·테두리·배경처럼 대비 규정이 없는 장식용 연한 파랑은 따로 남긴다 */
   --notion-blue-soft: #7AAEC2;
-  --notion-blue-focus:  #A8C5D6;
+  --notion-blue-focus:  #6E9AB0;   /* 흰 입력면 위 3.04:1. 이전 #A8C5D6 은 1.81 */
   --notion-navy: #3D3A38;
 
   /* 따뜻한 중성 스케일 */
@@ -320,7 +320,9 @@ body[data-md-color-scheme="slate"] {
 .md-search__form:focus-within {
   background: #ffffff !important;
   border-color: var(--notion-blue-focus);
-  box-shadow: 0 0 0 3px rgba(9, 127, 232, 0.15);
+  /* 알파 0.15 는 페이지 위에서 1.21:1 이라 포커스가 안 보였다.
+     알파만 올려서는 3:1 을 못 넘긴다(0.55 에서도 2.07). 0.85 가 3.17:1. */
+  box-shadow: 0 0 0 3px rgba(9, 127, 232, 0.85);
 }
 .md-search__input {
   color: var(--text) !important;
@@ -627,7 +629,9 @@ body {
   color: var(--blue-text) !important;
   font-weight: 600;
   background: var(--blue-light);
-  border-left: 3px solid var(--blue);
+  /* --blue(#7FB3D5)는 활성행 틴트 위에서 2.00:1 이라 막대가 안 보였다.
+     이 자리만 진하게 쓴다 — 브랜드 변수는 다른 데서 밝게 쓰인다. */
+  border-left: 3px solid #4E86AB;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   padding-left: 9px !important;
 }
@@ -973,6 +977,10 @@ body {
   font-weight: 500;
 }
 .md-typeset a:hover {
+  /* 색을 안 적으면 Material 의 .md-typeset a:hover 가 이겨서
+     accent(#526cfe, 라이트 4.12:1)가 나온다. 우리 규칙은 특이도가 같고
+     뒤에 실리니 여기 한 줄이면 이긴다. 라이트 7.19:1 / 다크 7.50:1 */
+  color: var(--notion-blue-active);
   text-decoration: underline;
 }
 
@@ -1348,7 +1356,8 @@ body {
   transform: translateY(-1px);
   opacity: 1;
 }
-.md-footer__link .md-icon svg { opacity: 0.4; }
+/* 0.4 는 1.93:1 이라 화살표가 거의 안 보였다. 0.7 이 3.55:1 */
+.md-footer__link .md-icon svg { opacity: 0.7; }
 .md-footer__link:hover .md-icon svg { opacity: 1; color: var(--notion-blue); }
 
 .md-footer__title {
@@ -2276,7 +2285,10 @@ body[data-md-color-scheme="slate"] { scrollbar-color: rgba(255,255,255,.2) trans
   padding: 0 2px;
 }
 .md-typeset .mermaid-error {
-  border: 1px solid var(--md-typeset-del-color, #f66);
+  /* var(--md-typeset-del-color, #f66) 을 쓰면 fallback 이 아니라 Material 의
+     실제 값 #f5503d26 이 적용돼 1.20:1 이 된다. 깨진 걸 보이려고 만든
+     테두리가 안 보이면 뜻이 없다. 라이트 4.44:1 / 다크 3.69:1 */
+  border: 1px solid #D93A28;
   border-radius: 6px;
   padding: 12px;
   font-size: 13px;
@@ -2525,7 +2537,7 @@ body:has(.yg-home) .md-content { margin-right: 0 !important; }
   gap: 10px;
   padding: 14px 24px;
   background: var(--bg-card);
-  border: 1.5px solid rgba(127, 179, 213, 0.35);
+  border: 1.5px solid #5A93B8;   /* 반투명으로는 3:1 불가 — 0.35 는 1.45:1 */
   border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: 0.95rem;
@@ -3126,4 +3138,29 @@ body[data-md-color-scheme="slate"] .md-typeset .highlight::after {
 .md-header__option .md-option.focus-visible ~ label:not([hidden]) {
   outline: var(--md-accent-fg-color) auto 1px;
   outline-offset: 2px;
+}
+
+/* ================================================
+   라이트 전용 대비 보정 — 다크는 이미 통과라 건드리지 않는다
+   ================================================ */
+
+/* 경고 admonition 의 아이콘·화살표.
+   Material 이 타이틀바를 #ff91001a 로 깔고 그 위에 #ff9100 아이콘을 얹는다.
+   합성하면 바탕이 #FDF0E1 이라 2.01:1 이다 — 주황을 주황 위에 올린 꼴이다.
+   문서 78개가 이걸 쓰고 다크는 통과하므로 라이트만 손본다. #B36200 = 4.02:1.
+   특이도: Material 이 (0,3,1) 이라 scheme 접두사로 (0,4,1) 을 만든다. */
+[data-md-color-scheme="default"] .md-typeset .warning > .admonition-title::before,
+[data-md-color-scheme="default"] .md-typeset .warning > summary::before {
+  background-color: #B36200;
+}
+[data-md-color-scheme="default"] .md-typeset .warning > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .warning > summary::after {
+  color: #B36200;
+}
+
+/* 히어로 검색 버튼의 돋보기.
+   --blue 는 흰 카드 위에서 2.26:1 이다. 다크 카드(#272320) 위에서는
+   6.91:1 이라 멀쩡하니 라이트만 바꾼다. #5A93B8 = 3.33:1. */
+[data-md-color-scheme="default"] .yg-hero-search-cta svg {
+  color: #5A93B8;
 }
