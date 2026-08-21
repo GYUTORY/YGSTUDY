@@ -112,6 +112,19 @@ type contextReader struct {
     conn net.Conn
 }
 
+// Read 를 붙여야 io.Reader 가 된다. 이게 없으면 아래 return 이 컴파일되지 않는다.
+func (cr *contextReader) Read(p []byte) (int, error) {
+    n, err := cr.r.Read(p)
+    if err != nil {
+        // 데드라인 때문에 풀린 것인지 진짜 I/O 오류인지 구분한다.
+        // 그냥 두면 호출자가 net.Error(timeout)를 받아 취소인 줄 모른다.
+        if ctxErr := cr.ctx.Err(); ctxErr != nil {
+            return n, ctxErr
+        }
+    }
+    return n, err
+}
+
 func NewContextReader(ctx context.Context, conn net.Conn) io.Reader {
     cr := &contextReader{ctx: ctx, r: conn, conn: conn}
     context.AfterFunc(ctx, func() {
@@ -119,6 +132,15 @@ func NewContextReader(ctx context.Context, conn net.Conn) io.Reader {
     })
     return cr
 }
+```
+
+`SetDeadline`은 블로킹된 `Read`를 깨울 뿐이고, 그때 나오는 것은 `context.Canceled`가 아니라 `net.Error`의 timeout이다. `Read` 안에서 `ctx.Err()`로 바꿔 주지 않으면 호출자는 "네트워크가 느리다"와 "취소됐다"를 구분하지 못한다.
+
+300ms 타임아웃을 걸고 아무것도 안 보내는 상대에게 읽어 보면 이렇게 나온다.
+
+```
+301ms 만에 Read 반환, err = context deadline exceeded
+err == context.DeadlineExceeded  →  true
 ```
 
 ## 내부 전파 메커니즘

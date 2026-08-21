@@ -91,13 +91,13 @@ func fanIn(ch1, ch2 <-chan string) <-chan string {
             case v, ok := <-ch1:
                 if !ok {
                     ch1 = nil // nil 채널은 select에서 무시된다
-                    continue
+                    break     // continue 면 아래 종료 검사를 건너뛴다
                 }
                 out <- v
             case v, ok := <-ch2:
                 if !ok {
                     ch2 = nil
-                    continue
+                    break
                 }
                 out <- v
             }
@@ -111,6 +111,17 @@ func fanIn(ch1, ch2 <-chan string) <-chan string {
 ```
 
 채널이 닫혔을 때 nil로 만드는 패턴은 자주 쓰인다. nil 채널에서 수신하면 영원히 블로킹되기 때문에 select 안에서 해당 case가 선택되지 않는다.
+
+**`break`가 아니라 `continue`를 쓰면 여기서 고루틴이 샌다.** Go의 `break`는 `select` 하나만 빠져나가므로 그 아래 종료 검사가 그대로 실행된다. `continue`는 for 루프 맨 위로 튀어 그 검사를 건너뛴다. 마지막 채널이 닫혀 양쪽이 nil이 된 직후 `continue`로 돌아가면, 다음 `select`는 고를 수 있는 case가 하나도 없어 영원히 대기한다. `defer close(out)`이 실행되지 않으니 소비자의 `range out`도 끝나지 않는다.
+
+두 채널에 값을 하나씩 넣고 닫은 뒤 실행하면 이렇게 갈린다.
+
+```
+continue :  2초 타임아웃 — out 이 끝내 안 닫힘. 그때까지 받은 값=[a1 b1]
+break    :  정상 종료 — out 이 닫혔다. 받은 값=[b1 a1]
+```
+
+값은 둘 다 제대로 흘러나온 뒤라 겉보기엔 멀쩡하다. 끝나지 않을 뿐이다. 테스트에서 타임아웃을 걸지 않으면 이 부류는 통과한 것처럼 보인다.
 
 timeout 처리는 `time.After`나 `context`로 한다.
 
