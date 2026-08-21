@@ -48,8 +48,14 @@ DEFAULT_MIN = 4.5  # WCAG AA 본문
 SLATE = '[data-md-color-scheme="slate"]'
 
 
-def parse_color(s):
-    """불투명한 색만 값으로 본다. 반투명은 뒤가 비쳐 실제 배경을 알 수 없다."""
+def parse_rgba(s):
+    """색을 (r, g, b, a) 로 읽는다. 못 읽으면 None.
+
+    예전에는 반투명을 만나면 그대로 포기했다("뒤가 비쳐 실제 배경을 알 수
+    없다"). 그 결과 미판정이 28쌍까지 늘었고, 그 안에 사이드바 선택 항목
+    타이틴트·태그 hover·코드 배경처럼 **실제로 위험한 자리가 전부** 들어
+    있었다. 미판정은 통과가 아니라 미검사인데, 출력 줄만 보면 초록불이라
+    통과처럼 읽힌다. 그래서 알파를 버리지 말고 값으로 들고 온다."""
     s = s.strip().lower()
     m = re.fullmatch(r"#([0-9a-f]{3,8})", s)
     if m:
@@ -58,20 +64,56 @@ def parse_color(s):
             h = "".join(c * 2 for c in h)
         if len(h) not in (6, 8):
             return None
-        if len(h) == 8 and int(h[6:], 16) < 255:
-            return None
-        return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
+        a = int(h[6:], 16) / 255 if len(h) == 8 else 1.0
+        return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4)) + (a,)
     m = re.fullmatch(r"rgba?\(([^)]+)\)", s)
     if not m:
         return None
     parts = [p for p in re.split(r"[,\s/]+", m.group(1)) if p]
     try:
-        nums = [float(p) for p in parts[:4]]
+        nums = [float(p.rstrip("%")) for p in parts[:4]]
     except ValueError:
         return None
-    if len(nums) < 3 or (len(nums) > 3 and nums[3] < 1):
+    if len(nums) < 3:
         return None
-    return tuple(nums[:3])
+    a = nums[3] if len(nums) > 3 else 1.0
+    if "%" in "".join(parts[3:4]):
+        a /= 100
+    return (nums[0], nums[1], nums[2], a)
+
+
+def flatten(rgba, backdrop):
+    """반투명 색을 뒤 배경 위에 얹어 실제로 보이는 색을 낸다."""
+    if rgba is None:
+        return None
+    r, g, b, a = rgba
+    if a >= 1:
+        return (r, g, b)
+    if backdrop is None:
+        return None
+    return tuple(c * a + d * (1 - a) for c, d in zip((r, g, b), backdrop))
+
+
+def parse_color(s):
+    """불투명한 색만 값으로 보는 옛 계약. 면 검사가 이걸 그대로 쓴다."""
+    v = parse_rgba(s)
+    if v is None or v[3] < 1:
+        return None
+    return v[:3]
+
+
+def gradient_stops(value):
+    """그라디언트에서 색 정지점을 뽑는다. 양 끝이 각각 다른 대비를 갖는다."""
+    if "gradient" not in value:
+        return []
+    return [
+        c
+        for c in (
+            parse_rgba(m.group(0))
+            for m in re.finditer(r"#[0-9a-f]{3,8}\b|rgba?\([^)]*\)", value, re.I)
+        )
+        if c
+    ]
 
 
 def rel_luminance(rgb):
@@ -280,7 +322,12 @@ def main():
         minimum = float(sys.argv[sys.argv.index("--min") + 1])
 
     css = CSS.read_text(encoding="utf-8")
+    # 라이트 변수는 :root 에만 있는 게 아니다. --md-default-bg-color 는
+    # [data-md-color-scheme="default"] 안에 있어서, :root 만 긁던 동안
+    # "페이지 바닥이 무슨 색인지" 를 몰랐다. 바닥을 모르면 반투명도
+    # transparent 도 계산이 안 되니 라이트 쪽이 통째로 미판정으로 빠졌다.
     light = collect_vars(css, r":root\s*\{([\s\S]*?)\n\}")
+    light.update(collect_vars(css, r'\[data-md-color-scheme="default"\]\s*\{([\s\S]*?)\n\}'))
     dark = {**light, **collect_vars(css, rf'{re.escape(SLATE)}\s*\{{([\s\S]*?)\n\}}')}
 
     rules = [(r.group(1), r.group(2), r.start()) for r in re.finditer(r"([^{}]+)\{([^}]*)\}", css)]
@@ -309,16 +356,39 @@ def main():
 
         for mode, table in modes:
             bg_raw = resolve(bm.group(1).strip(), table)
-            if re.search(r"gradient|url\(|none|transparent", bg_raw):
+            fg_raw = resolve(cm.group(1).strip(), table)
+            # 이 모드에서 페이지가 깔고 있는 바닥. 반투명·transparent 는
+            # 결국 이 위에 얹힌다.
+            page = parse_color(resolve("var(--md-default-bg-color)", table))
+
+            # color: inherit 는 부모를 따라간다. 우리 셀렉터는 전부 본문
+            # 안이라 본문 기본 글자색이 그 부모다.
+            if fg_raw.strip() in ("inherit", "currentcolor"):
+                fg_raw = resolve("var(--md-typeset-color)", table)
+                if "var(" in fg_raw or not parse_color(fg_raw):
+                    fg_raw = resolve("var(--md-default-fg-color)", table)
+
+            if re.search(r"url\(", bg_raw):
                 skipped += 1
                 continue
-            fg = parse_color(resolve(cm.group(1).strip(), table))
-            bg = parse_color(bg_raw)
-            if not fg or not bg:
+
+            # 배경 후보를 만든다. 그라디언트는 정지점마다 대비가 달라서
+            # 양 끝을 각각 본다 — 한쪽만 맞으면 나머지 절반이 안 읽힌다.
+            if "gradient" in bg_raw:
+                cands = [flatten(c, page) for c in gradient_stops(bg_raw)]
+            elif re.fullmatch(r"\s*(transparent|none)\s*", bg_raw):
+                cands = [page]
+            else:
+                cands = [flatten(parse_rgba(bg_raw), page)]
+            cands = [c for c in cands if c]
+
+            fg = flatten(parse_rgba(fg_raw), cands[0] if cands else page)
+            if not fg or not cands:
                 skipped += 1
                 continue
+
             judged += 1
-            ratio = contrast(fg, bg)
+            ratio = min(contrast(fg, bg) for bg in cands)
             if ratio < minimum:
                 line = css[:pos].count("\n") + 1
                 bad.append((ratio, mode, line, norm_sel(sel)[:60],
@@ -326,7 +396,8 @@ def main():
 
     denom = (
         f"판정 {judged}쌍 / 미판정 {skipped}쌍 — "
-        "부모 배경·반투명·Material 팔레트 소유 색은 검사 범위 밖"
+        "반투명·transparent·inherit 는 페이지 바닥 위에 얹어 계산하고, "
+        "그라디언트는 정지점 중 최악을 쓴다"
     )
 
     # 특이도 검사는 빌드 산출물이 있을 때만 (Material 스타일시트가 필요하다)
