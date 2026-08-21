@@ -974,7 +974,9 @@ body {
 /* blockquote */
 .md-typeset blockquote {
   border-left: 2px solid var(--notion-blue);
-  background: var(--warm-white);
+  /* --warm-white 는 라이트에서 페이지 배경과 같은 값이라 면이 없었다.
+     왼쪽 세로선만 보이고 인용 영역 자체는 구분이 안 됐다(문서 52개). */
+  background: rgba(0, 0, 0, 0.03);
   margin: 1.2em 0;
   padding: 0.9em 1.3em;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
@@ -1181,7 +1183,9 @@ body {
   font-size: 0.875em;
   padding: 0.16em 0.5em;
   border-radius: var(--radius-xs);
-  background: var(--warm-white);
+  /* --warm-white 는 라이트에서 페이지 배경(#FDFBFA)과 같은 값이라
+     칩이 안 보였다. 다크(흰 8%)와 세기를 맞춘다. */
+  background: rgba(0, 0, 0, 0.04);
   color: var(--blue-text) !important;
   border: none;
   font-weight: 500;
@@ -1206,6 +1210,17 @@ body {
   background: none;
   border: none;
   font-weight: 400;
+}
+/* 면은 래퍼(.highlight)가 낸다.
+
+   위 `background: none` 이 Material 의 코드 배경(#f5f5f5)을 죽이는데, 라이트에는
+   대체 면이 없었다. 다크에는 아래 slate 규칙으로 면이 있어서, 코드블록이
+   **라이트에서만** 페이지 배경과 완전히 같은 색이었다(1.00:1). 문서 1,156개다.
+
+   검정 4% 를 깔면 1.09:1 로, 다크의 흰색 3%(1.09:1)와 세기가 같고 Material
+   라이트 관례(#f5f5f5 on #fff = 1.09:1)와도 같다. */
+.md-typeset .highlight {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 /* 코드블록 내부 span이 컨테이너를 뚫는 모바일 오버플로 방지 */
@@ -1246,7 +1261,10 @@ body {
   font-size: 0.92em;
 }
 .md-typeset table:not([class]) th {
-  background: var(--warm-white);
+  /* 헤더행이 본문행과 구별되게. --warm-white 는 라이트에서 페이지 배경과
+     같은 값이라 th 와 td 가 완전히 같은 색이었다(문서 674개).
+     다크는 아래 slate 규칙에 흰색 5% 로 이미 면이 있다. */
+  background: rgba(0, 0, 0, 0.04);
   font-weight: 600;
   color: var(--text);
   letter-spacing: 0;
@@ -1318,7 +1336,9 @@ body {
   opacity: 1;
 }
 .md-footer__link:hover {
-  background: var(--warm-white);
+  /* 호버 피드백이 없었다 — --warm-white 가 페이지 배경과 같은 값이라
+     배경이 하나도 안 바뀐다(문서 1,359개). 다크는 1371줄에 짝이 있다. */
+  background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
   opacity: 1;

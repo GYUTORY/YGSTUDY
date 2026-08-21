@@ -212,6 +212,67 @@ def check_specificity(css, site_dir):
     return losing
 
 
+# 페이지 배경과 같은 면을 **일부러** 쓰는 자리. 사유를 반드시 적는다.
+# 여기 없는 것이 걸리면 결함이다 — 대비 계산으로는 안 잡히는 부류라
+# 이 목록이 유일한 방어선이다.
+SAME_SURFACE_OK = {
+    ".md-nav--secondary .md-nav__title":
+        "sticky 제목. 배경이 투명하면 항목이 그 밑을 지나며 글자가 포개진다. "
+        "페이지 배경색을 깔아 밑을 가리는 게 목적이라 같은 색이 맞다.",
+    ".md-typeset .social-link:hover":
+        "빌드 산출물에 렌더 0건 (legacy). 고쳐도 화면에 영향이 없다.",
+    ".md-typeset .portfolio-card img":
+        "빌드 산출물에 렌더 0건 (legacy).",
+    ".yg-404-links a":
+        "테두리(--border)로 경계를 낸다. 채우기가 없어도 알약 모양이 보인다.",
+}
+
+
+def check_invisible_surface(css, light, dark):
+    """면을 깔았는데 그 면이 페이지 배경과 같은 색인 규칙을 찾는다.
+
+    대비 계산으로는 안 걸린다 — 전경·배경 쌍이 아니라 "배경과 배경"의 문제라
+    글자 대비는 멀쩡하다. 그런데 화면에서는 카드·코드블록·표 헤더가 통째로
+    사라진다.
+
+    이 저장소에서 실제로 있던 일: `--warm-white` 가 라이트에서 `#FDFBFA` 로
+    페이지 배경과 **완전히 같은 값**이다. 그걸 표면으로 쓴 규칙들이 라이트에서만
+    픽셀이 하나도 안 바뀌었다 — 코드블록(문서 1,156개), 인라인 코드(1,110개),
+    표 헤더(674개), 푸터 호버(1,359개), 인용문(52개). 다크에는 전부 면이 있었다.
+
+    판정: 배경끼리 1.02:1 미만이면 사실상 같은 면이다.
+    """
+    page = {"라이트": light.get("--warm-white"), "다크": dark.get("--warm-white")}
+    out = []
+    for m in re.finditer(r"([^{}]+)\{([^}]*)\}", css):
+        sel = norm_sel(m.group(1))
+        if not sel or "@" in sel:
+            continue
+        # 페이지 배경 자체를 정의하는 규칙은 당연히 같다
+        if re.match(r"^(body|html)\b", sel):
+            continue
+        # 여러 줄 주석이 앞 규칙에서 넘어오면 선택자에 산문이 섞인다.
+        # 한글이 들어간 건 선택자가 아니다.
+        if re.search(r"[가-힣]", sel):
+            continue
+        bm = re.search(r"(?:^|;)\s*background(?:-color)?\s*:\s*([^;!]+)", m.group(2))
+        if not bm:
+            continue
+        mode = "다크" if SLATE in sel else "라이트"
+        table = dark if mode == "다크" else light
+        surf = parse_color(resolve(bm.group(1).strip(), table))
+        base = parse_color(resolve(page[mode] or "", table))
+        if not surf or not base:
+            continue
+        if contrast(surf, base) >= 1.02:
+            continue
+        bare = sel.replace(SLATE, "").strip()
+        if bare in SAME_SURFACE_OK or sel in SAME_SURFACE_OK:
+            continue
+        out.append((css[: m.start()].count("\n") + 1, mode, sel[:58], bm.group(1).strip()))
+    return out
+
+
 def main():
     strict = "--strict" in sys.argv
     minimum = DEFAULT_MIN
@@ -280,6 +341,15 @@ def main():
     else:
         print(f"✓ {minimum}:1 미만 없음.  ({denom})")
 
+    invisible = check_invisible_surface(css, light, dark)
+    if invisible:
+        print(f"\n⚠ 페이지 배경과 같은 색을 면으로 쓴 규칙 {len(invisible)}건 — 화면에서 안 보인다\n")
+        for line, mode, sel, val in invisible:
+            print(f"  [{mode}] extra.css:{line}  {sel}")
+            print(f"          background: {val}")
+    else:
+        print("  면 검사: 페이지 배경과 같은 면 없음")
+
     if losing is None:
         print("  특이도 검사: 건너뜀 — 빌드 산출물이 없다 (YG_SITE_DIR 로 지정 가능)")
     elif losing:
@@ -290,7 +360,7 @@ def main():
     else:
         print("  특이도 검사: Material 에 지는 선언 없음")
 
-    if strict and (bad or losing):
+    if strict and (bad or losing or invisible):
         sys.exit(1)
 
 
