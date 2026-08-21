@@ -90,6 +90,11 @@ body {
   /* 보더·서피스 */
   --whisper-border: 1px solid rgba(0, 0, 0, 0.1);
   --border: rgba(0, 0, 0, 0.1);
+  /* 카드 경계 전용. 카드 채우기가 페이지와 같은 흰색이라 경계가 테두리
+     하나에 달려 있는데, rgba(0,0,0,.06) 은 1.14:1 이라 사실상 안 보였다.
+     WCAG 1.4.11 의 3:1 을 맞추되 중성 회색 대신 본문색(#57524E) 계열로
+     써서 사이트 톤을 유지한다. 흰 카드 위 3.22:1. */
+  --card-border: rgba(87, 82, 78, 0.65);
   --border-hover: rgba(0, 0, 0, 0.2);
   --bg-hover: var(--warm-white);
   --bg-surface: var(--warm-white);
@@ -148,6 +153,7 @@ body {
 
   --whisper-border: 1px solid rgba(255, 255, 255, 0.08);
   --border: rgba(255, 255, 255, 0.08);
+  --card-border: rgba(232, 228, 223, 0.4);   /* 어두운 카드(#272320) 위 3.17:1 */
   --border-hover: rgba(255, 255, 255, 0.16);
   --bg-hover: #2c2826;
   --bg-surface: #2c2826;
@@ -973,7 +979,13 @@ body {
 
 .md-typeset a {
   color: var(--notion-blue);
-  text-decoration: none;
+  /* 색만으로 링크를 구분하면 WCAG 1.4.1 위반이다. 링크색과 본문색이
+     2.15:1 이라 색약이 아니어도 구분이 어렵다. 밑줄이 유일한 해법이고,
+     대신 얇게·아래로 내려 본문 리듬을 덜 깨게 뒀다. hover 에서 진해진다. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, var(--notion-blue) 50%, transparent);
   font-weight: 500;
 }
 .md-typeset a:hover {
@@ -982,6 +994,7 @@ body {
      뒤에 실리니 여기 한 줄이면 이긴다. 라이트 7.19:1 / 다크 7.50:1 */
   color: var(--notion-blue-active);
   text-decoration: underline;
+  text-decoration-color: currentColor;   /* 평소보다 진하게 — 손이 닿았다는 표시 */
 }
 
 /* blockquote */
@@ -1521,7 +1534,7 @@ body {
   gap: 14px;
   padding: 18px 20px;
   background: var(--bg-card);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   color: var(--text) !important;
   text-decoration: none !important;
@@ -1593,9 +1606,6 @@ body {
   letter-spacing: -0.2px;
 }
 
-[data-md-color-scheme="slate"] .yg-cat-v2 {
-  border-color: rgba(255, 255, 255, 0.08);
-}
 [data-md-color-scheme="slate"] .yg-cat-v2:hover {
   background: rgba(127, 179, 213, 0.08);
   border-color: var(--blue);
@@ -1616,7 +1626,7 @@ body {
   gap: 18px;
   padding: 24px 26px;
   background: var(--bg-card);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   color: inherit !important;
   text-decoration: none !important;
@@ -1680,7 +1690,7 @@ body {
 
 [data-md-color-scheme="slate"] .yg-series,
 [data-md-color-scheme="slate"] .yg-feature {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--card-border);
   background: var(--bg-card);
 }
 
@@ -1697,8 +1707,8 @@ body {
   background: var(--bg-card);
   /* 검은색을 박으면 다크에서 카드 테두리가 사라진다(1.11:1).
      옆의 .yg-series 는 slate 짝이 있는데 여기만 빠져 있었다.
-     --border 는 라이트 검정 10% / 다크 흰색 8% 로 양쪽 세기가 같다. */
-  border: 1px solid var(--border);
+     --card-border 는 양쪽 모두 3:1 을 넘긴다. */
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   text-decoration: none !important;
@@ -1900,7 +1910,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 18px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   text-decoration: none !important;
   background: #ffffff;
@@ -1932,7 +1942,7 @@ body {
 }
 [data-md-color-scheme="slate"] .yg-about-link {
   background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--card-border);
 }
 
 /* ================================================
