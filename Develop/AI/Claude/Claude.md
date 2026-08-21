@@ -53,11 +53,25 @@ graph LR
     [data-md-color-scheme="slate"] .ch2-vp { fill: #c4b5fd; }
     [data-md-color-scheme="slate"] .ch2-vb { fill: #93c5fd; }
     [data-md-color-scheme="slate"] .ch2-vg { fill: #6ee7b7; }
+    /* 그라디언트 양 끝을 모드별로 바꾼다. 밝은 쪽 끝이 라이트에서,
+       어두운 쪽 끝이 다크에서 각각 배경에 묻혀 3:1 아래로 떨어졌던 자리다. */
+    .ch2-gp0 { stop-color: #6d28d9; }
+    .ch2-gp1 { stop-color: #7c3aed; }
+    .ch2-gb0 { stop-color: #1d4ed8; }
+    .ch2-gb1 { stop-color: #2563eb; }
+    .ch2-gg0 { stop-color: #047857; }
+    .ch2-gg1 { stop-color: #059669; }
+    [data-md-color-scheme="slate"] .ch2-gp0 { stop-color: #a78bfa; }
+    [data-md-color-scheme="slate"] .ch2-gp1 { stop-color: #c4b5fd; }
+    [data-md-color-scheme="slate"] .ch2-gb0 { stop-color: #60a5fa; }
+    [data-md-color-scheme="slate"] .ch2-gb1 { stop-color: #93c5fd; }
+    [data-md-color-scheme="slate"] .ch2-gg0 { stop-color: #34d399; }
+    [data-md-color-scheme="slate"] .ch2-gg1 { stop-color: #6ee7b7; }
   </style>
   <defs>
-    <linearGradient id="opus-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
-    <linearGradient id="sonnet-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient>
-    <linearGradient id="haiku-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#059669"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
+    <linearGradient id="opus-grad" x1="0" y1="0" x2="1" y2="0"><stop class="ch2-gp0" offset="0%"/><stop class="ch2-gp1" offset="100%"/></linearGradient>
+    <linearGradient id="sonnet-grad" x1="0" y1="0" x2="1" y2="0"><stop class="ch2-gb0" offset="0%"/><stop class="ch2-gb1" offset="100%"/></linearGradient>
+    <linearGradient id="haiku-grad" x1="0" y1="0" x2="1" y2="0"><stop class="ch2-gg0" offset="0%"/><stop class="ch2-gg1" offset="100%"/></linearGradient>
   </defs>
   <rect class="ch2-bg" width="720" height="340" rx="12"/>
   <text class="ch2-title" x="360" y="32" text-anchor="middle" font-size="15" font-weight="600">Claude 모델 등급별 비교 (상대값, 100 = 최대)</text>
@@ -313,6 +327,20 @@ graph LR
     [data-md-color-scheme="slate"] .ch4-vp { fill: #c4b5fd; }
     [data-md-color-scheme="slate"] .ch4-vb { fill: #93c5fd; }
     [data-md-color-scheme="slate"] .ch4-vg { fill: #6ee7b7; }
+    /* 출력 바 = 값 레이블과 같은 색, 입력 바 = 한 단계 흐린 색.
+       흐린 쪽도 배경 대비 3:1 을 넘겨야 해서 opacity 대신 별도 색을 쓴다. */
+    .ch4-out-p { fill: #6d28d9; }
+    .ch4-out-b { fill: #1d4ed8; }
+    .ch4-out-g { fill: #047857; }
+    .ch4-in-p { fill: #8b5cf6; }
+    .ch4-in-b { fill: #3b82f6; }
+    .ch4-in-g { fill: #059669; }
+    [data-md-color-scheme="slate"] .ch4-out-p { fill: #c4b5fd; }
+    [data-md-color-scheme="slate"] .ch4-out-b { fill: #93c5fd; }
+    [data-md-color-scheme="slate"] .ch4-out-g { fill: #6ee7b7; }
+    [data-md-color-scheme="slate"] .ch4-in-p { fill: #8b5cf6; }
+    [data-md-color-scheme="slate"] .ch4-in-b { fill: #3b82f6; }
+    [data-md-color-scheme="slate"] .ch4-in-g { fill: #10b981; }
   </style>
   <rect class="ch4-bg" width="720" height="300" rx="12"/>
   <text class="ch4-title" x="360" y="30" text-anchor="middle" font-size="15" font-weight="600">출력 토큰 단가 등급 비교 (단가는 아래 가격표 참조)</text>
@@ -327,25 +355,25 @@ graph LR
   <line class="ch4-grid" x1="100" y1="148" x2="640" y2="148" stroke-width="0.5" stroke-dasharray="4"/>
   <line class="ch4-grid" x1="100" y1="192" x2="640" y2="192" stroke-width="0.5" stroke-dasharray="4"/>
   <!-- Fable 5 입력 바 -->
-  <rect x="140" y="203" width="55" height="37" rx="4" fill="#7c3aed" opacity="0.5"/>
+  <rect class="ch4-in-p" x="140" y="203" width="55" height="37" rx="4"/>
   <!-- Fable 5 출력 바 -->
-  <rect x="200" y="55" width="55" height="185" rx="4" fill="#7c3aed"/>
+  <rect class="ch4-out-p" x="200" y="55" width="55" height="185" rx="4"/>
   <!-- Sonnet 5 입력 바 -->
-  <rect x="320" y="229" width="55" height="11" rx="4" fill="#2563eb" opacity="0.5"/>
+  <rect class="ch4-in-b" x="320" y="229" width="55" height="11" rx="4"/>
   <!-- Sonnet 5 출력 바 -->
-  <rect x="380" y="184" width="55" height="56" rx="4" fill="#2563eb"/>
+  <rect class="ch4-out-b" x="380" y="184" width="55" height="56" rx="4"/>
   <!-- Haiku 4.5 입력 바 -->
-  <rect x="500" y="236" width="55" height="4" rx="1" fill="#059669" opacity="0.5"/>
+  <rect class="ch4-in-g" x="500" y="236" width="55" height="4" rx="1"/>
   <!-- Haiku 4.5 출력 바 -->
-  <rect x="560" y="221" width="55" height="19" rx="4" fill="#059669"/>
+  <rect class="ch4-out-g" x="560" y="221" width="55" height="19" rx="4"/>
   <!-- 모델 레이블 -->
   <text class="ch4-vp" x="195" y="260" text-anchor="middle" font-size="12" font-weight="500">Fable 5</text>
   <text class="ch4-vb" x="375" y="260" text-anchor="middle" font-size="12" font-weight="500">Sonnet 5</text>
   <text class="ch4-vg" x="555" y="260" text-anchor="middle" font-size="12" font-weight="500">Haiku 4.5</text>
   <!-- 범례 -->
-  <rect x="240" y="278" width="12" height="12" rx="2" fill="#7c3aed" opacity="0.5"/>
+  <rect class="ch4-in-p" x="240" y="278" width="12" height="12" rx="2"/>
   <text class="ch4-legend" x="258" y="289" font-size="11">입력 토큰</text>
-  <rect x="360" y="278" width="12" height="12" rx="2" fill="#7c3aed"/>
+  <rect class="ch4-out-p" x="360" y="278" width="12" height="12" rx="2"/>
   <text class="ch4-legend" x="378" y="289" font-size="11">출력 토큰</text>
 </svg>
 
@@ -497,10 +525,22 @@ print(resp.input_tokens)
     .ch5-bg { fill: var(--md-default-bg-color); stroke: var(--md-default-fg-color--lightest); stroke-width: 1; }
     .ch5-title { fill: var(--md-default-fg-color); }
     .ch5-row-label { fill: var(--md-default-fg-color--light); }
-    .ch5-on-color { fill: #fff; }
     .ch5-legend { fill: var(--md-default-fg-color--light); }
-    .ch5-ok { fill: #047857; }
-    .ch5-warn { fill: #dc2626; }
+    /* 구간 블록. 라이트는 진한 바탕 + 흰 글자, 다크는 밝은 바탕 + 어두운 글자로
+       뒤집는다. 한 방향만 쓰면 블록이 배경에 묻히거나 안의 글자가 안 읽힌다. */
+    .ch5-sys { fill: #7c3aed; }
+    .ch5-tools { fill: #a16207; }
+    .ch5-hist { fill: #dc2626; }
+    .ch5-req { fill: #2563eb; }
+    .ch5-on-color { fill: #fff; }
+    [data-md-color-scheme="slate"] .ch5-sys { fill: #c4b5fd; }
+    [data-md-color-scheme="slate"] .ch5-tools { fill: #fcd34d; }
+    [data-md-color-scheme="slate"] .ch5-hist { fill: #fca5a5; }
+    [data-md-color-scheme="slate"] .ch5-req { fill: #93c5fd; }
+    [data-md-color-scheme="slate"] .ch5-on-color { fill: #1F1C1E; }
+    /* 아래 두 글자는 페이지 배경이 아니라 remain 틴트 위에 얹힌다. */
+    .ch5-ok { fill: #065f46; }
+    .ch5-warn { fill: #b91c1c; }
     [data-md-color-scheme="slate"] .ch5-ok { fill: #6ee7b7; }
     [data-md-color-scheme="slate"] .ch5-warn { fill: #fca5a5; }
     .ch5-remain { fill: #10b981; opacity: 0.25; }
@@ -510,17 +550,17 @@ print(resp.input_tokens)
   <text class="ch5-title" x="360" y="28" text-anchor="middle" font-size="14" font-weight="600">200K 토큰 컨텍스트 — 실제 사용 시 구성 예시</text>
   <!-- 첫 번째 예: 짧은 대화 -->
   <text class="ch5-row-label" x="30" y="62" font-size="11">단순 질문</text>
-  <rect x="110" y="48" width="40" height="24" rx="4" fill="#7c3aed"/>
-  <rect x="150" y="48" width="16" height="24" rx="0" fill="#2563eb"/>
+  <rect x="110" y="48" width="40" height="24" rx="4" class="ch5-sys"/>
+  <rect x="150" y="48" width="16" height="24" rx="0" class="ch5-req"/>
   <rect class="ch5-remain" x="166" y="48" width="534" height="24" rx="4"/>
   <text class="ch5-on-color" x="130" y="64" text-anchor="middle" font-size="9">sys</text>
   <text class="ch5-on-color" x="158" y="64" text-anchor="middle" font-size="9">Q</text>
   <text class="ch5-ok" x="433" y="64" text-anchor="middle" font-size="10">응답 가능: ~195K</text>
   <!-- 두 번째 예: 코드 리뷰 -->
   <text class="ch5-row-label" x="30" y="106" font-size="11">코드 리뷰</text>
-  <rect x="110" y="92" width="40" height="24" rx="4" fill="#7c3aed"/>
-  <rect x="150" y="92" width="120" height="24" rx="0" fill="#dc2626"/>
-  <rect x="270" y="92" width="30" height="24" rx="0" fill="#2563eb"/>
+  <rect x="110" y="92" width="40" height="24" rx="4" class="ch5-sys"/>
+  <rect x="150" y="92" width="120" height="24" rx="0" class="ch5-hist"/>
+  <rect x="270" y="92" width="30" height="24" rx="0" class="ch5-req"/>
   <rect class="ch5-remain" x="300" y="92" width="400" height="24" rx="4"/>
   <text class="ch5-on-color" x="130" y="108" text-anchor="middle" font-size="9">sys</text>
   <text class="ch5-on-color" x="210" y="108" text-anchor="middle" font-size="9">코드 파일 5개 (~30K)</text>
@@ -528,10 +568,10 @@ print(resp.input_tokens)
   <text class="ch5-ok" x="500" y="108" text-anchor="middle" font-size="10">응답 가능: ~165K</text>
   <!-- 세 번째 예: 에이전트 + 도구 -->
   <text class="ch5-row-label" x="30" y="150" font-size="11">에이전트</text>
-  <rect x="110" y="136" width="60" height="24" rx="4" fill="#7c3aed"/>
-  <rect x="170" y="136" width="80" height="24" rx="0" fill="#ca8a04"/>
-  <rect x="250" y="136" width="200" height="24" rx="0" fill="#dc2626"/>
-  <rect x="450" y="136" width="40" height="24" rx="0" fill="#2563eb"/>
+  <rect x="110" y="136" width="60" height="24" rx="4" class="ch5-sys"/>
+  <rect x="170" y="136" width="80" height="24" rx="0" class="ch5-tools"/>
+  <rect x="250" y="136" width="200" height="24" rx="0" class="ch5-hist"/>
+  <rect x="450" y="136" width="40" height="24" rx="0" class="ch5-req"/>
   <rect class="ch5-remain" x="490" y="136" width="210" height="24" rx="4"/>
   <text class="ch5-on-color" x="140" y="152" text-anchor="middle" font-size="9">sys</text>
   <text class="ch5-on-color" x="210" y="152" text-anchor="middle" font-size="9">tools</text>
@@ -540,22 +580,22 @@ print(resp.input_tokens)
   <text class="ch5-ok" x="595" y="152" text-anchor="middle" font-size="10">~105K</text>
   <!-- 네 번째 예: 긴 대화 -->
   <text class="ch5-row-label" x="30" y="194" font-size="11">긴 멀티턴</text>
-  <rect x="110" y="180" width="60" height="24" rx="4" fill="#7c3aed"/>
-  <rect x="170" y="180" width="460" height="24" rx="0" fill="#dc2626"/>
-  <rect x="630" y="180" width="40" height="24" rx="0" fill="#2563eb"/>
+  <rect x="110" y="180" width="60" height="24" rx="4" class="ch5-sys"/>
+  <rect x="170" y="180" width="460" height="24" rx="0" class="ch5-hist"/>
+  <rect x="630" y="180" width="40" height="24" rx="0" class="ch5-req"/>
   <rect class="ch5-remain" x="670" y="180" width="30" height="24" rx="4"/>
   <text class="ch5-on-color" x="140" y="196" text-anchor="middle" font-size="9">sys</text>
   <text class="ch5-on-color" x="400" y="196" text-anchor="middle" font-size="9">대화 내역 누적 (~170K)</text>
   <text class="ch5-on-color" x="650" y="196" text-anchor="middle" font-size="9">Q</text>
   <text class="ch5-warn" x="685" y="196" text-anchor="middle" font-size="8">!!!</text>
   <!-- 범례 -->
-  <rect x="120" y="224" width="12" height="12" rx="2" fill="#7c3aed"/>
+  <rect x="120" y="224" width="12" height="12" rx="2" class="ch5-sys"/>
   <text class="ch5-legend" x="138" y="234" font-size="10">System Prompt</text>
-  <rect x="240" y="224" width="12" height="12" rx="2" fill="#ca8a04"/>
+  <rect x="240" y="224" width="12" height="12" rx="2" class="ch5-tools"/>
   <text class="ch5-legend" x="258" y="234" font-size="10">Tools 정의</text>
-  <rect x="340" y="224" width="12" height="12" rx="2" fill="#dc2626"/>
+  <rect x="340" y="224" width="12" height="12" rx="2" class="ch5-hist"/>
   <text class="ch5-legend" x="358" y="234" font-size="10">대화 내역</text>
-  <rect x="440" y="224" width="12" height="12" rx="2" fill="#2563eb"/>
+  <rect x="440" y="224" width="12" height="12" rx="2" class="ch5-req"/>
   <text class="ch5-legend" x="458" y="234" font-size="10">현재 요청</text>
   <rect class="ch5-remain" x="540" y="224" width="12" height="12" rx="2"/>
   <text class="ch5-legend" x="558" y="234" font-size="10">응답 가능 공간</text>
