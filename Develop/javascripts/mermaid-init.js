@@ -112,8 +112,27 @@
       .replace(/\s+/g, " ").trim();
   }
 
+  /* 다이어그램 하나당 한 번만 찾는다.
+   *
+   * 왜: 이름을 지을 때 "같은 제목 아래 몇 번째인가" 를 세느라 문서의 모든
+   * 다이어그램에 대해 제목을 다시 찾는다. 17개짜리 문서면 17 x (1 + 17) = 306회고,
+   * 그 안에서 h1~h6 훑기가 540회, headerlink 제거가 306회 돈다. 제목은 이 흐름에서
+   * 바뀌지 않으므로 노드마다 한 번 찾아 두면 그만이다.
+   *
+   * 키가 DOM 노드라 WeakMap 이면 충분하다 — instant navigation 으로 문서가 갈리면
+   * 노드가 통째로 새것이라 캐시가 저절로 비고, 옛 노드는 같이 회수된다.
+   */
+  var headingCache = new WeakMap();
+
   /** 다이어그램 바로 앞의 제목. 941개 전부 하나씩 있다(누락 0). */
   function nearestHeading(el) {
+    if (headingCache.has(el)) return headingCache.get(el);
+    var out = findHeading(el);
+    headingCache.set(el, out);
+    return out;
+  }
+
+  function findHeading(el) {
     var n = el, h = null;
     while (n && !h) {
       var prev = n.previousElementSibling;
@@ -185,6 +204,93 @@
     if (v === "root_start") return "시작";
     if (v === "root_end") return "끝";
     return v;
+  }
+
+  /* 배경색만 지정된 노드의 글자색을 배경 휘도에 맞춰 정한다.
+   *
+   * 왜: 문서 85개가 `style A fill:#e0f2fe` 처럼 배경만 주고 글자색을 안 준다(623줄).
+   * 글자색은 테마가 정하는데 다크는 #ccc, 라이트는 #333 로 고정이다. 그래서 다크에서는
+   * 밝은 배경(#e0f2fe) 위에 밝은 글자가, 라이트에서는 어두운 배경(#1a1a2e) 위에
+   * 어두운 글자가 얹힌다. 양쪽 다 안 읽힌다.
+   *
+   * 문서 623줄을 고치는 대신 렌더가 끝난 뒤 배경을 실제로 읽어 검정/흰색 중
+   * 대비가 큰 쪽을 준다. 어떤 불투명 배경이든 최소 4.58:1 이 나온다 — 검정과 흰색의
+   * 대비가 같아지는 중간 휘도(0.179)가 최악이고 그때가 4.58:1 이다.
+   *
+   * 이미 4.5:1 이 나오는 것은 건드리지 않는다. 배경을 안 준 노드(테마가 맞춰 둔 것)와
+   * 저자가 `color:` 를 직접 준 노드가 이 검사에서 그대로 통과해 빠진다.
+   */
+  var CONTRAST_MIN = 4.5;
+  var SHAPE_SEL = "rect,circle,ellipse,polygon,path";
+  var LABEL_SEL = ".nodeLabel,.cluster-label span,.cluster-label p,.cluster-label text";
+
+  /** "#abc" / "#aabbcc" / "rgb()" / "rgba()" -> [r,g,b]. 반투명·none 은 판단하지 않는다. */
+  function parseColor(v) {
+    if (!v) return null;
+    var s = String(v).trim().toLowerCase();
+    if (s === "none" || s === "transparent") return null;
+    var m = s.match(/^#([0-9a-f]+)$/);
+    if (m) {
+      var h = m[1];
+      if (h.length === 3 || h.length === 4) {
+        h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2] + (h.length === 4 ? h[3] + h[3] : "");
+      }
+      if (h.length !== 6 && h.length !== 8) return null;
+      if (h.length === 8 && parseInt(h.slice(6), 16) < 255) return null;
+      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    }
+    m = s.match(/^rgba?\(([^)]+)\)$/);
+    if (!m) return null;
+    var p = m[1].split(/[,\s/]+/).filter(Boolean).map(parseFloat);
+    if (p.length < 3 || p.slice(0, 3).some(isNaN)) return null;
+    if (p.length > 3 && p[3] < 1) return null;
+    return [p[0], p[1], p[2]];
+  }
+
+  /** WCAG 2.x 상대 휘도. */
+  function relLuminance(rgb) {
+    var c = rgb.map(function (v) {
+      var x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+
+  function contrastRatio(a, b) {
+    var la = relLuminance(a), lb = relLuminance(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+
+  /** 배경 위에서 대비가 더 큰 쪽. */
+  function pickTextColor(bg) {
+    return contrastRatio(bg, [0, 0, 0]) >= contrastRatio(bg, [255, 255, 255]) ? "#000000" : "#ffffff";
+  }
+
+  function fixContrast(node) {
+    if (typeof window.getComputedStyle !== "function") return;
+    var svg = node.querySelector("svg");
+    if (!svg) return;
+    var groups = svg.querySelectorAll("g.node,g.cluster");
+    var jobs = [], i, j;
+
+    // 읽기를 먼저 다 하고 쓰기를 몰아서 한다. 번갈아 하면 노드마다 스타일이 다시 계산된다.
+    for (i = 0; i < groups.length; i++) {
+      var shape = groups[i].querySelector(SHAPE_SEL);
+      if (!shape) continue;
+      var bg = parseColor(window.getComputedStyle(shape).fill);
+      if (!bg) continue;
+      var labels = groups[i].querySelectorAll(LABEL_SEL);
+      for (j = 0; j < labels.length; j++) {
+        var lb = labels[j];
+        var cur = parseColor(window.getComputedStyle(lb).color);
+        if (cur && contrastRatio(bg, cur) >= CONTRAST_MIN) continue;
+        jobs.push([lb, pickTextColor(bg)]);
+      }
+    }
+    for (i = 0; i < jobs.length; i++) {
+      jobs[i][0].style.color = jobs[i][1];
+      jobs[i][0].style.fill = jobs[i][1]; // <text> 라벨은 fill 이 글자색이다
+    }
   }
 
   function describe(mermaid, node, src) {
@@ -294,6 +400,7 @@
           node.innerHTML = out.svg;
           node.setAttribute("data-mermaid-done", "1");
           if (typeof out.bindFunctions === "function") out.bindFunctions(node);
+          fixContrast(node);
           return describe(mermaid, node, src);
         });
       })

@@ -23,6 +23,9 @@ run "check_frontmatter"   python3 tools/check_frontmatter.py --strict
 run "check_mermaid"       python3 tools/check_mermaid_entities.py
 run "checker_tests"       bash -c 'set -e; n=0; for t in tools/tests/test_*.py; do [ -e "$t" ] || continue; python3 "$t"; n=$((n+1)); done; [ "$n" -gt 0 ]'
 run "check_links"         python3 tools/check_links.py --strict
+# 다이어그램 글자 대비. 계산이 틀어지면 "그려지긴 하는데 안 읽히는" 상태가 되고
+# 빌드는 통과한다. jsdom 없이 도는 순수 계산이라 게이트에 넣을 수 있다.
+run "mermaid contrast"    node tools/tests/mermaid_contrast.test.mjs
 # .pages 의 nav 는 적은 것만 싣는다 — 목록에서 빠진 문서는 사이드바에서 조용히
 # 사라지고 빌드도 --strict 도 안 잡는다. 반대 방향(nav 에 적었는데 파일이 없다)은
 # awesome-pages 가 strict 기본값으로 예외를 던지므로 이미 막혀 있다.
