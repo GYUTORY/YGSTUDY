@@ -162,6 +162,18 @@ body {
   --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.45);
 
   --cat-ai: #c084fc;
+
+  /* 어두운 보라·남색 계열은 다크 배경에서 아예 안 보인다. 카테고리 점이
+     얹히는 자리는 흰색 6% 를 합성한 rgb(44,42,44) 인데, 그 위에서
+     #391c57 은 1.00:1 이고 #213183 은 1.24:1 이다 — 배경과 구별이 안 된다.
+
+     나머지 카테고리 색은 그대로 둔다. 점 옆에 <h3>Language</h3> 처럼
+     이름이 글자로 있어서 점 자체는 장식이고, 브랜드 색(AWS 주황 등)을
+     대비 기준에 맞춰 바꾸면 알아보기 어려워진다. 여기 셋은 기준 미달이
+     아니라 "보이지 않음" 이라 성격이 다르다. 색상은 유지하고 명도만 올렸다. */
+  --cat-arch: #935dcb;      /* 1.00:1 -> 3.17:1 */
+  --cat-webserver: #935dcb; /* 1.00:1 -> 3.17:1 */
+  --cat-network: #586cd5;   /* 1.24:1 -> 3.07:1 */
 }
 
 /* Material 은 data-md-color-scheme 를 <body> 자신에 붙인다.
@@ -318,11 +330,23 @@ body[data-md-color-scheme="slate"] {
 .md-search__icon {
   color: var(--warm-gray-500) !important;
 }
+/* --warm-gray-500 은 라이트 전용 값이다(#57524E). slate 짝이 없어 다크에서도
+   그대로 쓰이는데, 그때 헤더 배경이 #1F1C1E 라 2.19:1 이 된다. 아이콘은 UI
+   요소라 3:1 이 기준이다. 라이트는 7.65:1 로 멀쩡하니 다크만 바꾼다. */
+[data-md-color-scheme="slate"] .md-search__icon {
+  color: var(--text-sub) !important;
+}
 
 /* 헤더 오른쪽 버튼 컬러 톤 */
 .md-header__button[for="__search"],
 .md-header__button[for="__drawer"] {
   color: var(--warm-gray-500) !important;
+}
+/* 위와 같은 이유 — 다크에서 2.19:1. 모바일·태블릿에서만 보이는 버튼이라
+   눈에 덜 띄었을 뿐이다(Material 이 60em 이상에서 감춘다). */
+[data-md-color-scheme="slate"] .md-header__button[for="__search"],
+[data-md-color-scheme="slate"] .md-header__button[for="__drawer"] {
+  color: var(--text-sub) !important;
 }
 .md-header__button[for="__search"]:hover,
 .md-header__button[for="__drawer"]:hover {
@@ -956,11 +980,18 @@ body {
   color: var(--text-sub);
 }
 
-/* hr */
+/* hr
+
+   검은색을 박아 두면 다크에서 안 보인다 — 배경(#1F1C1E)보다 어두워져
+   대비가 1.03:1 이 된다. 문서 1,156개에 4,872개가 깔려 있어서 그만큼
+   구분선이 통째로 사라진다.
+
+   --border 는 라이트 검정 10% / 다크 흰색 8% 라 양쪽 세기가 거의 같다
+   (1.25:1 vs 1.26:1). 라이트 모습은 지금과 완전히 같고 다크만 살아난다. */
 .md-typeset hr {
   border: none;
   height: 1px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--border);
   margin: 2em 0;
 }
 
@@ -1322,6 +1353,10 @@ body {
   color: var(--warm-gray-500) !important;
   transition: color 0.15s ease;
 }
+/* 푸터 GitHub 아이콘. 문서 1,360개 전부에 있고 다크에서 2.19:1 이었다. */
+[data-md-color-scheme="slate"] .md-social__link {
+  color: var(--text-sub) !important;
+}
 .md-social__link:hover {
   color: var(--notion-blue) !important;
 }
@@ -1540,7 +1575,7 @@ body {
 }
 .yg-series:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--border-hover);
   box-shadow:
     rgba(0, 0, 0, 0.04) 0px 6px 20px,
     rgba(0, 0, 0, 0.03) 0px 2px 8px;
@@ -1611,7 +1646,10 @@ body {
 .yg-proj {
   display: block;
   background: var(--bg-card);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  /* 검은색을 박으면 다크에서 카드 테두리가 사라진다(1.11:1).
+     옆의 .yg-series 는 slate 짝이 있는데 여기만 빠져 있었다.
+     --border 는 라이트 검정 10% / 다크 흰색 8% 로 양쪽 세기가 같다. */
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   text-decoration: none !important;
@@ -1620,7 +1658,7 @@ body {
 }
 .yg-proj:hover {
   transform: translateY(-3px);
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--border-hover);
   box-shadow:
     rgba(0, 0, 0, 0.05) 0px 8px 24px,
     rgba(0, 0, 0, 0.03) 0px 2px 8px;
