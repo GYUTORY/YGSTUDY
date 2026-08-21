@@ -333,8 +333,13 @@ summer = datetime(2024, 7, 1, 12, 0)
 dt_phoenix = summer.replace(tzinfo=phoenix)
 dt_navajo  = summer.replace(tzinfo=navajo)
 
-print(dt_phoenix.utcoffset())  # -07:00 (연중 고정)
-print(dt_navajo.utcoffset())   # -06:00 (MDT)
+# utcoffset() 이 돌려주는 건 timedelta 다. 그대로 print 하면
+# ISO 오프셋이 아니라 timedelta 표기가 나온다.
+print(dt_phoenix.utcoffset())  # -1 day, 17:00:00  (= UTC-07:00, 연중 고정)
+print(dt_navajo.utcoffset())   # -1 day, 18:00:00  (= UTC-06:00, MDT)
+
+# -07:00 형태로 보고 싶으면 strftime 을 쓴다
+print(dt_phoenix.strftime('%z'))  # -0700
 ```
 
 실무에서 Arizona 지역을 처리할 때는 주 단위가 아닌 IANA 타임존 ID를 기준으로 판단한다. 도시나 우편번호 기반으로 타임존을 결정하려면 GeoIP 데이터베이스나 Google Maps Time Zone API 같은 외부 서비스를 쓴다.
@@ -355,7 +360,7 @@ mexico_city = ZoneInfo('America/Mexico_City')
 summer_2023 = datetime(2023, 7, 1, 12, 0, tzinfo=mexico_city)
 
 # tzdata 최신 버전에서는 UTC-6 반환
-print(summer_2023.utcoffset())  # -06:00
+print(summer_2023.utcoffset())  # -1 day, 18:00:00  (= UTC-06:00)
 ```
 
 이런 변경이 생기면 과거 데이터와 현재 계산 결과가 달라진다. 2023년 이전 저장된 `America/Mexico_City` 기준 데이터는 DST가 적용된 채 저장됐을 수 있고, 현재 tzdata로 재계산하면 다른 UTC 시각이 나온다. 과거 데이터는 당시 규칙 기준으로 저장됐다는 전제 하에 처리해야 한다.

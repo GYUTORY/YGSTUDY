@@ -111,7 +111,7 @@ Dimension에는 해당 시계열을 구분하는 데 반드시 필요한 속성�
 
 ```python
 # 나쁜 예: Dimension 과다 — 나중에 못 바꿈
-'Dimensions': [
+bad_dimensions = [
     {'Name': 'server_id', 'Value': 'web-01'},
     {'Name': 'region', 'Value': 'ap-northeast-2'},
     {'Name': 'az', 'Value': 'ap-northeast-2a'},
@@ -122,7 +122,7 @@ Dimension에는 해당 시계열을 구분하는 데 반드시 필요한 속성�
 ]
 
 # 좋은 예: 식별에 필요한 최소만
-'Dimensions': [
+good_dimensions = [
     {'Name': 'server_id', 'Value': 'web-01'},
     {'Name': 'environment', 'Value': 'prod'},
 ]

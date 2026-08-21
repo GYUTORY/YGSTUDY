@@ -272,7 +272,7 @@ except TimeoutError:
     future.cancel()  # 아직 시작 안 했으면 취소, 시작했으면 효과 없음
 ```
 
-`ThreadPoolExecutor`의 기본 `max_workers`는 Python 3.8 이후 `min(32, os.cpu_count() + 4)`다. I/O bound 작업에서는 이 기본값이 너무 작을 수 있다.
+`ThreadPoolExecutor`의 기본 `max_workers`는 판올림마다 바뀌었다. Python 3.8~3.12 는 `min(32, os.cpu_count() + 4)` 이고, `os.process_cpu_count()` 가 들어온 3.13 부터는 `min(32, (os.process_cpu_count() or 1) + 4)` 다(3.14.6 에서 `inspect.getsource` 로 확인). 컨테이너에서 CPU 를 제한해 두면 두 값이 달라진다. 어느 쪽이든 I/O bound 작업에는 이 기본값이 너무 작을 수 있다.
 
 ---
 

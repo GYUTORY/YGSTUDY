@@ -1418,7 +1418,7 @@ graph TD
 ##### 1. Microtask Queue (마이크로태스크 큐)
 ```javascript
 // Microtask Queue에 들어가는 작업들
-Promise.then(() => console.log('Promise resolved'));
+Promise.resolve().then(() => console.log('Promise resolved'));
 process.nextTick(() => console.log('nextTick'));
 queueMicrotask(() => console.log('queueMicrotask'));
 ```

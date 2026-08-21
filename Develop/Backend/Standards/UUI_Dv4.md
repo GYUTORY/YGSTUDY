@@ -74,7 +74,7 @@ const uuid = uuidv4();
 import uuid
 
 uid = uuid.uuid4()
-print(str(uid))  # '550e8400-e29b-41d4-a716-446655440000'
+print(str(uid))  # 매번 다른 값 — 예: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
 ```
 
 Python 표준 라이브러리의 `uuid.uuid4()`는 OS의 `/dev/urandom`이나 `CryptGenRandom`을 쓴다. 별도 설치 없이 쓸 수 있다.

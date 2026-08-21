@@ -180,10 +180,10 @@ for min_acu in [0.5, 1, 2, 4, 8]:
     print(f"min {min_acu:>4} ACU → 월 idle 바닥 ${idle_cost:>7.2f}")
 
 # min  0.5 ACU → 월 idle 바닥 $  43.80
-# min  1   ACU → 월 idle 바닥 $  87.60
-# min  2   ACU → 월 idle 바닥 $ 175.20
-# min  4   ACU → 월 idle 바닥 $ 350.40
-# min  8   ACU → 월 idle 바닥 $ 700.80
+# min    1 ACU → 월 idle 바닥 $  87.60
+# min    2 ACU → 월 idle 바닥 $ 175.20
+# min    4 ACU → 월 idle 바닥 $ 350.40
+# min    8 ACU → 월 idle 바닥 $ 700.80
 ```
 
 min 8 ACU면 트래픽이 전혀 없어도 월 $700이 깔린다. "Serverless니까 안 쓰면 싸겠지"가 어긋나는 지점이 이것이다.

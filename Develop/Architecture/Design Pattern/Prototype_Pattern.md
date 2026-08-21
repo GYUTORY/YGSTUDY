@@ -106,6 +106,13 @@ console.log(original.database.host); // "remote-server" — 원본이 바뀐다
 가장 간단한 깊은 복사 방법이다.
 
 ```javascript
+// 앞의 얕은 복사 예제가 original.database.host 를 이미 바꿔 놨다.
+// 이어서 실행하는 독자를 위해 원본을 다시 만든다.
+const original = {
+    name: 'config',
+    database: { host: 'localhost', credentials: { user: 'admin', password: 'secret' } }
+};
+
 const deepCopy = JSON.parse(JSON.stringify(original));
 deepCopy.database.host = 'remote-server';
 

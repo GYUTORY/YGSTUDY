@@ -205,7 +205,7 @@ signaling.on('candidate', async (msg) => {
     // remoteDescription 세팅 전이면 여기서 터진다 → 큐잉 필요
     console.error('candidate 추가 실패', e);
   }
-};
+});
 ```
 
 host 후보는 STUN을 안 거치니 즉시 나오고, srflx는 STUN 왕복 후에, relay는 TURN 할당 후에 나온다. 그래서 후보가 시간차를 두고 도착한다. 로그를 보면 host가 먼저 깔리고 srflx, relay가 순서대로 붙는 게 보인다.

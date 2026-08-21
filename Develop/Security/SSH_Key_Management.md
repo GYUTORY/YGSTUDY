@@ -394,7 +394,9 @@ while read -r server; do
     {
         echo "=== $server ==="
         # /home/*, /root 모든 사용자의 authorized_keys 확인
-        ssh -o ConnectTimeout=10 "$server" \
+        # -n 이 없으면 ssh 가 server_list.txt 를 통째로 읽어 버려서
+        # while 루프가 첫 서버 한 대만 돌고 조용히 끝난다.
+        ssh -n -o ConnectTimeout=10 "$server" \
             'sudo find /home /root -name authorized_keys -path "*/.ssh/*" \
                  -exec sh -c "echo \"--- \$1 ---\"; cat \"\$1\"" _ {} \;'
     } > "$OUTPUT_DIR/${server}.txt" 2>&1

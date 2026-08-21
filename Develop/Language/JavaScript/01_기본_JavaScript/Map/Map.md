@@ -102,11 +102,11 @@ obj[1] = 'number key';
 obj['1'] = 'string key'; // 위와 동일한 키로 덮어씀
 
 console.log(map.size); // 3
-console.log(Object.keys(obj).length); // 2
+console.log(Object.keys(obj).length); // 1 — obj[1] 과 obj['1'] 은 같은 키다
 
 // 2. 크기 확인의 용이성
 console.log(map.size); // 3
-console.log(Object.keys(obj).length); // 2
+console.log(Object.keys(obj).length); // 1
 
 // 3. 순회의 일관성
 map.forEach((value, key) => {
