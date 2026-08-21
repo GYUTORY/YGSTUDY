@@ -338,22 +338,40 @@
  * 남은 내용이 있는 쪽에만 그림자를 켠다(그림자 자체는 extra.css).
  */
 (function () {
-  function mark(code) {
+  /* 읽기와 쓰기를 반드시 나눠서 한다.
+
+     원래는 코드블록 하나마다 scrollWidth 를 읽고 곧바로 속성을 썼다. 속성을
+     쓰면 레이아웃이 무효가 되므로 다음 블록을 읽을 때 다시 계산된다. 블록
+     수만큼 레이아웃이 반복된다 — 이 저장소에서 가장 큰 문서는 코드블록이
+     164개고, scanAll 은 DOMContentLoaded·폰트 로드·load 로 세 번 돈다.
+
+     전부 재고 나서 전부 쓰면 레이아웃은 한 번이면 된다. */
+  function measure(code) {
     var wrap = code.parentElement && code.parentElement.parentElement;
-    if (!wrap || !wrap.classList.contains("highlight")) return;
+    if (!wrap || !wrap.classList.contains("highlight")) return null;
     var max = code.scrollWidth - code.clientWidth;
-    if (max <= 4) {
-      wrap.removeAttribute("data-yg-scroll");
-      return;
-    }
+    if (max <= 4) return { wrap: wrap, sides: null };
     var sides = [];
     if (code.scrollLeft > 2) sides.push("l");
     if (code.scrollLeft < max - 2) sides.push("r");
-    wrap.setAttribute("data-yg-scroll", sides.join(" "));
+    return { wrap: wrap, sides: sides.join(" ") };
+  }
+
+  function apply(m) {
+    if (!m) return;
+    if (m.sides === null) m.wrap.removeAttribute("data-yg-scroll");
+    else m.wrap.setAttribute("data-yg-scroll", m.sides);
+  }
+
+  function mark(code) {
+    apply(measure(code));
   }
 
   function scanAll() {
-    document.querySelectorAll(".md-typeset .highlight > pre > code").forEach(mark);
+    var out = [];
+    document.querySelectorAll(".md-typeset .highlight > pre > code")
+      .forEach(function (c) { out.push(measure(c)); });   // 읽기만
+    out.forEach(apply);                                    // 그 다음 쓰기만
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -400,13 +418,22 @@
     return w > 0 ? w : 0;
   }
 
-  function markScroll(box) {
+  function measureScroll(box) {
     var max = box.scrollWidth - box.clientWidth;
-    if (max <= 4) { box.removeAttribute("data-yg-scroll"); return; }
+    if (max <= 4) return { box: box, sides: null };
     var sides = [];
     if (box.scrollLeft > 2) sides.push("l");
     if (box.scrollLeft < max - 2) sides.push("r");
-    box.setAttribute("data-yg-scroll", sides.join(" "));
+    return { box: box, sides: sides.join(" ") };
+  }
+
+  function applyScroll(m) {
+    if (m.sides === null) m.box.removeAttribute("data-yg-scroll");
+    else m.box.setAttribute("data-yg-scroll", m.sides);
+  }
+
+  function markScroll(box) {
+    applyScroll(measureScroll(box));
   }
 
   function apply(box) {
@@ -420,18 +447,27 @@
       box.style.setProperty("--yg-diagram-min", Math.round(nat * FLOOR) + "px");
       box.dataset.ygFloor = "1";
     }
-    markScroll(box);
     return true;
   }
 
+  /* 최소폭을 박는 것과 잘림 표시를 두 단계로 나눈다.
+
+     한 상자마다 `--yg-diagram-min` 을 쓰고 곧바로 scrollWidth 를 읽으면,
+     쓰기가 레이아웃을 무효로 만들어 놓고 바로 읽으니 상자 수만큼 레이아웃이
+     반복된다. 최소폭을 전부 박고 나서 잘림을 전부 재면 두 번이면 된다. */
   function scan() {
     var pending = 0;
+    var boxes = [];
     document.querySelectorAll(".md-typeset .yg-mermaid").forEach(function (box) {
-      if (!apply(box)) pending++;
+      if (apply(box)) boxes.push(box);
+      else pending++;
     });
     // 표도 같은 처지다 — Material 이 overflow:auto 래퍼에 넣어 옆으로 굴리는데
     // 잘렸다는 표시가 없다(한 문서에서 표 6개 중 3개가 최대 220px 씩 숨었다).
-    document.querySelectorAll(".md-typeset__table").forEach(markScroll);
+    document.querySelectorAll(".md-typeset__table").forEach(function (t) { boxes.push(t); });
+
+    var measured = boxes.map(measureScroll);   // 읽기만
+    measured.forEach(applyScroll);             // 그 다음 쓰기만
     return pending;
   }
 
@@ -441,12 +477,19 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(scan);
     window.addEventListener("load", scan);
 
-    // mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
+    /* mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
+
+       한 번에 여러 개가 꽂힐 수 있어서(화면에 두 개가 같이 들어오는 경우)
+       상자마다 쓰고-읽고 하지 않는다. 최소폭을 먼저 다 박고, 잘림은 그 뒤에
+       한꺼번에 잰다. 같은 상자가 두 번 들어오는 것도 걸러 낸다. */
     var mo = new MutationObserver(function (list) {
+      var seen = [];
       list.forEach(function (m) {
         var box = m.target.closest && m.target.closest(".yg-mermaid");
-        if (box) apply(box);
+        if (box && seen.indexOf(box) === -1 && apply(box)) seen.push(box);
       });
+      if (!seen.length) return;
+      seen.map(measureScroll).forEach(applyScroll);
     });
     mo.observe(document.querySelector(".md-typeset"), { childList: true, subtree: true });
 
