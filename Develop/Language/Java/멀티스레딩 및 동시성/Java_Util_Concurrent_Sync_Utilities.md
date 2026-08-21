@@ -333,6 +333,8 @@ private final AtomicInteger count = new AtomicInteger();
 class Task implements Delayed {
     private final long executeAt;
 
+    public Task(long executeAt) { this.executeAt = executeAt; }
+
     public long getDelay(TimeUnit unit) {
         return unit.convert(executeAt - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     }

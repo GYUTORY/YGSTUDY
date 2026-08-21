@@ -40,6 +40,7 @@ Class<?> clazz = userService.getClass();
 ```java
 // 부모 클래스
 public class BaseEntity {
+    private Long id;
     public Long getId() { return id; }
 }
 

@@ -140,6 +140,12 @@ public abstract class User {
     protected final ChatMediator mediator;
     protected final String name;
 
+    protected User(ChatMediator mediator, String name) {
+        this.mediator = mediator;
+        this.name = name;
+        mediator.register(this);
+    }
+
     public abstract void receive(String message);
     public void send(String msg) { mediator.send(msg, this); }
 }
@@ -215,6 +221,8 @@ class PrefetchingIterator<T> implements Iterator<T> {
     private T next;
     private boolean hasNext;
     private boolean fetched;
+
+    PrefetchingIterator(Supplier<T> source) { this.source = source; }
 
     @Override
     public boolean hasNext() {

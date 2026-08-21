@@ -255,7 +255,9 @@ Java 인터페이스는 계약(contract)이다. 무엇을 해야 하는지 명�
 Java 8 이후 `default` 메서드가 추가되면서 인터페이스에 구현을 넣을 수 있게 됐다. 이로 인해 추상 클래스와의 경계가 흐려졌다.
 
 ```java
-interface Collection<E> {
+// Iterable 을 상속해야 아래 default 구현의 향상된 for 문이 성립한다.
+// 실제 java.util.Collection 도 Iterable 을 상속한다.
+interface Collection<E> extends Iterable<E> {
     int size();
     boolean isEmpty();
 

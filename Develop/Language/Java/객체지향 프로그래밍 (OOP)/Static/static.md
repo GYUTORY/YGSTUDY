@@ -144,10 +144,18 @@ public class OrderService {
 ```java
 public class ExternalConfig {
     static final String API_KEY = System.getenv("API_KEY").trim();
-    static final URL ENDPOINT = new URL(System.getenv("ENDPOINT"));
+    static final URL ENDPOINT;
 
     static {
-        Files.readAllBytes(Path.of("/etc/app/license"));
+        try {
+            // new URL(String) 은 JDK 20 부터 deprecated 다.
+            ENDPOINT = URI.create(System.getenv("ENDPOINT")).toURL();
+            Files.readAllBytes(Path.of("/etc/app/license"));
+        } catch (IOException e) {
+            // 체크 예외는 static 초기화에서 그냥 던질 수 없어 감싸야 한다.
+            // 감싸도 결과는 같다 — 어차피 ExceptionInInitializerError 로 나간다.
+            throw new ExceptionInInitializerError(e);
+        }
     }
 }
 ```

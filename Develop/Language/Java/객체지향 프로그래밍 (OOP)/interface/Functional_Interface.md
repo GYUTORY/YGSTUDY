@@ -22,7 +22,9 @@ interface Converter<F, T> {
     T convert(F from);  // 추상 메서드 1개 → 함수형 인터페이스
 
     // default, static은 개수 제한 없음
-    default Converter<F, T> andThen(Converter<T, ?> after) {
+    // 반환 타입을 <V> 로 잡아야 한다. Converter<T, ?> 로 받으면 after.convert 가
+    // 캡처 타입을 돌려줘서 T 로 못 받고 컴파일이 깨진다.
+    default <V> Converter<F, V> andThen(Converter<? super T, ? extends V> after) {
         return f -> after.convert(this.convert(f));
     }
 
