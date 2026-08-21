@@ -47,14 +47,35 @@
       //
       // 다만 느린 회선과 데이터 절약 모드에서는 미루기를 유지한다. 5.9MB 는
       // 그쪽에서 공짜가 아니고, 검색을 안 쓰면 통째로 낭비다.
+      // 미리 받는 건 세션에 한 번만 한다.
+      //
+      // 왜: 파일은 브라우저가 캐시하지만 색인은 캐시가 안 된다. 페이지를
+      // 옮기면 워커가 새로 뜨고 20MB JSON 을 처음부터 다시 훑어 lunr 인덱스를
+      // 만든다. 프로파일에서 Builder.add 가 60%, createFieldVectors 가 31% 다.
+      //
+      // 그래서 메뉴를 눌러 옮길 때마다 2초쯤 뒤에 그 작업이 다시 시작된다.
+      // 문서를 연달아 넘겨 보면 브라우저가 계속 색인만 만들고 있다 —
+      // 클릭이 굼뜨게 느껴지던 게 이거다.
+      //
+      // 한 번 받아 두면 그 뒤로는 검색창을 건드릴 때 만든다. 검색을 실제로
+      // 쓰는 사람만, 쓰는 그 페이지에서 한 번 낸다.
+      var PREFETCHED = "yg-search-prefetched";
+      function alreadyPrefetched() {
+        try { return sessionStorage.getItem(PREFETCHED) === "1"; } catch (e) { return false; }
+      }
+      function markPrefetched() {
+        try { sessionStorage.setItem(PREFETCHED, "1"); } catch (e) {}
+      }
+
       function idlePrefetch() {
+        if (alreadyPrefetched()) return;
         var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
         if (c) {
           if (c.saveData) return;
           var t = c.effectiveType || "";
           if (t === "slow-2g" || t === "2g" || t === "3g") return;
         }
-        var go = function () { release(); };
+        var go = function () { markPrefetched(); release(); };
         if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 3000 });
         else setTimeout(go, 1500);
       }

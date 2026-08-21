@@ -434,6 +434,15 @@ body {
     top: 56px !important;
     height: calc(100vh - 56px) !important;
     z-index: 3;
+
+    /* 배경이 없으면 안 된다. fixed 라 페이지가 이 밑으로 흘러가는데,
+       푸터는 본문과 달리 화면 폭을 다 쓴다(.md-main 밖에 있다). 그래서
+       바닥까지 내려가면 저작권 줄과 구분선이 메뉴 글자 사이로 그대로 비쳤다.
+       가로선이 사이드바를 가로지르는 것처럼 보이던 게 이거다.
+
+       메뉴가 짧던 동안에는 눈에 덜 띄었다. 잘린 가지를 펼칠 수 있게 되면서
+       메뉴가 사이드바를 꽉 채우자 겹치는 자리가 그대로 드러났다. */
+    background-color: var(--warm-white);
   }
   .md-sidebar--primary { left: 1.2rem; }
   .md-sidebar--secondary { right: 1.2rem; }

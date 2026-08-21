@@ -21,12 +21,20 @@
     var sb = document.querySelector(".md-sidebar__scrollwrap");
 
     if (sb) {
+      var restoring = false;
+
       // 사용자가 직접 스크롤한 경우에만 위치 저장
       sb.addEventListener("wheel", function () { pos = sb.scrollTop; }, { passive: true });
       sb.addEventListener("touchmove", function () { pos = sb.scrollTop; }, { passive: true });
+      /* 휠과 터치만 보면 스크롤바를 끌거나 키보드로 움직인 건 놓친다. 그러면
+         pos 가 옛날 값인 채로 남아 있다가, 복원이 걸리는 순간 사용자가 보던
+         자리에서 엉뚱한 데로 튄다. 스크롤 자체를 보되 우리가 되돌리는
+         중일 때는 세지 않는다. */
+      sb.addEventListener("scroll", function () {
+        if (!restoring) pos = sb.scrollTop;
+      }, { passive: true });
 
       // MutationObserver: active 클래스 변화 감지 후 1회 정확히 복원
-      var restoring = false;
       var nav = document.querySelector(".md-sidebar--primary .md-nav");
       if (nav) {
         var observer = new MutationObserver(function () {
@@ -41,9 +49,19 @@
         observer.observe(nav, { subtree: true, attributes: true, attributeFilter: ["class"] });
       }
 
-      // 메뉴 클릭 fallback
+      /* 메뉴 클릭 fallback — 페이지를 떠나는 클릭에서만 위치를 되돌린다.
+
+         원래는 `.md-nav` 안이면 무엇을 눌렀든 100ms 뒤에 스크롤을 되돌렸다.
+         펼침 화살표를 눌렀을 때도 되돌아가서, 방금 펼친 자리에서 목록이
+         위로 튀었다. 휠을 굴린 적이 없으면 pos 가 0 이라 맨 위까지 올라간다.
+
+         "화살표가 아니면" 으로 걸렀더니 부족했다. `<label for>` 를 누르면
+         브라우저가 체크박스에도 클릭을 한 번 더 보내는데, 그 이벤트의
+         target 은 label 이 아니라 input 이라 걸러지지 않았다.
+         무엇이 아닌지 대신 무엇인지로 판정한다 — 링크를 눌렀을 때만. */
       document.addEventListener("click", function (e) {
-        if (!e.target.closest || !e.target.closest(".md-nav")) return;
+        if (!e.target.closest) return;
+        if (!e.target.closest(".md-nav a.md-nav__link")) return;
         var p = pos;
         setTimeout(function () { sb.scrollTop = p; }, 100);
       });
@@ -54,15 +72,44 @@
     bar.id = "reading-progress";
     document.body.appendChild(bar);
 
-    function updateProgress() {
-      var scrollTop = window.scrollY || document.documentElement.scrollTop;
-      var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      bar.style.width = Math.min(progress, 100) + "%";
+    /* 스크롤 한 번에 레이아웃을 한 번씩 강제로 계산하던 자리다.
+
+       원래는 scroll 이벤트마다 scrollHeight 와 clientHeight 를 읽고 곧바로
+       bar.style.width 를 썼다. 읽고 쓰는 걸 같은 핸들러에서 하면 브라우저가
+       그때마다 레이아웃을 다시 계산한다. 이 저장소는 한 문서가 4만 픽셀
+       (53화면)까지 가서 그 계산이 싸지 않다.
+
+       높이는 스크롤 중에 안 변한다. 미리 재 두고 창 크기나 내용이 바뀔 때만
+       다시 잰다. 쓰기는 프레임당 한 번으로 묶는다. */
+    var docH = 0;
+    var ticking = false;
+
+    function measure() {
+      docH = document.documentElement.scrollHeight - document.documentElement.clientHeight;
     }
 
-    window.addEventListener("scroll", updateProgress, { passive: true });
-    updateProgress();
+    function paint() {
+      ticking = false;
+      var top = window.scrollY || document.documentElement.scrollTop;
+      bar.style.width = Math.min(docH > 0 ? (top / docH) * 100 : 0, 100) + "%";
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(paint);
+    }
+
+    measure();
+    paint();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", function () { measure(); onScroll(); }, { passive: true });
+    // 이미지·머메이드가 늦게 그려지면 문서 높이가 바뀐다.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { measure(); onScroll(); }).observe(document.body);
+    } else {
+      window.addEventListener("load", function () { measure(); onScroll(); });
+    }
 
     // ----- 사이드바 형제 메뉴 공통 prefix 자동 축약 -----
     function stripCommonPrefixes() {
@@ -291,22 +338,40 @@
  * 남은 내용이 있는 쪽에만 그림자를 켠다(그림자 자체는 extra.css).
  */
 (function () {
-  function mark(code) {
+  /* 읽기와 쓰기를 반드시 나눠서 한다.
+
+     원래는 코드블록 하나마다 scrollWidth 를 읽고 곧바로 속성을 썼다. 속성을
+     쓰면 레이아웃이 무효가 되므로 다음 블록을 읽을 때 다시 계산된다. 블록
+     수만큼 레이아웃이 반복된다 — 이 저장소에서 가장 큰 문서는 코드블록이
+     164개고, scanAll 은 DOMContentLoaded·폰트 로드·load 로 세 번 돈다.
+
+     전부 재고 나서 전부 쓰면 레이아웃은 한 번이면 된다. */
+  function measure(code) {
     var wrap = code.parentElement && code.parentElement.parentElement;
-    if (!wrap || !wrap.classList.contains("highlight")) return;
+    if (!wrap || !wrap.classList.contains("highlight")) return null;
     var max = code.scrollWidth - code.clientWidth;
-    if (max <= 4) {
-      wrap.removeAttribute("data-yg-scroll");
-      return;
-    }
+    if (max <= 4) return { wrap: wrap, sides: null };
     var sides = [];
     if (code.scrollLeft > 2) sides.push("l");
     if (code.scrollLeft < max - 2) sides.push("r");
-    wrap.setAttribute("data-yg-scroll", sides.join(" "));
+    return { wrap: wrap, sides: sides.join(" ") };
+  }
+
+  function apply(m) {
+    if (!m) return;
+    if (m.sides === null) m.wrap.removeAttribute("data-yg-scroll");
+    else m.wrap.setAttribute("data-yg-scroll", m.sides);
+  }
+
+  function mark(code) {
+    apply(measure(code));
   }
 
   function scanAll() {
-    document.querySelectorAll(".md-typeset .highlight > pre > code").forEach(mark);
+    var out = [];
+    document.querySelectorAll(".md-typeset .highlight > pre > code")
+      .forEach(function (c) { out.push(measure(c)); });   // 읽기만
+    out.forEach(apply);                                    // 그 다음 쓰기만
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -353,13 +418,22 @@
     return w > 0 ? w : 0;
   }
 
-  function markScroll(box) {
+  function measureScroll(box) {
     var max = box.scrollWidth - box.clientWidth;
-    if (max <= 4) { box.removeAttribute("data-yg-scroll"); return; }
+    if (max <= 4) return { box: box, sides: null };
     var sides = [];
     if (box.scrollLeft > 2) sides.push("l");
     if (box.scrollLeft < max - 2) sides.push("r");
-    box.setAttribute("data-yg-scroll", sides.join(" "));
+    return { box: box, sides: sides.join(" ") };
+  }
+
+  function applyScroll(m) {
+    if (m.sides === null) m.box.removeAttribute("data-yg-scroll");
+    else m.box.setAttribute("data-yg-scroll", m.sides);
+  }
+
+  function markScroll(box) {
+    applyScroll(measureScroll(box));
   }
 
   function apply(box) {
@@ -373,18 +447,27 @@
       box.style.setProperty("--yg-diagram-min", Math.round(nat * FLOOR) + "px");
       box.dataset.ygFloor = "1";
     }
-    markScroll(box);
     return true;
   }
 
+  /* 최소폭을 박는 것과 잘림 표시를 두 단계로 나눈다.
+
+     한 상자마다 `--yg-diagram-min` 을 쓰고 곧바로 scrollWidth 를 읽으면,
+     쓰기가 레이아웃을 무효로 만들어 놓고 바로 읽으니 상자 수만큼 레이아웃이
+     반복된다. 최소폭을 전부 박고 나서 잘림을 전부 재면 두 번이면 된다. */
   function scan() {
     var pending = 0;
+    var boxes = [];
     document.querySelectorAll(".md-typeset .yg-mermaid").forEach(function (box) {
-      if (!apply(box)) pending++;
+      if (apply(box)) boxes.push(box);
+      else pending++;
     });
     // 표도 같은 처지다 — Material 이 overflow:auto 래퍼에 넣어 옆으로 굴리는데
     // 잘렸다는 표시가 없다(한 문서에서 표 6개 중 3개가 최대 220px 씩 숨었다).
-    document.querySelectorAll(".md-typeset__table").forEach(markScroll);
+    document.querySelectorAll(".md-typeset__table").forEach(function (t) { boxes.push(t); });
+
+    var measured = boxes.map(measureScroll);   // 읽기만
+    measured.forEach(applyScroll);             // 그 다음 쓰기만
     return pending;
   }
 
@@ -394,12 +477,19 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(scan);
     window.addEventListener("load", scan);
 
-    // mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
+    /* mermaid 는 화면에 들어올 때 그린다. svg 가 꽂히는 것을 보고 그때 처리한다.
+
+       한 번에 여러 개가 꽂힐 수 있어서(화면에 두 개가 같이 들어오는 경우)
+       상자마다 쓰고-읽고 하지 않는다. 최소폭을 먼저 다 박고, 잘림은 그 뒤에
+       한꺼번에 잰다. 같은 상자가 두 번 들어오는 것도 걸러 낸다. */
     var mo = new MutationObserver(function (list) {
+      var seen = [];
       list.forEach(function (m) {
         var box = m.target.closest && m.target.closest(".yg-mermaid");
-        if (box) apply(box);
+        if (box && seen.indexOf(box) === -1 && apply(box)) seen.push(box);
       });
+      if (!seen.length) return;
+      seen.map(measureScroll).forEach(applyScroll);
     });
     mo.observe(document.querySelector(".md-typeset"), { childList: true, subtree: true });
 
