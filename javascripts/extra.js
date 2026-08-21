@@ -893,3 +893,107 @@
     window.document$.subscribe(wire);
   }
 })();
+
+/* 링크에 손이 닿으면 미리 받아 둔다.
+   ------------------------------------------------------------------
+   navigation.instant 를 끈 이유는 mkdocs.yml 에 적어 뒀다 — prune 때문에
+   페이지마다 사이드바 트리가 달라져서, instant 가 그 교체를 화면 안에서
+   그대로 보여주면 메뉴가 통째로 요동친다.
+
+   그런데 instant 를 끄면 클릭 한 번이 온전한 왕복이 된다. 실측으로 중간
+   크기 문서가 107KB(본문 25KB, 사이드바 39KB, 나머지 골격)라 GitHub Pages
+   왕복이 그대로 체감된다.
+
+   그래서 화면 교체 방식은 그대로 두고 **받아 오는 시점만** 앞당긴다.
+   포인터가 링크 위에 머무는 순간 HTTP 캐시를 데워 두면, 200~400ms 뒤
+   도착하는 클릭은 캐시에서 끝난다. instant 의 이득만 가져오고 요동은
+   안 가져오는 셈이다.
+
+   지키는 선:
+   - 같은 출처의 문서 링크만. 앵커·다운로드·외부는 건너뛴다
+   - 세션당 상한을 둔다. 이 사이트는 1,679쪽 176MB 라 상한이 없으면
+     사이드바를 훑는 것만으로 남의 데이터를 태운다
+   - Save-Data 나 2g/3g 면 아예 안 한다
+   - 65ms 머문 뒤에 쏜다. 지나가는 커서까지 받으면 상한만 축낸다
+   - Safari 는 <link rel=prefetch> 를 지원하지 않는다. 그쪽은 낮은
+     우선순위 fetch 로 같은 캐시를 데운다 */
+(function () {
+  var LIMIT = 30;     // 세션당 최대 선반입 수
+  var DWELL = 65;     // 이만큼 머물러야 쏜다 (ms)
+
+  var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn && (conn.saveData || /^([23]g|slow-2g)$/.test(conn.effectiveType || ""))) return;
+
+  var done = new Set();
+  var timer = null;
+
+  // rel=prefetch 를 실제로 지원하는가 (Safari 는 false)
+  var supportsPrefetch = (function () {
+    try {
+      var l = document.createElement("link");
+      return l.relList && l.relList.supports && l.relList.supports("prefetch");
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  function eligible(a) {
+    if (!a || !a.href) return false;
+    if (a.hasAttribute("download") || a.target === "_blank") return false;
+    var u;
+    try {
+      u = new URL(a.href, location.href);
+    } catch (e) {
+      return false;
+    }
+    if (u.origin !== location.origin) return false;
+    if (u.pathname === location.pathname) return false;   // 같은 쪽의 앵커
+    if (/\.(png|jpe?g|gif|svg|webp|pdf|zip|mp4)$/i.test(u.pathname)) return false;
+    return u.href.split("#")[0];
+  }
+
+  function warm(url) {
+    if (done.size >= LIMIT || done.has(url)) return;
+    done.add(url);
+    if (supportsPrefetch) {
+      var link = document.createElement("link");
+      link.rel = "prefetch";
+      link.href = url;
+      link.as = "document";
+      document.head.appendChild(link);
+      return;
+    }
+    // Safari 경로. 응답을 쓰지 않고 버려도 HTTP 캐시에는 남는다.
+    try {
+      fetch(url, { credentials: "omit", mode: "same-origin", priority: "low" })
+        .then(function (r) { return r && r.body && r.body.cancel && r.body.cancel(); })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
+  function onEnter(e) {
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    var url = eligible(a);
+    if (!url) return;
+    clearTimeout(timer);
+    timer = setTimeout(function () { warm(url); }, DWELL);
+  }
+
+  function onLeave() {
+    clearTimeout(timer);
+  }
+
+  // 터치는 머무는 시간이 없다. 손가락이 닿는 순간 바로 쏜다 —
+  // 화면에서 손을 떼기까지 보통 100ms 는 벌 수 있다.
+  function onTouch(e) {
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    var url = eligible(a);
+    if (url) warm(url);
+  }
+
+  document.addEventListener("mouseover", onEnter, { passive: true });
+  document.addEventListener("mouseout", onLeave, { passive: true });
+  document.addEventListener("touchstart", onTouch, { passive: true });
+})();
