@@ -949,6 +949,12 @@ body {
   font-style: normal;
 }
 .md-typeset blockquote p { margin: 0; }
+/* 인용문 글자색에 다크 짝이 없었다. 배경(--warm-white)은 다크에서 #1F1C1E 로
+   바뀌는데 글자(--warm-gray-500 #57524E)는 그대로라 2.19:1 이 됐다.
+   Material 은 원래 테마별 색을 주는데 이 규칙이 그걸 덮어써서 생긴 회귀다. */
+[data-md-color-scheme="slate"] .md-typeset blockquote {
+  color: var(--text-sub);
+}
 
 /* hr */
 .md-typeset hr {
