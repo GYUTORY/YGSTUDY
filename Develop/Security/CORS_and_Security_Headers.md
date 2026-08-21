@@ -428,11 +428,11 @@ app.use(cspNonceMiddleware);
 
 ```bash
 echo -n 'console.log("hello")' | openssl dgst -sha256 -binary | openssl base64
-# 출력: sEaFBswe0TGjKJqu/dEKoE24HxLJdKUzqHLQfp0gWdc=
+# 출력: Ql3n7tC/2D6wSTlQY8RcOKXhq02zfdaSDviOhpvbYWw=
 ```
 
 ```
-Content-Security-Policy: script-src 'sha256-sEaFBswe0TGjKJqu/dEKoE24HxLJdKUzqHLQfp0gWdc='
+Content-Security-Policy: script-src 'sha256-Ql3n7tC/2D6wSTlQY8RcOKXhq02zfdaSDviOhpvbYWw='
 ```
 
 주의할 점: 스크립트 내용이 공백 하나라도 바뀌면 해시가 달라진다. 빌드 타임에 해시를 자동 생성하는 파이프라인을 만들어두지 않으면 운영에서 깨진다.

@@ -582,11 +582,11 @@ Content-Security-Policy: script-src 'nonce-abc123' 'strict-dynamic' https: 'unsa
 ```bash
 # 해시 계산
 echo -n "console.log('hello');" | openssl dgst -sha256 -binary | openssl base64
-# → JIWqouqr3OuFLU/ZKlLqI4tH/SsSyEStoDM6yebCcEs=
+# → uYeF7eHzVgKpiBg5fikv2NTctmJnxCfX1UhhlrizvNE=
 ```
 
 ```
-Content-Security-Policy: script-src 'sha256-JIWqouqr3OuFLU/ZKlLqI4tH/SsSyEStoDM6yebCcEs='
+Content-Security-Policy: script-src 'sha256-uYeF7eHzVgKpiBg5fikv2NTctmJnxCfX1UhhlrizvNE='
 ```
 
 해시가 일치하는 인라인 스크립트만 실행된다. 외부 스크립트 파일도 hash로 허용할 수 있다.
