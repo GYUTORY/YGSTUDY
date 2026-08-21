@@ -6,6 +6,8 @@
     "test": "for t in tools/tests/*.test.mjs; do node \"$t\" || exit 1; done"
   },
   "devDependencies": {
-    "jsdom": "^29.1.1"
+    "jsdom": "^29.1.1",
+    "//mermaid": "사이트가 mermaid-init.js 에서 고정한 판과 같아야 한다. ^ 를 붙이면 10.x 새 판이 깔려 다른 문법으로 검사하게 된다.",
+    "mermaid": "10.9.3"
   }
 }
