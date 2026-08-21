@@ -493,4 +493,7 @@ extra_javascript:
   - javascripts/extra.js
   # 머메이드는 버전을 고정해 직접 초기화한다. Material 번들이 CDN 최신본을 끌어다
   # 렌더하던 경로가 깨져 다이어그램 938개가 빈 상자로 나가고 있었다.
-  - javascripts/mermaid-init.js
+  #
+  # javascripts/mermaid-init.js 는 여기 두지 않는다 — 전역으로 넣으면 문서
+  # 1,678개가 전부 받는데 다이어그램이 있는 건 330개뿐이다. overrides/main.html
+  # 의 scripts 블록에서 본문에 다이어그램이 있을 때만 넣는다.
