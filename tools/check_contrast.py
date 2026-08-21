@@ -36,7 +36,9 @@
 
 사용: python3 tools/check_contrast.py [--strict] [--min 4.5]
 """
+import glob
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -137,6 +139,79 @@ def slate_overrides(rules, sel, prop):
     return False
 
 
+# ---------------------------------------------------------------------------
+# 특이도 검사 — Material 규칙에 지는 선언 찾기
+#
+# 왜 여기 붙였나: 대비 계산과 같은 부류의 "조용한 실패" 다. CSS 를 적어 뒀는데
+# 적용이 안 되고, 화면은 멀쩡히 뜨고, 에러도 안 난다.
+#
+# 이 저장소에서 실제로 일어난 일:
+#   Material    .md-nav__link[href]:hover                        (0,3,0)
+#   라이트 규칙  .md-nav__link:hover                              (0,2,0)  ← 짐
+#   다크 규칙    [data-md-color-scheme="slate"] .md-nav__link:hover (0,3,0) ← 이김
+#
+# `[data-md-color-scheme="slate"]` 접두사가 특이도를 하나 공짜로 얹어 준다.
+# 그래서 **다크만 멀쩡하고 라이트는 한 번도 안 칠해진** 상태가 된다.
+# 같은 파일에 나란히 있는 두 규칙이라 눈으로는 차이를 못 본다.
+# ---------------------------------------------------------------------------
+def specificity(sel):
+    s = sel.strip()
+    ids = len(re.findall(r"#[\w-]+", s))
+    cls = (
+        len(re.findall(r"\.[\w-]+", s))
+        + len(re.findall(r"\[[^\]]+\]", s))
+        + len(re.findall(r":(?!:)(?:hover|focus|active|checked|not|first|last|nth|target|visited|disabled)[\w-]*", s))
+    )
+    el = len(re.findall(r"(?:^|[\s>+~])([a-z][\w-]*)", s))
+    return (ids, cls, el)
+
+
+def check_specificity(css, site_dir):
+    """Material 스타일시트를 찾아 같은 대상을 겨냥한 규칙끼리 특이도를 견준다."""
+    found = glob.glob(os.path.join(site_dir, "assets/stylesheets/main.*.css"))
+    found = [f for f in found if not f.endswith(".map")]
+    if not found:
+        return None  # 빌드 산출물이 없으면 판정하지 않는다
+    material = open(found[0], encoding="utf-8").read()
+
+    def beats(sel_part):
+        """이 선택자를 이기는 Material 규칙이 있으면 그 규칙을 낸다."""
+        base = re.sub(r"\[[^\]]+\]", "", sel_part)
+        sp = specificity(sel_part)
+        for mm in re.finditer(r"([^{}@]+)\{([^}]*)\}", material):
+            if "color" not in mm.group(2):
+                continue
+            for mp in mm.group(1).split(","):
+                mp = mp.strip()
+                if re.sub(r"\[[^\]]+\]", "", mp) != base:
+                    continue
+                if specificity(mp) > sp:
+                    return (mp, specificity(mp))
+        return None
+
+    losing, seen = [], set()
+    for m in re.finditer(r"([^{}]+)\{([^}]*)\}", css):
+        sel = norm_sel(m.group(1))
+        if not sel or "@" in sel or SLATE in sel:
+            continue
+        if "color" not in m.group(2):
+            continue
+        parts = [p.strip() for p in sel.split(",") if p.strip().startswith(".md-")]
+        if not parts:
+            continue
+        # 쉼표 그룹은 하나만 이기면 선언이 적용된다. 전부 지는 규칙만 잡는다.
+        verdicts = [(p, beats(p)) for p in parts]
+        if any(v is None for _, v in verdicts):
+            continue
+        line = css[: m.start()].count("\n") + 1
+        p0, (mp, msp) = verdicts[0]
+        if p0 in seen:
+            continue
+        seen.add(p0)
+        losing.append((line, p0, specificity(p0), mp, msp))
+    return losing
+
+
 def main():
     strict = "--strict" in sys.argv
     minimum = DEFAULT_MIN
@@ -193,15 +268,29 @@ def main():
         "부모 배경·반투명·Material 팔레트 소유 색은 검사 범위 밖"
     )
 
-    if not bad:
-        print(f"✓ {minimum}:1 미만 없음.  ({denom})")
-        return
+    # 특이도 검사는 빌드 산출물이 있을 때만 (Material 스타일시트가 필요하다)
+    site = os.environ.get("YG_SITE_DIR", "/tmp/_verify_site")
+    losing = check_specificity(css, site)
 
-    print(f"⚠ {minimum}:1 미만 {len(bad)}건  ({denom})\n")
-    for ratio, mode, line, sel, fg, bg in sorted(bad):
-        print(f"  {ratio:.2f}:1  [{mode}] extra.css:{line}  {sel}")
-        print(f"          {fg}  on  {bg}")
-    if strict:
+    if bad:
+        print(f"⚠ {minimum}:1 미만 {len(bad)}건  ({denom})\n")
+        for ratio, mode, line, sel, fg, bg in sorted(bad):
+            print(f"  {ratio:.2f}:1  [{mode}] extra.css:{line}  {sel}")
+            print(f"          {fg}  on  {bg}")
+    else:
+        print(f"✓ {minimum}:1 미만 없음.  ({denom})")
+
+    if losing is None:
+        print("  특이도 검사: 건너뜀 — 빌드 산출물이 없다 (YG_SITE_DIR 로 지정 가능)")
+    elif losing:
+        print(f"\n⚠ Material 규칙에 특이도로 지는 선언 {len(losing)}건 — 적어 뒀지만 적용되지 않는다\n")
+        for line, sel, sp, msel, msp in losing:
+            print(f"  extra.css:{line}  {sel}  {sp}")
+            print(f"        Material  {msel}  {msp}  ← 이김")
+    else:
+        print("  특이도 검사: Material 에 지는 선언 없음")
+
+    if strict and (bad or losing):
         sys.exit(1)
 
 

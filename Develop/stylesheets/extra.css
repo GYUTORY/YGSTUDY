@@ -602,7 +602,16 @@ body {
   min-width: 0;
   flex: 1;
 }
-.md-nav__link:hover {
+/* `[href]` 가 붙어 있어야 한다.
+
+   Material 의 같은 자리 규칙이 `.md-nav__link[href]:hover` 라 특이도가 (0,3,0)
+   인데, 이쪽을 `.md-nav__link:hover` 로 쓰면 (0,2,0) 이라 진다. 그래서 라이트에서
+   이 글자색은 한 번도 칠해진 적이 없고 Material accent(#4287ff, 3.31:1)가 나왔다.
+
+   다크는 `[data-md-color-scheme="slate"]` 접두사가 특이도를 하나 더 얹어 (0,3,0)
+   으로 동점이 되고 나중 로드로 이긴다. 그래서 다크만 멀쩡했다. 배경은 Material 이
+   안 건드려서 적용됐고, 아래 주석은 그때 배경만 보고 쓴 것이다. */
+.md-nav__link[href]:hover {
   color: var(--notion-blue);
   /* --warm-white 는 페이지 배경과 같은 값이라 호버해도 픽셀이 하나도 안 바뀌었다.
      좌측 내비와 우측 목차 전체가 "눌리는 것" 으로 보이지 않았다. */
@@ -1081,7 +1090,11 @@ body {
   gap: 6px;
 }
 
-.md-typeset .md-tag {
+/* href 있는 태그까지 함께 겨냥한다. Material 의 `.md-typeset .md-tag[href]` 가
+   (0,3,0) 으로 `color: inherit` 를 걸어서, `[href]` 없이 쓰면 이 색이 안 먹고
+   태그가 본문색으로 나온다(의도 6.91:1 대신 10.11:1 — 대비는 통과하나 설계와 다름). */
+.md-typeset .md-tag,
+.md-typeset .md-tag[href] {
   font-size: 0.72rem;
   font-weight: 600;
   padding: 3px 10px;
@@ -1092,7 +1105,9 @@ body {
   border-radius: var(--radius-pill);
   line-height: 1.5;
 }
-.md-typeset .md-tag:hover {
+/* 위와 같은 이유 — Material 이 `.md-typeset .md-tag[href]:hover` (0,4,0) 이라
+   `[href]` 없이는 진다. 라이트에서는 흰 글자 on #4287ff 로 3.42:1 이었다. */
+.md-typeset .md-tag[href]:hover {
   background: var(--badge-blue-bg);
   color: var(--badge-blue-text);
 }

@@ -27,7 +27,6 @@ run "check_links"         python3 tools/check_links.py --strict
 # 빌드는 통과한다. jsdom 없이 도는 순수 계산이라 게이트에 넣을 수 있다.
 run "mermaid contrast"    node tools/tests/mermaid_contrast.test.mjs
 # CSS 의 전경·배경 쌍. 한쪽 모드만 손보면 반대쪽이 조용히 깨진다.
-run "css contrast"        python3 tools/check_contrast.py --strict
 # .pages 의 nav 는 적은 것만 싣는다 — 목록에서 빠진 문서는 사이드바에서 조용히
 # 사라지고 빌드도 --strict 도 안 잡는다. 반대 방향(nav 에 적었는데 파일이 없다)은
 # awesome-pages 가 strict 기본값으로 예외를 던지므로 이미 막혀 있다.
@@ -45,6 +44,9 @@ echo "── 산출물 검사 ──"
 run "built assets"        python3 tools/check_built_assets.py /tmp/_verify_site --strict
 # 사이드바 펼침이 이 파일에 달려 있다. 비어도 화면은 멀쩡해 보인다 —
 # 화살표는 그대로 있고 눌렀을 때만 아무 일이 없어서 눈으로는 못 잡는다.
+# css contrast 는 빌드 뒤로 옮긴다 — 특이도 검사에 Material 스타일시트가 필요하다
+# (빌드 산출물이 없으면 그 검사만 건너뛰고 대비 검사는 그대로 돈다)
+YG_SITE_DIR=/tmp/_verify_site run "css contrast" python3 tools/check_contrast.py --strict
 run "nav index"           python3 tools/check_nav_index.py /tmp/_verify_site --strict
 SITE_DIR=/tmp/_verify_site run "redirects"        python3 tools/check_redirects.py
 
