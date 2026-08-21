@@ -21,12 +21,20 @@
     var sb = document.querySelector(".md-sidebar__scrollwrap");
 
     if (sb) {
+      var restoring = false;
+
       // 사용자가 직접 스크롤한 경우에만 위치 저장
       sb.addEventListener("wheel", function () { pos = sb.scrollTop; }, { passive: true });
       sb.addEventListener("touchmove", function () { pos = sb.scrollTop; }, { passive: true });
+      /* 휠과 터치만 보면 스크롤바를 끌거나 키보드로 움직인 건 놓친다. 그러면
+         pos 가 옛날 값인 채로 남아 있다가, 복원이 걸리는 순간 사용자가 보던
+         자리에서 엉뚱한 데로 튄다. 스크롤 자체를 보되 우리가 되돌리는
+         중일 때는 세지 않는다. */
+      sb.addEventListener("scroll", function () {
+        if (!restoring) pos = sb.scrollTop;
+      }, { passive: true });
 
       // MutationObserver: active 클래스 변화 감지 후 1회 정확히 복원
-      var restoring = false;
       var nav = document.querySelector(".md-sidebar--primary .md-nav");
       if (nav) {
         var observer = new MutationObserver(function () {
@@ -41,9 +49,19 @@
         observer.observe(nav, { subtree: true, attributes: true, attributeFilter: ["class"] });
       }
 
-      // 메뉴 클릭 fallback
+      /* 메뉴 클릭 fallback — 페이지를 떠나는 클릭에서만 위치를 되돌린다.
+
+         원래는 `.md-nav` 안이면 무엇을 눌렀든 100ms 뒤에 스크롤을 되돌렸다.
+         펼침 화살표를 눌렀을 때도 되돌아가서, 방금 펼친 자리에서 목록이
+         위로 튀었다. 휠을 굴린 적이 없으면 pos 가 0 이라 맨 위까지 올라간다.
+
+         "화살표가 아니면" 으로 걸렀더니 부족했다. `<label for>` 를 누르면
+         브라우저가 체크박스에도 클릭을 한 번 더 보내는데, 그 이벤트의
+         target 은 label 이 아니라 input 이라 걸러지지 않았다.
+         무엇이 아닌지 대신 무엇인지로 판정한다 — 링크를 눌렀을 때만. */
       document.addEventListener("click", function (e) {
-        if (!e.target.closest || !e.target.closest(".md-nav")) return;
+        if (!e.target.closest) return;
+        if (!e.target.closest(".md-nav a.md-nav__link")) return;
         var p = pos;
         setTimeout(function () { sb.scrollTop = p; }, 100);
       });
@@ -54,15 +72,44 @@
     bar.id = "reading-progress";
     document.body.appendChild(bar);
 
-    function updateProgress() {
-      var scrollTop = window.scrollY || document.documentElement.scrollTop;
-      var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      bar.style.width = Math.min(progress, 100) + "%";
+    /* 스크롤 한 번에 레이아웃을 한 번씩 강제로 계산하던 자리다.
+
+       원래는 scroll 이벤트마다 scrollHeight 와 clientHeight 를 읽고 곧바로
+       bar.style.width 를 썼다. 읽고 쓰는 걸 같은 핸들러에서 하면 브라우저가
+       그때마다 레이아웃을 다시 계산한다. 이 저장소는 한 문서가 4만 픽셀
+       (53화면)까지 가서 그 계산이 싸지 않다.
+
+       높이는 스크롤 중에 안 변한다. 미리 재 두고 창 크기나 내용이 바뀔 때만
+       다시 잰다. 쓰기는 프레임당 한 번으로 묶는다. */
+    var docH = 0;
+    var ticking = false;
+
+    function measure() {
+      docH = document.documentElement.scrollHeight - document.documentElement.clientHeight;
     }
 
-    window.addEventListener("scroll", updateProgress, { passive: true });
-    updateProgress();
+    function paint() {
+      ticking = false;
+      var top = window.scrollY || document.documentElement.scrollTop;
+      bar.style.width = Math.min(docH > 0 ? (top / docH) * 100 : 0, 100) + "%";
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(paint);
+    }
+
+    measure();
+    paint();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", function () { measure(); onScroll(); }, { passive: true });
+    // 이미지·머메이드가 늦게 그려지면 문서 높이가 바뀐다.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { measure(); onScroll(); }).observe(document.body);
+    } else {
+      window.addEventListener("load", function () { measure(); onScroll(); });
+    }
 
     // ----- 사이드바 형제 메뉴 공통 prefix 자동 축약 -----
     function stripCommonPrefixes() {

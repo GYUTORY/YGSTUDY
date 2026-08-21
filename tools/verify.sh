@@ -38,6 +38,9 @@ DISABLE_MKDOCS_2_WARNING=true run "mkdocs build --strict" mkdocs build --strict 
 
 echo "── 산출물 검사 ──"
 run "built assets"        python3 tools/check_built_assets.py /tmp/_verify_site --strict
+# 사이드바 펼침이 이 파일에 달려 있다. 비어도 화면은 멀쩡해 보인다 —
+# 화살표는 그대로 있고 눌렀을 때만 아무 일이 없어서 눈으로는 못 잡는다.
+run "nav index"           python3 tools/check_nav_index.py /tmp/_verify_site --strict
 SITE_DIR=/tmp/_verify_site run "redirects"        python3 tools/check_redirects.py
 
 [ $FAIL -eq 0 ] && echo "✓ 전부 통과 — 푸시 가능" || echo "✗ 실패 있음 — 푸시하지 말 것"

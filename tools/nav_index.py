@@ -57,7 +57,10 @@ def _node(item):
         return {"t": title, "u": idx or kids[0].get("u", ""), "c": kids}
 
     if getattr(item, "is_page", False) or getattr(item, "is_link", False):
-        return {"t": title, "u": getattr(item, "url", "") or ""}
+        # 홈은 url 이 빈 문자열이다(사이트 루트). 그대로 내보내면 브라우저 쪽에서
+        # 빈 값으로 읽혀 링크가 `#` 이 된다 — 홈으로 못 간다. 루트를 뜻하는
+        # 상대경로로 바꿔 둔다.
+        return {"t": title, "u": getattr(item, "url", "") or "."}
 
     return None
 
