@@ -116,6 +116,36 @@ def test_real_stylesheet_has_a_light_and_dark_floor():
         "두 모드 바닥이 같다 — 변수 병합이 어긋났다"
 
 
+def test_strip_comments_keeps_line_numbers():
+    """주석 안 중괄호가 규칙 경계를 깨서 6개 규칙이 선택자를 잃고 있었다.
+    지우되 줄 수는 보존해야 한다 — 보고하는 줄번호가 어긋나면 안 된다."""
+    src = "/* 앞 */\n.a { color: red; }\n/* `.x{y:z}` 인용 */\n.b { color: blue; }\n"
+    out = cc.strip_comments(src)
+    assert out.count("\n") == src.count("\n"), "줄 수가 바뀌었다"
+    assert "{y:z}" not in out and ".a {" in out and ".b {" in out
+
+    css = cc.CSS.read_text(encoding="utf-8")
+    lean = cc.strip_comments(css)
+    assert lean.count("\n") == css.count("\n")
+    import re as _re
+    rules = [r.group(1) for r in _re.finditer(r"([^{}]+)\{([^}]*)\}", lean)]
+    prose = [cc.norm_sel(s)[:50] for s in rules if _re.search(r"[가-힣]", cc.norm_sel(s))]
+    assert not prose, f"선택자에 한글 산문이 남았다: {prose[:3]}"
+
+
+def test_unknown_var_is_not_answered_with_css_fallback():
+    """var(--x, #f66) 의 #f66 은 '변수가 정의되지 않았을 때' 만 쓰인다.
+    Material 이 소유한 변수는 우리 파일에 없을 뿐 브라우저엔 있다.
+    fallback 을 답으로 쓰면 미달을 통과로 바꾼다 — 실제로
+    --md-typeset-del-color 는 #f66(2.77:1)이 아니라 #f5503d26(1.20:1)이다."""
+    table = {"--known": "#123456"}
+    assert cc.resolve("var(--known)", table) == "#123456"
+    assert not isinstance(cc.resolve("var(--known)", table), cc.Unknown)
+    got = cc.resolve("var(--md-typeset-del-color, #f66)", table)
+    assert isinstance(got, cc.Unknown), "fallback 을 답으로 썼다"
+    assert isinstance(cc.resolve("var(--a, var(--b, #fff))", table), cc.Unknown)
+
+
 def test_end_to_end_denominator_does_not_shrink():
     """**이 테스트가 이 파일의 핵심이다.**
 
@@ -137,7 +167,7 @@ def test_end_to_end_denominator_does_not_shrink():
     m = re.search(r"판정 (\d+)쌍 / 미판정 (\d+)쌍", out)
     assert m, f"분모 줄을 못 찾았다:\n{out}"
     judged, skipped = int(m.group(1)), int(m.group(2))
-    assert judged >= 46, f"판정이 46쌍에서 {judged}쌍으로 줄었다 — 검사 범위 후퇴"
+    assert judged >= 53, f"판정이 53쌍에서 {judged}쌍으로 줄었다 — 검사 범위 후퇴"
     assert skipped <= 3, f"미판정이 3쌍에서 {skipped}쌍으로 늘었다 — 미판정은 통과가 아니다"
 
 

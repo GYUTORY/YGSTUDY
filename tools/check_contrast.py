@@ -11,11 +11,23 @@
 초록불이 "이 사이트의 대비가 안전하다"는 뜻이 **아니다**. 그래서 결론 줄에
 판정 분모를 같이 찍는다 — 분모 없는 초록불은 통과가 아니라 미검사다.
 
+**커버리지를 숫자로 알고 있어야 한다.** 조상 배경 스택을 풀어 세면 이
+사이트의 색 쌍은 라이트만 117쌍쯤 된다. 이 검사가 판정하는 건 그중
+20% 남짓이다. 나머지는 아래 이유로 애초에 판정 대상에 안 들어온다.
+
 못 보는 것:
-  · 배경이 부모에서 오는 경우 (`hr`·아이콘·배지·카드 테두리 대부분이 여기다)
-  · 반투명 배경 (뒤 표면을 알아야 실효색이 나온다)
-  · Material 팔레트가 소유한 색 (extra.css 가 선언하지 않아 값을 모른다)
+  · 배경이 조상에서 오는 경우 — **가장 큰 구멍.** 자기 규칙에 background
+    가 없으면 통째로 대상 밖이다. `.md-typeset a:hover` 처럼 색 선언조차
+    없어 Material 값이 그대로 나오는 자리가 여기 숨는다
+  · color / background 이외의 속성 — border · outline · box-shadow ·
+    fill / stroke, 그리고 **opacity 속성** (색 알파와 별개다)
+  · 전경끼리의 대비 (WCAG 1.4.1) — 링크를 색으로만 구분하는 경우
+  · Material 팔레트가 소유한 색 (extra.css 가 선언하지 않아 값을 모른다.
+    이제는 fallback 으로 아는 척하지 않고 미판정으로 뺀다)
+  · 면 검사의 기준선이 페이지 배경 하나뿐 — 조상이 다른 면을 깔면
+    (예: `.yg-home` 이 #ffffff) 그 위 요소를 잘못된 바닥과 비교한다
   · 문서 안 raw SVG 의 하드코딩 fill/stroke
+  · extra.css 밖 (overrides/*.html)
 
 ## 두 가지 함정 — 둘 다 실제로 밟았다
 
@@ -139,13 +151,45 @@ def collect_vars(css, pattern):
     return out
 
 
+def strip_comments(css):
+    """주석을 지우되 줄 수는 그대로 둔다 (줄번호 보고가 어긋나면 안 된다).
+
+    규칙을 `([^{}]+)\\{([^}]*)\\}` 로 자르는데, 주석 **안에** 중괄호가 있으면
+    거기서 경계가 깨진다. 이 스타일시트는 주석에 CSS 조각을 자주 인용해서
+    실제로 6개 규칙의 선택자가 한글 산문으로 바뀌어 있었다. 예:
+
+        /* ... `.edgeLabel{background-color:#e8e8e8}` 로 덮어둔 탓에 ... */
+
+    대비 계산 자체는 그래도 맞게 나온다. 대신 그 규칙이 slate_overrides ·
+    check_specificity · SAME_SURFACE_OK 조회에서 **선택자로 매칭되지 않는다.**
+    즉 검사가 조용히 그 규칙들을 건너뛴다. 초록불은 그대로다.
+    """
+    def keep_newlines(m):
+        return "\n" * m.group(0).count("\n")
+
+    return re.sub(r"/\*.*?\*/", keep_newlines, css, flags=re.S)
+
+
+class Unknown(str):
+    """정의를 못 찾은 var(). 문자열처럼 굴지만 '모른다' 는 표시를 달고 다닌다."""
+
+
 def resolve(value, table, depth=0):
     if depth > 6:
         return value
     m = re.search(r"var\((--[\w-]+)(?:\s*,\s*([^)]+))?\)", str(value))
     if not m:
         return value
-    got = table.get(m.group(1), m.group(2) or "")
+    if m.group(1) in table:
+        got = table[m.group(1)]
+    else:
+        # CSS fallback 을 답으로 쓰면 안 된다. fallback 은 "변수가 정의되지
+        # 않았을 때" 만 쓰이는데, Material 이 소유한 변수는 우리 스타일시트에
+        # 없을 뿐 브라우저에는 정의돼 있다. 예를 들어
+        # var(--md-typeset-del-color, #f66) 을 #f66(2.77:1)으로 읽으면
+        # 실제 값 #f5503d26(1.20:1)을 놓치고 미달을 통과로 바꾼다.
+        # 모르는 건 모른다고 하고 미판정으로 빼는 편이 낫다.
+        return Unknown(value)
     return resolve(str(value).replace(m.group(0), got), table, depth + 1)
 
 
@@ -330,7 +374,10 @@ def main():
     light.update(collect_vars(css, r'\[data-md-color-scheme="default"\]\s*\{([\s\S]*?)\n\}'))
     dark = {**light, **collect_vars(css, rf'{re.escape(SLATE)}\s*\{{([\s\S]*?)\n\}}')}
 
-    rules = [(r.group(1), r.group(2), r.start()) for r in re.finditer(r"([^{}]+)\{([^}]*)\}", css)]
+    # 규칙을 자르기 전에 주석을 없앤다. 주석 안 중괄호가 경계를 깨뜨려
+    # 6개 규칙이 선택자를 잃고 있었다 (strip_comments 참고).
+    lean = strip_comments(css)
+    rules = [(r.group(1), r.group(2), r.start()) for r in re.finditer(r"([^{}]+)\{([^}]*)\}", lean)]
     plain = [(s, b) for s, b, _ in rules]
 
     judged, skipped, bad = 0, 0, []
@@ -368,7 +415,8 @@ def main():
                 if "var(" in fg_raw or not parse_color(fg_raw):
                     fg_raw = resolve("var(--md-default-fg-color)", table)
 
-            if re.search(r"url\(", bg_raw):
+            # 정의를 못 찾은 var() 가 섞였으면 판정하지 않는다.
+            if isinstance(bg_raw, Unknown) or isinstance(fg_raw, Unknown) or re.search(r"url\(", bg_raw):
                 skipped += 1
                 continue
 
@@ -390,7 +438,7 @@ def main():
             judged += 1
             ratio = min(contrast(fg, bg) for bg in cands)
             if ratio < minimum:
-                line = css[:pos].count("\n") + 1
+                line = lean[:pos].count("\n") + 1
                 bad.append((ratio, mode, line, norm_sel(sel)[:60],
                             cm.group(1).strip(), bm.group(1).strip()))
 
