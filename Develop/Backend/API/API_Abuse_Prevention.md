@@ -216,9 +216,38 @@ export class SensitiveActionGuard implements CanActivate {
 import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
 
+/** IP 별 요청 간격의 표준편차. 값이 극도로 낮으면 기계적 요청이다. */
+class RequestIntervalTracker {
+  private readonly last = new Map<string, number>();
+  private readonly gaps = new Map<string, number[]>();
+  private static readonly KEEP = 20;
+
+  record(ip: string, now = Date.now()): void {
+    const prev = this.last.get(ip);
+    this.last.set(ip, now);
+    if (prev === undefined) return;
+    const arr = this.gaps.get(ip) ?? [];
+    arr.push((now - prev) / 1000);
+    if (arr.length > RequestIntervalTracker.KEEP) arr.shift();
+    this.gaps.set(ip, arr);
+  }
+
+  /** 표본이 모자라면 null — 판정하지 않는다는 뜻이다. */
+  getStdDev(ip: string): number | null {
+    const arr = this.gaps.get(ip);
+    if (!arr || arr.length < 5) return null;
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length;
+    return Math.sqrt(variance);
+  }
+}
+
 @Injectable()
 export class BotDetector {
   private readonly knownBotJa3Set = new Set<string>(/* 알려진 봇 JA3 해시 */);
+  // 아래 isSuspicious 가 쓴다. 선언이 없으면
+  // TS2339: Property 'requestIntervalTracker' does not exist on type 'BotDetector'.
+  private readonly requestIntervalTracker = new RequestIntervalTracker();
 
   isSuspicious(request: Request): boolean {
     let score = 0;

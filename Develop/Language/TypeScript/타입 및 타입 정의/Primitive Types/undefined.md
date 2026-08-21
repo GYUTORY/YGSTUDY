@@ -512,7 +512,9 @@ class UndefinedOptimizer {
         defaultValue: NonUndefined<T[K]>
     ): NonUndefined<T[K]> {
         const value = obj[key];
-        return value !== undefined ? value : defaultValue;
+        // 단언이 필요하다. 좁히기만으로는 T[K] & ({} | null) 이 되어
+        // NonUndefined<T[K]> 에 대입되지 않는다(TS2322).
+        return (value !== undefined ? value : defaultValue) as NonUndefined<T[K]>;
     }
 
     // 조건부 실행
@@ -527,7 +529,9 @@ class UndefinedOptimizer {
 }
 
 // 사용 예시
-const data = { name: '홍길동', age: 30 };
+// email 을 조회하려면 타입에 있어야 한다. 없는 키를 넣으면 keyof 제약에 걸려
+// TS2345: Argument of type '"email"' is not assignable to parameter of type '"name" | "age"'.
+const data: { name: string; age: number; email?: string } = { name: '홍길동', age: 30 };
 
 console.log(UndefinedOptimizer.safeGet(data, 'name')); // "홍길동"
 console.log(UndefinedOptimizer.safeGet(data, 'email')); // undefined

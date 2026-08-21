@@ -97,7 +97,7 @@ function getCurrentYear(): number {
 }
 
 let yearMessage: string = `현재 년도는 ${getCurrentYear()}년입니다.`;
-console.log(yearMessage); // "현재 년도는 2024년입니다."
+console.log(yearMessage); // 실행한 해가 들어간다 — "현재 년도는 2026년입니다." 같은 식
 ```
 
 #### 멀티라인 문자열
@@ -289,7 +289,9 @@ console.log(StringFormatter.toSnakeCase('helloWorld')); // "hello_world"
 console.log(StringFormatter.toPascalCase('hello world')); // "Hello world"
 
 console.log(StringFormatter.formatNumber(1234567)); // "1,234,567"
-console.log(StringFormatter.formatDate(new Date())); // "2024-01-15"
+console.log(StringFormatter.formatDate(new Date('2024-01-15'))); // "2024-01-15"
+// 인자 없이 new Date() 를 넣으면 실행한 날짜가 나온다. 주석에 값을 적으려면
+// 입력을 고정해야 한다 — 안 그러면 그 주석은 하루 지나면 틀린다.
 
 console.log(StringFormatter.truncate('매우 긴 문자열입니다.', 10)); // "매우 긴 문자열..."
 ```

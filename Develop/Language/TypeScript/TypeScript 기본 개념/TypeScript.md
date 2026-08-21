@@ -1884,8 +1884,10 @@ type ApiUrl<T extends ApiEndpoint, M extends HttpMethod> =
 
 type GetUsersUrl = ApiUrl<'users', 'GET'>;        // '/api/users'
 type PostUserUrl = ApiUrl<'users', 'POST'>;       // '/api/users'
-type PutUserUrl = ApiUrl<'users', 'PUT'>;         // '/api/users/${string}'
-type DeleteUserUrl = ApiUrl<'users', 'DELETE'>;   // '/api/users/${string}'
+type PutUserUrl = ApiUrl<'users', 'PUT'>;         // `/api/users/${string}`
+type DeleteUserUrl = ApiUrl<'users', 'DELETE'>;   // `/api/users/${string}`
+// 백틱으로 적어야 맞다. 작은따옴표로 감싸면 ${string} 이 치환되지 않는
+// 리터럴 문자열 타입이 되어 실제 결과와 다른 타입을 가리킨다.
 ```
 
 #### 2.4 비동기 처리와 타입 안전성

@@ -248,10 +248,28 @@ export interface ProblemDetail {
   [key: string]: unknown;
 }
 
+/* `Omit<ProblemDetail, 'status'>` 를 쓰면 안 된다.
+
+   ProblemDetail 에 `[key: string]: unknown` 이 있어서 Omit 이 통과하면 필수 키가
+   **전부** 사라진다. `keyof` 가 string 전체가 되기 때문이다. 그러면 빈 객체도
+   통과하고, 스프레드해서 status 를 얹어도 원래 타입으로 복구되지 않는다.
+
+       error TS2739: Type '{ status: number; }' is missing the following
+         properties from type 'ProblemDetail': type, title, detail, instance
+
+   입력 타입을 따로 적는다. */
+export interface ProblemDetailInput {
+  type: string;
+  title: string;
+  detail: string;
+  instance: string;
+  [key: string]: unknown;
+}
+
 // problem.exception.ts
 export class ProblemException extends HttpException {
   constructor(
-    private readonly problemDetail: Omit<ProblemDetail, 'status'>,
+    private readonly problemDetail: ProblemDetailInput,
     status: HttpStatus,
   ) {
     super(problemDetail, status);
