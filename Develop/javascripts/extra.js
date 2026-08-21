@@ -1,12 +1,8 @@
 (function () {
-  // GitHub releases API 호출 차단 — 릴리스가 없어 매 페이지 404 낭비
-  var _fetch = window.fetch;
-  window.fetch = function (url, opts) {
-    if (typeof url === 'string' && url.indexOf('api.github.com') !== -1 && url.indexOf('/releases/latest') !== -1) {
-      return Promise.resolve(new Response('null', { status: 200, headers: { 'Content-Type': 'application/json' } }));
-    }
-    return _fetch.apply(this, arguments);
-  };
+  /* GitHub 릴리스 조회 차단 코드가 여기 있었는데 지웠다 — 두 겹으로 안 먹었다.
+     (1) `window.fetch` 만 가로챘는데 Material 은 XMLHttpRequest 를 쓴다.
+     (2) 이 파일은 body 끝이라 Material 번들보다 뒤에 돈다.
+     번들보다 먼저 도는 자리(overrides/main.html 의 head 인라인)로 옮겼다. */
 
   var pos = 0;
 
