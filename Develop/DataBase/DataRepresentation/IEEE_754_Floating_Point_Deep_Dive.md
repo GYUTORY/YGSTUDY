@@ -44,85 +44,107 @@ value = (-1)^S × 1.M(2진수) × 2^(E - bias)
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="100%" role="img"
      aria-label="IEEE 754 single precision 32비트 구성: 부호 1비트, 지수 8비트(바이어스 127), 가수 23비트. 예시는 1.0f 의 비트 패턴 0x3F800000">
   <title>IEEE 754 single precision 비트 레이아웃 (예: 1.0f = 0x3F800000)</title>
+  <style>
+    /* 라이트/다크 각각에서 4.5:1 이상을 확보한다.
+       한 값으로 양쪽을 만족하는 색이 이 색상 계열엔 없어 모드별로 나눈다. */
+    .f32-lbl-s { fill: #B05532; }
+    .f32-lbl-e { fill: #3D7387; }
+    .f32-lbl-m { fill: #736E68; }
+    .f32-tie-s { fill: none; stroke: #B05532; }
+    .f32-tie-e { fill: none; stroke: #3D7387; }
+    .f32-tie-m { fill: none; stroke: #736E68; }
+    .f32-cell-s { fill: #B05532; fill-opacity: .16; stroke: #B05532; }
+    .f32-cell-e { fill: #3D7387; fill-opacity: .16; stroke: #3D7387; }
+    .f32-cell-m { fill: #736E68; fill-opacity: .14; stroke: #736E68; }
+    [data-md-color-scheme="slate"] .f32-lbl-s { fill: #D68A6B; }
+    [data-md-color-scheme="slate"] .f32-lbl-e { fill: #7FB3C8; }
+    [data-md-color-scheme="slate"] .f32-lbl-m { fill: #A8A29A; }
+    [data-md-color-scheme="slate"] .f32-tie-s { stroke: #D68A6B; }
+    [data-md-color-scheme="slate"] .f32-tie-e { stroke: #7FB3C8; }
+    [data-md-color-scheme="slate"] .f32-tie-m { stroke: #A8A29A; }
+    [data-md-color-scheme="slate"] .f32-cell-s { fill: #D68A6B; fill-opacity: .18; stroke: #D68A6B; }
+    [data-md-color-scheme="slate"] .f32-cell-e { fill: #7FB3C8; fill-opacity: .18; stroke: #7FB3C8; }
+    [data-md-color-scheme="slate"] .f32-cell-m { fill: #A8A29A; fill-opacity: .16; stroke: #A8A29A; }
+  </style>
   <text x="24" y="30" font-size="13" font-weight="700" fill="currentColor">float 32비트 — 1.0f 의 실제 비트</text>
   <text x="24" y="46" font-size="11" fill="currentColor" opacity=".62">0x3F800000</text>
-  <rect x="24.00" y="62" width="21.00" height="30" fill="rgba(194,105,79,.18)" stroke="#C2694F" stroke-width="1"/>
+  <rect x="24.00" y="62" width="21.00" height="30" class="f32-cell-s" stroke-width="1"/>
   <text x="34.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="45.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="45.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="55.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="66.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="66.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="76.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="87.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="87.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="97.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="108.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="108.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="118.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="129.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="129.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="139.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="150.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="150.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="160.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="171.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="171.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="181.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="192.00" y="62" width="21.00" height="30" fill="rgba(61,115,135,.18)" stroke="#3D7387" stroke-width="1"/>
+  <rect x="192.00" y="62" width="21.00" height="30" class="f32-cell-e" stroke-width="1"/>
   <text x="202.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">1</text>
-  <rect x="213.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="213.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="223.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="234.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="234.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="244.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="255.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="255.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="265.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="276.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="276.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="286.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="297.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="297.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="307.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="318.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="318.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="328.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="339.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="339.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="349.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="360.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="360.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="370.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="381.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="381.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="391.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="402.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="402.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="412.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="423.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="423.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="433.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="444.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="444.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="454.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="465.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="465.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="475.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="486.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="486.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="496.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="507.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="507.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="517.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="528.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="528.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="538.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="549.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="549.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="559.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="570.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="570.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="580.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="591.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="591.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="601.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="612.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="612.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="622.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="633.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="633.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="643.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="654.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="654.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="664.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
-  <rect x="675.00" y="62" width="21.00" height="30" fill="rgba(115,110,104,.14)" stroke="#736E68" stroke-width="1"/>
+  <rect x="675.00" y="62" width="21.00" height="30" class="f32-cell-m" stroke-width="1"/>
   <text x="685.50" y="82" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">0</text>
   <text x="34.50" y="54" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".55">31</text>
   <text x="55.50" y="54" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".55">30</text>
   <text x="202.50" y="54" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".55">23</text>
   <text x="223.50" y="54" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".55">22</text>
   <text x="685.50" y="54" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".55">0</text>
-  <path d="M 24.0 100 L 24.0 107 L 45.0 107 L 45.0 100" fill="none" stroke="#C2694F" stroke-width="1.2"/>
-  <text x="34.5" y="124" text-anchor="middle" font-size="12.5" font-weight="700" fill="#C2694F">부호 S</text>
+  <path d="M 24.0 100 L 24.0 107 L 45.0 107 L 45.0 100" class="f32-tie-s" stroke-width="1.2"/>
+  <text x="34.5" y="124" text-anchor="middle" font-size="12.5" font-weight="700" class="f32-lbl-s">부호 S</text>
   <text x="34.5" y="140" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">1비트</text>
-  <path d="M 45.0 100 L 45.0 107 L 213.0 107 L 213.0 100" fill="none" stroke="#3D7387" stroke-width="1.2"/>
-  <text x="129.0" y="124" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3D7387">지수 E</text>
+  <path d="M 45.0 100 L 45.0 107 L 213.0 107 L 213.0 100" class="f32-tie-e" stroke-width="1.2"/>
+  <text x="129.0" y="124" text-anchor="middle" font-size="12.5" font-weight="700" class="f32-lbl-e">지수 E</text>
   <text x="129.0" y="140" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">8비트 · 바이어스 127</text>
-  <path d="M 213.0 100 L 213.0 107 L 696.0 107 L 696.0 100" fill="none" stroke="#736E68" stroke-width="1.2"/>
-  <text x="454.5" y="124" text-anchor="middle" font-size="12.5" font-weight="700" fill="#736E68">가수 M</text>
+  <path d="M 213.0 100 L 213.0 107 L 696.0 107 L 696.0 100" class="f32-tie-m" stroke-width="1.2"/>
+  <text x="454.5" y="124" text-anchor="middle" font-size="12.5" font-weight="700" class="f32-lbl-m">가수 M</text>
   <text x="454.5" y="140" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">23비트 · 앞의 1. 은 저장 안 함</text>
 </svg>
 </div>

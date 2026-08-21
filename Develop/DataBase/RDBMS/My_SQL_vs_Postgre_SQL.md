@@ -140,10 +140,15 @@ CREATE TABLE events (
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id BIGINT,
-    created_at TIMESTAMP,
-    user_id_created_idx ON events (user_id, created_at)
+    created_at TIMESTAMP
 );
+
+-- PostgreSQL 에는 CREATE TABLE 안에 인덱스를 적는 문법이 없다.
+-- 위 MySQL 예제의 `INDEX idx_user_created (...)` 를 그대로 옮기면 문법 오류다.
+CREATE INDEX user_id_created_idx ON events (user_id, created_at);
 ```
+
+두 문장으로 나뉘는 게 불편해 보이지만, 이 차이가 실무에서 갈리는 지점이 하나 있다. PostgreSQL 은 `CREATE INDEX CONCURRENTLY` 로 쓰기를 막지 않고 인덱스를 만들 수 있다. 테이블 정의와 붙어 있으면 그 선택지가 사라진다.
 
 ### GIN과 GiST
 

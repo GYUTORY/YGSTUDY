@@ -146,8 +146,10 @@ WHERE employee_id = 100
   AND recorded_to  = '9999-12-31 23:59:59.999999';
 
 -- 1월~3월: 기존 급여 유지, 새 recorded 기간으로 추가
+-- valid_to 는 다음 구간의 시작이다(반열림). 3월 말을 '2024-03-31' 로 적으면
+-- 조회가 valid_to > :date 라서 3월 31일이 어느 레코드에도 안 걸린다.
 INSERT INTO employee_salaries (employee_id, salary, valid_from, valid_to)
-VALUES (100, 50000000, '2024-01-01', '2024-03-31');
+VALUES (100, 50000000, '2024-01-01', '2024-04-01');
 
 -- 4월~현재: 인상된 급여
 INSERT INTO employee_salaries (employee_id, salary, valid_from, valid_to)
@@ -160,7 +162,7 @@ VALUES (100, 55000000, '2024-04-01', '9999-12-31');
 id=1, salary=5000만, valid=[2024-01-01, 9999-12-31)
       recorded=[2024-01-01 09:00:00, 2024-05-15 14:30:00)  ← 종료됨
 
-id=2, salary=5000만, valid=[2024-01-01, 2024-03-31)
+id=2, salary=5000만, valid=[2024-01-01, 2024-04-01)
       recorded=[2024-05-15 14:30:00, 9999-12-31 23:59:59)  ← 현재 유효
 
 id=3, salary=5500만, valid=[2024-04-01, 9999-12-31)
@@ -206,7 +208,7 @@ WHERE employee_id  = 100
   AND recorded_to   >  NOW();
 ```
 
-소급 수정 이후에 실행하면 id=2(salary=5000만, valid=[2024-01-01, 2024-03-31))가 결과로 나온다. 수정 후 시스템 기준으로 "2월에 5,000만 원이었다"는 걸 알고 있다.
+소급 수정 이후에 실행하면 id=2(salary=5000만, valid=[2024-01-01, 2024-04-01))가 결과로 나온다. 수정 후 시스템 기준으로 "2월에 5,000만 원이었다"는 걸 알고 있다.
 
 ### 3. Transaction Time AS OF
 

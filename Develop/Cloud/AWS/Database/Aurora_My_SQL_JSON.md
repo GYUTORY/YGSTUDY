@@ -76,7 +76,8 @@ INSERT INTO orders (attrs) VALUES
 SELECT
   JSON_EXTRACT(attrs, '$.channel'),  -- "web"  (큰따옴표 포함된 JSON 문자열)
   attrs -> '$.channel',              -- "web"  (위와 동일)
-  attrs ->> '$.channel';             -- web    (UNQUOTE된 순수 문자열)
+  attrs ->> '$.channel'              -- web    (UNQUOTE된 순수 문자열)
+FROM orders;
 ```
 
 `->`와 `->>`의 차이를 모르고 쓰면 WHERE 절에서 자주 헛발질한다.
@@ -97,7 +98,8 @@ SELECT
   attrs ->> '$.coupon.code',    -- A10
   attrs ->> '$.coupon.rate',    -- 0.1
   attrs ->> '$.tags[0]',        -- new
-  JSON_LENGTH(attrs, '$.tags'); -- 2
+  JSON_LENGTH(attrs, '$.tags')  -- 2
+FROM orders;
 ```
 
 ### 2.2 수정 — JSON_SET, JSON_REPLACE, JSON_INSERT, JSON_REMOVE
