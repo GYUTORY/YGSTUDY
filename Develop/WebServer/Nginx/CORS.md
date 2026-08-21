@@ -579,8 +579,13 @@ curl -v https://api.example.com/api/users \
 
 ### 공식 문서 및 표준
 - [MDN Web Docs - CORS](https://developer.mozilla.org/ko/docs/Web/HTTP/CORS)
-- [W3C CORS Specification](https://www.w3.org/TR/cors/)
-- [Fetch Living Standard](https://fetch.spec.whatwg.org/)
+- [Fetch Living Standard — CORS protocol](https://fetch.spec.whatwg.org/#http-cors-protocol) — 규범 문서는 여기다
+- [Fetch Living Standard (전체)](https://fetch.spec.whatwg.org/)
+
+W3C 의 CORS 명세(`www.w3.org/TR/cors/`)를 찾는 경우가 있는데 그 문서는 폐기됐다.
+지금은 WHATWG Fetch 표준에 흡수돼 있고, 그 URL 로 가면 Fetch 표준 **첫 페이지**로
+넘어간다. 404 가 아니라 리다이렉트라 링크 검사에도 안 걸리고, 클릭한 사람만
+CORS 절이 아닌 엉뚱한 자리에 떨어진다.
 
 ### 추가 학습 자료
 - [OWASP CORS Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing)
