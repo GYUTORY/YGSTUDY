@@ -4,14 +4,40 @@
       function isIndex(u) {
         return typeof u === "string" && u.indexOf("search_index.json") !== -1;
       }
+      /* 릴리스 조회는 아예 보내지 않는다.
+
+         이 저장소는 릴리스가 없어서 매번 404 다. 그런데 Material 은 페이지를
+         옮길 때마다 이걸 부른다. 인증 없는 GitHub API 는 IP 당 시간 60회라,
+         문서를 30쪽만 넘겨도 한도가 차고 그때부터 별·포크 숫자까지 같이 죽는다.
+
+         extra.js 에 막는 코드가 있었는데 두 겹으로 안 먹고 있었다.
+         (1) `window.fetch` 만 가로챘는데 Material 은 XMLHttpRequest 를 쓴다
+             (번들의 to() 가 `new XMLHttpRequest`).
+         (2) extra.js 는 body 끝이라 번들보다 뒤에 돈다.
+         그래서 여기, head 안, 번들보다 먼저 도는 자리로 옮겼다.
+
+         저장소 정보(`/repos/:owner/:name`)는 막지 않는다 — 별·포크 숫자를
+         그걸로 채운다. 릴리스 경로만 걸러낸다. */
+      function isRelease(u) {
+        return typeof u === "string" &&
+          u.indexOf("api.github.com") !== -1 &&
+          u.indexOf("/releases/latest") !== -1;
+      }
       var open = XMLHttpRequest.prototype.open;
       var send = XMLHttpRequest.prototype.send;
       XMLHttpRequest.prototype.open = function (method, url) {
         this.__ygHold = isIndex(url);
+        this.__ygDrop = isRelease(url);
         return open.apply(this, arguments);
       };
       XMLHttpRequest.prototype.send = function () {
         var xhr = this, args = arguments;
+        if (xhr.__ygDrop) {
+          // Material 의 래퍼는 abort 를 정상 완료로 받는다(번들 to() 참조).
+          // 에러로 끝내면 콘솔에 빨간 줄이 남는다.
+          try { xhr.dispatchEvent(new Event("abort")); } catch (e) {}
+          return;
+        }
         if (xhr.__ygHold && !wanted) {
           held.push(function () { send.apply(xhr, args); });
           return;

@@ -162,6 +162,18 @@ body {
   --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.45);
 
   --cat-ai: #c084fc;
+
+  /* 어두운 보라·남색 계열은 다크 배경에서 아예 안 보인다. 카테고리 점이
+     얹히는 자리는 흰색 6% 를 합성한 rgb(44,42,44) 인데, 그 위에서
+     #391c57 은 1.00:1 이고 #213183 은 1.24:1 이다 — 배경과 구별이 안 된다.
+
+     나머지 카테고리 색은 그대로 둔다. 점 옆에 <h3>Language</h3> 처럼
+     이름이 글자로 있어서 점 자체는 장식이고, 브랜드 색(AWS 주황 등)을
+     대비 기준에 맞춰 바꾸면 알아보기 어려워진다. 여기 셋은 기준 미달이
+     아니라 "보이지 않음" 이라 성격이 다르다. 색상은 유지하고 명도만 올렸다. */
+  --cat-arch: #935dcb;      /* 1.00:1 -> 3.17:1 */
+  --cat-webserver: #935dcb; /* 1.00:1 -> 3.17:1 */
+  --cat-network: #586cd5;   /* 1.24:1 -> 3.07:1 */
 }
 
 /* Material 은 data-md-color-scheme 를 <body> 자신에 붙인다.
@@ -318,11 +330,23 @@ body[data-md-color-scheme="slate"] {
 .md-search__icon {
   color: var(--warm-gray-500) !important;
 }
+/* --warm-gray-500 은 라이트 전용 값이다(#57524E). slate 짝이 없어 다크에서도
+   그대로 쓰이는데, 그때 헤더 배경이 #1F1C1E 라 2.19:1 이 된다. 아이콘은 UI
+   요소라 3:1 이 기준이다. 라이트는 7.65:1 로 멀쩡하니 다크만 바꾼다. */
+[data-md-color-scheme="slate"] .md-search__icon {
+  color: var(--text-sub) !important;
+}
 
 /* 헤더 오른쪽 버튼 컬러 톤 */
 .md-header__button[for="__search"],
 .md-header__button[for="__drawer"] {
   color: var(--warm-gray-500) !important;
+}
+/* 위와 같은 이유 — 다크에서 2.19:1. 모바일·태블릿에서만 보이는 버튼이라
+   눈에 덜 띄었을 뿐이다(Material 이 60em 이상에서 감춘다). */
+[data-md-color-scheme="slate"] .md-header__button[for="__search"],
+[data-md-color-scheme="slate"] .md-header__button[for="__drawer"] {
+  color: var(--text-sub) !important;
 }
 .md-header__button[for="__search"]:hover,
 .md-header__button[for="__drawer"]:hover {
@@ -578,7 +602,16 @@ body {
   min-width: 0;
   flex: 1;
 }
-.md-nav__link:hover {
+/* `[href]` 가 붙어 있어야 한다.
+
+   Material 의 같은 자리 규칙이 `.md-nav__link[href]:hover` 라 특이도가 (0,3,0)
+   인데, 이쪽을 `.md-nav__link:hover` 로 쓰면 (0,2,0) 이라 진다. 그래서 라이트에서
+   이 글자색은 한 번도 칠해진 적이 없고 Material accent(#4287ff, 3.31:1)가 나왔다.
+
+   다크는 `[data-md-color-scheme="slate"]` 접두사가 특이도를 하나 더 얹어 (0,3,0)
+   으로 동점이 되고 나중 로드로 이긴다. 그래서 다크만 멀쩡했다. 배경은 Material 이
+   안 건드려서 적용됐고, 아래 주석은 그때 배경만 보고 쓴 것이다. */
+.md-nav__link[href]:hover {
   color: var(--notion-blue);
   /* --warm-white 는 페이지 배경과 같은 값이라 호버해도 픽셀이 하나도 안 바뀌었다.
      좌측 내비와 우측 목차 전체가 "눌리는 것" 으로 보이지 않았다. */
@@ -941,7 +974,9 @@ body {
 /* blockquote */
 .md-typeset blockquote {
   border-left: 2px solid var(--notion-blue);
-  background: var(--warm-white);
+  /* --warm-white 는 라이트에서 페이지 배경과 같은 값이라 면이 없었다.
+     왼쪽 세로선만 보이고 인용 영역 자체는 구분이 안 됐다(문서 52개). */
+  background: rgba(0, 0, 0, 0.03);
   margin: 1.2em 0;
   padding: 0.9em 1.3em;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
@@ -949,12 +984,25 @@ body {
   font-style: normal;
 }
 .md-typeset blockquote p { margin: 0; }
+/* 인용문 글자색에 다크 짝이 없었다. 배경(--warm-white)은 다크에서 #1F1C1E 로
+   바뀌는데 글자(--warm-gray-500 #57524E)는 그대로라 2.19:1 이 됐다.
+   Material 은 원래 테마별 색을 주는데 이 규칙이 그걸 덮어써서 생긴 회귀다. */
+[data-md-color-scheme="slate"] .md-typeset blockquote {
+  color: var(--text-sub);
+}
 
-/* hr */
+/* hr
+
+   검은색을 박아 두면 다크에서 안 보인다 — 배경(#1F1C1E)보다 어두워져
+   대비가 1.03:1 이 된다. 문서 1,156개에 4,872개가 깔려 있어서 그만큼
+   구분선이 통째로 사라진다.
+
+   --border 는 라이트 검정 10% / 다크 흰색 8% 라 양쪽 세기가 거의 같다
+   (1.25:1 vs 1.26:1). 라이트 모습은 지금과 완전히 같고 다크만 살아난다. */
 .md-typeset hr {
   border: none;
   height: 1px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--border);
   margin: 2em 0;
 }
 
@@ -1044,7 +1092,11 @@ body {
   gap: 6px;
 }
 
-.md-typeset .md-tag {
+/* href 있는 태그까지 함께 겨냥한다. Material 의 `.md-typeset .md-tag[href]` 가
+   (0,3,0) 으로 `color: inherit` 를 걸어서, `[href]` 없이 쓰면 이 색이 안 먹고
+   태그가 본문색으로 나온다(의도 6.91:1 대신 10.11:1 — 대비는 통과하나 설계와 다름). */
+.md-typeset .md-tag,
+.md-typeset .md-tag[href] {
   font-size: 0.72rem;
   font-weight: 600;
   padding: 3px 10px;
@@ -1055,7 +1107,9 @@ body {
   border-radius: var(--radius-pill);
   line-height: 1.5;
 }
-.md-typeset .md-tag:hover {
+/* 위와 같은 이유 — Material 이 `.md-typeset .md-tag[href]:hover` (0,4,0) 이라
+   `[href]` 없이는 진다. 라이트에서는 흰 글자 on #4287ff 로 3.42:1 이었다. */
+.md-typeset .md-tag[href]:hover {
   background: var(--badge-blue-bg);
   color: var(--badge-blue-text);
 }
@@ -1129,7 +1183,9 @@ body {
   font-size: 0.875em;
   padding: 0.16em 0.5em;
   border-radius: var(--radius-xs);
-  background: var(--warm-white);
+  /* --warm-white 는 라이트에서 페이지 배경(#FDFBFA)과 같은 값이라
+     칩이 안 보였다. 다크(흰 8%)와 세기를 맞춘다. */
+  background: rgba(0, 0, 0, 0.04);
   color: var(--blue-text) !important;
   border: none;
   font-weight: 500;
@@ -1154,6 +1210,17 @@ body {
   background: none;
   border: none;
   font-weight: 400;
+}
+/* 면은 래퍼(.highlight)가 낸다.
+
+   위 `background: none` 이 Material 의 코드 배경(#f5f5f5)을 죽이는데, 라이트에는
+   대체 면이 없었다. 다크에는 아래 slate 규칙으로 면이 있어서, 코드블록이
+   **라이트에서만** 페이지 배경과 완전히 같은 색이었다(1.00:1). 문서 1,156개다.
+
+   검정 4% 를 깔면 1.09:1 로, 다크의 흰색 3%(1.09:1)와 세기가 같고 Material
+   라이트 관례(#f5f5f5 on #fff = 1.09:1)와도 같다. */
+.md-typeset .highlight {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 /* 코드블록 내부 span이 컨테이너를 뚫는 모바일 오버플로 방지 */
@@ -1194,7 +1261,10 @@ body {
   font-size: 0.92em;
 }
 .md-typeset table:not([class]) th {
-  background: var(--warm-white);
+  /* 헤더행이 본문행과 구별되게. --warm-white 는 라이트에서 페이지 배경과
+     같은 값이라 th 와 td 가 완전히 같은 색이었다(문서 674개).
+     다크는 아래 slate 규칙에 흰색 5% 로 이미 면이 있다. */
+  background: rgba(0, 0, 0, 0.04);
   font-weight: 600;
   color: var(--text);
   letter-spacing: 0;
@@ -1266,7 +1336,9 @@ body {
   opacity: 1;
 }
 .md-footer__link:hover {
-  background: var(--warm-white);
+  /* 호버 피드백이 없었다 — --warm-white 가 페이지 배경과 같은 값이라
+     배경이 하나도 안 바뀐다(문서 1,359개). 다크는 1371줄에 짝이 있다. */
+  background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
   opacity: 1;
@@ -1315,6 +1387,10 @@ body {
 .md-social__link {
   color: var(--warm-gray-500) !important;
   transition: color 0.15s ease;
+}
+/* 푸터 GitHub 아이콘. 문서 1,360개 전부에 있고 다크에서 2.19:1 이었다. */
+[data-md-color-scheme="slate"] .md-social__link {
+  color: var(--text-sub) !important;
 }
 .md-social__link:hover {
   color: var(--notion-blue) !important;
@@ -1534,7 +1610,7 @@ body {
 }
 .yg-series:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--border-hover);
   box-shadow:
     rgba(0, 0, 0, 0.04) 0px 6px 20px,
     rgba(0, 0, 0, 0.03) 0px 2px 8px;
@@ -1605,7 +1681,10 @@ body {
 .yg-proj {
   display: block;
   background: var(--bg-card);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  /* 검은색을 박으면 다크에서 카드 테두리가 사라진다(1.11:1).
+     옆의 .yg-series 는 slate 짝이 있는데 여기만 빠져 있었다.
+     --border 는 라이트 검정 10% / 다크 흰색 8% 로 양쪽 세기가 같다. */
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   text-decoration: none !important;
@@ -1614,7 +1693,7 @@ body {
 }
 .yg-proj:hover {
   transform: translateY(-3px);
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--border-hover);
   box-shadow:
     rgba(0, 0, 0, 0.05) 0px 8px 24px,
     rgba(0, 0, 0, 0.03) 0px 2px 8px;
