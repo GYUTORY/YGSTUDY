@@ -111,83 +111,24 @@
       window.addEventListener("load", function () { measure(); onScroll(); });
     }
 
-    // ----- 사이드바 형제 메뉴 공통 prefix 자동 축약 -----
-    function stripCommonPrefixes() {
-      var listsTotal = 0;
-      var stripsTotal = 0;
-      var lists = document.querySelectorAll(".md-nav--primary .md-nav__list");
-      lists.forEach(function (list) {
-        listsTotal += 1;
-        var items = [];
-        for (var i = 0; i < list.children.length; i++) {
-          var li = list.children[i];
-          if (!li || li.tagName !== "LI") continue;
-          // 직접 자식 중 a 또는 label 찾기 (input은 건너뜀)
-          var link = null;
-          for (var c = 0; c < li.children.length; c++) {
-            var ch = li.children[c];
-            if ((ch.tagName === "A" || ch.tagName === "LABEL") &&
-                ch.classList && ch.classList.contains("md-nav__link")) {
-              link = ch;
-              break;
-            }
-          }
-          if (!link || link.dataset.origLabel) continue;
-          var span = link.querySelector(".md-ellipsis");
-          if (!span) continue;
-          var orig = (span.textContent || "").replace(/\s+/g, " ").trim();
-          if (!orig) continue;
-          items.push({ link: link, span: span, orig: orig });
-        }
-        if (items.length < 3) return;
+    /* 사이드바 형제 메뉴 라벨의 공통 접두어를 잘라내던 코드를 여기서 지웠다.
+       (2026-08-21, 지우기 직전 커밋 a4e8e8a040)
 
-        var splits = items.map(function (it) { return it.orig.split(" "); });
-        var maxPrefix = Math.min.apply(null, splits.map(function (s) { return s.length; }));
-        var commonCount = 0;
-        for (var k = 0; k < maxPrefix; k++) {
-          var first = splits[0][k];
-          var allMatch = true;
-          for (var s = 0; s < splits.length; s++) {
-            if (splits[s][k] !== first) { allMatch = false; break; }
-          }
-          if (allMatch) commonCount = k + 1;
-          else break;
-        }
-        if (commonCount < 1) return;
-        var commonWords = splits[0].slice(0, commonCount).join(" ");
-        if (commonWords.length < 4) return;
+       한 번도 걸리지 않았다. 실제 문서 60개 표본에서 메뉴 리스트를 전부 훑어
+       축약된 라벨이 0개였다. 선택자가 잘못됐나 싶어 — 항목의 <a> 가 <li> 직속이
+       아니라 <div class="md-nav__container"> 안에 있는 경우를 못 찾는다 —
+       그쪽까지 찾도록 고쳐서 다시 재 봤는데 여전히 0개였다.
 
-        var planned = items.map(function (it) {
-          var stripped = it.orig.slice(commonWords.length).replace(/^[\s\-_·:|]+/, "").trim();
-          return { it: it, stripped: stripped };
-        });
-        var meaningful = 0;
-        for (var p = 0; p < planned.length; p++) {
-          if (planned[p].stripped.length >= 2) meaningful += 1;
-        }
-        if (meaningful < 2) return;
+       선택자 문제가 아니라 조건이 성립하는 자리가 없다. 형제 3개 이상이
+       4글자 넘는 공통 접두어를 가져야 하는데, 라벨이 이미 .pages 에서
+       사람 손으로 정리돼 있어 그런 묶음이 안 생긴다.
 
-        planned.forEach(function (p) {
-          if (!p.stripped || p.stripped.length < 2) return;
-          p.it.link.dataset.origLabel = p.it.orig;
-          p.it.link.setAttribute("title", p.it.orig);
-          p.it.span.textContent = p.stripped;
-          stripsTotal += 1;
-        });
-      });
-      document.body.setAttribute("data-yg-strip", listsTotal + "/" + stripsTotal);
-    }
-    // 즉시 실행 + 사이드바 변동 감지 시 재실행 (instant nav, 동적 토글 대응)
-    stripCommonPrefixes();
-    var sidebar = document.querySelector(".md-sidebar--primary");
-    if (sidebar) {
-      var moTimer = null;
-      var mo = new MutationObserver(function () {
-        clearTimeout(moTimer);
-        moTimer = setTimeout(stripCommonPrefixes, 80);
-      });
-      mo.observe(sidebar, { childList: true, subtree: true });
-    }
+       비용은 있었다. 페이지를 열 때마다 사이드바 리스트를 전부 훑고,
+       사이드바가 바뀔 때마다(80ms 디바운스) 또 훑었다. 잘린 가지를 펼치는
+       기능이 들어오면서 그 재실행이 더 잦아졌다.
+
+       다시 필요해지면 되살리는 것보다 다시 쓰는 편이 낫다. 그때는 어떤
+       라벨 묶음을 줄이려는 건지부터 실제 문서에서 확인할 것. */
 
     // ----- 홈 카테고리 카운트 -----
     // 빌드 때 tools/section_index.py 가 만든 section_counts.json 을 읽는다.
