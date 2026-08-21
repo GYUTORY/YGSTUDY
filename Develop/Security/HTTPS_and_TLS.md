@@ -606,7 +606,8 @@ keytool -import -alias internal-ca -file ca.crt \
 
 ```nginx
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name example.com;
 
     # 인증서

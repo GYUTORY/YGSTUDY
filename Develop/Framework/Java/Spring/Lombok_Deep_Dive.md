@@ -565,9 +565,9 @@ dependencies {
 
 ## 9. Lombok 대안
 
-### 9.1 Java 14 record
+### 9.1 Java 16 record
 
-Java 14에서 정식 도입된 `record`는 `@Value`와 비슷한 불변 데이터 클래스를 만든다.
+Java 14·15 에서 미리보기를 거쳐 **Java 16 에서 정식 도입된** `record`는 `@Value`와 비슷한 불변 데이터 클래스를 만든다.
 
 ```java
 public record Money(long amount, String currency) {}

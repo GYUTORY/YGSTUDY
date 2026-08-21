@@ -102,7 +102,8 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name app.example.com;
 
     ssl_certificate /etc/letsencrypt/live/app.example.com/fullchain.pem;
@@ -218,7 +219,8 @@ upstream backend {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name api.example.com;
 
     # SSL 설정 생략
@@ -298,7 +300,8 @@ Caddy는 WebSocket을 자동 감지해서 별도 설정이 필요 없다. Upgrad
 
 ```nginx
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name example.com;
 
     location /api/ {

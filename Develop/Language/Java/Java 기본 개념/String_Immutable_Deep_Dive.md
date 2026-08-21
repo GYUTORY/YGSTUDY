@@ -53,7 +53,7 @@ value[0] = 'H';
 System.out.println(s); // "Hello" - 내부 상태가 바뀐다
 ```
 
-이런 코드는 보안 관리자가 없는 환경에서 실제로 작동한다. 불변성은 언어 수준의 약속일 뿐, 물리적으로 강제되지 않는다. 그래서 `String`을 키로 쓰는 `HashMap`에 이런 트릭이 섞이면 `hashCode`가 캐시된 값과 달라져서 조회가 실패하는 기묘한 버그가 생긴다.
+이런 코드는 **JDK 16 이하에서** 작동한다. JDK 17 부터는 모듈 강한 캡슐화가 막아서 `InaccessibleObjectException` 이 나고, 뚫으려면 `--add-opens java.base/java.lang=ALL-UNNAMED` 를 붙여야 한다. 보안 관리자와는 무관하다. 불변성은 언어 수준의 약속일 뿐, 물리적으로 강제되지 않는다. 그래서 `String`을 키로 쓰는 `HashMap`에 이런 트릭이 섞이면 `hashCode`가 캐시된 값과 달라져서 조회가 실패하는 기묘한 버그가 생긴다.
 
 ### 1.3 Compact String (JDK 9+)
 

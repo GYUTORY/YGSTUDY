@@ -143,7 +143,8 @@ server {
 
 ```nginx
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name ~^(?<tenant>[a-z0-9-]+)\.app\.example\.com$;
 
     ssl_certificate     /etc/letsencrypt/live/wildcard/fullchain.pem;

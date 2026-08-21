@@ -245,7 +245,8 @@ map $http_origin $cors_origin {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name api.example.com;
 
     location / {
@@ -575,7 +576,8 @@ map $http_origin $cors_origin {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name api.example.com;
 
     # === 보안 헤더 (모든 응답에 적용) ===

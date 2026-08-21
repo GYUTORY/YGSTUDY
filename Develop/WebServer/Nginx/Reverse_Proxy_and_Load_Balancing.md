@@ -453,7 +453,8 @@ server {
 
 # HTTPS 서버
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name example.com;
 
     ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
@@ -491,7 +492,8 @@ proxy_cache_path /var/cache/nginx levels=1:2
                  use_temp_path=off;
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name api.example.com;
 
     # API 응답 캐싱
@@ -641,7 +643,8 @@ http {
 
     # HTTPS 메인 서버
     server {
-        listen 443 ssl http2;
+        listen 443 ssl;
+        http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
         server_name example.com;
 
         ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;

@@ -542,9 +542,6 @@ public class PaymentCompensationHandler {
 spring:
   cloud:
     stream:
-      kafka:
-        binder:
-          brokers: localhost:9092
       bindings:
         # 주문 서비스 출력
         order-events-out-0:
@@ -573,8 +570,10 @@ spring:
           destination: inventory-events
           group: payment-compensation
           content-type: application/json
-      # DLQ 설정 — 3번 재시도 후 DLQ로 보낸다
       kafka:
+        binder:
+          brokers: localhost:9092
+        # DLQ 설정 — 3번 재시도 후 DLQ로 보낸다
         bindings:
           processPayment-in-0:
             consumer:

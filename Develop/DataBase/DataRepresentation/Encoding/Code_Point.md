@@ -217,12 +217,14 @@ unicodedata.decimal('５')         # 5 (전각 숫자)
 String s = "안녕😀";
 
 // 잘못된 방법: char 단위
-s.length();             // 5 (안 녕 D83D DE00)
+s.length();             // 4 (안 녕 D83D DE00 — char 4개)
 s.charAt(2);            // '\uD83D' (하이 서로게이트, 반쪽짜리)
 
 // 코드 포인트 단위
 s.codePointCount(0, s.length());    // 3 (안, 녕, 😀)
-s.codePointAt(4);                   // 128512 (0x1F600)
+s.codePointAt(2);                   // 128512 (0x1F600)
+// 인덱스는 char 기준이라 이모지는 2번이다. 4번은 길이를 넘어
+// StringIndexOutOfBoundsException 이 난다.
 
 // 코드 포인트 기준 순회
 s.codePoints()
@@ -240,7 +242,7 @@ String emoji2 = String.valueOf(Character.toChars(0x1F600));
 Character.getType('A');          // Character.UPPERCASE_LETTER (1)
 Character.isLetter('가');         // true
 Character.isDigit('５');          // true (전각 숫자)
-Character.isWhitespace('\u3000'); // false (전각 공백은 isWhitespace 미포함)
+Character.isWhitespace('\u3000'); // true (U+3000 은 non-breaking 이 아니다)
 Character.isSpaceChar('\u3000');  // true
 
 // 서로게이트 확인
@@ -249,7 +251,18 @@ Character.isSurrogatePair('\uD83D', '\uDE00');  // true
 Character.toCodePoint('\uD83D', '\uDE00');       // 128512
 ```
 
-`Character.isWhitespace()`와 `Character.isSpaceChar()`는 다르다. 전자는 Java가 공백으로 간주하는 ASCII 공백류만 포함하고, 후자는 유니코드 Zs 카테고리 전체를 포함한다. 어떤 공백을 처리하려는지에 따라 다르게 써야 한다.
+`Character.isWhitespace()`와 `Character.isSpaceChar()`는 **포함 관계가 아니라 교차 관계**다. 전자는 유니코드 공백 중 non-breaking 이 아닌 것에 더해 탭·개행 같은 제어문자까지 포함하고, 후자는 Zs/Zl/Zp 카테고리만 본다.
+
+| 문자 | `isWhitespace` | `isSpaceChar` |
+|---|---|---|
+| `U+0009` 탭 | true | false |
+| `U+000A` 개행 | true | false |
+| `U+00A0` NBSP | false | true |
+| `U+2007` FIGURE SPACE | false | true |
+| `U+2000` EN QUAD | true | true |
+| `U+3000` 전각 공백 | true | true |
+
+NBSP 를 걸러야 하면 `isWhitespace` 로는 안 잡히고, 개행을 잡아야 하면 `isSpaceChar` 로는 안 잡힌다. 어느 쪽도 다른 쪽을 대신하지 못한다.
 
 ### Go
 

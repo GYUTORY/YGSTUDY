@@ -312,7 +312,8 @@ upstream api_backend {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;   # 1.25.1+ 문법. listen 에 붙이면 deprecated 경고가 뜬다
     server_name myapp.com;
 
     ssl_certificate /etc/letsencrypt/live/myapp.com/fullchain.pem;

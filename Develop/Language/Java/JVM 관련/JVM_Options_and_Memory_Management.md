@@ -255,7 +255,7 @@ java -XX:+PrintFlagsFinal -version 2>&1 | grep MaxHeapSize
 |--------|--------|-----------|
 | `-XX:PermSize` | 삭제됨 | Metaspace로 대체, `-XX:MetaspaceSize` 사용 |
 | `-XX:+UseConcMarkSweepGC` | Deprecated | G1 GC 사용 권장 |
-| `-XX:+PrintGCDetails` | 삭제됨 | `-Xlog:gc*`로 변경 (Unified Logging) |
+| `-XX:+PrintGCDetails` | Deprecated | 경고를 내고 `-Xlog:gc*` 로 자동 매핑된다. 제거된 게 아니라 여전히 동작한다 |
 | `-XX:+PrintGCDateStamps` | 삭제됨 | `-Xlog:gc*::time`으로 변경 |
 | `-XX:+UseCompressedOops` | 기본 활성화 | Heap 32GB 미만에서 자동 적용 |
 
@@ -300,7 +300,12 @@ java -Xlog:gc*:file=/var/log/app/gc.log:time,uptime,level,tags:filecount=5,files
      -jar app.jar
 ```
 
-JDK 9부터 GC 로그 체계가 완전히 바뀌었다. `-XX:+PrintGCDetails` 같은 옵션은 JDK 9 이상에서 동작하지 않는다. 업그레이드할 때 로그 설정도 반드시 바꿔야 한다.
+JDK 9부터 GC 로그 체계가 완전히 바뀌었다. 다만 옛 옵션이 전부 죽은 건 아니라서 구분이 필요하다.
+
+- `-XX:+PrintGCDetails` 는 **아직 동작한다.** JDK 21 에서 `-XX:+PrintGCDetails is deprecated. Will use -Xlog:gc* instead.` 경고를 내고 로그는 그대로 나온다.
+- `-XX:+PrintGCDateStamps` 는 **실제로 제거됐다.** JDK 11 부터 `Unrecognized VM option` 으로 기동 자체가 실패한다.
+
+전자는 경고만 보고 넘어가기 쉽고 후자는 즉시 안 뜬다. 업그레이드 전에 옵션을 하나씩 확인해야 하는 이유다.
 
 ### 6.2 G1 GC 로그 읽기
 

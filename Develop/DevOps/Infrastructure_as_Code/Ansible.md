@@ -310,8 +310,8 @@ resource "aws_instance" "web" {
 
 **패턴 3: Packer + Terraform (Ansible은 이미지 빌드 시)**
 
-```json
-// packer/web.pkr.hcl
+```hcl
+# packer/web.pkr.hcl
 source "amazon-ebs" "web" {
   ami_name      = "web-{{timestamp}}"
   instance_type = "t3.medium"
