@@ -18,3 +18,6 @@ Develop/_group/
 
 # im-not-strange-ai 작업 폴더 (산출물은 문서에 반영하고 폴더는 버린다)
 _workspace/
+
+# jsdom(브라우저 없는 DOM 테스트용) 설치본
+node_modules/

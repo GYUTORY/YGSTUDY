@@ -49,6 +49,20 @@ run "built assets"        python3 tools/check_built_assets.py /tmp/_verify_site 
 YG_SITE_DIR=/tmp/_verify_site run "css contrast" python3 tools/check_contrast.py --strict
 run "nav index"           python3 tools/check_nav_index.py /tmp/_verify_site --strict
 SITE_DIR=/tmp/_verify_site run "redirects"        python3 tools/check_redirects.py
+# 브라우저 없이 도는 DOM 테스트. 여기 걸리는 것들은 전부 **조용한 실패**라
+# 빌드·링크 검사로는 절대 안 잡힌다 — 사이드바 펼침, 검색 인덱스 보류,
+# 레이아웃 재계산, GitHub 릴리스 요청 차단, 링크 선반입.
+#
+# 이 파일들은 한동안 저장소에만 있고 게이트에는 없었다. 즉 회귀가 나도
+# 아무도 안 돌리니 조용히 지나갔다. 테스트는 돌아야 테스트다.
+# jsdom 이 없으면 각 테스트가 스스로 SKIP 하고 0 으로 끝난다.
+run "브라우저 없는 DOM 테스트" bash -c '
+  set -e
+  for t in tools/tests/*.test.mjs; do
+    case "$t" in *mermaid_contrast*) continue ;; esac   # 위에서 이미 돌았다
+    echo "── $t"
+    node "$t" /tmp/_verify_site
+  done'
 
 [ $FAIL -eq 0 ] && echo "✓ 전부 통과 — 푸시 가능" || echo "✗ 실패 있음 — 푸시하지 말 것"
 exit $FAIL

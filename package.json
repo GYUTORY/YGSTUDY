@@ -1,0 +1,11 @@
+{
+  "name": "ygstudy-tools",
+  "private": true,
+  "description": "tools/tests/*.test.mjs 를 돌리기 위한 것뿐이다. 사이트 자체는 이 의존성 없이 빌드된다.",
+  "scripts": {
+    "test": "for t in tools/tests/*.test.mjs; do node \"$t\" || exit 1; done"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
