@@ -43,29 +43,68 @@ vm.runInContext(
   ctx
 );
 
-// 저장소 문서에서 실제로 쓰이는 배경색 (빈도순). 새 색이 늘면 여기에 더한다.
+/* 저장소 문서에서 실제로 쓰이는 배경색 — 빈도 상위 14. 새 색이 늘면 여기에 더한다.
+   뽑는 법: mermaid 펜스 안의 style/classDef 줄에서 fill: 값을 세면 된다. */
 const FILLS = [
-  "#66bb6a", "#4fc3f7", "#ff9800", "#9c27b0", "#dbeafe", "#fef3c7",
-  "#dcfce7", "#ffcdd2", "#fecaca", "#f5f5f5", "#c8e6c9", "#e0e7ff",
-  "#e0f2fe", "#fce7f3",
+  ["#66bb6a", 87], ["#4fc3f7", 71], ["#ff9800", 61], ["#9c27b0", 42],
+  ["#ef5350", 42], ["#dbeafe", 38], ["#fef3c7", 36], ["#1a1a2e", 33],
+  ["#2d333b", 22], ["#dcfce7", 21], ["#4ade80", 21], ["#4a9eff", 18],
+  ["#d1fae5", 18], ["#fbbf24", 16],
 ];
+
+/* mermaid 가 실제로 쓰는 기본 글자색. 검정/흰색이 아니다 —
+   실물(mermaid 10.9.3)을 렌더해 DOM 에서 확인한 값이다.
+   이 기준을 틀리게 잡으면 "무엇이 깨져 있었는지" 자체가 어긋난다. */
+const THEME_TEXT = { 라이트: "#333333", 다크: "#cccccc" };
 const MIN = 4.5; // WCAG AA 본문 기준
 
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log(`  ${ok ? "PASS" : "FAIL"}  ${msg}`); };
 
-console.log("실제 쓰이는 배경색에서 고른 글자색의 대비\n");
-console.log("  배경        글자     대비      흰글자면");
-for (const fill of FILLS) {
+console.log("보정 전후 대비 — 라이트와 다크 양쪽\n");
+console.log("  배경       쓰인수   라이트(전)    다크(전)     보정 후");
+let brokenLight = 0, brokenDark = 0;
+for (const [fill, uses] of FILLS) {
   const bg = ctx.parseColor(fill);
   if (!bg) { check(false, `${fill} 을 못 읽었다`); continue; }
+  const before = {};
+  for (const [name, hex] of Object.entries(THEME_TEXT)) {
+    before[name] = ctx.contrastRatio(bg, ctx.parseColor(hex));
+  }
+  if (before["라이트"] < MIN) brokenLight++;
+  if (before["다크"] < MIN) brokenDark++;
+
   const text = ctx.pickTextColor(bg);
-  const got = ctx.contrastRatio(bg, text === "#000000" ? [0, 0, 0] : [255, 255, 255]);
-  const white = ctx.contrastRatio(bg, [255, 255, 255]);
+  const after = ctx.contrastRatio(bg, text === "#000000" ? [0, 0, 0] : [255, 255, 255]);
+  const mark = (v) => (v < MIN ? "←깨짐" : "     ");
   console.log(
-    `  ${fill.padEnd(10)} ${text}  ${got.toFixed(2).padStart(6)}:1  ${white.toFixed(2).padStart(5)}:1${white < MIN ? "  ← 그대로 뒀으면 안 읽힘" : ""}`
+    `  ${fill}  ${String(uses).padStart(4)}   ` +
+    `${before["라이트"].toFixed(2).padStart(6)}:1${mark(before["라이트"])} ` +
+    `${before["다크"].toFixed(2).padStart(6)}:1${mark(before["다크"])}  ` +
+    `${text} ${after.toFixed(2)}:1`
   );
-  if (got < MIN) { fail++; console.log(`        FAIL  ${fill} 에서 대비 ${got.toFixed(2)}:1 (${MIN} 미만)`); }
+  if (after < MIN) { fail++; console.log(`        FAIL  ${fill} 보정 후 ${after.toFixed(2)}:1 (${MIN} 미만)`); }
+}
+console.log(`\n  보정 전 기준 미달: 라이트 ${brokenLight}색 / 다크 ${brokenDark}색`);
+check(brokenLight > 0 && brokenDark > 0,
+  "이 검사가 실제로 무언가를 잡고 있다 (양쪽 모드에 깨진 색이 있었다)");
+console.log();
+
+/* 색공간 전체에서 보증되는가.
+   검정과 흰색의 대비가 같아지는 중간 휘도가 최악의 경우다. */
+{
+  let worst = Infinity, at = null;
+  for (let r = 0; r < 256; r += 3) {
+    for (let g = 0; g < 256; g += 3) {
+      for (let b = 0; b < 256; b += 3) {
+        const t = ctx.pickTextColor([r, g, b]);
+        const v = ctx.contrastRatio([r, g, b], t === "#000000" ? [0, 0, 0] : [255, 255, 255]);
+        if (v < worst) { worst = v; at = [r, g, b]; }
+      }
+    }
+  }
+  console.log(`  전 색공간 최저 대비 ${worst.toFixed(2)}:1 @ rgb(${at})`);
+  check(worst >= MIN, `어떤 불투명 배경에서도 ${MIN}:1 이상`);
 }
 console.log();
 
