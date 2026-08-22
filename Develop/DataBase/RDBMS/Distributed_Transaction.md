@@ -1,12 +1,12 @@
 ---
 title: 분산 트랜잭션
 tags: [database, architecture, rdbms]
-updated: 2026-04-01
+updated: 2026-08-22
 ---
 
 # 분산 트랜잭션
 
-## 개요
+## 문제의 시작
 
 단일 DB에서는 `BEGIN → COMMIT/ROLLBACK`으로 트랜잭션을 처리한다. 그런데 서비스가 쪼개지면서 주문 DB, 결제 DB, 재고 DB가 각각 다른 서버에 있는 상황이 된다. 이때 "주문 생성 → 결제 처리 → 재고 차감"을 하나의 트랜잭션처럼 묶는 건 단일 DB의 트랜잭션으로는 불가능하다.
 
@@ -25,12 +25,12 @@ updated: 2026-04-01
   → 각각 다른 DB. 하나가 실패하면 나머지는 어떻게 되돌리나?
 ```
 
-분산 트랜잭션의 핵심 문제는 **부분 실패(Partial Failure)**다. 3개 서비스 중 2개는 성공하고 1개만 실패했을 때, 성공한 2개를 어떻게 되돌릴 것인가. 이걸 해결하는 패턴들을 하나씩 살펴본다.
+분산 트랜잭션의 핵심 문제는 **부분 실패(Partial Failure)**다. 3개 서비스 중 2개는 성공하고 1개만 실패했을 때, 성공한 2개를 어떻게 되돌릴 것인가. 이걸 해결하는 패턴들을 하나씩 본다.
 
 
 ## 2PC (Two-Phase Commit)
 
-분산 트랜잭션의 가장 고전적인 방법이다. 코디네이터(Coordinator)가 참여 노드들에게 "커밋할 준비 됐나?"를 물어보고, 전부 OK면 커밋, 하나라도 NO면 전체 롤백한다.
+분산 트랜잭션의 가장 고전적인 방법이다. 코디네이터(Coordinator)가 참여 노드들에게 "커밋할 준비 됐나?"를 물어보고, 전부 OK면 커밋, 하나라도 NO면 전체 롤백한다. DB 표준으로는 XA 프로토콜이라고 부른다.
 
 ### 동작 방식
 
@@ -51,10 +51,10 @@ Phase 2 (Commit / Abort):
   코디네이터 → 참여자 C: "ROLLBACK"
 ```
 
-### 실제 구현 예시 (Spring + JTA)
+### 실제 구현 예시 (PostgreSQL XA)
 
 ```typescript
-// Node.js에서는 XA 트랜잭션을 직접 제어 (pg 드라이버 활용)
+// Node.js에서 XA 트랜잭션 직접 제어 (pg 드라이버 활용)
 const orderClient = new Pool({ connectionString: 'postgresql://order-db:5432/orders' });
 const paymentClient = new Pool({ connectionString: 'postgresql://payment-db:5432/payments' });
 
@@ -90,24 +90,31 @@ async function createOrder(request: OrderRequest): Promise<void> {
 }
 ```
 
+`PREPARE TRANSACTION`을 실행한 뒤에는 참여자 DB가 해당 트랜잭션을 디스크에 영구 기록하고 lock을 잡은 채 대기한다. PostgreSQL에서는 `pg_prepared_xacts` 뷰로 현재 PREPARE 상태인 트랜잭션을 확인할 수 있다.
+
 ### 2PC의 문제점
 
 실무에서 2PC를 쓰면 바로 부딪히는 문제들이 있다.
 
-**1. Blocking 문제**
-Prepare 단계에서 참여자가 lock을 잡고 코디네이터의 Commit/Abort 결정을 기다린다. 코디네이터가 죽으면 참여자는 lock을 잡은 채로 무한 대기한다. 그 동안 해당 row에 접근하는 다른 트랜잭션은 전부 멈춘다.
+**1. In-doubt 트랜잭션과 Blocking**
+
+Phase 1이 끝나고 모든 참여자가 "OK"를 보냈다. 코디네이터가 COMMIT을 결정하고 막 보내려는 순간에 죽는다. 참여자들은 lock을 잡은 채 코디네이터의 결정을 기다린다. 이 상태를 **in-doubt**라고 한다.
 
 ```
-참여자 A: Prepare OK → lock 잡은 상태로 대기
+참여자 A: PREPARE OK → lock 잡은 상태로 대기 (in-doubt)
 코디네이터: (네트워크 단절 or 서버 다운)
 참여자 A: Commit? Rollback? 결정을 못 받음 → lock 유지한 채 대기
   → 이 row를 읽으려는 다른 요청 전부 타임아웃
 ```
 
+코디네이터가 재시작되면 자신의 트랜잭션 로그를 읽어서 in-doubt 트랜잭션을 복구한다. 로그에 COMMIT 결정이 기록됐으면 COMMIT을 다시 보내고, ABORT가 기록됐으면 ROLLBACK을 보낸다. 문제는 로그를 쓰기 직전에 죽은 경우다. 코디네이터도 참여자도 무엇을 해야 할지 모른다. 이 경우 DBA가 `pg_prepared_xacts`를 보고 수동으로 결정해야 한다.
+
 **2. 코디네이터 단일 장애점(SPOF)**
-코디네이터 하나가 전체 트랜잭션의 생사를 결정한다. 코디네이터가 Prepare 응답을 다 받고, Commit을 보내기 직전에 죽으면 참여자들은 결정을 모른다.
+
+코디네이터 하나가 전체 트랜잭션의 생사를 결정한다. 코디네이터를 이중화해도, 이중화된 코디네이터들 간의 합의가 또 다른 분산 합의 문제가 된다.
 
 **3. 성능 저하**
+
 네트워크 왕복이 최소 4번(Prepare 요청 → Prepare 응답 → Commit 요청 → Commit 응답) 필요하고, 그 사이에 lock이 유지된다. 트래픽이 몰리면 lock 경합이 심해지면서 처리량이 급락한다.
 
 이런 이유로 마이크로서비스 환경에서는 2PC 대신 Saga 패턴을 주로 쓴다.
@@ -224,7 +231,7 @@ export class PaymentService {
 }
 ```
 
-Choreography의 문제는 **서비스가 3~4개만 넘어가도 이벤트 흐름을 추적하기 어렵다**는 점이다. 어떤 이벤트가 어디서 발행되고 누가 구독하는지 코드만 봐서는 전체 흐름이 안 보인다. 서비스 간 순환 의존성이 생기기도 한다.
+Choreography의 문제는 **서비스가 3~4개만 넘어가도 이벤트 흐름을 추적하기 어렵다**는 점이다. 어떤 이벤트가 어디서 발행되고 누가 구독하는지 코드만 봐서는 전체 흐름이 안 보인다. 서비스 간 순환 의존성이 생기기도 한다 — 예를 들어 결제 서비스가 재고 서비스 이벤트를 구독하고, 재고 서비스가 결제 서비스 이벤트를 구독하는 구조에서 장애가 나면 이벤트 루프가 어디서 멈췄는지 파악하기가 힘들다.
 
 
 ### Orchestration 방식
@@ -265,14 +272,14 @@ export class OrderSagaOrchestrator {
             const orderResult = await this.orderClient.createOrder(request);
             state.orderId = orderResult.orderId;
             state.step = SagaStep.PAYMENT_PROCESS;
-            await this.sagaStateRepository.save(state);
+            await this.sagaStateRepository.save(state);  // 크래시 복구 지점
 
             // Step 2: 결제 처리
             const paymentResult = await this.paymentClient.processPayment(
                 orderResult.orderId, request.amount);
             state.paymentId = paymentResult.paymentId;
             state.step = SagaStep.INVENTORY_DEDUCT;
-            await this.sagaStateRepository.save(state);
+            await this.sagaStateRepository.save(state);  // 크래시 복구 지점
 
             // Step 3: 재고 차감
             await this.inventoryClient.deductStock(request.productId, request.quantity);
@@ -287,11 +294,11 @@ export class OrderSagaOrchestrator {
     private async compensate(state: SagaState): Promise<void> {
         // 현재 단계에서 역순으로 보상 실행
         if (state.step === SagaStep.INVENTORY_DEDUCT) {
-            // 재고 차감 실패 → 결제 취소 필요
+            // 결제까지 성공했으니 취소 필요
             await this.paymentClient.cancelPayment(state.paymentId);
         }
         if (state.step >= SagaStep.PAYMENT_PROCESS) {
-            // 결제 처리 실패 → 주문 취소 필요
+            // 주문은 생성됐으니 취소 필요
             await this.orderClient.cancelOrder(state.orderId);
         }
         state.step = SagaStep.COMPENSATED;
@@ -300,7 +307,11 @@ export class OrderSagaOrchestrator {
 }
 ```
 
-Orchestration은 흐름이 한 곳에서 보여서 디버깅이 쉽다. 대신 Orchestrator가 단일 장애점이 될 수 있고, Orchestrator 자체의 상태 관리가 필요하다.
+각 단계 후 `sagaStateRepository.save(state)`를 호출하는 이유는 크래시 복구 때문이다. Orchestrator 프로세스가 Step 2 처리 중에 죽어도, 재시작 시 저장된 state를 읽어 어디까지 됐는지 알 수 있다. state가 없으면 처음부터 다시 실행해야 하고 주문 중복 생성 같은 문제가 생긴다.
+
+한 가지 더 있는데, Orchestrator가 결제 서비스를 호출하고 타임아웃이 났을 때다. 결제가 됐는지 안 됐는지 알 수 없다. 이 경우 각 서비스 호출에 **멱등성 키**를 넣어서, 재시도해도 중복 결제가 나지 않게 해야 한다.
+
+Orchestration은 흐름이 한 곳에서 보여서 디버깅이 쉽다. 대신 Orchestrator 자체의 상태 관리와 크래시 복구 로직이 필요하다.
 
 ### Choreography vs Orchestration 비교
 
@@ -377,7 +388,7 @@ export class InventoryTccService {
             const reservation = await manager.findOne(Reservation, { where: { id: reservationId } });
 
             if (reservation.status !== 'PENDING') {
-                return;  // 멱등성 보장 - 이미 처리된 경우 무시
+                return;  // 이미 처리된 경우 무시 (멱등성)
             }
 
             const inventory = await manager.findOne(Inventory, {
@@ -398,7 +409,7 @@ export class InventoryTccService {
             const reservation = await manager.findOne(Reservation, { where: { id: reservationId } });
 
             if (reservation.status !== 'PENDING') {
-                return;  // 멱등성 보장
+                return;  // 이미 처리된 경우 무시 (멱등성)
             }
 
             const inventory = await manager.findOne(Inventory, {
@@ -441,7 +452,11 @@ setInterval(async () => {
 }, 60_000);
 ```
 
-**3. Confirm/Cancel 실패 시**
+**3. 부분 Confirm 문제**
+
+TCC의 Confirm 단계는 2PC의 Phase 2와 같은 문제가 있다. 코디네이터(TCC를 호출하는 쪽)가 서비스 A에 Confirm을 보내고 서비스 B에 Confirm을 보내기 전에 죽으면, A는 CONFIRMED이고 B는 PENDING 상태가 된다. 코디네이터가 재시작할 때 자신이 어디까지 Confirm을 보냈는지 알아야 한다. Orchestration 방식과 마찬가지로, 코디네이터가 각 Confirm 호출 후 상태를 영구 저장해야 한다. 이걸 빼면 TCC가 2PC의 blocking 문제를 없애줘도, 부분 확정 문제는 여전히 남는다.
+
+**4. Confirm/Cancel 실패 시**
 
 네트워크 오류 등으로 Confirm이나 Cancel 자체가 실패하는 경우가 있다. 이때는 재시도 로직이 필수다. 재시도가 계속 실패하면 수동 개입이 필요하니, 알림과 함께 별도 테이블에 기록해 두는 게 좋다.
 
@@ -562,6 +577,8 @@ export class OutboxRelay {
 }
 ```
 
+Outbox Relay는 **at-least-once** 전달을 보장한다. Kafka 발행에 성공했지만 `published = true` 업데이트 전에 Relay가 죽으면, 재시작 시 같은 이벤트를 다시 발행한다. 소비자는 반드시 중복 이벤트를 처리할 수 있어야 한다. 앞서 나온 `ProcessedEvent` 테이블 패턴이 여기서 필요한 이유다.
+
 ### CDC (Change Data Capture) 방식
 
 폴링 대신 DB의 변경 로그를 직접 읽어서 이벤트를 발행하는 방법도 있다. Debezium 같은 도구가 MySQL의 binlog나 PostgreSQL의 WAL을 읽어서 outbox_events 테이블의 INSERT를 감지하고, 자동으로 Kafka에 발행한다.
@@ -574,14 +591,14 @@ Debezium 방식:
   Debezium → MySQL binlog 감시 → outbox_events INSERT 감지 → Kafka에 발행
 ```
 
-폴링보다 지연이 적고 DB 부하도 줄어든다. 다만 Debezium 자체를 운영해야 하니 인프라 복잡도가 올라간다. 트래픽이 적으면 폴링으로 시작하고, 지연이 문제 되면 CDC로 전환하는 게 현실적이다.
+폴링보다 지연이 적고 DB 부하도 줄어든다. CDC도 at-least-once라 중복 처리는 마찬가지로 소비자가 책임진다. Debezium 자체를 운영해야 하니 인프라 복잡도가 올라간다. 트래픽이 적으면 폴링으로 시작하고, 지연이 문제 되면 CDC로 전환하는 게 현실적이다.
 
 
-## 부분 정합성 깨짐: 실제로 겪는 문제들
+## 실제로 겪는 문제들
 
 패턴을 아무리 잘 설계해도, 분산 환경에서는 정합성이 깨지는 순간이 온다. 자주 발생하는 케이스와 대응 방법을 정리한다.
 
-### 1. 보상 트랜잭션 자체가 실패하는 경우
+### 보상 트랜잭션 자체가 실패하는 경우
 
 재고 차감이 실패해서 결제 취소(보상)를 시도하는데, 결제 서비스도 장애인 경우.
 
@@ -591,7 +608,7 @@ Debezium 방식:
   → 결제는 됐는데 주문은 취소, 재고도 안 빠짐
 ```
 
-**대응**: 보상 트랜잭션은 반드시 **재시도 가능한 구조**로 만들어야 한다. 실패한 보상을 별도 테이블에 저장해두고, 스케줄러가 성공할 때까지 재시도한다.
+보상 트랜잭션은 반드시 **재시도 가능한 구조**로 만들어야 한다. 실패한 보상을 별도 테이블에 저장해두고, 스케줄러가 성공할 때까지 재시도한다.
 
 ```typescript
 @Entity()
@@ -649,7 +666,7 @@ setInterval(async () => {
 }, 30_000);
 ```
 
-### 2. 이벤트 순서가 꼬이는 경우
+### 이벤트 순서가 꼬이는 경우
 
 Kafka 파티션이 여러 개면 같은 주문에 대한 이벤트 순서가 보장되지 않는다.
 
@@ -661,14 +678,14 @@ Kafka 수신 순서: 주문 취소 → 주문 생성
   → 이미 취소된 주문인데 결제가 됨
 ```
 
-**대응**: 같은 aggregate(예: 같은 주문 ID)의 이벤트는 같은 Kafka 파티션으로 보내야 한다. 주문 ID를 파티션 키로 사용하면 해당 주문의 이벤트 순서가 보장된다.
+같은 aggregate(예: 같은 주문 ID)의 이벤트는 같은 Kafka 파티션으로 보내야 한다. 주문 ID를 파티션 키로 사용하면 해당 주문의 이벤트 순서가 보장된다.
 
 ```typescript
 // 주문 ID를 키로 사용 → 같은 파티션으로 전송
 await kafkaProducer.send('order-events', String(order.id), eventPayload);
 ```
 
-### 3. 중복 이벤트 처리
+### 중복 이벤트 처리
 
 네트워크 재시도나 컨슈머 리밸런싱으로 같은 이벤트가 두 번 올 수 있다.
 
@@ -678,7 +695,7 @@ await kafkaProducer.send('order-events', String(order.id), eventPayload);
   → 2차: 10만원 또 결제 → 20만원 결제됨!
 ```
 
-**대응**: 모든 이벤트 처리에 멱등성 키를 적용한다.
+모든 이벤트 처리에 멱등성 키를 적용한다.
 
 ```typescript
 // 'order-created' 토픽 구독
@@ -703,7 +720,7 @@ async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
 }
 ```
 
-### 4. 타이밍 이슈로 인한 데이터 불일치
+### 타이밍 이슈로 인한 데이터 불일치
 
 주문 서비스에서 주문을 생성하고 이벤트를 발행했는데, 사용자가 그 사이에 주문 상세를 조회하면 결제 상태는 아직 "대기 중"이다. 이건 버그가 아니라 **최종 일관성(Eventual Consistency)**의 특성이다.
 
@@ -715,14 +732,14 @@ async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
   T4: 사용자가 주문 조회 → 결제 상태: "완료"
 ```
 
-**대응**: UI에서 "처리 중" 상태를 보여주고, 폴링이나 웹소켓으로 상태 변화를 알려주는 게 일반적이다. API 레벨에서는 주문 조회 시 결제 서비스에도 실시간으로 물어볼지, 캐시된 상태를 보여줄지 판단해야 한다. 대부분의 경우 캐시된 상태 + 비동기 갱신이면 충분하다.
+UI에서 "처리 중" 상태를 보여주고, 폴링이나 웹소켓으로 상태 변화를 알려주는 게 일반적이다. API 레벨에서는 주문 조회 시 결제 서비스에도 실시간으로 물어볼지, 캐시된 상태를 보여줄지 판단해야 한다. 대부분의 경우 캐시된 상태 + 비동기 갱신이면 충분하다.
 
 
 ## 패턴 선택 기준
 
 | 상황 | 적합한 패턴 |
 |------|-----------|
-| DB가 2~3개이고 강한 일관성이 필요 | 2PC (JTA) |
+| DB가 2~3개이고 강한 일관성이 필요 | 2PC (XA) |
 | 마이크로서비스, 서비스 3개 이하 | Saga (Choreography) |
 | 마이크로서비스, 서비스 4개 이상 | Saga (Orchestration) |
 | 리소스 예약이 핵심인 도메인 (좌석, 재고) | TCC |

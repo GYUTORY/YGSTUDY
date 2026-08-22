@@ -9,7 +9,7 @@ hide:
 
 # JavaScript 전체 보기
 
-문서 58개.
+문서 61개.
 
 ## ES6 & 고급 문법
 
@@ -82,6 +82,10 @@ hide:
 - [Node.js Buffer TCP](<10_웹_개발_및_보안/TCP/NodeJs Buffer와 TCP.md>)
 - [PBKDF2 — 비밀번호 키 유도 함수](10_웹_개발_및_보안/pbkdf2.md)
 - [Socket Manage](<10_웹_개발_및_보안/TCP/Socket Manage.md>)
+
+## 개요
+
+- [Node.js 동시성과 CPU 블로킹](Java_Script_Concurrency.md)
 
 ## 이벤트 루프 & 비동기
 
