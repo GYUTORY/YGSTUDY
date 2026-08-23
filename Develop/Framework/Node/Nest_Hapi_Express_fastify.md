@@ -318,6 +318,111 @@ fastify.get('/public', async () => {
 
 Express에서는 미들웨어 적용 범위를 라우터 단위로 나누려면 `express.Router()`를 따로 만들고 경로를 잘 분리해야 하는데, Fastify는 플러그인 등록만으로 스코프가 격리된다.
 
+### Fastify 훅 일곱 단계 — 각 단계에서만 할 수 있는 일
+
+Fastify 의 훅은 이름 순서를 외우는 것보다 **그 자리에서만 가능한 일**을 아는 게 값이 있다. 5.12.1 에서 훅 일곱 개를 전부 걸고 실행 순서를 찍었다.
+
+```javascript
+onRequest → preParsing → preValidation → preHandler → preSerialization → onSend → onResponse
+```
+
+훅마다 인자 개수가 다르다. 페이로드를 만지는 두 개(`preSerialization`·`onSend`)만 세 번째 인자를 받고, 나머지는 두 개다. **async 훅에 인자를 하나 더 주면 등록 시점에 죽는다.**
+
+```javascript
+// ✗ FST_ERR_HOOK_INVALID_ASYNC_HANDLER — Async function has too many arguments
+app.addHook('onRequest', async (req, reply, payload) => {});
+
+// ✓
+app.addHook('onRequest', async (req, reply) => {});
+app.addHook('onSend', async (req, reply, payload) => payload);
+```
+
+#### onRequest — body 가 아직 없다. 그래서 싸다
+
+`onRequest` 시점에는 본문이 파싱되기 전이다. 단계별로 `req.body` 를 찍으면 이렇게 나온다.
+
+```
+onRequest       undefined  ← 아직 파싱 전
+preValidation   {"n":42}
+preHandler      {"n":42}
+```
+
+인증과 레이트리밋을 여기 두는 이유가 이것이다. 토큰이 없거나 한도를 넘은 요청이라면 **본문을 읽지도 않고** 끊을 수 있다. 10MB 짜리 업로드를 파싱한 뒤에 401 을 주는 것과, 헤더만 보고 끊는 것의 차이다. 반대로 여기서 `req.body` 를 쓰려 들면 항상 `undefined` 라 조용히 어긋난다.
+
+#### preValidation — 스키마가 보기 전에 payload 를 고치는 자리
+
+주의할 게 하나 있다. **Fastify 는 기본적으로 타입을 강제 변환한다**(ajv `coerceTypes`). 그래서 정수 스키마에 문자열 `"42"` 를 보내도 그냥 통과한다. 이걸 모르고 "타입 변환" 을 preValidation 의 용도로 적어 두면 틀린 설명이 된다.
+
+```javascript
+// 스키마: { n: { type: 'integer' } } 에 payload { n: '42' } 를 보냈을 때
+// 기본값               → 200  (Fastify 가 알아서 42 로 바꾼다)
+// coerceTypes: false  → 400  FST_ERR_VALIDATION
+```
+
+`preValidation` 이 실제로 필요한 건 **coercion 으로 안 되는 보정**이다. 대표적으로 레거시 클라이언트가 보내는 옛 필드명을 새 이름으로 옮기는 경우다.
+
+```javascript
+app.addHook('preValidation', async (req) => {
+  if (req.body?.user_name !== undefined && req.body.userName === undefined) {
+    req.body.userName = req.body.user_name;
+    delete req.body.user_name;
+  }
+});
+
+app.post('/x', {
+  schema: { body: { type: 'object', required: ['userName'],
+                    additionalProperties: false,
+                    properties: { userName: { type: 'string' } } } }
+}, async (req) => ({ userName: req.body.userName }));
+
+// payload { user_name: 'kyg' } 를 보내면
+//   훅 없음 → 400  body must have required property 'userName'
+//   훅 있음 → 200  {"userName":"kyg"}
+```
+
+#### preSerialization vs onSend — 여기서 성능이 갈린다
+
+둘 다 "응답 나가기 직전" 처럼 보이지만 **받는 것이 다르다.** 같은 요청에서 두 훅의 payload 를 찍으면 이렇다.
+
+```
+preSerialization   object   {"ok":true,"스키마에없는필드":"사라진다"}
+onSend             string   {"ok":true}
+```
+
+`preSerialization` 은 **객체**를 받고, `onSend` 는 이미 직렬화가 끝난 **문자열**을 받는다. (덤으로 이 출력이 응답 스키마의 동작도 보여준다 — 스키마에 없는 필드는 직렬화 단계에서 조용히 빠진다.)
+
+그래서 응답 봉투(`{ data, meta }` 같은 공통 래핑)를 씌우는 정본 위치는 `preSerialization` 이다.
+
+```javascript
+// ✓ 객체 상태에서 감싼다. 직렬화는 그 뒤에 한 번만 돈다
+app.addHook('preSerialization', async (req, reply, payload) => ({
+  data: payload,
+  meta: { requestId: req.id }
+}));
+
+// ✗ 이미 문자열이라 되돌렸다가 다시 만들어야 한다
+app.addHook('onSend', async (req, reply, payload) => {
+  const obj = JSON.parse(payload);              // 방금 만든 문자열을 도로 판다
+  return JSON.stringify({ data: obj, meta: {} }); // 그리고 JSON.stringify 로 다시 만든다
+});
+```
+
+아래쪽 방식이 나쁜 건 한 번 더 도는 것 자체보다, **Fastify 를 쓰는 이유를 버린다**는 데 있다. Fastify 는 응답 스키마로 직렬화 함수를 미리 컴파일해 두는데(`fast-json-stringify`), `onSend` 에서 다시 감싸면 그 결과물을 범용 `JSON.stringify` 로 갈아엎는 셈이 된다. 스키마 기반 직렬화의 이점이 봉투 한 겹 때문에 사라진다.
+
+`onSend` 가 맞는 자리는 **문자열이나 헤더를 다루는 일**이다. 응답 헤더 추가, 본문 압축, 바이트 수 기록 같은 것.
+
+#### 정리
+
+| 훅 | 그 자리에서만 되는 일 | 주의 |
+|---|---|---|
+| `onRequest` | 인증·레이트리밋 — 파싱 비용 없이 끊는다 | `req.body` 는 `undefined` |
+| `preParsing` | 본문 스트림 자체를 바꾼다 (해제·복호화) | 스트림을 반환해야 한다 |
+| `preValidation` | 스키마가 보기 전 payload 보정 | 타입 변환은 이미 자동이다 |
+| `preHandler` | 인가·리소스 소유권 검사 | 검증된 body 를 쓸 수 있다 |
+| `preSerialization` | **응답 봉투** — 객체 상태에서 감싼다 | 여기가 정본 |
+| `onSend` | 헤더·압축·바이트 수 | 문자열이다. 파싱해 되돌리지 말 것 |
+| `onResponse` | 접근 로그·메트릭 | 응답은 이미 나갔다. 못 바꾼다 |
+
 ### NestJS: 데코레이터 기반 계층 구조
 
 NestJS는 Guard, Interceptor, Pipe, Filter를 데코레이터로 붙인다. 적용 범위를 글로벌, 컨트롤러, 메서드 단위로 설정할 수 있다.
