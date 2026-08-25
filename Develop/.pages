@@ -1,6 +1,7 @@
 nav:
   - index.md
   - 최근 변경 문서: 최근.md
+  - 최근 학습 현황: 최근_학습_현황.md
   - Language
   - Backend:
     - 백엔드 전체: _group/backend/

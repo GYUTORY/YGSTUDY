@@ -1,6 +1,7 @@
 ---
 title: 학습 및 보완 항목
-updated: 2026-01-18
+tags: [backend, database, cache, redis, aws, kubernetes, microservices, performance, architecture, design-patterns]
+updated: 2026-08-25
 ---
 
 # 학습 및 보완 항목
@@ -77,6 +78,59 @@ updated: 2026-01-18
 - [V] **캐시 무효화**: TTL, 수동 삭제, 태그 기반 무효화
 - [V] **로컬 vs 분산 캐시**: Caffeine vs Redis. 사용 시점 구분
 
+**Redis Cache-Aside 구현:**
+
+```java
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
+    private final RedisTemplate<String, User> redisTemplate;
+
+    public User getUser(Long userId) {
+        String key = "user:" + userId;
+        User cached = redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
+        User user = userRepository.findById(userId)
+            .orElseThrow(EntityNotFoundException::new);
+        redisTemplate.opsForValue().set(key, user, Duration.ofMinutes(10));
+        return user;
+    }
+
+    @Transactional
+    public void updateUser(User user) {
+        userRepository.save(user);
+        redisTemplate.delete("user:" + user.getId());
+    }
+}
+```
+
+캐시 삭제 순서가 중요하다. DB 업데이트 전에 캐시를 먼저 삭제하면 그 사이에 다른 요청이 캐시 미스 후 DB에서 읽고 구버전을 캐시에 올린다. DB 업데이트 완료 후 캐시를 삭제해야 한다.
+
+Write-Behind를 쓸 때는 캐시가 내려가면 아직 DB에 반영 안 된 데이터가 날아간다. 결제, 재고 같은 데이터에는 절대 쓰면 안 된다.
+
+**Caffeine 로컬 캐시 설정:**
+
+```java
+@Configuration
+@EnableCaching
+public class CacheConfig {
+    @Bean
+    public CacheManager cacheManager() {
+        CaffeineCacheManager manager = new CaffeineCacheManager("users", "products");
+        manager.setCaffeine(Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(Duration.ofMinutes(5))
+            .recordStats());
+        return manager;
+    }
+}
+```
+
+로컬 캐시는 다중 인스턴스 환경에서 인스턴스마다 다른 값을 들고 있을 수 있다. 한 서버에서 업데이트해도 다른 서버의 캐시는 TTL 만료 전까지 구버전을 반환한다. 변경 빈도가 낮거나 일시적 불일치가 허용되는 데이터(공지사항, 환율 등)에만 쓴다.
+
 ### 데이터베이스 심화 (우선순위: 높음)
 - [V] **Connection Pool**: HikariCP 설정. maximumPoolSize, connectionTimeout
 - [V] **Optimistic Lock**: 버전 번호 체크. 동시 수정 감지
@@ -85,6 +139,65 @@ updated: 2026-01-18
 - [V] **Query 최적화**: EXPLAIN ANALYZE. 인덱스 활용도 체크
 - [V] **N+1 문제**: Fetch Join, @EntityGraph. Lazy Loading 주의
 - [V] **격리 수준**: Read Committed, Repeatable Read. Phantom Read 차이
+
+**HikariCP 설정:**
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mydb?socketTimeout=30000&connectTimeout=5000
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 3000        # 풀에서 커넥션 대기 최대 시간 (ms)
+      idle-timeout: 600000            # 유휴 커넥션 유지 시간 (ms)
+      max-lifetime: 1800000           # 커넥션 최대 수명 — DB wait_timeout보다 반드시 짧게
+      validation-timeout: 5000
+      leak-detection-threshold: 60000 # 이 시간 안에 반납 안 되면 경고 로그
+```
+
+`connectionTimeout`과 `socketTimeout`은 다른 설정이다. `connectionTimeout`은 HikariCP 풀에서 커넥션을 빌리는 대기 시간이고, `socketTimeout`은 JDBC URL에서 설정하며 DB가 쿼리에 응답하는 시간이다. `socketTimeout` 없이 운영하면 DB가 응답하지 않을 때 스레드가 무한 대기한다.
+
+`max-lifetime`은 MySQL의 `wait_timeout`(기본 8시간)보다 짧게 설정해야 한다. 그렇지 않으면 MySQL이 커넥션을 끊었는데 HikariCP는 살아있다고 착각해서 `Communications link failure`가 난다.
+
+**Optimistic Lock 사용:**
+
+```java
+@Entity
+public class Order {
+    @Id @GeneratedValue
+    private Long id;
+
+    @Version
+    private Long version;
+
+    private OrderStatus status;
+    private int quantity;
+}
+```
+
+```java
+@Transactional
+public void approveOrder(Long orderId) {
+    Order order = orderRepository.findById(orderId).orElseThrow();
+    order.setStatus(OrderStatus.APPROVED);
+    // flush 시점에 version 충돌 감지 → OptimisticLockingFailureException
+}
+
+// 재시도가 필요하면 호출부에서 처리
+@Retryable(
+    value = OptimisticLockingFailureException.class,
+    maxAttempts = 3,
+    backoff = @Backoff(delay = 100)
+)
+public void approveWithRetry(Long orderId) {
+    approveOrder(orderId);
+}
+```
+
+Optimistic Lock은 충돌이 드문 상황에 적합하다. 선착순 좌석 예약처럼 경쟁이 심한 경우에는 재시도가 폭증해서 오히려 느려진다. 그런 경우에는 Pessimistic Lock이 낫다.
+
+Pessimistic Lock을 쓸 때는 락 획득 순서를 코드 전체에서 일관되게 유지해야 한다. 주문과 상품을 잠글 때 어디서는 주문→상품 순서, 어디서는 상품→주문 순서로 잠그면 데드락이 생긴다.
 
 ### 동시성 & 성능 (우선순위: 높음)
 - [ ] **Thread Pool**: Core, Max 크기 결정. Queue 용량 설정
@@ -167,6 +280,53 @@ updated: 2026-01-18
 - [V] **Fallback**: 기본값 반환, 캐시 사용, 다른 서비스 호출
 - [V] **Health Check**: Liveness(프로세스 살아있는지), Readiness(요청 받을 준비)
 
+**Resilience4j Circuit Breaker + Retry 설정:**
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50          # 50% 실패율에서 Open 상태로
+        wait-duration-in-open-state: 30s    # 30초 후 Half-Open으로 전환
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignore-exceptions:
+          - com.example.BusinessException    # 비즈니스 예외는 실패로 카운트 안 함
+  retry:
+    instances:
+      paymentService:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+```
+
+```java
+@CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
+@Retry(name = "paymentService")
+public PaymentResponse processPayment(PaymentRequest request) {
+    return paymentClient.pay(request);
+}
+
+public PaymentResponse paymentFallback(PaymentRequest request, Throwable e) {
+    log.warn("Payment fallback triggered for order {}: {}", request.getOrderId(), e.getMessage());
+    return PaymentResponse.pending(request.getOrderId());
+}
+```
+
+Circuit Breaker와 Retry를 같이 쓸 때 어노테이션 순서가 실행 순서다. `@Retry`가 바깥, `@CircuitBreaker`가 안쪽이 돼야 Circuit Breaker가 Open일 때 Retry가 시도하지 않는다. 위 예시는 반대로 적혀 있는데, Resilience4j 어노테이션은 안쪽부터 적용되므로 `@CircuitBreaker`를 먼저 쓰면 Retry가 바깥에서 감싸는 구조가 된다.
+
+`record-exceptions`를 지정하지 않으면 모든 예외가 실패 카운트에 들어간다. 입력값 오류처럼 클라이언트 문제인 경우도 Circuit Breaker를 열어버릴 수 있다. `ignore-exceptions`에 비즈니스 예외를 반드시 넣어야 한다.
+
+Fallback 메서드 시그니처는 원래 메서드와 파라미터가 같고 마지막에 `Throwable`을 추가한 형태여야 한다. 타입이 맞지 않으면 Fallback이 동작하지 않고 예외가 그대로 올라온다.
+
 ## 학습 순서 (실무 기준)
 
 ### 1개월 차: 인프라 기초
@@ -204,4 +364,3 @@ updated: 2026-01-18
 실무에서 자주 쓰는 순서대로 정리했다. 모든 항목을 다 알 필요는 없다. 현재 팀에서 사용하는 기술 스택에 맞춰서 선택적으로 학습한다.
 
 우선순위 '높음'은 반드시 알아야 하고, '중간'은 필요할 때 찾아보면 되고, '낮음'은 나중에 천천히 학습한다.
-
