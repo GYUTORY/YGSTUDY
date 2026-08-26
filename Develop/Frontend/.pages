@@ -1,3 +1,5 @@
 nav:
   - index.md
   - 프론트엔드에서의 햄버거 메뉴: Hamburger_Menu.md
+  - 상태 관리: State_Management
+  - 컴포넌트 설계: Component_Design
