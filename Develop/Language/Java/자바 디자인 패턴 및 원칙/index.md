@@ -9,7 +9,7 @@ hide:
 
 # 디자인 패턴 & 원칙 전체 보기
 
-문서 7개.
+문서 8개.
 
 ## 개요
 
@@ -18,6 +18,7 @@ hide:
 - [Java - Proxy Pattern (프록시 패턴)](Java_Proxy_Pattern.md)
 - [Java Generics](Generics.md)
 - [Java Reflection](Reflection.md)
+- [Java 싱글톤 — 멀티스레드·직렬화·ClassLoader 문제](Java_Singleton_Pattern.md)
 - [Java 함수형 인터페이스 실무 활용](Java_Functional_Interface.md)
 - [Single Responsibility Principle](<단일 책임 원칙.md>)
 
