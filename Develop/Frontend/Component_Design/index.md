@@ -9,11 +9,12 @@ hide:
 
 # Component Design 전체 보기
 
-문서 3개.
+문서 4개.
 
 ## 개요
 
 - [React Hooks 깊이 파기](React_Hooks_Deep_Dive.md)
 - [렌더링 최적화](Rendering_Optimization.md)
+- [브라우저 렌더링 파이프라인](Browser_Rendering_Pipeline.md)
 - [컴포넌트 패턴](Component_Patterns.md)
 
