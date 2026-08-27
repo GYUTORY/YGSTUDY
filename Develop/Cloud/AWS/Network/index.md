@@ -11,7 +11,7 @@ hide:
 
 VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 
-문서 27개.
+문서 28개.
 
 ## 개요
 
@@ -34,6 +34,7 @@ VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 - [AWS VPC Sharing (Shared VPC)](VPC_Sharing.md)
 - [AWS 네트워크 구성요소를 건물 비유로 이해하기](AWS_Network_Components_Analogy.md)
 - [AWS 라우팅 테이블](Route_Table.md)
+- [CDN + Adaptive Thumbnail](CDN_Adaptive_Thumbnail.md)
 - [CloudFront Functions와 Lambda@Edge — 선택과 구현](Cloud_Front_Functions_and_Lambda_at_Edge.md)
 - [ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다](Elastic_Network_Interface.md)
 - [Private vs Public Subnet](Private_vs_Public_Subnet.md)

@@ -286,6 +286,216 @@ exports.handler = async (event) => {
 
 Host 헤더를 안 바꾸면 Origin 서버에서 "Unknown host" 오류가 난다. ALB 뒤에 다중 도메인을 호스팅하는 경우에 특히 그렇다.
 
+### 동적 이미지 리사이즈
+
+CDN에서 이미지를 동적으로 리사이즈할 때 핵심은 Lambda 호출 횟수다. 같은 파라미터 조합의 두 번째 요청부터는 Lambda가 실행되지 않아야 한다. 트래픽이 집중될 때 변환 비용이 서빙 비용을 초과하는 구간이 생각보다 빠르게 온다.
+
+캐시는 세 레이어로 쌓인다. CloudFront 캐시(파라미터 조합별), S3 변환본(CloudFront 캐시 만료 후), Lambda(둘 다 없을 때 실행).
+
+```
+클라이언트 요청
+  → [viewer-request: CF Function] Accept → x-accept-image 정규화
+  → CloudFront 캐시 확인 (캐시 키: w, h, fmt, x-accept-image)
+  → [캐시 히트] → 응답, Lambda 미호출
+  → [캐시 미스] → [origin-request: Lambda@Edge]
+      → S3 변환본 존재 확인
+      → 있음: request.uri를 변환본 경로로 교체 → S3에서 직접 응답
+      → 없음: 원본 S3에서 가져와 Sharp 변환 → S3 저장 → Lambda에서 직접 응답
+  → CloudFront가 응답을 캐시에 저장
+```
+
+#### Accept 헤더 정규화
+
+Accept 헤더를 그대로 캐시 키에 넣으면 안 된다. `image/avif,image/webp,image/*,*/*;q=0.8`처럼 브라우저마다 문자열이 달라서 동일한 포맷 지원임에도 캐시 항목이 분산된다.
+
+viewer-request CloudFront Function에서 Accept를 `avif`, `webp`, `jpeg` 세 값 중 하나로 정규화하고 `x-accept-image` 헤더에 담는다. 이 헤더만 캐시 키에 포함한다.
+
+```javascript
+function handler(event) {
+    var request = event.request;
+    var accept = request.headers['accept']
+        ? request.headers['accept'].value
+        : '';
+    
+    // fmt 쿼리 파라미터가 명시된 경우 Accept 협상 생략
+    if (request.querystring.fmt) {
+        return request;
+    }
+    
+    var fmt;
+    if (accept.indexOf('image/avif') !== -1) {
+        fmt = 'avif';
+    } else if (accept.indexOf('image/webp') !== -1) {
+        fmt = 'webp';
+    } else {
+        fmt = 'jpeg';
+    }
+    
+    request.headers['x-accept-image'] = { value: fmt };
+    return request;
+}
+```
+
+Safari는 iOS 16 이전에서 AVIF를 지원하지 않는다. 구형 Safari 대응이 필요하면 Accept에 `image/avif`가 있더라도 User-Agent를 추가로 확인한다.
+
+#### Cache Policy
+
+`w`, `h`, `fmt` 쿼리 파라미터와 `x-accept-image` 헤더를 캐시 키에 포함한다.
+
+```hcl
+resource "aws_cloudfront_cache_policy" "image_resize" {
+  name        = "image-resize"
+  min_ttl     = 86400
+  default_ttl = 2592000
+  max_ttl     = 31536000
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "whitelist"
+      headers {
+        items = ["x-accept-image"]
+      }
+    }
+    query_strings_config {
+      query_string_behavior = "whitelist"
+      query_strings {
+        items = ["w", "h", "fmt"]
+      }
+    }
+    enable_accept_encoding_brotli = true
+    enable_accept_encoding_gzip   = true
+  }
+}
+```
+
+`w`, `h`가 캐시 키에 들어가면 `?w=320`과 `?w=321`이 다른 캐시 항목이 된다. 클라이언트에서 임의 픽셀값을 요청하지 못하도록 Lambda에서 입력을 정해진 치수 목록으로 스냅한다.
+
+```javascript
+const ALLOWED = [120, 240, 360, 480, 720, 1080, 1920];
+function snap(v) { return ALLOWED.find(s => s >= v) || ALLOWED[ALLOWED.length - 1]; }
+```
+
+#### origin-request Lambda
+
+Sharp는 네이티브 바이너리를 포함한다. Lambda 레이어에 올릴 때는 `npm install sharp --platform linux --arch x64`로 Linux x86-64 바이너리를 받아야 한다. macOS나 Windows에서 `npm install`만 하면 런타임에 `sharp` 모듈을 찾지 못해 오류가 난다.
+
+```javascript
+const AWS = require('aws-sdk');
+const sharp = require('sharp');
+
+const s3 = new AWS.S3({ region: 'us-east-1' });
+const BUCKET = process.env.IMAGE_BUCKET;
+const ALLOWED = [120, 240, 360, 480, 720, 1080, 1920];
+
+exports.handler = async (event) => {
+    const request = event.Records[0].cf.request;
+    const uri = decodeURIComponent(request.uri);
+    const qs = parseQuerystring(request.querystring);
+    
+    const width  = qs.w ? snap(parseInt(qs.w, 10)) : null;
+    const height = qs.h ? snap(parseInt(qs.h, 10)) : null;
+    
+    // x-accept-image 헤더 없으면 fmt 쿼리 파라미터, 둘 다 없으면 jpeg
+    const acceptImage = (request.headers['x-accept-image'] || [{ value: 'jpeg' }])[0].value;
+    const format = ['avif', 'webp', 'jpeg'].includes(qs.fmt) ? qs.fmt : acceptImage;
+    
+    if (!width && !height && format === 'jpeg') {
+        return request; // 변환 없이 S3 origin으로 통과
+    }
+    
+    const originalKey = uri.replace(/^\//, '');
+    const cacheKey = toCacheKey(originalKey, width, height, format);
+    
+    // S3에 변환본이 있으면 request.uri를 그 경로로 교체
+    // CloudFront가 S3에서 변환본을 가져와 캐시에 저장한다
+    if (await headObject(BUCKET, cacheKey)) {
+        request.uri = '/' + cacheKey;
+        return request;
+    }
+    
+    // 원본 가져오기
+    const { Body } = await s3.getObject({ Bucket: BUCKET, Key: originalKey }).promise();
+    
+    let pipeline = sharp(Body);
+    if (width || height) {
+        pipeline = pipeline.resize(width, height, { fit: 'inside', withoutEnlargement: true });
+    }
+    
+    let buffer, contentType;
+    if (format === 'avif') {
+        buffer = await pipeline.avif({ quality: 70 }).toBuffer();
+        contentType = 'image/avif';
+    } else if (format === 'webp') {
+        buffer = await pipeline.webp({ quality: 85 }).toBuffer();
+        contentType = 'image/webp';
+    } else {
+        buffer = await pipeline.jpeg({ quality: 85 }).toBuffer();
+        contentType = 'image/jpeg';
+    }
+    
+    // S3에 변환본 저장 — 다음 캐시 미스 때 Lambda를 건너뜀
+    await s3.putObject({
+        Bucket: BUCKET,
+        Key: cacheKey,
+        Body: buffer,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000, immutable',
+    }).promise().catch(err => console.error('s3 put failed:', err.message));
+    
+    // origin-request 응답 body 상한: base64 인코딩 후 1MB
+    return {
+        status: '200',
+        statusDescription: 'OK',
+        headers: {
+            'content-type':  [{ key: 'Content-Type',  value: contentType }],
+            'cache-control': [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+            'vary':          [{ key: 'Vary',           value: 'Accept' }],
+        },
+        bodyEncoding: 'base64',
+        body: buffer.toString('base64'),
+    };
+};
+
+function snap(v) {
+    return ALLOWED.find(s => s >= v) || ALLOWED[ALLOWED.length - 1];
+}
+
+function toCacheKey(key, width, height, format) {
+    const ext  = { avif: 'avif', webp: 'webp', jpeg: 'jpg' }[format] || 'jpg';
+    const base = key.replace(/\.[^/.]+$/, '');
+    const dims = [width && `w${width}`, height && `h${height}`].filter(Boolean).join('_');
+    return `_resized/${base}${dims ? '_' + dims : ''}.${ext}`;
+}
+
+function parseQuerystring(qs) {
+    if (!qs) return {};
+    return Object.fromEntries(
+        qs.split('&').filter(Boolean).map(pair => {
+            const idx = pair.indexOf('=');
+            const k = idx >= 0 ? pair.slice(0, idx) : pair;
+            const v = idx >= 0 ? pair.slice(idx + 1) : '';
+            return [decodeURIComponent(k), decodeURIComponent(v)];
+        })
+    );
+}
+
+async function headObject(bucket, key) {
+    try {
+        await s3.headObject({ Bucket: bucket, Key: key }).promise();
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+```
+
+AVIF 인코딩은 WebP보다 10~30배 느리다. 고해상도 원본에서 AVIF 변환 시 Lambda 타임아웃(30초)에 걸릴 수 있다. 품질을 50 이하로 낮추거나 허용 너비를 720px 이하로 제한하면 대부분 해결된다.
+
+변환된 이미지가 1MB를 초과하면 CloudFront가 오류를 반환한다. 큰 이미지를 다루는 경우 `buffer.length > 900 * 1024`를 확인하고 WebP 품질을 낮추거나 오류 응답을 반환한다.
+
 ## 두 서비스 선택 기준
 
 외부 네트워크 호출이 필요하다면 Lambda@Edge다. 인증 토큰을 Redis나 DynamoDB로 검증하거나, 설정을 DB에서 읽어야 한다면 Lambda@Edge만 가능하다.
