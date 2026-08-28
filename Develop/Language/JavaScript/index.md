@@ -9,7 +9,7 @@ hide:
 
 # JavaScript 전체 보기
 
-문서 61개.
+문서 59개.
 
 ## ES6 & 고급 문법
 
@@ -83,10 +83,6 @@ hide:
 - [PBKDF2 — 비밀번호 키 유도 함수](10_웹_개발_및_보안/pbkdf2.md)
 - [Socket Manage](<10_웹_개발_및_보안/TCP/Socket Manage.md>)
 
-## 개요
-
-- [Node.js 동시성과 CPU 블로킹](Java_Script_Concurrency.md)
-
 ## 이벤트 루프 & 비동기
 
 - [Async/Await & Promise 심화](05_이벤트_루프_비동기/Async_Await_and_Promise.md)
@@ -102,4 +98,8 @@ hide:
 
 - [JavaScript Proxy (객체 동작 가로채기)](<07_프록시_리플렉션/객체 동작 가로채기.md>)
 - [JavaScript 속성 접근 제어 (Property Access Control)](<07_프록시_리플렉션/속성 접근 제어.md>)
+
+## 개요
+
+- [Node.js 동시성과 CPU 블로킹](Java_Script_Concurrency.md)
 
