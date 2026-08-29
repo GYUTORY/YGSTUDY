@@ -1,7 +1,7 @@
 ---
 title: "React 내장 상태 관리: useState, useReducer, Context API"
 tags: [frontend, javascript, typescript, design-patterns, performance]
-updated: 2026-08-26
+updated: 2026-08-29
 ---
 
 # React 내장 상태 관리
@@ -44,6 +44,40 @@ setCount(prev => prev + 1);
 ```
 
 이벤트 핸들러 안에서 `setCount(count + 1)`을 세 번 호출하면 `count`가 3 늘어날 것 같지만, 클로저가 같은 `count` 값을 참조해서 결국 1만 늘어난다. 함수형 업데이트는 이 문제를 피한다.
+
+---
+
+## useState 지연 초기화
+
+초기값으로 비싼 계산이 들어갈 때, 값을 직접 넘기면 렌더마다 그 계산이 반복 실행된다.
+
+```tsx
+// localStorage에서 읽는 비용이 매 렌더마다 발생한다
+const [filters, setFilters] = useState(
+  JSON.parse(localStorage.getItem('filters') ?? '{}')
+);
+```
+
+`useState`의 초기값 인자는 렌더마다 평가된다. 초기 마운트 이후에는 쓰이지도 않는 값을 계속 만든다. 함수로 감싸면 최초 한 번만 실행된다.
+
+```tsx
+// () => 로 감싸면 초기 마운트 때만 실행된다
+const [filters, setFilters] = useState(() =>
+  JSON.parse(localStorage.getItem('filters') ?? '{}')
+);
+```
+
+컴포넌트가 자주 리렌더링되거나, 초기값이 배열 탐색·정렬·파싱처럼 O(n) 이상의 계산을 포함하면 지연 초기화를 기본으로 쓰는 게 낫다.
+
+주의할 점이 있다. 함수 자체를 상태로 저장하고 싶을 때 헷갈리는 경우가 생긴다.
+
+```tsx
+// initState가 함수면 React가 lazy initializer로 호출해버린다
+const [fn, setFn] = useState(initState);   // initState()의 반환값이 초기 상태가 됨
+
+// 함수를 상태로 저장하려면 한 번 더 감싼다
+const [fn, setFn] = useState(() => initState);   // initState 자체가 초기 상태가 됨
+```
 
 ---
 
@@ -90,6 +124,154 @@ function reducer(state: State, action: Action) {
   });
 }
 ```
+
+---
+
+## useReducer init 함수
+
+`useReducer`는 세 번째 인자로 초기화 함수를 받는다. 이걸 모르면 초기화 로직이 reducer 내부에 `INIT` 같은 액션으로 묻히거나, "리셋" 기능을 구현할 때 초기 상태 객체를 두 곳에서 유지해야 하는 상황이 생긴다.
+
+`useReducer(reducer, arg, init)` 형태로 쓰면 `init(arg)`의 반환값이 초기 상태가 된다.
+
+```tsx
+type CounterState = { count: number; step: number };
+
+type Action =
+  | { type: 'INCREMENT' }
+  | { type: 'RESET' };
+
+function initCounter(step: number): CounterState {
+  return { count: 0, step };
+}
+
+function reducer(state: CounterState, action: Action): CounterState {
+  switch (action.type) {
+    case 'INCREMENT': return { ...state, count: state.count + state.step };
+    case 'RESET': return initCounter(state.step);  // 초기화 함수 재사용
+    default: return state;
+  }
+}
+
+const [state, dispatch] = useReducer(reducer, initialStep, initCounter);
+```
+
+`RESET` 케이스에서 `initCounter`를 그대로 재사용할 수 있다는 게 핵심이다. init 함수 없이 구현하면 이런 모양이 된다.
+
+```tsx
+case 'RESET': return { count: 0, step: state.step };
+```
+
+초기 상태 형태가 바뀔 때마다 `RESET` 케이스도 같이 고쳐야 한다. init 함수를 쓰면 이 동기화 문제가 사라진다.
+
+---
+
+## Context 소비 — useContext
+
+`createContext`와 `Provider`만 있으면 절반이다. 소비하는 쪽이 어떻게 연결되는지 봐야 전체 그림이 잡힌다.
+
+```tsx
+const ThemeContext = createContext<Theme>('light');
+
+function App() {
+  const [theme, setTheme] = useState<Theme>('light');
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Toolbar setTheme={setTheme} />
+    </ThemeContext.Provider>
+  );
+}
+
+// 소비 측 — useContext로 꺼낸다
+function ThemedButton() {
+  const theme = useContext(ThemeContext);
+  return (
+    <button className={`btn-${theme}`}>
+      현재 테마: {theme}
+    </button>
+  );
+}
+```
+
+`useContext(ThemeContext)`는 가장 가까운 상위 `ThemeContext.Provider`의 `value`를 반환한다. Provider가 없으면 `createContext`에 넘긴 기본값(`'light'`)을 반환한다.
+
+Provider 없이 기본값이 반환되는 상황이 조용한 버그가 된다. `'light'`가 반환되니 에러는 안 나는데 화면이 이상하게 동작하는 경우다.
+
+---
+
+## Context를 감싸는 커스텀 훅
+
+`useContext`를 컴포넌트에 직접 쓰면 두 가지 문제가 생긴다. Provider 없이 쓸 경우 기본값이 조용히 반환되고, TypeScript에서 기본값을 `null`로 설정하면 소비 측마다 null 체크가 반복된다.
+
+```tsx
+const ThemeContext = createContext<Theme | null>(null);
+
+function ThemedButton() {
+  const theme = useContext(ThemeContext);
+  if (!theme) return null;  // 모든 소비 컴포넌트에 이 체크가 붙는다
+  return <button className={`btn-${theme}`}>{theme}</button>;
+}
+```
+
+커스텀 훅으로 감싸면 이 체크를 한 곳에 모을 수 있다.
+
+```tsx
+const ThemeContext = createContext<Theme | null>(null);
+
+export function useTheme(): Theme {
+  const theme = useContext(ThemeContext);
+  if (!theme) {
+    throw new Error('useTheme은 ThemeProvider 안에서만 쓸 수 있다');
+  }
+  return theme;
+}
+
+// 소비 측 — null 체크 없이 바로 쓴다
+function ThemedButton() {
+  const theme = useTheme();
+  return <button className={`btn-${theme}`}>{theme}</button>;
+}
+```
+
+Provider 밖에서 `useTheme()`을 호출하면 즉시 에러가 던져진다. "테마가 없는데 버튼이 이상하게 보인다"는 디버깅 대신 "useTheme은 ThemeProvider 안에서만 쓸 수 있다"는 메시지가 바로 뜬다.
+
+상태와 setter를 함께 노출해야 하는 모달 같은 경우:
+
+```tsx
+type ModalContextType = {
+  isOpen: boolean;
+  open: (content: ReactNode) => void;
+  close: () => void;
+};
+
+const ModalContext = createContext<ModalContextType | null>(null);
+
+export function useModal(): ModalContextType {
+  const ctx = useContext(ModalContext);
+  if (!ctx) {
+    throw new Error('useModal은 ModalProvider 안에서만 쓸 수 있다');
+  }
+  return ctx;
+}
+
+export function ModalProvider({ children }: { children: ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [content, setContent] = useState<ReactNode>(null);
+
+  const value = useMemo(() => ({
+    isOpen,
+    open: (node: ReactNode) => { setContent(node); setIsOpen(true); },
+    close: () => setIsOpen(false),
+  }), [isOpen]);
+
+  return (
+    <ModalContext.Provider value={value}>
+      {children}
+    </ModalContext.Provider>
+  );
+}
+```
+
+커스텀 훅 패턴을 쓰면 Context 내부 구조가 바뀌어도 소비 컴포넌트는 손대지 않아도 된다. `useModal()`의 반환 타입만 유지하면 된다.
 
 ---
 
@@ -211,6 +393,46 @@ function ModalProvider({ children }: { children: ReactNode }) {
 `useMemo` 자체가 공짜는 아니다. 매 렌더마다 의존성 배열을 비교하는 비용이 있다. 리렌더링이 잦은 Provider, 또는 구독자가 많은 Context에서만 쓸 가치가 있다.
 
 `open` 함수처럼 Context value 안에 콜백을 넣으면 `useCallback`도 같이 챙겨야 한다. 그렇지 않으면 `isOpen`이 바뀔 때마다 함수가 새로 생성되어 `useMemo`의 의존성이 매번 바뀐다.
+
+---
+
+## React DevTools로 리렌더링 추적
+
+Context 관련 버그는 "왜 이 컴포넌트가 리렌더링되는가"를 알아야 잡힌다. React DevTools의 Profiler가 이 용도에 맞다.
+
+브라우저에 React DevTools 확장을 설치하면 개발자 도구에 Components, Profiler 두 탭이 생긴다.
+
+**Components 탭에서 구독 확인하기**
+
+Components 탭에서 컴포넌트를 선택하면 오른쪽 패널 "hooks" 섹션 아래에 해당 컴포넌트가 소비하는 Context 목록이 나온다. `useContext(ThemeContext)`를 호출하는 컴포넌트라면 `Context.ThemeContext: "dark"` 같은 형태로 현재 값이 표시된다.
+
+Context에 `displayName`을 설정하면 DevTools에서 구분하기 훨씬 쉬워진다.
+
+```tsx
+const ThemeContext = createContext<Theme>('light');
+ThemeContext.displayName = 'ThemeContext';
+
+const UserContext = createContext<User | null>(null);
+UserContext.displayName = 'UserContext';
+```
+
+`displayName` 없이는 DevTools에서 전부 "Context"로 표시된다. Context가 여러 개면 어느 게 어느 건지 구분이 안 된다.
+
+**Profiler 탭에서 리렌더링 원인 찾기**
+
+Profiler 탭에서 녹화를 시작하고 문제가 되는 동작을 한 뒤 녹화를 멈추면, 각 컴포넌트의 렌더링 여부와 원인이 플레임 차트로 나온다.
+
+컴포넌트를 클릭하면 오른쪽 패널에 "Why did this render?" 항목이 뜬다. Context 값이 바뀌어서 리렌더링된 경우 "Context changed"라고 표시된다.
+
+```
+ThemedButton
+  Why did this render?
+  - Context changed (ThemeContext)
+```
+
+이 정보로 어떤 Context 변경이 이 컴포넌트를 건드렸는지 바로 확인할 수 있다. `useMemo`나 Context 분리가 실제로 효과가 있었는지도 같은 방법으로 확인한다. Profiler 녹화에서 해당 컴포넌트가 회색(렌더링 안 됨)으로 나오면 최적화가 먹힌 거다.
+
+이 항목은 React 개발 빌드에서만 보인다. 프로덕션 빌드(`NODE_ENV=production`)에서는 표시되지 않는다. CRA나 Vite 기본 설정에서 개발 서버(`npm run dev`)로 실행하면 개발 빌드가 켜진다.
 
 ---
 
