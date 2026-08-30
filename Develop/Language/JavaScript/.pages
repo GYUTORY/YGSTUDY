@@ -1,6 +1,7 @@
 title: JavaScript
 nav:
   - index.md
+  - Node.js 동시성과 CPU 블로킹: Java_Script_Concurrency.md
   - 01_기본_JavaScript
   - 02_복사_및_스프레드
   - 03_성능_최적화
@@ -11,4 +12,3 @@ nav:
   - 08_OOP_및_디자인_패턴
   - 09_ES6_및_고급문법
   - 10_웹_개발_및_보안
-  - Java_Script_Concurrency.md

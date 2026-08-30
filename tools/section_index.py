@@ -404,6 +404,12 @@ def _build_groups(docs_dir, counts):
     # 섹션의 title 을 설정하지 않고(navigation.py:70 _nav -> 71 _process_child_sections),
     # _group 은 Develop/.pages 의 nav 에 없어서 걸러지는 쪽이다.
     for key, (title, blurb, members) in GROUPS.items():
+        path = os.path.join(d, key + ".md")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                if "AUTO-SECTION-INDEX" not in f.read(400):
+                    counts["group:" + key] = sum(counts.get(m, 0) for m, _ in members)
+                    continue
         total = sum(counts.get(m, 0) for m, _ in members)
         lines = [
             "---\n", f"title: {title}\n", "tags: []\n", "hide:\n  - toc\n", "---\n\n",

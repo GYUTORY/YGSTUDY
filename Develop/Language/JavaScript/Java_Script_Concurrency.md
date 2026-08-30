@@ -448,4 +448,4 @@ bcrypt의 salt round를 12에서 14로 올렸더니 회원가입 요청 중에 �
 
 ---
 
-이벤트 루프 기본 구조는 [이벤트 루프](../05_이벤트_루프_비동기/Event_Loop.md)에서, async/await 동작 방식은 [Async Await and Promise](../05_이벤트_루프_비동기/Async_Await_and_Promise.md)에서 다룬다.
+이벤트 루프 기본 구조는 [이벤트 루프](05_이벤트_루프_비동기/Event_Loop.md)에서, async/await 동작 방식은 [Async Await and Promise](05_이벤트_루프_비동기/Async_Await_and_Promise.md)에서 다룬다.

@@ -1,5 +1,3 @@
 title: Network
 nav:
   - index.md
-  - Cloud_Front_Functions_and_Lambda_at_Edge.md
-  - CDN_Adaptive_Thumbnail.md

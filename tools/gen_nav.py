@@ -1059,7 +1059,7 @@ def parse_nav_order(text):
                 continue
             item = m.group(1).strip()
             if ': ' in item:
-                item = item.split(': ', 1)[1].strip()
+                item = item.rsplit(': ', 1)[1].strip()
             # '- Loki:' 처럼 묶음 머리글은 콜론만 남는다. 그대로 두면
             # rank('Loki') 가 못 찾아 묶음이 순서 밖으로 밀린다.
             order.append(item.rstrip(':').strip())
