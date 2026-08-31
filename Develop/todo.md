@@ -1,82 +1,34 @@
 ---
 title: 학습 및 보완 항목
 tags: [backend, database, cache, redis, aws, kubernetes, microservices, performance, architecture, design-patterns]
-updated: 2026-08-25
+updated: 2026-08-31
 ---
 
 # 학습 및 보완 항목
 
-5년차 백엔드 개발자 관점에서 실무에 필요한 항목을 정리했다. 우선순위는 현업에서 자주 마주치는 순서다.
+5년차 백엔드 개발자 관점에서 완료한 학습과 남은 항목을 기록한다.
 
 ## AWS 인프라
 
-### 컴퓨팅 & 컨테이너 (우선순위: 높음)
-- [V] **EKS**: 프로덕션에서 Kubernetes 운영 시 필수. ECS와 비교하면서 학습
-- [V] **Fargate**: 서버리스 컨테이너 실행. ECS/EKS 운영 부담 줄이는 용도
-- [V] **Auto Scaling**: EC2, ECS 스케일링 정책 설정. CPU/메모리 임계값 기반
-- [V] **Elastic Beanstalk**: 빠른 배포가 필요한 경우 사용. 하지만 제약사항 많음
+**컴퓨팅 & 컨테이너**: EKS, Fargate, Auto Scaling, Elastic Beanstalk를 학습했다. Fargate는 서버 관리 없이 컨테이너를 실행할 수 있지만, GPU 인스턴스나 특수 네트워크 설정이 필요한 경우에는 EC2 기반 노드를 써야 한다.
 
-### 메시징 & 스트리밍 (우선순위: 높음)
-- [V] **Kinesis**: 실시간 로그 처리, 이벤트 스트리밍. SQS로는 부족한 경우
-- [V] **EventBridge**: 이벤트 기반 아키텍처. SNS/SQS 조합보다 유연함
-- [V] **MSK**: Kafka 관리형 서비스. 직접 운영할 필요 없음
-- [V] **Step Functions**: Lambda 여러 개 연결할 때. 워크플로우 시각화 가능
+**메시징 & 스트리밍**: Kinesis, EventBridge, MSK, Step Functions을 다뤘다. EventBridge는 이벤트 스키마 레지스트리를 제공해 서비스 간 이벤트 형태를 관리하기 좋다. SQS+SNS 조합으로 구성했던 팬아웃 패턴이 EventBridge로 단순해졌다.
 
-### 데이터베이스 & 캐싱 (우선순위: 높음)
-- [V] **DynamoDB**: NoSQL 필요한 경우. 키-값 조회가 많으면 적합
-- [V] **ElastiCache**: Redis/Memcached 관리형. 직접 운영보다 편함
-- [V] **DMS**: RDS 간 마이그레이션, 온프레미스에서 AWS로 이전
-- [V] **DAX**: DynamoDB 앞단 캐시. 읽기 성능 향상
+**데이터베이스 & 캐싱**: DynamoDB, ElastiCache, DMS, DAX를 확인했다. DynamoDB는 인덱스 설계를 처음부터 맞춰야 한다. RDB처럼 쿼리를 나중에 추가하면 GSI 비용이 크게 늘어난다.
 
-### 네트워킹 & 보안 (우선순위: 중간)
-- [V] **Transit Gateway**: 여러 VPC 연결. VPC Peering보다 관리 편함
-- [V] **PrivateLink**: 외부 노출 없이 서비스 연결. 보안 강화
-- [V] **WAF**: SQL Injection, XSS 방어. ALB 앞단 배치
-- [V] **Shield**: DDoS 공격 방어. Standard는 자동 적용됨
-- [V] **ACM**: SSL 인증서 자동 갱신. Route 53 + ALB와 연동
-- [V] **Security Groups vs NACLs**: 차이점 명확히 알아야 함
-- [V] **VPC Peering**: VPC 간 프라이빗 통신
+**네트워킹 & 보안**: Transit Gateway, PrivateLink, WAF, Shield, ACM, Security Groups, NACLs, VPC Peering을 다뤘다. Security Group은 상태 추적(stateful)이라 인바운드를 허용하면 아웃바운드 응답이 자동 허용된다. NACLs는 상태 비추적(stateless)이라 양방향 모두 규칙이 필요하다. 이 차이를 모르고 NACLs만 열었다가 응답 패킷이 차단된 적이 있다.
 
-### 스토리지 & 백업 (우선순위: 낮음)
-- [V] **EBS**: EC2 볼륨. IOPS, Throughput 타입별 차이
-- [V] **EFS**: 여러 EC2에서 파일 공유. NFS 프로토콜
-- [V] **S3 Glacier**: 장기 보관용. 비용 저렴하지만 복구 느림
-- [V] **AWS Backup**: RDS, EBS 자동 백업 설정
+**스토리지 & 백업**: EBS, EFS, S3 Glacier, AWS Backup을 확인했다. S3 Glacier는 복구 시간이 표준 검색 기준 3~5시간이라 SLA가 있는 데이터에는 맞지 않는다.
 
-### 모니터링 & 로깅 (우선순위: 높음)
-- [V] **X-Ray**: 분산 추적. Lambda, ECS 호출 흐름 파악
-- [V] **CloudWatch Logs Insights**: 로그 쿼리. SQL 비슷한 문법
-- [V] **CloudWatch Alarms**: CPU, 메모리, 큐 깊이 알람 설정
-- [V] **AWS Config**: 리소스 변경 추적. 컴플라이언스 체크
+**모니터링 & 로깅**: X-Ray, CloudWatch Logs Insights, CloudWatch Alarms, AWS Config를 설정해봤다. Logs Insights 쿼리 문법이 처음에는 낯설다. `fields @timestamp, @message | filter @message like /ERROR/ | sort @timestamp desc | limit 50` 같은 기본 패턴부터 시작하는 게 빠르다.
 
-### 배포 & CI/CD (우선순위: 중간)
-- [V] **CodePipeline**: GitHub Actions, Jenkins 대체 가능
-- [V] **CodeBuild**: Docker 이미지 빌드, 테스트 실행
-- [V] **CodeDeploy**: Blue-Green, Canary 배포 지원
-- [V] **CodeCommit**: Git 저장소. GitHub/GitLab 대신 사용 가능
+**배포 & CI/CD**: CodePipeline, CodeBuild, CodeDeploy, CodeCommit을 학습했다.
 
-### 비용 & 거버넌스 (우선순위: 중간)
-- [V] **Cost Explorer**: 비용 분석. 어디서 돈 나가는지 파악
-- [V] **Budgets**: 예산 초과 시 알림
-- [V] **Organizations**: 멀티 어카운트 관리. 개발/스테이징/프로덕션 분리
-- [V] **SCP**: 조직 단위 정책. 특정 리전 사용 제한 등
+**비용 관리**: Cost Explorer, Budgets, Organizations, SCP를 확인했다. SCP는 루트 계정 접근이나 특정 리전 사용 자체를 막는 용도로 쓴다.
 
-## 백엔드 아키텍처
+## 캐싱
 
-### API 설계 (우선순위: 높음)
-- [ ] **API 버저닝**: URL 방식 vs Header 방식. 하위 호환성 유지 방법
-- [ ] **GraphQL**: REST API 한계 있을 때. 단일 엔드포인트로 여러 리소스 조회
-- [ ] **gRPC**: 내부 서비스 간 통신. HTTP/2 기반, Protobuf 사용
-- [ ] **Rate Limiting**: Token Bucket, Leaky Bucket 알고리즘. Redis 기반 구현
-- [ ] **Webhook**: 이벤트 발생 시 외부에 알림. Retry, Timeout 처리
-
-### 캐싱 (우선순위: 높음)
-- [V] **Cache-Aside**: 애플리케이션에서 캐시 직접 관리
-- [V] **Write-Through**: 쓰기 시 캐시도 업데이트
-- [V] **Write-Behind**: 쓰기를 캐시에만 하고 나중에 DB 반영
-- [V] **캐시 일관성**: 분산 환경에서 캐시 동기화. Pub/Sub 활용
-- [V] **캐시 무효화**: TTL, 수동 삭제, 태그 기반 무효화
-- [V] **로컬 vs 분산 캐시**: Caffeine vs Redis. 사용 시점 구분
+Cache-Aside, Write-Through, Write-Behind, 캐시 일관성, 캐시 무효화, 로컬 vs 분산 캐시를 실습했다.
 
 **Redis Cache-Aside 구현:**
 
@@ -107,9 +59,9 @@ public class UserService {
 }
 ```
 
-캐시 삭제 순서가 중요하다. DB 업데이트 전에 캐시를 먼저 삭제하면 그 사이에 다른 요청이 캐시 미스 후 DB에서 읽고 구버전을 캐시에 올린다. DB 업데이트 완료 후 캐시를 삭제해야 한다.
+캐시 삭제 순서가 중요하다. DB 업데이트 전에 캐시를 먼저 삭제하면 그 사이에 다른 요청이 캐시 미스 후 DB에서 읽어 구버전을 캐시에 올린다. DB 업데이트 완료 후 캐시를 삭제해야 한다.
 
-Write-Behind를 쓸 때는 캐시가 내려가면 아직 DB에 반영 안 된 데이터가 날아간다. 결제, 재고 같은 데이터에는 절대 쓰면 안 된다.
+Write-Behind를 쓸 때는 캐시가 내려가면 아직 DB에 반영 안 된 데이터가 날아간다. 결제, 재고 같은 데이터에는 쓰면 안 된다.
 
 **Caffeine 로컬 캐시 설정:**
 
@@ -129,16 +81,11 @@ public class CacheConfig {
 }
 ```
 
-로컬 캐시는 다중 인스턴스 환경에서 인스턴스마다 다른 값을 들고 있을 수 있다. 한 서버에서 업데이트해도 다른 서버의 캐시는 TTL 만료 전까지 구버전을 반환한다. 변경 빈도가 낮거나 일시적 불일치가 허용되는 데이터(공지사항, 환율 등)에만 쓴다.
+로컬 캐시는 다중 인스턴스 환경에서 인스턴스마다 다른 값을 들고 있을 수 있다. 한 서버에서 업데이트해도 다른 서버의 캐시는 TTL 만료 전까지 구버전을 반환한다. 변경 빈도가 낮거나 일시적 불일치가 허용되는 데이터(공지사항, 환율 등)에만 써야 한다.
 
-### 데이터베이스 심화 (우선순위: 높음)
-- [V] **Connection Pool**: HikariCP 설정. maximumPoolSize, connectionTimeout
-- [V] **Optimistic Lock**: 버전 번호 체크. 동시 수정 감지
-- [V] **Pessimistic Lock**: SELECT FOR UPDATE. 데드락 주의
-- [V] **파티셔닝**: Range, List, Hash. 테이블 크기 커질 때
-- [V] **Query 최적화**: EXPLAIN ANALYZE. 인덱스 활용도 체크
-- [V] **N+1 문제**: Fetch Join, @EntityGraph. Lazy Loading 주의
-- [V] **격리 수준**: Read Committed, Repeatable Read. Phantom Read 차이
+## 데이터베이스 심화
+
+Connection Pool, Optimistic Lock, Pessimistic Lock, 파티셔닝, 쿼리 최적화, N+1 문제, 격리 수준을 학습했다.
 
 **HikariCP 설정:**
 
@@ -199,86 +146,9 @@ Optimistic Lock은 충돌이 드문 상황에 적합하다. 선착순 좌석 예
 
 Pessimistic Lock을 쓸 때는 락 획득 순서를 코드 전체에서 일관되게 유지해야 한다. 주문과 상품을 잠글 때 어디서는 주문→상품 순서, 어디서는 상품→주문 순서로 잠그면 데드락이 생긴다.
 
-### 동시성 & 성능 (우선순위: 높음)
-- [ ] **Thread Pool**: Core, Max 크기 결정. Queue 용량 설정
-- [ ] **CompletableFuture**: 비동기 체인. thenApply, thenCompose 차이
-- [ ] **Reactive**: WebFlux, Reactor. 높은 동시 연결 필요할 때
-- [ ] **Backpressure**: 프로듀서가 컨슈머보다 빠를 때 제어
-- [ ] **Graceful Shutdown**: 진행 중인 요청 완료 대기. SIGTERM 처리
-- [ ] **GC 튜닝**: G1GC, ZGC 선택. Heap 크기, Young/Old 비율
+## 장애 대응
 
-### 보안 (우선순위: 높음)
-- [ ] **JWT Refresh Token**: Access Token 짧게, Refresh Token 길게
-- [ ] **Token Rotation**: Refresh Token 재발급 시 갱신
-- [ ] **SSO**: SAML 2.0, OpenID Connect. 기업 환경 필수
-- [ ] **API Gateway 보안**: Kong, Tyk, AWS API Gateway
-- [ ] **CORS Preflight**: OPTIONS 요청 처리. withCredentials 설정
-- [ ] **Input Validation**: Bean Validation, 커스텀 검증 로직
-
-### 메시징 (우선순위: 높음)
-- [ ] **Kafka 최적화**: batch.size, linger.ms, compression.type
-- [ ] **Consumer Group**: 파티션 개수와 컨슈머 수 관계
-- [ ] **RabbitMQ**: Direct, Fanout, Topic Exchange 차이
-- [ ] **멱등성**: 메시지 ID 기반 중복 체크. Redis Set 활용
-- [ ] **순서 보장**: Partition Key, Message Group ID 사용
-- [ ] **Dead Letter**: 재시도 횟수 초과 시 별도 큐로 이동
-
-### 모니터링 & 관찰성 (우선순위: 높음)
-- [ ] **Distributed Tracing**: Jaeger, Zipkin, AWS X-Ray
-- [ ] **Trace ID 전파**: HTTP Header, MDC 활용
-- [ ] **커스텀 메트릭**: Micrometer, Prometheus Client
-- [ ] **로그 집계**: ELK Stack, Grafana Loki
-- [ ] **SLI/SLO/SLA**: 가용성 99.9%, 응답 시간 p95 < 200ms
-- [ ] **알림 피로도**: 중요도 분류. 야간 알림 최소화
-
-### 테스트 (우선순위: 중간)
-- [ ] **Contract Testing**: 마이크로서비스 간 계약 검증
-- [ ] **성능 테스트**: JMeter 스크립트, k6 시나리오
-- [ ] **Chaos Engineering**: 네트워크 지연, 서비스 다운 시뮬레이션
-- [ ] **E2E 테스트**: Selenium, Cypress. CI에 통합
-- [ ] **테스트 커버리지**: 80% 목표는 의미 없음. 핵심 로직 위주
-
-### 아키텍처 패턴 (우선순위: 중간)
-- [ ] **Hexagonal Architecture**: 도메인 로직과 인프라 분리
-- [ ] **Clean Architecture**: Usecase, Entity, Gateway 계층
-- [ ] **BFF**: iOS/Android/Web 각각 다른 API
-- [ ] **API Composition**: 여러 마이크로서비스 결과 합침
-- [ ] **Strangler Fig**: 레거시 점진적 교체. Proxy 패턴 활용
-- [ ] **Bulkhead**: 스레드 풀 분리. 장애 전파 차단
-
-### 데이터 처리 (우선순위: 중간)
-- [ ] **Batch Processing**: Spring Batch. Chunk 단위 처리
-- [ ] **Job Scheduling**: Quartz, @Scheduled. 분산 환경 고려
-- [ ] **ETL Pipeline**: Extract, Transform, Load. Airflow 활용
-- [ ] **CDC**: Debezium, AWS DMS. 데이터 변경 캡처
-- [ ] **Data Versioning**: Schema 변경 관리. Flyway, Liquibase
-
-### 배포 (우선순위: 중간)
-- [ ] **Service Mesh**: Istio, Linkerd. 트래픽 관리, 보안
-- [ ] **Blue-Green**: 새 버전 배포 후 트래픽 전환. 롤백 빠름
-- [ ] **Canary**: 일부 트래픽만 새 버전으로. 점진적 확대
-- [ ] **Feature Flag**: LaunchDarkly, Unleash. 배포와 릴리스 분리
-- [ ] **Container Security**: Trivy, Clair. 이미지 취약점 스캔
-
-### 성능 최적화 (우선순위: 중간)
-- [ ] **Connection Pool 튜닝**: 최적 크기는 CPU 코어 수 * 2 정도
-- [ ] **Heap Dump 분석**: VisualVM, MAT. 메모리 누수 찾기
-- [ ] **CPU 프로파일링**: async-profiler. 병목 메서드 찾기
-- [ ] **HTTP/2**: 멀티플렉싱. 단일 연결로 여러 요청
-- [ ] **압축**: Gzip, Brotli. 응답 크기 줄이기
-
-### 도메인 설계 (우선순위: 낮음)
-- [ ] **DDD**: Aggregate, Entity, Value Object 구분
-- [ ] **Bounded Context**: 도메인 경계 설정. 서로 다른 용어 사용
-- [ ] **Domain Event**: 도메인 로직에서 이벤트 발행
-- [ ] **Aggregate Root**: 트랜잭션 경계. 일관성 보장 범위
-
-### 장애 대응 (우선순위: 높음)
-- [V] **Circuit Breaker**: Resilience4j. 연속 실패 시 회로 차단
-- [V] **Retry**: Exponential Backoff. 1초, 2초, 4초, 8초...
-- [V] **Timeout**: Connection, Read, Write 각각 설정
-- [V] **Fallback**: 기본값 반환, 캐시 사용, 다른 서비스 호출
-- [V] **Health Check**: Liveness(프로세스 살아있는지), Readiness(요청 받을 준비)
+Circuit Breaker, Retry, Timeout, Fallback, Health Check를 실습했다.
 
 **Resilience4j Circuit Breaker + Retry 설정:**
 
@@ -327,40 +197,20 @@ Circuit Breaker와 Retry를 같이 쓸 때 어노테이션 순서가 실행 순�
 
 Fallback 메서드 시그니처는 원래 메서드와 파라미터가 같고 마지막에 `Throwable`을 추가한 형태여야 한다. 타입이 맞지 않으면 Fallback이 동작하지 않고 예외가 그대로 올라온다.
 
-## 학습 순서 (실무 기준)
+## 앞으로 다룰 영역
 
-### 1개월 차: 인프라 기초
-1. EKS + Service Mesh (Istio)
-2. Kinesis + Kafka
-3. X-Ray + Distributed Tracing
-4. ElastiCache + 캐싱 전략
+**API 설계**: API 버저닝(URL vs Header 방식), gRPC, GraphQL, Rate Limiting, Webhook이 남았다. Rate Limiting은 Redis 기반 Token Bucket 구현이 실무에서 자주 나오는 패턴이라 먼저 다룰 예정이다.
 
-### 2개월 차: API & 보안
-1. API Gateway 패턴 (Rate Limiting, Circuit Breaker)
-2. JWT + SSO
-3. gRPC
-4. GraphQL
+**동시성**: Thread Pool 크기 결정 기준, CompletableFuture 비동기 체인(`thenApply` vs `thenCompose` 차이), WebFlux, Backpressure, Graceful Shutdown, GC 튜닝이 남았다. GC 튜닝은 실제 Heap Dump 분석과 함께 다뤄야 의미 있다.
 
-### 3개월 차: 성능 & 모니터링
-1. 성능 테스트 (JMeter, k6)
-2. 커스텀 메트릭 + SLI/SLO
-3. Connection Pool 튜닝
-4. GC 튜닝
+**보안**: JWT Refresh Token 순환, SSO(SAML 2.0, OpenID Connect), API Gateway 보안, CORS Preflight 처리가 남았다. 기업 환경에서 SSO가 빠지는 경우가 없어서 우선순위가 높다.
 
-### 4개월 차: 아키텍처 & 설계
-1. DDD + Hexagonal Architecture
-2. BFF + API Composition
-3. Blue-Green + Canary 배포
-4. Feature Flag
+**메시징 최적화**: Kafka `batch.size`, `linger.ms` 튜닝, Consumer Group 파티션 설계, 멱등성 처리, Dead Letter Queue 설정이 남았다.
 
-### 5개월 차: 비용 & 운영
-1. AWS Cost Explorer
-2. 장애 대응 패턴
-3. Chaos Engineering
-4. 로그 집계 + 분석
+**모니터링**: Jaeger나 Zipkin으로 분산 추적 구성, Trace ID MDC 전파, Micrometer 커스텀 메트릭, ELK 스택 구성이 남았다.
 
-## 참고
+**아키텍처**: Hexagonal Architecture, BFF, Strangler Fig, Bulkhead 패턴은 실제 프로젝트에 적용하면서 다룰 예정이다. Strangler Fig는 레거시가 있는 팀에서 가장 현실적으로 쓰인다.
 
-실무에서 자주 쓰는 순서대로 정리했다. 모든 항목을 다 알 필요는 없다. 현재 팀에서 사용하는 기술 스택에 맞춰서 선택적으로 학습한다.
+**배포**: Service Mesh(Istio), Blue-Green/Canary 배포, Feature Flag 구현이 남았다. Canary 배포는 트래픽 가중치 조절 방법을 실습 위주로 정리할 계획이다.
 
-우선순위 '높음'은 반드시 알아야 하고, '중간'은 필요할 때 찾아보면 되고, '낮음'은 나중에 천천히 학습한다.
+**도메인 설계**: DDD의 Aggregate, Entity, Value Object 구분, Bounded Context, Domain Event, Aggregate Root가 남았다. 개념보다 실제 코드로 경계를 어떻게 그을지를 중심으로 다룰 예정이다.
