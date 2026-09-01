@@ -4,7 +4,39 @@
 set -u
 cd "$(dirname "$0")/.."
 FAIL=0
-export PATH=/tmp/v3/bin:$PATH
+
+# ── venv 찾기 ──────────────────────────────────────────────
+# 예전엔 /tmp/v3 하나로 하드코딩돼 있었다. 그런데 macOS 가 /tmp 를 주기적으로
+# 비우기 때문에 어느 날 통째로 사라진다. 실제로 그렇게 날아갔고, 그때
+# `mkdocs build --strict` 가 FAIL 로만 찍혀서 원인을 찾는 데 한참 걸렸다.
+# 진짜 메시지(`mkdocs: command not found`)는 로그 꼬리 12줄 안에 있었는데
+# 봇이 그걸 "빌드 실패" 로만 보고해 아무도 못 봤다.
+#
+# 그래서 두 가지를 바꿨다.
+#   (1) 기본 위치를 지워지지 않는 ~/.venvs/ygstudy 로 옮긴다
+#   (2) 없으면 검사를 시작하지 않고 **왜 없는지와 복구 명령**을 먼저 낸다
+# 도구 부재를 "검사 실패" 로 보고하면 없는 결함을 쫓게 된다.
+YG_VENV="${YG_VENV:-$HOME/.venvs/ygstudy}"
+YG_TRIED=""
+for cand in "$YG_VENV" /tmp/v3; do
+  YG_TRIED="$YG_TRIED $cand"
+  if [ -x "$cand/bin/mkdocs" ]; then YG_VENV="$cand"; break; fi
+done
+if [ ! -x "$YG_VENV/bin/mkdocs" ]; then
+  echo "✗ mkdocs 를 못 찾았다 — 검사를 시작하지 않는다."
+  # 실제로 뒤진 경로를 그대로 낸다. 여기에 고정 문구를 적어 두면 YG_VENV 를
+  # 바꿔 돌렸을 때 "찾아본 곳" 이 거짓말이 된다.
+  echo "  찾아본 곳:$YG_TRIED"
+  echo "  이건 문서 결함이 아니라 도구 부재다. 아래 한 줄로 복구한다:"
+  echo ""
+  echo "    bash tools/setup_venv.sh"
+  echo ""
+  echo "  (/tmp 에 있던 venv 라면 macOS 가 비웠을 수 있다. 새 기본 위치는"
+  echo "   ~/.venvs/ygstudy 라 다시 지워지지 않는다.)"
+  exit 1
+fi
+export PATH="$YG_VENV/bin:$PATH"
+
 run() { printf '  %-34s' "$1"; shift; if "$@" >/tmp/_v.log 2>&1; then echo "OK"; else echo "FAIL"; tail -12 /tmp/_v.log|sed 's/^/      /'; FAIL=1; fi; }
 
 [ -x .git/hooks/pre-commit ] || echo "  ⚠ git 훅 미설치 — bash tools/install_hooks.sh (NFD 차단·updated 자동갱신이 안 걸려 있다)"
