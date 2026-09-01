@@ -157,14 +157,40 @@ def on_pre_build(config, **kwargs):
         "hide:\n  - toc\n",
         "---\n\n",
         "# 최근 변경 문서\n\n",
-        "최근 60일 내 추가·수정된 문서입니다. 빌드 시점에 자동 생성됩니다.\n\n",
+        "빌드 시점에 git 히스토리를 읽어 자동 생성됩니다. 최근 60일 내 추가·수정된 문서입니다.\n\n",
+        "로컬에서 같은 목록을 확인하려면:\n\n",
+        "```bash\n",
+        "git log --pretty=format:'%ad' --date=short --diff-filter=AM --since='60 days ago' --name-only -- Develop/\n",
+        "```\n\n",
     ]
 
     if entries:
-        lines.append("| 날짜 | 문서 |\n")
-        lines.append("|------|------|\n")
-        for d, name, path in entries[:80]:
-            lines.append(f"| {d} | [{name}]({_doc_md_link(path)}) |\n")
+        cat_counts = {}
+        for _d, _name, path in entries:
+            cat = path.split("/")[0]
+            cat_counts[cat] = cat_counts.get(cat, 0) + 1
+
+        lines.append("## 카테고리별 요약\n\n")
+        lines.append("| 카테고리 | 문서 수 |\n")
+        lines.append("|----------|--------|\n")
+        for cat, count in sorted(cat_counts.items(), key=lambda x: -x[1]):
+            lines.append(f"| {cat} | {count} |\n")
+        lines.append("\n")
+
+        months = {}
+        for entry in entries:
+            month = entry[0][:7]
+            if month not in months:
+                months[month] = []
+            months[month].append(entry)
+
+        for month in sorted(months.keys(), reverse=True):
+            lines.append(f"## {month}\n\n")
+            lines.append("| 날짜 | 문서 |\n")
+            lines.append("|------|------|\n")
+            for d, name, path in months[month]:
+                lines.append(f"| {d} | [{name}]({_doc_md_link(path)}) |\n")
+            lines.append("\n")
     else:
         lines.append("_(변경 이력 없음 또는 git 정보를 읽을 수 없습니다)_\n")
 
