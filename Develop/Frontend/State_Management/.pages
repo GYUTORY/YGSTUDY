@@ -1,7 +1,7 @@
 title: 상태 관리
 nav:
   - index.md
-  - React 내장 상태 관리: useState, useReducer, Context API: React_Built_in_State.md
+  - "React 내장 상태 관리: useState, useReducer, Context API": React_Built_in_State.md
   - Redux Toolkit 실무 패턴: Redux_Toolkit.md
   - Zustand 실무: Zustand.md
   - 서버 상태 관리: Server_State.md

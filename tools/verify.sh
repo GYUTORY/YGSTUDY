@@ -50,6 +50,11 @@ run() { printf '  %-34s' "$1"; shift; if "$@" >/tmp/_v.log 2>&1; then echo "OK";
 python3 tools/section_index.py >/dev/null
 
 echo "── 문서 검사 ──"
+# .pages 는 사이드바 구조 자체라 하나만 깨져도 빌드가 통째로 죽는다.
+# 그때 나오는 건 PyYAML 스택 트레이스고 게이트에서는 그게 "mkdocs build
+# --strict FAIL" 한 줄로 덮인다. 55초 기다린 끝에 어느 파일인지도 모르는
+# 상태가 되므로, 빌드보다 먼저 3초 만에 파일·줄·이유를 낸다.
+run "pages yaml"          python3 tools/check_pages_yaml.py --strict
 run "gen_tags"            python3 tools/gen_tags.py --strict
 run "check_frontmatter"   python3 tools/check_frontmatter.py --strict
 run "check_mermaid"       python3 tools/check_mermaid_entities.py
