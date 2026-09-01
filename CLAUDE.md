@@ -14,11 +14,66 @@ MkDocs + Material 로 만든 개인 기술 블로그다. 문서 1,351개, 빌드
 bash tools/verify.sh      # 약 40초. 전부 통과해야 푸시한다.
 ```
 
-`gen_tags → check_frontmatter → check_mermaid → check_links → mkdocs build --strict → check_built_assets`
+`pages yaml → gen_tags → check_frontmatter → check_mermaid → check_links → mkdocs build --strict → check_built_assets`
 순서로 돈다. CI 와 같은 순서다. **하나라도 FAIL 이면 푸시하지 않는다.**
 
 빌드가 오래 걸리는 플러그인(minify·rss·git-revision-date)은 `FULL_BUILD` 환경변수로 갈린다.
 로컬 검증은 끄고 돌려 45초, CI 는 켜고 돈다. §5 참조.
+
+### 0-1. FAIL 이 떴을 때 — 문서부터 고치지 않는다
+
+`mkdocs build --strict FAIL` 은 **원인을 말해 주지 않는다.** 게이트는 로그
+꼬리 12줄만 보여주는데 진짜 메시지가 그 위에 있는 경우가 많다. 문서를
+의심하기 전에 **원인을 먼저 특정한다.**
+
+```bash
+# 게이트가 감춘 전문을 본다 (이걸 먼저 한다)
+DISABLE_MKDOCS_2_WARNING=true mkdocs build --strict -d /tmp/_dbg 2>&1 | tail -40
+```
+
+실제로 겪은 두 가지. 둘 다 **문서에는 아무 문제가 없었다.**
+
+**(1) 도구가 사라진 경우.** venv 를 `/tmp/v3` 에 두고 있었는데 macOS 가
+`/tmp` 를 주기적으로 비워서 통째로 날아갔다. 진짜 메시지는
+`mkdocs: command not found` 였는데 게이트에서는 그냥 `FAIL` 이었다. 봇이
+멀쩡한 문서를 몇 번이나 고쳐 쓰다 커밋을 보류했다.
+
+지금은 게이트가 이걸 구분해서 **검사를 시작하지도 않고** 안내한다.
+`mkdocs 를 못 찾았다` 가 뜨면 문서 문제가 아니다:
+
+```bash
+bash tools/setup_venv.sh    # venv(~/.venvs/ygstudy) + npm 한 번에
+```
+
+**(2) `.pages` 제목에 콜론이 들어간 경우.** 항목 하나가
+
+```yaml
+- React 내장 상태 관리: useState, useReducer, Context API: React_Built_in_State.md
+```
+
+였다. 제목 안 콜론 때문에 `키: 값` 이 두 번 나오는 꼴이라 YAML 이 죽고,
+awesome-pages 가 nav 를 못 만들고, `nav.json` 미생성 + redirects
+`MISSING SRC` 12건이 거기서 파생됐다. **증상 세 개가 전부 한 줄에서 나왔다.**
+
+제목에 콜론을 쓰는 건 자연스러운 일이라 또 난다. 쓸 거면 따옴표로 감싼다:
+
+```yaml
+- "React 내장 상태 관리: useState, useReducer, Context API": React_Built_in_State.md
+```
+
+이제 `pages yaml` 검사가 빌드 **앞에서** 파일·줄·원문·해법까지 낸다.
+거기서 걸리면 그게 원인이고, 뒤의 nav·redirects 실패는 따라온 것이다.
+
+### 0-2. 판단 순서
+
+1. **`pages yaml` FAIL** → `.pages` 문법. 문서 내용과 무관
+2. **`mkdocs 를 못 찾았다`** → 도구 부재. `bash tools/setup_venv.sh`
+3. **`mkdocs build --strict` 만 FAIL** → 위 명령으로 전문을 보고 나서 판단.
+   깨진 링크·없는 앵커면 그때 문서를 고친다
+4. **`nav index` / `redirects` FAIL** → 거의 항상 1번의 여파다. `.pages` 부터 본다
+
+**증상이 여러 개 뜨면 각각 고치려 들지 말고 가장 앞 단계부터 본다.**
+위 사례에서 실제 수정은 한 줄이었고 나머지는 저절로 사라졌다.
 
 ---
 
