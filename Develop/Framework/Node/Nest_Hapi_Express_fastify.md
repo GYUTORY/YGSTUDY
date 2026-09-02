@@ -150,6 +150,124 @@ app.use((req, res, next) => {
 });
 ```
 
+### Express Router 의 내부 — Layer 배열과 선형 순회
+
+`next()` 가 "다음으로 넘어간다" 는 건 비유가 아니라 자료구조 그대로다. Router 는 `Layer` 객체를 담은 **배열** 하나이고, 요청이 오면 그 배열을 위에서부터 훑는다.
+
+```javascript
+const express = require('express');
+const app = express();
+const r = express.Router();
+r.get('/users', (q, s) => s.end());
+r.post('/users/:id', (q, s) => s.end());
+app.use('/api', r);
+
+// v5 는 app.router, v4 는 app._router (v4 에서 app.router 를 읽으면 deprecated 에러를 던진다)
+const stack = app._router ? app._router.stack : app.router.stack;
+const mounted = stack[stack.length - 1];      // '/api' 에 물린 Layer
+console.log(Object.keys(mounted));
+console.log(mounted.handle.stack.length);     // 2 — 라우터 안에 Layer 두 개
+```
+
+Layer 가 들고 있는 키가 버전에 따라 다르다. 4.22.2 와 5.2.1 에서 각각 찍어 본 결과다.
+
+| | Express 4.22.2 | Express 5.2.1 |
+|---|---|---|
+| Layer 키 | `handle, name, params, path, keys, regexp, route` | `handle, keys, name, params, path, slash, matchers, route` |
+| 매칭 수단 | `regexp` — `/^\/users(?:\/([^/]+?))\/?$/i` | `matchers` (함수 배열). `regexp` 는 `undefined` |
+| path-to-regexp | 0.1.13 | 8.4.2 |
+
+**v4 를 기준으로 쓴 글이 v5 에서 안 맞는 자리가 여기다.** `layer.regexp` 를 읽어 라우트를 뒤지는 코드나 디버깅 스니펫은 v5 에서 조용히 `undefined` 가 된다.
+
+#### 라우트가 200개면 마지막 라우트는 200번 매칭된다
+
+배열을 위에서부터 훑는다는 말은 곧 뒤쪽 라우트가 앞의 것을 전부 거친다는 뜻이다. 각 Layer 의 `match` 를 감싸 호출 횟수를 직접 세면 이렇게 나온다.
+
+```javascript
+// 라우트 200개를 등록하고, Layer.match 를 감싸 호출 횟수를 센다
+for (const l of layers) {
+  const orig = l.match.bind(l);
+  l.match = (p) => { attempts++; return orig(p); };
+}
+// GET /route-0    → 매칭 시도 1회
+// GET /route-199  → 매칭 시도 200회
+```
+
+v4·v5 둘 다 같은 결과였다. 이것이 Fastify 의 radix tree 와 갈리는 구조적 지점이다 — 아래 "Fastify가 빠른 이유" 절의 O(n) vs O(k) 가 실제로 이렇게 생겼다.
+
+실무에서 이게 문제가 되는 규모는 흔치 않다. 매칭 한 번은 정규식(또는 matcher) 한 번이라 200회여도 마이크로초 단위다. 다만 **와일드카드 미들웨어를 스택 위쪽에 잔뜩 깔아 두면** 이야기가 달라진다. `app.use()` 로 등록한 것은 경로 무관하게 매번 걸리므로, 그 안에서 하는 일이 무거우면 라우트 수와 무관하게 모든 요청이 그 비용을 낸다.
+
+#### next() · next('route') · next(err) — 점프 지점이 다르다
+
+셋 다 "다음" 이지만 어디로 가는지가 다르다. 실제로 순서를 찍어 확인했다.
+
+```javascript
+const trace = [];
+r.get('/jump',
+  (req, res, next) => { trace.push('A'); next(); },
+  (req, res, next) => { trace.push('B'); next('route'); },   // 이 라우트를 통째로 포기
+  (req, res, next) => { trace.push('C'); next(); }           // 실행되지 않는다
+);
+r.get('/jump', (req, res) => { trace.push('다음 라우트'); res.json({ trace }); });
+// 결과: ["A", "B", "다음 라우트"]     ← C 가 없다
+
+r.get('/err',
+  (req, res, next) => { trace.push('A'); next(new Error('boom')); },
+  (req, res, next) => { trace.push('B'); next(); }           // 실행되지 않는다
+);
+r.use((err, req, res, next) => { trace.push('에러 핸들러'); res.status(500).json({ trace }); });
+// 결과: ["A", "에러 핸들러"]          ← B 를 건너뛰고 인자 4개짜리로 점프
+```
+
+정리하면 이렇다.
+
+- `next()` — **같은 라우트 안**의 다음 핸들러
+- `next('route')` — 이 라우트의 남은 핸들러를 버리고 **같은 경로의 다음 라우트**로. `'route'` 라는 문자열이 예약어다
+- `next(err)` — 남은 것을 전부 건너뛰고 **인자 4개짜리 에러 핸들러**로
+
+`next('route')` 는 "조건을 보고 이 라우트가 담당할 게 아니면 다음에 넘긴다" 는 패턴에 쓴다. 다만 **`router.use()` 로 등록한 미들웨어에서는 동작하지 않는다** — 라우트에 속하지 않아 넘길 "다음 라우트" 가 없기 때문이다.
+
+#### app.use('/api', router) 는 req.url 을 잘라낸다
+
+이게 실전에서 가장 자주 사고를 낸다. 마운트하면 Express 가 라우터 안에서 보는 `req.url` 에서 마운트 경로를 **떼어낸다.**
+
+```javascript
+app.use('/api', r);
+r.get('/users/:id', (req, res) => {
+  res.json({ url: req.url, originalUrl: req.originalUrl, baseUrl: req.baseUrl });
+});
+```
+
+`GET /api/users/7` 로 요청하면 v4·v5 모두 이렇게 나온다.
+
+```json
+{ "url": "/users/7", "originalUrl": "/api/users/7", "baseUrl": "/api" }
+```
+
+라우터 안에서 `/api` 는 **없다.** 원본은 `req.originalUrl`, 잘려나간 마운트 지점은 `req.baseUrl` 에만 남는다.
+
+여기서 두 가지가 조용히 깨진다.
+
+**로그가 실제 경로와 다르게 남는다.** 접근 로그를 라우터 안 미들웨어로 두고 `req.url` 을 찍으면 `/users/7` 만 기록된다. 나중에 로그로 트래픽을 분석할 때 `/api` 아래인지 다른 마운트인지 구분이 안 된다. 같은 라우터를 두 곳에 마운트했다면 두 트래픽이 한 줄로 섞인다.
+
+**경로 기반 인가가 마운트 위치에 따라 뒤집힌다.** `if (req.url.startsWith('/api/admin'))` 같은 검사를 라우터 안에서 하면 절대 참이 되지 않는다. 에러가 나지 않고 그냥 통과한다 — 즉 **막아야 할 요청을 막지 않는 방향으로** 어긋난다.
+
+```javascript
+// ✗ 라우터 안에서는 이 조건이 절대 참이 되지 않는다
+router.use((req, res, next) => {
+  if (req.url.startsWith('/api/admin')) return requireAdmin(req, res, next);
+  next();
+});
+
+// ✓ 원본 경로로 판정한다
+router.use((req, res, next) => {
+  if (req.originalUrl.startsWith('/api/admin')) return requireAdmin(req, res, next);
+  next();
+});
+```
+
+규칙은 단순하다. **라우팅에는 `req.url`, 기록과 판정에는 `req.originalUrl`.** 마운트 지점 자체가 필요하면 `req.baseUrl` 을 쓴다.
+
 ### Fastify: 라이프사이클 훅과 플러그인 캡슐화
 
 Fastify는 미들웨어 대신 훅과 플러그인을 쓴다. 훅은 라이프사이클의 특정 단계에 걸리기 때문에 실행 시점이 명확하다.
