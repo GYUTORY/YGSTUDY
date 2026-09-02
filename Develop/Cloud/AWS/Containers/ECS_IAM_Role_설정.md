@@ -106,6 +106,108 @@ Task Definition의 `taskRoleArn`에 지정한다.
 
 ---
 
+## 자격증명이 컨테이너 안으로 들어오는 경로
+
+Task Role 을 붙였을 뿐인데 애플리케이션 코드에서 `new S3Client({})` 만 쓰면 S3 가 호출된다. 액세스 키를 어디에도 적지 않았는데 어떻게 되는 걸까. **이 경로를 알아야 "코드에 키가 있다면 그건 설계 실수" 라는 판단이 선다.**
+
+### Fargate — 169.254.170.2 로 받아 온다
+
+Fargate 는 태스크마다 로컬 HTTP 엔드포인트를 하나 띄우고, 컨테이너에 그 경로를 환경변수로 꽂아 준다.
+
+```
+AWS_CONTAINER_CREDENTIALS_RELATIVE_URI=/v2/credentials/<task-uuid>
+```
+
+SDK 는 이 값을 보고 `http://169.254.170.2` + 그 경로를 친다. `169.254.x.x` 는 링크 로컬 주소라 그 태스크 안에서만 닿고, VPC 를 나가지 않는다.
+
+```bash
+# 컨테이너 안에서 직접 확인
+$ echo $AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+/v2/credentials/8f3a...
+
+$ curl -s http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+{
+  "AccessKeyId": "ASIA...",
+  "SecretAccessKey": "...",
+  "Token": "...",
+  "Expiration": "2026-09-02T10:11:12Z"
+}
+```
+
+`AccessKeyId` 가 `ASIA` 로 시작하는 게 핵심이다. `AKIA` 는 IAM 사용자의 영구 키이고, **`ASIA` 는 STS 가 발급한 임시 자격증명**이다. Task Role 을 `sts:AssumeRole` 한 결과가 이 형태로 내려온다. `Expiration` 이 있고, SDK 가 만료 전에 알아서 다시 받아 온다.
+
+### SDK 가 실제로 이 경로를 치는지 확인
+
+엔드포인트를 흉내내고 SDK 를 붙여 보면 그대로 재현된다.
+
+```javascript
+const http = require('http');
+const srv = http.createServer((req, res) => {
+  console.log('SDK 가 요청한 경로:', req.url);
+  res.end(JSON.stringify({
+    AccessKeyId: 'ASIA_FAKE', SecretAccessKey: 'fake', Token: 'fake-token',
+    Expiration: new Date(Date.now() + 3600e3).toISOString(),
+  }));
+});
+srv.listen(0, '127.0.0.1', async () => {
+  // 실제 환경은 169.254.170.2 + RELATIVE_URI 지만,
+  // FULL_URI 를 쓰면 호스트를 지정할 수 있어 로컬에서 검증할 수 있다
+  process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI =
+    `http://127.0.0.1:${srv.address().port}/v2/credentials/abc123`;
+
+  const { fromContainerMetadata } = require('@aws-sdk/credential-providers');
+  const c = await fromContainerMetadata()();
+  console.log({ keyId: c.accessKeyId, hasToken: !!c.sessionToken, expiration: c.expiration });
+});
+```
+
+```
+SDK 가 요청한 경로: /v2/credentials/abc123
+{ keyId: 'ASIA_FAKE', hasToken: true, expiration: 2026-09-02T09:10:49.000Z }
+```
+
+### EC2 는 IMDS(169.254.169.254)
+
+같은 일을 EC2 에서는 인스턴스 메타데이터 서비스가 한다. 주소가 하나 다르다.
+
+| | Fargate | EC2 |
+|---|---|---|
+| 엔드포인트 | `169.254.170.2` | `169.254.169.254` |
+| 경로 지정 | `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` 환경변수 | 고정 경로 `/latest/meta-data/iam/security-credentials/` |
+| 범위 | **태스크 단위** | **인스턴스 단위** |
+
+범위 차이가 실질적이다. EC2 launch type 에서는 같은 인스턴스에 뜬 컨테이너들이 IMDS 를 통해 **인스턴스 역할**을 함께 볼 수 있다. 태스크마다 권한을 가르려면 Task Role 을 쓰고 IMDS 접근을 막아야 한다. Fargate 는 태스크마다 엔드포인트가 따로라 이 문제가 없다.
+
+EC2 라면 IMDSv2 를 강제하는 것도 함께 본다 — v1 은 단순 GET 이라 SSRF 취약점 하나로 자격증명이 새어 나갈 수 있고, v2 는 PUT 으로 토큰을 먼저 받아야 해서 그 경로가 막힌다.
+
+### SDK 자격증명 체인 — 어느 순서로 찾나
+
+SDK 는 여러 곳을 순서대로 뒤진다. `@aws-sdk/credential-provider-node` 소스에서 확인한 순서다.
+
+```
+fromEnv → remoteProvider → fromSSO → fromIni → fromProcess → fromTokenFile
+             │
+             └─ RELATIVE_URI 또는 FULL_URI 가 있으면 → fromHttp / fromContainerMetadata
+                없으면                              → fromInstanceMetadata (IMDS)
+```
+
+`remoteProvider` 안쪽이 이렇게 갈린다.
+
+```javascript
+if (process.env[ENV_CMDS_RELATIVE_URI] || process.env[ENV_CMDS_FULL_URI]) {
+  return chain(fromHttp(init), fromContainerMetadata(init));   // ECS/Fargate
+}
+return fromInstanceMetadata(init);                              // EC2
+```
+
+여기서 나오는 결론이 두 가지다.
+
+**환경변수가 가장 먼저다.** `AWS_ACCESS_KEY_ID` 를 태스크 정의에 넣어 두면 Task Role 을 아무리 잘 붙여도 그쪽이 이긴다. Task Role 권한을 고쳤는데 반영이 안 된다면 환경변수에 키가 남아 있는지부터 본다.
+
+**그래서 컨테이너에 액세스 키를 넣을 이유가 없다.** 키를 환경변수나 코드에 두는 순간 (1) 로테이션을 직접 해야 하고 (2) 이미지·로그·`env` 출력에 남고 (3) Task Role 이라는 더 안전한 경로를 덮어쓴다. **애플리케이션 코드나 태스크 정의에 `AKIA...` 가 보이면 그건 설정 문제가 아니라 설계 실수다.**
+
+로컬 개발에서는 `~/.aws/credentials`(`fromIni`) 나 SSO 를 쓰고, 배포 환경에서는 아무것도 안 넣는 게 정답이다. 같은 코드가 양쪽에서 그대로 돈다.
+
 ## IAM 권한 흐름
 
 ECS Task가 시작되어 실행되기까지 IAM 권한이 어떤 순서로 적용되는지 정리하면 아래와 같다.
