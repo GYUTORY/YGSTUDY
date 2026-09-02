@@ -300,6 +300,107 @@ export class AppModule {}
 **비동기 Guard에서 Promise 미반환**: `canActivate`는 `boolean | Promise<boolean> | Observable<boolean>`을 반환할 수 있다. async로 만들었다면 반드시 await 또는 return Promise해야 한다. 그러지 않으면 Promise 객체가 truthy로 평가되어 항상 통과되는 버그가 생긴다.
 
 
+### 전역 가드가 여러 개일 때의 실행 순서
+
+가드를 두 개 이상 전역으로 걸면 순서가 생긴다. 그런데 이 순서를 무엇이 정하는지는 공식 문서에 뚜렷하게 나와 있지 않아서 **실측해야 아는 지점**이다. Nest 12.0.1 에서 확인한 결과는 단순하다.
+
+**`APP_GUARD` 를 등록한 `providers` 배열의 순서가 곧 실행 순서다.**
+
+```typescript
+@Module({
+  controllers: [Ctl],
+  providers: [
+    { provide: APP_GUARD, useClass: TokenGuard },    // 먼저
+    { provide: APP_GUARD, useClass: TenancyGuard },  // 나중
+  ],
+})
+export class AppModule {}
+```
+
+```
+providers [Token, Tenancy] → Token → Tenancy
+providers [Tenancy, Token] → Tenancy → Token
+```
+
+가드를 여러 모듈에 나눠 등록했다면 **루트 모듈의 `imports` 배열 순서**를 따른다.
+
+```
+imports [ModA, ModB] → ModA → ModB
+imports [ModB, ModA] → ModB → ModA
+```
+
+전역 가드와 `@UseGuards()` 로 건 컨트롤러 가드가 섞이면 **전역이 먼저**다.
+
+```
+전역 → 컨트롤러
+```
+
+#### 순서를 바꿔도 에러가 안 난다는 게 문제다
+
+이 순서가 중요한 이유는 **앞 가드가 `request` 에 심은 것을 뒤 가드가 읽는 구조가 흔하기** 때문이다. 토큰 가드가 `request.auth` 를 채우고, 테넌시 가드가 그걸 읽어 소속을 대조하는 식이다.
+
+순서를 뒤집으면 어떻게 되는지 찍어 봤다.
+
+```
+providers [Token, Tenancy]
+  Token
+  Tenancy
+    Tenancy 가 본 req.auth: {"tenant":"A"}      ← 정상
+
+providers [Tenancy, Token]
+  Tenancy
+    Tenancy 가 본 req.auth: undefined            ← 정보가 없다
+  Token
+```
+
+두 경우 모두 응답은 **200** 이다. 뒤집힌 쪽에서 예외가 나거나 로그가 남지 않는다. 테넌시 가드가 `req.auth` 를 못 읽으면 대개 이렇게 짜여 있기 때문이다.
+
+```typescript
+canActivate(ctx: ExecutionContext): boolean {
+  const req = ctx.switchToHttp().getRequest();
+  if (!req.auth) return true;                    // ← "인증 안 된 요청은 내 소관이 아니다"
+  return req.auth.tenant === req.params.tenantId;
+}
+```
+
+이 `return true` 는 원래 공개 엔드포인트를 위한 것이다. 그런데 순서가 뒤집히면 **모든 요청이 이 줄로 빠진다.** 테넌시 검사가 통째로 꺼진 상태로 서비스가 돌고, 겉으로는 아무 이상이 없다. 다른 테넌트의 데이터가 열리는 사고가 여기서 난다.
+
+#### 순서에 의존하지 않게 만들거나, 순서를 강제하거나
+
+**첫째, 뒤 가드가 앞 가드의 산출물을 요구하게 만든다.** "없으면 통과" 를 "없으면 거부" 로 바꾸는 것이다.
+
+```typescript
+canActivate(ctx: ExecutionContext): boolean {
+  const req = ctx.switchToHttp().getRequest();
+  if (!req.auth) {
+    // 순서가 어긋났거나 토큰 가드가 안 걸린 것이다. 조용히 통과시키지 않는다.
+    throw new InternalServerErrorException('TenancyGuard 가 TokenGuard 보다 먼저 실행됐다');
+  }
+  return req.auth.tenant === req.params.tenantId;
+}
+```
+
+공개 엔드포인트는 `@Public()` 같은 메타데이터로 **명시적으로** 표시하고 `Reflector` 로 읽는다. "auth 가 없으니 공개겠지" 라는 추론을 없애는 게 요점이다.
+
+**둘째, 순서 자체를 결정론적으로 강제한다.** 위 방어가 있어도 순서가 뒤집힌 상태로 배포되면 그 엔드포인트는 500 을 낸다. 애초에 그 커밋이 들어가지 못하게 막는 편이 낫다.
+
+```bash
+# pre-commit 훅 — providers 안 APP_GUARD 등록 순서를 검사한다
+node -e '
+  const src = require("fs").readFileSync("src/app.module.ts", "utf8");
+  const order = [...src.matchAll(/useClass:\s*(\w+Guard)/g)].map(m => m[1]);
+  const want = ["TokenGuard", "TenancyGuard"];
+  const got = order.filter(g => want.includes(g));
+  if (JSON.stringify(got) !== JSON.stringify(want)) {
+    console.error(`APP_GUARD 순서가 어긋났다: ${got.join(" → ")} (기대: ${want.join(" → ")})`);
+    process.exit(1);
+  }
+'
+```
+
+**산문으로 적어 둔 규칙은 지켜지지 않는다.** 리팩터링하다 `providers` 배열을 정렬하거나, 새 가드를 추가하면서 위치를 잘못 잡는 일이 자연스럽게 일어난다. 사람이 기억해야 하는 규칙은 결정론적 검사와 한 쌍이어야 한다.
+
+
 ## Interceptor
 
 Guard를 통과하면 Interceptor가 실행된다. 핸들러 실행 전후를 모두 감싸는 레이어로, RxJS의 `Observable`을 반환하기 때문에 응답 스트림을 조작할 수 있다.
