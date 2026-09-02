@@ -680,6 +680,93 @@ sequenceDiagram
 **실무 팁:**
 반드시 ELB Health Check를 사용한다. EC2 Health Check만으로는 부족하다. 애플리케이션이 크래시되어도 인스턴스는 running 상태일 수 있다.
 
+## CPU 사용률 지표가 싱글 스레드 런타임에서 위험한 이유
+
+`ASGAverageCPUUtilization` 이나 `ECSServiceAverageCPUUtilization` 은 가장 흔한 스케일링 지표다. 그런데 **Node.js 처럼 한 스레드로 도는 런타임에서는 이 지표가 포화를 못 잡는다.**
+
+### vCPU 를 늘릴수록 지표가 낮아진다
+
+한 스레드를 1초간 완전히 태우고 사용률을 재 봤다.
+
+```javascript
+const start = process.cpuUsage(), t0 = Date.now();
+const end = Date.now() + 1000;
+while (Date.now() < end);              // 이벤트 루프 완전 차단
+const used = process.cpuUsage(start);
+```
+
+```
+이 머신 vCPU: 10개
+프로세스가 쓴 CPU: 98%    (코어 1개 기준)
+머신 전체로 환산  : 9.8%
+```
+
+**이벤트 루프는 완전히 막혔는데 인스턴스 지표는 9.8% 다.** CloudWatch 의 `CPUUtilization` 은 머신 전체 기준이라 이 값을 본다.
+
+vCPU 개수에 따른 상한은 이렇다. 프로세스 하나가 스레드 하나를 다 태워도 이 값을 못 넘는다.
+
+| vCPU | 한 스레드 포화 시 최대 사용률 |
+|---|---|
+| 2 | 50.0% |
+| 4 | 25.0% |
+| 8 | 12.5% |
+| 16 | 6.3% |
+
+**"느리니까 더 큰 인스턴스로 바꾸자" 가 상황을 악화시키는 지점이 여기다.** 2 vCPU 에서 50% 를 찍던 것이 8 vCPU 로 옮기면 12.5% 가 된다. 임계값 70% 는 이제 절대 안 걸리고, 스케일아웃이 영영 발동하지 않는다. 인스턴스는 커졌는데 응답은 더 느려지고 지표만 더 좋아 보인다.
+
+### 무엇으로 스케일해야 하나
+
+싱글 스레드 런타임에서 포화를 나타내는 건 CPU 사용률이 아니라 **대기 시간**이다.
+
+**1) ALB 요청 수 — 가장 무난한 출발점**
+
+```json
+{
+  "TargetTrackingScalingPolicyConfiguration": {
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ALBRequestCountPerTarget",
+      "ResourceLabel": "app/my-alb/xxxx/targetgroup/my-tg/yyyy"
+    },
+    "TargetValue": 500
+  }
+}
+```
+
+타겟 하나가 감당할 수 있는 초당 요청 수를 부하 테스트로 재서 그 값의 70~80% 를 목표로 잡는다. CPU 와 달리 vCPU 개수에 흔들리지 않는다.
+
+**2) ALB 응답 시간(p99)** — 사용자가 실제로 겪는 값이다. 다만 느린 외부 API 하나 때문에 스케일아웃이 도는 부작용이 있어, 그 경우 오히려 인스턴스만 늘고 문제는 그대로다.
+
+**3) 이벤트 루프 지연 — 가장 정확하다**
+
+`perf_hooks` 의 `monitorEventLoopDelay` 로 p99 를 재서 커스텀 지표로 올리면, 싱글 스레드가 막히는 상황을 직접 잡는다. (측정 방법은 [Node.js 성능 최적화 및 프로파일링](../../../Framework/Node/Performance/Node.js_성능_최적화_및_프로파일링.md) 의 "측정 도구" 절.)
+
+```javascript
+const { monitorEventLoopDelay } = require('perf_hooks');
+const h = monitorEventLoopDelay({ resolution: 10 });
+h.enable();
+
+setInterval(async () => {
+  await cloudwatch.putMetricData({
+    Namespace: 'MyApp',
+    MetricData: [{
+      MetricName: 'EventLoopDelayP99',
+      Value: h.percentile(99) / 1e6,      // 나노초 → 밀리초
+      Unit: 'Milliseconds',
+    }],
+  });
+  h.reset();
+}, 60_000);
+```
+
+### vCPU 를 살리려면 프로세스를 늘린다
+
+인스턴스 크기를 키우는 게 무의미한 건 아니다. 다만 **프로세스를 그만큼 띄워야** 그 vCPU 를 쓴다.
+
+- **PM2 cluster 모드** 나 Node 내장 `cluster` — 한 인스턴스에서 vCPU 수만큼 워커를 띄운다
+- **컨테이너를 잘게** — 4 vCPU 태스크 하나보다 1 vCPU 태스크 넷이 낫다. 스케일 단위가 작아져 조절도 세밀해진다
+
+컨테이너 쪽이 요즘 더 흔한 선택이다. **태스크당 vCPU 를 1 근처로 잡으면 CPU 사용률 지표도 다시 쓸 만해진다** — 스레드 하나가 그 태스크의 CPU 거의 전부이므로 사용률이 실제 포화를 반영한다. 지표를 바꾸는 대신 지표가 맞는 모양으로 배포 단위를 바꾸는 접근이다.
+
 ## ECS Auto Scaling
 
 ECS Service의 Task 개수를 자동으로 조절한다.
