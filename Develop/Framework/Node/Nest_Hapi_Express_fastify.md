@@ -318,6 +318,71 @@ fastify.get('/public', async () => {
 
 Express에서는 미들웨어 적용 범위를 라우터 단위로 나누려면 `express.Router()`를 따로 만들고 경로를 잘 분리해야 하는데, Fastify는 플러그인 등록만으로 스코프가 격리된다.
 
+#### fastify-plugin — 캡슐화를 뚫어야 할 때
+
+플러그인 캡슐화가 기본값이라, `register()` 로 등록한 플러그인이 `decorate` 한 것은 **그 플러그인 안에서만 보인다.** DB 커넥션처럼 앱 전체가 써야 하는 것을 그냥 등록하면 바깥에서 `undefined` 가 된다.
+
+```javascript
+const dbPlugin = async (app) => { app.decorate('db', { query: () => 'rows' }); };
+
+// ✗ 캡슐화된 스코프 안에서만 산다
+const a = Fastify();
+await a.register(dbPlugin);
+console.log(typeof a.db);        // undefined
+
+// ✓ fastify-plugin 으로 감싸면 부모 스코프에 붙는다
+const fp = require('fastify-plugin');
+const b = Fastify();
+await b.register(fp(dbPlugin));
+console.log(typeof b.db);        // object
+```
+
+라우트 안에서도 마찬가지라, `fp` 없이 등록하면 핸들러에서 `app.db` 가 `undefined` 다. **에러 메시지가 "왜 없지" 로만 나와서** 캡슐화 개념을 모르면 원인을 못 찾는다. `Cannot read properties of undefined` 만 보고 DB 설정을 뒤지게 된다.
+
+판단 기준은 단순하다.
+
+- **앱 전체가 공유해야 하는 것**(DB 커넥션, 캐시 클라이언트, 인증 유틸) → `fp()` 로 감싼다
+- **일부 라우트에만 걸려야 하는 것**(특정 경로 전용 훅, 스코프 한정 데코레이터) → 감싸지 않는다. 캡슐화가 원래 그러라고 있는 것이다
+
+#### decorateRequest 에 참조 타입을 넣으면
+
+`decorateRequest` 로 객체나 배열을 넣으면 **모든 요청이 같은 인스턴스를 공유한다.** 사용자 데이터가 요청 사이에 섞인다.
+
+```javascript
+app.decorateRequest('ctx', { items: [] });        // 참조 타입
+app.get('/add', async (req) => { req.ctx.items.push(req.query.v); return { items: req.ctx.items }; });
+```
+
+Fastify 4.29.1 에서 두 번 호출해 보면 이렇게 나온다.
+
+```
+요청1: {"items":["사용자A"]}
+요청2: {"items":["사용자A","사용자B"]}    ← 앞 요청 데이터가 그대로 남아 있다
+```
+
+**버전에 따라 대응이 다르다.** 이게 중요하다.
+
+| | 동작 |
+|---|---|
+| Fastify 4.x | `FSTDEP006` DeprecationWarning 을 내고 **그대로 돈다**. 데이터가 섞인다 |
+| Fastify 5.x | `FST_ERR_DEC_REFERENCE_TYPE` 을 던지고 **기동을 거부한다** |
+
+v4 는 경고 한 줄이라 넘어가기 쉽다. 게다가 **개발 환경에서는 재현이 잘 안 된다** — 요청이 순차적으로 처리되고 앞 요청이 끝난 뒤 다음이 오니 겹치는 순간이 없다. 부하가 걸리는 프로덕션에서만 데이터가 섞인다.
+
+올바른 방법은 선언과 초기화를 나누는 것이다.
+
+```javascript
+app.decorateRequest('ctx', null);                          // 선언만 (원시값)
+app.addHook('onRequest', async (req) => { req.ctx = { items: [] }; });   // 요청마다 새로
+```
+
+```
+요청1: {"items":["사용자A"]}
+요청2: {"items":["사용자B"]}       ← 격리된다
+```
+
+`decorateRequest` 의 두 번째 인자를 `null` 로 두는 건 "이 속성이 존재한다" 를 Fastify 에 알려 히든 클래스를 최적화하게 하려는 것이고, 실제 값은 `onRequest` 훅이 요청마다 채운다. Fastify 5 는 `{ getter, setter }` 인터페이스도 제공한다.
+
 ### Fastify 훅 일곱 단계 — 각 단계에서만 할 수 있는 일
 
 Fastify 의 훅은 이름 순서를 외우는 것보다 **그 자리에서만 가능한 일**을 아는 게 값이 있다. 5.12.1 에서 훅 일곱 개를 전부 걸고 실행 순서를 찍었다.
