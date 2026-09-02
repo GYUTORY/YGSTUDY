@@ -14,7 +14,14 @@ updated: 2026-07-25
 
 Readable은 두 가지 모드로 동작한다. `data` 이벤트 리스너를 붙이거나 `pipe()`를 호출하는 순간 flowing 모드가 되어 자동으로 데이터가 흘러나온다. `pause()`를 호출하면 paused 모드로 돌아가고 데이터가 내부 버퍼에 쌓인다.
 
-`highWaterMark`는 내부 버퍼의 임계값이다. 기본값은 16KB다. 이 값을 초과하면 `_read()`가 더 이상 호출되지 않는다. 대용량 파일을 처리할 때는 이 값을 늘려서 I/O 호출 횟수를 줄이고, 메모리가 타이트한 환경에서는 줄여야 한다.
+`highWaterMark`는 내부 버퍼의 임계값이다. 기본값은 **64KB**(65536)다. 이 값을 초과하면 `_read()`가 더 이상 호출되지 않는다. 대용량 파일을 처리할 때는 이 값을 늘려서 I/O 호출 횟수를 줄이고, 메모리가 타이트한 환경에서는 줄여야 한다.
+
+```javascript
+new Readable({ read() {} }).readableHighWaterMark;   // 65536
+require('fs').createReadStream('/etc/hosts').readableHighWaterMark;  // 65536
+```
+
+16KB 로 적힌 자료를 종종 보는데, 그건 소켓 기준이거나 옛 판본이다. **아래 objectMode 절에서 보듯 단위 자체가 바뀌는 경우도 있으니 값을 외우기보다 찍어 보는 게 낫다.**
 
 ```javascript
 const { Readable } = require('stream');
@@ -56,6 +63,42 @@ class DatabaseCursor extends Readable {
 ```
 
 객체 모드(`objectMode: true`)를 쓰면 Buffer/String 대신 JS 객체를 흘려보낼 수 있다. DB 커서처럼 레코드를 한 건씩 처리할 때 유용하다.
+
+#### objectMode 에서 highWaterMark 는 바이트가 아니라 개수다
+
+같은 이름의 옵션인데 **단위가 통째로 바뀐다.** 기본값도 함께 바뀐다.
+
+```javascript
+new Readable({ read() {} }).readableHighWaterMark;                  // 65536  (바이트)
+new Readable({ objectMode: true, read() {} }).readableHighWaterMark; // 16     (개수)
+new Writable({ write(c,e,cb){cb();} }).writableHighWaterMark;                  // 65536
+new Writable({ objectMode: true, write(c,e,cb){cb();} }).writableHighWaterMark; // 16
+```
+
+**`16` 은 16KB 가 아니라 객체 16개**다. 여기서 실무 함의가 나온다 — 객체 하나가 크면 16개만으로도 메모리가 크게 부푼다.
+
+10MB 짜리 객체를 느린 소비자에게 밀어 넣어 보면 이렇게 된다.
+
+```javascript
+const w = new Writable({ objectMode: true, write(c, e, cb) { setTimeout(cb, 50); } });
+let n = 0, ok = true;
+while (ok) { ok = w.write({ payload: 'x'.repeat(10 * 1024 * 1024) }); n++; }
+// → 16개째에 false 반환. 그때 버퍼에 약 160MB 가 쌓여 있다
+```
+
+바이트 모드였다면 64KB 에서 배압이 걸렸을 텐데, 객체 모드는 **160MB 를 다 받고 나서야** 신호를 준다. DB 커서에서 행을 읽어 흘리는 파이프라인에서 행 하나가 크면(BLOB 컬럼, 큰 JSON) 정확히 이 모양이 된다.
+
+그래서 **객체 크기를 알면 highWaterMark 를 직접 잡아야 한다.**
+
+```javascript
+// 행 하나가 수 MB 인 커서 스트림 — 기본값 16 이면 수십 MB 가 버퍼에 뜬다
+new Readable({ objectMode: true, highWaterMark: 2, read() {} });
+
+// 작고 가벼운 이벤트 객체라면 오히려 늘려서 처리량을 올린다
+new Readable({ objectMode: true, highWaterMark: 256, read() {} });
+```
+
+기본값 16 은 "객체 하나가 작다" 를 전제한 숫자다. 그 전제가 안 맞으면 조정하는 게 맞고, **조정 근거는 객체 하나의 실제 크기**다.
 
 ## Writable Stream
 
