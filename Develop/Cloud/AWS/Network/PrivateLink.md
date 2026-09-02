@@ -538,6 +538,86 @@ aws ec2 create-flow-logs \
 
 ## 트러블슈팅
 
+### 엔드포인트를 만들었는데 여전히 NAT 로 나간다
+
+엔드포인트를 만들고 NAT 게이트웨이 비용이 그대로면 트래픽이 아직 엔드포인트를 안 타는 것이다. **에러가 안 난다는 게 이 문제의 성질이다** — S3 호출은 잘 되고 코드도 안 바뀌었으니, 청구서를 보기 전까지 아무도 모른다.
+
+원인은 거의 항상 아래 넷 중 하나이고, 순서대로 확인하면 빠르다.
+
+#### 1. Gateway — 라우팅 테이블에 연결했는가
+
+Gateway 엔드포인트(S3·DynamoDB)는 **만들기만 해서는 아무 일도 안 한다.** 서브넷이 쓰는 라우팅 테이블에 붙어야 그 테이블에 Prefix List 경로가 생긴다.
+
+프라이빗 서브넷이 여러 개고 라우팅 테이블도 여러 개인 구성에서, 엔드포인트 생성 시 일부만 넣고 나머지를 빠뜨리는 일이 흔하다. **그 테이블을 쓰는 서브넷의 트래픽만 계속 NAT 로 나간다.**
+
+```bash
+# 이 엔드포인트가 어느 라우팅 테이블에 붙어 있나
+aws ec2 describe-vpc-endpoints --vpc-endpoint-ids vpce-12345678 \
+  --query 'VpcEndpoints[0].RouteTableIds'
+
+# 실제로 앱이 뜬 서브넷은 어느 테이블을 쓰나 — 위 목록에 있어야 한다
+aws ec2 describe-route-tables \
+  --filters Name=association.subnet-id,Values=subnet-aaaa \
+  --query 'RouteTables[].RouteTableId'
+```
+
+두 결과가 어긋나면 그게 원인이다. 붙이는 건 나중에도 된다.
+
+```bash
+aws ec2 modify-vpc-endpoint --vpc-endpoint-id vpce-12345678 \
+  --add-route-table-ids rtb-33333333
+```
+
+라우팅 테이블에 `pl-` 로 시작하는 Prefix List 경로가 보이면 연결된 것이다.
+
+#### 2. Interface — Private DNS 를 켰는가
+
+Interface 엔드포인트는 반대로 **DNS 가 핵심**이다. `--private-dns-enabled` 없이 만들면 엔드포인트 전용 DNS 이름만 생기고, 원래 쓰던 퍼블릭 엔드포인트 이름은 **그대로 퍼블릭 IP 로 해석된다.** 코드가 `secretsmanager.us-west-2.amazonaws.com` 을 그대로 쓰고 있으면 트래픽은 여전히 NAT 로 나간다.
+
+```bash
+aws ec2 describe-vpc-endpoints --vpc-endpoint-ids vpce-12345678 \
+  --query 'VpcEndpoints[0].PrivateDnsEnabled'
+```
+
+`false` 면 켠다.
+
+```bash
+aws ec2 modify-vpc-endpoint --vpc-endpoint-id vpce-12345678 --private-dns-enabled
+```
+
+VPC 의 `enableDnsSupport` 와 `enableDnsHostnames` 가 둘 다 켜져 있어야 한다는 조건도 붙는다(위 "Private DNS" 절 참고).
+
+#### 3. 확인 — 어디로 해석되는지 직접 본다
+
+설정을 봐도 확신이 안 서면 **인스턴스 안에서 이름이 무엇으로 풀리는지** 보는 게 결정적이다.
+
+```bash
+# 프라이빗 서브넷의 인스턴스/태스크 안에서
+$ nslookup secretsmanager.us-west-2.amazonaws.com
+```
+
+- **VPC 대역의 사설 IP**(10.x, 172.16~31.x, 192.168.x)가 나오면 → 엔드포인트를 타고 있다
+- **퍼블릭 IP** 가 나오면 → 아직 인터넷으로 나간다. 1·2번을 다시 본다
+
+Gateway(S3)는 DNS 가 아니라 라우팅으로 갈리므로 이름은 퍼블릭으로 풀린다. 이쪽은 라우팅 테이블에서 Prefix List 경로를 확인하는 게 맞는 방법이다.
+
+#### 4. 엔드포인트 정책과 보안 그룹 — 여기서 막히면 조용하지 않다
+
+앞의 셋과 달리 이 둘은 **에러를 낸다.** 그래서 진단 순서에서 뒤에 둔다.
+
+- **엔드포인트 정책** — 기본은 전체 허용이지만 좁혀 놨다면 `AccessDenied` 가 난다. 버킷 이름이나 리소스 ARN 을 정책에 빠뜨린 경우
+- **보안 그룹** — Interface 엔드포인트는 ENI 라 SG 가 붙는다. 인바운드 443 이 앱 SG 로부터 열려 있어야 한다. 막히면 연결 타임아웃
+
+정리하면 이렇다.
+
+| 증상 | 의심할 곳 |
+|---|---|
+| 잘 되는데 NAT 비용 그대로 | 1·2번 (조용히 안 먹는 경우) |
+| `AccessDenied` | 엔드포인트 정책 |
+| 연결 타임아웃 | 보안 그룹 |
+
+**"조용히 안 먹는" 앞의 둘이 이 문제의 대부분**이다. 비용 절감을 기대하고 엔드포인트를 만들었다면, 만든 직후 3번의 `nslookup` 이나 라우팅 테이블 확인으로 실제로 타는지 한 번 보는 게 낫다. 다음 달 청구서로 알게 되는 것보다 낫다.
+
 ### Endpoint에 연결이 안 된다
 
 **1. Endpoint 상태 확인:**
