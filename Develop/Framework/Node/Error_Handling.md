@@ -558,6 +558,106 @@ flowchart LR
 | 스코프별 에러 핸들링 | Router 단위 (순서 주의) | 컨트롤러/메서드 단위 필터 | 플러그인 스코프 (캡슐화) |
 | 에러 전파 방식 | `next(error)` 수동 호출 | throw → Exception Filter 자동 라우팅 | throw → setErrorHandler 자동 라우팅 |
 
+## ERR_HTTP_HEADERS_SENT — 스택이 원인을 안 가리킨다
+
+응답을 두 번 보내면 나는 에러다. 흔한데도 진단이 오래 걸리는 이유가 따로 있다.
+
+```
+code   : ERR_HTTP_HEADERS_SENT
+message: Cannot set headers after they are sent to the client
+```
+
+#### 스택 트레이스가 가리키는 곳은 원인이 아니다
+
+이 코드에서 진짜 문제는 **4행**(첫 응답)인데, 예외는 6행에서 난다.
+
+```javascript
+const srv = http.createServer((req, res) => {
+  res.end('첫 번째');                              // ← 진짜 원인은 이 줄
+  setTimeout(() => {
+    res.setHeader('x-late', '1');                  // ← 예외는 여기서 난다
+    res.end('두 번째');
+  }, 10);
+});
+```
+
+```
+at ServerResponse.setHeader (node:_http_outgoing:700:11)
+at Timeout._onTimeout (/tmp/hdr3.js:5:15)
+at listOnTimeout (node:internal/timers:588:17)
+```
+
+**스택에는 "두 번째로 응답한 줄" 만 나온다.** 첫 `res.end()` 가 어디였는지는 아무 데도 없다. 그래서 스택이 가리키는 곳을 아무리 들여다봐도 답이 안 나온다 — 그 줄은 죄가 없다. 찾아야 하는 건 "이 요청에서 그 전에 응답한 곳" 이다.
+
+비동기가 끼면 더 어려워진다. 위 예처럼 타이머·프로미스 콜백에서 두 번째 응답이 나면 스택이 원래 요청 흐름과 완전히 끊긴다.
+
+#### Express 에서 가장 흔한 형태 — `return` 을 빠뜨린 것
+
+```javascript
+app.use((req, res, next) => {
+  if (!req.headers.authorization) {
+    res.status(401).json({ e: 'no token' });   // return 이 없다
+  }
+  next();                                       // 401 을 보내고도 그대로 다음으로 간다
+});
+app.get('/x', (req, res) => res.json({ ok: true }));   // 여기서 두 번째 응답
+```
+
+실제로 돌리면 에러 핸들러가 이걸 받는다.
+
+```
+에러 핸들러가 받은 것: ERR_HTTP_HEADERS_SENT | Cannot set headers after they are sent to the client
+```
+
+`res.status(...).json(...)` 은 응답을 보낼 뿐 함수를 끝내지 않는다. **`return` 하나가 빠지면 아래가 계속 실행된다.** 조건부 응답 뒤에는 항상 `return` 을 붙이는 습관이 이 부류를 대부분 막는다.
+
+```javascript
+if (!req.headers.authorization) {
+  return res.status(401).json({ e: 'no token' });   // ✓
+}
+```
+
+#### 방어 — headersSent 를 본다
+
+이미 응답했는지는 `res.headersSent` 로 알 수 있다. 특히 **에러 핸들러에서 필수**다. 에러 핸들러가 도는 시점에 이미 응답이 나갔을 수 있고, 거기서 또 쓰면 원래 에러가 이 에러로 덮인다.
+
+```javascript
+app.use((err, req, res, next) => {
+  logger.error({ err });
+  if (res.headersSent) {
+    // 이미 나갔다. 여기서 또 쓰면 ERR_HTTP_HEADERS_SENT 가 원래 에러를 덮는다.
+    // Express 기본 핸들러에 넘겨 커넥션을 정리하게 한다.
+    return next(err);
+  }
+  res.status(500).json({ error: 'internal' });
+});
+```
+
+#### 원인 찾기 — 응답 지점에 표시를 남긴다
+
+스택이 도움이 안 되므로, **응답한 자리를 직접 기록**하는 게 가장 빠르다. 개발 환경에서만 켜 둔다.
+
+```javascript
+// 개발 환경 전용 — 응답이 어디서 나갔는지 남긴다
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    const origEnd = res.end.bind(res);
+    res.end = function (...args) {
+      if (res.headersSent) {
+        console.error('두 번째 응답 시도:', new Error().stack);
+        console.error('첫 응답은 여기였다:', res.__firstEnd);
+      } else {
+        res.__firstEnd = new Error().stack;      // ← 첫 응답 지점을 잡아 둔다
+      }
+      return origEnd(...args);
+    };
+    next();
+  });
+}
+```
+
+이러면 두 스택이 같이 찍혀서 "어디서 처음 응답했고 어디서 또 하려 했는지" 가 한 번에 보인다. 스택 하나만 보고 헤매는 시간이 없어진다.
+
 ## 프로세스 레벨 에러
 
 프레임워크와 무관하게, Node.js 프로세스 자체에서 잡아야 하는 에러들이 있다.
