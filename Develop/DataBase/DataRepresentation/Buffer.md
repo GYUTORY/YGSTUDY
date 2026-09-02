@@ -292,6 +292,90 @@ const buf4 = Buffer.from([0x48, 0x65, 0x6c, 0x6c, 0x6f]);
 
 `Buffer.allocUnsafe()`는 이름 그대로 안전하지 않다. 이전에 다른 프로세스가 쓴 메모리 내용이 남아있을 수 있어서, 초기화 없이 외부로 보내면 메모리 내용이 유출될 수 있다. 성능이 중요하고 바로 데이터를 채울 때만 쓴다.
 
+### Buffer 는 V8 힙 밖이다 — 힙 한도가 막아 주지 않는다
+
+`Buffer` 가 V8 힙 밖에 할당된다는 건 위에서 적었는데, 그 사실의 실질적인 귀결이 하나 있다. **`--max-old-space-size` 가 Buffer 를 막지 못한다.**
+
+힙 한도를 256MB 로 걸고 Buffer 를 2GB 잡아 봤다.
+
+```javascript
+const MB = 1024 * 1024, bufs = [];
+for (let i = 0; i < 20; i++) bufs.push(Buffer.alloc(100 * MB));
+console.log(process.memoryUsage());
+```
+
+```
+$ node --max-old-space-size=256 oom.js
+  힙 한도: 304MB
+  시작          heapUsed    4MB  external     1MB  rss    40MB
+  Buffer 2GB   heapUsed    3MB  external  2001MB  rss    41MB
+```
+
+**막히지 않는다.** `heapUsed` 는 3MB 그대로다. 같은 한도에서 배열로 같은 일을 하면 `Mark-Compact` 를 반복하다 `allocation failure` 로 죽는다. Buffer 만 예외인 게 아니라, `external`·`arrayBuffers` 로 잡히는 메모리가 전부 힙 회계 밖이다.
+
+위 출력의 RSS 41MB 는 아직 페이지를 안 만졌기 때문이다. 실제로 쓰면 이렇게 된다.
+
+```javascript
+for (const b of bufs) b.fill(0x41);   // 실제로 만진다
+```
+
+```
+  alloc 직후           heapUsed    3MB  external   801MB  rss    41MB
+  fill 후 (실제 점유)   heapUsed    3MB  external   801MB  rss   841MB
+```
+
+`heapUsed` 는 **3MB 에서 꿈쩍도 안 하는데** RSS 만 841MB 로 올라간다.
+
+#### 이것이 만드는 장애 모양
+
+컨테이너에서 이렇게 나타난다.
+
+- 힙 사용률 대시보드는 **평온하다.** heapUsed 가 한도의 몇 % 인지만 보면 이상 징후가 없다
+- GC 로그도 조용하다. V8 은 자기가 관리하지 않는 메모리 때문에 GC 를 돌리지 않는다
+- 그런데 **RSS 만 계속 올라가다 어느 순간 컨테이너가 OOM 으로 죽는다**. 종료 로그도 스택 트레이스도 없다. 커널이 `SIGKILL` 을 보내기 때문이다
+
+전형적인 원인은 스트림 처리에서 청크를 배열에 쌓아 두고 안 비우는 것, 응답을 캐시한다며 Buffer 를 Map 에 넣고 만료를 안 거는 것, 그리고 `Buffer.concat` 을 루프 안에서 돌려 중간 결과가 계속 남는 것이다.
+
+#### 진단 — 힙이 아니라 external 을 본다
+
+`process.memoryUsage()` 의 네 값을 함께 봐야 구분이 된다.
+
+| 값 | 무엇 | 늘어나면 |
+|---|---|---|
+| `heapUsed` | V8 힙 안 객체 | 일반적인 메모리 누수 |
+| `external` | V8 이 관리하는 힙 **밖** 메모리 | Buffer·ArrayBuffer 누수 |
+| `arrayBuffers` | 그중 ArrayBuffer 몫 (`external` 의 부분집합) | Buffer 가 주범이라는 확증 |
+| `rss` | OS 가 보는 실제 점유 | 컨테이너 한도와 비교할 값 |
+
+**`heapUsed` 는 평평한데 `arrayBuffers` 와 `rss` 만 우상향이면 Buffer 누수다.** 힙 스냅샷을 아무리 떠 봐야 안 나온다 — 힙 안에 없기 때문이다.
+
+```javascript
+// 주기적으로 찍어 두면 어느 쪽이 새는지 바로 갈린다
+setInterval(() => {
+  const m = process.memoryUsage();
+  logger.info({
+    heapUsed: m.heapUsed,
+    external: m.external,
+    arrayBuffers: m.arrayBuffers,   // 이게 오르면 Buffer 쪽
+    rss: m.rss,
+  });
+}, 30_000);
+```
+
+#### 컨테이너 한도와 힙 한도를 같게 두면 안 된다
+
+여기서 `--max-old-space-size` 를 잡는 기준이 나온다. 컨테이너 메모리 한도가 1GB 라고 힙 한도도 1GB 로 두면, **V8 이 GC 를 시작하기도 전에 커널이 프로세스를 먼저 죽인다.** 힙 밖에서 쓰는 몫(Buffer, 네이티브 애드온, 코드·스택)이 그 위에 얹히기 때문이다.
+
+```
+컨테이너 1GB
+├─ V8 힙          ← --max-old-space-size 가 관리하는 범위
+├─ external/Buffer  ← 여기는 관리 밖
+├─ 네이티브 애드온
+└─ 코드·스택·기타
+```
+
+컨테이너 한도의 **70~80%** 를 힙 한도로 잡는 게 통상적인 출발점이다. 1GB 컨테이너면 `--max-old-space-size=768` 정도. 나머지 여유가 힙 밖 몫이다. Buffer 를 많이 쓰는 서비스라면 그 비율을 더 낮춰야 하고, 반대로 Buffer 를 거의 안 쓰면 조금 올려도 된다. **그 비율을 정하는 근거는 위의 `external` 관측값**이지 관례가 아니다.
+
 ### 스트림에서의 버퍼 처리
 
 ```javascript
