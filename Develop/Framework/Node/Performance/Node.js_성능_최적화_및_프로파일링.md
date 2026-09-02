@@ -2499,6 +2499,116 @@ inputStream
   });
 ```
 
+## 측정 도구 — 평균 대신 p99, 추측 대신 프로파일
+
+앞 절들이 "무엇을 고칠까" 라면 여기는 "무엇이 문제인지 어떻게 아는가" 다. 세 가지 도구가 각각 다른 층을 본다.
+
+### 1. 이벤트 루프 지연 — 평균은 거짓말을 한다
+
+`process.hrtime.bigint()` 로 구간을 재는 건 그 구간만 본다. 이벤트 루프 자체가 얼마나 막히는지는 `perf_hooks` 의 `monitorEventLoopDelay` 가 히스토그램으로 준다.
+
+```javascript
+const { monitorEventLoopDelay } = require('perf_hooks');
+
+const h = monitorEventLoopDelay({ resolution: 10 });   // 10ms 마다 샘플
+h.enable();
+
+// 주기적으로 내보내고 리셋한다
+setInterval(() => {
+  const ms = (v) => v / 1e6;                            // 나노초 → 밀리초
+  metrics.gauge('eventloop.mean', ms(h.mean));
+  metrics.gauge('eventloop.p50',  ms(h.percentile(50)));
+  metrics.gauge('eventloop.p99',  ms(h.percentile(99)));  // ← 이걸 본다
+  metrics.gauge('eventloop.max',  ms(h.max));
+  h.reset();
+}, 10_000);
+```
+
+왜 p99 냐면, 평균이 문제를 가리기 때문이다. 10ms 간격으로 도는 타이머 중 20번에 한 번만 300ms 를 막는 상황을 만들어 재 봤다.
+
+```
+min 10.0ms   mean 20.6ms   p50 11.0ms
+p90 11.3ms   p99 299.1ms   max 299.4ms
+```
+
+**평균 20.6ms 는 아무 문제 없어 보인다.** p50 은 11ms 로 더 멀씩하다. 그런데 p99 가 299ms 다 — 100 요청 중 하나는 0.3초를 그냥 기다린다. 대시보드에 평균만 그려 두면 이 장애는 영원히 안 보이고, 사용자만 "가끔 느리다" 고 한다.
+
+알림 기준으로는 **p99 를 쓰고 mean 은 참고로만** 둔다. 통상 p99 가 지속적으로 100ms 를 넘으면 동기 작업이 이벤트 루프를 막고 있다는 뜻이다. 흔한 원인은 큰 JSON 의 `JSON.parse`/`stringify`, 동기 파일 I/O, 정규식 백트래킹, 그리고 암호화 연산이다.
+
+`resolution` 은 샘플 간격이라 이보다 짧은 지연은 못 본다. 10ms 면 충분하고, 더 줄이면 측정 자체가 CPU 를 먹는다.
+
+### 2. CPU 프로파일 — 어느 함수가 CPU 를 쥐고 있나
+
+이벤트 루프가 막힌다는 걸 알았으면 다음은 "무엇이" 다. 별도 도구 없이 Node 플래그만으로 뜬다.
+
+```bash
+node --cpu-prof --cpu-prof-dir=./prof app.js
+# 종료 시 ./prof/CPU.<날짜>.<pid>.<tid>.<seq>.cpuprofile 이 생긴다
+```
+
+이 파일을 Chrome DevTools 에 끌어다 놓으면(Performance 패널 → 파일 열기) 플레임 그래프가 나온다. **볼 것은 total time 이 아니라 self time 이다.**
+
+- **total time** — 그 함수와 그 함수가 부른 것들 전부. 최상위는 항상 100% 라 정보가 없다
+- **self time** — 그 함수 본체가 직접 CPU 를 쓴 시간. **여기 위쪽에 있는 게 범인이다**
+
+`.cpuprofile` 은 그냥 JSON 이라 직접 열어 봐도 된다. `samples` 배열이 어느 노드가 몇 번 잡혔는지이고, 그 빈도가 곧 self time 이다.
+
+```javascript
+const p = JSON.parse(fs.readFileSync('prof/CPU.....cpuprofile', 'utf8'));
+const byId = Object.fromEntries(p.nodes.map(n => [n.id, n]));
+const self = {};
+for (const id of p.samples) self[id] = (self[id] || 0) + 1;
+
+Object.entries(self).sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([id, c]) => {
+  const f = byId[id].callFrame;
+  console.log(`${(c / p.samples.length * 100).toFixed(1)}%  ${f.functionName}  ${f.url}:${f.lineNumber + 1}`);
+});
+```
+
+실제로 무거운 해시 함수를 넣고 돌려 보면 그 함수가 그대로 1위에 나온다.
+
+```
+52.9%  slowHash  work.js:1
+17.6%  consoleCall
+ 5.9%  (program)
+```
+
+프로덕션에서 종료를 기다릴 수 없으면 `inspector` 모듈로 임의 시점에 뜰 수 있다. `--cpu-prof` 는 프로세스 종료 시점에만 파일을 쓴다는 걸 기억해 둔다.
+
+### 3. 힙 한도는 컨테이너 한도의 70~80%
+
+`--max-old-space-size` 는 **V8 힙만** 제한한다. Buffer·ArrayBuffer 같은 힙 밖 메모리는 이 한도 위에 얹힌다.
+
+```
+컨테이너 1GB
+├─ V8 힙            ← --max-old-space-size 가 관리
+├─ external/Buffer   ← 관리 밖
+├─ 네이티브 애드온
+└─ 코드·스택
+```
+
+그래서 둘을 같게 두면 **V8 이 GC 를 시작하기 전에 커널이 프로세스를 먼저 죽인다.** 힙이 한도에 다가가야 V8 이 본격적으로 회수를 시작하는데, 그 전에 힙 밖 몫까지 합친 RSS 가 컨테이너 한도를 넘어 버리기 때문이다. OOM Killer 는 `SIGKILL` 이라 종료 로그도 스택도 없다.
+
+1GB 컨테이너면 `--max-old-space-size=768` 정도가 출발점이다. Buffer 를 많이 쓰는 서비스라면 더 낮춘다. **비율의 근거는 관례가 아니라 `process.memoryUsage().external` 관측값**이다. (자세한 건 [Buffer](../../../DataBase/DataRepresentation/Buffer.md) 문서의 "Buffer 는 V8 힙 밖이다" 절.)
+
+### 측정이 문제를 키우는 경우 — console.log
+
+마지막으로, 측정하려고 넣은 로그가 원인을 악화시키는 자리가 있다.
+
+`process.stdout` 은 대상에 따라 다른 구현이 붙는다. 직접 찍어 보면 이렇다.
+
+```
+파일로 리다이렉트  → SyncWriteStream
+파이프로           → Socket
+TTY                → 대상에 따라 다름
+```
+
+**파일로 리다이렉트하면 `SyncWriteStream` 이다.** 이름 그대로 동기 쓰기라 디스크가 느려지면 그만큼 이벤트 루프가 멈춘다. 컨테이너에서 stdout 을 파일이나 로그 드라이버로 넘기는 구성이 흔한데, 거기서 초당 수천 줄을 찍으면 로그가 곧 병목이 된다.
+
+디버깅하느라 `console.log` 를 늘렸더니 p99 가 더 나빠지는 상황이 여기서 나온다. 측정이 관측 대상을 바꿔 버리는 셈이다.
+
+프로덕션에서는 `pino` 같은 비동기 로거를 쓰고, 그마저도 레벨로 양을 조절한다. `console.log` 는 개발용으로만 남긴다.
+
 ## 성능 모니터링 및 알림
 
 ### 1. 실시간 성능 모니터링
