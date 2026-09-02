@@ -9,10 +9,11 @@ hide:
 
 # 제너레이터 & 이터레이터 전체 보기
 
-문서 2개.
+문서 3개.
 
 ## 개요
 
 - [JavaScript Generator](<제너레이터 함수의 사용.md>)
 - [JavaScript 무한 시퀀스 생성](<무한 시퀀스 생성.md>)
+- [이터레이터 프로토콜과 커스텀 이터러블](Iterator_Protocol.md)
 

@@ -9,7 +9,7 @@ hide:
 
 # RDBMS 전체 보기
 
-문서 59개.
+문서 60개.
 
 ## 인덱스
 
@@ -74,6 +74,7 @@ hide:
 
 - [EAV 패턴](EAV.md)
 - [JSON 컬럼 JPA 매핑](JSON_Column_JPA.md)
+- [MVCC (Multi-Version Concurrency Control)](MVCC.md)
 - [MySQL Online DDL](My_SQL_Online_DDL.md)
 - [MySQL utf8mb4](utf8mb4.md)
 - [PostgreSQL JSONB 실무](Postgre_SQL_JSONB.md)

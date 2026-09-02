@@ -67,3 +67,4 @@ nav:
     - CDC 파이프라인: CDC_Pipeline.md
     - MySQL vs PostgreSQL: My_SQL_vs_Postgre_SQL.md
     - ClickHouse: ClickHouse.md
+  - MVCC: MVCC.md

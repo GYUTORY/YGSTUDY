@@ -9,7 +9,7 @@ hide:
 
 # Node.js 전체 보기
 
-문서 107개.
+문서 108개.
 
 ## 프레임워크
 
@@ -70,6 +70,7 @@ hide:
 - [NestJS Guards](NestJS/Nest_JS_Guards.md)
 - [NestJS Health Check 심화](NestJS/Nest_JS_Health_Check.md)
 - [NestJS Interceptor 동작 원리와 실무 활용](NestJS/Nest_JS_Interceptors.md)
+- [NestJS LazyModuleLoader — 동적 모듈 지연 로딩](NestJS/Nest_JS_Lazy_Module_Loader.md)
 - [NestJS Middleware](NestJS/Nest_JS_Middleware.md)
 - [NestJS MongoDB/Mongoose 연동](NestJS/Nest_JS_Mongo_DB_Mongoose.md)
 - [NestJS OpenTelemetry 분산 추적](NestJS/Nest_JS_Open_Telemetry.md)
