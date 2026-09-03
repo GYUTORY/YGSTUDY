@@ -3,3 +3,4 @@ nav:
   - index.md
   - Process & Thread
   - Memory
+  - OS_Debugging_Fundamentals.md
