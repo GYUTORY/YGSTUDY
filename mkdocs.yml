@@ -75,6 +75,9 @@ plugins:
   # 문서를 옮길 때 기존 URL이 죽지 않도록 여기에 이전 경로 -> 새 경로를 남긴다
   - redirects:
       redirect_maps:
+        # 인시던트 라이프사이클·SLO·온콜·런북·포스트모템은 아키텍처와
+        # 무관한 보편 주제인데 MSA 하위에 있어 안 보였다 (2026-09-02)
+        'Architecture/MSA/MSA_Operations_Incident_Response_Deep_Dive.md': 'Engineering/장애_대응.md'
         # 모듈 시스템 문서 3편 통합 — 유입 링크가 가장 많고 내용의 무게중심이
         # 런타임인 Node 편으로 수렴 (2026-08-19)
         'Language/JavaScript/04_심화_JavaScript/Module_System.md': 'Framework/Node/모듈 시스템/CommonJS vs ESM.md'

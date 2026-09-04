@@ -9,7 +9,7 @@ hide:
 
 # MSA 전체 보기
 
-문서 29개.
+문서 28개.
 
 ## 설계와 전환
 
@@ -44,7 +44,6 @@ hide:
 - [분산 추적 및 Observability](분산_추적_및_Observability.md)
 - [장애 격리 패턴](장애_격리_패턴.md)
 - [운영 및 장애 대응](마이크로서비스_운영_및_장애_대응.md)
-- [운영 및 장애 대응 심화](MSA_Operations_Incident_Response_Deep_Dive.md)
 
 ## 개요
 
