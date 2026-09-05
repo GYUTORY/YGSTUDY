@@ -168,6 +168,7 @@ REST든 GraphQL이든 설계 단계에서 놓치면 나중에 고치기 어렵�
 - [API 설계 원칙](./API/API_설계_원칙.md) - RESTful 원칙, API 버저닝, OpenAPI/Swagger 문서화
 - [GraphQL](./API/GraphQL.md) - 스키마 설계, 리졸버 구현, N+1 문제와 데이터 로더
 - [Rate Limiting](./API/Rate_Limiting.md) - 토큰 버킷, 슬라이딩 윈도우 알고리즘, DDoS 방어
+- [gRPC 기초](./g_RPC_기초.md) - Protobuf 스키마 정의, NestJS GrpcOptions 설정, Unary/Server-streaming RPC, REST-gRPC 게이트웨이
 
 ### 에러 처리
 
@@ -515,7 +516,6 @@ kill -USR2 $(pgrep -f "node dist/main")
 지금 인덱스에서 비어 있는 자리다. 운영을 하면서 자주 부딪히는데 정리는 안 된 주제들이다.
 
 - **WebSocket 심화** — Socket.IO vs ws, NestJS Gateway 내부, Redis Adapter 멀티 인스턴스 브로드캐스트, 재연결/하트비트 설계
-- **gRPC** — Protobuf 스키마 관리, NestJS의 GrpcOptions, 스트리밍 RPC, REST와의 게이트웨이 패턴
 - **서버리스(AWS Lambda) 패턴** — Cold start 최소화, Lambda + NestJS, Provisioned Concurrency 비용 trade-off, 이벤트 소스(API Gateway/SQS) 매핑
 - **OpenAPI / Swagger 자동화** — NestJS 데코레이터로 스펙 생성, 클라이언트 SDK 자동 생성, 버저닝
 - **GraphQL Federation** — Apollo Federation 2, 서브그래프 분리, 인증 컨텍스트 전파

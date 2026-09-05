@@ -34,6 +34,8 @@ nav:
     - JWT 구현과 보안: 인증
     - 작업 큐 처리: 백그라운드_작업
     - 파일 업로드와 처리: 파일_처리
+    - Kafka 연동: Kafka_연동.md
+    - "gRPC 기초": g_RPC_기초.md
   - API
   - NestJS
   - 런타임 구조: Nodejs의 구조 및 작동 원리

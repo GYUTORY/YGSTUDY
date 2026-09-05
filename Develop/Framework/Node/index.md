@@ -9,7 +9,7 @@ hide:
 
 # Node.js 전체 보기
 
-문서 108개.
+문서 110개.
 
 ## 프레임워크
 
@@ -160,4 +160,6 @@ hide:
 ## 개요
 
 - [Node.js 프레임워크 문서 인덱스](Node_Framework_Index.md)
+- [gRPC — Protobuf 스키마부터 NestJS 게이트웨이까지](g_RPC_기초.md)
+- [kafkajs Consumer Group 운영과 재처리](Kafka_연동.md)
 
