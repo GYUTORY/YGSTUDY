@@ -72,6 +72,7 @@ nav:
     - 최근 보안사고 사례 2021~2025: Recent_Security_Incidents.md
     - SaaS 자격증명과 토큰 탈취 사고: Saa_S_Token_Theft_Incidents.md
     - 엣지 장비 제로데이 대응: Edge_Device_Zero_Day_Response.md
+    - 의존성 취약점 알림 선별과 VEX: Dependency_Vulnerability_Triage.md
     - 랜섬웨어 사고 대응과 복구: Ransomware_Response.md
     - 국내 개인정보 유출 사고 사례: Korea_Data_Breach_Cases.md
     - PII 데이터 보호: PII_Data_Protection.md

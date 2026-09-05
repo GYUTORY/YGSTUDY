@@ -9,7 +9,7 @@ hide:
 
 # Claude Code 전체 보기
 
-문서 27개.
+문서 28개.
 
 ## 기능
 
@@ -50,6 +50,7 @@ hide:
 - [Claude Code settings.json과 권한 규칙 동작](Claude_Code_Settings_Permissions.md)
 - [Claude Code 샌드박스 격리](Claude_Code_Sandbox.md)
 - [Claude Code 슬래시 명령과 커스텀 명령](Claude_Code_Slash_Command.md)
+- [Claude Code 워크스페이스 신뢰 경계](Claude_Code_Workspace_Trust.md)
 - [Claude Code 컨텍스트 관리와 토큰 비용](Claude_Code_Context_Management.md)
 - [Claude Code 플러그인과 사설 마켓플레이스](Claude_Code_Plugin.md)
 

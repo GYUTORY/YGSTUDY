@@ -9,7 +9,7 @@ hide:
 
 # 개념 전체 보기
 
-문서 43개.
+문서 44개.
 
 ## 에이전트
 
@@ -53,6 +53,7 @@ hide:
 - [LLM 스케일링 법칙](LLM_Scaling_Laws.md)
 - [LLM 에이전트 (Claude 관점)](LLM_Agent.md)
 - [LLM 추론 최적화 심화](LLM_Inference_Optimization.md)
+- [LLM 출력 처리 보안 - 모델 응답이 닿는 지점별 검증](LLM_Output_Handling.md)
 - [LLM 토크나이저 — BPE 내부 동작과 병리 현상](LLM_Tokenizer.md)
 - [LLM 파인튜닝 실무](LLM_Fine_Tuning.md)
 - [LLM 평가 방법론](LLM_Evaluation.md)

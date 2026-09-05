@@ -25,6 +25,7 @@ nav:
     - 실전 팁: Claude_Code_Tips.md
     - 컨텍스트 관리와 토큰 비용: Claude_Code_Context_Management.md
     - 웹취약점 대응: Claude_Code_Web_Vulnerability.md
+    - 워크스페이스 신뢰 경계: Claude_Code_Workspace_Trust.md
     - Ultra Review: Claude_Code_Ultra.md
     - Headless와 CI 연동: Claude_Code_Headless_CI.md
     - 트러블슈팅: Claude_Code_Troubleshooting.md
