@@ -1,5 +1,8 @@
 nav:
   - RPC: RPC.md
   - NFS: NFS.md
+  - SOAP: SOAP.md
   - WSDL: WSDL.md
   - gRPC: gRPC.md
+  - JSON-RPC: JSON_RPC.md
+  - "Apache Thrift": Apache_Thrift.md
