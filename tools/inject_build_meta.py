@@ -166,15 +166,20 @@ def on_pre_build(config, **kwargs):
 
     if entries:
         cat_counts = {}
-        for _d, _name, path in entries:
+        cat_latest = {}
+        for d, name, path in entries:
             cat = path.split("/")[0]
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
+            if cat not in cat_latest:
+                cat_latest[cat] = (d, name, path)
 
         lines.append("## 카테고리별 요약\n\n")
-        lines.append("| 카테고리 | 문서 수 |\n")
-        lines.append("|----------|--------|\n")
+        lines.append("| 카테고리 | 문서 수 | 최근 문서 |\n")
+        lines.append("|----------|--------|----------|\n")
         for cat, count in sorted(cat_counts.items(), key=lambda x: -x[1]):
-            lines.append(f"| {cat} | {count} |\n")
+            d, name, path = cat_latest[cat]
+            link = f"[{name}]({_doc_md_link(path)})"
+            lines.append(f"| {cat} | {count} | {link} |\n")
         lines.append("\n")
 
         months = {}
