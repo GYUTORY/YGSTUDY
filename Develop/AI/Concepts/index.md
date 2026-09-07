@@ -9,7 +9,7 @@ hide:
 
 # 개념 전체 보기
 
-문서 33개.
+문서 35개.
 
 ## 에이전트
 
@@ -41,6 +41,7 @@ hide:
 
 ## 개요
 
+- [LCEL — LangChain Expression Language](Lang_Chain_LCEL.md)
 - [LLM Context Window](LLM_Context_Window.md)
 - [LLM Reasoning 패턴과 모델](LLM_Reasoning.md)
 - [LLM 동작 원리와 프로덕션 통합](LLM.md)
@@ -53,6 +54,7 @@ hide:
 - [LLM 파인튜닝 실무](LLM_Fine_Tuning.md)
 - [LLM 평가 방법론](LLM_Evaluation.md)
 - [LangChain / LlamaIndex vs 순수 SDK](Lang_Chain_vs_SDK.md)
+- [LangChain Agent](Lang_Chain_Agents.md)
 - [Prompt Caching](Prompt_Caching.md)
 - [RAG 품질 평가 - RAGAS와 TruLens 실무](RAG_Evaluation.md)
 
