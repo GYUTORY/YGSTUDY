@@ -9,7 +9,7 @@ hide:
 
 # NestJS 전체 보기
 
-문서 44개.
+문서 45개.
 
 ## 핵심 구조
 
@@ -71,6 +71,7 @@ hide:
 
 ## 개요
 
+- [Bull Arena 대시보드 NestJS 통합](Bull_Arena.md)
 - [NestJS LazyModuleLoader — 동적 모듈 지연 로딩](Nest_JS_Lazy_Module_Loader.md)
 - [NestJS vs Express.js](<NestJs vs ExpressJs.md>)
 - [NestJS 시작하기와 핵심 문법](How_To_USE.md)

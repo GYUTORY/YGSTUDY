@@ -9,7 +9,7 @@ hide:
 
 # Node.js 전체 보기
 
-문서 110개.
+문서 111개.
 
 ## 프레임워크
 
@@ -59,6 +59,7 @@ hide:
 
 ## NestJS
 
+- [Bull Arena 대시보드 NestJS 통합](NestJS/Bull_Arena.md)
 - [NestJS API 버저닝](NestJS/Nest_JS_API_Versioning.md)
 - [NestJS CacheModule 운영기](NestJS/Nest_JS_Cache_Module.md)
 - [NestJS Dynamic Module 심화](NestJS/Nest_JS_Dynamic_Module.md)
