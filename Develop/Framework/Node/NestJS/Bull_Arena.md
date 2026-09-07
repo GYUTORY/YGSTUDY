@@ -13,7 +13,7 @@ Bull Arena는 `bull` 큐의 상태를 브라우저에서 보여주는 웹 UI다.
 BullMQ를 쓰고 있다면 이 문서는 관계없다. [Nest_JS_작업_큐_Bull_MQ.md](Nest_JS_작업_큐_Bull_MQ.md)에서 Bull Board 통합을 보면 된다.
 
 
-## 설치
+## 설치와 버전 호환
 
 ```bash
 npm install bull-arena bull
@@ -22,6 +22,17 @@ npm install bull-arena bull
 `bull`이 별도로 필요하다. Arena가 bull의 Queue 객체를 직접 받아서 쓰기 때문이다.
 
 NestJS에서 bull 큐를 이미 `@nestjs/bull`로 등록하고 있다면 `bull`은 이미 설치돼 있다.
+
+bull-arena는 bull@3.x의 내부 Redis 키 구조를 직접 읽는다. bull 패키지 메이저 버전이 맞지 않으면 job이 0개로 나오거나 undefined 에러가 난다.
+
+| bull-arena | bull | bullmq |
+|---|---|---|
+| 3.x (현행) | ^3.x | 미지원 |
+| 2.x | ^3.x | 미지원 |
+
+bullmq는 어느 버전의 bull-arena도 지원하지 않는다. 키 구조 자체가 다르다.
+
+`@nestjs/bull`은 bull@3.x를 peer dependency로 요구한다. bull-arena@3.x와 세트로 쓸 수 있다. `@nestjs/bullmq`를 쓰고 있다면 Arena는 선택지에서 빠진다.
 
 
 ## NestJS에 마운트하기
@@ -138,6 +149,139 @@ function ipWhitelistMiddleware(req: Request, res: Response, next: NextFunction) 
 ```
 
 어느 방식이든, **미들웨어가 arena 라우터보다 먼저 등록돼야 한다**. `app.use('/arena', arena, middleware)` 순서로 넣으면 미들웨어가 실행되지 않는다.
+
+
+## Redis Sentinel 연결
+
+운영 환경에서 Redis를 Sentinel로 구성한 경우, bull-arena의 `redis` 설정에 ioredis Sentinel 옵션을 그대로 쓸 수 있다.
+
+```typescript
+const arena = Arena({
+  queues: [
+    {
+      type: 'bull',
+      name: 'email',
+      hostId: 'api-server',
+      redis: {
+        sentinels: [
+          { host: 'sentinel-1.internal', port: 26379 },
+          { host: 'sentinel-2.internal', port: 26379 },
+          { host: 'sentinel-3.internal', port: 26379 },
+        ],
+        name: 'mymaster',      // Sentinel master 이름. redis.conf의 sentinel monitor와 일치해야 한다
+        password: process.env.REDIS_PASSWORD,
+        sentinelPassword: process.env.SENTINEL_PASSWORD,
+      },
+    },
+  ],
+}, { basePath: '/arena', disableListen: true });
+```
+
+bull-arena가 내부적으로 ioredis를 쓰기 때문에 ioredis의 Sentinel 옵션이 그대로 통한다. `host`/`port` 대신 `sentinels` 배열을 넣으면 된다.
+
+Redis Cluster는 bull@3와 함께 쓸 수 없다. bull이 내부적으로 Lua 스크립트(EVAL)와 멀티키 연산을 쓰는데, Redis Cluster는 키가 다른 슬롯에 있을 때 이 명령을 거부한다. bull@3 공식 문서도 Cluster 비지원을 명시하고 있다. Cluster를 쓰는 환경이라면 bullmq + Redis Cluster 조합으로 가야 한다(이 경우 Arena 대신 Bull Board를 쓴다).
+
+
+## 폴링 방식의 한계
+
+Arena는 WebSocket이나 SSE가 없다. 브라우저가 Arena API 엔드포인트를 주기적으로 폴링해서 화면을 갱신한다. 기본 간격은 약 2~5초다. 이 값은 Arena 설정으로 조정할 수 없다.
+
+실제로 문제가 되는 상황은 두 가지다.
+
+첫째, job 처리 속도가 폴링 간격보다 빠를 때다. 초당 수백 건씩 처리되는 큐라면 `active` 탭에서 job이 순식간에 왔다 사라지거나, 방금 완료된 job이 여전히 active로 보이기도 한다. Arena로 실시간 처리 현황을 모니터링하는 건 무리다.
+
+둘째, 큐에 오류가 쌓일 때 확인이 늦다. failed 건수가 갑자기 치솟는 상황을 Arena로는 놓치기 쉽다. 실시간 알림이 필요하다면 bull의 이벤트 훅(`queue.on('failed', ...)`)을 별도로 달아야 한다.
+
+새로고침 버튼을 눌러도 즉각 반영되지 않는 경우가 있다. Arena가 내부적으로 응답을 짧게 캐싱하기 때문이다. 방금 재시도를 눌렀는데 여전히 failed로 보인다면 몇 초 기다리면 된다.
+
+
+## big payload 로드 지연
+
+Arena는 job 목록을 불러올 때 각 job의 `data` 필드(페이로드) 전체를 가져온다. payload가 크면 completed 탭이나 failed 탭 진입 자체가 느려진다.
+
+운영하다 보면 이런 경우가 생긴다. 예를 들어 이미지 처리 큐에 원본 파일을 Base64로 직렬화해서 payload에 담으면, 건당 수십 KB~수 MB가 된다. completed 건수가 수천 개 쌓인 상태에서 탭을 열면 Arena가 Redis에서 그 데이터를 전부 읽어 JSON으로 변환하고 브라우저에 내려보낸다. 탭이 수십 초 동안 안 열리거나 브라우저가 멈춘다.
+
+해결 방법은 job payload를 작게 유지하는 것이다. 파일이나 대용량 데이터는 S3·스토리지에 올리고 job에는 참조 키만 넣는다.
+
+```typescript
+// 피해야 할 패턴
+await emailQueue.add({
+  attachment: fs.readFileSync('report.pdf').toString('base64'), // 수 MB
+  to: 'user@example.com',
+});
+
+// 대신
+await emailQueue.add({
+  attachmentKey: 's3://bucket/report-uuid.pdf', // 참조만
+  to: 'user@example.com',
+});
+```
+
+이미 payload가 커진 상태라면 Arena 설정에서 `removeOnComplete`를 활용한다. bull 큐 등록 시점에 완료된 job을 자동으로 제거하면 Arena가 읽어야 하는 데이터 양이 줄어든다.
+
+```typescript
+// @nestjs/bull 큐 등록 시
+BullModule.registerQueue({
+  name: 'email',
+  defaultJobOptions: {
+    removeOnComplete: 100,  // 최근 100개만 남긴다
+    removeOnFail: 200,
+  },
+}),
+```
+
+
+## 여러 서비스가 같은 Redis를 공유할 때 hostId 충돌
+
+`hostId`는 Arena UI에서 큐를 그룹핑하는 라벨이다. 실제 Redis 연결이나 큐 동작과는 관계없다.
+
+문제가 생기는 건 이런 경우다. api-server와 worker-server가 각각 `email` 큐를 갖고 있고 같은 Redis를 쓴다. 이 두 큐를 하나의 Arena에 모아 보려고 아래처럼 등록했다.
+
+```typescript
+queues: [
+  {
+    type: 'bull',
+    name: 'email',
+    hostId: 'api-server',
+    redis: redisConfig,
+  },
+  {
+    type: 'bull',
+    name: 'email',
+    hostId: 'worker-server',
+    redis: redisConfig,  // 동일한 Redis
+  },
+],
+```
+
+두 항목이 같은 Redis의 같은 키(`bull:email:waiting` 등)를 읽기 때문에 Arena 사이드바에 `email` 큐가 두 줄로 나오고, 각 줄의 job 수치가 동일하다. 삭제나 재시도 버튼을 한 줄에서 누르면 다른 줄에도 즉각 반영된다. 사실상 같은 큐를 두 번 보고 있는 것이다.
+
+실제로 api-server와 worker-server가 같은 `email` 큐를 공유하는 경우라면 Arena에 한 번만 등록한다.
+
+```typescript
+// 같은 Redis의 같은 큐: 하나만 등록
+queues: [
+  {
+    type: 'bull',
+    name: 'email',
+    hostId: 'shared',
+    redis: redisConfig,
+  },
+],
+```
+
+여러 서비스가 이름이 다른 큐를 각각 갖고 있다면 hostId로 서비스를 구분해도 된다. 단, 큐 이름이 겹치지 않을 때만이다.
+
+```typescript
+queues: [
+  { type: 'bull', name: 'api-email', hostId: 'api', redis: redisConfig },
+  { type: 'bull', name: 'api-sms', hostId: 'api', redis: redisConfig },
+  { type: 'bull', name: 'worker-thumbnail', hostId: 'worker', redis: redisConfig },
+  { type: 'bull', name: 'worker-report', hostId: 'worker', redis: redisConfig },
+],
+```
+
+큐 이름 자체에 서비스 prefix를 붙이는 게 가장 단순하다. hostId는 시각적 그룹핑에 불과하고 충돌을 막아주지 않는다.
 
 
 ## BullMQ와 동작하지 않는 이유
