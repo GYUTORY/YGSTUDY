@@ -9,7 +9,7 @@ hide:
 
 # OSI 7계층 전체 보기
 
-문서 46개.
+문서 48개.
 
 ## Application Layer
 
@@ -42,10 +42,12 @@ hide:
 ## Transport Layer
 
 - [AMQP vs MQTT 비교 분석](<Transport Layer/TCP/Mqtt/AMQP vs MQTT.md>)
+- [Apache Thrift](<Transport Layer/TCP/RPC/Apache_Thrift.md>)
 - [JSON-RPC](<Transport Layer/TCP/RPC/JSON_RPC.md>)
 - [MQTT (Message Queuing Telemetry Transport)](<Transport Layer/TCP/Mqtt/MQTT.md>)
 - [NFS (Network File System)](<Transport Layer/TCP/RPC/NFS.md>)
 - [RPC (Remote Procedure Call)](<Transport Layer/TCP/RPC/RPC.md>)
+- [SOAP](<Transport Layer/TCP/RPC/SOAP.md>)
 - [TCP vs UDP - 실무 선택 기준](<Transport Layer/TCP/TCP_vs_UDP.md>)
 - [TCP 소켓 프로그래밍 실무 패턴](<Transport Layer/TCP/TCP_Socket_Programming_Patterns.md>)
 - [TCP 패킷 구조 상세 설명](<Transport Layer/TCP/PacketStructure.md>)

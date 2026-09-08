@@ -9,15 +9,17 @@ hide:
 
 # Transport Layer 전체 보기
 
-문서 14개.
+문서 16개.
 
 ## TCP
 
 - [AMQP vs MQTT 비교 분석](<TCP/Mqtt/AMQP vs MQTT.md>)
+- [Apache Thrift](TCP/RPC/Apache_Thrift.md)
 - [JSON-RPC](TCP/RPC/JSON_RPC.md)
 - [MQTT (Message Queuing Telemetry Transport)](TCP/Mqtt/MQTT.md)
 - [NFS (Network File System)](TCP/RPC/NFS.md)
 - [RPC (Remote Procedure Call)](TCP/RPC/RPC.md)
+- [SOAP](TCP/RPC/SOAP.md)
 - [TCP vs UDP - 실무 선택 기준](TCP/TCP_vs_UDP.md)
 - [TCP 소켓 프로그래밍 실무 패턴](TCP/TCP_Socket_Programming_Patterns.md)
 - [TCP 패킷 구조 상세 설명](TCP/PacketStructure.md)
