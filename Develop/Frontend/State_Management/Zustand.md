@@ -1,7 +1,7 @@
 ---
 title: Zustand 실무 사용법
 tags: [frontend, typescript, javascript]
-updated: 2026-08-26
+updated: 2026-09-08
 ---
 
 # Zustand 실무 사용법
@@ -79,6 +79,102 @@ const token = useSessionStore((state) => state.token)
 
 배열에서 특정 항목을 찾는 selector는 조심해야 한다. `find`로 찾은 객체를 그대로 반환하면, 해당 객체의 참조가 바뀔 때마다 리렌더된다. 필요한 필드만 꺼내거나 `useShallow`를 함께 쓴다.
 
+## 비동기 액션
+
+비동기 액션은 `async` 함수를 그대로 쓰면 된다. `set`을 비동기 함수 안에서 여러 번 호출해도 각 시점에 상태를 부분 업데이트한다.
+
+```ts
+interface UserState {
+  user: User | null
+  loading: boolean
+  error: string | null
+  fetchUser: (id: string) => Promise<void>
+}
+
+const useUserStore = create<UserState>()((set) => ({
+  user: null,
+  loading: false,
+  error: null,
+  fetchUser: async (id) => {
+    set({ loading: true, error: null })
+    try {
+      const user = await api.getUser(id)
+      set({ user, loading: false })
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : '알 수 없는 오류',
+        loading: false,
+      })
+    }
+  },
+}))
+```
+
+진행 중인 요청을 취소해야 하는 상황(같은 화면에서 빠르게 다른 항목을 클릭하는 경우)이 있다. Zustand 자체에는 cancellation이 없어서 `AbortController`를 직접 store에 들고 다닌다.
+
+```ts
+interface UserState {
+  user: User | null
+  loading: boolean
+  error: string | null
+  _controller: AbortController | null
+  fetchUser: (id: string) => Promise<void>
+}
+
+const useUserStore = create<UserState>()((set, get) => ({
+  user: null,
+  loading: false,
+  error: null,
+  _controller: null,
+  fetchUser: async (id) => {
+    get()._controller?.abort()
+    const controller = new AbortController()
+    set({ loading: true, error: null, _controller: controller })
+
+    try {
+      const user = await api.getUser(id, { signal: controller.signal })
+      set({ user, loading: false, _controller: null })
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      set({
+        error: err instanceof Error ? err.message : '알 수 없는 오류',
+        loading: false,
+        _controller: null,
+      })
+    }
+  },
+}))
+```
+
+`get()`을 쓰면 `set` 없이 현재 상태를 읽을 수 있다. 비동기 액션 안에서 다른 상태 값에 접근할 때 유용하다.
+
+## getState()로 컴포넌트 외부에서 읽기
+
+`create()`가 반환하는 훅에는 `.getState()` 메서드가 있다. React 렌더링 사이클 바깥에서 store 상태를 읽거나 액션을 실행할 때 쓴다.
+
+```ts
+// API 인터셉터에서 토큰 가져오기
+axios.interceptors.request.use((config) => {
+  const { token } = useSessionStore.getState()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// 이벤트 핸들러에서 현재 상태 읽고 액션 실행
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const { sidebarOpen, setSidebarOpen } = useUIStore.getState()
+    if (sidebarOpen) setSidebarOpen(false)
+  }
+})
+```
+
+`.setState()`와 `.subscribe()`도 같은 방식으로 훅 없이 쓸 수 있어서 유틸 함수나 서비스 레이어에서 store를 건드려야 할 때 컴포넌트 의존성 없이 처리된다.
+
+React 컴포넌트 안에서 `getState()`로 상태를 읽으면 상태가 바뀌어도 리렌더가 발생하지 않는다. 렌더링에 반영해야 하는 값이라면 반드시 훅 형태(`useSessionStore((state) => state.token)`)를 써야 한다. `getState()`는 렌더링 이후 로직(이벤트 핸들러, 콜백) 안에서만 쓰는 게 안전하다.
+
 ## subscribe로 React 밖에서 상태 감시하기
 
 컴포넌트 외부에서 상태 변화에 반응해야 할 때 `subscribe`를 쓴다. 웹소켓 연결 관리, 분석 이벤트 전송이 여기에 해당한다.
@@ -115,6 +211,77 @@ unsubscribe()
 ```
 
 `subscribe`의 세 번째 인자로 옵션을 넘길 수 있다. `equalityFn`으로 커스텀 비교 함수를, `fireImmediately: true`로 구독 등록 즉시 현재 값으로 한 번 실행할 수 있다.
+
+## createStore와 다중 인스턴스
+
+`create()`는 모듈 로드 시점에 전역 싱글턴 store를 만든다. 같은 컴포넌트를 한 페이지에 여러 개 렌더링해야 하는데 각자 독립된 상태가 필요하거나, 테스트에서 케이스마다 완전히 격리된 store가 필요할 때는 `createStore`로 팩토리 패턴을 쓴다.
+
+```ts
+import { createStore, useStore } from 'zustand'
+import { createContext, useContext, useRef } from 'react'
+
+interface CountState {
+  count: number
+  increment: () => void
+  reset: () => void
+}
+
+// 호출할 때마다 독립된 store 인스턴스를 만든다
+const createCountStore = (initialCount = 0) =>
+  createStore<CountState>()((set, get) => ({
+    count: initialCount,
+    increment: () => set({ count: get().count + 1 }),
+    reset: () => set({ count: initialCount }),
+  }))
+
+type CountStore = ReturnType<typeof createCountStore>
+const CountStoreContext = createContext<CountStore | null>(null)
+
+function CountStoreProvider({
+  children,
+  initialCount = 0,
+}: {
+  children: React.ReactNode
+  initialCount?: number
+}) {
+  // Provider가 리렌더돼도 store 인스턴스는 한 번만 만든다
+  const storeRef = useRef<CountStore>()
+  if (!storeRef.current) {
+    storeRef.current = createCountStore(initialCount)
+  }
+  return (
+    <CountStoreContext.Provider value={storeRef.current}>
+      {children}
+    </CountStoreContext.Provider>
+  )
+}
+
+function useCountStore<T>(selector: (state: CountState) => T): T {
+  const store = useContext(CountStoreContext)
+  if (!store) throw new Error('CountStoreProvider 바깥에서 useCountStore를 호출했다')
+  return useStore(store, selector)
+}
+```
+
+사용하는 쪽에서는 `CountStoreProvider`로 감싸면 해당 트리 안에서만 유효한 store 인스턴스를 쓰게 된다.
+
+```tsx
+function ProductPage() {
+  return (
+    <div>
+      {/* 두 카운터는 각자 독립된 상태를 갖는다 */}
+      <CountStoreProvider initialCount={0}>
+        <Counter label="A" />
+      </CountStoreProvider>
+      <CountStoreProvider initialCount={10}>
+        <Counter label="B" />
+      </CountStoreProvider>
+    </div>
+  )
+}
+```
+
+싱글턴을 그대로 쓰면 두 `Counter`가 상태를 공유해서 한쪽이 올리면 다른 쪽도 변한다. 이 패턴이 필요한 상황은 대부분 "컴포넌트 단위 상태인데 props drilling이 불편하거나, 컴포넌트 트리가 깊어 Context로 내리기 어려울 때"다.
 
 ## persist 미들웨어와 hydration 타이밍
 
@@ -315,3 +482,188 @@ set(
   'clearCart',  // DevTools에 표시될 액션 이름
 )
 ```
+
+## store 테스트
+
+### 싱글턴 store 테스트
+
+`create()`로 만든 싱글턴은 모듈이 로드된 시점부터 살아있기 때문에, 테스트 파일 안에서 여러 테스트 케이스가 같은 store 인스턴스를 공유한다. 한 테스트에서 상태를 바꾸면 다음 테스트에 그대로 남는다.
+
+store에 `reset` 액션을 추가해서 각 테스트 전후로 초기화한다.
+
+```ts
+const initialState = {
+  user: null as User | null,
+  loading: false,
+  error: null as string | null,
+}
+
+const useUserStore = create<UserState>()((set) => ({
+  ...initialState,
+  fetchUser: async (id) => {
+    set({ loading: true, error: null })
+    try {
+      const user = await api.getUser(id)
+      set({ user, loading: false })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : '오류', loading: false })
+    }
+  },
+  reset: () => set(initialState),
+}))
+```
+
+```ts
+import { act, renderHook } from '@testing-library/react'
+import { useUserStore } from './userStore'
+
+beforeEach(() => {
+  useUserStore.getState().reset()
+})
+
+test('fetchUser 성공 시 user가 설정된다', async () => {
+  const { result } = renderHook(() =>
+    useUserStore((state) => ({ user: state.user, loading: state.loading }))
+  )
+
+  await act(async () => {
+    await result.current.fetchUser('user-1')
+  })
+
+  expect(result.current.user).toEqual({ id: 'user-1', name: 'Alice' })
+  expect(result.current.loading).toBe(false)
+})
+
+test('fetchUser 실패 시 error가 설정된다', async () => {
+  vi.spyOn(api, 'getUser').mockRejectedValue(new Error('네트워크 오류'))
+
+  const { result } = renderHook(() =>
+    useUserStore((state) => ({ error: state.error, loading: state.loading }))
+  )
+
+  await act(async () => {
+    await result.current.fetchUser('user-1')
+  })
+
+  expect(result.current.error).toBe('네트워크 오류')
+  expect(result.current.loading).toBe(false)
+})
+```
+
+`act()`로 감싸는 이유: 비동기 상태 업데이트가 React 렌더링 사이클 밖에서 일어나기 때문이다. 감싸지 않으면 경고가 나고, 마지막 `set` 호출 결과가 반영되기 전에 assertion이 실행될 수 있다.
+
+### createStore 기반 테스트 격리
+
+싱글턴 `reset` 패턴보다 격리가 확실한 방법은 `createStore`로 팩토리를 만들고 각 테스트마다 새 인스턴스를 쓰는 것이다.
+
+```ts
+import { createStore } from 'zustand'
+import { useStore } from 'zustand'
+import { renderHook, act } from '@testing-library/react'
+
+const createUserStore = () =>
+  createStore<UserState>()((set, get) => ({
+    user: null,
+    loading: false,
+    error: null,
+    fetchUser: async (id) => {
+      set({ loading: true, error: null })
+      try {
+        const user = await api.getUser(id)
+        set({ user, loading: false })
+      } catch (err) {
+        set({ error: err instanceof Error ? err.message : '오류', loading: false })
+      }
+    },
+  }))
+
+test('fetchUser 성공', async () => {
+  const store = createUserStore()  // 테스트마다 새 인스턴스
+
+  const { result } = renderHook(() =>
+    useStore(store, (state) => state.user)
+  )
+
+  await act(async () => {
+    await store.getState().fetchUser('user-1')
+  })
+
+  expect(result.current).toEqual({ id: 'user-1', name: 'Alice' })
+})
+```
+
+`beforeEach` 없이 테스트 간 상태 누적이 없다. 다만 `create()`로 만든 기존 store를 그대로 테스트에 가져다 쓰는 코드베이스라면, 처음부터 팩토리 패턴으로 바꾸는 게 부담일 수 있다. 새 store를 만들 때 테스트 격리를 고려한다면 `createStore` 기반이 낫다.
+
+## v4 → v5 마이그레이션
+
+실제로 마이그레이션하면서 걸리는 부분들이다.
+
+### create 시그니처
+
+v4는 커리드 형태와 일반 형태를 모두 지원했다.
+
+```ts
+// v4 — 둘 다 됐다
+const useStore = create<State>((set) => ({ ... }))
+const useStore = create<State>()((set) => ({ ... }))
+```
+
+v5에서는 TypeScript 사용 시 커리드 형태만 제대로 타입 추론이 된다. 일반 형태로 쓰면 타입 추론이 어긋나는 경우가 생긴다.
+
+```ts
+// v5 — TypeScript 프로젝트라면 커리드 형태로 통일한다
+const useStore = create<State>()((set) => ({ ... }))
+```
+
+기존 코드에서 `create<State>((set)` 패턴을 `create<State>()((set)`로 일괄 변환해야 한다.
+
+### shallow import 경로
+
+```ts
+// v4
+import shallow from 'zustand/shallow'
+// 컴포넌트 안에서
+const { a, b } = useStore(shallow)  // 두 번째 인자로 넘겼다
+
+// v5
+import { shallow } from 'zustand/shallow'
+import { useShallow } from 'zustand/react/shallow'
+// 컴포넌트 안에서
+const { a, b } = useStore(useShallow((state) => ({ a: state.a, b: state.b })))
+```
+
+v4에서 default export이던 `shallow`가 v5에서 named export로 바뀌었다. React 컴포넌트에서 쓸 때는 `useShallow`를 selector를 감싸는 형태로 쓴다.
+
+### StoreApi 타입 변경
+
+```ts
+// v4 — GetState, SetState 타입이 있었다
+import type { GetState, SetState, StoreApi } from 'zustand'
+
+// v5 — GetState, SetState 제거됐다
+import type { StoreApi } from 'zustand'
+type Get<T> = StoreApi<T>['getState']
+type Set<T> = StoreApi<T>['setState']
+```
+
+커스텀 미들웨어나 store 헬퍼 함수에서 `GetState`, `SetState`를 직접 임포트해 타입으로 쓰던 코드가 있으면 `StoreApi`에서 꺼내는 방식으로 바꿔야 한다.
+
+### middleware 타입
+
+미들웨어 타입을 명시적으로 annotate하던 코드가 있으면 v5에서 컴파일 오류가 날 수 있다.
+
+```ts
+// v4
+import type { StateCreator } from 'zustand'
+type MyCreator = StateCreator<
+  MyState,
+  [['zustand/devtools', never], ['zustand/persist', MyState]],
+  []
+>
+
+// v5 — 미들웨어 타입 파라미터 구조가 바뀌었다
+// 타입 오류가 난다면 StateCreator의 타입 인자를 제거하고 추론에 맡기는 게 빠르다
+type MyCreator = StateCreator<MyState>
+```
+
+타입을 명시적으로 쓰는 게 꼭 필요한 상황이 아니라면 제거하고 추론에 맡기는 게 마이그레이션 시 마찰이 적다.
