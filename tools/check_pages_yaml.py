@@ -70,6 +70,11 @@ def main():
             if "mapping values are not allowed" in why:
                 print("      제목에 콜론이 있으면 따옴표로 감싼다:")
                 print('      - "제목: 부제": 파일.md')
+            if "expected <block end>" in why or "could not find expected ':'" in why:
+                print("      nav: 아래 항목의 들여쓰기가 빠진 경우가 많다:")
+                print("      nav:")
+                print("        - index.md       ← 2칸 들여쓰기 필수")
+                print("        - 파일.md        ← 이게 빠지면 최상위 시퀀스로 오인됨")
             print()
         if strict:
             sys.exit(1)
