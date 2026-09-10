@@ -1,7 +1,7 @@
 ---
 title: AWS Route 53
 tags: [aws, network, dns, cloud]
-updated: 2026-05-14
+updated: 2026-09-10
 ---
 
 # AWS Route 53
@@ -17,6 +17,32 @@ Route 53은 한 서비스에 세 가지 기능이 묶여 있다. 셋이 서로 �
 다른 곳에서 산 도메인도 Route 53으로 DNS만 관리하는 구성이 흔하다. 가비아·후이즈·GoDaddy에서 도메인을 사고, 호스팅 존을 생성한 뒤 발급된 4개의 네임서버를 도메인 등록 사이트에 등록하면 된다. 변경 전파는 TTL과 NS 캐시 때문에 길게는 48시간까지 본다. `dig +trace example.com NS`로 실제 권한 NS가 Route 53으로 넘어왔는지 확인하는 게 빠르다.
 
 이 문서는 일반 DNS 개념(A·CNAME·MX·TTL이 무엇인지)은 건너뛰고 Route 53에서만 나오는 동작을 다룬다.
+
+---
+
+## 글로벌 서비스라 콘솔에 리전 선택이 없다
+
+Route 53은 IAM이나 CloudFront처럼 계정 전역에 단일 인스턴스로 동작한다. 콘솔에서 서비스를 열면 리전 드롭다운이 회색으로 잠혀 있는데, 선택할 리전 자체가 없어서다.
+
+ARN 구조에서 바로 드러난다.
+
+```
+# 일반 리전 서비스
+arn:aws:ec2:ap-northeast-2:123456789012:instance/i-0123456789abcdef0
+#           ^^^^^^^^^^^^^^ 리전이 들어간다
+
+# Route 53
+arn:aws:route53:::hostedzone/Z1234567890ABC
+#              ^^^ 리전 자리가 비어 있다
+```
+
+Hosted Zone도 리전에 속하지 않는다. `ap-northeast-2.route53.amazonaws.com` 같은 지역별 엔드포인트는 존재하지 않는다. Hosted Zone을 만들 때 리전을 고르지 않는 이유가 이것이다. Zone을 생성하면 AWS 글로벌 네임서버 인프라에 올라가고, 서울에서 질의하든 런던에서 질의하든 같은 레코드를 응답한다.
+
+이 구조는 DNS 프로토콜의 특성에서 온다. 권한 DNS 서버를 특정 리전에 고정하면 다른 대륙에서 질의할 때 지연이 생긴다. Route 53은 자체 엣지 네트워크(전 세계 100개 이상 PoP)를 통해 질의가 들어온 위치에서 가장 가까운 PoP가 응답한다.
+
+글로벌 서비스 구조의 실질적인 의미는 장애 내성이다. 서울 리전의 EC2나 ALB가 내려가도 Route 53은 계속 DNS를 응답한다. 실제 서비스 중단은 Route 53이 아니라 그 뒤의 리전 서비스에서 나는 경우가 거의 대부분이다. Route 53 자체의 SLA는 100%다.
+
+콘솔에서 헷갈리는 부분이 하나 있다. Hosted Zone 목록에서 특정 Zone을 선택하면 URL에 `us-east-1`이 나타나는 경우가 있는데, 이건 콘솔 UI가 내부적으로 us-east-1 API 엔드포인트를 통해 요청을 보내기 때문이다. Route 53 API는 단일 글로벌 엔드포인트(`route53.amazonaws.com`)를 쓴다.
 
 ---
 
@@ -62,7 +88,7 @@ api.example.com     A     ALIAS  → my-alb-1234.ap-northeast-2.elb.amazonaws.co
 
 ## 라우팅 정책 7종
 
-라우팅 정책은 같은 레코드 이름에 여러 응답 후보를 두고, 쿼리마다 어느 응답을 돌려줄지 결정하는 규칙이다. Health Check를 붙이면 비정상 응답은 자동으로 제외된다.
+Route 53의 라우팅 정책은 DNS 레이어에서 멀티 리전 트래픽 분배를 처리하는 기능이다. 사용자가 `api.example.com`을 질의하면 Route 53이 라우팅 정책에 따라 어느 리전의 IP를 응답할지 결정한다. 클라이언트는 받은 IP로 연결할 뿐, 자신이 어느 리전으로 가는지 모른다. 이 구조 덕분에 애플리케이션 코드 변경 없이 DNS 응답 하나로 트래픽 경로를 바꿀 수 있다. Health Check를 붙이면 비정상 응답은 자동으로 후보에서 빠진다.
 
 ### Simple
 
@@ -143,6 +169,39 @@ api.example.com  A  10.0.1.3  hc=hc-3
 ```
 
 ALB만큼은 아니지만 DNS 단에서 가벼운 분산과 장애 격리가 필요할 때. ALB가 못 들어가는 환경(예: TCP가 아닌 UDP 서비스, 또는 멀티 리전에서 ALB 앞단을 두고 싶을 때)에 쓴다.
+
+---
+
+## Route 53과 Global Accelerator의 역할 구분
+
+멀티 리전에서 사용자를 가까운 리전으로 보낸다는 목적이 같아 자주 혼동된다. 동작 레이어가 다르다.
+
+Route 53은 DNS 레이어에서 분기한다. 사용자가 `api.example.com`을 질의하면 라우팅 정책에 따라 특정 IP를 응답하고, 그 이후는 관여하지 않는다. 분기 결정이 DNS 질의 시점에 한 번 일어난다.
+
+Global Accelerator는 네트워크(L4) 레이어에서 분기한다. 사용자는 항상 같은 정적 IP 두 개로 연결하고, 패킷이 가장 가까운 AWS 엣지 PoP에 도달한 뒤 AWS 백본을 통해 목적지 리전으로 흐른다. DNS 캐시가 개입할 여지가 없다.
+
+```
+[Route 53 방식]
+사용자 → DNS 질의(api.example.com)
+       → Route 53이 도쿄 ALB IP 응답
+       → 사용자가 도쿄 ALB IP로 TCP 연결
+       → (여기서부터 공용 인터넷)
+
+[Global Accelerator 방식]
+사용자 → 정적 Anycast IP로 TCP 연결
+       → 가장 가까운 AWS 엣지 PoP로 흡수
+       → AWS 백본으로 도쿄 ALB까지 이동
+```
+
+이 차이가 드러나는 상황은 두 가지다.
+
+**페일오버 속도**: Route 53 레이턴시 라우팅에서 도쿄 리전이 내려가면, 클라이언트 DNS 캐시에 도쿄 IP가 TTL만큼 살아 있다. TTL을 60초로 줬어도 실제 페일오버 체감은 Health Check 감지 시간까지 더해 2~4분이 걸리는 경우가 흔하다. 모바일 환경에서 DNS 캐시가 운영체제나 앱 레이어에 한 번 더 저장되면 더 길어진다. Global Accelerator는 IP 자체가 안 바뀌고 PoP에서 엔드포인트만 전환되므로 클라이언트 재연결 없이 수십 초 안에 복구된다.
+
+**고정 IP 요건**: B2B API나 금융 기관 연결처럼 방화벽 화이트리스트에 IP를 고정해야 하는 환경에서 Route 53 단독으로는 ALB를 직접 가리키면 IP가 바뀔 수 있다. Global Accelerator는 서비스 생명주기 동안 IP 두 개가 바뀌지 않는다.
+
+반대로 Route 53이 Global Accelerator를 대체할 수 있는 경우도 있다. Geolocation으로 국가별 컴플라이언스 분기, Weighted로 카나리 배포, Failover로 DR 전환 같은 세밀한 라우팅 로직은 Route 53 DNS 레이어에서만 처리할 수 있다. Global Accelerator는 가장 가까운 정상 엔드포인트로 보내는 것 외에 별도 분기 조건이 없다.
+
+함께 쓰는 패턴도 있다. Route 53의 Alias로 Global Accelerator DNS 이름을 가리키면, Route 53이 도메인을 정적 IP로 해석하고 그 뒤는 Global Accelerator가 처리한다. 이 조합에서 Route 53은 순수하게 도메인 → 정적 IP 변환만 담당한다.
 
 ---
 

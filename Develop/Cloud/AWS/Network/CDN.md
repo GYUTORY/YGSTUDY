@@ -1,12 +1,20 @@
 ---
 title: AWS CloudFront — CDN & 캐싱 이해
 tags: [aws, cdn, cache, network]
-updated: 2026-08-18
+updated: 2026-09-10
 ---
 
 # AWS CloudFront
 
 CloudFront는 전 세계 POP(Point of Presence) 서버에 콘텐츠를 캐싱해 가까운 곳에서 전달하는 AWS CDN 서비스다.
+
+CloudFront는 리전 서비스가 아니다. 배포(Distribution)를 생성하면 특정 리전에 귀속되지 않고, AWS가 운영하는 400개 이상의 엣지 로케이션 전체에 설정이 전파된다. 콘솔에서 리전 선택 없이 `us-east-1`로 고정된 것처럼 보이는 이유는 CloudFront 컨트롤플레인 자체가 us-east-1에 있어서다. 배포 ID(`E1234ABCD...`)는 리전 코드를 포함하지 않는다.
+
+이 구조가 운영에서 의미를 갖는 상황이 두 가지 있다.
+
+첫째, 배포 설정 변경은 전 세계 동시 전파가 아니라 순차 전파다. 설정을 바꾸면 `InProgress` → `Deployed` 전환에 보통 수분이 걸리는데, 이 시간 동안 일부 엣지는 새 설정으로, 다른 엣지는 구 설정으로 동작한다. 설정 변경 직후 지역마다 동작이 다르게 보이면 전파 중인 상태다.
+
+둘째, ACM 인증서는 반드시 us-east-1에서 발급해야 한다. 이유는 아래 SSL 섹션에서 설명한다.
 
 ---
 
@@ -359,12 +367,18 @@ Origin Shield 추가 비용이 발생하므로 Origin 부하가 병목인 경우
 
 HTTPS를 쓰려면 ACM 인증서가 필요하다. CloudFront용 인증서는 반드시 `us-east-1` 리전에서 발급해야 한다.
 
+**왜 us-east-1인가.** TLS 핸드셰이크는 엣지 로케이션에서 발생한다. 엣지 로케이션은 특정 AWS 리전에 속하지 않는다 — 서울 엣지는 ap-northeast-2 리전 내 인프라가 아니라 AWS 글로벌 네트워크 위에 있다. CloudFront가 엣지에 인증서를 배포할 때 us-east-1 컨트롤플레인을 통해 전 세계 엣지로 밀어 넣는다. 그래서 us-east-1 ACM에서 발급한 인증서만 CloudFront가 가져갈 수 있다.
+
+ap-northeast-2 같은 다른 리전에서 발급한 인증서는 CloudFront 배포 설정의 인증서 선택 목록 자체에 뜨지 않는다. CLI로 붙이려 해도 `InvalidViewerCertificate` 오류가 난다.
+
 ```bash
 aws acm request-certificate \
   --domain-name "cdn.example.com" \
   --validation-method DNS \
-  --region us-east-1
+  --region us-east-1   # 반드시 us-east-1
 ```
+
+ACM 인증서 검증(DNS 또는 이메일)이 완료된 후에야 CloudFront 배포에 붙일 수 있다. DNS 검증의 경우 Route 53을 쓰면 ACM 콘솔에서 버튼 하나로 CNAME 레코드가 자동 생성되지만, 외부 DNS를 쓰면 직접 레코드를 추가해야 한다.
 
 DNS 설정:
 
