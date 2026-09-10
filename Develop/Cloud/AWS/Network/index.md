@@ -11,7 +11,7 @@ hide:
 
 VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 
-문서 28개.
+문서 29개.
 
 ## VPC 네트워킹
 
@@ -50,6 +50,7 @@ VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 - [AWS VPC IPAM](VPC_IPAM.md)
 - [AWS VPC Peering](VPC_Peering.md)
 - [AWS VPC Sharing (Shared VPC)](VPC_Sharing.md)
+- [AWS 리전과 글로벌 서비스의 차이](AWS_Region_AZ_Global.md)
 - [CDN + Adaptive Thumbnail](CDN_Adaptive_Thumbnail.md)
 - [CloudFront Functions와 Lambda@Edge — 선택과 구현](Cloud_Front_Functions_and_Lambda_at_Edge.md)
 - [VPC Endpoints](VPC_Endpoints.md)
