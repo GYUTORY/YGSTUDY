@@ -1,7 +1,7 @@
 ---
 title: "Gemini 트러블슈팅"
 tags: [ai, observability, api]
-updated: 2026-04-15
+updated: 2026-09-12
 volatility: high
 ---
 
@@ -15,7 +15,24 @@ Gemini API를 실무에서 쓰다 보면 문서에 안 나오는 에러를 자�
 
 ### 429 Too Many Requests
 
-가장 흔하게 만나는 에러다. Gemini API는 분당 요청 수(RPM)와 분당 토큰 수(TPM) 두 가지 제한이 있다.
+가장 흔하게 만나는 에러다. Gemini API는 분당 요청 수(RPM), 분당 토큰 수(TPM), 일일 요청 수(RPD) 세 가지 제한이 있다.
+
+실제로 찍히는 에러 메시지:
+
+```
+google.api_core.exceptions.ResourceExhausted: 429 Quota exceeded for quota metric
+'generate_requests_per_minute_per_project_per_base_model' and limit
+'GenerateContent request limit' of service 'generativelanguage.googleapis.com'
+```
+
+일일 한도 초과 시:
+
+```
+google.api_core.exceptions.ResourceExhausted: 429 Quota exceeded for quota metric
+'generate_requests_per_day_per_project_per_base_model'
+```
+
+RPM과 RPD는 대응 방식이 다르다. RPM은 잠깐 기다리면 풀리지만 RPD는 UTC 자정(한국 시간 오전 9시)까지 막힌다. 에러 메시지에서 `per_minute`인지 `per_day`인지 확인해서 재시도 여부를 결정해야 한다.
 
 **발생 원인**
 
@@ -25,25 +42,29 @@ Gemini API를 실무에서 쓰다 보면 문서에 안 나오는 에러를 자�
 
 **대응 방법**
 
-Exponential backoff를 직접 구현하는 게 가장 확실하다:
-
 ```python
 import time
+import random
 import google.generativeai as genai
+from google.api_core import exceptions
 
 def call_with_retry(model, prompt, max_retries=5):
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(prompt)
-            return response
-        except Exception as e:
-            if "429" in str(e):
-                wait_time = (2 ** attempt) + 1
-                print(f"Rate limited. {wait_time}초 대기 후 재시도...")
-                time.sleep(wait_time)
-            else:
-                raise e
-    raise Exception("최대 재시도 횟수 초과")
+            return model.generate_content(prompt)
+        except exceptions.ResourceExhausted as e:
+            error_msg = str(e)
+            # 일일 한도면 재시도해도 소용없다
+            if "per_day" in error_msg:
+                raise RuntimeError(
+                    f"일일 quota 초과. UTC 자정(한국 오전 9시) 이후 재시도: {e}"
+                ) from e
+            if attempt == max_retries - 1:
+                raise
+            wait_time = (2 ** attempt) + random.uniform(0, 1)
+            print(f"RPM 초과. {wait_time:.1f}초 대기 ({attempt + 1}/{max_retries})")
+            time.sleep(wait_time)
+    raise RuntimeError("최대 재시도 횟수 초과")
 ```
 
 주의할 점은 429 응답 헤더에 `Retry-After` 값이 항상 들어오지는 않는다는 것이다. 들어오면 그 값을 쓰고, 없으면 exponential backoff로 처리한다.
@@ -73,6 +94,69 @@ chat = model.start_chat(history=[
 ])
 ```
 
+### 401 UNAUTHENTICATED — API 키 오류와 OAuth 토큰 만료
+
+**API 키가 잘못됐거나 삭제된 경우:**
+
+```
+google.api_core.exceptions.Unauthenticated: 401 API key not valid.
+Please pass a valid API key. [reason: "API_KEY_INVALID", domain: "googleapis.com"]
+```
+
+새 SDK(`google-genai`)에서는 메시지 형식이 조금 다르다:
+
+```
+google.genai.errors.ClientError: 401 UNAUTHENTICATED.
+{'error': {'code': 401, 'message': 'API key not valid. Please pass a valid API key.',
+'status': 'UNAUTHENTICATED', 'details': [{'reason': 'API_KEY_INVALID'}]}}
+```
+
+Google AI Studio(aistudio.google.com)에서 키 상태를 확인한다. 키를 재발급하면 기존 키는 즉시 무효화된다. 여러 환경(로컬, 서버, CI)에서 같은 키를 쓰고 있으면 한 곳에서 키를 재발급할 때 전부 깨진다.
+
+**ADC(Application Default Credentials) 토큰 만료:**
+
+gcloud 인증 기반으로 API를 호출할 때 refresh token까지 무효화됐으면:
+
+```
+google.auth.exceptions.RefreshError: ('invalid_grant: Token has been expired or revoked.',
+{'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})
+```
+
+오랫동안 사용하지 않았거나 계정 비밀번호를 바꿨을 때 발생한다. Access token은 1시간마다 자동 갱신되지만, refresh token 자체가 무효화된 경우다.
+
+```bash
+gcloud auth application-default revoke
+gcloud auth application-default login
+```
+
+장기 실행 프로세스에서 토큰 갱신을 코드로 처리할 때:
+
+```python
+import google.auth
+import google.auth.transport.requests
+from google.auth.exceptions import RefreshError
+
+def get_refreshed_credentials():
+    credentials, _ = google.auth.default()
+    request = google.auth.transport.requests.Request()
+    try:
+        credentials.refresh(request)
+    except RefreshError as e:
+        raise RuntimeError(
+            "OAuth 토큰 갱신 실패. `gcloud auth application-default login` 재실행 필요"
+        ) from e
+    return credentials
+```
+
+어떤 credential이 잡혔는지 확인하려면:
+
+```bash
+gcloud auth application-default print-access-token
+# 성공하면 현재 유효한 토큰을 출력한다. 실패하면 ADC 인증이 없거나 만료된 것이다
+```
+
+서비스 계정 키 파일이 Cloud Console에서 삭제됐거나 만료됐을 때도 같은 `UNAUTHENTICATED` 에러가 난다. 서비스 계정은 Google Cloud Console에서 키 상태를 직접 확인해야 한다 — 코드 레벨에서는 원인을 구분할 수 없다.
+
 ### 403 Permission Denied
 
 **원인 구분이 중요하다:**
@@ -88,6 +172,61 @@ Google 서버 쪽 문제다. 할 수 있는 건 재시도뿐이다. 다만 몇 �
 - 요청 payload가 너무 크지 않은지 확인한다. 특히 멀티모달 요청에서 큰 파일을 보내면 서버 타임아웃이 날 수 있다
 - `generateContent` 대신 `streamGenerateContent`로 바꾸면 타임아웃을 피할 수 있는 경우가 있다
 - 같은 에러가 반복되면 [Google Cloud Status Dashboard](https://status.cloud.google.com/)를 확인한다
+
+---
+
+## Context Window 초과
+
+"Lost in the Middle" 같은 품질 저하와 달리, 입력이 모델 한도를 실제로 넘기면 명시적인 에러로 떨어진다.
+
+```
+google.api_core.exceptions.InvalidArgument: 400 * GenerateContentRequest.contents:
+number of tokens in the input (1234567) exceeds the maximum number of tokens (1048576)
+for the model 'models/gemini-2.5-flash'.
+```
+
+모델별 context window 크기:
+- gemini-2.5-flash: 1,048,576 토큰
+- gemini-2.5-pro: 2,097,152 토큰
+
+실제 전송 전에 토큰 수를 확인해서 에러를 미리 막는다:
+
+```python
+import google.generativeai as genai
+
+model = genai.GenerativeModel("gemini-2.5-flash")
+MAX_INPUT_TOKENS = 900_000  # 모델 한도보다 여유를 두고 자른다
+
+def safe_generate(model, contents):
+    count = model.count_tokens(contents)
+    if count.total_tokens > MAX_INPUT_TOKENS:
+        raise ValueError(
+            f"토큰 수 초과: {count.total_tokens:,} / {MAX_INPUT_TOKENS:,} "
+            f"(모델 한도: 1,048,576)"
+        )
+    return model.generate_content(contents)
+```
+
+system instruction과 채팅 히스토리도 토큰에 포함된다. 히스토리가 쌓인 채팅 세션에서 갑자기 초과하는 경우가 있어서, 긴 세션은 주기적으로 토큰 수를 확인해야 한다.
+
+긴 문서를 나눠서 처리할 때:
+
+```python
+def chunk_text(text: str, max_chars: int = 200_000) -> list[str]:
+    """대략 200K chars ≈ 50K tokens 기준으로 분할"""
+    chunks = []
+    while len(text) > max_chars:
+        cut = text[:max_chars].rfind('\n\n')
+        if cut == -1:
+            cut = max_chars
+        chunks.append(text[:cut])
+        text = text[cut:].lstrip()
+    if text:
+        chunks.append(text)
+    return chunks
+```
+
+chars-to-tokens 비율은 언어마다 다르다. 영어는 1토큰 ≈ 4chars, 한국어는 1토큰 ≈ 2~3chars다. 한국어 문서는 같은 글자 수라도 토큰이 더 많이 나오므로 `count_tokens`로 실제 수를 재는 쪽이 안전하다.
 
 ---
 
