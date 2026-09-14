@@ -9,11 +9,12 @@ hide:
 
 # Component Design 전체 보기
 
-문서 7개.
+문서 8개.
 
 ## 개요
 
 - [Error Boundary](Error_Boundary.md)
+- [Error Boundary 테스트](Error_Boundary_Testing.md)
 - [React Hooks 깊이 파기](React_Hooks_Deep_Dive.md)
 - [React.lazy와 Suspense](Suspense_Lazy.md)
 - [React.memo와 렌더링 최적화](React_Memo_Rendering.md)

@@ -1,7 +1,7 @@
 ---
 title: Railway CLI 실무 사용법
 tags: [cloud, devops, ci-cd, backend]
-updated: 2026-09-07
+updated: 2026-09-14
 ---
 
 # Railway CLI 실무 사용법
@@ -27,6 +27,56 @@ railway login
 브라우저가 열리면서 OAuth 인증을 처리한다. 로컬 개발 환경에서 쓰는 방식이다. 인증 토큰은 `~/.railway/config.json`에 저장된다.
 
 CI 환경처럼 브라우저가 없는 경우는 `RAILWAY_TOKEN`을 환경변수로 넘기면 `railway login` 없이 동작한다. 이건 뒤에서 따로 다룬다.
+
+현재 어떤 계정으로 로그인됐는지 확인할 때:
+
+```bash
+railway whoami
+```
+
+출력 예:
+
+```
+Logged in as user@example.com (Workspace: my-workspace)
+```
+
+여러 Railway 계정을 쓰는 경우 — 회사 계정과 개인 계정을 번갈아 쓰다 보면 현재 어느 계정인지 모르고 커맨드를 날리는 경우가 생긴다. 배포 전에 `railway whoami`로 계정을 확인하는 게 낫다.
+
+로그아웃:
+
+```bash
+railway logout
+```
+
+`~/.railway/config.json`에서 토큰이 삭제된다. 다른 계정으로 전환할 때 `railway logout` → `railway login` 순서로 한다.
+
+## 프로젝트 탐색
+
+로그인된 계정에 속한 프로젝트 전체를 보려면:
+
+```bash
+railway list
+```
+
+출력 예:
+
+```
+ Projects
+ ─────────────────────────────────
+ my-api-service          (3 services)
+ data-pipeline           (2 services)
+ staging-env             (4 services)
+```
+
+현재 디렉토리가 연결된 프로젝트가 뭔지 모를 때, 또는 처음 합류한 팀 계정에서 어떤 프로젝트들이 있는지 파악할 때 쓴다.
+
+현재 프로젝트를 브라우저에서 바로 열려면:
+
+```bash
+railway open
+```
+
+Railway 대시보드의 현재 프로젝트 페이지가 브라우저에서 열린다. 로그 보다가 대시보드로 넘어가야 할 때, 팀원에게 링크를 보내야 할 때 바로 쓸 수 있다.
 
 ## 프로젝트 연결
 
@@ -95,6 +145,32 @@ railway logs --service worker
 railway logs --service api-server | grep "ERROR"
 ```
 
+## 컨테이너 직접 접속
+
+배포된 컨테이너 안으로 직접 들어갈 때 쓴다.
+
+```bash
+railway shell
+```
+
+현재 연결된 서비스의 컨테이너에 대화형 셸이 붙는다. 컨테이너 안에서 실행되기 때문에 Railway에 등록된 환경변수가 전부 주입된 상태다.
+
+어느 서비스에 접속할지 명시하려면:
+
+```bash
+railway shell --service api-server
+```
+
+주로 이런 경우에 쓴다:
+
+- 배포 후 예상치 못한 동작이 나올 때 컨테이너 안 파일 시스템이나 프로세스 상태를 직접 확인
+- 마이그레이션이나 일회성 스크립트를 대화형으로 돌려야 할 때
+- 컨테이너 안 특정 바이너리나 설정 파일 위치 확인
+
+한 가지 제약이 있다. Railway 컨테이너는 기본적으로 `bash`가 없는 경우가 많다. alpine 기반 이미지면 `sh`만 있고, 일부 distroless 이미지는 셸 자체가 없다. 접속이 안 된다면 Dockerfile을 확인해야 한다.
+
+`railway shell`로 들어가서 작업한 내용은 컨테이너가 재시작되면 전부 사라진다. 파일을 직접 수정하는 건 디버깅용으로만 써야 한다. 실제 변경은 소스 코드에 반영해서 재배포하는 게 맞다.
+
 ## 로컬에서 Railway 환경변수 주입
 
 Railway에 등록된 환경변수를 로컬 프로세스에 주입해서 실행하는 게 `railway run`이다.
@@ -119,20 +195,60 @@ railway variables
 railway run --service database npx prisma migrate deploy
 ```
 
-주의할 점이 있다. `railway run`으로 주입된 환경변수는 현재 연결된 환경(production 또는 staging)을 기준으로 가져온다. 프로덕션 DB에 연결된 채로 테스트 스크립트를 돌리는 사고가 생길 수 있다. 실행 전에 `railway status`로 현재 환경을 확인하는 습관이 필요하다.
+### 프로덕션 환경에 실수로 날리는 경우
 
-환경을 명시하려면:
+`railway run`으로 주입된 환경변수는 현재 연결된 환경(production 또는 staging)을 기준으로 가져온다. 프로덕션 DB에 연결된 채로 테스트 스크립트를 돌리는 사고가 생긴다. 특히 환경 전환을 자주 하는 경우, `railway environment production`을 치고 작업하다가 `railway run`을 습관적으로 날리면 위험하다.
+
+환경을 명시하는 방법:
 
 ```bash
+# 세션 전체를 staging으로 전환
 railway environment staging
 railway run npm test
-```
 
-또는 한 줄로:
-
-```bash
+# 한 커맨드에만 적용
 railway run --environment staging npm test
 ```
+
+이 정도로는 실수를 막기 어렵다. 습관적으로 엔터를 누르면 `--environment`를 빠뜨리는 경우가 생긴다.
+
+프로덕션에서 `railway run`이 실행될 때 확인을 강제하는 셸 함수를 `~/.zshrc` 또는 `~/.bashrc`에 넣는 방법이 있다.
+
+```bash
+# ~/.zshrc 또는 ~/.bashrc에 추가
+rrun() {
+  local current_env
+  current_env=$(railway status 2>/dev/null | grep -i "environment" | awk '{print $NF}')
+
+  if [[ "$current_env" == "production" ]]; then
+    echo "[WARNING] 현재 환경: production"
+    echo "실행할 커맨드: railway run $*"
+    printf "계속 진행하시겠습니까? (yes/N): "
+    read -r confirm
+    if [[ "$confirm" != "yes" ]]; then
+      echo "취소됨"
+      return 1
+    fi
+  fi
+
+  railway run "$@"
+}
+```
+
+`railway run` 대신 `rrun`을 쓰면 된다. 환경이 production일 때만 확인 프롬프트가 뜨고, staging에서는 그냥 넘어간다. "yes"를 풀로 타이핑해야 통과하도록 했다. "y"만으로 넘어가게 하면 엔터를 잘못 누르는 경우를 못 막는다.
+
+팀 전체에 강제하려면 환경별 토큰을 분리하는 게 더 확실하다. Railway 대시보드 → Project Settings → Tokens에서 production 전용 토큰과 staging 전용 토큰을 따로 발급한다. 개발자 로컬에는 staging 토큰만 배포하면, production에서 `railway run`을 날리려면 토큰을 바꿔야 한다는 마찰이 생긴다.
+
+```bash
+# staging 토큰만 로컬에 설정
+export RAILWAY_TOKEN="staging-token-here"
+railway run npm test  # staging DB에 연결됨
+
+# production에 접근하려면 명시적으로 토큰을 바꿔야 함
+RAILWAY_TOKEN="prod-token-here" railway run --environment production <커맨드>
+```
+
+이 패턴은 실수를 구조적으로 막는다. 셸 함수는 우회할 수 있지만 토큰 교체는 명시적인 행동이다.
 
 ## 서비스별 배포 타겟 지정
 
