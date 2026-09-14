@@ -1,6 +1,6 @@
 ---
 title: React.memo와 렌더링 최적화
-tags: [frontend, react, performance]
+tags: [frontend, performance]
 updated: 2026-09-14
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "React.lazy와 Suspense"
-tags: [frontend, react, performance, javascript]
+tags: [frontend, performance, javascript]
 updated: 2026-09-14
 ---
 

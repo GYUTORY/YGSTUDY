@@ -6,4 +6,5 @@ nav:
   - React.memo와 렌더링: React_Memo_Rendering.md
   - 브라우저 렌더링 파이프라인: Browser_Rendering_Pipeline.md
   - Error Boundary: Error_Boundary.md
+  - Error Boundary 테스트: Error_Boundary_Testing.md
   - "React.lazy와 Suspense": Suspense_Lazy.md
