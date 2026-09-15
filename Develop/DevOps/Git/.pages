@@ -4,3 +4,4 @@ nav:
   - 내부 구조: Git_Internals.md
   - Hooks 실무: Git_Hooks.md
   - Worktree · Submodule: Git_Worktree_Submodule_LFS.md
+  - CHANGELOG 작성 규약: CHANGELOG.md

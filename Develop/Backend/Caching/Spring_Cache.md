@@ -1,5 +1,5 @@
 ---
-title: Spring Cache
+title: Spring Cache 어노테이션 동작 원리
 tags: [spring, java, cache, backend]
 updated: 2026-09-15
 ---

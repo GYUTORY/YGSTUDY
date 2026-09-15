@@ -9,10 +9,11 @@ hide:
 
 # Git 전체 보기
 
-문서 4개.
+문서 5개.
 
 ## 개요
 
+- [CHANGELOG 작성 규약](CHANGELOG.md)
 - [Git Hooks 실무](Git_Hooks.md)
 - [Git 내부 구조](Git_Internals.md)
 - [Git 자주 사용하는 명령어](Git_자주_사용하는_명령어.md)

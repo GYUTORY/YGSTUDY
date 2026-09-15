@@ -1,10 +1,10 @@
 ---
-title: Spring Cache
+title: Spring CacheManager 설정
 tags: [spring, cache, redis, java]
 updated: 2026-07-29
 ---
 
-# Spring Cache
+# Spring CacheManager 설정
 
 Spring Cache는 메서드 반환값을 캐싱하는 추상화 레이어다. 실제 저장소(Caffeine, Redis 등)와 분리되어 있어서 `CacheManager` 빈만 바꾸면 저장소를 교체할 수 있다.
 
