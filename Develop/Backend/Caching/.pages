@@ -5,3 +5,6 @@ nav:
   - Cache Warming: Cache_Warming.md
   - 캐시 무효화: 캐시_무효화.md
   - Redis 운영: Redis_운영.md
+  - Redis 운영 패턴: Redis_운영_패턴.md
+  - Spring Cache: Spring_Cache.md
+  - 캐시 모니터링: Cache_Monitoring.md

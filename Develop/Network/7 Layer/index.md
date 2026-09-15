@@ -9,7 +9,7 @@ hide:
 
 # OSI 7계층 전체 보기
 
-문서 48개.
+문서 49개.
 
 ## Application Layer
 
@@ -29,6 +29,7 @@ hide:
 
 - [ARP — IP와 MAC을 잇는 끈](<Network Layer/ARP.md>)
 - [BGP — 인터넷을 굴리는 라우팅 프로토콜](<Network Layer/BGP.md>)
+- [CIDR](<Network Layer/IP/CIDR.md>)
 - [ICMP — 진단 프로토콜의 안과 밖](<Network Layer/ICMP.md>)
 - [IPv6 — 주소 고갈 너머의 운영 현실](<Network Layer/I_Pv6.md>)
 - [MTU·MSS와 Path MTU Discovery 블랙홀](<Network Layer/MTU_MSS_PMTUD.md>)
