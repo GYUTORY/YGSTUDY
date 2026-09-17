@@ -28,7 +28,7 @@ hide:
 - [Spring Boot Profiles 심화](<Spring/Spring Boot Profiles.md>)
 - [Spring Boot Rate Limiting 구현](Spring/Rate_Limiting.md)
 - [Spring Boot 로깅](Spring/Spring_Logging.md)
-- [Spring Cache](Spring/Spring_Cache.md)
+- [Spring CacheManager 설정](Spring/Spring_Cache.md)
 - [Spring Cloud MSA](Spring/Spring_Cloud.md)
 - [Spring Data JPA 심화 - 동적 쿼리, 락, 영속성 컨텍스트, 대용량 처리](Spring/Spring_Data_JPA_Advanced.md)
 - [Spring Data JPA 핵심 개념과 실전 적용](Spring/Spring_Data_JPA.md)
