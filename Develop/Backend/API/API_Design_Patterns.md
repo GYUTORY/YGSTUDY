@@ -1,5 +1,6 @@
 ---
 title: API 설계 패턴
+description: "REST·GraphQL·gRPC 특성 비교, 상태 코드·버전 관리·에러 표준화·OpenAPI 등 실무 API 설계 원칙과 NestJS 구현 예시"
 tags: [backend, api, rest, graphql]
 updated: 2026-03-26
 ---
@@ -10,7 +11,7 @@ updated: 2026-03-26
 
 백엔드 서비스의 API 통신 방식은 크게 REST, GraphQL, gRPC로 나뉜다. 각각의 특성을 이해하고 상황에 맞게 선택해야 한다.
 
-## 핵심
+## 설계 원칙과 패턴
 
 ### 1. REST vs GraphQL vs gRPC
 

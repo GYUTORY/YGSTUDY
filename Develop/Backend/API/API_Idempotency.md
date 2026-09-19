@@ -1,5 +1,6 @@
 ---
 title: API 멱등성 (Idempotency)
+description: "결제·주문 등 POST 요청 중복 실행을 막는 Idempotency-Key 설계, Redis·DB Unique Constraint 구현, Outbox 패턴과 Kafka 소비자 멱등성"
 tags: [backend, api, architecture, redis]
 updated: 2026-05-03
 ---
@@ -12,7 +13,7 @@ updated: 2026-05-03
 
 이 문제를 해결하는 핵심은 **Idempotency-Key**다. 클라이언트가 요청마다 고유 키를 헤더에 담아 보내고, 서버가 이 키로 중복 여부를 판단한다.
 
-## 핵심
+## 구현 패턴
 
 ### 1. HTTP 메서드별 멱등성
 

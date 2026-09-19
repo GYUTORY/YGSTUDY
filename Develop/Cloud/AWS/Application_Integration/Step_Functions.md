@@ -2,6 +2,7 @@
 title: AWS Step Functions
 tags: [aws, architecture, cloud]
 updated: 2026-01-18
+description: "AWS Step Functions로 Lambda 함수들을 연결해 워크플로우를 설계하는 방법"
 ---
 
 # AWS Step Functions
@@ -256,8 +257,7 @@ State Machine은 워크플로우를 정의한 것이다. 여러 State(상태)로
 }
 ```
 
-## 에러 처리
-
+## 상태 머신 실패 복구 및 재시도 전략
 Lambda 실행이 실패하거나 타임아웃이 발생할 수 있다. 에러 처리가 중요하다.
 
 ### Retry (재시도)

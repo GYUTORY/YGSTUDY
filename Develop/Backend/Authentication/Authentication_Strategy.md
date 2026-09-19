@@ -1,5 +1,6 @@
 ---
 title: 인증/인가 방식 비교
+description: "세션·JWT·OAuth2·SSO·API Key 방식 비교와 NestJS 구현, Refresh Token Rotation·Keycloak SSO·API Key 해시 저장 등 운영 패턴"
 tags: [backend, auth, jwt]
 updated: 2026-03-26
 ---
@@ -20,7 +21,7 @@ updated: 2026-03-26
   → 권한 확인, 접근 제어
 ```
 
-## 핵심
+## 인증 방식별 구현
 
 ### 1. 인증 방식 비교
 

@@ -1,5 +1,6 @@
 ---
 title: 클린 아키텍처
+description: "의존성 방향 규칙 기반의 클린·헥사고날·레이어드 아키텍처 비교와 Spring Boot/NestJS 구현 예시, 실무 마이그레이션 절차"
 tags: [architecture]
 updated: 2026-03-25
 ---
@@ -50,7 +51,7 @@ Entity는 DB가 MySQL인지 MongoDB인지 모른다.
   - 비즈니스 로직을 프레임워크 없이 단위 테스트 가능
 ```
 
-## 핵심
+## 아키텍처 스타일 비교와 구현
 
 ### 1. 아키텍처 스타일 비교
 

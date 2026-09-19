@@ -2,6 +2,7 @@
 title: 메시지 큐 & 이벤트 기반 아키텍처
 tags: [backend, messaging, event-driven, language]
 updated: 2026-04-02
+description: "메시지 큐와 이벤트 기반 아키텍처로 마이크로서비스 간 비동기 통신 구현하기"
 ---
 
 # 메시지 큐 & 이벤트 기반 아키텍처
@@ -37,8 +38,7 @@ updated: 2026-04-02
 | **Request-Reply** | 요청 후 응답 대기 | RPC 대체 |
 | **Dead Letter Queue** | 처리 실패 메시지 격리 | 에러 분석, 재처리 |
 
-## 핵심
-
+## 주요 메시지 큐 시스템 비교
 ### 1. Kafka vs RabbitMQ 비교
 
 | 항목 | Apache Kafka | RabbitMQ |
@@ -777,8 +777,7 @@ bootstrap();
 // DLT(Dead Letter Topic)로 전송하려면 Consumer에서 예외 캐치 후 별도 토픽으로 emit
 ```
 
-## 운영 팁
-
+## 프로덕션 환경 운영 전략
 ### 선택 가이드
 
 | 상황 | 추천 |

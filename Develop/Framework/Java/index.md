@@ -9,7 +9,7 @@ hide:
 
 # Framework · Java 전체 보기
 
-문서 27개.
+문서 29개.
 
 ## Spring
 
@@ -28,6 +28,8 @@ hide:
 - [Spring Boot Profiles 심화](<Spring/Spring Boot Profiles.md>)
 - [Spring Boot Rate Limiting 구현](Spring/Rate_Limiting.md)
 - [Spring Boot 로깅](Spring/Spring_Logging.md)
+- [Spring Cache 심화](Spring/Spring_Cache_Advanced.md)
+- [Spring Cache 테스트](Spring/Spring_Cache_Testing.md)
 - [Spring CacheManager 설정](Spring/Spring_Cache.md)
 - [Spring Cloud MSA](Spring/Spring_Cloud.md)
 - [Spring Data JPA 심화 - 동적 쿼리, 락, 영속성 컨텍스트, 대용량 처리](Spring/Spring_Data_JPA_Advanced.md)

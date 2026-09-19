@@ -152,12 +152,14 @@ def on_pre_build(config, **kwargs):
     lines = [
         "---\n",
         "title: 최근 변경 문서\n",
-        "tags: []\n",
+        "tags: [git, devops]\n",
         f"updated: {date.today().isoformat()}\n",
         "hide:\n  - toc\n",
         "---\n\n",
         "# 최근 변경 문서\n\n",
-        "빌드 시점에 git 히스토리를 읽어 자동 생성됩니다. 최근 60일 내 추가·수정된 문서입니다.\n\n",
+        "빌드마다 `git log --diff-filter=AM --since='60 days ago'`로 `Develop/` 디렉터리 안에서 추가·수정된 `.md` 파일을 읽어 다시 쓰는 파일이다. 생성은 `tools/inject_build_meta.py`의 `on_pre_build` 훅에서 처리된다.\n\n",
+        "섹션 인덱스(`<!-- AUTO-SECTION-INDEX -->` 마커가 들어간 파일)와 `index.md`, `tags.md`, `todo.md`, `404.md` 같은 메타 페이지는 목록에서 제외된다. 커밋 이후 삭제되거나 경로가 바뀐 파일도 죽은 링크를 막기 위해 자동으로 걸러진다.\n\n",
+        "이 파일을 직접 수정해도 다음 빌드에서 덮어써진다. 출력 형식을 바꾸려면 `tools/inject_build_meta.py`를 수정한다.\n\n",
         "로컬에서 같은 목록을 확인하려면:\n\n",
         "```bash\n",
         "git log --pretty=format:'%ad' --date=short --diff-filter=AM --since='60 days ago' --name-only -- Develop/\n",
@@ -181,6 +183,14 @@ def on_pre_build(config, **kwargs):
             link = f"[{name}]({_doc_md_link(path)})"
             lines.append(f"| {cat} | {count} | {link} |\n")
         lines.append("\n")
+        lines.append(
+            "카테고리별 요약은 60일 기간 내 수정 문서 수 내림차순이다. "
+            "`최근 문서` 열에는 해당 카테고리에서 git 로그 기준 가장 최근 커밋에 들어간 문서 하나가 표시된다.\n\n"
+        )
+        lines.append(
+            "월별 표는 커밋 날짜 내림차순으로 나열된다. 같은 날짜 안에서는 `git log` 출력 순서를 유지한다. "
+            "리다이렉트 설정 없이 삭제·이동된 문서는 404를 막기 위해 자동으로 제외된다.\n\n"
+        )
 
         months = {}
         for entry in entries:
