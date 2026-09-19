@@ -1,8 +1,157 @@
 ---
-title: "kafkajs Consumer Group 운영과 재처리"
-tags: [nodejs, messaging, event-driven, backend, architecture]
-updated: 2026-09-05
+title: "NestJS Kafka 연동과 Consumer Group 운영"
+tags: [nodejs, nestjs, messaging, event-driven, backend, architecture]
+updated: 2026-09-19
 ---
+
+## NestJS에서 Kafka를 붙이는 방법
+
+NestJS에서 Kafka를 쓰는 경로는 둘이다. `@nestjs/microservices`의 `Transport.KAFKA` 추상화를 쓰거나, kafkajs를 직접 DI 컨테이너에 등록해서 쓰거나.
+
+추상화 쪽은 설정이 간단하고 `@MessagePattern`/`@EventPattern` 데코레이터로 핸들러를 선언한다. 직접 kafkajs를 쓰면 Consumer Group 설정, offset 커밋, DLQ 전부 코드로 제어할 수 있다. `eachBatch`로 배치 처리를 해야 하거나 수동 커밋이 필요한 상황에서는 직접 kafkajs를 쓰는 게 낫다.
+
+## Transport.KAFKA로 마이크로서비스 올리기
+
+Kafka 컨슈머를 NestJS 마이크로서비스로 올리는 기본 방법이다. `main.ts`에서 `createMicroservice`로 등록한다.
+
+```ts
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    AppModule,
+    {
+      transport: Transport.KAFKA,
+      options: {
+        client: {
+          brokers: ['localhost:9092'],
+        },
+        consumer: {
+          groupId: 'order-consumer-group',
+          sessionTimeout: 30000,
+          heartbeatInterval: 3000,
+        },
+      },
+    },
+  );
+
+  await app.listen();
+}
+bootstrap();
+```
+
+컨슈머 핸들러는 컨트롤러에 `@MessagePattern`으로 선언한다.
+
+```ts
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
+
+@Controller()
+export class OrderConsumerController {
+  @MessagePattern('order-created')
+  async handleOrderCreated(
+    @Payload() data: OrderCreatedDto,
+    @Ctx() context: KafkaContext,
+  ) {
+    const originalMessage = context.getMessage();
+    const partition = context.getPartition();
+    // data는 이미 역직렬화된 상태다
+    await this.orderService.process(data);
+  }
+}
+```
+
+`@Payload()`가 메시지 value를 받는다. 헤더나 파티션 정보가 필요하면 `@Ctx()`로 `KafkaContext`를 받아서 접근한다.
+
+## ClientKafka로 프로듀서 쓰기
+
+메시지를 보내는 쪽에서는 `ClientKafka`를 쓴다. `ClientsModule`에 등록해서 DI로 주입받는다.
+
+```ts
+// order.module.ts
+import { Module } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+
+@Module({
+  imports: [
+    ClientsModule.register([
+      {
+        name: 'KAFKA_CLIENT',
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            brokers: ['localhost:9092'],
+          },
+          consumer: {
+            groupId: 'order-producer-group',
+          },
+        },
+      },
+    ]),
+  ],
+})
+export class OrderModule {}
+```
+
+서비스에서는 `onModuleInit`에서 반드시 `connect()`를 호출해야 한다. 응답을 받아야 하는 토픽은 `subscribeToResponseOf()`도 `connect()` 전에 호출한다.
+
+```ts
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
+
+@Injectable()
+export class OrderService implements OnModuleInit {
+  constructor(
+    @Inject('KAFKA_CLIENT') private readonly kafkaClient: ClientKafka,
+  ) {}
+
+  async onModuleInit() {
+    this.kafkaClient.subscribeToResponseOf('order-created');
+    await this.kafkaClient.connect();
+  }
+
+  async createOrder(order: CreateOrderDto) {
+    // request-response 패턴: 응답을 기다린다
+    return this.kafkaClient.send('order-created', order).toPromise();
+  }
+
+  async emitEvent(event: OrderEventDto) {
+    // fire-and-forget: 응답 없이 발행만 한다
+    return this.kafkaClient.emit('order-event', event).toPromise();
+  }
+}
+```
+
+`send()`는 응답을 기다리는 request-response 패턴이고, `emit()`은 fire-and-forget이다. `send()`를 쓸 때 `subscribeToResponseOf()`가 없으면 응답 토픽을 구독하지 않아서 타임아웃이 발생한다.
+
+`connect()`를 `onModuleInit` 밖에서 호출하면 DI 컨테이너가 완전히 준비되기 전에 브로커 연결을 시도하다 에러가 나는 경우가 있다. `onModuleInit` 안에서 호출하는 게 안전하다.
+
+## NestJS 추상화를 벗어나야 할 때
+
+`Transport.KAFKA`는 내부적으로 kafkajs를 감싼다. `eachBatch`, 수동 offset 커밋, DLQ 구현 같은 세밀한 제어가 필요하면 kafkajs를 직접 DI에 등록해서 쓴다.
+
+```ts
+// kafka.provider.ts
+import { Kafka } from 'kafkajs';
+
+export const kafkaProvider = {
+  provide: 'KAFKA_INSTANCE',
+  useFactory: () =>
+    new Kafka({
+      clientId: 'order-service',
+      brokers: ['localhost:9092'],
+    }),
+};
+```
+
+이 프로바이더를 모듈에 등록하고 서비스에서 `@Inject('KAFKA_INSTANCE')`로 받아서 아래처럼 직접 consumer를 생성해 쓴다.
+
+---
+
+아래부터는 kafkajs를 직접 쓸 때 실제 운영에서 마주치는 내용이다.
 
 ## Consumer Group이 실제로 하는 일
 
