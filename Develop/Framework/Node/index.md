@@ -9,7 +9,7 @@ hide:
 
 # Node.js 전체 보기
 
-문서 112개.
+문서 113개.
 
 ## 프레임워크
 
@@ -72,6 +72,7 @@ hide:
 - [NestJS Guards](NestJS/Nest_JS_Guards.md)
 - [NestJS Health Check 심화](NestJS/Nest_JS_Health_Check.md)
 - [NestJS Interceptor 동작 원리와 실무 활용](NestJS/Nest_JS_Interceptors.md)
+- [NestJS Kafka 연동](NestJS/Nest_JS_Kafka.md)
 - [NestJS LazyModuleLoader — 동적 모듈 지연 로딩](NestJS/Nest_JS_Lazy_Module_Loader.md)
 - [NestJS Middleware](NestJS/Nest_JS_Middleware.md)
 - [NestJS MongoDB/Mongoose 연동](NestJS/Nest_JS_Mongo_DB_Mongoose.md)
@@ -161,7 +162,7 @@ hide:
 
 ## 개요
 
+- [NestJS Kafka 연동과 Consumer Group 운영](Kafka_연동.md)
 - [Node.js 프레임워크 문서 인덱스](Node_Framework_Index.md)
 - [gRPC — Protobuf 스키마부터 NestJS 게이트웨이까지](g_RPC_기초.md)
-- [kafkajs Consumer Group 운영과 재처리](Kafka_연동.md)
 
