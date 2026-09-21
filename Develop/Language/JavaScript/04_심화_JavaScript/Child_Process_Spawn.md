@@ -2,12 +2,12 @@
 title: child_process.spawn
 tags: [language, javascript, nodejs, os]
 updated: 2026-04-27
+description: "Node.js에서 외부 프로세스를 스트림으로 제어하는 spawn API 심층 분석"
 ---
 
 # child_process.spawn
 
-## 배경
-
+## exec의 한계와 spawn이 필요한 이유
 Node.js는 단일 스레드 이벤트 루프 위에서 동작한다. 그래서 외부 프로그램을 호출해야 할 때는 별도의 OS 프로세스를 띄워서 입출력을 스트림으로 주고받는 방식을 쓴다. 그 중심에 있는 게 `child_process.spawn()`이다. `exec`, `fork`, `execFile`도 결국 내부적으로는 `spawn`을 감싸는 형태다.
 
 처음 Node에서 외부 명령을 부를 때 가장 많이 쓰는 게 `exec`인데, 출력을 통째로 버퍼에 모아서 콜백으로 넘기는 구조라 출력이 조금만 커져도 `maxBuffer exceeded` 에러로 죽는다. 로그 수십 메가만 흘러도 터진다. 이런 경우 `spawn`으로 바꿔야 한다. 스트림 기반이라 메모리가 일정하게 유지된다.

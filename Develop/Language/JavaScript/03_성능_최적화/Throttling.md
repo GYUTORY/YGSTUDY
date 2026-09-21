@@ -2,12 +2,12 @@
 title: JavaScript 쓰로틀링(Throttling)
 tags: [language, javascript, performance]
 updated: 2025-08-10
+description: "함수 실행 빈도를 제한해 성능을 최적화하는 쓰로틀링 기법 정리"
 ---
 
 # JavaScript 쓰로틀링(Throttling)
 
-## 배경
-
+## 쓰로틀링이 필요한 이유
 쓰로틀링은 **특정 시간 동안 함수의 실행 횟수를 제한하는 기술**입니다. 쉽게 말해서, "1초에 한 번만 실행해!"라고 제한을 두는 것입니다.
 
 ### 쓰로틀링의 필요성
@@ -22,8 +22,7 @@ updated: 2025-08-10
 - **쓰로틀링**: 일정 시간 간격으로 함수 실행을 제한
 - **디바운싱**: 연속된 이벤트를 그룹화하여 마지막 이벤트만 처리
 
-## 핵심
-
+## 쓰로틀링 구현 방법
 ### 1. 기본 쓰로틀링 구현
 
 #### 기본 쓰로틀링 함수
@@ -196,8 +195,7 @@ window.addEventListener('scroll', scrollHandler);
 window.addEventListener('resize', resizeHandler);
 ```
 
-## 예시
-
+## 실제 적용 사례
 ### 1. 실제 사용 사례
 
 #### 스크롤 이벤트 최적화
@@ -438,8 +436,7 @@ class SimpleGame {
 const game = new SimpleGame();
 ```
 
-## 운영 팁
-
+## 성능 최적화 적용 전략
 ### 성능 최적화
 
 #### 디바이스별 최적화
