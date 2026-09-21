@@ -2,6 +2,7 @@
 title: Linux 보안 하드닝
 tags: [linux, security, devops]
 updated: 2026-04-10
+description: "프로덕션 Linux 서버의 공격 표면을 줄이기 위한 보안 하드닝 설정 가이드"
 ---
 
 # Linux 보안 하드닝
@@ -18,8 +19,7 @@ updated: 2026-04-10
 [선택]  포트 노킹 → 2FA → AIDE/Tripwire
 ```
 
-## 핵심
-
+## 필수 보안 설정
 ### 1. SSH 보안 강화
 
 #### 1-1. sshd_config 기본 설정
@@ -725,8 +725,7 @@ sudo fail2ban-client status sshd     # currently banned / total failed 숫자가
 
 `total failed`가 계속 0이면 로그 경로나 `port` 값(2222로 바꿨는지)이 어긋난 것이다. 차단 규칙이 도는지 보려면 실제로 실패 로그인을 `maxretry` 이상 만들어보는 게 가장 확실하다 — 단, 자기 IP를 `ignoreip`에 넣어두고 한다.
 
-## 운영 팁
-
+## 실전 운영 보안 점검
 ### SSH 보안 조합 비교
 
 서버 환경에 따라 적절한 조합이 다르다. 아래는 일반적인 상황별 권장 구성이다.

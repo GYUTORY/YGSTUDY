@@ -2,12 +2,12 @@
 title: Spring Bean 개념과 사용법
 tags: [java, spring]
 updated: 2025-08-10
+description: "Spring IoC 컨테이너가 관리하는 Bean의 개념, 등록 방식, 생명주기를 정리한 문서"
 ---
 
 # Spring Bean 개념과 사용법
 
-## 배경
-
+## Spring Bean이 필요한 이유
 Spring Framework에서 Bean은 IoC(Inversion of Control) 컨테이너가 관리하는 객체다. 객체 생성과 의존성 주입, 생명주기까지 Spring이 맡으니 개발자는 비즈니스 로직에 집중하면 된다.
 
 ### Spring Bean의 필요성
@@ -22,8 +22,7 @@ Spring Framework에서 Bean은 IoC(Inversion of Control) 컨테이너가 관리�
 - **DI**: 의존성 주입, 객체가 필요로 하는 의존성을 외부에서 제공
 - **스코프**: Bean의 생명주기와 범위를 정의
 
-## 핵심
-
+## Bean 등록과 의존성 주입 방식
 ### 1. Spring Bean의 특징
 
 #### 기본 특징
@@ -269,8 +268,7 @@ public class SessionBean {
 
 `request`/`session` 스코프도 같은 문제를 더 사납게 겪는다. 싱글톤 서비스에 그냥 주입하면 **기동 시점에는 HTTP 요청이 없어서** 빈을 만들 수조차 없다. 이쪽은 스코프드 프록시가 사실상 필수다.
 
-## 예시
-
+## 실전 Bean 설정 코드 예시
 ### 1. 실제 사용 사례
 
 #### 사용자 관리 시스템
@@ -455,8 +453,7 @@ processors = processorList.stream().collect(Collectors.toMap(
 
 구현체를 담은 모듈이 컴포넌트 스캔 범위 밖이면 리스트가 비어도 기동은 성공하고, 결제 시점에 `NullPointerException` 이 난다. 기동 시 등록된 타입을 로그로 찍고, 조회 실패는 `Optional` 이나 명시적 예외로 드러낸다.
 
-## 운영 팁
-
+## Bean 스코프와 생명주기 관리 팁
 ### 성능 최적화
 
 #### Lazy Loading 활용

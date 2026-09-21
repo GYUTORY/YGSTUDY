@@ -2,6 +2,7 @@
 title: SA와 PSACCT 모니터링 도구
 tags: [linux, devops]
 updated: 2025-10-15
+description: "SA와 PSACCT를 활용한 Linux 시스템 성능 및 프로세스 활동 모니터링 가이드"
 ---
 
 # SA와 PSACCT 모니터링 도구
@@ -600,8 +601,7 @@ sudo accton $LOG_FILE
 echo "Process accounting rotated: $DATE"
 ```
 
-## 예시
-
+## SA/PSACCT 명령어 실습 예시
 ### 1. 실제 사용 사례
 
 #### 시스템 성능 모니터링 스크립트
@@ -738,8 +738,7 @@ last | head -20 >> $AUDIT_LOG
 echo "=== End of Report ===" >> $AUDIT_LOG
 ```
 
-## 운영 팁
-
+## 시스템 모니터링 효율화 운영 팁
 ### 성능 최적화
 
 #### 데이터 수집 주기 조정
