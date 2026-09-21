@@ -2,12 +2,12 @@
 title: JavaScript try-catch 에러 처리
 tags: [language, javascript, backend]
 updated: 2025-08-10
+description: "JavaScript try-catch 구문으로 예외를 안전하게 처리하는 방법"
 ---
 
 # JavaScript try-catch 에러 처리
 
-## 배경
-
+## try-catch가 필요한 이유
 JavaScript에서 try-catch는 예외를 처리하는 핵심 구문이다. 실행 중에 나는 오류를 안전하게 붙잡아, 애플리케이션이 통째로 멈추지 않고 계속 돌아가게 한다.
 
 ### try-catch의 필요성
@@ -22,8 +22,7 @@ JavaScript에서 try-catch는 예외를 처리하는 핵심 구문이다. 실행
 - **finally 블록**: 오류가 나든 안 나든 항상 실행되는 코드를 넣는다
 - **throw**: 일부러 오류를 던지는 구문
 
-## 핵심
-
+## 문법과 동작 원리
 ### 1. 기본 문법
 
 #### try-catch 기본 구조
@@ -420,8 +419,7 @@ function getDefaultUserData() {
 }
 ```
 
-## 예시
-
+## 실전 에러 처리 패턴
 ### 1. 실제 사용 사례
 
 #### API 호출 에러 처리
@@ -686,8 +684,7 @@ async function processMultipleOperations() {
 }
 ```
 
-## 운영 팁
-
+## 안정적인 예외 처리 전략
 ### 성능 최적화
 
 #### 에러 처리 성능 고려사항

@@ -2,12 +2,12 @@
 title: JavaScript Spread 연산자 개념과 사용법
 tags: [language, javascript]
 updated: 2025-08-10
+description: "ES6 Spread 연산자의 배열·객체 활용법과 얕은 복사 개념 정리"
 ---
 
 # JavaScript Spread 연산자 개념과 사용법
 
-## 배경
-
+## Spread 연산자 등장 배경과 필요성
 Spread 연산자(`...`)는 ES6에서 들어온 문법이다. 배열이나 객체의 요소를 펼쳐서 새 배열이나 객체를 만든다. 얕은 복사(shallow copy)를 짧게 쓸 수 있어서 요즘 JavaScript 개발에서 널리 쓰인다.
 
 ### Spread 연산자의 필요성
@@ -22,8 +22,7 @@ Spread 연산자(`...`)는 ES6에서 들어온 문법이다. 배열이나 객체
 - **불변성**: 원본 데이터를 변경하지 않고 새로운 데이터 생성
 - **구조 분해**: 복잡한 데이터 구조를 개별 요소로 분해
 
-## 핵심
-
+## 배열·객체·함수 인자 활용 패턴
 ### 1. 배열에서의 Spread 연산자
 
 #### 기본 사용법
@@ -250,8 +249,7 @@ function restExample(...args) {
 restExample(1, 2, 3); // [1, 2, 3]
 ```
 
-## 예시
-
+## 실전 코드로 보는 Spread 사용 사례
 ### 1. 실제 사용 사례
 
 #### 상태 관리 (React 스타일)
@@ -434,8 +432,7 @@ structuredClone(c).self.n; // 1  — 순환 참조도 그대로 복원한다
 
 대신 함수는 복사하지 못하고 예외를 던진다(`DOMException`). `JSON.parse(JSON.stringify(...))` 가 함수와 `undefined` 를 조용히 버리는 것과 반대다 — **못 하는 일을 소리 내서 알려주는 쪽**이 대체로 낫다.
 
-## 운영 팁
-
+## 얕은 복사 한계와 성능 고려 사항
 ### 성능 최적화
 
 #### 메모리 효율성
