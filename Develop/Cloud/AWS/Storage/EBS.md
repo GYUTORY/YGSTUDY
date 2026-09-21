@@ -2,6 +2,7 @@
 title: AWS EBS (Elastic Block Store)
 tags: [aws, database, cloud]
 updated: 2026-01-18
+description: "EC2 인스턴스와 독립적으로 동작하는 영구 블록 스토리지 EBS의 개념과 활용법"
 ---
 
 # AWS EBS (Elastic Block Store)
@@ -483,8 +484,7 @@ aws ec2 attach-volume \
 
 두 인스턴스가 같은 볼륨에 접근한다.
 
-## 성능 최적화
-
+## EBS 볼륨 타입별 성능 튜닝
 ### IOPS 계산
 
 애플리케이션에 필요한 IOPS를 계산한다.

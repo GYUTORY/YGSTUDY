@@ -2,6 +2,7 @@
 title: 트랜잭션과 Lock
 tags: [database, rdbms]
 updated: 2026-04-10
+description: "트랜잭션 ACID 속성과 Lock 메커니즘으로 데이터 일관성 보장하기"
 ---
 
 # 트랜잭션과 Lock
@@ -24,8 +25,7 @@ updated: 2026-04-10
   → 데이터 일관성 보장
 ```
 
-## 핵심
-
+## ACID 속성과 동시성 제어
 ### 1. ACID 속성
 
 | 속성 | 의미 | 보장 메커니즘 |

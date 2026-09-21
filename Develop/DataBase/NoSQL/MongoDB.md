@@ -2,6 +2,7 @@
 title: MongoDB 심화
 tags: [database, nosql, mongodb, rdbms]
 updated: 2026-04-12
+description: "MongoDB 문서 기반 NoSQL의 구조, 설계 전략, 성능 최적화 심화 정리"
 ---
 
 # MongoDB 심화
@@ -31,8 +32,7 @@ Primary Key             _id (자동 생성)
 | 수평 확장이 필요 | 정규화된 데이터 모델 |
 | 프로토타이핑/MVP | 엄격한 스키마 제약 필요 |
 
-## 핵심
-
+## 설계 원칙과 데이터 모델링 전략
 ### 1. 문서 구조
 
 ```javascript
