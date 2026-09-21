@@ -2,6 +2,7 @@
 title: Spring Cloud MSA
 tags: [spring, microservices, load-balancer, java]
 updated: 2026-03-29
+description: "Spring Cloud로 구현하는 MSA 핵심 컴포넌트와 인프라 구성 가이드"
 ---
 
 # Spring Cloud MSA
@@ -34,8 +35,7 @@ Client → API Gateway → 서비스 A ←→ 서비스 B
 | **Distributed Tracing** | 분산 추적 | Micrometer Tracing + Zipkin |
 | **Messaging** | 이벤트 기반 통신 | Spring Cloud Stream (Kafka/RabbitMQ) |
 
-## 핵심
-
+## MSA 핵심 컴포넌트
 ### 1. Eureka (Service Discovery)
 
 서비스가 자신을 등록하고, 다른 서비스를 검색한다.

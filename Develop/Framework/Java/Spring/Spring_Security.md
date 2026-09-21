@@ -2,12 +2,12 @@
 title: Spring Security 핵심 개념과 실전 적용
 tags: [java, spring, auth, jwt]
 updated: 2026-04-14
+description: "Spring Security의 인증·인가 구조와 필터 체인 기반 실전 적용 가이드"
 ---
 
 # Spring Security 핵심 개념과 실전 적용
 
-## 배경
-
+## Spring Security를 선택하는 이유
 Spring Security는 Spring 기반 애플리케이션의 **인증(Authentication)**과 **인가(Authorization)**를 담당하는 보안 프레임워크이다. 서블릿 필터 체인 기반으로 동작하며, 선언적 보안 설정과 세밀한 접근 제어를 지원한다.
 
 ### 왜 Spring Security인가
@@ -27,8 +27,7 @@ Spring Security는 Spring 기반 애플리케이션의 **인증(Authentication)*
 | **GrantedAuthority** | 사용자에게 부여된 권한 (ROLE_USER, ROLE_ADMIN 등) |
 | **SecurityContext** | 현재 요청의 보안 정보를 저장하는 컨텍스트 |
 
-## 핵심
-
+## 필터 체인과 인증 흐름 구조
 ### 1. 아키텍처
 
 #### Security Filter Chain
@@ -759,8 +758,7 @@ class UserControllerSecurityTest {
 
 `@WithMockUser`는 클래스/메서드 단위, `with(user(...))`는 요청 단위이다. 하나의 테스트에서 여러 사용자를 번갈아 테스트해야 하면 `with(user(...))`가 적합하다.
 
-## 예시
-
+## JWT·OAuth2 실전 설정 코드
 ### 1. 회원가입 + 로그인 API 전체 구현
 
 ```java
@@ -867,8 +865,7 @@ public UserResponse getCurrentUser(@CurrentUser UserDetails userDetails) {
 }
 ```
 
-## 운영 팁
-
+## 보안 취약점 방어와 운영 설정
 ### 주의사항
 
 **비밀번호 해싱**: BCrypt를 사용하되, cost factor는 10 이상으로 설정한다. 기본값이 10이므로 별도 설정 없이 `new BCryptPasswordEncoder()`를 쓰면 된다.

@@ -2,12 +2,12 @@
 title: Spring Data JPA 핵심 개념과 실전 적용
 tags: [java, spring, database]
 updated: 2026-05-14
+description: "Spring Data JPA의 동작 원리와 영속성 컨텍스트 기반 실전 적용 가이드"
 ---
 
 # Spring Data JPA 핵심 개념과 실전 적용
 
-## 배경
-
+## Spring Data JPA가 Hibernate 위에서 동작하는 방식
 Spring Data JPA는 JPA(Java Persistence API) 스펙을 Spring 방식으로 감싼 모듈이다. Repository 인터페이스만 정의해두면 CRUD와 페이징 쿼리를 런타임에 만들어주고, 직접 SQL을 써야 할 때는 JPQL이나 네이티브 쿼리, QueryDSL을 함께 쓸 수 있다.
 
 내부에서는 보통 Hibernate가 구현체로 동작한다. 즉 Spring Data JPA → JPA 스펙 → Hibernate → JDBC → DB 순으로 호출이 내려간다. 코드 한 줄이 SQL 한 번이 아니라 영속성 컨텍스트의 상태 변화와 트랜잭션 커밋 시점에 따라 여러 번 또는 0번 나가는 일이 흔하다는 점을 항상 의식하면서 써야 한다.
@@ -20,8 +20,7 @@ Spring Data JPA는 JPA(Java Persistence API) 스펙을 Spring 방식으로 감�
 - Repository: 데이터 접근 계층을 인터페이스로 추상화한 것. Spring Data JPA가 프록시로 구현체를 만들어준다.
 - JPQL: 테이블이 아니라 Entity와 필드를 대상으로 쓰는 쿼리 언어. 최종적으로는 SQL로 번역된다.
 
-## 핵심
-
+## 영속성 컨텍스트와 트랜잭션 커밋 타이밍
 ### 1. Entity 설계
 
 ```java
@@ -345,8 +344,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 기본 카운트 쿼리는 본문 쿼리를 그대로 본떠서 만들어진다. 본문에 JOIN FETCH가 있으면 카운트 쿼리도 부풀어서 비싸진다. 카운트가 느리면 `countQuery`를 분리하거나, 카운트가 정확할 필요가 없다면 `Slice`를 써서 `hasNext()`만 확인하는 방식으로 바꾼다.
 
-## 예시
-
+## Repository 정의부터 JPQL·QueryDSL 활용까지
 ### Auditing 설정
 
 ```java
@@ -401,8 +399,7 @@ public void deleteUser(Long userId) {
 }
 ```
 
-## 운영 팁
-
+## N+1 문제와 지연 로딩 함정 피하기
 ### open-in-view를 둘러싼 사고들
 
 Spring Boot의 기본값이 `spring.jpa.open-in-view=true`다. 의미는 영속성 컨텍스트를 트랜잭션 경계보다 길게, HTTP 응답이 클라이언트로 나가기 직전까지 살려두겠다는 뜻이다. 컨트롤러나 뷰 렌더링 단계에서 LAZY 연관을 건드려도 `LazyInitializationException`이 안 터지니까 개발 초기엔 편하다. 문제는 운영에 들어가면서 시작된다.

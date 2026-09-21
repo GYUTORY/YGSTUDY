@@ -2,12 +2,12 @@
 title: Spring Boot Rate Limiting 구현
 tags: [java, spring, performance, redis]
 updated: 2026-04-06
+description: "Spring Boot에서 Token Bucket, Sliding Window 등 Rate Limiting 알고리즘 구현 방법 정리"
 ---
 
 # Spring Boot Rate Limiting 구현
 
-## 배경
-
+## 과도한 API 요청이 발생하는 상황
 API를 외부에 열어두면 특정 클라이언트가 요청을 과도하게 보내는 상황이 생긴다. 장애가 아니라 정상적인 사용 패턴에서도 발생한다. 배치 작업이 API를 호출하거나, 프론트엔드에서 디바운싱 없이 검색 요청을 날리거나, 크롤러가 붙는 경우가 흔하다.
 
 Rate Limiting은 일정 시간 내 요청 수를 제한하는 것이다. 구현 방식은 여러 가지가 있는데, Spring Boot 환경에서 자주 쓰이는 방법을 정리한다.
@@ -23,8 +23,7 @@ Rate Limiting은 일정 시간 내 요청 수를 제한하는 것이다. 구현 
 
 실무에서는 Token Bucket을 가장 많이 쓴다. Bucket4j, Guava RateLimiter, Redis 기반 구현 모두 Token Bucket 변형이다.
 
-## 핵심
-
+## Rate Limiting 알고리즘 비교
 ### 1. Bucket4j 라이브러리
 
 Bucket4j는 Java의 Token Bucket 구현체다. JSR 107(JCache) 호환이고, 로컬/분산 환경 모두 지원한다.
