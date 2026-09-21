@@ -2,12 +2,12 @@
 title: JavaScript forEach 메서드 개념과 사용법
 tags: [language, javascript]
 updated: 2025-08-10
+description: "JavaScript forEach 메서드의 개념, 문법, 활용법과 주의사항 정리"
 ---
 
 # JavaScript forEach 메서드 개념과 사용법
 
-## 배경
-
+## forEach가 필요한 이유
 `forEach` 는 배열의 각 요소마다 주어진 함수를 실행하는 메서드다. 배열을 처음부터 끝까지 돌면서 요소 하나하나를 콜백에 넘긴다. 전통적인 for 루프로 쓰던 순회를 더 선언적이고 함수형에 가까운 스타일로 적을 수 있다.
 
 ### forEach의 필요성
@@ -22,8 +22,7 @@ updated: 2025-08-10
 - **부수 효과**: 반환값 없이 작업만 수행
 - **동기 실행**: 비동기 작업에는 적합하지 않음
 
-## 핵심
-
+## 문법과 동작 원리
 ### 1. forEach 기본 문법
 
 #### 메서드 시그니처
@@ -219,8 +218,7 @@ for (const fruit of fruits) {
 }
 ```
 
-## 예시
-
+## 실전 코드 패턴
 ### 1. 실제 사용 사례
 
 #### DOM 요소 처리
@@ -378,8 +376,7 @@ riskyData.forEach((item, index) => {
 });
 ```
 
-## 운영 팁
-
+## forEach 사용 시 주의사항
 ### 성능 최적화
 
 #### forEach 성능 고려사항

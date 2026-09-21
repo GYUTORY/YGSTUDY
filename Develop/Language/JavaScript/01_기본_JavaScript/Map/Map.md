@@ -2,12 +2,12 @@
 title: JavaScript Map vs find vs filter 성능 비교
 tags: [language, javascript, performance]
 updated: 2025-08-10
+description: "Map, find(), filter()의 동작 원리와 성능 차이를 실측 데이터로 비교 분석"
 ---
 
 # JavaScript Map vs find() vs filter() 성능 비교
 
-## 배경
-
+## 왜 자료구조 선택이 성능을 가르는가
 JavaScript에서 데이터를 찾고 관리할 때 쓰는 주요 방법 중 하나가 `Map` 객체와 배열의 `find()`, `filter()` 메서드다. 셋은 특성도 성능도 달라서 상황에 맞게 골라 써야 한다.
 
 ### 성능 비교의 필요성
@@ -21,8 +21,7 @@ JavaScript에서 데이터를 찾고 관리할 때 쓰는 주요 방법 중 하�
 - **find()**: 배열에서 조건을 만족하는 첫 번째 요소를 찾아 반환
 - **filter()**: 배열에서 조건을 만족하는 모든 요소를 새로운 배열로 반환
 
-## 핵심
-
+## Map·find·filter 동작 원리와 시간복잡도
 ### 1. Map 객체 상세 분석
 
 #### Map의 기본 사용법
@@ -323,8 +322,7 @@ performance.memory?.usedJSHeapSize || 0   // 0
 
 아래 "메모리 사용량 비교표"의 수치도 이 코드로는 재현되지 않는다. 자료구조의 메모리를 근거로 설계를 정할 일이 있으면 그때 자기 데이터로 직접 재는 수밖에 없다.
 
-## 예시
-
+## 실전 코드로 보는 성능 차이
 ### 1. 실제 사용 사례
 
 #### 사용자 관리 시스템

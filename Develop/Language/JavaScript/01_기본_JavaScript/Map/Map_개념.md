@@ -2,12 +2,12 @@
 title: JavaScript Map 개념과 사용법
 tags: [language, javascript]
 updated: 2025-08-10
+description: "JavaScript Map의 개념, 생성 방법, 주요 메서드 및 활용 패턴 정리"
 ---
 
 # JavaScript Map 개념과 사용법
 
-## 배경
-
+## Map이 필요한 이유
 JavaScript 의 Map 은 키-값 쌍을 저장하는 컬렉션 자료구조다. 일반 객체와 달리 여러 타입의 키를 쓸 수 있고, 삽입 순서를 보장하고, 성능도 더 낫다.
 
 ### Map의 필요성
@@ -22,8 +22,7 @@ JavaScript 의 Map 은 키-값 쌍을 저장하는 컬렉션 자료구조다. �
 - **이터러블**: for...of 루프로 순회할 수 있다
 - **메서드 기반**: get, set, has, delete 같은 메서드를 제공한다
 
-## 핵심
-
+## Map 문법과 주요 메서드
 ### 1. Map 생성과 기본 사용법
 
 #### Map 생성하기
@@ -489,8 +488,7 @@ c.get('hot');                                   // null — 그래도 쫓겨났�
 
 LRU 로 만들려면 `get` 성공 시 `delete` 후 다시 `set` 해서 맨 뒤로 보내야 한다. 캐시 적중률이 이상하게 낮으면 이 둘 중 하나인 경우가 많다.
 
-## 예시
-
+## Map 활용 패턴
 ### 1. 고급 패턴
 
 #### WeakMap 활용
@@ -735,8 +733,7 @@ console.log('복원된 사용자 1:', newManager.get('user:1'));
 console.log('복원된 설정:', newManager.get('preferences:1'));
 ```
 
-## 운영 팁
-
+## Map 사용 시 주의사항
 ### 성능 최적화
 
 #### Map 성능 최적화
