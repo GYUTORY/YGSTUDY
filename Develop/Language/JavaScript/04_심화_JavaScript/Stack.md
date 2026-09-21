@@ -2,12 +2,12 @@
 title: JavaScript Stack (스택) 자료구조
 tags: [language, javascript]
 updated: 2025-08-10
+description: "LIFO 방식으로 동작하는 스택 자료구조의 개념과 JavaScript 구현 정리"
 ---
 
 # JavaScript Stack (스택) 자료구조
 
-## 배경
-
+## 스택의 개념과 필요성
 스택은 **후입선출(LIFO, Last In First Out)** 방식으로 데이터를 관리하는 자료구조다. 마지막에 들어온 데이터가 가장 먼저 나간다. 접시 쌓기, 책 쌓기, 프링글스 통 같은 일상의 예로 이해하면 된다.
 
 ### 스택의 필요성
@@ -25,8 +25,7 @@ updated: 2025-08-10
 - **isEmpty**: 스택이 비어있는지 확인
 - **size**: 스택에 저장된 데이터 개수 확인
 
-## 핵심
-
+## push·pop·peek 핵심 연산
 ### 1. 기본 스택 구현
 
 #### 배열을 이용한 스택 구현
@@ -399,8 +398,7 @@ graph.addEdge('A', 'Z');
 
 `addVertex` 를 먼저 부르지 않으면 `adjacencyList.get('Z')` 가 `undefined` 이고 거기에 `push` 를 부른다. 에지 목록을 파일이나 API 에서 읽어 넣는 코드라면 정점이 빠지는 일이 흔하다. `addEdge` 안에서 `addVertex` 를 먼저 호출하게 하는 편이 안전하다.
 
-## 예시
-
+## 괄호 검증·실행 취소 실전 예제
 ### 1. 실제 사용 사례
 
 #### 브라우저 히스토리 관리
@@ -600,8 +598,7 @@ class MemoryManager {
 }
 ```
 
-## 운영 팁
-
+## 스택 오버플로 방지 및 성능 고려사항
 ### 성능 최적화
 
 #### 메모리 효율성

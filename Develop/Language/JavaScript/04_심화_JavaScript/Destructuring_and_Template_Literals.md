@@ -2,12 +2,12 @@
 title: JavaScript 디스트럭처링과 템플릿 리터럴
 tags: [language, javascript]
 updated: 2025-08-10
+description: "ES6 디스트럭처링과 템플릿 리터럴로 코드 간결성과 가독성을 높이는 방법"
 ---
 
 # JavaScript 디스트럭처링과 템플릿 리터럴
 
-## 배경
-
+## 왜 디스트럭처링과 템플릿 리터럴인가
 디스트럭처링(Destructuring)과 템플릿 리터럴(Template Literals)은 ES6에서 도입된 강력한 기능들입니다.
 
 ### 디스트럭처링의 필요성
@@ -20,8 +20,7 @@ updated: 2025-08-10
 - 여러 줄 문자열의 간편한 작성
 - 동적 문자열 생성의 효율성
 
-## 핵심
-
+## 문법과 동작 원리
 ### 1. 배열 디스트럭처링
 
 #### 기본 사용법
@@ -290,8 +289,7 @@ const html = createHTMLTemplate(userData);
 console.log(html);
 ```
 
-## 예시
-
+## 실전 코드 패턴
 ### 1. 실제 사용 사례
 
 #### API 응답 처리
@@ -613,8 +611,7 @@ console.log(welcomeEmail);
 console.log(orderEmail);
 ```
 
-## 운영 팁
-
+## 실무 적용 가이드
 ### 성능 최적화
 
 #### 디스트럭처링 성능 최적화
