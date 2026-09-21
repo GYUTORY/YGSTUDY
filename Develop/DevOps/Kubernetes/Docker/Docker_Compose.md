@@ -2,6 +2,7 @@
 title: Docker Compose
 tags: [docker, devops, kubernetes]
 updated: 2026-04-11
+description: "여러 컨테이너를 YAML 하나로 정의하고 단일 명령으로 실행하는 로컬·스테이징 환경 구성 도구"
 ---
 
 # Docker Compose
@@ -632,8 +633,7 @@ docker network inspect <project>_default
 
 ---
 
-## 운영 팁
-
+## 실전 운용 시 주의할 것들
 ### 로그 관리
 
 컨테이너 로그는 기본적으로 json-file 드라이버로 저장된다. 로그 크기 제한을 안 걸면 디스크가 찬다.

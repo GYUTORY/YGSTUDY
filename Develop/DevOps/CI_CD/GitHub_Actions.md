@@ -2,6 +2,7 @@
 title: GitHub Actions CI/CD
 tags: [devops, ci-cd, architecture]
 updated: 2026-03-01
+description: "GitHub 내장 CI/CD 플랫폼으로 이벤트 기반 워크플로우를 자동화하는 방법"
 ---
 
 # GitHub Actions
@@ -810,8 +811,7 @@ updates:
       interval: "weekly"
 ```
 
-## 운영 팁
-
+## GitHub Actions 비용 절감 및 실전 운영 전략
 ### 워크플로우 체크리스트
 
 | 항목 | 설명 | 필수 |

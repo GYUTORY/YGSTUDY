@@ -2,6 +2,7 @@
 title: Bitbucket Pipelines
 tags: [devops, ci-cd]
 updated: 2025-12-05
+description: "Atlassian이 제공하는 클라우드 기반 CI/CD 서비스로 Git 저장소와 통합된 자동화 파이프라인"
 ---
 
 # Bitbucket Pipelines
@@ -471,8 +472,7 @@ script:
   # 실제 값은 출력하지 않음
 ```
 
-## 성능 최적화
-
+## 파이프라인 빌드 속도 및 리소스 최적화
 ### 불필요한 step 건너뛰기
 
 변경된 파일에 따라 다른 step을 실행하도록 하면 불필요한 빌드를 줄일 수 있다.

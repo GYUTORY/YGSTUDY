@@ -2,6 +2,7 @@
 title: GitOps 전략
 tags: [devops, kubernetes]
 updated: 2026-03-01
+description: "Git을 단일 진실 소스로 삼아 인프라와 배포를 자동 동기화하는 운영 전략"
 ---
 
 # GitOps 전략
@@ -44,8 +45,7 @@ GitOps (Pull):
   ✅ 감사 로그 = Git 히스토리
 ```
 
-## 핵심
-
+## GitOps 4대 원칙과 Push·Pull 모델 비교
 ### 1. 레포지토리 전략
 
 #### 앱 레포 vs 설정 레포 분리 (권장)
@@ -655,8 +655,7 @@ kubectl get secret -n kube-system \
 
 `image: registry.example.com/app-service:latest`처럼 태그가 고정돼 있지 않으면 Git은 그대로인데 실제로 도는 이미지가 바뀐다. base 매니페스트에 `latest`가 남아 있으면 overlay에서 덮어쓰는지 반드시 확인한다.
 
-## 운영 팁
-
+## GitOps 도입 시 주의사항과 실전 운영 전략
 ### 체크리스트
 
 | 항목 | 설명 | 필수 |
