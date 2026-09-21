@@ -12,7 +12,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from datetime import date
+from datetime import date, timedelta
 
 
 def _last_commit_date():
@@ -136,6 +136,112 @@ def _recent_docs(repo_root, docs_dir, limit=60):
     return entries
 
 
+def _summary_stats_lines(entries):
+    """60일 총 문서 수·카테고리 다양성 한 줄 요약 섹션."""
+    total = len(entries)
+    cats = set(p.split("/")[0] for _, _, p in entries)
+    n_cats = len(cats)
+    return [
+        "## 60일 요약\n\n",
+        f"총 {total}건 · {n_cats}개 카테고리\n\n",
+    ]
+
+
+def _new_vs_continuing_lines(entries):
+    """이번 달 새로 시작한 카테고리 vs 이전부터 이어진 카테고리 구분 섹션."""
+    this_month = date.today().strftime("%Y-%m")
+    this_cats: set = set()
+    prev_cats: set = set()
+    for d_str, _name, path in entries:
+        cat = path.split("/")[0]
+        if d_str.startswith(this_month):
+            this_cats.add(cat)
+        else:
+            prev_cats.add(cat)
+
+    new_cats = sorted(this_cats - prev_cats)
+    cont_cats = sorted(this_cats & prev_cats)
+
+    lines = ["## 이번 달 학습 흐름\n\n"]
+    if new_cats:
+        lines.append(
+            f"새로 시작한 주제 ({len(new_cats)}개): "
+            + ", ".join(f"`{c}`" for c in new_cats)
+            + "\n\n"
+        )
+    else:
+        lines.append("새로 시작한 주제: 없음\n\n")
+
+    if cont_cats:
+        lines.append(
+            f"이어서 학습한 주제 ({len(cont_cats)}개): "
+            + ", ".join(f"`{c}`" for c in cont_cats)
+            + "\n\n"
+        )
+    else:
+        lines.append("이어서 학습한 주제: 없음\n\n")
+
+    lines.append(
+        "60일 기간 안에서 이번 달 이전에 커밋이 있는 카테고리는 '이어서', "
+        "이번 달이 처음 등장하는 카테고리는 '새로 시작'으로 분류된다.\n\n"
+    )
+    return lines
+
+
+def _weekly_trend_lines(entries):
+    """최근 4주 카테고리별 문서 수 테이블 섹션."""
+    today = date.today()
+    # 4개 구간: 최신 주부터 오래된 순
+    weeks = []
+    for i in range(4):
+        end = today - timedelta(days=i * 7)
+        start = today - timedelta(days=(i + 1) * 7 - 1)
+        weeks.append((start, end))
+
+    week_labels = [f"{s.strftime('%m/%d')}~{e.strftime('%m/%d')}" for s, e in weeks]
+
+    cat_week: dict = {}
+    for d_str, _name, path in entries:
+        try:
+            d = date.fromisoformat(d_str)
+        except ValueError:
+            continue
+        cat = path.split("/")[0]
+        if cat not in cat_week:
+            cat_week[cat] = [0, 0, 0, 0]
+        for i, (s, e) in enumerate(weeks):
+            if s <= d <= e:
+                cat_week[cat][i] += 1
+                break
+
+    if not cat_week:
+        return []
+
+    sorted_cats = sorted(cat_week.items(), key=lambda x: -sum(x[1]))
+
+    header = "| 카테고리 | " + " | ".join(week_labels) + " | 합계 |\n"
+    sep = "|----------" + "|:------:" * 4 + "|:------:|\n"
+    lines = [
+        "## 주간 추이 (최근 4주)\n\n",
+        header,
+        sep,
+    ]
+    for cat, counts in sorted_cats:
+        total = sum(counts)
+        if total == 0:
+            continue
+        row = (
+            f"| {cat} | "
+            + " | ".join(str(c) if c else "-" for c in counts)
+            + f" | {total} |\n"
+        )
+        lines.append(row)
+    lines.append(
+        "\n열은 최신 주부터 오래된 순이다. `합계`는 4주(28일) 집계이며 60일 전체 카테고리 요약은 아래 표에 따로 있다.\n\n"
+    )
+    return lines
+
+
 # on_pre_build 에서 계산해 on_page_markdown 이 재사용한다(git 호출 1회로 끝내기 위함).
 _recent_cache = []
 
@@ -167,8 +273,18 @@ def on_pre_build(config, **kwargs):
     ]
 
     if entries:
-        cat_counts = {}
-        cat_latest = {}
+        # 60일 요약 (총 문서 수·카테고리 다양성)
+        lines.extend(_summary_stats_lines(entries))
+
+        # 이번 달 학습 흐름: 새로 시작 vs 이어서
+        lines.extend(_new_vs_continuing_lines(entries))
+
+        # 주간 추이 테이블 (최근 4주)
+        lines.extend(_weekly_trend_lines(entries))
+
+        # 카테고리별 요약
+        cat_counts: dict = {}
+        cat_latest: dict = {}
         for d, name, path in entries:
             cat = path.split("/")[0]
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
@@ -177,22 +293,17 @@ def on_pre_build(config, **kwargs):
 
         lines.append("## 카테고리별 요약\n\n")
         lines.append("| 카테고리 | 문서 수 | 최근 문서 |\n")
-        lines.append("|----------|--------|----------|\n")
+        lines.append("|----------|:------:|----------|\n")
         for cat, count in sorted(cat_counts.items(), key=lambda x: -x[1]):
             d, name, path = cat_latest[cat]
             link = f"[{name}]({_doc_md_link(path)})"
             lines.append(f"| {cat} | {count} | {link} |\n")
-        lines.append("\n")
         lines.append(
-            "카테고리별 요약은 60일 기간 내 수정 문서 수 내림차순이다. "
-            "`최근 문서` 열에는 해당 카테고리에서 git 로그 기준 가장 최근 커밋에 들어간 문서 하나가 표시된다.\n\n"
-        )
-        lines.append(
-            "월별 표는 커밋 날짜 내림차순으로 나열된다. 같은 날짜 안에서는 `git log` 출력 순서를 유지한다. "
-            "리다이렉트 설정 없이 삭제·이동된 문서는 404를 막기 위해 자동으로 제외된다.\n\n"
+            "\n문서 수 내림차순. `최근 문서` 열은 git 로그 기준 가장 늦게 커밋된 파일이다.\n\n"
         )
 
-        months = {}
+        # 월별 목록
+        months: dict = {}
         for entry in entries:
             month = entry[0][:7]
             if month not in months:

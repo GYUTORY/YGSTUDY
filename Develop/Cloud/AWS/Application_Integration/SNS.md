@@ -2,6 +2,7 @@
 title: AWS SNS (Simple Notification Service)
 tags: [aws, messaging, cloud]
 updated: 2026-05-29
+description: "AWS SNS의 Pub-Sub 구조와 구독자 간 메시지 전달 방식을 정리한 기술 문서"
 ---
 
 # AWS SNS (Simple Notification Service)
@@ -166,8 +167,7 @@ SMS는 비용이 높다. 국가마다 요금이 다르고 일일 전송 한도�
 
 리전마다 가격이 다를 수 있다. 비용을 따져 리전을 고른다.
 
-## 실제 사용 사례
-
+## SNS 주제별 구독 분리 패턴 적용 사례
 ### 이커머스 주문 알림 시스템
 
 온라인 쇼핑몰에서 주문이 발생하면 SNS로 여러 알림을 동시에 보낸다. 주문 확인 이메일, 배송 상태 SMS, 모바일 앱 푸시를 한 주제에서 관리한다.

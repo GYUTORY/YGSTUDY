@@ -2,6 +2,7 @@
 title: AWS Lambda
 tags: [aws, cloud, event-driven]
 updated: 2026-01-17
+description: "서버 관리 없이 코드만 작성하면 되는 AWS 서버리스 컴퓨팅 서비스"
 ---
 
 # AWS Lambda
@@ -368,8 +369,7 @@ CQRS는 명령(Command)과 조회(Query)를 분리하는 패턴이다. Lambda를
 
 ## 운영 및 최적화
 
-## 성능 최적화
-
+## Lambda 콜드 스타트 최소화 및 실행 성능 튜닝
 ### 콜드 스타트 최소화
 
 콜드 스타트는 Lambda 함수의 성능에 큰 영향을 준다. 콜드 스타트를 최소화하는 방법이 있다.

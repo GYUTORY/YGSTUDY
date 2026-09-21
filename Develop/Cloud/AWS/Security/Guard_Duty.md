@@ -2,6 +2,7 @@
 title: AWS GuardDuty
 tags: [aws, security, cloud]
 updated: 2026-05-06
+description: "AWS GuardDuty 위협 탐지 서비스의 데이터 소스, Finding 처리, 운영 설정 가이드"
 ---
 
 # AWS GuardDuty
@@ -365,8 +366,7 @@ aws budgets create-budget \
 
 GuardDuty Free Trial이 30일 제공된다. 처음 켤 때는 마음 놓고 데이터 소스를 다 켜고, 30일 후 사용량 보고서를 본 뒤에 어떤 소스를 끌지 결정하는 게 합리적이다.
 
-## 운영 팁
-
+## GuardDuty 운영 시 주의사항
 새 계정에 GuardDuty를 처음 켜면 처음 며칠은 학습 기간이라 정상 행위까지 Finding으로 잡힌다. 일주일 정도는 지켜본 뒤에 Suppression Rule을 만든다.
 
 Finding 보관(archive) 정책을 정해둔다. 90일 이상 된 archive Finding은 GuardDuty가 자동 삭제한다. 장기 보관이 필요하면 EventBridge로 받아서 S3에 저장해야 한다.

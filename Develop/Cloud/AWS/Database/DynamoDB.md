@@ -2,6 +2,7 @@
 title: AWS DynamoDB
 tags: [aws, nosql, database, cloud]
 updated: 2026-01-18
+description: "AWS DynamoDB의 핵심 개념과 RDS와의 차이점 및 활용 전략 정리"
 ---
 
 # AWS DynamoDB
@@ -896,8 +897,7 @@ ExpressionAttributeValues: {
 
 날짜별로 쉽게 필터링할 수 있다.
 
-## 성능 최적화
-
+## DynamoDB 읽기/쓰기 처리량 최적화 전략
 ### Batch 작업
 
 여러 Item을 한 번에 처리한다.
