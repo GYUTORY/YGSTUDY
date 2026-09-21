@@ -2,12 +2,12 @@
 title: Spring 테스트
 tags: [java, spring, testing]
 updated: 2026-06-14
+description: "Spring 테스트 계층별 전략과 컨텍스트 최적화 실무 가이드"
 ---
 
 # Spring 테스트
 
-## 배경
-
+## 테스트 계층을 구분해야 하는 이유
 Spring 애플리케이션 테스트는 단위, 슬라이스, 통합, E2E 순으로 범위가 넓어진다. 범위가 넓어질수록 Spring 컨텍스트를 더 많이 띄우고, 그만큼 느려진다. 실무에서 테스트가 느려서 CI가 10분, 20분씩 걸리는 일이 생기는데 대부분 원인은 "단위로 끝낼 걸 통합으로 짰다"거나 "컨텍스트가 쓸데없이 여러 번 떠서"다. 그래서 각 계층을 언제 쓰는지 구분하는 게 테스트 작성법 자체보다 중요하다.
 
 Spring Boot는 `spring-boot-starter-test` 하나로 JUnit 5, Mockito, AssertJ, JSONassert를 끌고 온다.
@@ -853,8 +853,7 @@ src/test/java/com/example/
     └── OrderFixture.java
 ```
 
-## 운영 팁
-
+## CI 속도를 지키는 컨텍스트 관리 실천법
 ### 계층별 정리
 
 | 레이어 | 어노테이션 | Mock 대상 | 보는 것 |

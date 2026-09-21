@@ -2,6 +2,7 @@
 title: GraphQL 상세
 tags: [nodejs, graphql, api, backend]
 updated: 2025-11-30
+description: "Facebook이 개발한 타입 기반 API 쿼리 언어로 오버/언더페칭을 해결하는 현대적 API 아키텍처"
 ---
 
 # GraphQL 상세
@@ -608,8 +609,7 @@ const server = new ApolloServer({
 server.installSubscriptionHandlers(httpServer);
 ```
 
-## 성능 최적화
-
+## 쿼리 최적화와 N+1 문제 해결
 ### 1. 쿼리 복잡도 분석
 
 ```mermaid

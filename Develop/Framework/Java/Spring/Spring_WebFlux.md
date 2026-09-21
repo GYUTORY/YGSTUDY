@@ -2,6 +2,7 @@
 title: Spring WebFlux
 tags: [spring, network, java]
 updated: 2026-03-26
+description: "소수 스레드로 수만 동시 연결을 처리하는 비동기-논블로킹 리액티브 웹 프레임워크"
 ---
 
 # Spring WebFlux
@@ -36,8 +37,7 @@ Spring WebFlux (논블로킹):
 | **HTTP 클라이언트** | RestTemplate | WebClient |
 | **적합한 경우** | CRUD, 전통적 웹앱 | I/O 바운드, 스트리밍, 대량 연결 |
 
-## 핵심
-
+## 이벤트 루프 기반 논블로킹 처리 구조
 ### 1. Mono와 Flux
 
 리액티브 스트림의 두 가지 Publisher 타입.
