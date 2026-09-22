@@ -26,6 +26,7 @@ nav:
     - PKI와 인증서 수명주기: PKI_and_Certificate_Management.md
   - 인증과 세션:
     - OAuth 2.0: OAuth.md
+    - "OAuth 2.0 + OIDC": O_Auth2_and_OIDC.md
     - SSO (SAML · OIDC): SSO_SAML_OIDC.md
     - JWT: JWT.md
     - JWKS URL: JWKS_Endpoint.md
@@ -35,6 +36,7 @@ nav:
     - 모바일 앱 토큰 저장: Mobile_Token_Storage.md
   - 웹 취약점:
     - XSS: XSS.md
+    - XSS 방어 실무: XSS_Prevention.md
     - CSRF: CSRF.md
     - SSRF: SSRF.md
     - Clickjacking: Clickjacking.md

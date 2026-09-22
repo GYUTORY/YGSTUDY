@@ -1,12 +1,12 @@
 ---
 title: 시크릿 관리
 tags: [security, devops]
-updated: 2026-05-03
+updated: 2026-09-22
 ---
 
 # 시크릿 관리
 
-DB 비밀번호, API 키, JWT 서명 키, OAuth 클라이언트 시크릿, TLS 인증서. 애플리케이션이 돌아가려면 이런 값들이 어딘가에 있어야 한다. 문제는 이걸 어디에 두느냐다. 코드에 하드코딩하면 git에 박히고, .env 파일에 넣으면 실수로 커밋되고, 환경변수에 넣으면 `ps`나 `/proc/<pid>/environ`으로 노출된다. "그냥 잘 관리하면 되지" 같은 얘기로는 안 끝난다. 한 번 누출되면 키 회전, 영향 범위 추적, 사후 감사까지 며칠을 잡아먹는다.
+DB 비밀번호, API 키, JWT 서명 키, OAuth 클라이언트 시크릿, TLS 인증서. 애플리케이션이 돌아가려면 이런 값들이 어딘가에 있어야 한다. 문제는 이걸 어디에 두느냐다. 코드에 하드코딩하면 git에 박히고, .env 파일에 넣으면 실수로 커밋되고, 환경변수에 넣으면 `ps`나 `/proc/<pid>/environ`으로 노출된다. 한 번 누출되면 키 회전, 영향 범위 추적, 사후 감사까지 며칠을 잡아먹는다.
 
 ## 시크릿이 어디서 새는가
 
@@ -14,22 +14,20 @@ DB 비밀번호, API 키, JWT 서명 키, OAuth 클라이언트 시크릿, TLS �
 
 첫 번째는 git 커밋이다. 개발자가 로컬에서 테스트하다가 .env 파일이나 config.yaml을 그대로 커밋한다. private 레포라 괜찮다고 생각하지만, GitHub은 private 레포의 누출도 자동 스캐닝하고, 실제로 fork된 적이 있거나 잠깐이라도 public이었던 시점이 있으면 노출 가능성이 있다. 더 흔한 건 신입이 자신의 GitHub 계정으로 회사 코드를 push하는 경우다.
 
-두 번째는 로그다. 디버깅 로그에 request body를 그대로 찍는 코드가 있는데, 거기에 인증 헤더가 포함된다. 또는 에러 스택 트레이스에 DB 연결 문자열이 그대로 노출된다. CloudWatch나 Datadog에 한 번 들어간 로그는 retention 기간 내내 검색 가능한 상태로 남는다.
+두 번째는 로그다. 디버깅 로그에 request body를 그대로 찍는 코드가 있는데, 거기에 인증 헤더가 포함된다. 에러 스택 트레이스에 DB 연결 문자열이 그대로 노출되는 경우도 있다. CloudWatch나 Datadog에 한 번 들어간 로그는 retention 기간 내내 검색 가능한 상태로 남는다.
 
-세 번째는 도커 이미지다. `Dockerfile`에서 `ENV API_KEY=...` 같은 식으로 빌드하거나, 빌드 중에 시크릿 파일을 COPY했다가 나중에 RM해도 이전 레이어에 남아있다. `docker history`로 누구나 볼 수 있다.
+세 번째는 도커 이미지다. `Dockerfile`에서 `ENV API_KEY=...` 같은 식으로 빌드하거나, 빌드 중에 시크릿 파일을 COPY했다가 나중에 RUN rm으로 지워도 이전 레이어에 남아있다. `docker history`로 누구나 볼 수 있다.
 
 네 번째는 클라이언트 사이드다. React 앱의 `.env.production`에 `REACT_APP_API_KEY`로 넣은 값은 빌드된 JS 번들에 그대로 박힌다. 이건 시크릿이 아니라 공개 정보다.
 
-이런 패턴을 알고 있어야 어디에 방어를 둬야 하는지 판단할 수 있다.
-
-## 환경변수와 .env 파일
+## 환경변수만으로 부족한 이유
 
 가장 기본이 되는 방식이다. 코드에서 분리한다는 점에서 하드코딩보다는 낫지만, 이게 최종 답은 아니다.
 
-### .env 파일 사용 시 주의사항
+### .env 파일 기본 설정
 
 ```bash
-# .env 파일은 절대 커밋하지 않는다
+# .env 파일은 커밋하지 않는다
 # .gitignore에 반드시 들어가야 한다
 .env
 .env.local
@@ -48,10 +46,10 @@ AWS_SECRET_ACCESS_KEY=
 Node.js에서 dotenv를 쓸 때는 production에서는 안 쓰는 게 원칙이다.
 
 ```javascript
-// 잘못된 방식 — production에서도 dotenv 로딩
+// production에서도 dotenv 로딩 — 잘못된 방식
 require('dotenv').config();
 
-// 올바른 방식 — development에서만 로딩
+// development에서만 로딩
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -59,9 +57,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 production에서는 컨테이너 오케스트레이터나 시크릿 매니저가 환경변수를 주입한다. .env 파일을 production 서버에 두면 파일 권한 관리가 또 다른 부담이 된다.
 
-### 환경변수의 한계
+### 환경변수의 구조적 한계
 
-환경변수는 편리하지만 한계가 명확하다.
+규모가 작을 때는 환경변수로 충분하지만, 시스템이 커질수록 한계가 드러난다.
 
 `ps eauxf` 명령으로 다른 프로세스의 환경변수를 볼 수 있는 경우가 있다. 리눅스 커널 설정에 따라 다르지만, 같은 사용자로 실행되는 프로세스끼리는 `/proc/<pid>/environ`에 접근 가능하다. 컨테이너 내부에서는 `docker inspect`로 환경변수가 평문으로 노출된다.
 
@@ -69,15 +67,19 @@ production에서는 컨테이너 오케스트레이터나 시크릿 매니저가
 
 로테이션이 어렵다. 환경변수는 프로세스 시작 시점에 고정되므로, 시크릿을 바꾸려면 프로세스를 재시작해야 한다. 무중단 배포 환경에서는 매번 재시작이 부담이다.
 
+감사(audit)가 안 된다. 누가 언제 어떤 시크릿을 읽었는지 추적할 방법이 없다. 보안 감사나 사고 대응 시 이게 치명적이다.
+
+접근 제어가 없다. 환경변수가 주입된 프로세스 안의 코드라면 어디서든 읽을 수 있다. DB 비밀번호가 필요한 코드 모듈과 Slack API 키가 필요한 코드 모듈이 같은 환경변수 세트를 공유한다.
+
 이런 한계 때문에 규모가 커지면 시크릿 매니저로 옮기게 된다.
 
 ## HashiCorp Vault
 
 자체 운영하는 시크릿 매니저로 가장 많이 쓰인다. 클라우드 종속성이 없고 정책을 세밀하게 정할 수 있다는 게 장점이다. 단점은 Vault 자체를 운영하는 부담이 만만치 않다는 것. seal/unseal, 백업, HA 구성, audit 로그까지 신경 써야 한다.
 
-### Vault 기본 동작 방식
+### 기본 동작 방식
 
-Vault는 모든 시크릿을 암호화해서 저장한다. 시작할 때 unseal key가 필요한데, 보통 5명에게 나눠주고 그중 3명이 모여야 unseal이 된다(Shamir's Secret Sharing). 이게 운영의 첫 번째 허들이다. EC2가 재부팅되면 누군가 unseal key를 가지고 와서 풀어줘야 한다. AWS KMS로 auto-unseal을 설정하는 게 일반적이다.
+Vault는 모든 시크릿을 암호화해서 저장한다. 시작할 때 unseal key가 필요한데, 보통 5명에게 나눠주고 그중 3명이 모여야 unseal이 된다(Shamir's Secret Sharing). EC2가 재부팅되면 누군가 unseal key를 가지고 와서 풀어줘야 한다. AWS KMS로 auto-unseal을 설정하는 게 일반적이다.
 
 ```bash
 # Vault에 KV v2 엔진으로 시크릿 저장
@@ -117,7 +119,7 @@ vault read database/creds/readonly
 
 DB 비밀번호가 1시간 후 자동으로 사라진다. 누출되더라도 영향이 제한적이다. 다만 애플리케이션이 자격증명을 갱신하는 로직을 따로 구현해야 한다. 커넥션 풀이 끊기는 시점을 잘 처리하지 못하면 운영 중에 갑자기 DB 연결이 끊기는 사고가 난다.
 
-### 인증 방식 선택
+### 인증 방식
 
 Vault는 누가 시크릿을 읽을 권한이 있는지를 판단해야 한다. 토큰을 발급받아 쓰는 게 기본이지만, 토큰을 어떻게 안전하게 전달하느냐가 또 문제다.
 
@@ -147,7 +149,6 @@ def get_secret(secret_name):
     response = client.get_secret_value(SecretId=secret_name)
     return json.loads(response['SecretString'])
 
-# 호출
 secret = get_secret('prod/myapp/database')
 db_password = secret['password']
 ```
@@ -166,7 +167,7 @@ IAM Role로 권한 제어를 하므로 EC2/ECS/Lambda에서 별도 자격증명 
 }
 ```
 
-이 방식의 함정은 컨테이너 환경변수로 들어가는 순간 환경변수의 한계를 그대로 갖는다는 점이다. 시크릿이 바뀌어도 컨테이너 재시작 전까지는 옛날 값을 들고 있다.
+컨테이너 환경변수로 들어가는 순간 환경변수의 한계를 그대로 갖는다. 시크릿이 바뀌어도 컨테이너 재시작 전까지는 옛날 값을 들고 있다.
 
 ### 자동 로테이션
 
@@ -176,10 +177,9 @@ Secrets Manager는 Lambda 함수를 트리거해서 시크릿을 자동 로테�
 
 ### 비용 고려
 
-Secret 1개당 월 $0.40, API 호출 10,000건당 $0.05다. 별거 아닌 것 같지만 마이크로서비스 100개에 시크릿 5개씩 두면 200달러가 그냥 나간다. 더 큰 문제는 호출 비용이다. 매 요청마다 시크릿을 읽으면 호출 횟수가 폭증한다. 반드시 캐싱을 해야 한다.
+Secret 1개당 월 $0.40, API 호출 10,000건당 $0.05다. 마이크로서비스 100개에 시크릿 5개씩 두면 200달러가 그냥 나간다. 더 큰 문제는 호출 비용이다. 매 요청마다 시크릿을 읽으면 호출 횟수가 폭증한다. 반드시 캐싱해야 한다.
 
 ```python
-from functools import lru_cache
 from datetime import datetime, timedelta
 
 _cache = {}
@@ -191,7 +191,6 @@ def get_secret_cached(secret_name):
         value, fetched_at = _cache[secret_name]
         if now - fetched_at < _cache_ttl:
             return value
-    
     value = get_secret(secret_name)
     _cache[secret_name] = (value, now)
     return value
@@ -213,11 +212,9 @@ data:
   database-password: cGFzc3dvcmQxMjM=  # base64로 인코딩된 'password123'
 ```
 
-이걸 보고 "안전하다"고 생각하면 안 된다. base64는 인코딩이지 암호화가 아니다. `echo 'cGFzc3dvcmQxMjM=' | base64 -d`로 누구나 디코딩할 수 있다.
+`echo 'cGFzc3dvcmQxMjM=' | base64 -d`로 누구나 디코딩할 수 있다.
 
 ### etcd 암호화 활성화
-
-etcd 자체를 암호화하려면 별도 설정이 필요하다.
 
 ```yaml
 # /etc/kubernetes/encryption-config.yaml
@@ -234,13 +231,11 @@ resources:
       - identity: {}
 ```
 
-이걸 활성화해도 etcd에 접근할 수 있는 사람(클러스터 관리자, 백업 파일을 가진 사람)은 여전히 시크릿을 볼 수 있다. 키 자체가 etcd 호스트에 평문으로 있기 때문이다.
-
-진짜 안전하게 하려면 KMS provider를 사용한다. AWS KMS, GCP KMS, 또는 Vault를 KMS로 연결한다. 이러면 etcd에 접근해도 KMS에서 복호화 권한이 없으면 시크릿을 못 본다.
+이걸 활성화해도 etcd에 접근할 수 있는 사람은 여전히 시크릿을 볼 수 있다. 키 자체가 etcd 호스트에 평문으로 있기 때문이다. 진짜 안전하게 하려면 KMS provider를 사용한다. AWS KMS, GCP KMS, 또는 Vault를 KMS로 연결한다.
 
 ### External Secrets Operator
 
-Kubernetes Secret의 한계를 우회하기 위해 외부 시크릿 매니저(Vault, AWS Secrets Manager 등)를 직접 연동하는 패턴이 일반화됐다. External Secrets Operator가 표준처럼 쓰인다.
+Kubernetes Secret의 한계를 우회하기 위해 외부 시크릿 매니저를 직접 연동하는 패턴이 일반화됐다. External Secrets Operator가 표준처럼 쓰인다.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -285,70 +280,143 @@ volumeMounts:
     readOnly: true
 ```
 
-파일 마운트가 환경변수보다 안전하다. 컨테이너 안에서만 보이고, 외부 프로세스에서 환경변수처럼 들여다볼 수 없다. 또한 Secret이 바뀌면 마운트된 파일도 자동으로 갱신된다(약간의 지연 있음). 애플리케이션이 파일을 다시 읽도록 만들면 재시작 없이 시크릿 갱신이 가능하다.
+파일 마운트가 환경변수보다 안전하다. 컨테이너 안에서만 보이고, 외부 프로세스에서 환경변수처럼 들여다볼 수 없다. Secret이 바뀌면 마운트된 파일도 자동으로 갱신된다(약간의 지연 있음). 애플리케이션이 파일을 다시 읽도록 만들면 재시작 없이 시크릿 갱신이 가능하다.
 
-## 시크릿 로테이션
+## 시크릿 로테이션 구현
 
-시크릿은 주기적으로 바꿔야 한다. 누출됐는지 모를 가능성을 항상 염두에 둬야 하기 때문이다. 로테이션 주기는 시크릿 종류에 따라 다르다.
+시크릿은 주기적으로 바꿔야 한다. 누출됐는지 모를 가능성을 항상 염두에 둬야 하기 때문이다.
 
 DB 비밀번호는 90일, JWT 서명 키는 6개월~1년, 외부 API 키는 발급 정책에 따라 다르지만 보통 6개월. TLS 인증서는 Let's Encrypt면 90일, 상용이면 1년. AWS Access Key는 90일을 넘기지 말아야 한다.
 
-### 로테이션의 어려움
+### 무중단 JWT 키 로테이션
 
-원리는 단순하다. 새 시크릿을 만들고, 둘 다 유효한 기간을 두고, 모든 시스템이 새 시크릿을 쓰게 된 뒤 옛날 것을 폐기한다. 문제는 이걸 무중단으로 하는 게 어렵다는 것이다.
-
-JWT 서명 키 로테이션을 예로 들면, 키를 바꾸는 순간 기존에 발급된 토큰들이 전부 무효가 된다. 사용자들이 갑자기 로그아웃되는 사고가 난다. 이걸 피하려면 검증 시점에 여러 키를 동시에 시도해보는 구조가 필요하다.
+키를 바꾸는 순간 기존에 발급된 토큰들이 전부 무효가 된다. 사용자들이 갑자기 로그아웃되는 사고가 난다. 검증 시점에 여러 키를 동시에 시도해보는 구조가 필요하다.
 
 ```python
-# 검증 시 두 개 키를 모두 시도
+import jwt
+import boto3
+import json
+from datetime import datetime, timezone
+
+def get_signing_keys():
+    sm = boto3.client('secretsmanager')
+    secret = json.loads(
+        sm.get_secret_value(SecretId='prod/myapp/jwt-keys')['SecretString']
+    )
+    # current: 현재 서명 키, previous: 이전 키 (로테이션 과도기)
+    return secret['current'], secret.get('previous')
+
+def sign_token(payload):
+    current_key, _ = get_signing_keys()
+    return jwt.encode(payload, current_key, algorithm='HS256')
+
 def verify_token(token):
-    for key in [current_key, previous_key]:
+    current_key, previous_key = get_signing_keys()
+    keys = [current_key]
+    if previous_key:
+        keys.append(previous_key)
+    for key in keys:
         try:
             return jwt.decode(token, key, algorithms=['HS256'])
         except jwt.InvalidSignatureError:
             continue
-    raise jwt.InvalidTokenError()
+    raise jwt.InvalidTokenError('token signature invalid')
 ```
+
+로테이션 절차:
+1. 새 키 생성
+2. Secrets Manager에 `previous = current`, `current = new_key` 로 업데이트
+3. 토큰 만료 기간(예: 24시간) 이후 `previous` 제거
 
 발급은 항상 새 키로, 검증은 새 키와 이전 키 둘 다로. 이전 키는 토큰 만료 기간이 지나면 폐기한다.
 
-DB 비밀번호도 비슷하다. 한 번에 바꾸면 연결 풀이 다 끊긴다. PostgreSQL은 한 사용자에 비밀번호 하나뿐이라, 보통 새 사용자를 만들고 권한을 동일하게 부여한 뒤 애플리케이션이 새 사용자로 전환하게 한다. 그래서 동적 시크릿 방식이 매력적이다.
+### 무중단 DB 비밀번호 로테이션
+
+PostgreSQL은 한 사용자에 비밀번호 하나뿐이다. 단순히 비밀번호를 바꾸면 기존 커넥션 풀이 다음 재연결 시도 때 실패한다.
+
+```python
+import psycopg2
+import boto3
+import json
+import secrets
+import string
+
+def generate_password(length=32):
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+def rotate_db_password():
+    sm = boto3.client('secretsmanager')
+    secret_id = 'prod/myapp/database'
+    
+    # 현재 시크릿 읽기
+    current = json.loads(sm.get_secret_value(SecretId=secret_id)['SecretString'])
+    
+    # 1단계: 새 비밀번호 생성
+    new_password = generate_password()
+    
+    # 2단계: DB에 새 비밀번호 적용
+    # 관리자 연결로 비밀번호 변경 (애플리케이션 연결과 분리된 관리자 계정)
+    admin_dsn = f"host={current['host']} dbname={current['dbname']} user=admin password={ADMIN_PASSWORD}"
+    with psycopg2.connect(admin_dsn) as conn:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute(
+                "ALTER USER %s WITH PASSWORD %s",
+                (current['username'], new_password)
+            )
+    
+    # 3단계: Secrets Manager 업데이트
+    current['password'] = new_password
+    sm.update_secret(SecretId=secret_id, SecretString=json.dumps(current))
+    
+    # 4단계: 새 비밀번호로 연결 테스트
+    test_dsn = f"host={current['host']} dbname={current['dbname']} user={current['username']} password={new_password}"
+    with psycopg2.connect(test_dsn) as conn:
+        conn.cursor().execute('SELECT 1')
+    
+    return new_password
+```
+
+이 방식은 DB에 비밀번호가 반영된 뒤 기존 커넥션 풀의 연결들이 시간이 지나면서 재연결 시도를 하게 된다. 재연결 시점에 새 비밀번호를 쓰는 코드가 있어야 한다. 커넥션 풀 라이브러리가 시크릿을 캐싱하고 있으면 재시작 없이는 갱신이 안 된다.
+
+PgBouncer를 쓰는 환경이라면 PgBouncer의 userlist.txt도 같이 갱신해야 한다.
 
 ### 자동화
 
 수동 로테이션은 결국 잊어버린다. 90일마다 알람이 울려도 바쁘면 미루게 되고, 그러다 1년이 지나간다. 로테이션은 자동화가 답이다.
 
-AWS Secrets Manager는 Lambda로 자동 로테이션한다. Vault는 동적 시크릿으로 매 요청마다 새로 발급한다. 이런 도구를 쓰지 않고 자체 구현하려면 cronjob과 잘 짜여진 워크플로우가 필요하다.
-
 자동 로테이션을 도입하기 전에는 반드시 모니터링과 롤백 메커니즘부터 만들어야 한다. 새벽에 자동으로 키가 바뀌었는데 일부 서비스가 옛날 키를 들고 있으면 인증 실패가 폭주한다. 알림이 늦으면 한참 후에 발견한다.
 
-## 시크릿 누출 사고 대응
+## git에 노출된 크리덴셜 대응 절차
 
-누출은 언젠가 일어난다. 어떻게 대응하느냐가 피해 규모를 결정한다.
+가장 흔한 시나리오다. 발견하면 당황하기 쉬운데, 순서를 틀리면 사태가 더 커진다.
 
-### 즉시 해야 할 것
+### 즉시 해야 할 일 (1시간 이내)
 
-가장 먼저 누출된 시크릿을 무효화한다. 키 회전이 아니라 즉시 폐기다. AWS Access Key라면 콘솔에서 비활성화, DB 비밀번호라면 즉시 변경, API 키라면 발급처에서 revoke. 이게 분 단위로 빨라야 한다.
+**시크릿 무효화가 첫 번째다.** git history를 정리하는 건 그 다음이다. "히스토리만 지우면 되겠지"라고 생각하면 안 된다. 누군가 이미 fetch했을 수 있고, GitHub의 캐시나 미러에 남아있을 수 있다. 시크릿은 이미 노출됐다고 가정해야 한다.
 
-다음은 영향 범위 파악이다. 누출된 시크릿으로 무엇이 가능한지 정확히 알아야 한다. AWS Access Key라면 IAM 권한을 확인하고, 해당 키로 어떤 호출이 있었는지 CloudTrail에서 확인한다. DB 자격증명이라면 audit log를 뒤져서 의심스러운 쿼리를 찾는다.
+AWS Access Key라면 콘솔에서 즉시 비활성화한다. DB 비밀번호라면 즉시 변경한다. API 키라면 발급처에서 revoke한다. 이게 분 단위로 빨라야 한다.
+
+시크릿 무효화 후 영향 범위를 파악한다.
 
 ```bash
-# CloudTrail에서 특정 Access Key의 호출 내역 검색
+# CloudTrail에서 해당 Access Key의 호출 내역 검색
 aws cloudtrail lookup-events \
   --lookup-attributes AttributeKey=AccessKeyId,AttributeValue=AKIAEXAMPLEKEY \
-  --start-time 2026-04-01 \
-  --end-time 2026-05-03
+  --start-time 2026-01-01 \
+  --end-time 2026-09-22
+
+# IAM에서 해당 키로 만들어진 추가 사용자나 Role이 있는지 확인
+aws iam list-users --query 'Users[?CreateDate>`2026-09-20`]'
+aws iam list-roles --query 'Roles[?CreateDate>`2026-09-20`]'
 ```
 
-영향 범위 파악이 끝나면 추가 피해 방지 조치를 한다. 데이터가 유출됐는지, 추가로 권한이 escalate됐는지, 새 IAM 사용자나 Role이 만들어졌는지 점검한다. 공격자가 키를 얻으면 보통 백도어를 심어둔다.
+공격자가 키를 얻으면 보통 백도어를 심어둔다. 새 IAM 사용자나 Role이 만들어졌는지, 데이터가 유출됐는지, 권한이 escalate됐는지 점검한다.
 
-### Git에 시크릿이 커밋된 경우
+### git history 정리
 
-가장 흔한 시나리오다. 발견 즉시 시크릿을 무효화하는 게 첫 번째다. git history를 정리하는 건 그 다음이다. "히스토리만 지우면 되겠지"라고 생각하면 안 된다. 누군가 이미 fetch했을 수 있고, GitHub의 캐시나 미러에 남아있을 수 있다. 시크릿은 이미 노출됐다고 가정해야 한다.
-
-시크릿 무효화를 하고 나서 history를 정리하는 이유는 (1) 다른 개발자가 실수로 다시 사용하지 않게, (2) 향후 자동 스캐너의 false positive를 줄이기 위해서다.
-
-#### git filter-repo 사용
+시크릿을 무효화한 뒤에 history를 정리한다. 이유는 (1) 다른 개발자가 실수로 다시 사용하지 않게, (2) 향후 자동 스캐너의 false positive를 줄이기 위해서다.
 
 BFG Repo-Cleaner도 있지만 git filter-repo가 더 강력하고 권장된다.
 
@@ -360,33 +428,32 @@ pip install git-filter-repo
 git filter-repo --path config/secrets.yml --invert-paths
 
 # 특정 문자열 패턴을 history 전체에서 마스킹
-echo 'sk_live_abcdef==>REDACTED' > replacements.txt
+# replacements.txt 형식: 원문==>대체문
+echo 'AKIAIOSFODNN7ABCDEF==>REDACTED_AWS_KEY' > replacements.txt
+echo 'sk_live_abcdef1234567890==>REDACTED_STRIPE_KEY' >> replacements.txt
 git filter-repo --replace-text replacements.txt
 
-# force push로 원격 반영
+# filter-repo 실행 후 origin이 자동 제거된다. 다시 추가해야 한다.
+git remote add origin git@github.com:myorg/myrepo.git
 git push origin --force --all
 git push origin --force --tags
 ```
 
-filter-repo를 실행하면 origin remote가 자동으로 제거된다. 안전장치다. 새로 추가하고 force push해야 한다.
-
 force push 후에 모든 협업자에게 알려야 한다. 다른 개발자가 옛날 history를 가진 채 push하면 다시 살아난다. 모든 clone을 폐기하고 다시 clone하라고 공지한다.
 
-#### 한계와 현실
+### GitHub 캐시의 한계
 
-GitHub은 force push 후에도 일정 기간 옛날 commit에 SHA로 직접 접근하면 보인다. fork된 적이 있으면 fork에 그대로 남아있다. 누군가 PR을 열어서 commit이 GitHub의 다른 곳에 캐시됐을 수도 있다.
+GitHub은 force push 후에도 일정 기간 옛날 commit에 SHA로 직접 접근하면 보인다. fork된 적이 있으면 fork에 그대로 남아있다. PR을 열어서 commit이 GitHub의 다른 곳에 캐시됐을 수도 있다.
 
-이런 이유로 GitHub Support에 연락해서 캐시 삭제를 요청해야 하는 경우가 있다. 하지만 이미 노출된 시간을 되돌릴 수는 없다. 결국 시크릿 무효화가 유일한 진짜 해결책이다.
+GitHub Support에 연락해서 캐시 삭제를 요청해야 하는 경우가 있다. 하지만 이미 노출된 시간을 되돌릴 수는 없다. 시크릿 무효화가 유일한 진짜 해결책이다.
 
 ### 사후 분석
 
-사고 대응이 끝나면 어떻게 누출됐는지, 왜 막지 못했는지, 어떻게 다시 발생하지 않게 할지 정리해야 한다. 이게 다음 사고를 막는다.
-
 누출 경로를 정확히 파악하지 않으면 같은 일이 반복된다. 개발자가 .env를 커밋한 거라면 pre-commit hook과 CI 스캐너가 왜 못 잡았는지 본다. 로그에 시크릿이 찍혔다면 로깅 라이브러리에 마스킹 필터가 빠져있는 것이다.
 
-## gitleaks와 truffleHog
+## gitleaks와 GitGuardian 설정
 
-git에 시크릿이 들어가는 걸 막는 자동화 도구다. 비슷해 보이지만 사용 패턴이 약간 다르다.
+git에 시크릿이 들어가는 걸 막는 자동화 도구다. gitleaks는 오픈소스로 직접 운영하고, GitGuardian은 SaaS로 레포를 모니터링한다.
 
 ### gitleaks
 
@@ -412,11 +479,7 @@ id = "company-internal-api-key"
 description = "Internal API Key"
 regex = '''int_(live|test)_[0-9a-zA-Z]{32}'''
 tags = ["key", "internal"]
-```
 
-false positive가 종종 나온다. 테스트 코드의 mock 키, 문서의 예제 값 같은 게 걸린다. allowlist로 제외해야 한다.
-
-```toml
 [allowlist]
 paths = [
   '''docs/.*''',
@@ -427,28 +490,9 @@ regexes = [
 ]
 ```
 
-### truffleHog
+false positive가 종종 나온다. 테스트 코드의 mock 키, 문서의 예제 값 같은 게 걸린다. allowlist로 제외해야 한다.
 
-엔트로피 기반 탐지를 함께 한다. 정규식에 안 잡히는 랜덤 문자열도 의심하면 알려준다.
-
-```bash
-# git history 스캔
-trufflehog git https://github.com/myorg/myrepo.git
-
-# 로컬 디렉토리 스캔
-trufflehog filesystem ./src
-
-# 검증된 시크릿만 보고 (실제로 유효한 자격증명인지 확인)
-trufflehog git https://github.com/myorg/myrepo.git --only-verified
-```
-
-truffleHog의 강력한 기능은 verification이다. 발견한 시크릿을 실제 서비스에 호출해서 유효한지 확인한다. AWS Access Key를 발견하면 STS GetCallerIdentity를 호출해서 진짜 살아있는 키인지 본다. false positive를 크게 줄여준다.
-
-다만 속도는 gitleaks보다 느리다. 대형 레포의 history 전체를 스캔하면 시간이 한참 걸린다.
-
-### CI/CD 통합
-
-PR 머지 전에 자동으로 검사하게 만든다.
+CI 통합:
 
 ```yaml
 # .github/workflows/secret-scan.yml
@@ -467,7 +511,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-CI 검사만으로는 부족하다. 개발자 로컬에서 push하기 전에 잡아야 한다. pre-commit hook으로 막는 게 첫 번째 방어선이다.
+pre-commit hook:
 
 ```yaml
 # .pre-commit-config.yaml
@@ -478,19 +522,81 @@ repos:
       - id: gitleaks
 ```
 
-pre-commit hook은 우회가 쉽다(`git commit --no-verify`). 강제하기 어려우므로 CI에서도 반드시 검사해야 한다. 또한 GitHub의 Secret Scanning을 켜두면 push되는 순간 GitHub이 직접 검사해서 알림을 준다. 이중삼중으로 막아야 한다.
+### GitGuardian
+
+SaaS 기반 시크릿 감지 서비스다. gitleaks와 달리 push하는 순간 실시간으로 스캔하고, 팀 단위 알림 기능이 있다.
+
+`ggshield`는 GitGuardian의 CLI 도구다. gitleaks처럼 pre-commit hook이나 CI에 붙일 수 있고, 400개 이상의 시크릿 타입을 감지한다.
+
+```bash
+# 설치
+pip install ggshield
+
+# GitGuardian 계정 인증
+ggshield auth login
+
+# 로컬 디렉토리 스캔
+ggshield secret scan path .
+
+# git history 전체 스캔
+ggshield secret scan repo .
+
+# staged 파일만 스캔 (pre-commit hook용)
+ggshield secret scan pre-commit
+```
+
+pre-commit hook 설정:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/GitGuardian/gg-shield
+    rev: v1.29.0
+    hooks:
+      - id: ggshield
+        language: python
+        pass_filenames: false
+```
+
+GitGuardian의 강점은 verification이다. 발견한 시크릿을 실제 API에 호출해서 유효한지 확인한다. AWS Access Key를 발견하면 STS GetCallerIdentity를 호출해서 살아있는 키인지 본다. false positive를 크게 줄여준다.
+
+GitHub App을 레포에 설치하면 push 즉시 알림을 준다. 누출된 시크릿의 commit, 파일, 줄번호와 함께 Slack이나 이메일로 통보하고, 내부 대시보드에서 전체 레포의 시크릿 누출 현황을 관리할 수 있다.
+
+무료 플랜은 공개 레포 모니터링과 개인 계정만 지원한다. 팀 단위 private 레포 모니터링은 유료다.
+
+`.gitguardian.yaml`로 스캔 설정을 커스텀한다:
+
+```yaml
+# .gitguardian.yaml
+version: 2
+ignore-paths:
+  - tests/fixtures/
+  - docs/examples/
+
+ignore-matches:
+  - match: "AKIAIOSFODNN7EXAMPLE"
+    name: "AWS example key from docs"
+  - match: "test_token_placeholder"
+    name: "placeholder for tests"
+```
+
+### gitleaks vs GitGuardian 선택
+
+gitleaks는 완전 오프라인으로 돌릴 수 있고 무료다. 금융권이나 의료처럼 소스 코드를 외부 서비스에 보낼 수 없는 환경에는 gitleaks만 쓴다. 설정과 룰 관리를 직접 해야 한다는 부담은 있다.
+
+GitGuardian은 팀 규모가 커지면 관리 편의성에서 차이가 난다. 누가 언제 어떤 시크릿을 노출했는지 대시보드에서 추적할 수 있고, 개발자별 알림도 가능하다. private 레포를 외부 서비스에 연동하는 게 조직 정책상 가능한지 먼저 확인해야 한다.
+
+CI에서는 둘 중 하나로 충분하지만, pre-commit hook은 개발자가 `git commit --no-verify`로 우회할 수 있다. CI 검사가 마지막 방어선이다. GitHub Secret Scanning(무료)도 켜두면 push되는 순간 GitHub이 직접 검사해서 알림을 준다.
 
 ### 실제 운영에서의 한계
 
-자동 스캐너는 만능이 아니다. 형식이 정해진 시크릿(AWS Key, Stripe Key 같은 prefix가 있는 것)은 잘 잡지만, 사내에서 쓰는 임의 형식의 시크릿은 룰을 직접 만들지 않으면 못 잡는다. 또한 base64로 인코딩되거나 환경변수 합성으로 만들어지는 시크릿은 정규식으로 잡기 어렵다.
+자동 스캐너는 형식이 정해진 시크릿(AWS Key, Stripe Key 같은 prefix가 있는 것)은 잘 잡는다. 사내에서 쓰는 임의 형식의 시크릿은 룰을 직접 만들지 않으면 못 잡는다. base64로 인코딩되거나 환경변수 합성으로 만들어지는 시크릿은 정규식으로 잡기 어렵다.
 
 엔트로피 기반 탐지는 false positive가 많다. UUID나 hash 값도 엔트로피가 높아서 시크릿으로 오인한다. allowlist를 계속 보강해야 운영이 가능하다.
 
-스캐너를 도입했다고 안심하면 안 된다. 룰 업데이트, allowlist 관리, 새 패턴 추가가 계속 필요하다. 가끔 옛날 history를 새 룰로 다시 스캔해서 놓친 게 없는지 봐야 한다.
+가끔 옛날 history를 새 룰로 다시 스캔해서 놓친 게 없는지 봐야 한다.
 
 ## 시크릿 관리 도구 선택 기준
-
-상황별로 적절한 도구가 다르다.
 
 소규모 단일 서버라면 .env 파일과 환경변수로 충분하다. 파일 권한 관리만 신경 쓰면 된다. 도커 컨테이너로 배포하면 docker secrets를 활용할 수 있다.
 

@@ -1,10 +1,10 @@
 ---
 title: 공급망 공격 방어
-tags: [security, auth]
-updated: 2026-04-30
+tags: [security]
+updated: 2026-09-22
 ---
 
-# 공급망 공격 방어 (Software Supply Chain Security)
+# 공급망 공격 방어
 
 ## 공급망이라는 말의 무게
 
@@ -134,7 +134,9 @@ index-url = https://pypi.mycorp.internal/simple
 
 PyPI에는 `requets`, `python-dateutil` 대신 `python-dateutill`, `urllib3` 대신 `urlib3` 같은 변종 패키지가 끊임없이 올라온다. 이런 패키지는 보통 정상 패키지와 동일한 코드를 그대로 복사한 다음 `setup.py` 안에 한두 줄의 악성 코드를 끼워 넣는다. `setup.py`는 설치 시점에 실행되기 때문에 `pip install`만 해도 코드가 돈다.
 
-npm도 마찬가지다. `lodash` 대신 `lodahs`, `cross-env` 대신 `cross-env.js` 같은 변종이 있었다. 2017년 `crossenv`라는 패키지는 환경변수와 npm 토큰을 외부 서버로 빼돌렸다.
+npm도 마찬가지다. `lodash` 대신 `lodahs`, `cross-env` 대신 `cross-env.js` 같은 변종이 있었다. 2017년 `crossenv`라는 패키지는 환경변수와 npm 토큰을 외부 서버로 빼돌렸다. 설치 직후 `postinstall` 스크립트가 실행돼 `.env`에 적힌 값들이 공격자 서버로 날아갔다.
+
+2023년에는 ChatGPT가 추천한 `huggingface-cli` 변종, `langchain-experimental` 오타 버전들이 PyPI에 올라와서 데이터 과학자들이 피해를 입었다. LLM이 만들어낸 가짜 패키지명을 공격자가 미리 등록해두는 패턴이다.
 
 ### 방어 방법
 
@@ -146,15 +148,27 @@ npm도 마찬가지다. `lodash` 대신 `lodahs`, `cross-env` 대신 `cross-env.
 
 ---
 
-## 악성 패키지 사고 — event-stream
+## 악성 패키지 사고
+
+### event-stream (2018)
 
 2018년 11월에 일어난 사고다. `event-stream`은 노드 진영에서 월 200만 회 다운로드되던 인기 라이브러리였다. 원래 메인테이너 dominictarr이 더 이상 관리할 시간이 없다고 GitHub에 공지했고, "right9ctrl"이라는 닉을 쓰는 누군가가 메인테이너 권한을 넘겨받겠다고 자원했다. dominictarr은 별다른 검증 없이 권한을 넘겼다.
 
 새 메인테이너는 `flatmap-stream`이라는 새 의존성을 추가했고, 이 안에 BTC 지갑 라이브러리 `copay`를 사용하는 환경에서만 동작하는 악성 코드를 심었다. 코드는 난독화돼 있었고, 특정 조건이 아니면 발화하지 않았기 때문에 일반적인 정적 분석으로는 잡히지 않았다. 결과적으로 `copay`의 비트코인 지갑이 털렸다.
 
-### 이 사고에서 배울 점
-
 오픈소스 메인테이너의 번아웃은 흔하다. 인기 라이브러리의 메인테이너가 한두 명에 불과한 경우가 의외로 많다. 그 한 명이 권한을 넘기는 순간 공급망 전체가 그 새로운 사람의 신뢰도에 묶인다.
+
+### colors와 faker.js (2022)
+
+event-stream과 성격이 다른 사고다. 2022년 1월, `colors.js`와 `faker.js`의 메인테이너 Marak Squires가 두 패키지를 의도적으로 망가뜨렸다. `colors` 5.0.0을 게시했는데, 이 버전은 터미널 출력에 무한 루프로 "AMERICA" 텍스트와 자유의 여신상 기호를 계속 출력했다. "포춘 500 기업들이 무상 노동으로 수익을 취한다"는 불만을 공개적으로 밝혔다.
+
+`colors.js`는 주간 다운로드 수천만 건이었다. `aws-cdk` SDK를 포함한 수많은 패키지가 영향을 받았다. CI 파이프라인이 깨졌고, 일부 운영 환경에서 서비스가 startup 단계에서 멈췄다.
+
+event-stream은 은밀하게 악성 코드를 심었지만, colors는 공개적이고 의도적인 사보타주였다. **메인테이너 자신이 한 짓이라 악성 패키지 탐지로는 잡을 수 없다.** npm 레지스트리는 5.0.0을 내렸고, npm에서는 해당 버전들을 1.4.0으로 강제 다운그레이드하는 조치를 취했다.
+
+방어 방법은 lockfile로 버전을 고정하는 것이다. `"colors": "1.4.0"`으로 고정해두면 `5.0.0`이 올라와도 받지 않는다. `^1.4.0`처럼 범위로 쓰면 minor 업에서 걸릴 수 있다. 핵심 의존성은 정확한 버전을 박아두고 Renovate/Dependabot으로 통제된 업데이트를 하는 게 낫다.
+
+### 이 사고들에서 배울 점
 
 방어 측면에서 보면, **의존성을 완전히 제거하거나, 핀(pin)으로 고정하거나, 의존성 변경 알림을 받는** 세 가지가 현실적이다. 작은 유틸 라이브러리를 줄줄이 끌어들이는 것보다, 표준 라이브러리로 대체할 수 있으면 대체하는 게 공급망 표면적을 줄이는 가장 확실한 방법이다.
 
@@ -195,6 +209,40 @@ SBOM이 있는 팀은 빠르게 끝났다. 없는 팀은 빌드를 다시 돌리
 
 lockfile이 없으면 `^1.0.0`처럼 범위 지정한 버전이 빌드 시점마다 달라진다. 어느 날 `1.0.5`가 새로 나오고 그 안에 백도어가 있다면, 다음 빌드부터 백도어가 들어간다. lockfile은 이걸 막는다. lockfile에 적힌 정확한 버전과 해시가 일치하지 않으면 설치가 실패한다.
 
+### lockfile을 무시하거나 우회하면
+
+개발자가 흔히 저지르는 실수들:
+
+```bash
+# peer dependency 충돌을 회피하려고 lockfile을 갱신
+npm install --legacy-peer-deps
+
+# lockfile 자체를 생성하지 않음
+npm install --no-package-lock
+
+# .gitignore에 package-lock.json을 넣어버리는 경우
+```
+
+`npm install --legacy-peer-deps`는 충돌을 무시하면서 lockfile을 갱신한다. 갱신된 lockfile이 커밋되면, 그 시점에 무엇이 최신 버전으로 올라왔는지 확인하는 사람이 없다. CI는 그 lockfile을 그대로 쓴다.
+
+`--no-package-lock`은 lockfile 자체를 없앤다. 이 상태에서는 빌드마다 `^1.0.0` 범위 안에서 다른 버전이 들어올 수 있다. 어제 테스트는 1.0.5로 통과했는데 운영 배포는 1.0.6으로 빌드됐다면, 1.0.6에 뭔가 바뀐 게 있어도 모른 채 나간다.
+
+lockfile이 없는 상태가 가장 위험한 시나리오는 악성 버전이 새로 올라왔을 때다. lockfile이 있으면 Renovate/Dependabot이 PR을 만들어서 사람이 검토할 수 있다. lockfile이 없으면 다음 빌드에서 자동으로 받아간다.
+
+pip에서도 마찬가지다. `requirements.txt`에 버전을 고정하지 않으면 배포마다 달라진다:
+
+```
+# 매 배포마다 달라질 수 있다
+requests
+flask>=2.0
+
+# 전체 의존성 트리를 고정한다
+requests==2.31.0
+flask==3.0.0
+```
+
+`pip-tools`로 `requirements.in`에서 `requirements.txt`를 만들면 전체 의존성 트리가 정확한 버전으로 고정된다. 직접 의존성만 고정하고 transitive dependency를 열어두면 여전히 달라질 수 있다.
+
 ### 무결성 해시 검증
 
 `package-lock.json`의 각 의존성에는 `integrity` 필드가 있다.
@@ -211,7 +259,7 @@ lockfile이 없으면 `^1.0.0`처럼 범위 지정한 버전이 빌드 시점마
 
 이 해시는 패키지 tarball의 SHA-512다. npm이 받아온 파일의 해시가 lockfile의 값과 다르면 설치가 멈춘다. 누가 레지스트리에서 패키지를 바꿔치기해도 lockfile만 안 건드렸다면 잡힌다.
 
-### CI에서 lockfile을 어떻게 다뤄야 하는가
+### CI에서 lockfile 다루는 법
 
 `npm install`이 아니라 `npm ci`를 써야 한다. `npm install`은 lockfile과 `package.json`이 어긋날 때 lockfile을 갱신한다. `npm ci`는 lockfile을 신뢰하고, 어긋나면 실패한다. CI에서는 항상 `npm ci`다.
 
@@ -232,6 +280,104 @@ pip install --require-hashes -r requirements.txt
 ```
 
 해시가 없거나 어긋나면 설치가 멈춘다. 사내 미러를 통해 들어오는 패키지에 변조가 있어도 잡힌다.
+
+---
+
+## 의존성 취약점 스캔
+
+lockfile이 버전을 고정한다면, audit는 그 고정된 버전에 알려진 취약점이 있는지 확인한다. 둘은 다른 역할이다.
+
+### npm audit
+
+```bash
+# 취약점 요약 출력
+npm audit
+
+# JSON으로 파싱해서 CI에서 활용
+npm audit --json | jq '.vulnerabilities | to_entries[] | select(.value.severity == "critical") | .key'
+
+# 자동 수정 (semver 범위 안에서)
+npm audit fix
+
+# major 버전 업도 포함해서 수정 (호환성이 깨질 수 있다)
+npm audit fix --force
+```
+
+`npm audit fix`는 lockfile과 `package.json`을 수정한다. `--force` 없이는 major 업을 안 하기 때문에, major 취약점이 patch 이하 버전에서 해결이 안 되면 아직 수정 안 됐다고 뜬다. 이 경우 직접 의존성을 major 업그레이드하거나, `overrides`로 하위 의존성 버전을 강제 지정한다.
+
+```json
+{
+  "overrides": {
+    "vulnerable-transitive-package": "^2.0.0"
+  }
+}
+```
+
+CI에서는 audit를 빌드 초반에 넣어두고, critical/high가 있으면 빌드를 실패시킨다.
+
+```yaml
+- name: Security audit
+  run: npm audit --audit-level=high
+```
+
+`--audit-level=high`는 high와 critical만 잡는다. moderate까지 잡으면 거짓 양성이 많아서 결국 무시하게 된다. 시작은 high부터.
+
+### pip-audit
+
+Python 공식 도구다. PyPI Advisory Database와 OSV(Open Source Vulnerability database)를 기준으로 CVE를 매칭한다.
+
+```bash
+pip install pip-audit
+
+# 현재 환경 스캔
+pip-audit
+
+# requirements.txt 기준으로 스캔 (가상환경 없이 가능)
+pip-audit -r requirements.txt
+
+# JSON 출력
+pip-audit --format=json -r requirements.txt
+
+# 자동 수정
+pip-audit --fix -r requirements.txt
+```
+
+가상 환경 없이 `requirements.txt`만 넘겨서 스캔할 수 있어서 CI 통합이 깔끔하다.
+
+```yaml
+- name: Python dependency audit
+  run: |
+    pip install pip-audit
+    pip-audit -r requirements.txt
+```
+
+### Snyk CI 연동
+
+`npm audit`와 `pip-audit`은 공식 도구지만 데이터베이스가 NVD/PyPA에 제한된다. Snyk는 자체 취약점 데이터베이스를 운영하고, NVD보다 빠르게 CVE를 반영하는 경우가 많다. 오픈소스 플랜은 무료다.
+
+```yaml
+# GitHub Actions — Node.js
+- name: Run Snyk
+  uses: snyk/actions/node@master
+  env:
+    SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  with:
+    args: --severity-threshold=high --file=package-lock.json
+
+# GitHub Actions — Python
+- name: Run Snyk (Python)
+  uses: snyk/actions/python@master
+  env:
+    SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  with:
+    args: --severity-threshold=high
+```
+
+SNYK_TOKEN은 Snyk 계정 설정에서 발급하고 GitHub Secrets에 넣는다.
+
+Snyk의 장점은 컨테이너 이미지, IaC, 코드 자체(SAST)까지 한 플랫폼에서 통합 관리된다는 점이다. 의존성 취약점만 필요하면 `npm audit`로 충분하지만, 이미 Snyk를 쓰는 조직이라면 의존성도 Snyk로 통일하는 게 결과를 한 곳에서 보기 좋다.
+
+Snyk는 PR에 댓글로 취약점 요약을 달아준다. 새 의존성을 추가하는 PR이 머지되기 전에 취약점이 있는지 확인하는 용도로 쓴다.
 
 ---
 
@@ -454,6 +600,18 @@ FROM node:20.11.0-slim@sha256:abcdef...
 
 digest는 이미지 내용의 해시다. 한번 박아두면 그 이미지는 절대 안 바뀐다. Renovate가 digest 업데이트도 자동으로 PR을 만들어준다.
 
+### postinstall 스크립트
+
+npm 패키지의 `postinstall` 스크립트는 설치 시점에 실행된다. 악성 패키지가 이걸 이용해서 환경변수를 빼돌리거나 파일을 심는다. `crossenv` 사고가 정확히 이 패턴이었다.
+
+`--ignore-scripts` 옵션으로 스크립트 실행을 막을 수 있다.
+
+```bash
+npm ci --ignore-scripts
+```
+
+단, 스크립트 없이는 제대로 동작하지 않는 패키지들이 있다(특히 네이티브 바인딩이 필요한 것들). 전체에 적용하기 어렵다면, 신뢰할 수 없는 패키지가 새로 추가될 때만 수동으로 확인하는 식으로 운영한다.
+
 ### 사후 대응 — 사고가 났을 때
 
 공급망 사고는 났다는 사실을 인지하는 데 시간이 걸린다. 의심이 들기 시작하면 먼저 **영향받은 빌드 목록을 확정**한다. SBOM이 있으면 빠르다. 없으면 빌드 로그에서 의존성 트리를 다시 만든다.
@@ -466,7 +624,6 @@ digest는 이미지 내용의 해시다. 한번 박아두면 그 이미지는 �
 
 ## 정리
 
-공급망 보안은 한 번에 끝나는 작업이 아니다. SBOM 만들기, lockfile 검증, 자격증명을 정적에서 OIDC로, 의존성 자동 업데이트, 사내 레지스트리 운영, 패키지 서명 검증. 이걸 다 하나씩 도입한다. 한 번에 모든 걸 도입하려고 하면 운영 부담만 커지고 정작 안 돌아간다.
+공급망 보안은 한 번에 끝나는 작업이 아니다. SBOM 만들기, lockfile 검증, `npm ci` / `pip install --require-hashes`, 의존성 audit(npm audit / pip-audit / Snyk), 자격증명을 정적에서 OIDC로, 의존성 자동 업데이트, 사내 레지스트리 운영, 패키지 서명 검증. 이걸 다 하나씩 도입한다.
 
 조직마다 시작점이 다르다. SBOM을 안 만드는 곳이라면 거기서부터, lockfile을 CI에서 검증 안 하는 곳이라면 `npm ci`로 바꾸는 것부터, 정적 키를 GitHub Secrets에 박아두는 곳이라면 OIDC 도입부터. 한 번에 한 단계씩 올리되, 사고가 났을 때 어디까지 추적할 수 있는지를 기준으로 우선순위를 매기는 게 가장 실용적이다.
-
