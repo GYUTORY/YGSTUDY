@@ -18,7 +18,7 @@ hide:
 - [JavaScript Getter Setter](<09_ES6_및_고급문법/Getter & Setter.md>)
 - [JavaScript Truthy와 Falsy](09_ES6_및_고급문법/Truthy__Falsy.md)
 - [Spread & Rest 연산자](<09_ES6_및_고급문법/Spread & Rest 연산자.md>)
-- [encodeURI - URI](09_ES6_및_고급문법/encodeURI.md)
+- [encodeURI / URL 인코딩](09_ES6_및_고급문법/encodeURI.md)
 - [encodeURIComponent / decodeURIComponent](09_ES6_및_고급문법/Encode_URI_Component_Decode_URI_Component.md)
 
 ## OOP & 디자인 패턴

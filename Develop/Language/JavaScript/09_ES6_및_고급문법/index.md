@@ -18,6 +18,6 @@ hide:
 - [JavaScript Getter Setter](<Getter & Setter.md>)
 - [JavaScript Truthy와 Falsy](Truthy__Falsy.md)
 - [Spread & Rest 연산자](<Spread & Rest 연산자.md>)
-- [encodeURI - URI](encodeURI.md)
+- [encodeURI / URL 인코딩](encodeURI.md)
 - [encodeURIComponent / decodeURIComponent](Encode_URI_Component_Decode_URI_Component.md)
 
