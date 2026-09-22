@@ -1,274 +1,124 @@
 ---
-title: encodeURI - URI
-tags: [language, javascript, java]
-updated: 2025-12-21
+title: encodeURI / URL 인코딩
+tags: [javascript, language]
+updated: 2026-09-22
 ---
-# encodeURI() - URI 인코딩 함수
 
-## 정의
+# encodeURI / URL 인코딩
 
-`encodeURI()` 함수는 웹 주소(URI)에 포함된 특수 문자들을 안전하게 변환하는 JavaScript 내장 함수입니다.
+브라우저는 주소창에 직접 입력한 한글을 자동으로 인코딩하지만, JavaScript 코드에서 URL 을 문자열로 직접 조립할 때는 그 처리를 손으로 해야 한다. 잘못 인코딩하면 서버가 파라미터를 다르게 파싱하거나 의도하지 않은 경로로 요청이 간다.
 
-**URI(Uniform Resource Identifier)**
-- 웹에서 리소스(웹페이지, 이미지, 파일 등)를 식별하는 문자열
-- URL(Uniform Resource Locator)의 상위 개념
-- 예: `https://example.com/path?name=홍길동&age=25`
+`encodeURI` 와 `encodeURIComponent` 는 이름이 비슷해서 혼동하기 쉬운데, 쓰임새가 완전히 다르다.
 
-## 동작 원리
+## 두 함수가 보존하는 문자
 
-웹 브라우저는 ASCII 문자만 안전하게 처리할 수 있습니다. 한글이나 특수문자가 포함된 URL을 그대로 사용하면 오류가 발생할 수 있어서, 이런 문자들을 안전한 형태로 변환해야 합니다.
+`encodeURI` 는 완성된 URI 전체를 인수로 받는다. URI 구조를 이루는 문자는 건드리지 않고 그 외의 문자만 퍼센트 인코딩한다.
+
+보존되는 문자는 세 종류다. 영문자·숫자(`A-Z a-z 0-9`), URI 예약 문자(`: / ? # [ ] @ ! $ & ' ( ) * + , ; =`), 비예약 문자(`- _ . ~ `)가 그대로 살아남는다. 한글, 한자, 공백, `%` 를 비롯한 나머지 문자들은 UTF-8 로 변환된 뒤 퍼센트 인코딩된다.
 
 ```javascript
-// 문제가 될 수 있는 URL
-const badUrl = 'https://example.com/search?query=안녕하세요&category=음식';
-
-// 안전하게 인코딩된 URL
-const goodUrl = encodeURI(badUrl);
-console.log(goodUrl);
-// 출력: "https://example.com/search?query=%EC%95%88%EB%85%95%ED%95%98%EC%84%B8%EC%9A%94&category=%EC%9D%8C%EC%8B%9D"
+encodeURI('https://example.com/검색?q=한글&lang=ko');
+// 'https://example.com/%EA%B2%80%EC%83%89?q=%ED%95%9C%EA%B8%80&lang=ko'
 ```
 
-### 인코딩하지 않는 문자들
+`?`, `&`, `=` 는 그대로 남고 한글만 바뀌었다. URL 구조 자체는 유지되는 것이 `encodeURI` 의 목적이다.
 
-`encodeURI()`는 다음 문자들을 그대로 유지합니다:
-
-**예약 문자 (URI 구조에 필요한 문자)**
-- `; , / ? : @ & = + $ #`
-
-**비예약 문자 (안전한 문자)**
-- `A-Z a-z 0-9 - _ . ! ~ * ' ( )`
-
-**공백은 `%20`으로 변환됩니다**
+`encodeURIComponent` 는 URI 구성 요소 하나, 예를 들어 파라미터 값 하나를 받는다. 예약 문자도 포함해서 대부분을 인코딩한다. 예외는 딱 다섯 글자(`! ' ( ) *`)뿐이다.
 
 ```javascript
-const testCases = {
-    reserved: ";,/?:@&=+$#",
-    unreserved: "-_.!~*'()",
-    alphanumeric: "ABC abc 123",
-    korean: "안녕하세요",
-    special: "!@#$%^&*()"
-};
-
-Object.entries(testCases).forEach(([name, value]) => {
-    console.log(`${name}: "${value}" → "${encodeURI(value)}"`);
-});
+encodeURIComponent('https://example.com/?q=값');
+// 'https%3A%2F%2Fexample.com%2F%3Fq%3D%EA%B0%92'
 ```
 
-이 목록에서 실제로 사고를 내는 것은 예약 문자를 **남긴다**는 쪽이다. 사용자 입력에 `&` 나 `#` 가 섞이면 URL 의 구조 자체가 바뀐다.
+`://`, `/`, `?`, `=` 까지 전부 인코딩됐다. 완성된 URL 에 이 함수를 쓰면 URL 이 동작하지 않는다.
+
+## 실제로 뒤통수를 치는 경우
+
+### 쿼리 파라미터 값에 & 가 포함될 때
+
+검색어 같은 사용자 입력을 `encodeURI` 로 인코딩하면 `&` 가 그대로 남는다.
 
 ```javascript
-'q=' + encodeURI('a&b=c#d');            // 'q=a&b=c#d'
-'q=' + encodeURIComponent('a&b=c#d');   // 'q=a%26b%3Dc%23d'
+const keyword = 'A&B테스트';
+const url = `https://example.com/search?q=${encodeURI(keyword)}`;
+// 'https://example.com/search?q=A&B%ED%85%8C%EC%8A%A4%ED%8A%B8'
 ```
 
-위쪽은 `q` 하나가 아니라 파라미터 두 개(`q=a`, `b=c`)에 프래그먼트 `#d` 까지 붙은 URL 이 된다. 서버는 `q` 값을 `'a'` 로만 받는다. 검색어에 `&` 하나 들어갔을 뿐인데 결과가 달라지고, 그 검색어를 넣어 본 사람만 재현할 수 있다.
+서버는 이 URL 을 `q=A` 와 `B테스트=` 두 개의 파라미터로 파싱한다. `q` 값은 `'A'` 만 들어온다. `encodeURI` 가 `&` 를 URI 구조 문자로 보존했기 때문이다.
 
-**값 하나를 넣을 때는 언제나 `encodeURIComponent`** 다. `encodeURI` 는 이미 완성된 URL 전체를 통째로 다듬을 때만 쓴다.
-
-`encodeURIComponent` 가 "예약 문자를 모두 인코딩한다"는 것도 정확하지는 않다. 다섯 글자를 남긴다.
+이런 버그는 대부분의 검색어가 한글이라 로컬 테스트에서 쉽게 확인되지 않는다. `&` 가 섞인 입력을 쓴 사람만 재현할 수 있어서, "특정 검색어가 결과가 안 나온다"는 신고로 발견되는 경우가 많다.
 
 ```javascript
-encodeURIComponent("!'()*");   // "!'()*"  — 그대로다
+const url = `https://example.com/search?q=${encodeURIComponent(keyword)}`;
+// 'https://example.com/search?q=A%26B%ED%85%8C%EC%8A%A4%ED%8A%B8'
 ```
 
-이 글자들은 RFC 3986 기준으로는 예약 문자(sub-delims)인데 함수는 건드리지 않는다. 대부분의 경우 문제가 없지만, 서명 문자열을 만들거나 다른 언어 구현과 결과를 대조해야 한다면 여기서 값이 어긋난다. OAuth 1.0 처럼 정확한 퍼센트 인코딩을 요구하는 규격에서는 이 다섯 글자를 따로 처리해야 한다.
+값 하나를 URL 에 붙일 때는 `encodeURIComponent` 를 써야 한다. `encodeURI` 는 이미 완성된 URL 을 통째로 다듬을 때만 의미가 있다.
 
-## 사용법
+### 경로 세그먼트에 슬래시가 들어올 때
 
-### 기본 사용
+카테고리 이름 같은 값을 경로에 넣을 때 그 값 안에 슬래시가 있으면 `encodeURI` 로는 막을 수 없다.
 
 ```javascript
-const uri = 'https://mozilla.org/?x=шеллы';
-const encoded = encodeURI(uri);
-console.log(encoded);
-// 출력: "https://mozilla.org/?x=%D1%88%D0%B5%D0%BB%D0%BB%D1%8B"
+const category = '음식/간식';
+encodeURI(`https://example.com/category/${category}`);
+// 'https://example.com/category/%EC%9D%8C%EC%8B%9D/%EA%B0%84%EC%8B%9D'
+```
 
-// 디코딩 (원래 형태로 복원)
-try {
-    console.log(decodeURI(encoded));
-    // 출력: "https://mozilla.org/?x=шеллы"
-} catch (e) {
-    console.error('잘못된 URI입니다:', e);
+`/` 가 예약 문자라 경로 구분자로 남는다. `음식` 디렉토리 아래 `간식` 경로가 된다. 의도한 것과 다르다면, 값은 `encodeURIComponent` 로 따로 인코딩한 뒤 경로에 붙여야 한다.
+
+### encodeURIComponent 가 남기는 다섯 글자
+
+`! ' ( ) *` 는 `encodeURIComponent` 도 인코딩하지 않는다. RFC 3986 기준으로는 sub-delimiters 에 해당하지만, 함수 구현이 이전 RFC 2396 을 따른 탓이다.
+
+일반적인 URL 조립에서는 문제가 안 된다. OAuth 1.0a 처럼 서명 문자열의 퍼센트 인코딩을 정확히 정의하는 규격을 구현할 때는 이 다섯 글자를 직접 치환해야 한다.
+
+```javascript
+function strictEncode(str) {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A');
 }
 ```
 
-### URL 파라미터 처리
+## decode 함수와의 짝
+
+`encodeURI` 로 인코딩한 것은 `decodeURI` 로, `encodeURIComponent` 로 인코딩한 것은 `decodeURIComponent` 로 풀어야 한다. 각 함수는 자신이 인코딩하지 않는 문자는 디코딩도 하지 않는다.
 
 ```javascript
-function createSafeUrl(baseUrl, params) {
-    const queryString = Object.entries(params)
-        .filter(([_, value]) => value !== undefined && value !== null)
-        .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
-        .join('&');
-    
-    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
-}
-
-// 사용 예제
-const apiUrl = createSafeUrl('https://api.example.com/users', {
-    name: '김철수',
-    age: 25,
-    city: '서울시 강남구',
-    hobby: '프로그래밍, 독서'
-});
-
-console.log(apiUrl);
+decodeURI('%26');            // '%26'  — 그대로 남는다
+decodeURIComponent('%26');  // '&'
 ```
 
-## 예제
+`encodeURIComponent` 로 인코딩한 값을 `decodeURI` 로 풀면 `&`, `=`, `?` 가 `%26`, `%3D`, `%3F` 로 남는다. 에러가 나지 않고 반쯤 풀린 문자열이 나오기 때문에, DB 에 `%26` 이 저장되고 나서야 발견되는 경우가 있다.
 
-### encodeURI() vs encodeURIComponent()
-
-| 구분 | encodeURI() | encodeURIComponent() |
-|------|-------------|---------------------|
-| 용도 | 전체 URI 인코딩 | URI 구성요소 인코딩 |
-| 예약문자 처리 | 인코딩하지 않음 | 모두 인코딩 |
-| 사용 시기 | 전체 URL 생성 시 | 쿼리 파라미터 값 인코딩 시 |
+잘못 분리된 유니코드 서로게이트 쌍을 인코딩하려 하면 `URIError` 가 발생한다. 외부 데이터를 URL 에 그대로 붙이는 코드에서 만날 수 있다.
 
 ```javascript
-const baseUrl = 'https://example.com/api';
-const query = 'name=홍길동&age=25';
-
-// 잘못된 사용 - 예약문자가 인코딩되지 않음
-const wrongUrl = `${baseUrl}?${encodeURI(query)}`;
-console.log(wrongUrl);
-
-// 올바른 사용 - 쿼리 파라미터 값만 인코딩
-const correctUrl = `${baseUrl}?name=${encodeURIComponent('홍길동')}&age=25`;
-console.log(correctUrl);
-
-// 전체 URL 구조를 유지하면서 특정 값만 인코딩
-const params = {
-    search: 'JavaScript 강의',
-    category: '프로그래밍',
-    level: '초급'
-};
-
-const queryString = Object.entries(params)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-    .join('&');
-
-const finalUrl = `${baseUrl}?${queryString}`;
-console.log(finalUrl);
+encodeURIComponent('\uD800');  // URIError: URI malformed
 ```
 
-쿼리 문자열을 손으로 이어 붙일 이유는 이제 없다. `URLSearchParams` 가 키와 값을 모두 인코딩하고, 같은 키가 여러 번 나오는 경우와 `undefined` 처리까지 맡는다.
+## URLSearchParams 로 위임하기
+
+쿼리 파라미터를 직접 이어 붙일 때 흔한 실수가 값만 인코딩하고 키는 그대로 쓰는 것이다. 키가 코드에 고정된 문자열이라면 괜찮지만, 키가 데이터에서 올 때는 같은 문제가 생긴다. `URLSearchParams` 는 키와 값을 모두 인코딩한다.
 
 ```javascript
-const url = new URL('https://example.com/api');
-url.searchParams.set('search', 'JavaScript 강의');
-url.searchParams.set('category', '프로그래밍');
+const url = new URL('https://api.example.com/search');
+url.searchParams.set('keyword', '검색어 & 특수문자');
+url.searchParams.set('page', '1');
 url.toString();
+// 'https://api.example.com/search?keyword=%EA%B2%80%EC%83%89%EC%96%B4+%ED%8A%B9%EC%88%98%EB%AC%B8%EC%9E%90&page=1'
 ```
 
-문서의 `createSafeUrl` 은 **값만** 인코딩하고 키는 그대로 붙인다. 키가 코드에 고정된 문자열이라면 괜찮지만, 키가 데이터에서 온다면 같은 문제가 생긴다.
+`URLSearchParams` 는 공백을 `%20` 이 아닌 `+` 로 쓴다. `application/x-www-form-urlencoded` 인코딩 방식이고, 서버 프레임워크는 대부분 둘 다 받는다.
 
-다만 `URLSearchParams` 에는 알아 둘 차이가 하나 있다. **공백을 `%20` 이 아니라 `+` 로 쓴다.**
+문제는 이 문자열을 나중에 수동으로 파싱할 때다. `decodeURIComponent` 는 `+` 를 공백으로 해석하지 않는다.
 
 ```javascript
-encodeURIComponent('a b');                       // 'a%20b'
-new URLSearchParams({ q: 'a b' }).toString();    // 'q=a+b'
+decodeURIComponent('a+b');  // 'a+b'  — 공백으로 안 돌아온다
 ```
 
-둘 다 유효하다. `+` 는 `application/x-www-form-urlencoded` 방식이고 서버 프레임워크는 대개 둘 다 받아준다. 문제는 **직접 디코딩할 때**다.
-
-```javascript
-decodeURIComponent('a+b');   // 'a+b'   ← 공백으로 안 돌아온다
-```
-
-`decodeURIComponent` 는 `+` 를 모른다. `URLSearchParams` 로 만든 문자열을 손으로 쪼개서 `decodeURIComponent` 로 풀면 공백이 `+` 로 남는다. 파싱도 `new URLSearchParams(queryString)` 에 맡기면 이 차이가 사라진다.
-
-`decodeURI` 와 `decodeURIComponent` 도 짝을 맞춰야 한다. 각자 자기가 인코딩하지 않는 것은 디코딩도 하지 않는다.
-
-```javascript
-decodeURI('%26');            // '%26'   ← 그대로 둔다
-decodeURIComponent('%26');   // '&'
-```
-
-`encodeURIComponent` 로 인코딩한 값을 `decodeURI` 로 풀면 예약 문자만 인코딩된 채 남는다. 에러가 아니라 반쯤 풀린 문자열이 나와서, DB 에 `%26` 같은 것이 저장되고 나서야 발견된다.
-
-### 주의사항
-
-**1. 잘못된 유니코드 문자 처리**
-```javascript
-// 올바른 유니코드 쌍
-console.log(encodeURIComponent("\uD800\uDFFF")); // 정상 작동
-
-// 잘못된 유니코드 (단일 대리 문자)
-try {
-    console.log(encodeURIComponent("\uD800")); // URIError 발생
-} catch (error) {
-    console.error('유니코드 오류:', error.message);
-}
-```
-
-**2. HTTP 요청에서의 올바른 사용**
-```javascript
-const searchParams = {
-    name: '김철수',
-    email: 'kim@example.com',
-    message: '안녕하세요! 반갑습니다.'
-};
-
-// 올바른 방법
-const goodQuery = Object.entries(searchParams)
-    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-    .join('&');
-console.log('올바른 쿼리:', goodQuery);
-```
-
-## 참고
-
-### 관련 함수
-
-**decodeURI()**
-```javascript
-const original = 'https://example.com/한글페이지';
-const encoded = encodeURI(original);
-const decoded = decodeURI(encoded);
-
-console.log('원본:', original);
-console.log('인코딩:', encoded);
-console.log('디코딩:', decoded);
-console.log('일치 여부:', original === decoded); // true
-```
-
-**encodeURIComponent() / decodeURIComponent()**
-```javascript
-const component = 'user@example.com';
-const encoded = encodeURIComponent(component);
-const decoded = decodeURIComponent(encoded);
-
-console.log('원본:', component);
-console.log('인코딩:', encoded); // user%40example.com
-console.log('디코딩:', decoded);
-```
-
-### 폼 데이터 처리
-
-```javascript
-function serializeForm(formData) {
-    const params = {};
-    
-    for (let [key, value] of formData.entries()) {
-        if (params[key]) {
-            if (Array.isArray(params[key])) {
-                params[key].push(value);
-            } else {
-                params[key] = [params[key], value];
-            }
-        } else {
-            params[key] = value;
-        }
-    }
-    
-    return Object.entries(params)
-        .map(([key, value]) => {
-            if (Array.isArray(value)) {
-                return value.map(v => `${key}=${encodeURIComponent(v)}`).join('&');
-            }
-            return `${key}=${encodeURIComponent(value)}`;
-        })
-        .join('&');
-}
-```
+`URLSearchParams` 로 만든 문자열을 `split('&')` 으로 쪼개서 `decodeURIComponent` 로 풀면 공백이 `+` 로 남는다. 파싱도 `new URLSearchParams(queryString)` 에 맡기면 이 차이가 사라진다.
