@@ -1,14 +1,14 @@
 ---
 title: NestJS Health Check 심화
-tags: [nodejs, monitoring, kubernetes, devops]
-updated: 2026-08-02
+tags: [nodejs, observability, monitoring, kubernetes]
+updated: 2026-09-22
 ---
 
 # NestJS Health Check 심화
 
 Health check는 단순히 `/health` 엔드포인트가 200을 반환하면 끝나는 일이 아니다. 어떤 의존성을 검사할지, 검사 실패가 어떤 의미를 갖는지, 누가 그 결과를 보고 어떤 결정을 내리는지가 다 다르다. Kubernetes는 liveness probe가 실패하면 컨테이너를 재시작하고, readiness probe가 실패하면 트래픽만 끊는다. 두 probe에 똑같은 엔드포인트를 물려두면 DB 일시 장애로 모든 Pod가 동시에 재시작되는 사고가 난다.
 
-이 문서는 `@nestjs/terminus`의 동작 원리부터 indicator 구현, probe 분리, 그리고 graceful shutdown과의 연동까지 다룬다.
+이 문서는 `@nestjs/terminus`의 동작 원리부터 indicator 구현, probe 분리, circuit breaker 연동, 그리고 graceful shutdown까지 다룬다.
 
 ## @nestjs/terminus 구성
 
@@ -161,7 +161,7 @@ check() {
 
 여기서 함정이 하나 있다. 외부 서비스를 liveness probe에 넣으면 그 서비스 장애가 내 서비스의 Pod 재시작으로 번진다. 외부 의존성은 거의 항상 readiness에만 넣어야 한다. liveness는 "이 프로세스가 살아있나"를 묻는 것이고, 외부 서비스가 죽었다고 내 프로세스를 죽일 이유는 없다.
 
-또 하나, `pingCheck`는 기본적으로 GET 요청을 날리고 응답 status code가 2xx면 통과로 간주한다. 외부 API가 인증을 요구하면 별도 로직이 필요하다. 그럴 때는 `responseCheck`를 쓴다.
+`pingCheck`는 기본적으로 GET 요청을 날리고 응답 status code가 2xx면 통과로 간주한다. 외부 API가 인증을 요구하면 별도 로직이 필요하다. 그럴 때는 `responseCheck`를 쓴다.
 
 ```ts
 () => this.http.responseCheck(
@@ -221,6 +221,10 @@ check() {
 
 내장 indicator로 못 다루는 게 항상 있다. Kafka consumer가 lag 없이 잘 돌고 있는지, Redis Cluster의 모든 노드가 응답하는지, 내부 큐가 안 막혔는지 같은 것들이다. 이럴 때 커스텀 indicator를 짠다.
 
+`HealthIndicator` 추상 클래스를 상속하고, `getStatus(key, isHealthy, payload)`로 표준 응답을 만든다. 실패 시 `HealthCheckError`를 던지면 `HealthCheckService`가 503으로 변환한다.
+
+### Redis 단일 노드 + 레이턴시 체크
+
 ```ts
 import { Injectable } from '@nestjs/common'
 import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus'
@@ -250,6 +254,7 @@ export class RedisHealthIndicator extends HealthIndicator {
       }
       throw new HealthCheckError('Redis ping failed', result)
     } catch (err) {
+      if (err instanceof HealthCheckError) throw err
       throw new HealthCheckError(
         'Redis ping failed',
         this.getStatus(key, false, { message: err.message }),
@@ -259,9 +264,55 @@ export class RedisHealthIndicator extends HealthIndicator {
 }
 ```
 
-`HealthIndicator` 추상 클래스를 상속하고, `getStatus(key, isHealthy, payload)`로 표준 응답을 만든다. 실패 시 `HealthCheckError`를 던지면 `HealthCheckService`가 503으로 변환한다.
+### Redis Cluster 전체 노드 체크
 
-Kafka consumer의 lag 검사 같은 좀 더 복잡한 indicator는 이런 식으로 짠다.
+Redis Cluster를 쓰는 경우 단일 ping으로는 부족하다. 노드 하나가 죽어도 ioredis는 다른 노드로 자동 failover하기 때문에 애플리케이션은 정상으로 보이지만 클러스터 상태는 degraded다. 전체 노드 상태를 직접 확인해야 실제 이상을 잡을 수 있다.
+
+```ts
+import { Injectable, Inject } from '@nestjs/common'
+import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus'
+import { Cluster } from 'ioredis'
+
+@Injectable()
+export class RedisClusterIndicator extends HealthIndicator {
+  constructor(@Inject('REDIS_CLUSTER') private readonly cluster: Cluster) {
+    super()
+  }
+
+  async check(key: string): Promise<HealthIndicatorResult> {
+    try {
+      const nodes = this.cluster.nodes('all')
+      const results = await Promise.allSettled(
+        nodes.map((node) => node.ping()),
+      )
+
+      const failed = results.filter((r) => r.status === 'rejected')
+      const isHealthy = failed.length === 0
+
+      const result = this.getStatus(key, isHealthy, {
+        totalNodes: nodes.length,
+        failedNodes: failed.length,
+        failedReasons: failed.map(
+          (r) => (r as PromiseRejectedResult).reason?.message,
+        ),
+      })
+
+      if (isHealthy) return result
+      throw new HealthCheckError('Redis cluster node failure', result)
+    } catch (err) {
+      if (err instanceof HealthCheckError) throw err
+      throw new HealthCheckError(
+        'Redis cluster check failed',
+        this.getStatus(key, false, { error: err.message }),
+      )
+    }
+  }
+}
+```
+
+`nodes('all')`은 master와 slave를 전부 반환한다. `'master'`만 보고 싶으면 그렇게 줄여도 된다. 실패 노드 수와 이유를 payload에 담아두면 알람 메시지에서 바로 원인을 알 수 있다.
+
+### Kafka consumer lag 체크
 
 ```ts
 @Injectable()
@@ -295,7 +346,187 @@ export class KafkaLagIndicator extends HealthIndicator {
 }
 ```
 
-커스텀 indicator 짤 때 가장 흔히 빠지는 함정은 indicator 안에서 예외 처리를 제대로 안 하는 것이다. indicator가 throw하는 모든 예외는 `HealthCheckError`로 감싸야 한다. 그렇지 않으면 `HealthCheckService`가 의도하지 않은 형태로 응답을 만든다. try-catch로 모든 실패 경로를 잡아서 명시적으로 변환해야 한다.
+커스텀 indicator 짤 때 가장 흔히 빠지는 함정은 indicator 안에서 예외 처리를 제대로 안 하는 것이다. indicator가 throw하는 모든 예외는 `HealthCheckError`로 감싸야 한다. 그렇지 않으면 `HealthCheckService`가 의도하지 않은 형태로 응답을 만든다. try-catch로 모든 실패 경로를 잡아서 명시적으로 변환해야 한다. `err instanceof HealthCheckError` 체크를 빠뜨리면 이미 변환된 에러를 다시 감싸는 문제도 생긴다.
+
+## Circuit Breaker 연동
+
+Health check와 circuit breaker는 서로 독립적으로 구현하는 경우가 많은데, 그러면 문제가 생긴다. Health check는 외부 서비스를 직접 호출하는데 circuit breaker는 열려 있어서 애플리케이션 코드는 fast-fail 중인 상황이다. 이때 health check는 여전히 타임아웃을 기다리며 매번 새 연결을 시도한다.
+
+올바른 구조는 health indicator 자체가 circuit breaker를 사용하거나, circuit breaker 상태를 health 응답에 반영하는 것이다.
+
+### opossum으로 circuit breaker 구현
+
+Node.js 생태계에서는 `opossum`이 사실상 표준이다.
+
+```bash
+npm install opossum
+npm install -D @types/opossum
+```
+
+외부 서비스 indicator에 circuit breaker를 내장하는 패턴이다.
+
+```ts
+import { Injectable, OnModuleInit } from '@nestjs/common'
+import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus'
+import { HttpService } from '@nestjs/axios'
+import { firstValueFrom } from 'rxjs'
+import CircuitBreaker from 'opossum'
+
+@Injectable()
+export class PaymentServiceIndicator extends HealthIndicator implements OnModuleInit {
+  private breaker: CircuitBreaker<[string], unknown>
+
+  constructor(private readonly httpService: HttpService) {
+    super()
+  }
+
+  onModuleInit() {
+    this.breaker = new CircuitBreaker(
+      (url: string) =>
+        firstValueFrom(this.httpService.get(url, { timeout: { request: 2000 } })),
+      {
+        timeout: 3000,               // 3초 내 응답 없으면 실패로 간주
+        errorThresholdPercentage: 50, // 50% 이상 실패 시 circuit open
+        resetTimeout: 30000,          // 30초 후 half-open 전환
+        volumeThreshold: 5,           // 최소 5회 호출 이후 통계 적용
+      },
+    )
+
+    this.breaker.on('open', () => {
+      // 메트릭 카운터 증가, 알람 발행 등
+    })
+    this.breaker.on('halfOpen', () => {
+      // probe 시도 로그
+    })
+    this.breaker.on('close', () => {
+      // 복구 로그
+    })
+  }
+
+  async check(key: string, healthUrl: string): Promise<HealthIndicatorResult> {
+    if (this.breaker.opened) {
+      // circuit이 열려 있으면 실제 호출 없이 즉시 실패
+      throw new HealthCheckError(
+        `${key}: circuit breaker open`,
+        this.getStatus(key, false, {
+          circuitState: 'open',
+          stats: this.breaker.stats,
+        }),
+      )
+    }
+
+    try {
+      await this.breaker.fire(healthUrl)
+      return this.getStatus(key, true, {
+        circuitState: this.breaker.toJSON().state,
+      })
+    } catch (err) {
+      throw new HealthCheckError(
+        `${key}: check failed`,
+        this.getStatus(key, false, {
+          circuitState: this.breaker.toJSON().state,
+          error: err.message,
+        }),
+      )
+    }
+  }
+
+  // 앱 코드도 이 indicator를 통해 외부 서비스를 호출할 수 있다
+  async callService<T>(url: string): Promise<T> {
+    return this.breaker.fire(url) as Promise<T>
+  }
+}
+```
+
+`callService`를 노출해두면 앱 내부 코드도 같은 breaker를 거쳐 외부 서비스를 호출할 수 있다. health check가 circuit을 trip시키면 앱 코드도 바로 fast-fail한다. health check와 앱 코드가 서로 다른 breaker를 쓰는 상황을 피할 수 있다.
+
+### health check 실패가 circuit을 여는 흐름
+
+circuit breaker의 통계는 health check 호출과 앱 코드 호출을 구분하지 않는다. 두 경로가 같은 breaker를 쓰므로 health check probe가 실패하면 그 실패도 `errorThresholdPercentage` 계산에 포함된다.
+
+실제로 일어나는 흐름을 추적하면:
+
+1. 외부 서비스가 불안정해져서 health probe가 타임아웃이나 5xx를 받기 시작한다
+2. `volumeThreshold` 이상 호출에서 `errorThresholdPercentage`를 넘으면 circuit이 열린다
+3. 그 다음 health check부터는 실제 호출 없이 즉시 실패 → readiness probe가 503 반환
+4. Kubernetes가 해당 Pod를 Service endpoint에서 제거한다
+5. 앱 코드도 같은 breaker를 쓰면 외부 서비스 호출 자체가 fast-fail로 전환된다
+6. `resetTimeout` 후 circuit이 half-open 전환 → 다음 호출 한 번으로 성공 여부 확인
+7. 성공하면 circuit close → readiness 정상화 → Pod가 다시 트래픽 받음
+
+이 흐름에서 Kubernetes probe 주기(`periodSeconds`)와 circuit breaker의 `resetTimeout`을 맞춰두면 외부 서비스 복구 시 Pod 복귀가 자동으로 일어난다.
+
+### 여러 의존성의 circuit breaker 관리
+
+서비스 수가 늘면 각 indicator마다 breaker 설정이 중복된다. 공통 팩토리로 뽑아두면 관리가 쉽다.
+
+```ts
+import { Injectable } from '@nestjs/common'
+import CircuitBreaker from 'opossum'
+
+@Injectable()
+export class CircuitBreakerFactory {
+  create<T, R>(
+    fn: (...args: T[]) => Promise<R>,
+    options?: CircuitBreaker.Options,
+  ): CircuitBreaker<T[], R> {
+    return new CircuitBreaker(fn, {
+      timeout: 3000,
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000,
+      volumeThreshold: 5,
+      ...options,
+    })
+  }
+}
+```
+
+```ts
+@Injectable()
+export class AuthServiceIndicator extends HealthIndicator implements OnModuleInit {
+  private breaker: CircuitBreaker
+
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly breakerFactory: CircuitBreakerFactory,
+  ) {
+    super()
+  }
+
+  onModuleInit() {
+    this.breaker = this.breakerFactory.create(
+      (url: string) => firstValueFrom(this.httpService.get(url)),
+      { timeout: 2000, resetTimeout: 15000 }, // 인증 서비스는 복구 판단을 빨리
+    )
+  }
+  // ...
+}
+```
+
+### circuit breaker 상태를 메트릭으로 내보내기
+
+Prometheus를 쓴다면 circuit breaker 이벤트를 메트릭으로 연결해두는 게 운영에 도움이 된다. circuit이 열리고 닫히는 시점, 실패율, half-open 시도 횟수 같은 것들이다.
+
+```ts
+onModuleInit() {
+  this.breaker = this.breakerFactory.create(...)
+
+  this.breaker.on('open', () => {
+    this.metrics.circuitOpen.labels({ service: 'payment' }).inc()
+  })
+  this.breaker.on('close', () => {
+    this.metrics.circuitClose.labels({ service: 'payment' }).inc()
+  })
+  this.breaker.on('halfOpen', () => {
+    this.metrics.circuitHalfOpen.labels({ service: 'payment' }).inc()
+  })
+  this.breaker.on('fallback', () => {
+    this.metrics.circuitFallback.labels({ service: 'payment' }).inc()
+  })
+}
+```
+
+`opossum`은 `stats` 프로퍼티로 실시간 통계를 제공한다. `this.breaker.stats`에는 성공/실패/타임아웃/short-circuit 횟수가 들어 있어서 health 응답 payload에 포함시키면 디버깅에 도움이 된다.
 
 ## liveness와 readiness 분리
 
@@ -662,7 +893,7 @@ TTL을 probe 주기보다 짧게 잡으면 매 probe가 캐시 미스가 나니�
 
 **probe timeout과 indicator timeout의 비대칭**: Kubernetes probe의 `timeoutSeconds`보다 indicator의 timeout이 더 길면, probe는 timeout으로 실패하지만 indicator는 계속 실행 중이다. 다음 probe가 들어오면 indicator 호출이 중첩되고 DB connection이 누적된다. `timeoutSeconds` × 0.7 정도를 indicator timeout으로 잡는 게 안전하다.
 
-**circuit breaker와 health check의 충돌**: 외부 서비스에 circuit breaker가 걸려 있는데, health check가 그 외부 서비스를 직접 호출한다. circuit이 열려도 health check는 직접 호출하므로 매번 timeout이 난다. circuit breaker 상태를 health에 반영하든가, breaker가 적용된 client를 indicator에 주입해야 한다.
+**circuit breaker와 health check의 경로 불일치**: circuit breaker가 외부 서비스에 걸려 있는데 health check는 그 breaker를 거치지 않고 직접 호출한다. circuit이 열려도 health check는 여전히 타임아웃을 기다리며 connection pool을 잡아먹는다. health indicator 안에서 앱 코드와 동일한 breaker를 사용해야 한다. "Circuit Breaker 연동" 섹션에서 다룬 `callService` 패턴이 이 문제를 막는다.
 
 **migration 동안 readiness 처리**: 부팅 직후 migration이 도는 동안 readiness가 통과하면 트래픽이 들어오는데, schema가 아직 안 만들어져서 쿼리가 실패한다. migration이 끝날 때까지 readiness를 false로 유지하는 게 안전하다. startup probe로 이걸 처리하든가, `AppReadyState` 패턴으로 명시적으로 제어한다.
 

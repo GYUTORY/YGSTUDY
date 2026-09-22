@@ -1,12 +1,12 @@
 ---
 title: Node.js perf_hooks 모듈 심화
-tags: [nodejs, performance]
-updated: 2026-06-03
+tags: [nodejs, performance, observability, monitoring]
+updated: 2026-09-22
 ---
 
 # Node.js perf_hooks 모듈 심화
 
-`perf_hooks`는 Node 프로세스 안에서 시간과 이벤트 루프 상태를 들여다보는 코어 모듈이다. 외부 APM 없이도 "이 함수 진짜 느린가", "지금 이벤트 루프 막힌 거 맞나"를 숫자로 답할 수 있다. APM을 쓰더라도 어떻게 데이터가 수집되는지 알면 대시보드만 보고 추측하는 일을 줄인다.
+`perf_hooks`는 Node 프로세스 안에서 시간과 이벤트 루프 상태를 들여다보는 코어 모듈이다. 외부 APM 없이도 "이 함수 진짜 느린지", "지금 이벤트 루프 막힌 거 맞는지"를 숫자로 답할 수 있다. APM을 쓰더라도 어떻게 데이터가 수집되는지 알면 대시보드만 보고 추측하는 일을 줄인다.
 
 운영에서 부딪힌 케이스를 중심으로 정리한다. 단순 API 나열보다는 어떤 상황에서 어떤 도구를 꺼내야 하는지가 중요하다.
 
@@ -71,7 +71,7 @@ performance.clearMarks();
 performance.clearMeasures();
 ```
 
-옵저버 콜백에서 처리가 끝났다면 비워줘야 한다. 아니면 옵저버 옵션에 `buffered: true`를 빼고, 자동으로 쌓이지 않게 한다. 운영 서버에서는 측정 후 즉시 비우는 패턴이 안전하다.
+옵저버 콜백에서 처리가 끝났다면 비워줘야 한다. 아니면 옵저버 옵션에서 `buffered: true`를 빼고, 자동으로 쌓이지 않게 한다. 운영 서버에서는 측정 후 즉시 비우는 패턴이 안전하다.
 
 ```javascript
 const observer = new PerformanceObserver((items) => {
@@ -102,7 +102,109 @@ performance.measure('request', {
 
 ---
 
-## 3. PerformanceObserver로 GC와 함수 호출 추적
+## 3. 네트워크 요청 단계별 레이턴시
+
+아웃바운드 HTTP 요청이 느릴 때 DNS가 느린지, TCP 연결이 느린지, TLS 핸드셰이크가 느린지를 구분하지 않으면 대응이 다 달라진다. DNS 응답 캐시 TTL 설정 문제인지, 연결 풀 소진 문제인지, 서버 TLS 설정 문제인지가 전부 다른 원인이고 해결 방법도 다르다.
+
+### dns·net 엔트리 타입으로 집계
+
+`dns`와 `net` 엔트리 타입은 `http`/`https`/`dns` 내장 모듈이 자동으로 생성한다. 옵저버만 붙이면 프로세스 전체의 DNS 조회와 TCP 연결을 따로 집계할 수 있다.
+
+```javascript
+const { PerformanceObserver } = require('node:perf_hooks');
+
+const dnsObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    // entry.name: 조회한 hostname
+    // entry.duration: DNS 조회에 걸린 시간 (ms)
+    metrics.histogram('dns.lookup_ms', entry.duration, { host: entry.name });
+  }
+});
+dnsObserver.observe({ entryTypes: ['dns'] });
+
+const netObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    // entry.name: 연결 대상 hostname
+    // entry.duration: TCP 연결 완료까지 걸린 시간 (ms)
+    metrics.histogram('tcp.connect_ms', entry.duration, { host: entry.name });
+  }
+});
+netObserver.observe({ entryTypes: ['net'] });
+```
+
+DNS 조회가 p50 기준 5ms 아래면 시스템 DNS 캐시가 정상이다. 50ms 이상으로 튀기 시작하면 DNS 서버 문제나 `/etc/resolv.conf`의 `ndots` 설정을 의심한다. Kubernetes 환경에서는 CoreDNS가 병목이 되는 경우가 잦은데, `ndots: 5` 기본값 때문에 짧은 hostname 하나를 조회할 때 search 도메인을 순서대로 다 붙여 시도하느라 5~6번의 DNS 쿼리가 발생한다.
+
+`net` 엔트리가 지속적으로 100ms 이상이면 연결 풀을 쓰지 않고 있거나 풀이 소진된 것이다. `http.globalAgent`의 `maxSockets` 기본값은 `Infinity`지만 실제로는 OS의 파일 디스크립터 한계까지만 열린다. 풀 사용 여부를 확인하지 않고 응답 레이턴시만 보면 이 문제를 한참 늦게 발견한다.
+
+### TLS 단계까지 보려면 소켓 이벤트
+
+`perf_hooks`에는 TLS 엔트리 타입이 없다. TLS 핸드셰이크 시간은 소켓 이벤트로 잰다.
+
+```javascript
+const https = require('node:https');
+const { performance } = require('node:perf_hooks');
+
+function requestWithPhases(targetUrl) {
+  return new Promise((resolve, reject) => {
+    const ts = { start: performance.now() };
+
+    const req = https.request(targetUrl, (res) => {
+      ts.ttfb = performance.now();
+
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        ts.end = performance.now();
+        resolve({
+          status: res.statusCode,
+          phases: {
+            dns_ms:  ts.dnsEnd  != null ? +(ts.dnsEnd  - ts.start).toFixed(2) : null,
+            tcp_ms:  ts.tcpEnd  != null ? +(ts.tcpEnd  - ts.start).toFixed(2) : null,
+            tls_ms:  ts.tlsEnd  != null ? +(ts.tlsEnd  - ts.start).toFixed(2) : null,
+            ttfb_ms: +(ts.ttfb  - ts.start).toFixed(2),
+            total_ms:+(ts.end   - ts.start).toFixed(2),
+          },
+        });
+      });
+    });
+
+    req.on('socket', (socket) => {
+      socket.once('lookup',        () => { ts.dnsEnd = performance.now(); });
+      socket.once('connect',       () => { ts.tcpEnd = performance.now(); });
+      socket.once('secureConnect', () => { ts.tlsEnd = performance.now(); });
+    });
+
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// { status: 200, phases: { dns_ms: 12.3, tcp_ms: 45.1, tls_ms: 87.6, ttfb_ms: 123.4, total_ms: 145.2 } }
+```
+
+소켓이 연결 풀에서 재사용되면 `lookup`과 `connect` 이벤트가 발생하지 않는다. `dns_ms`와 `tcp_ms`가 `null`로 찍히는 게 정상이다. TLS 세션 재사용 때도 `secureConnect`가 훨씬 빨리 끝나거나 아예 다른 타이밍을 보인다.
+
+운영에서 이 코드를 모든 요청에 붙이면 오버헤드가 커진다. 문제가 있는 호스트를 대상으로만 켜거나, 요청의 1~5%만 샘플링해서 집계하는 게 현실적이다.
+
+### 연결 풀 현황과 조합
+
+단계별 레이턴시와 연결 풀 상태를 같이 보면 원인을 빨리 찾는다.
+
+```javascript
+setInterval(() => {
+  const agent = https.globalAgent;
+  metrics.gauge('http.pool.free',   Object.values(agent.freeSockets).flat().length);
+  metrics.gauge('http.pool.active', Object.values(agent.sockets).flat().length);
+  metrics.gauge('http.pool.queued', agent.requests
+    ? Object.values(agent.requests).flat().length : 0);
+}, 5_000);
+```
+
+`freeSockets`가 0이고 `sockets`가 `maxSockets`에 붙으면 새 요청이 큐에 대기한다. `net` 엔트리의 duration이 갑자기 길어지는 시점과 이 수치를 비교하면 연결 포화 시점을 정확하게 잡는다.
+
+---
+
+## 4. PerformanceObserver로 GC와 함수 호출 추적
 
 `entryTypes`에 무엇을 넣느냐에 따라 추적 대상이 달라진다.
 
@@ -124,14 +226,21 @@ const { PerformanceObserver, constants } = require('node:perf_hooks');
 
 const gcObserver = new PerformanceObserver((items) => {
   for (const entry of items.getEntries()) {
-    const kind = {
-      [constants.NODE_PERFORMANCE_GC_MAJOR]: 'major',
-      [constants.NODE_PERFORMANCE_GC_MINOR]: 'minor',
+    const kindMap = {
+      [constants.NODE_PERFORMANCE_GC_MAJOR]:       'major',
+      [constants.NODE_PERFORMANCE_GC_MINOR]:       'minor',
       [constants.NODE_PERFORMANCE_GC_INCREMENTAL]: 'incremental',
-      [constants.NODE_PERFORMANCE_GC_WEAKCB]: 'weak-callback',
-    }[entry.detail.kind];
+      [constants.NODE_PERFORMANCE_GC_WEAKCB]:      'weak-callback',
+    };
+    const kind = kindMap[entry.detail.kind];
 
-    console.log(`GC ${kind}: ${entry.duration.toFixed(2)}ms`);
+    metrics.histogram('gc.duration_ms', entry.duration, { kind });
+
+    if (entry.duration > 100) {
+      logger.warn(`GC ${kind} ${entry.duration.toFixed(2)}ms — heap: ${
+        process.memoryUsage().heapUsed >> 20
+      }MB`);
+    }
   }
 });
 gcObserver.observe({ entryTypes: ['gc'] });
@@ -139,7 +248,7 @@ gcObserver.observe({ entryTypes: ['gc'] });
 
 GC 시간이 한 사이클에 100ms 넘어가면 의심해야 한다. major GC가 자주 일어나거나 한 번에 길게 멈춘다면 메모리 누수나 큰 오브젝트 할당 패턴을 봐야 한다. heap 스냅샷을 떠서 분석하는 단계로 넘어간다.
 
-운영에서 한 번은 Promise 체인을 깊게 만든 코드가 minor GC를 분당 수천 번 발생시킨 적이 있다. 이런 케이스는 평균 응답시간으로는 안 보이고 p99에서만 튄다.
+운영에서 한 번은 Promise 체인을 깊게 만든 코드가 minor GC를 분당 수천 번 발생시킨 적이 있다. 이런 케이스는 평균 응답시간으로는 안 보이고 p99에서만 튄다. GC 추적 자체의 오버헤드는 거의 없다. GC 후에만 콜백을 받으니 측정 행위가 GC를 유발하지 않는다. 항상 켜두는 것이 맞다.
 
 ### timerify로 함수 호출 시간 자동 측정
 
@@ -162,24 +271,21 @@ observer.observe({ entryTypes: ['function'] });
 timed(1_000_000);
 ```
 
-`timerify`는 함수를 감싸 호출할 때마다 자동으로 entry를 만든다. 매번 mark를 찍기 귀찮은 핫 경로에 쓰면 편하다. 단 함수 식별이 이름으로 되니까 익명 함수는 의미 없는 이름이 찍힌다.
+`timerify`는 함수를 감싸 호출할 때마다 자동으로 entry를 만든다. 매번 mark를 찍기 귀찮은 핫 경로에 쓰면 편하다. 함수 식별이 이름으로 되니 익명 함수는 의미 없는 이름이 찍힌다.
 
-### HTTP 추적
+async 함수에 `timerify`를 쓰면 결과가 틀린다. async 함수는 Promise 객체를 즉시 반환하기 때문에 실제 await가 끝날 때까지가 아니라 Promise 객체를 만드는 시간만 잰다. 측정값이 ~0ms로 나온다. async 함수 측정은 mark/measure로 직접 박아야 한다.
 
 ```javascript
-const observer = new PerformanceObserver((items) => {
-  for (const entry of items.getEntries()) {
-    console.log(`HTTP ${entry.name}: ${entry.duration}ms`);
-  }
+// 잘못된 측정 — ~0ms로 찍힘
+const timedAsync = performance.timerify(async () => {
+  await sleep(1000);
+  return 'done';
 });
-observer.observe({ entryTypes: ['http'] });
 ```
-
-내장 `http` 모듈이 만든 요청만 잡힌다. Express나 Fastify가 결국 같은 모듈을 쓰니까 잡히기는 하는데, 라우트 정보가 없어서 활용도가 떨어진다. 라우트별 측정은 프레임워크 미들웨어 단에서 직접 mark/measure를 박는 편이 낫다.
 
 ---
 
-## 4. eventLoopUtilization으로 이벤트 루프 포화 감지
+## 5. eventLoopUtilization으로 이벤트 루프 포화 감지
 
 이벤트 루프가 얼마나 바쁜지 0~1 사이 값으로 보여준다. CPU 사용률과 비슷한 개념인데 이벤트 루프 관점이다.
 
@@ -211,7 +317,7 @@ app.get('/health', (req, res) => {
 });
 ```
 
-CPU 사용률만 보면 안 되는 이유는, Node 프로세스는 싱글 스레드라 CPU 코어 하나만 쓴다. 8코어 머신에서 CPU 12% 쓰고 있어도 그 코어 하나는 100%일 수 있다. ELU는 그 코어가 실제로 얼마나 일하는지를 보여준다.
+CPU 사용률만 보면 안 되는 이유가 있다. Node 프로세스는 싱글 스레드라 CPU 코어 하나만 쓴다. 8코어 머신에서 CPU 12% 쓰고 있어도 그 코어 하나는 100%일 수 있다. ELU는 그 코어가 실제로 얼마나 일하는지를 보여준다.
 
 ### 워커 스레드와 ELU
 
@@ -231,7 +337,7 @@ CPU 바운드 작업을 워커로 분리했을 때 메인 루프와 워커 루�
 
 ---
 
-## 5. monitorEventLoopDelay 히스토그램
+## 6. monitorEventLoopDelay 히스토그램
 
 ELU가 "얼마나 바쁜지"라면 `monitorEventLoopDelay`는 "한 번 깰 때 얼마나 늦었는지"를 본다. 평균만 보면 의미가 없고 히스토그램으로 분포를 봐야 한다.
 
@@ -243,11 +349,11 @@ histogram.enable();
 
 setInterval(() => {
   console.log({
-    min: histogram.min / 1e6,
-    max: histogram.max / 1e6,
+    min:  histogram.min  / 1e6,
+    max:  histogram.max  / 1e6,
     mean: histogram.mean / 1e6,
-    p50: histogram.percentile(50) / 1e6,
-    p99: histogram.percentile(99) / 1e6,
+    p50:  histogram.percentile(50)   / 1e6,
+    p99:  histogram.percentile(99)   / 1e6,
     p999: histogram.percentile(99.9) / 1e6,
   });
   histogram.reset();
@@ -258,8 +364,7 @@ setInterval(() => {
 
 `resolution`은 샘플링 간격이다. 기본 10ms인데 너무 짧으면 그 자체로 부하가 된다. 운영에서는 20~50ms 정도가 적당하다.
 
-### 무엇을 보아야 하는가
-
+판단 기준:
 - p50이 1ms 아래라면 건강한 상태
 - p99가 10ms를 넘어가면 어딘가 블로킹 코드가 있다
 - p99.9가 100ms를 넘어가면 사용자가 체감하는 응답 지연이 시작된 것
@@ -278,12 +383,17 @@ Chrome DevTools에서 Performance 탭을 열고 Record를 누른 뒤 부하를 �
 
 ---
 
-## 6. 실제 운영에서 쓰는 조합
+## 7. 실제 운영에서 쓰는 조합
 
-세 가지를 동시에 돌리는 게 기본이다.
+다섯 가지를 동시에 돌리는 게 기본이다.
 
 ```javascript
-const { performance, PerformanceObserver, monitorEventLoopDelay } = require('node:perf_hooks');
+const {
+  performance,
+  PerformanceObserver,
+  monitorEventLoopDelay,
+} = require('node:perf_hooks');
+const https = require('node:https');
 
 // 1. ELU 1초 단위
 let prevElu = performance.eventLoopUtilization();
@@ -298,8 +408,8 @@ setInterval(() => {
 const loopDelay = monitorEventLoopDelay({ resolution: 20 });
 loopDelay.enable();
 setInterval(() => {
-  metrics.gauge('node.eventloop.delay.p50', loopDelay.percentile(50) / 1e6);
-  metrics.gauge('node.eventloop.delay.p99', loopDelay.percentile(99) / 1e6);
+  metrics.gauge('node.eventloop.delay.p50',  loopDelay.percentile(50)   / 1e6);
+  metrics.gauge('node.eventloop.delay.p99',  loopDelay.percentile(99)   / 1e6);
   metrics.gauge('node.eventloop.delay.p999', loopDelay.percentile(99.9) / 1e6);
   loopDelay.reset();
 }, 10_000);
@@ -307,19 +417,43 @@ setInterval(() => {
 // 3. GC 추적
 const gcObserver = new PerformanceObserver((items) => {
   for (const entry of items.getEntries()) {
-    metrics.histogram('node.gc.duration', entry.duration, {
+    metrics.histogram('node.gc.duration_ms', entry.duration, {
       kind: entry.detail.kind,
     });
   }
 });
 gcObserver.observe({ entryTypes: ['gc'] });
+
+// 4. DNS·TCP 집계
+const dnsObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    metrics.histogram('node.dns.lookup_ms', entry.duration, { host: entry.name });
+  }
+});
+dnsObserver.observe({ entryTypes: ['dns'] });
+
+const netObserver = new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    metrics.histogram('node.tcp.connect_ms', entry.duration, { host: entry.name });
+  }
+});
+netObserver.observe({ entryTypes: ['net'] });
+
+// 5. 연결 풀 현황 5초 단위
+setInterval(() => {
+  const agent = https.globalAgent;
+  metrics.gauge('node.http.pool.free',   Object.values(agent.freeSockets).flat().length);
+  metrics.gauge('node.http.pool.active', Object.values(agent.sockets).flat().length);
+  metrics.gauge('node.http.pool.queued', agent.requests
+    ? Object.values(agent.requests).flat().length : 0);
+}, 5_000);
 ```
 
-이 세 가지만 잘 봐도 Node 프로세스의 건강 상태를 90% 이상 진단할 수 있다. 메모리는 별도로 `process.memoryUsage()`를 같이 본다.
+이 다섯 가지만 잘 봐도 Node 프로세스의 건강 상태를 90% 이상 진단할 수 있다. 메모리는 별도로 `process.memoryUsage()`를 같이 본다.
 
 ---
 
-## 7. APM 도구와의 연동 지점
+## 8. APM 도구와의 연동 지점
 
 Datadog, New Relic, Elastic APM 같은 도구도 결국 `perf_hooks`와 `async_hooks`를 기반으로 만들어졌다. 직접 만든 측정과 APM이 어떻게 어울리는지 알아두면 좋다.
 
@@ -381,7 +515,7 @@ const eluGauge = new client.Gauge({
   help: 'Event loop utilization (0-1)',
 });
 
-const loopDelayHistogram = new client.Summary({
+const loopDelaySummary = new client.Summary({
   name: 'nodejs_eventloop_delay_seconds',
   help: 'Event loop delay',
   percentiles: [0.5, 0.9, 0.99, 0.999],
@@ -398,11 +532,51 @@ setInterval(() => {
 }, 1000);
 ```
 
-`prom-client`에는 `prom-client.collectDefaultMetrics()`라는 게 있어서 GC, heap, ELU를 기본으로 수집해준다. 직접 짜기 전에 이걸 먼저 확인한다.
+`prom-client.collectDefaultMetrics()`를 쓰면 GC, heap, ELU를 기본으로 수집해준다. 직접 짜기 전에 이걸 먼저 확인한다.
 
 ---
 
-## 8. 프로덕션에서 자주 빠지는 함정
+## 9. 프로덕션에서 자주 빠지는 함정
+
+### 무엇이 비싸고 무엇이 싼지
+
+`perf_hooks` 자체의 오버헤드는 측정 대상에 따라 크게 다르다.
+
+오버헤드가 낮아 항상 켜두어도 되는 것들:
+- `monitorEventLoopDelay` (`resolution` 20~50ms): 타이머 하나 추가하는 수준
+- `eventLoopUtilization`: 단순 카운터 읽기
+- `gc` 옵저버: GC 후에만 콜백이 오니 측정 자체가 GC를 유발하지 않음
+
+오버헤드가 있어 샘플링이 필요한 것들:
+- `dns`·`net` 옵저버: 각 연결마다 콜백. 초당 수천 건이면 콜백 자체가 부하가 됨
+- 요청별 mark/measure: 초당 수만 요청 환경에서 엔트리 생성·삭제 비용이 쌓임
+
+샘플링 예시:
+
+```javascript
+const observer = new PerformanceObserver((items) => {
+  for (const entry of items.getEntries()) {
+    sendMetric(entry.name, entry.duration);
+  }
+  performance.clearMeasures();
+});
+observer.observe({ entryTypes: ['measure'] });
+
+app.use((req, res, next) => {
+  if (Math.random() > 0.01) return next(); // 99%는 건너뜀
+
+  const start = performance.now();
+  res.on('finish', () => {
+    performance.measure(`http.${req.method}.${req.route?.path ?? 'unknown'}`, {
+      start,
+      end: performance.now(),
+    });
+  });
+  next();
+});
+```
+
+1%만 측정해도 초당 100건이 넘으면 통계적으로 충분한 경우가 많다.
 
 ### 옵저버를 등록만 하고 disconnect 안 함
 
@@ -412,29 +586,6 @@ setInterval(() => {
 
 옵저버 옵션에 `buffered: true`를 주면 콜백이 호출되기 전 모든 엔트리를 버퍼링한다. 빈번한 이벤트(GC, http)에서 이걸 쓰면 콜백이 한 번에 거대한 배열을 받는다. 콜백 호출이 늦어지는 사이에 메모리가 폭증한다.
 
-### timerify를 async 함수에 쓸 때
-
-`timerify`는 함수 호출부터 반환까지를 잰다. async 함수면 Promise 객체 반환까지의 시간만 잰다. 실제 await가 끝날 때까지가 아니다. async 함수 측정은 mark/measure로 직접 박는 게 정확하다.
-
-```javascript
-// 잘못된 측정
-const timedAsync = performance.timerify(async () => {
-  await sleep(1000);
-  return 'done';
-});
-// 측정값은 ~0ms로 나온다. Promise 객체 만드는 시간만 재기 때문이다.
-```
-
-### 운영에 mark를 너무 자주 찍을 때
-
-요청마다 mark를 10개씩 찍으면 초당 만 요청 환경에서 분당 600만 개의 엔트리가 생긴다. 옵저버가 처리하는 속도보다 생성 속도가 빠르면 백프레셔가 걸린다. 핵심 구간만 찍고, 나머지는 샘플링한다. 1%만 측정해도 통계적으로 충분한 경우가 많다.
-
-### --inspect를 운영에 켜둠
+### 운영에 --inspect를 켜둠
 
 `--inspect=0.0.0.0:9229`로 켜놓으면 외부에서 디버거 접속이 된다. 코드 실행, 변수 조회, 메모리 덤프가 다 된다. 외부에 노출되면 그대로 RCE다. 운영 컨테이너에서는 끄고, 문제가 생기면 그때만 SSH 터널로 띄운다.
-
----
-
-## 9. 마무리
-
-`perf_hooks`는 익숙해지면 운영의 시야가 넓어진다. APM 대시보드가 보여주는 숫자가 어떻게 만들어지는지 알게 되고, APM이 못 잡는 영역(워커 풀, 자체 큐, 도메인 로직)을 직접 들여다볼 수 있다. 처음에는 ELU와 monitorEventLoopDelay 두 개만 노출시키는 것부터 시작해도 충분하다. 평균 응답시간이 멀쩡한데 가끔 사용자가 느리다고 하는 케이스의 절반은 이 두 지표만 봐도 원인이 보인다.

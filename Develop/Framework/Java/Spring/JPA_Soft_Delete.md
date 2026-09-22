@@ -1,6 +1,6 @@
 ---
 title: JPA 소프트 삭제 (deleted_at)
-tags: [spring, java, database, jpa]
+tags: [spring, java, database]
 updated: 2026-09-22
 ---
 

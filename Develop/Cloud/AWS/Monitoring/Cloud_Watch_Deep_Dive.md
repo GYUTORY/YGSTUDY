@@ -1,7 +1,7 @@
 ---
 title: AWS CloudWatch 심화 (Logs, Metrics, Alarms, Events, Insights, Dashboards)
 tags: [aws, monitoring, observability, cloud]
-updated: 2026-08-05
+updated: 2026-09-22
 ---
 
 # AWS CloudWatch 심화
@@ -115,6 +115,106 @@ async def handler(event, context, metrics):
 ```
 
 EMF는 로그 적재 비용만 발생하고 메트릭 추출은 무료다. 다만 Dimension 조합마다 커스텀 메트릭이 생성되므로 High-cardinality Dimension(예: userId)을 Dimension에 넣으면 메트릭 폭발로 비용이 급증한다. userId 같은 값은 Property로 남기고 Dimension에는 environment, region, api_name 정도만 넣는다.
+
+#### 차원 집합 복수 지정
+
+`CloudWatchMetrics` 배열에 항목을 여러 개 넣으면 같은 필드 값이 다른 차원 조합으로 각각 집계된다.
+
+```python
+import json, time
+
+def emit(api_name: str, latency_ms: float, env: str = "prod"):
+    payload = {
+        "_aws": {
+            "Timestamp": int(time.time() * 1000),
+            "CloudWatchMetrics": [
+                {
+                    "Namespace": "MyService/Api",
+                    "Dimensions": [["Environment", "ApiName"]],
+                    "Metrics": [{"Name": "Latency", "Unit": "Milliseconds"}]
+                },
+                {
+                    "Namespace": "MyService/Api",
+                    "Dimensions": [["Environment"]],
+                    "Metrics": [{"Name": "Latency", "Unit": "Milliseconds"}]
+                }
+            ]
+        },
+        "Environment": env,
+        "ApiName": api_name,
+        "Latency": latency_ms
+    }
+    print(json.dumps(payload))
+```
+
+로그 한 줄이 두 개의 메트릭 시리즈를 만든다. `["Environment", "ApiName"]` 조합은 API별 레이턴시 알람에 쓰고, `["Environment"]` 조합은 전체 레이턴시 대시보드에 쓰는 식이다. 배열 안에 `[["A", "B"], ["A"]]`처럼 한 네임스페이스 안에서도 여러 차원 집합을 한꺼번에 지정할 수 있다.
+
+#### 고해상도 EMF
+
+1분보다 짧은 집계가 필요하면 `Metrics` 배열에 `StorageResolution`을 추가한다.
+
+```json
+"Metrics": [
+  {"Name": "Latency", "Unit": "Milliseconds", "StorageResolution": 1},
+  {"Name": "ErrorCount", "Unit": "Count", "StorageResolution": 60}
+]
+```
+
+`StorageResolution: 1`이면 1초 해상도, 생략하면 60초다. 메트릭마다 다른 해상도를 섞을 수 있다. 고해상도 메트릭은 요금이 달라지고 알람도 별도 과금이 붙으므로 초 단위가 실제로 필요한 경우에만 쓴다. 처음부터 `StorageResolution: 1`로 시작하면 나중에 줄일 때 알람을 모두 재정의해야 한다.
+
+#### Java에서 EMF 사용
+
+`aws-embedded-metrics-java` 라이브러리가 있지만 Lambda 런타임 위주라 Spring Boot에서 쓰려면 별도 래핑이 필요하다. 직접 JSON으로 구성하는 편이 제어하기 쉽다.
+
+```java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
+
+public class EmfEmitter {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static void emit(String namespace,
+                             Map<String, String> dimensions,
+                             Map<String, Double> metrics,
+                             Map<String, Object> properties) {
+        List<Map<String, Object>> defs = metrics.keySet().stream()
+            .map(n -> Map.<String, Object>of("Name", n, "Unit", "Count"))
+            .collect(Collectors.toList());
+
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.putAll(properties);
+        root.putAll(dimensions);
+        root.putAll(metrics);
+        root.put("_aws", Map.of(
+            "Timestamp", System.currentTimeMillis(),
+            "CloudWatchMetrics", List.of(Map.of(
+                "Namespace", namespace,
+                "Dimensions", List.of(new ArrayList<>(dimensions.keySet())),
+                "Metrics", defs
+            ))
+        ));
+
+        try {
+            System.out.println(MAPPER.writeValueAsString(root));
+        } catch (Exception ignored) { }
+    }
+}
+```
+
+ECS/Fargate awslogs 드라이버가 stdout을 수집한다. EC2라면 CloudWatch Agent가 stdout을 읽도록 구성되어 있어야 한다.
+
+#### defaultValue와 무 데이터 구간
+
+트래픽이 없는 구간에는 EMF 레코드 자체가 없어서 메트릭이 누락된다. 알람에 `TreatMissingData=breaching`을 설정했다면 트래픽이 없는 새벽에 알람이 계속 울린다. `defaultValue`로 이를 방지한다.
+
+```json
+"Metrics": [
+  {"Name": "ErrorCount", "Unit": "Count", "defaultValue": 0},
+  {"Name": "Latency", "Unit": "Milliseconds"}
+]
+```
+
+`defaultValue: 0`을 지정하면 해당 집계 구간에 EMF 레코드가 없어도 0으로 채워진다. `Latency`에는 `defaultValue`를 주지 않는 편이 낫다 — 0ms는 의미 없는 값이라 알람과 그래프에서 왜곡이 생긴다.
 
 ### 2.3 CloudWatch Agent (StatsD/CollectD)
 
@@ -377,6 +477,105 @@ Logs Insights는 스캔한 데이터량 기준으로 과금된다(GB당 약 $0.0
 - 시간 범위를 명시적으로 좁힌다.
 - 자주 쓰는 분석은 Metric Filter로 메트릭화해서 매번 쿼리하지 않도록 한다.
 
+### 7.5 조건 함수
+
+JSON 로그에서 필드가 항상 존재하는 것은 아니다. 없는 필드로 집계하면 결과가 왜곡된다.
+
+`ispresent(field)`로 필드가 있는 레코드만 포함한다.
+
+```
+fields @timestamp, duration, api_name
+| filter ispresent(duration) and ispresent(api_name)
+| stats pct(duration, 95) as p95 by api_name
+| sort p95 desc
+```
+
+헬스체크나 배치 작업 로그처럼 `duration`이 없는 레코드가 섞여 있으면 `ispresent` 없이 돌렸을 때 p95가 실제보다 낮게 나온다.
+
+`if(condition, value_when_true, value_when_false)`는 조건부 값을 만든다.
+
+```
+fields @timestamp, status_code
+| stats
+    count() as total,
+    sum(if(status_code >= 500, 1, 0)) as srv_error,
+    sum(if(status_code >= 400 and status_code < 500, 1, 0)) as cli_error
+by bin(5m)
+```
+
+`coalesce(field1, field2, fallback)`는 첫 번째 non-null 값을 반환한다. 서비스마다 trace ID 필드명이 다를 때 fallback 체인으로 쓴다.
+
+```
+fields @timestamp, coalesce(trace_id, traceId, x_trace_id, "unknown") as correlation_id
+| filter level = "ERROR"
+| sort @timestamp desc
+| limit 50
+```
+
+### 7.6 다중 Log Group 쿼리
+
+콘솔에서 Log Group을 여러 개 선택하거나 API에서 `logGroupNames` 배열로 지정하면 `@log` 필드로 출처를 구분할 수 있다.
+
+```
+fields @timestamp, @log, level, message, trace_id
+| filter level = "ERROR"
+| stats count() as error_count by @log
+| sort error_count desc
+```
+
+`@log`에는 `account_id:log_group_name` 형식이 들어온다. 마이크로서비스 전체의 에러를 출처별로 집계할 때 유용하다. Log Group이 많을수록 스캔량이 합산되므로 시간 범위를 먼저 좁혀야 한다.
+
+API로 자동화할 때는 다음 패턴을 쓴다.
+
+```python
+import boto3, time
+from datetime import datetime, timedelta
+
+def run_query(log_groups: list, query: str, hours: int = 1):
+    logs = boto3.client("logs")
+    now = int(datetime.utcnow().timestamp())
+    start = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
+
+    resp = logs.start_query(
+        logGroupNames=log_groups,
+        startTime=start,
+        endTime=now,
+        queryString=query,
+    )
+    qid = resp["queryId"]
+
+    for _ in range(60):
+        result = logs.get_query_results(queryId=qid)
+        if result["status"] == "Complete":
+            return result["results"]
+        if result["status"] in ("Failed", "Cancelled"):
+            raise RuntimeError(result["status"])
+        time.sleep(2)
+    raise TimeoutError("Query timed out")
+```
+
+`get_query_results`는 완료 여부를 폴링해야 한다. `queryId`는 24시간 후 만료된다. 자동화 스크립트에서 `QueryNotFoundException`이 발생하면 재실행이 필요하다.
+
+### 7.7 문자열 함수
+
+- `strlen(field)` — 필드 길이. 비정상적으로 긴 요청 본문 탐지에 쓴다.
+- `substr(field, start, end)` — 부분 문자열 추출.
+- `trim(field)` — 앞뒤 공백 제거.
+- `split(field, delimiter, index)` — 구분자로 분리.
+- `replace(field, "search", "replacement")` — 문자열 치환.
+
+`parse`의 글로브 패턴은 `@logStream` 같은 예약 필드에도 쓸 수 있다.
+
+```
+fields @timestamp, @logStream
+| parse @logStream "ecs/*/task-*" as service_name, task_id
+| filter ispresent(service_name)
+| stats count() as log_count by service_name
+| sort log_count desc
+```
+
+ECS 컨테이너 로그 스트림이 `ecs/order-api/task-abc123` 형태라면 서비스명을 추출해서 서비스별 로그 볼륨을 집계할 수 있다.
+
 ---
 
 ## 8. 구조화 로깅과 JSON 필터
@@ -536,6 +735,66 @@ resource "aws_oam_link" "main" {
 Keys에 지정한 필드 조합별로 카운트를 집계해 Top N을 보여준다. DDoS 의심 상황에서 어떤 IP가 가장 많이 5xx를 유발했는지 즉시 확인할 수 있다.
 
 AWS가 기본 제공하는 Contributor Insights Rules도 있다. VPC Flow Logs 기반 상위 Talker, Route 53 Resolver 쿼리 상위 도메인 등이다.
+
+### 복수 키 조합
+
+Keys를 여러 개 나열하면 조합별 상위 기여자를 볼 수 있다.
+
+```json
+{
+  "Contribution": {
+    "Keys": ["$.clientIp", "$.statusCode"],
+    "Filters": [
+      { "Match": "$.statusCode", "GreaterThan": 499 }
+    ]
+  }
+}
+```
+
+`clientIp + statusCode` 조합으로 집계하면 어떤 IP가 어떤 에러를 발생시키는지 구분된다. 유니크한 키 조합이 10,000을 초과하면 집계가 샘플링으로 전환된다. `ContributorLimitReached` 메트릭이 1이 되면 이 상태다 — Keys를 줄이거나 Filter 조건을 강화해야 한다.
+
+### AWS 관리형 규칙
+
+VPC Flow Logs와 Route 53 Resolver 로그에 대한 관리형 규칙이 기본 제공된다.
+
+- `VPCFlowLogsBySourceAddress` — 트래픽 발신 IP Top N
+- `VPCFlowLogsByDestAddress` — 수신 IP Top N
+- `VPCFlowLogsBySourcePort` — 발신 포트 Top N (비정상 포트 스캔 탐지에 유용)
+- `Route53ResolverTopQueriedDomains` — DNS 쿼리 상위 도메인
+
+콘솔에서 "Enable" 버튼 하나로 활성화된다. Log Group 이름만 지정하면 되고 규칙 JSON을 직접 작성할 필요가 없다. VPC 내 이상 트래픽 분석의 출발점으로 쓴다.
+
+### CloudWatch Alarms와 연결
+
+Contributor Insights가 집계한 값은 `CloudWatchContributorInsights` 네임스페이스에서 메트릭으로 노출된다.
+
+```hcl
+resource "aws_cloudwatch_metric_alarm" "suspect_ip" {
+  alarm_name          = "prod-ddos-suspect"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  datapoints_to_alarm = 1
+  threshold           = 500
+  treat_missing_data  = "notBreaching"
+
+  metric_query {
+    id          = "m1"
+    return_data = true
+    metric {
+      namespace   = "CloudWatchContributorInsights"
+      metric_name = "MaxContributorValue"
+      period      = 60
+      stat        = "Maximum"
+      dimensions  = {
+        LogGroupName = "/aws/apigateway/prod"
+        RuleName     = "top-5xx-ips"
+      }
+    }
+  }
+}
+```
+
+`MaxContributorValue`는 집계 구간 내 상위 기여자의 카운트다. 단일 IP가 1분에 500번 이상 5xx를 발생시키면 알람이 울린다. `UniqueContributors`는 집계 구간 동안 나타난 고유 기여자 수다 — 이게 갑자기 치솟으면 새로운 공격 소스가 다수 출현했다는 신호일 수 있다.
 
 ---
 
@@ -832,7 +1091,188 @@ resource "aws_cloudwatch_dashboard" "service" {
 
 ---
 
-## 18. 정리하면서
+## 18. EMF 기반 구조화 로깅 전체 구현
+
+EMF의 핵심 패턴은 한 JSON 레코드에 메트릭 값과 컨텍스트를 함께 담는 것이다. 요청 하나가 처리되는 동안 모은 모든 지표를 응답 직전에 한 번 flush하면, 로그 한 줄에서 레이턴시·에러 여부·비즈니스 수치·trace ID를 한 번에 볼 수 있다. 메트릭이 튀었을 때 Logs Insights에서 해당 시점 레코드를 바로 찾아 원인을 추적할 수 있다.
+
+### 컨텍스트 흐름
+
+```
+HTTP 요청 진입
+  → MetricsContext 생성 (ThreadLocal)
+  → 비즈니스 레이어: context.metric(), context.prop()
+  → 응답 직전: context.flush() → stdout EMF JSON
+  → CloudWatch Logs 수집 → 메트릭 자동 추출
+```
+
+### MetricsContext 구현
+
+```java
+public class MetricsContext {
+    private static final ThreadLocal<MetricsContext> LOCAL = new ThreadLocal<>();
+
+    private final Map<String, Double> metrics = new LinkedHashMap<>();
+    private final Map<String, Object> props = new LinkedHashMap<>();
+    private final Map<String, String> dims = new LinkedHashMap<>();
+    private final long startMs = System.currentTimeMillis();
+
+    public static MetricsContext start() {
+        MetricsContext ctx = new MetricsContext();
+        LOCAL.set(ctx);
+        return ctx;
+    }
+
+    public static MetricsContext current() {
+        return LOCAL.get();
+    }
+
+    public MetricsContext dim(String k, String v) { dims.put(k, v); return this; }
+    public MetricsContext metric(String k, double v) { metrics.merge(k, v, Double::sum); return this; }
+    public MetricsContext prop(String k, Object v) { props.put(k, v); return this; }
+
+    public void flush(String namespace) {
+        metrics.put("Duration", (double)(System.currentTimeMillis() - startMs));
+
+        List<Map<String, Object>> defs = metrics.keySet().stream()
+            .map(n -> Map.<String, Object>of(
+                "Name", n,
+                "Unit", n.equals("Duration") ? "Milliseconds" : "Count"
+            ))
+            .collect(Collectors.toList());
+
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.putAll(props);
+        root.putAll(dims);
+        root.putAll(metrics);
+        root.put("_aws", Map.of(
+            "Timestamp", System.currentTimeMillis(),
+            "CloudWatchMetrics", List.of(Map.of(
+                "Namespace", namespace,
+                "Dimensions", List.of(new ArrayList<>(dims.keySet())),
+                "Metrics", defs
+            ))
+        ));
+
+        try {
+            System.out.println(new ObjectMapper().writeValueAsString(root));
+        } catch (Exception ignored) {
+        } finally {
+            LOCAL.remove();
+        }
+    }
+}
+```
+
+`flush()` 안에서 `LOCAL.remove()`를 먼저 호출해야 같은 스레드가 재사용될 때 이전 컨텍스트가 남지 않는다.
+
+### Spring Boot 필터 연동
+
+```java
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class MetricsFilter implements Filter {
+
+    @Value("${metrics.namespace:MyService}")
+    private String namespace;
+
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res,
+                         FilterChain chain) throws IOException, ServletException {
+        HttpServletRequest hreq = (HttpServletRequest) req;
+        HttpServletResponse hres = (HttpServletResponse) res;
+
+        MetricsContext ctx = MetricsContext.start()
+            .dim("Environment", System.getenv().getOrDefault("ENV", "dev"))
+            .dim("Method", hreq.getMethod())
+            .prop("path", hreq.getRequestURI());
+
+        String traceId = hreq.getHeader("X-Amzn-Trace-Id");
+        if (traceId != null) ctx.prop("traceId", traceId);
+
+        try {
+            chain.doFilter(req, res);
+            ctx.metric("Status", hres.getStatus())
+               .metric("Error", hres.getStatus() >= 500 ? 1 : 0);
+        } finally {
+            ctx.flush(namespace);
+        }
+    }
+}
+```
+
+`finally`에서 flush해야 예외가 터져도 메트릭이 기록된다.
+
+### 비즈니스 레이어에서 추가 지표
+
+```java
+@Service
+public class OrderService {
+    public Order create(CreateOrderReq req) {
+        MetricsContext ctx = MetricsContext.current();
+        if (ctx != null) {
+            ctx.prop("orderId", req.getId())
+               .metric("OrderAmount", req.getAmount());
+        }
+
+        long t = System.currentTimeMillis();
+        Order order = repo.save(req.toEntity());
+
+        if (ctx != null) {
+            ctx.metric("DbWrite", 1)
+               .prop("dbMs", System.currentTimeMillis() - t);
+        }
+        return order;
+    }
+}
+```
+
+`MetricsContext.current()`가 null을 반환하는 경우가 있다 — 배치 작업, 스케줄러, 테스트 컨텍스트에서는 Filter가 없다. null 체크를 빼면 NPE가 난다.
+
+### 결과 로그 형태
+
+```json
+{
+  "_aws": {
+    "Timestamp": 1714000125000,
+    "CloudWatchMetrics": [{
+      "Namespace": "MyService",
+      "Dimensions": [["Environment", "Method"]],
+      "Metrics": [
+        {"Name": "Duration", "Unit": "Milliseconds"},
+        {"Name": "Status", "Unit": "Count"},
+        {"Name": "Error", "Unit": "Count"},
+        {"Name": "OrderAmount", "Unit": "Count"},
+        {"Name": "DbWrite", "Unit": "Count"}
+      ]
+    }]
+  },
+  "Environment": "prod",
+  "Method": "POST",
+  "path": "/orders/create",
+  "orderId": "ord-9987",
+  "traceId": "Root=1-abc;Parent=def;Sampled=1",
+  "dbMs": 12,
+  "Duration": 45,
+  "Status": 201,
+  "Error": 0,
+  "OrderAmount": 49000,
+  "DbWrite": 1
+}
+```
+
+`Duration`, `Status`, `Error`, `OrderAmount`, `DbWrite`는 CloudWatch 메트릭으로 집계된다. `path`, `orderId`, `traceId`, `dbMs`는 메트릭 차원에 포함되지 않고 Logs Insights에서만 검색 가능한 컨텍스트 필드로 남는다.
+
+### 주의사항
+
+`Method` Dimension은 GET/POST/PUT/DELETE 정도라 카디널리티가 낮다. `path`를 Dimension에 넣으면 `/orders/{orderId}` 같은 경로가 그대로 들어가 폭발한다. 라우트 패턴이 필요하면 Spring의 `HandlerMapping`에서 매핑된 패턴 문자열을 꺼내 별도 Dimension으로 넣는다.
+
+ThreadLocal 방식은 Java 21 이상의 Virtual Thread와 충돌한다. Virtual Thread 환경에서는 `ScopedValue`나 Reactor의 `Context` 기반으로 전파 방식을 바꿔야 한다.
+
+flush 중복 호출을 막으려면 `flush()` 내부에서 `LOCAL.remove()`를 먼저 실행하고 나서 JSON을 emit한다. `finally`와 명시적 `flush()` 호출을 혼용하면 두 번 찍힌다.
+
+---
+
+## 19. 정리하면서
 
 CloudWatch는 기능이 방대해서 전부 써보기 전에는 전체 구조가 잘 그려지지 않는다. 실무에서 자주 하는 실수는:
 

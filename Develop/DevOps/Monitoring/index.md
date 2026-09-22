@@ -9,7 +9,7 @@ hide:
 
 # DevOps · Monitoring 전체 보기
 
-문서 11개.
+문서 14개.
 
 ## Loki
 
@@ -30,4 +30,7 @@ hide:
 - [Prometheus](Prometheus.md)
 - [Prometheus + Grafana 모니터링 스택](Prometheus_Grafana.md)
 - [Prometheus 메트릭 수집](Prometheus_메트릭_수집.md)
+- [SLO와 에러 버짓 구현](SLO_Error_Budget_Implementation.md)
+- [알림 설계 심화](Alert_Design.md)
+- [지속적 프로파일링](Continuous_Profiling.md)
 

@@ -9,7 +9,7 @@ hide:
 
 # Spring 전체 보기
 
-문서 28개.
+문서 29개.
 
 ## DI와 Bean
 
@@ -59,6 +59,7 @@ hide:
 ## 개요
 
 - [JPA 소프트 삭제 (deleted_at)](JPA_Soft_Delete.md)
+- [Spring Actuator Micrometer 심화](Spring_Actuator_Micrometer.md)
 - [Spring Cache 심화](Spring_Cache_Advanced.md)
 - [Spring Cache 테스트](Spring_Cache_Testing.md)
 - [Spring 테스트](Spring_Test.md)

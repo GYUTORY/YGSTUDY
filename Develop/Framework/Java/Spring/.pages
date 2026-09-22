@@ -3,3 +3,4 @@ nav:
   - index.md
   - Spring_Cache_Testing.md
   - Spring_Cache_Advanced.md
+  - Spring_Actuator_Micrometer.md

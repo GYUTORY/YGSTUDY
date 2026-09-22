@@ -16,3 +16,6 @@ nav:
   - Alerting:
     - 기본 구조: Alerting_Rules.md
     - 규칙 설계: Alerting_규칙_설계.md
+    - 알림 설계 심화: Alert_Design.md
+  - SLO와 에러 버짓 구현: SLO_Error_Budget_Implementation.md
+  - 지속적 프로파일링: Continuous_Profiling.md

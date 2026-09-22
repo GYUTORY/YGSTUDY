@@ -9,7 +9,7 @@ hide:
 
 # Framework · Java 전체 보기
 
-문서 29개.
+문서 30개.
 
 ## Spring
 
@@ -20,6 +20,7 @@ hide:
 - [Project Lombok](Spring/Lombok.md)
 - [SLF4J (Simple Logging Facade for Java)](Spring/SLF4J.md)
 - [Spring AOP & 트랜잭션 심화](Spring/AOP_트랜잭션.md)
+- [Spring Actuator Micrometer 심화](Spring/Spring_Actuator_Micrometer.md)
 - [Spring Batch](Spring/Spring_Batch.md)
 - [Spring Bean 개념과 사용법](Spring/Bean.md)
 - [Spring Bean 심화](Spring/Spring_Bean_심화.md)
