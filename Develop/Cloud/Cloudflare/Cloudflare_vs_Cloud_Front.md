@@ -1,7 +1,7 @@
 ---
 title: Cloudflare vs CloudFront
 tags: [cloud, cdn, performance, network, aws, security]
-updated: 2026-09-23
+updated: 2026-09-24
 ---
 
 # Cloudflare vs CloudFront
@@ -15,6 +15,28 @@ Cloudflare는 2026년 기준 330개 이상의 PoP를 운영한다. 단순 개수
 CloudFront는 AWS 리전 기반으로 엣지 로케이션을 배치한다. 서울 리전(ap-northeast-2) 덕분에 국내 레이턴시는 비슷한 수준이지만, 동남아·아프리카·남미 일부 지역은 Cloudflare보다 PoP 밀도가 낮다. AWS는 정확한 PoP 수를 공개하지 않지만 600개 이상이라고 한다 — 단, 이 숫자에는 리전 엣지 캐시(Regional Edge Cache)까지 포함된다.
 
 실무에서 체감 차이가 나는 경우는 ISP 다양성이 높은 지역이다. 한국처럼 주요 ISP가 몇 개 안 되는 환경에서는 거의 차이가 없다.
+
+## SSL/TLS 종단 방식
+
+Cloudflare와 CloudFront는 TLS를 끊는 방식이 구조적으로 다르다.
+
+**Cloudflare**는 클라이언트-엣지 구간과 엣지-오리진 구간을 모드 하나로 묶어서 설정한다.
+
+- **Off**: TLS 없이 HTTP만. 실무에서 쓸 이유가 없다.
+- **Flexible**: 클라이언트-Cloudflare는 HTTPS, Cloudflare-오리진은 HTTP. 오리진에 인증서가 없어도 된다. Cloudflare-오리진 구간이 평문이라 ISP나 중간 네트워크에 노출된다. 개발 환경 외에는 쓰지 않는다.
+- **Full**: 클라이언트-Cloudflare는 HTTPS, Cloudflare-오리진도 HTTPS. 단, 오리진 인증서 유효성을 검증하지 않는다. 자체 서명 인증서도 통과한다. 오리진이 실제로 본인이 주장하는 서버인지 확인이 안 된다는 뜻이다.
+- **Full (Strict)**: 오리진 인증서 유효성까지 검증한다. CA 서명 또는 Cloudflare Origin CA 발급 인증서가 있어야 한다. 실무에서 써야 하는 설정이다.
+
+Flexible 모드가 기본인 환경에서 Full (Strict)로 바꾸다가 오리진에 인증서가 없어서 502가 나는 경우가 있다. 반대로 Full 모드를 쓰면서 "오리진이 HTTPS니까 안전하다"고 착각하는 팀도 있다 — 인증서 검증이 없다.
+
+**CloudFront**는 "Viewer Protocol Policy"와 "Origin Protocol Policy"를 별도 설정으로 분리한다.
+
+- **Viewer Protocol Policy**: 클라이언트-CloudFront 구간. `HTTPS Only`, `Redirect HTTP to HTTPS`, `HTTP and HTTPS` 중 선택.
+- **Origin Protocol Policy**: CloudFront-오리진 구간. `HTTP Only`, `HTTPS Only`, `Match Viewer` 중 선택.
+
+`Match Viewer`는 클라이언트가 HTTP로 오면 오리진도 HTTP로, HTTPS로 오면 오리진도 HTTPS로 전달한다. Viewer Protocol Policy를 `Redirect HTTP to HTTPS`로 설정하면 CloudFront에 도달하는 요청은 전부 HTTPS라 오리진도 HTTPS로 간다.
+
+오리진 SSL 검증은 기본으로 켜져 있다. 자체 서명 인증서를 오리진에 쓰면 CloudFront가 연결을 거부한다. Cloudflare Full 모드와 달리, CloudFront는 구성 수준에서 이 차이가 명시적으로 드러난다.
 
 ## 캐싱 동작
 
@@ -33,6 +55,28 @@ CloudFront는 한 달에 1,000개 경로까지 무료로 무효화(invalidation)
 Cloudflare는 무료 플랜에서도 API로 캐시 퍼지(purge)가 가능하고, URL 단위 퍼지는 무제한이다. 다만 무료 플랜의 캐시 퍼지는 약간의 전파 지연이 있다. 태그 기반 퍼지(Cache-Tag)는 Enterprise 플랜에서만 쓸 수 있다.
 
 배포할 때마다 캐시를 퍼지해야 하는 SPA 구조라면 CloudFront의 invalidation 비용이 실제로 쌓인다. 파일명에 해시를 박는 방식(`main.8f2a1c.js`)을 쓰면 퍼지 없이도 되는데, 그렇게 못 하는 환경이 있다.
+
+## 오리진 설정 세부사항
+
+### 타임아웃
+
+| 항목 | Cloudflare | CloudFront |
+|---|---|---|
+| 커넥션 타임아웃 | 15초 (고정) | 1~10초 설정 가능 (기본 10초) |
+| 읽기 타임아웃 | 100초 (Pro 이상 변경 가능) | 1~60초 설정 가능 (기본 30초) |
+| KeepAlive 타임아웃 | — | 1~60초 설정 가능 (기본 5초) |
+
+Cloudflare 무료·Pro 플랜은 오리진 타임아웃을 바꿀 수 없다. 오리진이 100초 이상 걸리는 무거운 쿼리를 처리한다면 Enterprise 플랜이 아닌 이상 Cloudflare 앞에 두기 어렵다.
+
+CloudFront는 OriginReadTimeout을 최대 60초까지 늘릴 수 있고, 그 이상이 필요하면 AWS 지원을 통해 180초까지 가능하다. 오리진이 배치 처리를 하거나 SSR 렌더링이 느린 경우 이 값을 조정할 일이 생긴다.
+
+### 오리진 헬스체크
+
+CloudFront는 자체 헬스체크를 제공하지 않는다. 오리진이 죽으면 CloudFront는 5xx를 그대로 반환한다. Origin Group으로 주-보조 오리진을 구성하면 실패 시 보조로 전환되는데, 이건 헬스체크가 아니라 실제 요청이 실패할 때 발동하는 폴백이다.
+
+Cloudflare Load Balancing(Pro 이상 별도 옵션)은 오리진 헬스체크를 직접 실행한다. 풀 안의 오리진이 실패하면 다음 오리진으로 전환한다. 헬스체크 간격, 임계값, HTTP vs TCP 방식을 설정할 수 있다.
+
+단순 CloudFront CDN 구성에서는 ALB나 Route 53 Health Check가 오리진 상태 관리를 맡고, CloudFront는 오리진이 정상이라는 전제로 트래픽을 보내는 역할만 한다. 오리진 다운 시 자동 폴백이 필요하다면 Origin Group을 구성하거나 ALB 레벨에서 처리해야 한다.
 
 ## 엣지 컴퓨팅
 
@@ -80,6 +124,30 @@ AWS Shield Standard는 CloudFront를 통해 자동 적용된다. L3/L4 보호는
 
 Bot 관리도 차이가 난다. Cloudflare Bot Management는 Pro 이상에서 기본 봇 차단이 가능하고, 크리덴셜 스터핑이나 스크레이핑을 막는 기능은 상위 플랜에 있다. AWS WAF도 Bot Control 관리 규칙이 있는데, Common 모드는 월 $10, Targeted 모드는 월 $40에 요청량 과금이 더해진다.
 
+## 로깅·모니터링
+
+**Cloudflare Analytics**
+
+무료 플랜에서도 대시보드에서 실시간(약 1분 지연) 데이터를 볼 수 있다. 요청 수, 캐시 히트율, 국가·ASN 분포, WAF 이벤트가 기본 제공된다.
+
+무료 플랜의 로그 보존 기간은 24시간이다. 로그를 외부로 내보내는 기능(Logpush)은 Enterprise 플랜이다. 무료·Pro 플랜에서 원시 로그를 S3나 Splunk로 보내는 방법은 없다.
+
+Workers 로그는 `wrangler tail` 명령으로 실시간 스트리밍이 가능하다. 개발 중에는 유용한데, 프로덕션에서 집계해서 보관하려면 Logpush 없이 안 된다.
+
+**CloudFront 액세스 로그**
+
+CloudFront 액세스 로그는 S3 버킷에 쌓인다. 배달 지연이 있다 — 보통 수 분이지만 최대 수 시간 지연되는 경우도 있다. 실시간 분석이 필요하면 CloudWatch Real-time Logs를 별도로 설정해야 한다.
+
+CloudWatch Real-time Logs는 Kinesis Data Stream으로 로그를 보내는 구조다. 설정이 복잡하고 Kinesis 비용이 별도로 붙는다. 표본 추출률(sampling rate)을 1~100%로 설정할 수 있어서 비용 절감을 위해 1%만 수집하기도 한다.
+
+CloudWatch 기본 메트릭(요청 수, 오류율, 캐시 히트율, 레이턴시)은 별도 설정 없이 수집된다. 다만 국가 단위나 경로 단위 분석은 로그를 직접 파야 한다.
+
+두 제품의 차이를 정리하면:
+
+- 실시간 트래픽 파악: Cloudflare 대시보드에서 바로 볼 수 있다. CloudFront는 Real-time Logs 설정 필요.
+- 원시 로그 장기 보관·분석: CloudFront가 유연하다. S3에 쌓고 Athena로 쿼리하는 방식이 자리를 잡았다.
+- WAF 이벤트 분석: Cloudflare는 대시보드에서 바로 필터링된다. CloudFront는 WAF 로그를 별도 S3 버킷에 설정해야 한다.
+
 ## 가격 구조
 
 가격 비교는 트래픽 패턴에 따라 결과가 달라진다.
@@ -103,6 +171,35 @@ ALB를 오리진으로 쓸 때도 CloudFront ↔ ALB 사이에 커스텀 헤더�
 WAF 규칙, CloudWatch 메트릭, ACM 인증서, Route 53 — 전부 AWS 콘솔에서 관리한다. 별도 서비스를 배울 필요가 없다.
 
 Cloudflare를 AWS 앞에 붙이는 건 가능하지만, 이 경우 Cloudflare와 AWS 두 곳에서 TLS를 끊어야 하고, 실제 클라이언트 IP를 origin에 전달하는 설정(`CF-Connecting-IP` 헤더 처리)도 직접 해야 한다. Cloudflare에서 AWS WAF로 이중 WAF를 운영하면 정책 충돌 디버깅도 복잡해진다.
+
+## CDN 전환 시 stale 콘텐츠
+
+Cloudflare에서 CloudFront로, 또는 반대 방향으로 전환할 때 캐시 전파가 겹치는 구간이 생긴다. 이 구간 동안 stale 콘텐츠가 살아있는 시간을 미리 계산하고 들어가지 않으면 배포 직후 일부 사용자가 옛 파일을 받는 상황이 발생한다.
+
+**최대 stale 지속 시간 계산**
+
+시나리오: Cloudflare → CloudFront 전환, 동시에 오리진 콘텐츠 변경
+
+```
+최대 stale 지속 시간 = DNS TTL + 기존 CDN 잔여 캐시 TTL
+```
+
+DNS TTL이 300초이고 Cloudflare 엣지 캐시 TTL이 600초라면, DNS 변경 후 최대 900초(15분) 동안 일부 요청이 stale을 반환할 수 있다. DNS가 바뀌어도 Cloudflare IP를 캐싱한 클라이언트는 DNS TTL이 만료될 때까지 Cloudflare를 계속 바라보고, 그 사이 Cloudflare 엣지 캐시에 남아있는 콘텐츠는 캐시 TTL이 다할 때까지 살아있다.
+
+전환 전 준비 순서:
+
+1. 전환 수 시간 전에 DNS TTL을 60초로 낮춘다. 기존 TTL(보통 300~3600초)만큼 전파를 기다린다.
+2. 기존 CDN(Cloudflare) 캐시를 퍼지한다.
+3. DNS를 새 CDN(CloudFront)으로 변경한다.
+4. 이제 stale 구간은 DNS TTL(60초) 정도로 줄어든다.
+
+**이중 캐시 구성에서의 TTL 중첩**
+
+Cloudflare를 앞에 두고 CloudFront를 오리진으로 쓰는 구성을 가끔 본다. 이 경우 TTL이 두 겹으로 쌓인다.
+
+오리진의 `max-age=300`이 CloudFront에 캐시되면, Cloudflare는 CloudFront에서 내려온 `Cache-Control: max-age=300` 기준으로 다시 캐시한다. 오리진 콘텐츠를 바꾼 뒤 CloudFront 캐시를 퍼지해도 Cloudflare 캐시에 남아있는 건 별도로 퍼지해야 한다. 퍼지를 빠뜨리면 Cloudflare 캐시 TTL(최대 300초)만큼 stale이 계속 나간다.
+
+콘텐츠 변경이 잦은 서비스에서 이중 캐시 구성을 피해야 하는 이유가 여기 있다. 캐시 계층이 하나 늘어날 때마다 퍼지해야 하는 대상도 하나 늘어난다.
 
 ## 실무 선택 기준
 

@@ -9,7 +9,7 @@ hide:
 
 # Cloudflare 전체 보기
 
-문서 6개.
+문서 7개.
 
 ## 개요
 
@@ -19,4 +19,5 @@ hide:
 - [Cloudflare Tunnel로 서비스 외부 노출](Cloudflare_Tunnel.md)
 - [Cloudflare WAF 룰 작성 실무](Cloudflare_WAF.md)
 - [Cloudflare Workers](Cloudflare_Workers.md)
+- [Cloudflare vs CloudFront](Cloudflare_vs_Cloud_Front.md)
 
