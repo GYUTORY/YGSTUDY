@@ -9,10 +9,11 @@ hide:
 
 # Logging & Monitoring 전체 보기
 
-문서 3개.
+문서 4개.
 
 ## 개요
 
+- [DB 레벨 감사 로깅](Database_Audit_Logging.md)
 - [감사 요구사항](Audit_Requirements.md)
 - [로그 수집 파이프라인](Log_Aggregation_Pipeline.md)
 - [로깅 & 모니터링](Logging_and_Monitoring.md)

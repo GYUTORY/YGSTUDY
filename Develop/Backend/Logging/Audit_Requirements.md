@@ -1,7 +1,7 @@
 ---
 title: 감사 요구사항
-tags: [security, nodejs, observability, backend]
-updated: 2026-08-03
+tags: [security, java, spring, nodejs, observability, backend, messaging]
+updated: 2026-09-23
 ---
 
 # 감사 요구사항
@@ -123,7 +123,7 @@ function signAuditLog(log: AuditLog, secret: string): string {
 
 **접근 제어 불일치**: 감사 로그는 보안팀과 컴플라이언스 담당자만 접근해야 하는 경우가 많다. 운영팀이 자유롭게 볼 수 있는 애플리케이션 로그와 섞이면 접근 제어가 복잡해진다.
 
-**무결성 요구**: 운영 로그는 장애 상황에서 일부 유실돼도 큰 문제가 없지만, 감사 로그는 유실이 규정 위반이다. 별도 파이프라인에서 높은 내구성 설정(예: Kafka acks=all, min.insync.replicas=2)을 적용해야 한다.
+**무결성 요구**: 운영 로그는 장애 상황에서 일부 유실돼도 큰 문제가 없지만, 감사 로그는 유실이 규정 위반이다. 별도 파이프라인에서 높은 내구성 설정(예: Kafka `acks=all`, `min.insync.replicas=2`)을 적용해야 한다.
 
 **볼륨 및 비용 분리**: 트래픽이 많은 서비스에서 모든 API 호출 로그가 감사 로그 스토리지에 들어가면 비용이 폭발한다. 감사 대상만 선별해서 더 비싼 장기 스토리지에 보내는 것이 맞다.
 
@@ -140,6 +140,240 @@ function signAuditLog(log: AuditLog, secret: string): string {
 GDPR은 보존 기간을 명시하지 않는 대신 "처리 목적이 소멸하면 삭제"를 요구하므로, 감사 로그 보존 정책을 데이터 처리 목적과 연동해야 한다. 실무에서는 법무팀과 협의해 2~3년을 기본 정책으로 잡는 경우가 많다.
 
 보존 기간이 지난 감사 로그를 삭제할 때도 로그를 남긴다. 언제 어떤 범위의 로그를 삭제했는지 기록하지 않으면, 나중에 "해당 기간 로그가 없는 이유"를 설명하지 못한다.
+
+## 비동기 파이프라인 — Kafka
+
+감사 로그 저장을 메인 트랜잭션에 직접 결합하면 감사 로그 DB 장애가 서비스 전체 장애로 번진다. Kafka를 중간에 두면 프로듀서(애플리케이션 서버)와 컨슈머(감사 로그 저장소)를 분리할 수 있다.
+
+토픽 설정에서 `replication.factor=3`, `min.insync.replicas=2`, `acks=all`을 맞춰야 브로커 1대가 죽어도 메시지를 잃지 않는다. 프로듀서에서는 `enable.idempotence=true`를 설정해 재시도 시 중복 쓰기를 막는다.
+
+```java
+// Kafka 프로듀서 — 감사 이벤트 발행
+@Component
+public class AuditEventProducer {
+
+    private final KafkaTemplate<String, AuditEvent> kafkaTemplate;
+    private static final String TOPIC = "audit-events";
+
+    public void send(AuditEvent event) {
+        kafkaTemplate.send(TOPIC, event.getAuditId(), event)
+            .whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Audit event send failed: auditId={}", event.getAuditId(), ex);
+                    alertService.notifyCritical("AUDIT_PRODUCE_FAILURE", event.getAuditId());
+                }
+            });
+    }
+}
+```
+
+```java
+// Kafka 컨슈머 — 감사 이벤트 저장
+@Component
+public class AuditEventConsumer {
+
+    private final AuditLogRepository auditLogRepository;
+
+    @KafkaListener(
+        topics = "audit-events",
+        groupId = "audit-consumer",
+        containerFactory = "auditKafkaListenerContainerFactory"
+    )
+    public void consume(AuditEvent event) {
+        auditLogRepository.save(AuditLog.from(event));
+    }
+}
+```
+
+컨슈머 설정에서 `enable.auto.commit=false`를 명시하고 수동 커밋을 써야 한다. DB 저장이 완료된 뒤에만 오프셋을 커밋하지 않으면, 저장 직후 컨슈머가 죽었을 때 재처리 시 중복이 발생한다.
+
+**SQS 사용 시**
+
+Kafka 대신 SQS를 쓰는 경우 `MessageRetentionPeriod`를 최소 345,600초(4일)로 설정한다. `VisibilityTimeout`은 컨슈머 처리 시간의 6배 이상으로 잡아야 처리 중 다른 컨슈머가 같은 메시지를 가져가는 상황을 막는다.
+
+```java
+@SqsListener("audit-events-queue")
+public void processAuditEvent(AuditEvent event) {
+    try {
+        auditLogRepository.save(AuditLog.from(event));
+    } catch (Exception e) {
+        // 예외를 다시 던지면 SQS가 VisibilityTimeout 후 재전송
+        throw new RuntimeException("Audit log save failed", e);
+    }
+}
+```
+
+## 저장 실패 처리 — DLQ와 재시도
+
+감사 로그 저장이 실패했을 때 조용히 넘어가는 구조는 규제 환경에서 허용되지 않는다. 실패를 감지하고, 재처리하고, 끝내 처리하지 못한 것을 격리하는 메커니즘이 필요하다.
+
+**Kafka — Dead Letter Topic**
+
+컨슈머에서 처리 실패 시 Dead Letter Topic으로 보내도록 설정한다. `@RetryableTopic`을 쓰면 재시도 횟수와 DLT 토픽을 선언적으로 지정할 수 있다.
+
+```java
+@Component
+public class AuditEventConsumer {
+
+    @RetryableTopic(
+        attempts = "4",                          // 최초 1회 + 재시도 3회
+        backoff = @Backoff(delay = 1000, multiplier = 2.0),
+        dltTopicSuffix = "-dlt",                 // 토픽명: audit-events-dlt
+        include = {DataAccessException.class}    // DB 장애만 재시도
+    )
+    @KafkaListener(topics = "audit-events", groupId = "audit-consumer")
+    public void consume(AuditEvent event) {
+        auditLogRepository.save(AuditLog.from(event));
+    }
+
+    @DltHandler
+    public void handleDlt(AuditEvent event, Exception e) {
+        log.error("Audit event moved to DLT: auditId={}", event.getAuditId(), e);
+        alertService.notifyCritical("AUDIT_DLT", event.getAuditId());
+    }
+}
+```
+
+`DataAccessException`만 재시도 대상으로 지정하는 이유는 직렬화 오류나 유효성 검사 실패는 재시도해도 의미가 없기 때문이다. 모든 예외를 재시도하면 DLT가 아니라 무한 루프를 만든다.
+
+DLT에 메시지가 쌓이는 것 자체가 알람이어야 한다. DLT 컨슈머 랙(consumer lag)이 0보다 크면 즉시 PagerDuty나 Slack 알림을 보낸다. 감사 로그 유실 가능성을 운영팀이 인지하지 못한 채 넘어가는 상황을 막기 위해서다.
+
+DLT에 쌓인 메시지는 원인을 파악한 뒤 원본 토픽으로 재발행하거나, DB를 복구한 뒤 DLT 컨슈머를 별도로 돌린다.
+
+**SQS DLQ 설정**
+
+```json
+{
+  "RedrivePolicy": {
+    "deadLetterTargetArn": "arn:aws:sqs:...:audit-events-dlq",
+    "maxReceiveCount": 3
+  }
+}
+```
+
+`maxReceiveCount`가 3이면 3번 처리 실패 후 DLQ로 이동한다. DLQ의 `MessageRetentionPeriod`는 원본 큐보다 길게(14일) 설정해 분석과 재처리 시간을 확보한다.
+
+## Spring Boot 구현
+
+Spring Boot에서는 AOP를 써서 서비스 메서드 단위로 감사 로그를 선언적으로 붙인다. NestJS의 데코레이터 + 인터셉터 구조와 목적은 같지만, Spring에서는 `@Around` 어드바이스로 구현한다.
+
+**AuditLog 엔티티**
+
+```java
+@Entity
+@Table(name = "audit_logs")
+public class AuditLog {
+
+    @Id
+    private String auditId;
+
+    @Column(nullable = false)
+    private Instant timestamp;
+
+    @Column(columnDefinition = "jsonb")
+    @Convert(converter = JsonbConverter.class)
+    private ActorInfo actor;
+
+    @Column(columnDefinition = "jsonb")
+    @Convert(converter = JsonbConverter.class)
+    private ActionInfo action;
+
+    @Column(columnDefinition = "jsonb")
+    @Convert(converter = JsonbConverter.class)
+    private ResourceInfo resource;
+
+    @Column(columnDefinition = "jsonb")
+    @Convert(converter = JsonbConverter.class)
+    private Map<String, Object> before;
+
+    @Column(columnDefinition = "jsonb")
+    @Convert(converter = JsonbConverter.class)
+    private Map<String, Object> after;
+
+    @Enumerated(EnumType.STRING)
+    private AuditResult result;
+
+    private String signature;
+
+    public static AuditLog from(AuditEvent event) {
+        AuditLog log = new AuditLog();
+        log.auditId = event.getAuditId();
+        log.timestamp = event.getTimestamp();
+        log.actor = event.getActor();
+        log.action = event.getAction();
+        log.resource = event.getResource();
+        log.before = event.getBefore();
+        log.after = event.getAfter();
+        log.result = event.getResult();
+        log.signature = event.getSignature();
+        return log;
+    }
+}
+```
+
+**커스텀 어노테이션과 AuditAspect**
+
+```java
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Auditable {
+    String action();
+    String category();
+}
+```
+
+```java
+@Aspect
+@Component
+public class AuditAspect {
+
+    private final AuditEventProducer auditProducer;
+    private final HttpServletRequest request;
+
+    @Around("@annotation(auditable)")
+    public Object audit(ProceedingJoinPoint pjp, Auditable auditable) throws Throwable {
+        AuditResult auditResult;
+        Object result;
+        try {
+            result = pjp.proceed();
+            auditResult = AuditResult.SUCCESS;
+        } catch (Exception e) {
+            auditResult = AuditResult.FAILURE;
+            sendAuditEvent(auditable, auditResult);
+            throw e;
+        }
+        sendAuditEvent(auditable, auditResult);
+        return result;
+    }
+
+    private void sendAuditEvent(Auditable auditable, AuditResult result) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        AuditEvent event = AuditEvent.builder()
+            .auditId(UlidCreator.getUlid().toString())
+            .timestamp(Instant.now())
+            .actor(ActorInfo.from(auth, request))
+            .action(ActionInfo.of(auditable.action(), auditable.category()))
+            .result(result)
+            .build();
+        auditProducer.send(event);
+    }
+}
+```
+
+서비스 메서드에 어노테이션을 붙이면 된다.
+
+```java
+@Service
+public class UserService {
+
+    @Auditable(action = "ROLE_CHANGE", category = "USER_MANAGEMENT")
+    public void changeRole(String userId, ChangeRoleRequest request) {
+        // 비즈니스 로직
+    }
+}
+```
+
+`before`/`after` 값이 필요한 경우에는 어스펙트만으로 처리하기 어렵다. 변경 전 값 조회와 변경 후 값 확인을 서비스 메서드 안에서 직접 `auditProducer.send()`를 호출해 처리한다.
 
 ## NestJS 구현
 
@@ -249,7 +483,6 @@ export class AuditInterceptor implements NestInterceptor {
     if (!auditMeta) return next.handle();
 
     const request = context.switchToHttp().getRequest<Request>();
-    const startTime = Date.now();
 
     return next.handle().pipe(
       tap({
@@ -305,9 +538,7 @@ async changeRole(
 
 `before`/`after` 값이 필요한 경우에는 서비스 레이어에서 직접 `auditService.log()`를 호출하고, Interceptor는 인증 실패·인가 실패처럼 핸들러에 진입하기 전에 터지는 케이스를 잡는 용도로 쓴다.
 
-**비동기 처리 시 주의사항**
-
-`auditService.log()`를 `await` 없이 호출하면 로그 저장 실패가 조용히 묻힌다. 반드시 에러를 잡아서 별도 알림(Slack, PagerDuty)으로 보내야 한다. 감사 로그 저장 실패가 API 응답을 막아서는 안 되지만, 실패 자체를 모르면 안 된다.
+저장 실패를 조용히 넘기면 안 된다.
 
 ```typescript
 this.auditService.log(entry).catch((err) => {
@@ -316,4 +547,105 @@ this.auditService.log(entry).catch((err) => {
 });
 ```
 
-감사 로그 저장이 메인 트랜잭션과 결합되면 감사 로그 DB 장애가 서비스 전체 장애로 번진다. Kafka나 SQS 같은 메시지 큐를 중간에 두고, 컨슈머가 내구성 높은 스토리지에 기록하는 구조가 일반적이다.
+## 감사 요구사항 검증
+
+감사 로그 구현이 완료됐다는 것을 증명하려면 테스트 코드가 필요하다. "동작하는 것 같다"는 주관적 판단이 아니라, 특정 행위가 감사 로그를 발생시키는지 자동화된 검증이 있어야 한다.
+
+컴플라이언스 감사 시 테스트 결과를 증거로 제출하는 경우가 있다. 이 상황에서 "코드 리뷰로 확인했다"는 대답은 받아들여지지 않는다.
+
+**Spring Boot — 통합 테스트**
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class AuditIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
+    @Test
+    @WithMockUser(username = "admin@example.com", roles = "ADMIN")
+    void 권한_변경_시_감사_로그가_기록된다() throws Exception {
+        ChangeRoleRequest body = new ChangeRoleRequest("ADMIN");
+
+        mockMvc.perform(patch("/users/usr_123/role")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isOk());
+
+        List<AuditLog> logs = auditLogRepository.findByResourceId("usr_123");
+        assertThat(logs).hasSize(1);
+        AuditLog log = logs.get(0);
+        assertThat(log.getAction().getType()).isEqualTo("ROLE_CHANGE");
+        assertThat(log.getActor().getEmail()).isEqualTo("admin@example.com");
+        assertThat(log.getResult()).isEqualTo(AuditResult.SUCCESS);
+        assertThat(log.getSignature()).isNotBlank();
+    }
+
+    @Test
+    @WithMockUser(username = "user@example.com", roles = "USER")
+    void 권한_없는_접근_시도도_감사_로그에_기록된다() throws Exception {
+        mockMvc.perform(delete("/users/usr_456"))
+            .andExpect(status().isForbidden());
+
+        List<AuditLog> logs = auditLogRepository.findByActorEmail("user@example.com");
+        assertThat(logs).anyMatch(log -> log.getResult() == AuditResult.FAILURE);
+    }
+
+    @Test
+    void 감사_로그_테이블에_수정_권한이_없다() {
+        assertThatThrownBy(() ->
+            jdbcTemplate.execute("UPDATE audit_logs SET result = 'SUCCESS' WHERE 1=1")
+        ).isInstanceOf(DataAccessException.class)
+         .hasMessageContaining("permission denied");
+    }
+}
+```
+
+**Kafka 파이프라인 테스트**
+
+감사 이벤트가 Kafka로 발행되는지 확인할 때는 `EmbeddedKafka`를 쓰거나, Testcontainers로 실제 브로커를 올린다. Mock 기반으로 `kafkaTemplate.send()`가 호출됐는지만 검증하면 직렬화 오류나 파티션 설정 문제를 잡지 못한다.
+
+```java
+@SpringBootTest
+@EmbeddedKafka(partitions = 1, topics = {"audit-events"})
+class AuditKafkaTest {
+
+    @Autowired
+    private UserService userService;
+
+    private Consumer<String, AuditEvent> consumer;
+
+    @BeforeEach
+    void setUp() {
+        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(
+            "test-group", "true", embeddedKafka
+        );
+        consumer = new DefaultKafkaConsumerFactory<String, AuditEvent>(consumerProps)
+            .createConsumer();
+        consumer.subscribe(Collections.singleton("audit-events"));
+    }
+
+    @Test
+    void 역할_변경_시_audit_events_토픽에_메시지가_발행된다() {
+        userService.changeRole("usr_123", new ChangeRoleRequest("ADMIN"));
+
+        ConsumerRecord<String, AuditEvent> record =
+            KafkaTestUtils.getSingleRecord(consumer, "audit-events");
+
+        assertThat(record.value().getAction().getType()).isEqualTo("ROLE_CHANGE");
+        assertThat(record.value().getActor()).isNotNull();
+    }
+}
+```
+
+테스트에서 최소한 다음을 검증한다.
+
+- 대상 행위마다 로그가 1건 생성되는지 (N+1이면 인터셉터 중복 호출)
+- `actor`, `action`, `resource` 필드가 실제 요청 정보와 일치하는지
+- 실패한 행위(403, 401, 500)도 로그에 남는지
+- `signature` 필드가 비어 있지 않은지
+- 감사 로그 테이블에 UPDATE, DELETE 권한이 없는지
