@@ -1,0 +1,9 @@
+title: Cloudflare
+nav:
+  - index.md
+  - Cloudflare_DNS.md
+  - Cloudflare_Tunnel.md
+  - Cloudflare_Workers.md
+  - Cloudflare_R2.md
+  - Cloudflare_WAF.md
+  - Cloudflare_Pages.md
