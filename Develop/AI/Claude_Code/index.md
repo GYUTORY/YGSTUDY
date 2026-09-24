@@ -9,7 +9,7 @@ hide:
 
 # Claude Code 전체 보기
 
-문서 18개.
+문서 19개.
 
 ## 기능
 
@@ -43,4 +43,5 @@ hide:
 ## 개요
 
 - [Claude Code](Claude_Code.md)
+- [Claude Code SDK로 자체 하네스 구현](Claude_Code_SDK_Harness.md)
 

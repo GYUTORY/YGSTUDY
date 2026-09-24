@@ -9,7 +9,7 @@ hide:
 
 # 개념 전체 보기
 
-문서 35개.
+문서 39개.
 
 ## 에이전트
 
@@ -55,6 +55,10 @@ hide:
 - [LLM 평가 방법론](LLM_Evaluation.md)
 - [LangChain / LlamaIndex vs 순수 SDK](Lang_Chain_vs_SDK.md)
 - [LangChain Agent](Lang_Chain_Agents.md)
+- [OpenAI Assistants API vs Claude Agent SDK](Assistants_vs_Agent_SDK.md)
 - [Prompt Caching](Prompt_Caching.md)
 - [RAG 품질 평가 - RAGAS와 TruLens 실무](RAG_Evaluation.md)
+- [멀티모달 입력 파이프라인 — 이미지·PDF·음성을 API로 처리하기](Multimodal_Input_Pipeline.md)
+- [온프레미스 GPU 클러스터에서 vLLM 운영하기](v_LLM_Production.md)
+- [프롬프트 버전 관리와 A/B 테스트](Prompt_Version_AB_Testing.md)
 
