@@ -8,6 +8,7 @@ nav:
   - 에이전트:
     - Agent Harness: Agent_Harness.md
     - 멀티 에이전트 시스템: Multi_Agent_Systems.md
+    - "OpenAI Assistants API vs Claude Agent SDK": Assistants_vs_Agent_SDK.md
     - Function Calling: Tool_Use.md
     - Structured Output: Structured_Output.md
     - reasoning effort: Effort_Mode.md
@@ -21,6 +22,8 @@ nav:
     - 온톨로지: Ontology.md
   - 실무 활용:
     - 코딩을 위한 프롬프트 엔지니어링: Prompt_Engineering.md
+    - 프롬프트 버전 관리와 A/B 테스트: Prompt_Version_AB_Testing.md
+    - 멀티모달 입력 파이프라인: Multimodal_Input_Pipeline.md
     - 할루시네이션: AI_Hallucination.md
     - 바이브 코딩 보안 대처법: Vibe_Coding_Security.md
     - Obsidian 실무: Obsidian.md
@@ -32,6 +35,7 @@ nav:
     - 사전학습 파이프라인: LLM_Pretraining.md
     - 토크나이저: LLM_Tokenizer.md
     - 추론 최적화 심화: LLM_Inference_Optimization.md
+    - vLLM 프로덕션 운영: v_LLM_Production.md
     - 파인튜닝 실무: LLM_Fine_Tuning.md
     - 평가 방법론: LLM_Evaluation.md
     - Reasoning 패턴과 모델: LLM_Reasoning.md

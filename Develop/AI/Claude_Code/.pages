@@ -22,3 +22,4 @@ nav:
     - 트러블슈팅: Claude_Code_Troubleshooting.md
   - 내부 동작:
     - 하네스: Claude_Code_Harness.md
+    - SDK 하네스 구현: Claude_Code_SDK_Harness.md
