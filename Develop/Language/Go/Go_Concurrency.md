@@ -1,7 +1,7 @@
 ---
 title: Go 동시성 - 고루틴과 채널
 tags: [go, os, language]
-updated: 2026-07-08
+updated: 2026-09-25
 ---
 
 # Go 동시성 - 고루틴과 채널
@@ -182,6 +182,137 @@ func processAll(ctx context.Context, items []Item) error {
 ```
 
 `errgroup.Wait`는 첫 번째 에러만 반환한다. 모든 에러를 수집해야 한다면 직접 구현해야 한다.
+
+## errgroup 심화
+
+### SetLimit과 TryGo
+
+`SetLimit`은 동시에 실행할 수 있는 고루틴 수를 제한한다. `golang.org/x/sync v0.1.0`부터 제공하고, Go 1.18 이상이면 쓸 수 있다.
+
+```go
+g := new(errgroup.Group)
+g.SetLimit(5) // 동시에 최대 5개만 실행
+
+for _, item := range items {
+    it := item
+    g.Go(func() error { // 한도 초과 시 슬롯이 빌 때까지 블로킹
+        return process(it)
+    })
+}
+
+if err := g.Wait(); err != nil {
+    return err
+}
+```
+
+`g.Go`에 `SetLimit`을 적용했을 때의 동작은 worker pool과 비슷하다. 단, worker pool은 고루틴을 재사용하고 `SetLimit`은 매번 새 고루틴을 만들어 한도를 기다린다. 처리 항목이 수만 개를 넘어가면 재사용하는 worker pool이 더 적합하다.
+
+`SetLimit(-1)`이 기본값이고, 이때는 제한이 없다. `SetLimit(0)`은 패닉을 낸다.
+
+`TryGo`는 한도에 도달했을 때 블로킹 대신 즉시 `false`를 반환한다.
+
+```go
+g := new(errgroup.Group)
+g.SetLimit(5)
+
+var skipped []Item
+for _, item := range items {
+    it := item
+    if !g.TryGo(func() error {
+        return process(it)
+    }) {
+        // 한도 초과. 나중에 처리하거나 건너뛴다
+        skipped = append(skipped, it)
+    }
+}
+
+if err := g.Wait(); err != nil {
+    return err
+}
+// skipped 처리
+```
+
+`TryGo`는 큐에 집어넣는 용도보다는 "지금 당장 못 하면 건너뛴다"는 시나리오에 맞다. 배치 처리 중 일부를 다음 라운드로 미루거나, 백그라운드 작업이 너무 쌓이면 새 요청을 드롭할 때 쓴다.
+
+`g.Go`와 `g.TryGo`는 같은 그룹에서 섞어 써도 된다. 단, `SetLimit`을 설정한 뒤 `g.Go`가 블로킹 중인 상태에서 다른 고루틴이 `TryGo`를 부르면 경쟁이 생긴다. 어느 쪽이 다음 슬롯을 잡을지는 런타임 스케줄러 순서에 따른다.
+
+### 모든 에러 수집
+
+`errgroup.Wait`는 첫 번째 에러 하나만 돌려준다. 나머지 에러는 조용히 버린다. 배치 처리에서 어떤 항목이 실패했는지 전부 알아야 한다면 직접 수집해야 한다.
+
+```go
+type multiError struct {
+    mu   sync.Mutex
+    errs []error
+}
+
+func (m *multiError) add(err error) {
+    if err == nil {
+        return
+    }
+    m.mu.Lock()
+    m.errs = append(m.errs, err)
+    m.mu.Unlock()
+}
+
+func (m *multiError) err() error {
+    if len(m.errs) == 0 {
+        return nil
+    }
+    return fmt.Errorf("%d errors: %v", len(m.errs), m.errs)
+}
+
+func processAll(ctx context.Context, items []Item) error {
+    var g errgroup.Group
+    g.SetLimit(10)
+
+    var me multiError
+    for _, item := range items {
+        it := item
+        g.Go(func() error {
+            if err := process(ctx, it); err != nil {
+                me.add(fmt.Errorf("item %v: %w", it.ID, err))
+            }
+            return nil // errgroup에는 nil을 돌려 조기 종료를 막는다
+        })
+    }
+
+    g.Wait() // nil만 받으므로 에러 체크는 의미 없다
+    return me.err()
+}
+```
+
+핵심은 고루틴 함수가 `errgroup`에 `nil`을 반환하는 것이다. `errgroup`은 첫 비nil 에러를 받으면 컨텍스트를 취소하고 `Wait`가 즉시 리턴하게 만든다. 에러를 전부 모으려면 고루틴이 errgroup 밖의 컬렉터로 에러를 쌓고 errgroup에는 nil을 돌려야 한다.
+
+표준 라이브러리 `errors.Join`(Go 1.20+)을 쓰면 에러를 감싸는 코드를 줄일 수 있다.
+
+```go
+func processAll(ctx context.Context, items []Item) error {
+    var (
+        g    errgroup.Group
+        mu   sync.Mutex
+        errs []error
+    )
+    g.SetLimit(10)
+
+    for _, item := range items {
+        it := item
+        g.Go(func() error {
+            if err := process(ctx, it); err != nil {
+                mu.Lock()
+                errs = append(errs, fmt.Errorf("item %v: %w", it.ID, err))
+                mu.Unlock()
+            }
+            return nil
+        })
+    }
+
+    g.Wait()
+    return errors.Join(errs...) // Go 1.20+. nil 슬라이스면 nil을 반환한다
+}
+```
+
+`errors.Join`은 전달받은 에러가 모두 nil이면 nil을 반환하고, 아니면 줄바꿈으로 이어 붙인 에러를 만든다. `errors.Is`, `errors.As`로 중첩된 에러를 순회할 수 있다.
 
 ## Mutex vs 채널 선택 기준
 

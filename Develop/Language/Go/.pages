@@ -11,6 +11,7 @@ nav:
     - sync 패키지 심화: Go_Sync_Primitives.md
     - context 패키지: Go_Context.md
     - Context 심화: Go_Context_Advanced.md
+    - singleflight: Go_Singleflight.md
   - 타입 시스템:
     - 인터페이스와 타입 시스템: Go_Interface.md
     - 제네릭: Go_Generics.md
