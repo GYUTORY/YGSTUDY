@@ -1,7 +1,7 @@
 ---
 title: Cloudflare Workers
 tags: [cloud, backend, javascript, typescript, performance]
-updated: 2026-09-23
+updated: 2026-09-25
 ---
 
 # Cloudflare Workers
@@ -56,6 +56,53 @@ async function addSecurityHeaders(request: Request): Promise<Response> {
 
 `Response`는 불변 객체다. 헤더를 추가하려면 기존 헤더를 복사해서 새 `Response`를 만들어야 한다. 이 부분을 모르면 `response.headers.set()`이 에러 없이 실행되는데 실제로 아무 효과가 없어서 디버깅이 어렵다.
 
+## Cron 트리거
+
+HTTP 요청 없이 주기적으로 실행하는 작업은 `scheduled` 핸들러로 처리한다. `wrangler.toml`에 크론 표현식을 등록하면 Cloudflare가 해당 Worker를 자동으로 호출한다.
+
+```toml
+# wrangler.toml
+[triggers]
+crons = ["0 * * * *", "0 0 * * *"]
+```
+
+```typescript
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return new Response("OK");
+  },
+
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(syncData(env));
+  },
+};
+```
+
+`scheduled` 핸들러는 `Response`를 반환하지 않는다. 실행 결과를 외부에 알릴 방법이 없으니, 작업 상태를 KV나 D1에 기록해두는 경우가 많다.
+
+`event.cron`으로 어떤 크론 표현식이 발동했는지 알 수 있다. cron을 여러 개 등록하면 이걸로 분기한다.
+
+```typescript
+async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  switch (event.cron) {
+    case "0 * * * *":
+      ctx.waitUntil(hourlySync(env));
+      break;
+    case "0 0 * * *":
+      ctx.waitUntil(dailyReport(env));
+      break;
+  }
+}
+```
+
+로컬에서 테스트할 때 `wrangler dev --test-scheduled`로 시작하고, 별도 터미널에서 아래 요청을 보낸다.
+
+```bash
+curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"
+```
+
+`event.scheduledTime`은 예정 실행 시각을 ms 단위 유닉스 타임으로 준다. 실제 실행 시점과 수십 초 차이가 날 수 있어서, 정확한 실행 시각이 필요하면 이 값을 기준으로 써야 한다. CPU 시간 제한은 `fetch` 핸들러와 동일하게 적용된다.
+
 ## 환경 변수 바인딩
 
 Workers의 환경 변수는 `wrangler.toml`에 선언한다.
@@ -95,6 +142,24 @@ export default {
   },
 };
 ```
+
+## wrangler.toml 라우트 패턴
+
+Workers.dev 서브도메인(`xxx.workers.dev`)은 별도 설정 없이 자동으로 연결된다. 직접 소유한 도메인에 Worker를 붙이려면 라우트를 등록해야 한다.
+
+```toml
+[[routes]]
+pattern = "example.com/api/*"
+zone_name = "example.com"
+```
+
+`zone_name` 대신 `zone_id`를 써도 된다. Zone ID는 Cloudflare 대시보드에서 해당 도메인을 선택하면 우측 사이드바에 표시된다.
+
+패턴에서 `*`는 `/`를 제외한 모든 문자에 매칭된다. `example.com/api/*`는 `example.com/api/users`는 잡지만 `example.com/api/v1/users`는 잡지 못한다. 하위 경로 전체를 잡으려면 `example.com/api/**`를 쓴다.
+
+Worker를 여러 개 운영하면서 라우트를 나눠 붙이는 경우, 더 구체적인 패턴이 우선이다. `example.com/api/*`와 `example.com/*`가 같이 있으면 `/api/`로 시작하는 요청은 전자가 먼저 받는다.
+
+라우트 매칭은 Cloudflare 엣지에서 처리된다. 로컬 `wrangler dev`에서는 라우트 패턴이 동작하지 않는다. 라우트 동작을 확인하려면 `wrangler dev --remote`로 에지에 올려서 테스트해야 한다.
 
 ## KV 스토리지 연동
 
@@ -146,6 +211,184 @@ export default {
 ```
 
 KV에는 객체를 그대로 넣을 수 없다. 반드시 `JSON.stringify()`로 직렬화해서 저장하고, 꺼낼 때 `JSON.parse()`로 복원한다. `getWithMetadata()`를 쓰면 메타데이터를 함께 저장하고 읽을 수 있는데, 만료 시간을 별도로 추적할 때 유용하다.
+
+## D1 SQLite 연동
+
+D1은 SQLite 기반 서버리스 데이터베이스다. KV처럼 키-값이 아니라 실제 SQL을 쓴다. 관계형 데이터가 필요한데 별도 데이터베이스 서버를 두기 부담스러운 경우에 쓴다.
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "my-app-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
+
+`database_id`는 `wrangler d1 create my-app-db`로 데이터베이스를 만들 때 출력된다.
+
+```typescript
+export interface Env {
+  DB: D1Database;
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/users" && request.method === "GET") {
+      const { results } = await env.DB.prepare(
+        "SELECT id, name, email FROM users ORDER BY created_at DESC LIMIT 20"
+      ).all<{ id: number; name: string; email: string }>();
+
+      return Response.json(results);
+    }
+
+    if (url.pathname === "/users" && request.method === "POST") {
+      const body = await request.json() as { name: string; email: string };
+
+      const result = await env.DB.prepare(
+        "INSERT INTO users (name, email, created_at) VALUES (?, ?, ?)"
+      ).bind(body.name, body.email, new Date().toISOString()).run();
+
+      return Response.json({ id: result.meta.last_row_id });
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+};
+```
+
+`.bind()`로 파라미터를 바인딩해야 한다. 문자열 보간으로 SQL을 만들면 SQL 인젝션 위험이 생기고, D1 자체도 권장하지 않는다.
+
+여러 쿼리를 하나의 트랜잭션으로 묶을 때는 `batch()`를 쓴다.
+
+```typescript
+await env.DB.batch([
+  env.DB.prepare("INSERT INTO orders (user_id, total) VALUES (?, ?)").bind(userId, total),
+  env.DB.prepare("UPDATE inventory SET quantity = quantity - ? WHERE product_id = ?").bind(qty, productId),
+  env.DB.prepare("INSERT INTO audit_log (action, user_id) VALUES (?, ?)").bind("purchase", userId),
+]);
+```
+
+`batch()`는 원자적이다. 하나라도 실패하면 전체가 롤백된다.
+
+스키마 마이그레이션은 SQL 파일로 관리한다.
+
+```bash
+# 마이그레이션 파일을 적용한다
+wrangler d1 migrations apply my-app-db
+
+# 로컬 D1에만 적용 (프로덕션에 반영 안 됨)
+wrangler d1 migrations apply my-app-db --local
+```
+
+로컬 `wrangler dev`에서는 프로덕션 D1과 별도의 로컬 인스턴스를 쓴다. `wrangler d1 execute`를 `--local` 없이 실행하면 프로덕션에 반영된다. 개발 중에는 `--local`을 붙이는 습관이 필요하다.
+
+D1이 SQLite 기반이라 단순해 보이지만, 분산 환경에서 돌아간다. 읽기는 리전 복제본에서 처리되고 쓰기는 프라이머리로 간다. 쓰기 직후 읽기가 이전 값을 반환하는 경우가 있다. 쓰기 직후 결과를 다시 읽어야 하는 경우 쿼리 흐름을 다시 설계해야 한다.
+
+## Durable Objects
+
+KV는 eventually consistent다. 쓰기 후 읽기가 이전 값을 반환할 수 있다. 채팅방 참여자 목록, 게임 세션 상태, 분산 락처럼 강한 일관성이 필요한 경우 Durable Objects(DO)를 쓴다.
+
+DO는 클래스 하나가 하나의 인스턴스 타입이다. 각 인스턴스는 단일 위치에서 실행되고, 해당 인스턴스로 들어오는 요청은 직렬화해서 처리한다. 여러 Worker가 동시에 같은 DO에 요청을 보내도 DO 내부에서는 동시 실행이 없다.
+
+`wrangler.toml`에 바인딩과 마이그레이션을 등록한다.
+
+```toml
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "ChatRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChatRoom"]
+```
+
+`migrations` 태그가 없으면 배포가 실패한다. 처음 등록하는 경우에도 필수다. 클래스를 추가할 때마다 `new_classes`에 넣고 태그를 올린다.
+
+```typescript
+export class ChatRoom implements DurableObject {
+  private state: DurableObjectState;
+
+  constructor(state: DurableObjectState, env: Env) {
+    this.state = state;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/join") {
+      const participants = (await this.state.storage.get<string[]>("participants")) ?? [];
+      const user = await request.json() as { userId: string };
+
+      if (!participants.includes(user.userId)) {
+        participants.push(user.userId);
+        await this.state.storage.put("participants", participants);
+      }
+
+      return new Response(JSON.stringify({ count: participants.length }));
+    }
+
+    return new Response("Not Found", { status: 404 });
+  }
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const roomId = new URL(request.url).searchParams.get("room") ?? "default";
+
+    // 같은 roomId는 항상 같은 DO 인스턴스를 가리킨다
+    const id = env.ROOM.idFromName(roomId);
+    const room = env.ROOM.get(id);
+
+    return room.fetch(request);
+  },
+};
+```
+
+`idFromName()`은 결정적이다. 같은 문자열은 항상 같은 DO 인스턴스를 가리킨다. 사용자별로 인스턴스를 만들 때 `idFromName(userId)`, 세션별로는 `idFromName(sessionId)` 식으로 쓴다.
+
+`state.storage`는 트랜잭셔널이다. `put()` 이후 오류가 나도 원자적으로 처리된다.
+
+DO 인스턴스는 한 위치에서만 돌아서 그 위치와 멀리 있는 요청은 왕복 지연이 생긴다. 글로벌 서비스에서 특정 인스턴스에 전 세계 트래픽을 모으면 지연시간이 크게 올라간다. DO는 무료 플랜에서 쓸 수 없고 Workers Paid 이상 필요하다.
+
+## Service Bindings
+
+하나의 Worker에서 다른 Worker를 직접 호출하는 방식이다. `fetch()`로 공개 URL을 부르는 것과 달리, Cloudflare 내부 네트워크를 통해 전달된다. 외부 인터넷을 거치지 않아 지연시간이 거의 없고, 별도 인증도 필요 없다.
+
+```toml
+# 호출하는 Worker의 wrangler.toml
+[[services]]
+binding = "AUTH_SERVICE"
+service = "auth-worker"
+```
+
+`auth-worker`는 같은 계정 내에 이미 배포된 Worker 이름이어야 한다.
+
+```typescript
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const authResult = await env.AUTH_SERVICE.fetch(
+      new Request("https://internal/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: request.headers.get("Authorization") }),
+      })
+    );
+
+    if (authResult.status === 401) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    return handleRequest(request, env);
+  },
+};
+```
+
+URL 호스트 부분은 어떤 값이든 상관없다. Cloudflare가 바인딩에 등록된 Worker로 전달하기 때문에 실제 네트워크 요청이 발생하지 않는다. 관행적으로 `https://internal/` 같은 더미 호스트를 쓴다.
+
+인증 처리, 이미지 변환, 결제 같은 공통 기능을 별도 Worker로 분리하고 Service Binding으로 연결하면 각 Worker를 독립적으로 배포하고 버전 관리할 수 있다.
+
+주의할 점은 서브요청 카운트다. A Worker가 B를 호출하고 B가 C를 호출하면, A 기준으로 서브요청이 2개로 잡힌다. 깊은 체인을 만들면 무료 플랜의 50개 제한에 빨리 걸린다.
 
 ## wrangler CLI 배포
 

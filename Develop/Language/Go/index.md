@@ -9,7 +9,7 @@ hide:
 
 # Go 전체 보기
 
-문서 15개.
+문서 16개.
 
 ## 동시성
 
@@ -37,4 +37,5 @@ hide:
 - [Go net/http 서버](Go_HTTP_Server.md)
 - [Go 기본 문법](Go_Basics.md)
 - [Go 테스트](Go_Testing.md)
+- [singleflight — 중복 요청 병합](Go_Singleflight.md)
 
