@@ -2,3 +2,4 @@ title: Network
 nav:
   - index.md
   - AWS_Region_AZ_Global.md
+  - AWS_Multi_AZ_High_Availability.md

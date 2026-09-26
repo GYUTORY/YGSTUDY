@@ -136,6 +136,97 @@ def _recent_docs(repo_root, docs_dir, limit=60):
     return entries
 
 
+def _top_docs_this_week(repo_root, docs_dir):
+    """이번 주(최근 7일) 커밋 수 기준 상위 3개 문서 반환 [(count, name, rel_path)].
+
+    git log --name-only 는 한 파일이 여러 커밋에 걸쳐 등장하면 여러 번 출력한다.
+    이를 세어 가장 많이 커밋된 순서로 정렬한다.
+    """
+    try:
+        r = subprocess.run(
+            ["git", "log",
+             "--pretty=format:",
+             "--name-only", "--diff-filter=AM",
+             "--since=7 days ago",
+             "--", "Develop/"],
+            capture_output=True, text=True, check=True, cwd=repo_root
+        )
+    except Exception:
+        return []
+
+    counts: dict = {}
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line or not line.endswith(".md"):
+            continue
+        rel = line.replace("Develop/", "", 1)
+        if os.path.basename(rel) in _META_PAGES:
+            continue
+        abs_path = os.path.join(docs_dir, rel)
+        if not os.path.isfile(abs_path):
+            continue
+        if os.path.basename(rel) == "index.md" and _is_generated(abs_path):
+            continue
+        counts[rel] = counts.get(rel, 0) + 1
+
+    if not counts:
+        return []
+
+    top3 = sorted(counts.items(), key=lambda x: -x[1])[:3]
+    result = []
+    for rel, cnt in top3:
+        abs_path = os.path.join(docs_dir, rel)
+        name = _doc_title(abs_path, Path(rel).stem.replace("_", " "))
+        result.append((cnt, name, rel))
+    return result
+
+
+def _new_docs_this_month(repo_root, docs_dir):
+    """이번 달 처음 추가(A)된 문서 반환 [(date_str, name, rel_path)].
+
+    --diff-filter=A 로 신규 파일만 걸러낸다. 기존 문서를 수정(M)한 건 포함하지 않는다.
+    """
+    this_month = date.today().strftime("%Y-%m")
+    try:
+        r = subprocess.run(
+            ["git", "log",
+             "--pretty=format:DATE:%ad", "--date=short",
+             "--name-only", "--diff-filter=A",
+             "--since=31 days ago",
+             "--", "Develop/"],
+            capture_output=True, text=True, check=True, cwd=repo_root
+        )
+    except Exception:
+        return []
+
+    result = []
+    current_date = None
+    seen: set = set()
+
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("DATE:"):
+            current_date = line[5:]
+        elif line.endswith(".md") and current_date:
+            if not current_date.startswith(this_month):
+                continue
+            rel = line.replace("Develop/", "", 1)
+            if rel in seen or os.path.basename(rel) in _META_PAGES:
+                continue
+            seen.add(rel)
+            abs_path = os.path.join(docs_dir, rel)
+            if not os.path.isfile(abs_path):
+                continue
+            if os.path.basename(rel) == "index.md" and _is_generated(abs_path):
+                continue
+            name = _doc_title(abs_path, Path(rel).stem.replace("_", " "))
+            result.append((current_date, name, rel))
+
+    return result
+
+
 def _summary_stats_lines(entries):
     """60일 총 문서 수·카테고리 다양성 한 줄 요약 섹션."""
     total = len(entries)
@@ -147,8 +238,8 @@ def _summary_stats_lines(entries):
     ]
 
 
-def _new_vs_continuing_lines(entries):
-    """이번 달 새로 시작한 카테고리 vs 이전부터 이어진 카테고리 구분 섹션."""
+def _new_vs_continuing_lines(entries, top3_week=None, new_docs=None):
+    """이번 달 학습 흐름: 카테고리 분류 + 이번 주 상위 문서 + 신규 문서."""
     this_month = date.today().strftime("%Y-%m")
     this_cats: set = set()
     prev_cats: set = set()
@@ -185,6 +276,26 @@ def _new_vs_continuing_lines(entries):
         "60일 기간 안에서 이번 달 이전에 커밋이 있는 카테고리는 '이어서', "
         "이번 달이 처음 등장하는 카테고리는 '새로 시작'으로 분류된다.\n\n"
     )
+
+    # 이번 주 커밋 수 기준 상위 3개 문서
+    if top3_week:
+        today = date.today()
+        week_start = today - timedelta(days=6)
+        label = f"{week_start.strftime('%m/%d')}~{today.strftime('%m/%d')}"
+        lines.append(f"### 이번 주 상위 문서 ({label})\n\n")
+        for cnt, name, rel in top3_week:
+            lines.append(f"- [{name}]({_doc_md_link(rel)}) — {cnt}커밋\n")
+        lines.append("\n")
+
+    # 이번 달 처음 등장한 신규 문서
+    lines.append("### 신규 문서\n\n")
+    if new_docs:
+        for d_str, name, rel in new_docs:
+            lines.append(f"- {d_str} [{name}]({_doc_md_link(rel)})\n")
+        lines.append("\n")
+    else:
+        lines.append("이번 달 새로 추가된 문서 없음.\n\n")
+
     return lines
 
 
@@ -263,10 +374,12 @@ def on_pre_build(config, **kwargs):
         "hide:\n  - toc\n",
         "---\n\n",
         "# 최근 변경 문서\n\n",
-        "빌드마다 `git log --diff-filter=AM --since='60 days ago'`로 `Develop/` 디렉터리 안에서 추가·수정된 `.md` 파일을 읽어 다시 쓰는 파일이다. 생성은 `tools/inject_build_meta.py`의 `on_pre_build` 훅에서 처리된다.\n\n",
-        "섹션 인덱스(`<!-- AUTO-SECTION-INDEX -->` 마커가 들어간 파일)와 `index.md`, `tags.md`, `todo.md`, `404.md` 같은 메타 페이지는 목록에서 제외된다. 커밋 이후 삭제되거나 경로가 바뀐 파일도 죽은 링크를 막기 위해 자동으로 걸러진다.\n\n",
-        "이 파일을 직접 수정해도 다음 빌드에서 덮어써진다. 출력 형식을 바꾸려면 `tools/inject_build_meta.py`를 수정한다.\n\n",
-        "로컬에서 같은 목록을 확인하려면:\n\n",
+        "빌드마다 자동으로 다시 쓰이는 파일이다. 직접 수정해도 다음 빌드에서 덮어써진다. 출력 형식을 바꾸려면 `tools/inject_build_meta.py`를 수정한다.\n\n",
+        "## 변경 기준\n\n",
+        "`git log --diff-filter=AM --since='60 days ago'`로 `Develop/` 디렉터리 안에서 추가(A)·수정(M)된 `.md` 파일을 읽는다. 삭제(D)·이름 변경(R)은 포함되지 않는다.\n\n",
+        "섹션 인덱스(`<!-- AUTO-SECTION-INDEX -->` 마커가 있는 파일)와 `index.md`, `tags.md`, `todo.md`, `404.md`는 제외된다. 커밋 이후 삭제되거나 경로가 바뀐 파일도 죽은 링크를 막기 위해 걸러진다.\n\n",
+        "## 로컬 확인\n\n",
+        "같은 목록을 로컬에서 직접 조회하려면:\n\n",
         "```bash\n",
         "git log --pretty=format:'%ad' --date=short --diff-filter=AM --since='60 days ago' --name-only -- Develop/\n",
         "```\n\n",
@@ -276,8 +389,10 @@ def on_pre_build(config, **kwargs):
         # 60일 요약 (총 문서 수·카테고리 다양성)
         lines.extend(_summary_stats_lines(entries))
 
-        # 이번 달 학습 흐름: 새로 시작 vs 이어서
-        lines.extend(_new_vs_continuing_lines(entries))
+        # 이번 달 학습 흐름: 카테고리 분류 + 이번 주 상위 문서 + 신규 문서
+        top3_week = _top_docs_this_week(repo_root, docs_dir)
+        new_docs = _new_docs_this_month(repo_root, docs_dir)
+        lines.extend(_new_vs_continuing_lines(entries, top3_week, new_docs))
 
         # 주간 추이 테이블 (최근 4주)
         lines.extend(_weekly_trend_lines(entries))
@@ -302,21 +417,33 @@ def on_pre_build(config, **kwargs):
             "\n문서 수 내림차순. `최근 문서` 열은 git 로그 기준 가장 늦게 커밋된 파일이다.\n\n"
         )
 
-        # 월별 목록
-        months: dict = {}
-        for entry in entries:
-            month = entry[0][:7]
-            if month not in months:
-                months[month] = []
-            months[month].append(entry)
+        # 변경 목록 (카테고리별 접힘 구조)
+        # 871건 목록이 그대로 노출되면 페이지 로딩과 가독성이 나빠진다.
+        # 카테고리 단위로 <details> 로 접어 필요한 카테고리만 열어 볼 수 있게 한다.
+        cats_map: dict = {}
+        for d, name, path in entries:
+            cat = path.split("/")[0]
+            if cat not in cats_map:
+                cats_map[cat] = []
+            cats_map[cat].append((d, name, path))
 
-        for month in sorted(months.keys(), reverse=True):
-            lines.append(f"## {month}\n\n")
+        lines.append("## 변경 목록\n\n")
+        lines.append(
+            "최근 60일 커밋을 카테고리별로 묶었다. 제목을 클릭하면 목록이 펼쳐진다."
+            " 같은 날 여러 파일이 커밋된 경우 커밋 순서 그대로 나온다.\n\n"
+        )
+
+        for cat in sorted(cats_map.keys(), key=lambda c: -len(cats_map[c])):
+            items = cats_map[cat]
+            lines.append(
+                f'<details markdown="1">\n'
+                f"<summary>{cat} ({len(items)}건)</summary>\n\n"
+            )
             lines.append("| 날짜 | 문서 |\n")
             lines.append("|------|------|\n")
-            for d, name, path in months[month]:
+            for d, name, path in items:
                 lines.append(f"| {d} | [{name}]({_doc_md_link(path)}) |\n")
-            lines.append("\n")
+            lines.append("\n</details>\n\n")
     else:
         lines.append("_(변경 이력 없음 또는 git 정보를 읽을 수 없습니다)_\n")
 

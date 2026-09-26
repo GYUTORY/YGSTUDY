@@ -9,7 +9,7 @@ hide:
 
 # AWS 전체 보기
 
-문서 185개.
+문서 186개.
 
 ## AI
 
@@ -171,6 +171,7 @@ hide:
 - [AWS Direct Connect](Network/Direct_Connect.md)
 - [AWS Global Accelerator](Network/Global_Accelerator.md)
 - [AWS Internet Gateway](Network/Internet_Gateway.md)
+- [AWS Multi-AZ 고가용성 설계](Network/AWS_Multi_AZ_High_Availability.md)
 - [AWS NAT Gateway](Network/Nat_Gateway.md)
 - [AWS PrivateLink](Network/PrivateLink.md)
 - [AWS Route 53](<Network/Route 53.md>)
@@ -183,7 +184,7 @@ hide:
 - [AWS VPC Sharing (Shared VPC)](Network/VPC_Sharing.md)
 - [AWS 네트워크 구성요소를 건물 비유로 이해하기](Network/AWS_Network_Components_Analogy.md)
 - [AWS 라우팅 테이블](Network/Route_Table.md)
-- [AWS 리전과 글로벌 서비스의 차이](Network/AWS_Region_AZ_Global.md)
+- [AWS 리전과 글로벌 인프라 구조](Network/AWS_Region_AZ_Global.md)
 - [CDN + Adaptive Thumbnail](Network/CDN_Adaptive_Thumbnail.md)
 - [CloudFront Functions와 Lambda@Edge — 선택과 구현](Network/Cloud_Front_Functions_and_Lambda_at_Edge.md)
 - [ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다](Network/Elastic_Network_Interface.md)
