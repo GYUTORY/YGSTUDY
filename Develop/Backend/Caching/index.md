@@ -9,10 +9,11 @@ hide:
 
 # Caching 전체 보기
 
-문서 8개.
+문서 9개.
 
 ## 개요
 
+- [Cache Stampede 방어 패턴](Cache_Stampede_Pattern.md)
 - [Cache Warming](Cache_Warming.md)
 - [Redis 운영 — Persistence, Replication, Sentinel, Cluster](Redis_운영.md)
 - [Redis 캐시 운영 패턴](Redis_운영_패턴.md)

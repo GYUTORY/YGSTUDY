@@ -3,6 +3,7 @@ nav:
   - index.md
   - 메시지 큐 기초: Message_Queue.md
   - Message Queue 심화: MQ_Delivery_Guarantee_Deep_Dive.md
+  - 컨슈머 배압과 전달 보장: Consumer_Backpressure.md
   - DLQ 재처리 자동화: DLQ_Reprocessing_Strategy.md
   - Consumer Group 재조정: Kafka_Consumer_Group_Rebalancing.md
   - Kafka EOS: Kafka_Exactly_Once_Semantics.md
