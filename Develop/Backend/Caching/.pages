@@ -8,3 +8,5 @@ nav:
   - Redis 운영 패턴: Redis_운영_패턴.md
   - Spring Cache: Spring_Cache.md
   - 캐시 모니터링: Cache_Monitoring.md
+  - 세션·데이터 캐시 분리: Session_vs_Data_Cache.md
+  - Cache Stampede 방어 패턴: Cache_Stampede_Pattern.md

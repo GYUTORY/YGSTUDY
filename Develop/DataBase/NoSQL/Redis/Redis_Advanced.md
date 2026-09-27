@@ -1,7 +1,7 @@
 ---
 title: Redis 심화
 tags: [redis, kubernetes, architecture, performance]
-updated: 2026-04-02
+updated: 2026-09-27
 ---
 
 # Redis 심화
@@ -1817,6 +1817,389 @@ redis-cli -h <옛-마스터> info replication | grep -E 'role|master_link_status
 ### 고가용성
 
 Sentinel 또는 Cluster를 구성하고, 자동 페일오버가 정상 동작하는지 주기적으로 테스트한다. 백업 스케줄을 설정하되 Replica에서 RDB를 저장하는 것이 Master 부하를 줄인다. 장애 대응 시 확인할 항목과 복구 절차를 미리 정리해 두어야 한다.
+
+## 12. 캐시 관점 심화
+
+### 12.1 Eviction Policy 실제 동작과 선택 기준
+
+`maxmemory` 한도에 도달하면 Redis가 어떤 키를 지울지 결정하는 정책이다. §7.3에서 이름만 소개했는데, 정책을 잘못 고르면 캐시가 무용지물이 되거나 서비스가 멈춘다.
+
+#### noeviction
+
+메모리가 가득 차면 쓰기 명령을 거부한다. `SET`, `LPUSH`, `INCR` 등 모든 쓰기에 `OOM command not allowed when used memory > 'maxmemory'`가 반환된다. 읽기는 계속 동작한다.
+
+캐시 용도로 noeviction을 쓰면 메모리가 가득 찬 순간 `SET` 자체가 실패한다. 캐시 미스 → DB 조회 → 캐시 쓰기 실패 → 다음 요청도 캐시 미스 → DB 직격 순환이 생긴다.
+
+noeviction이 맞는 경우는 세션 저장소나 메시지 큐처럼 **데이터를 잃으면 안 되는 용도**다. 대신 `maxmemory` 80% 도달 시 알람을 보내 운영자가 대응하는 구조가 있어야 한다.
+
+#### allkeys-lru vs volatile-lru
+
+LRU(Least Recently Used)는 마지막으로 읽거나 쓴 시점이 가장 오래된 키를 제거한다.
+
+`allkeys-lru`는 모든 키 대상이다. TTL 없는 키도 LRU 순으로 제거된다. 순수 캐시 인스턴스라면 이 정책이 맞다.
+
+`volatile-lru`는 TTL이 설정된 키에서만 LRU 대상을 고른다. TTL 없는 키는 절대 제거하지 않는다. 캐시 키에 TTL을 빠뜨리면 그 키들이 영구적으로 메모리를 차지한다. 메모리가 가득 차도 volatile-lru는 TTL 없는 키에 손을 못 대고, TTL 있는 키가 고갈되면 noeviction처럼 쓰기를 거부한다.
+
+#### allkeys-lfu vs allkeys-lru
+
+LFU(Least Frequently Used)는 접근 빈도가 낮은 키부터 제거한다. Redis 4.0에서 추가됐다.
+
+LRU의 한계는 "어제까지 인기 있던 키"를 오늘 접근하지 않으면 제거 후보가 된다는 것이다. 주간 인기 상품 캐시가 오늘 잠깐 조회가 없다고 제거되는 상황이 이 경우다.
+
+LFU는 빈도 카운터를 유지해서 자주 읽히는 키를 오래 보존한다. 전체 키 중 10%가 전체 접근의 90%를 차지하는 hot/cold 패턴에서 LRU보다 효율적이다.
+
+```conf
+lfu-log-factor 10   # 빈도 카운터 증가 속도. 낮을수록 빠르게 증가 (기본 10)
+lfu-decay-time 1    # 분 단위. 이 주기마다 카운터가 감소 (기본 1분)
+```
+
+`lfu-log-factor`를 낮추면 적은 접근으로도 카운터가 높아진다. 기본값 10으로 시작하고 `OBJECT FREQ key`로 실제 카운터를 확인하며 조정한다.
+
+#### 선택 기준
+
+```text
+캐시 전용 인스턴스 (TTL을 항상 설정하는 경우):
+  → allkeys-lru (무난한 시작점)
+  → allkeys-lfu (hot/cold 패턴이 명확하면)
+
+캐시 + 세션 혼용 (세션은 TTL 없음):
+  → volatile-lru
+  → 캐시 키에 반드시 TTL 설정. TTL 빠뜨리면 세션 제거 후 캐시 제거가 안 됨
+
+세션 전용, 큐, 영속 데이터:
+  → noeviction + 80% 임계값 알람
+
+키 접근 패턴 파악 전:
+  → allkeys-lru로 시작
+  → OBJECT FREQ, INFO stats 확인 후 필요하면 lfu로 전환
+```
+
+```bash
+# 현재 정책 및 제거된 키 수 확인
+redis-cli config get maxmemory-policy
+redis-cli info stats | grep evicted_keys
+
+# evicted_keys가 급격히 증가하면서 캐시 히트율이 떨어지면
+# maxmemory를 늘리거나 데이터를 줄여야 한다. 정책 변경으로 해결되지 않는다.
+```
+
+### 12.2 Hot Key 탐지와 키 분산
+
+단일 키에 요청이 몰리면 Cluster에서 특정 샤드의 CPU가 100%에 도달하고 나머지 노드는 한가해진다. Sentinel 단일 인스턴스에서도 하나의 키에 초당 수만 요청이 몰리면 다른 키의 응답 시간이 늘어난다.
+
+#### 탐지
+
+```bash
+# redis-cli --hotkeys — allkeys-lfu 또는 volatile-lfu 정책이 필요하다
+redis-cli --hotkeys
+
+# 결과 예시:
+# -------- summary -------
+# Sampled 12345 keys in the keyspace!
+# hot key found with counter: 98765  keyname: product:popular:1001
+# hot key found with counter: 45678  keyname: session:user:99999
+
+# OBJECT FREQ — 특정 키의 LFU 카운터 확인
+redis-cli object freq product:popular:1001
+
+# MONITOR — 실시간 명령 스트림
+# 전체 명령이 찍혀 성능 영향이 크다. 프로덕션에서는 10초 이내로만 쓴다
+redis-cli monitor | head -1000 | grep "product:popular"
+```
+
+LFU 정책이 아닌 상태에서 `--hotkeys`를 실행하면 "ERR object freq is not allowed when maxmemory-policy is not set to an LFU policy" 에러가 난다.
+
+#### 복제 키로 분산
+
+읽기 핫 키를 여러 키로 복제해서 샤드를 분산한다.
+
+```typescript
+const SHARD_COUNT = 10;
+
+// 쓸 때: 모든 샤드에 동시에 쓴다
+async function setWithSharding(redis: Redis, baseKey: string, value: string, ttl: number): Promise<void> {
+    const pipeline = redis.pipeline();
+    for (let i = 0; i < SHARD_COUNT; i++) {
+        pipeline.set(`${baseKey}:shard:${i}`, value, 'EX', ttl);
+    }
+    await pipeline.exec();
+}
+
+// 읽을 때: 랜덤 샤드에서 읽는다
+async function getWithSharding(redis: Redis, baseKey: string): Promise<string | null> {
+    const shard = Math.floor(Math.random() * SHARD_COUNT);
+    return redis.get(`${baseKey}:shard:${shard}`);
+}
+```
+
+Cluster 환경에서 `baseKey:shard:0` ~ `baseKey:shard:9`는 CRC16 해시에 따라 서로 다른 슬롯에 배치된다. 해시 태그(`{baseKey}:shard:N`)를 쓰면 같은 슬롯에 몰리므로 분산 목적이 사라진다. 해시 태그 없이 키를 그대로 쓰는 것이 맞다.
+
+갱신이 잦은 키는 전체 샤드를 동시에 업데이트해야 한다. 일부 샤드만 업데이트되면 읽기가 섞인 값을 반환한다. `pipeline.exec()`는 각 명령의 성공/실패를 개별로 반환하므로 실패한 샤드는 재시도해야 한다.
+
+읽기가 압도적이고 쓰기가 드문 경우(상품 상세, 공지사항)에 이 방식이 맞다. 쓰기가 잦으면 전체 샤드 갱신 비용이 오히려 더 커진다.
+
+### 12.3 Big Key로 인한 Latency Spike와 분해
+
+String 512KB 이상, Collection 원소 10만 개 이상의 키를 문제로 본다. 절대 기준은 없지만 실무에서 이 범위를 넘으면 증상이 나타나기 시작한다.
+
+#### 증상과 탐지
+
+Big key를 읽을 때 응답 시간이 튄다. 1MB String을 `GET`하면 1ms RTT가 수십 ms로 늘 수 있다. `DEL`은 컬렉션 전체를 동기로 제거하므로 수십만 원소를 가진 Hash나 List를 DEL하면 수 초 동안 다른 명령이 블로킹된다.
+
+```bash
+# 데이터 타입별 가장 큰 키 탐지
+redis-cli --bigkeys
+
+# 특정 키 크기 (바이트)
+redis-cli memory usage product:all:ids
+
+# 컬렉션 원소 수
+redis-cli llen product:all:ids      # List 길이
+redis-cli hlen user:session:all     # Hash 필드 수
+redis-cli scard product:tags:1001   # Set 원소 수
+
+# 인코딩 확인 — listpack이면 아직 메모리 효율적인 상태
+redis-cli object encoding mykey
+```
+
+#### Hash로 분해
+
+JSON 1MB를 하나의 String 키에 저장하는 대신 Hash 필드로 나눈다.
+
+```text
+Before:
+  key: "user:profile:1001"
+  value: JSON 1.2MB (사용자 프로필 전체)
+  → 매번 1.2MB 전체를 직렬화/역직렬화
+
+After:
+  HSET user:profile:1001 name "홍길동" email "hong@example.com" ...
+  HMGET user:profile:1001 name email  ← 필요한 필드만 조회
+```
+
+Hash 필드 수가 `hash-max-listpack-entries`(기본 128) 이하면 Redis가 내부적으로 listpack 인코딩을 써서 메모리가 오히려 줄어든다. 이 임계값을 넘으면 hashtable로 전환되어 커진다. 필드가 200개라면 두 Hash로 나누는 것이 낫다.
+
+#### List를 슬롯으로 분해
+
+```typescript
+const SHARD_SIZE = 100_000;
+
+// 500만 개 id를 100,000개씩 50개 키로 나눠서 저장
+function getShardKey(position: number): string {
+    const shardIndex = Math.floor(position / SHARD_SIZE);
+    return `product:ids:shard:${shardIndex}`;
+}
+
+// 순서 보존 페이지네이션
+async function getProductIds(redis: Redis, page: number, size: number): Promise<string[]> {
+    const offset = page * size;
+    const shardIndex = Math.floor(offset / SHARD_SIZE);
+    const inShardOffset = offset % SHARD_SIZE;
+    const key = `product:ids:shard:${shardIndex}`;
+    return redis.lrange(key, inShardOffset, inShardOffset + size - 1);
+}
+```
+
+#### UNLINK로 비동기 삭제
+
+만료 이벤트나 명시적 삭제 시 `DEL` 대신 `UNLINK`를 쓴다. `UNLINK`는 키 공간에서 즉시 제거하지만 메모리 회수는 백그라운드 스레드에서 처리한다.
+
+```redis
+UNLINK product:all:ids   ← 즉시 반환, 메모리는 비동기 회수
+DEL product:all:ids      ← 메모리 다 회수될 때까지 블로킹
+```
+
+```conf
+lazyfree-lazy-expire yes       # TTL 만료 시 비동기 삭제
+lazyfree-lazy-server-del yes   # DEL 명령을 UNLINK처럼 동작하게
+lazyfree-lazy-eviction yes     # Eviction 시 비동기 삭제
+```
+
+`lazyfree-lazy-server-del`을 켜면 명시적 `DEL`도 비동기로 처리된다. 동기 삭제가 필요한 경우(삭제 완료 후 후속 처리)에는 켜지 않는다.
+
+### 12.4 Pipeline으로 RTT 절감
+
+Redis 단일 명령 처리 속도가 빨라도 RTT(Round-Trip Time)가 병목이 된다. 같은 데이터센터 안에서 Redis 호출이 0.1ms이면 1,000번에 100ms다. Pipeline은 여러 명령을 한 번의 네트워크 왕복으로 보낸다.
+
+#### MGET vs Pipeline
+
+`MGET`은 여러 String 키를 단일 명령으로 조회한다. 원자적이고(중간에 끊기지 않음) 가장 단순한 방법이다. String 타입에만 동작한다.
+
+Pipeline은 타입을 섞을 수 있다. GET, HGETALL, SMEMBERS를 한 번에 보낼 수 있다. 원자적이지 않고 각 명령이 독립적으로 실행된다.
+
+```typescript
+// MGET — String만, 원자적
+const values = await redis.mget('user:1', 'user:2', 'user:3');
+
+// Pipeline — 혼합 타입
+const pipeline = redis.pipeline();
+pipeline.get('user:1');
+pipeline.hgetall('session:1');
+pipeline.smembers('user:1:roles');
+const results = await pipeline.exec();
+// results: [[null, 'user1-json'], [null, {token: '...'}], [null, Set{'admin'}]]
+```
+
+#### 배치 조회 예시
+
+상품 목록 페이지에서 각 상품 캐시를 순차 GET에서 Pipeline으로 바꾸는 예시다.
+
+```typescript
+interface Product { id: number; name: string; price: number; }
+
+async function batchGetProducts(redis: Redis, productIds: number[]): Promise<(Product | null)[]> {
+    if (productIds.length === 0) return [];
+
+    // 너무 큰 pipeline은 단일 응답이 커져 역효과. 500개 단위로 나눈다
+    const CHUNK_SIZE = 500;
+    const results: (Product | null)[] = [];
+
+    for (let i = 0; i < productIds.length; i += CHUNK_SIZE) {
+        const chunk = productIds.slice(i, i + CHUNK_SIZE);
+        const pipeline = redis.pipeline();
+        chunk.forEach(id => pipeline.get(`product:${id}`));
+
+        const pipelineResults = await pipeline.exec();
+        const parsed = (pipelineResults ?? []).map(([err, val]) => {
+            if (err || !val) return null;
+            return JSON.parse(val as string) as Product;
+        });
+        results.push(...parsed);
+    }
+
+    return results;
+}
+```
+
+Pipeline을 무제한으로 크게 만들면 안 된다. 서버가 응답을 다 준비할 때까지 클라이언트가 기다리고, 응답 크기가 수 MB가 되면 RTT 절감 효과가 사라진다. 100~500개 단위가 실무 기준이다.
+
+#### Cluster에서 Pipeline
+
+Cluster는 슬롯별로 노드가 다르다. ioredis의 ClusterPipeline은 명령을 슬롯별로 분류해 해당 노드에 각각 보낸다. 내부적으로 노드 수만큼의 Pipeline이 동시에 나가고, 모든 응답이 모이면 원래 순서대로 반환한다.
+
+```typescript
+const cluster = new Redis.Cluster([{ host: '192.168.1.1', port: 7000 }]);
+const pipeline = cluster.pipeline();
+pipeline.get('key:1');  // 슬롯 N에 배치
+pipeline.get('key:2');  // 슬롯 M에 배치 (다른 노드에 요청이 나간다)
+const results = await pipeline.exec();
+// 서로 다른 노드에 요청이 나가지만 결과는 순서대로 온다
+```
+
+### 12.5 Keyspace Notification
+
+Redis가 키 이벤트(만료, 삭제, 쓰기 등)를 Pub/Sub으로 발행하는 기능이다. 캐시 만료 시 자동 갱신, 특정 키 변경 감지 등에 쓴다.
+
+#### 설정
+
+기본값은 빈 문자열(비활성화)이다. 이벤트 유형을 조합해서 활성화한다.
+
+```conf
+# redis.conf
+notify-keyspace-events "Ex"
+# E = keyevent 채널 방식
+# x = 만료 이벤트
+```
+
+이벤트 플래그 조합:
+
+| 플래그 | 설명 |
+|--------|------|
+| K | Keyspace (`__keyspace@<db>__:<key>`) 채널 방식 |
+| E | Keyevent (`__keyevent@<db>__:<event>`) 채널 방식 |
+| g | 범용 (DEL, EXPIRE, RENAME 등) |
+| x | 만료 이벤트 (`expired`) |
+| e | Eviction 이벤트 (`evicted`) |
+| $ | String 명령 (SET, INCR 등) |
+| l | List 명령 |
+| h | Hash 명령 |
+| A | g$lshzxet 전체 조합 |
+
+`K`와 `E`는 채널 형식 차이다. `K`는 `__keyspace@0__:mykey`를 채널로 써서 해당 키의 모든 이벤트를 받는다. `E`는 `__keyevent@0__:expired`를 채널로 써서 만료된 모든 키 이름을 받는다. 만료 이벤트 수신에는 `E + x = "Ex"`가 표준이다.
+
+CPU 오버헤드가 있으므로 실제로 필요한 이벤트 유형만 켠다. `A`를 켜면 명령마다 Pub/Sub 발행이 일어나 성능에 영향을 준다.
+
+#### 만료 이벤트 수신 — ioredis
+
+```typescript
+import Redis from 'ioredis';
+
+const redis = new Redis({ host: 'localhost', port: 6379 });
+
+async function setupExpiryListener(): Promise<void> {
+    await redis.config('SET', 'notify-keyspace-events', 'Ex');
+
+    // subscribe는 전용 연결이 필요하다 — duplicate()로 별도 인스턴스를 만든다
+    const sub = redis.duplicate();
+
+    await sub.subscribe('__keyevent@0__:expired');
+
+    sub.on('message', async (_channel: string, expiredKey: string) => {
+        if (expiredKey.startsWith('product:')) {
+            // 만료 후에는 키가 이미 없다 — 원본 값을 얻을 수 없다
+            // 키 이름에서 파라미터를 파싱해 DB에서 재조회한다
+            const productId = expiredKey.replace('product:', '');
+            await refreshProductCache(productId);
+        }
+    });
+}
+
+async function refreshProductCache(productId: string): Promise<void> {
+    const product = await productRepository.findById(Number(productId));
+    if (product) {
+        await redis.set(`product:${productId}`, JSON.stringify(product), 'EX', 3600);
+    }
+}
+
+declare const productRepository: { findById(id: number): Promise<unknown> };
+```
+
+#### 패턴 구독
+
+특정 키 패턴의 이벤트만 받으려면 `psubscribe`를 쓴다.
+
+```typescript
+const sub = redis.duplicate();
+await sub.psubscribe('__keyevent@0__:expired');
+
+sub.on('pmessage', (_pattern: string, _channel: string, key: string) => {
+    if (key.startsWith('user:session:')) {
+        logSessionExpiry(key);
+    }
+});
+
+declare function logSessionExpiry(key: string): void;
+```
+
+#### 주의사항
+
+만료 이벤트는 키가 실제로 접근됐을 때 만료가 처리된다. Redis는 TTL이 지난 키라도 누군가 접근하거나 능동적 만료 스캔이 돌 때 실제로 삭제한다. 이벤트 발행도 그 시점에 일어난다. TTL이 지나도 아무도 읽지 않는 키는 이벤트가 즉시 발행되지 않고 지연된다.
+
+at-most-once 보장이다. Redis 재시작, 페일오버, 네트워크 단절 시 이벤트가 유실된다. 재시작 후 구독을 다시 등록해야 하고, 놓친 이벤트를 처리하는 보완 로직(시작 시 전체 키 스캔 등)이 없으면 만료 이벤트 기반 캐시 갱신에 구멍이 생긴다.
+
+초당 수천 건의 만료가 예상되면 Keyspace Notification 대신 **만료 직전 갱신** 방식을 고려한다 — 캐시를 읽을 때 남은 TTL이 임계값 이하이면 비동기로 갱신하는 방식이다.
+
+```typescript
+async function getCachedProduct(redis: Redis, id: string): Promise<unknown | null> {
+    const key = `product:${id}`;
+    const results = await redis.pipeline().get(key).ttl(key).exec();
+    const val = results?.[0][1] as string | null;
+    const ttl = results?.[1][1] as number;
+
+    if (val) {
+        // 남은 TTL이 60초 미만이면 비동기로 갱신 (fire-and-forget)
+        if (ttl !== null && ttl < 60) {
+            refreshProductCache(id).catch(() => {});
+        }
+        return JSON.parse(val);
+    }
+    return null;
+}
+```
+
+이 방식은 만료 직후 일시적으로 stale한 값을 반환하지 않고, 아직 키가 살아있을 때 미리 갱신한다. Keyspace Notification의 at-most-once 문제도 없고, 트래픽이 없는 키는 그냥 만료되어도 상관없는 경우에 적합하다.
+
+---
 
 ## 참고
 

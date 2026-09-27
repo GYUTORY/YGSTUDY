@@ -9,7 +9,7 @@ hide:
 
 # Redis 전체 보기
 
-문서 6개.
+문서 7개.
 
 ## 개요
 
@@ -19,4 +19,5 @@ hide:
 - [Redis 캐시 설계 실무](Redis_Cache_Strategy.md)
 - [Redis 키스페이스 알림](Redis_Keyspace_Notifications.md)
 - [Redisson 분산 락 심화](Redisson_Distributed_Lock.md)
+- [Valkey 마이그레이션](Valkey_Migration.md)
 
