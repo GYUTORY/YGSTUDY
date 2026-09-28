@@ -1,7 +1,7 @@
 ---
 title: 캐시 모니터링 실무
 tags: [redis, cache, monitoring, observability, backend, performance]
-updated: 2026-09-15
+updated: 2026-09-28
 ---
 
 # 캐시 모니터링 실무
@@ -73,7 +73,7 @@ public class CacheMetrics {
 
 이걸 `@Cacheable`이 붙은 메서드 앞뒤에 AOP로 감싸거나, 캐시 구현체의 `get`/`put` 호출 지점에 심는다.
 
-## Redis INFO stats 해석
+## Redis INFO 주요 수치
 
 `INFO stats` 외에도 봐야 하는 항목들이 있다.
 
@@ -107,6 +107,197 @@ db0:keys=48291,expires=41823,avg_ttl=3601000
 **expired_keys**: TTL이 다 된 키의 누적 삭제 수다. 이 자체는 문제가 아니다. 짧은 시간에 급증한다면 TTL 집중 만료가 발생한 것이다.
 
 **rejected_connections**: 0이 아니면 maxclients 한도에 걸렸다는 뜻이다. 이 상태에서는 새 요청이 Redis에 아예 연결되지 못한다.
+
+## 연결 수 모니터링
+
+connected_clients는 생각보다 자주 문제를 일으킨다. 애플리케이션이 connection pool을 제대로 반납하지 않거나, 배포 중에 구버전과 신버전이 동시에 떠있을 때 연결 수가 급증한다.
+
+```bash
+redis-cli INFO clients
+```
+
+```
+connected_clients:1234
+maxclients:10000
+client_recent_max_input_buffer:24936
+client_recent_max_output_buffer:0
+blocked_clients:5
+```
+
+connected_clients가 maxclients의 80% 이상에 도달하면 경고다. 100%가 되는 순간 새 연결을 거부한다.
+
+`blocked_clients`가 증가하고 있다면 BLPOP, BRPOP 같은 블로킹 명령어를 쓰는 클라이언트가 대기 중인 것이다. 큐 소비가 느려졌거나 컨슈머에 문제가 생긴 경우다.
+
+Prometheus에서 연결 수 비율을 추적하는 쿼리다.
+
+```promql
+redis_connected_clients / redis_config_maxclients
+```
+
+이 값이 0.8을 넘으면 warning, 0.95를 넘으면 즉시 확인이 필요하다.
+
+## slowlog 분석
+
+Redis는 싱글 스레드 모델이라 명령 하나가 느리면 그 뒤로 오는 요청이 전부 대기한다. hit ratio와 무관하게 응답 시간이 튀는 상황이 발생한다면 slowlog부터 본다.
+
+```bash
+# 현재 임계값 확인 (단위: 마이크로초)
+redis-cli CONFIG GET slowlog-log-slower-than
+# 기본값: 10000 (= 10ms)
+
+# 저장 개수 확인
+redis-cli CONFIG GET slowlog-max-len
+# 기본값: 128
+
+# slowlog에 쌓인 항목 수
+redis-cli SLOWLOG LEN
+
+# 최근 10개 조회
+redis-cli SLOWLOG GET 10
+```
+
+SLOWLOG GET 출력은 다음 형식이다.
+
+```
+1) 1) (integer) 142             # 고유 ID
+   2) (integer) 1726123456      # 타임스탬프 (unix)
+   3) (integer) 15234           # 실행 시간 (마이크로초)
+   4) 1) "SMEMBERS"             # 명령어
+      2) "user:tags:9012"       # 인자
+   5) "10.0.1.23:52341"         # 클라이언트 주소
+   6) ""                        # 클라이언트 이름
+```
+
+실행 시간이 마이크로초 단위라는 걸 잊지 않는 게 중요하다. 15234는 15.2ms다.
+
+slowlog에서 SMEMBERS, LRANGE, KEYS, HGETALL 같은 명령이 자주 보인다면 set이나 list에 원소가 너무 많이 쌓인 것이다. KEYS는 프로덕션에서 절대 쓰면 안 된다. 전체 키스페이스를 순회해서 수백만 개의 키가 있으면 Redis가 수초간 멈춘다.
+
+임계값을 낮춰서 더 많은 slowlog를 잡고 싶을 때는 `CONFIG SET`으로 변경한다.
+
+```bash
+# 5ms 이상인 명령을 기록
+redis-cli CONFIG SET slowlog-log-slower-than 5000
+
+# 이전 slowlog 초기화
+redis-cli SLOWLOG RESET
+```
+
+SLOWLOG RESET은 원인 파악 전에 하면 안 된다. 먼저 SLOWLOG GET으로 내용을 저장해두고 초기화한다.
+
+## LATENCY 히스토리
+
+LATENCY는 slowlog와 다르게 이벤트 유형별로 지연을 추적한다. Redis 내부 이벤트(AOF 쓰기, fork, RDB 저장 등)의 지연을 잡을 때 유용하다.
+
+기본적으로 비활성 상태다. 임계값을 설정해야 기록을 시작한다.
+
+```bash
+# 100ms 이상 지연 이벤트 기록
+redis-cli CONFIG SET latency-monitor-threshold 100
+
+# 최근 발생한 이벤트 목록
+redis-cli LATENCY LATEST
+```
+
+```
+1) 1) "command"               # 이벤트 유형
+   2) (integer) 1726123890    # 마지막 발생 타임스탬프
+   3) (integer) 234           # 마지막 지연 (ms)
+   4) (integer) 512           # 최대 지연 (ms)
+```
+
+특정 이벤트의 시계열 히스토리는 LATENCY HISTORY로 조회한다.
+
+```bash
+redis-cli LATENCY HISTORY command
+```
+
+LATENCY LATEST에서 볼 수 있는 이벤트 유형들이다.
+
+| 이벤트 | 의미 |
+|---|---|
+| command | 명령 처리 지연 |
+| fast-command | O(1) 명령 지연 (이게 느리면 심각) |
+| aof-stat | AOF 쓰기 지연 |
+| rdb-unlink-temp-file | RDB 파일 삭제 지연 |
+| fork | BGSAVE/BGREWRITEAOF 중 fork() 호출 지연 |
+
+`fork` 지연이 높다면 BGSAVE나 BGREWRITEAOF가 느린 것이다. Copy-on-Write 때문에 메모리 사용량이 많을수록 fork 시간이 길어진다. 메모리 4GB 인스턴스에서 BGSAVE가 2초 걸리는 경우가 있었다. 그 2초 동안 Redis는 다른 클라이언트 요청도 처리하지만, fork 자체는 메인 스레드를 잠깐 멈춘다.
+
+LATENCY 히스토리를 초기화하려면:
+
+```bash
+redis-cli LATENCY RESET
+redis-cli LATENCY RESET command  # 특정 이벤트만
+```
+
+## big key 감지
+
+big key는 두 가지 문제를 만든다. 하나는 그 키를 접근할 때 Redis가 오래 잡혀있는 것이고, 다른 하나는 그 키 때문에 메모리를 예상보다 훨씬 많이 쓰는 것이다.
+
+### redis-cli --bigkeys
+
+```bash
+redis-cli --bigkeys
+```
+
+출력 예시:
+
+```
+Biggest string found so far '"product:cache:9012"' with 45678 bytes
+Biggest hash   found so far '"user:profile:8834"' with 1234 fields
+
+-------- summary -------
+Sampled 48291 keys in the keyspace!
+Biggest string found '"product:cache:9012"' has 45678 bytes
+Biggest hash   found '"user:profile:8834"' has 1234 fields
+```
+
+프로덕션에서 실행하면 전체 키를 SCAN으로 순회하기 때문에 CPU 부하가 생긴다. `-i 0.1` 옵션을 붙이면 100번의 SCAN 호출마다 100ms씩 쉬어가며 부하를 줄인다.
+
+```bash
+redis-cli --bigkeys -i 0.1
+```
+
+키 수백만 개 이상인 인스턴스는 새벽 트래픽 최저점에 실행하거나 읽기 전용 복제본에서 실행한다.
+
+### MEMORY USAGE
+
+특정 키의 메모리 사용량을 정확히 재려면 MEMORY USAGE를 쓴다.
+
+```bash
+# 기본 사용량 (바이트)
+redis-cli MEMORY USAGE product:cache:9012
+
+# SAMPLES 0은 중첩 구조를 전체 탐색 (기본값 5는 샘플 기반 추정)
+redis-cli MEMORY USAGE user:profile:8834 SAMPLES 0
+```
+
+`SAMPLES 0`은 정확하지만 원소가 많은 hash나 set에서는 느릴 수 있다.
+
+### SCAN + OBJECT ENCODING
+
+특정 패턴의 키들이 어떤 인코딩을 쓰고 있는지 확인할 때 쓴다.
+
+```bash
+# cursor 0에서 시작, 100개씩 스캔
+redis-cli SCAN 0 MATCH "session:*" COUNT 100
+
+# 특정 키의 내부 인코딩
+redis-cli OBJECT ENCODING session:user:1234
+```
+
+인코딩이 바뀌는 지점이 메모리 사용량이 급증하는 지점이다.
+
+| 자료형 | 압축 인코딩 | 해제 인코딩 |
+|---|---|---|
+| hash | listpack | hashtable |
+| zset | listpack | skiplist |
+| set | listpack / intset | hashtable |
+| list | listpack | quicklist |
+
+hash가 listpack에서 hashtable로 전환되는 임계값은 `hash-max-listpack-entries` (기본 128)다. 이 값 근처의 hash들은 원소 하나 추가로 메모리가 수배 늘어날 수 있다.
+
+big key를 발견했을 때 처방은 키 분산이다. `product:cache:9012` 하나에 전체 상품 정보를 담는 대신 `product:cache:9012:meta`, `product:cache:9012:images`, `product:cache:9012:stock`으로 쪼갠다.
 
 ## Prometheus + Grafana 구성
 
@@ -162,8 +353,9 @@ rate(redis_expired_keys_total[5m])
 1. hit ratio 시계열 (상단, 크게)
 2. eviction/expired 비율 (중단)
 3. 메모리 사용량과 단편화 비율 (중단)
-4. 연결 수 (rejected_connections 포함)
-5. 엔드포인트별 hit/miss 분포 (하단, 애플리케이션 메트릭)
+4. connected_clients / maxclients 비율
+5. blocked_clients 추이
+6. 엔드포인트별 hit/miss 분포 (하단, 애플리케이션 메트릭)
 
 hit ratio 패널에는 임계선을 같이 그린다.
 
@@ -212,6 +404,66 @@ long jitter = (long) (baseTtl * 0.1 * Math.random());
 redisTemplate.expire(key, Duration.ofSeconds(baseTtl + jitter));
 ```
 
+## hit ratio 하락 시 디버깅 순서
+
+hit ratio 하락 알림이 왔을 때 바로 DB를 의심하거나 캐시 코드를 뜯어보기 전에, 다음 순서로 Redis 상태를 먼저 확인한다.
+
+**1단계: eviction 발생 여부**
+
+```bash
+redis-cli INFO stats | grep evicted_keys
+```
+
+`evicted_keys`가 증가하고 있다면 maxmemory 한도에 걸린 것이다. hit ratio 하락이 eviction과 시간이 겹친다면 여기서 원인이 결정된다. `INFO memory`로 현재 메모리 사용량을 확인하고, 필요하면 maxmemory를 늘리거나 maxmemory-policy를 검토한다.
+
+eviction이 없다면 2단계로 넘어간다.
+
+**2단계: slowlog 확인**
+
+```bash
+redis-cli SLOWLOG LEN
+redis-cli SLOWLOG GET 20
+```
+
+특정 명령이 반복적으로 나타난다면 그 키나 자료형이 문제다. SMEMBERS, LRANGE, HGETALL은 원소 수에 비례해 느려진다. 이 명령들이 slowlog에 자주 보인다면 big key 확인으로 넘어간다.
+
+slowlog가 깨끗하다면 3단계로 넘어간다.
+
+**3단계: big key 확인**
+
+```bash
+redis-cli --bigkeys -i 0.1
+```
+
+예상보다 큰 키가 있다면 해당 키에 접근하는 요청이 Redis를 오래 잡고 있는 것이다. MEMORY USAGE로 정확한 크기를 확인하고 키 분산을 검토한다.
+
+big key 문제가 없다면 4단계로 넘어간다.
+
+**4단계: TTL 분포 확인**
+
+```bash
+redis-cli INFO keyspace
+```
+
+```
+db0:keys=48291,expires=41823,avg_ttl=3601000
+```
+
+`avg_ttl`이 급격히 낮아졌다면 곧 대규모 만료가 예정된 상황이다. `expires` 비율이 높은데 `avg_ttl`이 낮다면 특정 시점에 TTL이 집중된 것이다.
+
+더 정밀하게 TTL 분포를 보려면 SCAN으로 키를 샘플링하고 TTL을 확인한다.
+
+```bash
+# 샘플 100개의 TTL 분포 확인
+redis-cli SCAN 0 COUNT 100 | tail -n +2 | while read key; do
+  redis-cli TTL "$key"
+done | sort -n | uniq -c
+```
+
+TTL이 특정 값에 몰려있다면 jitter 적용이 필요하다.
+
+이 4단계를 다 거쳐도 원인이 안 잡힌다면, 애플리케이션 레이어에서 캐시 무효화 로직 변경이나 최근 배포 이력을 확인한다.
+
 ## 알림 임계값 설정
 
 운영하면서 쓰는 임계값이다. 서비스 특성마다 다르므로 절대적인 수치는 아니다.
@@ -221,6 +473,8 @@ redisTemplate.expire(key, Duration.ofSeconds(baseTtl + jitter));
 | hit ratio (5m) | < 75% | < 60% | 최초 설정은 평상시 값의 -15%, -25% |
 | eviction 발생률 | > 10/min | > 100/min | 0이 정상. 발생 자체가 경고 신호 |
 | mem_fragmentation_ratio | > 1.5 | > 2.0 | 1.0 미만도 critical |
+| connected_clients 비율 | > 80% | > 95% | maxclients 대비 |
+| blocked_clients | > 10 | > 50 | 블로킹 명령 대기 |
 | rejected_connections | > 0 | > 10 | - |
 | expired_keys 변화율 | 평소 3배 | 평소 5배 | 절대값보다 상대 변화 기준이 유용 |
 
@@ -253,6 +507,14 @@ groups:
           severity: critical
         annotations:
           summary: "Redis eviction rate {{ $value }}/min"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients / redis_config_maxclients > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connections at {{ $value | humanizePercentage }} of max"
 ```
 
 `for: 5m`은 5분 이상 지속될 때만 알림을 보낸다는 뜻이다. 순간적인 스파이크로 새벽에 호출되는 걸 막기 위해서다. eviction은 1분으로 짧게 잡는다. 발생 자체가 심각하기 때문이다.

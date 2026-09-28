@@ -9,7 +9,7 @@ hide:
 
 # Messaging 전체 보기
 
-문서 12개.
+문서 13개.
 
 ## 개요
 
@@ -25,4 +25,5 @@ hide:
 - [RabbitMQ MQTT Plugin - AMQP와 MQTT 브릿지 실무](RabbitMQ_MQTT.md)
 - [RabbitMQ 심화](Rabbit_MQ.md)
 - [메시지 큐 & 이벤트 기반 아키텍처](Message_Queue.md)
+- [컨슈머 배압과 전달 보장 붕괴](Consumer_Backpressure.md)
 
