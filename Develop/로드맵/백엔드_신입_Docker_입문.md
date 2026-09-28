@@ -1,7 +1,7 @@
 ---
 title: 백엔드 신입 Docker 입문
 tags: [docker, devops, backend, linux]
-updated: 2026-08-15
+updated: 2026-09-28
 ---
 
 # 백엔드 신입 Docker 입문
@@ -10,9 +10,37 @@ updated: 2026-08-15
 
 ---
 
+## 학습 순서
+
+Docker를 처음 접할 때 어디서 시작할지 막막한 경우가 많다. 큰 틀에서 다섯 단계로 나뉜다.
+
+**1단계 — 기초 개념과 CLI**
+
+컨테이너가 뭔지, VM과 뭐가 다른지 파악하는 단계다. `docker run`, `docker ps`, `docker stop`, `docker images` 정도를 손에 익혀야 다음 단계로 넘어갈 수 있다. 세부 내용은 [Docker 기초](../DevOps/Kubernetes/Docker/Docker_Basic.md)에 있다.
+
+**2단계 — Dockerfile 작성**
+
+직접 이미지를 빌드하는 단계다. `FROM`, `COPY`, `RUN`, `ENTRYPOINT`, `CMD`의 차이를 이해하고, 레이어 캐시를 어떻게 쓰는지 익힌다. Multi-stage build까지 쓸 수 있으면 이 단계는 끝이다. [Dockerfile](../DevOps/Kubernetes/Docker/Dockerfile.md)에 세부 내용이 있고, BuildKit 관련 고급 기능은 [Docker BuildKit](../DevOps/Kubernetes/Docker/Docker_Build_Kit.md)을 본다.
+
+**3단계 — Docker Compose**
+
+로컬 개발 환경에서 앱 + DB + 캐시를 한 번에 올리는 단계다. 서비스 간 네트워크 통신, healthcheck, volume 마운트가 핵심이다. [Docker Compose](../DevOps/Kubernetes/Docker/Docker_Compose.md)와 [Docker 네트워크](../DevOps/Kubernetes/Docker/Docker_Network.md)를 같이 본다.
+
+**4단계 — 이미지 레지스트리**
+
+빌드한 이미지를 어디에 저장하고 어떻게 배포하는지 배우는 단계다. Docker Hub 기초부터 ECR 푸시 순서로 익힌다. 태그 컨벤션, `latest` 함정, digest 고정까지는 [Docker 이미지 레지스트리](../DevOps/Kubernetes/Docker/Docker_Image_Registry.md)를 본다.
+
+**5단계 — 운영 주의사항**
+
+환경변수 관리, 컨테이너 로그, 이미지 정리, 시크릿 주입 방법이 여기에 속한다. 실수하기 쉬운 ENV/ARG 혼동, `.env` 파일 동작 방식, 민감값이 레이어에 박히는 문제는 [컨테이너 환경변수 관리](../DevOps/Kubernetes/Docker/Docker_Env_Config.md)에서 다룬다.
+
+이 문서는 위 다섯 단계를 얕게 훑는다. 각 단계의 세부 내용은 링크를 따라가면 된다.
+
+---
+
 ## 컨테이너가 VM과 다른 이유
 
-VM은 OS를 통째로 올린다. 하이퍼바이저 위에 Guest OS가 올라가고 그 위에 앱이 돈다. 반면 컨테이너는 호스트 OS의 커널을 공유하고, 프로세스 격리(namespace)와 자원 제한(cgroups)으로 환경을 분리한다.
+VM은 OS를 통째로 올린다. 하이퍼바이저 위에 Guest OS가 올라가고 그 위에 앱이 돈다. 컨테이너는 호스트 OS의 커널을 공유하고, 프로세스 격리(namespace)와 자원 제한(cgroups)으로 환경을 분리한다.
 
 실무적으로 이 차이가 중요한 이유는 두 가지다.
 
@@ -121,7 +149,7 @@ volumes:
 ```
 
 ```bash
-docker-compose up -d        # 백그라운드로 실행
+docker-compose up -d         # 백그라운드로 실행
 docker-compose logs -f mysql # mysql 로그 확인
 docker-compose down          # 컨테이너 종료 (데이터 유지)
 docker-compose down -v       # 컨테이너 + 볼륨 전부 삭제
@@ -172,7 +200,49 @@ services:
 
 ---
 
-## 이미지 빌드와 ECR 푸시
+## 이미지 레지스트리
+
+### Docker Hub 기초
+
+Docker Hub는 Docker 공식 퍼블릭 레지스트리다. `docker pull nginx`처럼 태그 없이 이미지 이름만 쓰면 Docker Hub에서 가져온다. 무료 플랜에서 퍼블릭 리포지토리는 제한이 없고, 프라이빗 리포지토리는 1개다.
+
+```bash
+# Docker Hub 로그인
+docker login
+# Username: myaccount
+# Password:
+
+# 이미지 빌드 시 계정명/이미지명 형태로 태그
+docker build -t myaccount/api-server:1.0.0 .
+
+# push
+docker push myaccount/api-server:1.0.0
+
+# 다른 머신에서 pull (퍼블릭이면 로그인 불필요)
+docker pull myaccount/api-server:1.0.0
+```
+
+이미 빌드된 이미지에 이름을 추가하려면 `docker tag`를 쓴다.
+
+```bash
+docker tag api-server:local myaccount/api-server:1.0.0
+docker push myaccount/api-server:1.0.0
+```
+
+`docker tag`는 이미지를 복사하지 않는다. 동일한 이미지 레이어에 이름표만 하나 더 붙이는 동작이라 디스크 공간은 늘지 않는다.
+
+`latest` 태그는 편해 보이지만 push마다 덮어써지기 때문에 배포 manifest에는 쓰지 않는다. 이전 버전으로 롤백할 방법이 사라진다. CI/CD에서는 커밋 해시나 버전을 태그로 쓴다.
+
+```bash
+# GitHub Actions에서 커밋 해시 태그
+SHORT_SHA="${GITHUB_SHA::8}"
+docker tag api-server:local myaccount/api-server:main-${SHORT_SHA}
+docker push myaccount/api-server:main-${SHORT_SHA}
+```
+
+이미지 이름 구조와 태그 컨벤션, digest 고정, 프라이빗 레지스트리 인증 흐름은 [Docker 이미지 레지스트리](../DevOps/Kubernetes/Docker/Docker_Image_Registry.md)에서 자세히 다룬다.
+
+### ECR 푸시
 
 ECS에서 이미지를 가져오려면 이미지가 레지스트리에 올라가 있어야 한다. AWS 환경에서는 ECR(Elastic Container Registry)을 쓴다.
 
@@ -193,7 +263,73 @@ docker tag myapp:latest \
 docker push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/myapp:latest
 ```
 
+Docker Hub와 달리 ECR은 리포지토리를 미리 만들어야 push가 된다. 없는 리포지토리에 push하면 에러가 난다.
+
+```bash
+aws ecr create-repository \
+  --repository-name myapp \
+  --region ap-northeast-2
+```
+
 CI/CD에서는 이 과정이 파이프라인으로 자동화된다. 직접 푸시하는 건 처음 흐름을 익힐 때 한 번이면 충분하다.
+
+---
+
+## 환경변수 관리
+
+### ENV와 ARG 혼동
+
+Dockerfile에서 환경변수를 다루는 키워드가 두 개 있다. `ENV`는 이미지에 구워진다. `ARG`는 빌드 시점에만 존재하고 이미지 환경변수 목록에 남지 않는다.
+
+```dockerfile
+ARG BUILD_ENV=production
+ENV APP_ENV=$BUILD_ENV  # ARG 값을 ENV로 받으면 이미지에 박힌다
+```
+
+`docker image inspect myimage --format '{{range .Config.Env}}{{println .}}{{end}}'`를 실행하면 이미지에 ENV로 박힌 값이 전부 나온다. 이미지를 누군가에게 배포하면 그 값도 같이 나간다. 이미지에는 변수 이름만 두고 실제 값은 컨테이너 실행 시 주입하는 게 맞다.
+
+```bash
+# 실행 시 환경변수 주입
+docker run -e DB_PASSWORD=secret myapp
+
+# 또는 파일로
+docker run --env-file .env.prod myapp
+```
+
+### Docker Compose의 .env 파일 함정
+
+Docker Compose에서 `.env` 파일은 컨테이너 내부 환경변수가 아니라 `docker-compose.yml` 자체의 변수 보간에 쓰인다. `${DB_HOST}`를 치환하는 용도다.
+
+```yaml
+services:
+  app:
+    image: myapp
+    environment:
+      - DB_HOST=${DB_HOST}   # .env의 DB_HOST를 읽어서 컨테이너 환경변수로 전달
+    # env_file: .env.app     # 파일 전체를 컨테이너에 넘길 때는 이 방법
+```
+
+`.env` 파일의 내용이 자동으로 컨테이너 내부로 전달되지는 않는다. 컨테이너에 파일 전체를 넘기려면 `env_file:` 키를 써야 한다. 이걸 혼동하면 "분명히 환경변수 설정했는데 컨테이너에서 왜 없지?" 상황이 생긴다.
+
+### 민감값이 이미지 레이어에 박히는 문제
+
+빌드 중에 API 키나 비밀번호가 필요한 경우가 있다. private npm registry 인증, Maven 리포지토리 자격증명 같은 것들이다. `ARG`로 받아서 `RUN`에서 쓰면 레이어에 흔적이 남는다.
+
+```dockerfile
+ARG NPM_TOKEN
+RUN echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc && \
+    npm install && \
+    rm ~/.npmrc   # 삭제해도 이전 레이어에 이미 기록됨
+```
+
+`rm ~/.npmrc`로 지워도 Docker 레이어는 명령 단위로 스냅샷을 찍기 때문에, 이전 레이어에 `.npmrc` 파일이 그대로 남아있다.
+
+```bash
+# 이전 레이어를 직접 꺼내서 확인할 수 있다
+docker save myimage | tar x -O '*/layer.tar' | tar t 2>/dev/null | grep npmrc
+```
+
+Multi-stage build를 쓰면 최종 이미지가 빌드 스테이지의 레이어 히스토리를 포함하지 않아 이 문제를 해결할 수 있다. Docker BuildKit을 쓰면 `--mount=type=secret`으로 더 깔끔하게 처리한다. 자세한 내용은 [컨테이너 환경변수 관리](../DevOps/Kubernetes/Docker/Docker_Env_Config.md)를 본다.
 
 ---
 
@@ -242,13 +378,10 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ---
 
-## ECS로 넘어가기 전 확인
+## ECS로 넘어가기 전
 
-로컬에서 아래가 동작하면 ECS 문서로 넘어갈 준비가 된 거다.
+로컬에서 `docker build -t myapp .`이 성공하고 이미지가 생겨야 한다. `docker run -p 8080:8080 myapp`으로 앱이 뜨고 `curl localhost:8080/actuator/health`가 응답해야 한다. `docker-compose up`으로 MySQL과 앱이 같이 뜨고 앱이 DB에 연결되어야 한다. ECR에 이미지를 푸시하고 ECR 콘솔에서 이미지가 보여야 한다.
 
-- `docker build -t myapp .`이 성공하고 이미지가 로컬에 생긴다
-- `docker run -p 8080:8080 myapp`으로 앱이 뜨고 `curl localhost:8080/actuator/health`가 응답한다
-- `docker-compose up`으로 MySQL + 앱이 같이 뜨고 앱이 DB에 연결된다
-- ECR에 이미지를 푸시하고 ECR 콘솔에서 이미지가 보인다
+이 네 가지가 로컬에서 모두 동작하면 ECS 문서로 넘어갈 준비가 된 거다.
 
 ECS에서 Task Definition을 만들 때 이미지 URI, 포트 매핑, 환경 변수 설정이 나온다. 로컬에서 `docker run`으로 했던 것과 구조가 같다. 그걸 AWS 콘솔에서 클릭으로 채우는 차이다.

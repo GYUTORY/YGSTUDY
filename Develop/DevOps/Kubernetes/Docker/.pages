@@ -1,3 +1,5 @@
 title: Docker
 nav:
   - index.md
+  - 이미지 레지스트리: Docker_Image_Registry.md
+  - 환경변수 설정: Docker_Env_Config.md
