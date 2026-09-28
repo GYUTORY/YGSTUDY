@@ -14,9 +14,9 @@ hide:
 ## Class
 
 - [Java 고급 클래스 기능 심화](Class/Advanced_Class.md)
+- [Java 중첩 클래스 (Nested Class)](<Class/중첩 클래스.md>)
 - [Java 클래스(Class)와 메서드(Method)](Class/Class__vs__Method.md)
 - [Java 클래스와 메서드 설계 기준](Class/Class_Method_Design_Criteria.md)
-- [Nested Classes in Java](<Class/중첩 클래스.md>)
 
 ## Method
 

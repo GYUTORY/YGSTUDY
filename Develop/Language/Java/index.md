@@ -50,12 +50,12 @@ hide:
 - [Java 객체지향 프로그래밍(OOP)](<객체지향 프로그래밍 (OOP)/OOP.md>)
 - [Java 고급 인터페이스 (Advanced Interface)](<객체지향 프로그래밍 (OOP)/interface/advanced_interface.md>)
 - [Java 고급 클래스 기능 심화](<객체지향 프로그래밍 (OOP)/Class/Advanced_Class.md>)
+- [Java 중첩 클래스 (Nested Class)](<객체지향 프로그래밍 (OOP)/Class/중첩 클래스.md>)
 - [Java 클래스(Class)와 메서드(Method)](<객체지향 프로그래밍 (OOP)/Class/Class__vs__Method.md>)
 - [Java 클래스와 메서드 설계 기준](<객체지향 프로그래밍 (OOP)/Class/Class_Method_Design_Criteria.md>)
 - [Java 함수형 인터페이스 (Functional Interface)](<객체지향 프로그래밍 (OOP)/interface/Functional_Interface.md>)
 - [Marker Interface](<객체지향 프로그래밍 (OOP)/interface/Marker_Interface.md>)
 - [Native Method](<객체지향 프로그래밍 (OOP)/Method/Native_Method.md>)
-- [Nested Classes in Java](<객체지향 프로그래밍 (OOP)/Class/중첩 클래스.md>)
 - [Override Overriding](<객체지향 프로그래밍 (OOP)/Override과 Overriding.md>)
 - [다형적 참조 (Polymorphic Reference)](<객체지향 프로그래밍 (OOP)/Polymorphic_Reference.md>)
 

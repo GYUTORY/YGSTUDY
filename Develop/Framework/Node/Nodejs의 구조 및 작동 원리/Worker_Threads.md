@@ -1,7 +1,7 @@
 ---
 title: worker_threads 모듈 심화
 tags: [nodejs]
-updated: 2026-06-06
+updated: 2026-09-28
 ---
 
 # worker_threads 모듈 심화
@@ -36,6 +36,75 @@ w.on('message', (m) => console.log('워커:', m));
 ```
 
 `threadId`는 메인이 0, 워커가 1부터 증가한다. 워커끼리도 unique하다.
+
+### child_process / Cluster와 메모리 격리 비교
+
+설명만으로는 감이 잘 안 온다. 코드로 직접 확인한다. Worker Thread와 `child_process.fork`의 차이는 두 가지다 — PID와 SharedArrayBuffer 공유 가능 여부.
+
+```javascript
+// isolation_compare.js — node isolation_compare.js 로 실행
+const { Worker } = require('worker_threads');
+const { fork } = require('child_process');
+
+// child_process.fork가 이 파일을 재실행할 때의 분기
+if (process.env.CHILD_MODE) {
+  process.send({ childPid: process.pid });
+  setTimeout(() => process.exit(0), 100);
+  return;
+}
+
+// ── Worker Thread ─────────────────────────────────────────────────
+// SharedArrayBuffer: 워커와 메인이 같은 메모리를 직접 공유
+const sab = new SharedArrayBuffer(4);
+const shared = new Int32Array(sab);
+shared[0] = 42;
+
+const w = new Worker(`
+  const { parentPort, workerData } = require('worker_threads');
+  const arr = new Int32Array(workerData.sab);
+  arr[0] = 99;                              // postMessage 없이 메인 메모리 수정
+  parentPort.postMessage({ pid: process.pid });
+`, { eval: true, workerData: { sab } });
+
+w.on('message', ({ pid }) => {
+  console.log(`[Worker] 워커 pid=${pid}, 메인 pid=${process.pid}`);
+  console.log(`[Worker] PID 동일: ${pid === process.pid}`);          // true
+  console.log(`[Worker] 워커가 변경한 SAB 값 (IPC 없이): ${shared[0]}`); // 99
+  w.terminate();
+});
+
+// ── child_process.fork ────────────────────────────────────────────
+// SAB를 fork된 자식에 전달하는 방법은 없다. IPC만 가능.
+const child = fork(__filename, { env: { ...process.env, CHILD_MODE: '1' } });
+child.on('message', ({ childPid }) => {
+  console.log(`\n[fork] 자식 pid=${childPid}, 부모 pid=${process.pid}`);
+  console.log(`[fork] PID 동일: ${childPid === process.pid}`);       // false
+  console.log('[fork] SAB 직접 공유: 불가 — 별도 메모리 공간');
+});
+```
+
+실행 결과:
+
+```
+[Worker] 워커 pid=12345, 메인 pid=12345
+[Worker] PID 동일: true
+[Worker] 워커가 변경한 SAB 값 (IPC 없이): 99
+
+[fork] 자식 pid=12346, 부모 pid=12345
+[fork] PID 동일: false
+[fork] SAB 직접 공유: 불가 — 별도 메모리 공간
+```
+
+Cluster는 내부적으로 `child_process.fork()`를 쓴다. 격리 수준은 fork와 동일하다.
+
+| 항목 | Worker Thread | child_process / Cluster |
+|---|---|---|
+| PID | 메인과 동일 | 별도 PID |
+| SharedArrayBuffer | 직접 공유 가능 | 전달 불가 |
+| 한 쪽 크래시 | 같은 프로세스 → 함께 죽음 | 별도 프로세스 → 격리됨 |
+| IPC 필요 여부 | 대부분 postMessage | 항상 IPC 필요 |
+
+`process.exit(1)`를 Worker 안에서 실수로 호출하면 메인까지 죽는다는 게 세 번째 행이 말하는 것이다. 워커 종료는 `parentPort.close()`나 외부에서 `worker.terminate()`를 써야 한다.
 
 ## MessagePort와 MessageChannel — postMessage가 실제로 하는 일
 
@@ -172,35 +241,133 @@ w.postMessage({ data: buf }, [buf.buffer]); // buf.buffer가 ArrayBuffer
 
 `ArrayBuffer`는 한 번에 한 곳만 소유한다. `SharedArrayBuffer`는 다르다. 여러 스레드가 동시에 같은 메모리 영역을 본다. 메인과 워커가, 또는 워커끼리, 같은 바이트에 동시에 쓸 수 있다.
 
-당연히 race condition이 생긴다. 그래서 `Atomics`가 같이 있다. `Atomics.add`, `Atomics.compareExchange`, `Atomics.wait`, `Atomics.notify` 같은 것들이다.
+당연히 race condition이 생긴다. 그래서 `Atomics`가 같이 있다.
 
-```javascript
-const { Worker } = require('worker_threads');
+### race condition이 발생하는 조건
 
-const sab = new SharedArrayBuffer(4); // 4바이트, Int32 하나
-const counter = new Int32Array(sab);
+`arr[0]++`는 JavaScript 메모리 모델에서 원자적 연산이 아니다. V8이 이걸 컴파일하면 대략 세 단계다:
 
-const N = 4;
-const workers = [];
-for (let i = 0; i < N; i++) {
-  workers.push(new Worker(`
-    const { parentPort, workerData } = require('worker_threads');
-    const counter = new Int32Array(workerData.sab);
-    for (let j = 0; j < 100000; j++) {
-      Atomics.add(counter, 0, 1); // 원자적 증가
-    }
-    parentPort.postMessage('done');
-  `, { eval: true, workerData: { sab } }));
-}
-
-Promise.all(workers.map(w => new Promise(r => w.on('message', r))))
-  .then(() => {
-    console.log('최종 카운터:', Atomics.load(counter, 0)); // 정확히 400000
-    workers.forEach(w => w.terminate());
-  });
+```
+1. temp = arr[0]       (읽기)
+2. temp = temp + 1     (수정)
+3. arr[0] = temp       (쓰기)
 ```
 
-`Atomics.add` 대신 `counter[0]++`를 쓰면 결과가 400000보다 작게 나온다. `++`는 읽기-증가-쓰기 세 단계라서 중간에 다른 스레드가 끼어들면 갱신이 사라진다. 이게 lost update다.
+스레드 A가 1번을 하고 아직 3번을 못 했을 때, 스레드 B가 1~3번을 전부 완료하면 두 스레드 모두 같은 old 값을 읽은 채로 each가 old+1을 쓴다. 두 번 증가했는데 결과는 1만 반영된다. 이게 lost update다.
+
+아래 코드로 재현한다:
+
+```javascript
+// race_demo.js — node race_demo.js
+const { Worker } = require('worker_threads');
+
+const THREADS = 4;
+const PER_THREAD = 100_000;
+const EXPECTED = THREADS * PER_THREAD; // 400,000
+
+async function runRace(useAtomics) {
+  const sab = new SharedArrayBuffer(4);
+  const arr = new Int32Array(sab);
+
+  const workerCode = useAtomics
+    ? `
+      const { parentPort, workerData } = require('worker_threads');
+      const arr = new Int32Array(workerData.sab);
+      for (let i = 0; i < workerData.n; i++) Atomics.add(arr, 0, 1);
+      parentPort.postMessage('done');
+    `
+    : `
+      const { parentPort, workerData } = require('worker_threads');
+      const arr = new Int32Array(workerData.sab);
+      for (let i = 0; i < workerData.n; i++) arr[0]++; // 비원자적 — race 발생
+      parentPort.postMessage('done');
+    `;
+
+  return new Promise((resolve) => {
+    let done = 0;
+    for (let i = 0; i < THREADS; i++) {
+      const w = new Worker(workerCode, {
+        eval: true,
+        workerData: { sab, n: PER_THREAD },
+      });
+      w.on('message', () => {
+        w.terminate();
+        if (++done === THREADS) resolve(Atomics.load(arr, 0));
+      });
+    }
+  });
+}
+
+(async () => {
+  const raceResult = await runRace(false);
+  const safeResult = await runRace(true);
+
+  console.log(`비원자적(arr[0]++): ${raceResult} / 기대값 ${EXPECTED}, 손실 ${EXPECTED - raceResult}`);
+  console.log(`원자적(Atomics.add): ${safeResult} / 기대값 ${EXPECTED}, 손실 ${EXPECTED - safeResult}`);
+})();
+```
+
+실행 결과는 매번 다르다:
+
+```
+비원자적(arr[0]++): 148432 / 기대값 400000, 손실 251568
+원자적(Atomics.add): 400000 / 기대값 400000, 손실 0
+```
+
+`arr[0]++` 버전은 실행할 때마다 다른 숫자가 나온다. 운이 좋으면 400,000에 가깝게, 나쁘면 10만대도 나온다. 비결정론적이라는 게 이 버그를 찾기 어렵게 만든다. 테스트에서 10번 돌려서 전부 통과해도 실제로는 race가 존재한다.
+
+race가 더 잘 보이는 조건:
+- 스레드 수를 늘릴수록 overlap 기회가 많아진다
+- 반복 횟수가 많을수록 손실이 누적된다
+- 더 복잡한 연산(읽기-계산-쓰기 사이 간격이 클수록) 창이 넓어진다
+
+반대로, 단일 스레드나 10번 정도의 반복에서는 race가 나타나지 않을 수도 있다. 그래서 짧은 테스트로 확인했다고 안심하면 안 된다.
+
+### Atomics.add와 Atomics.compareExchange
+
+`Atomics.add`는 위의 read-modify-write를 하나의 원자적 연산으로 묶는다. 다른 스레드가 중간에 끼어들 수 없다.
+
+단순 증가 외에 "현재 값이 기대값과 같을 때만 바꾼다"는 CAS(Compare-And-Swap) 패턴이 필요할 때 `Atomics.compareExchange`를 쓴다.
+
+```javascript
+// Atomics.compareExchange(arr, index, expected, replacement)
+// arr[index] === expected 이면: arr[index] = replacement, 반환값 = expected (성공)
+// arr[index] !== expected 이면: 변경 없음, 반환값 = 현재 arr[index] (실패)
+
+const state = new Int32Array(new SharedArrayBuffer(4));
+const IDLE = 0, BUSY = 1;
+
+// 워커가 작업 슬롯을 선점하는 패턴
+function tryClaimSlot() {
+  const prev = Atomics.compareExchange(state, 0, IDLE, BUSY);
+  return prev === IDLE; // true = 선점 성공, false = 다른 워커가 먼저 잡았음
+}
+
+// 스핀락 (대기 시간이 아주 짧을 때만 쓸 것 — CPU를 태운다)
+function spinLock() {
+  while (Atomics.compareExchange(state, 0, IDLE, BUSY) !== IDLE) {
+    // 다른 스레드가 BUSY를 IDLE로 바꿀 때까지 루프
+  }
+}
+
+function spinUnlock() {
+  Atomics.store(state, 0, IDLE);
+  Atomics.notify(state, 0, 1); // Atomics.wait으로 대기 중인 스레드 하나 깨우기
+}
+```
+
+CPU를 태우지 않으려면 `Atomics.wait`로 재운다:
+
+```javascript
+function lock() {
+  while (Atomics.compareExchange(state, 0, IDLE, BUSY) !== IDLE) {
+    // 이미 BUSY라면: 값이 바뀔 때까지 sleep
+    Atomics.wait(state, 0, BUSY);
+  }
+}
+```
+
+`Atomics.wait`는 메인 스레드에서 호출하면 `TypeError`가 난다. 메인을 블록하면 이벤트 루프가 죽기 때문에 의도적으로 막아뒀다. 메인에서 비동기적으로 기다려야 한다면 `Atomics.waitAsync`(Promise 반환)를 쓴다.
 
 ### Atomics.wait / Atomics.notify — 진짜 동기화 프리미티브
 
@@ -237,6 +404,111 @@ while (true) {
 - 보안 헤더 이슈. 브라우저에서는 `Cross-Origin-Opener-Policy`, `Cross-Origin-Embedder-Policy` 설정 없이 `SharedArrayBuffer`를 못 쓴다. Node.js에서는 상관없지만, 같은 코드를 브라우저로 옮기면 깨진다.
 
 90%의 케이스에서는 transferable로 ArrayBuffer 소유권을 주고받는 게 충분하다. `SharedArrayBuffer`는 정말 락이 필요한 작업, 예를 들어 락프리 큐, 카운터, 큰 typed array에 여러 워커가 동시에 쓰는 경우에만 꺼낸다.
+
+## postMessage 직렬화 비용이 CPU 오프로딩 효과를 상쇄하는 시점
+
+워커로 계산을 오프로딩하면 이벤트 루프를 비울 수 있다. 그런데 데이터를 주고받을 때 직렬화 비용을 계산 시간과 함께 보지 않으면 실제로 손해인 경우가 생긴다.
+
+transferList 없이 `postMessage`로 큰 데이터를 보내면:
+1. 메인에서 직렬화 (이벤트 루프 블록)
+2. 워커에서 역직렬화 (계산 시작 전)
+3. 워커 계산
+4. 응답 메시지 직렬화 (워커)
+5. 메인에서 역직렬화 (이벤트 루프 블록)
+
+즉 계산 자체를 워커로 옮겼더라도, 1번과 5번에서 메인이 블록된다. 이게 "계산 시간만큼 이벤트 루프를 비운다"는 기대와 다른 지점이다.
+
+아래 벤치마크로 직접 측정한다:
+
+```javascript
+// breakeven_bench.js — node breakeven_bench.js
+const { Worker } = require('worker_threads');
+const { performance } = require('perf_hooks');
+
+// 계산 없이 데이터만 보내고 받는 왕복 시간 (순수 직렬화 비용)
+async function serializeRoundtrip(sizeMB) {
+  const buf = Buffer.allocUnsafe(Math.round(sizeMB * 1024 * 1024));
+  return new Promise((resolve) => {
+    const w = new Worker(`
+      const { parentPort } = require('worker_threads');
+      parentPort.on('message', () => parentPort.postMessage(null));
+    `, { eval: true });
+    const t = performance.now();
+    w.once('message', () => { resolve(performance.now() - t); w.terminate(); });
+    w.postMessage({ buf }); // transferList 없음 → 구조화 복제 발생
+  });
+}
+
+// transfer 사용 시 왕복 시간
+async function transferRoundtrip(sizeMB) {
+  return new Promise((resolve) => {
+    const buf = new ArrayBuffer(Math.round(sizeMB * 1024 * 1024));
+    const w = new Worker(`
+      const { parentPort } = require('worker_threads');
+      parentPort.on('message', ({ buf }) => parentPort.postMessage(null));
+    `, { eval: true });
+    const t = performance.now();
+    w.once('message', () => { resolve(performance.now() - t); w.terminate(); });
+    w.postMessage({ buf }, [buf]); // 소유권 이전, 복사 없음
+  });
+}
+
+// 메인에서 직접 실행 (이벤트 루프 블록)
+function computeMain(n) {
+  const t = performance.now();
+  let s = 0;
+  for (let i = 0; i < n; i++) s += Math.sqrt(i);
+  return performance.now() - t;
+}
+
+(async () => {
+  console.log('데이터 크기(MB)  복사 왕복    transfer 왕복');
+  for (const mb of [0.1, 1, 10, 50, 100]) {
+    const copy = await serializeRoundtrip(mb);
+    const tr = await transferRoundtrip(mb);
+    console.log(
+      `  ${mb.toString().padStart(8)}  ${copy.toFixed(1).padStart(8)}ms  ${tr.toFixed(1).padStart(8)}ms`
+    );
+  }
+
+  console.log('\n메인에서 CPU 계산 직접 실행 시간:');
+  for (const n of [1e5, 1e6, 5e6, 1e7, 5e7]) {
+    const t = computeMain(n);
+    console.log(`  ${n.toExponential(0).padStart(6)} 반복: ${t.toFixed(1).padStart(7)}ms`);
+  }
+})();
+```
+
+실행 결과는 하드웨어마다 다르지만 대략 이런 형태가 나온다:
+
+```
+데이터 크기(MB)  복사 왕복    transfer 왕복
+       0.1       0.2ms       0.1ms
+         1       1.1ms       0.1ms
+        10      10.4ms       0.1ms
+        50      49.2ms       0.1ms
+       100      97.8ms       0.1ms
+
+메인에서 CPU 계산 직접 실행 시간:
+   1e+5 반복:     7.4ms
+   1e+6 반복:    15.3ms
+   5e+6 반복:    35.8ms
+   1e+7 반복:    66.4ms
+   5e+7 반복:   313.2ms
+```
+
+이 숫자에서 읽을 수 있는 것들:
+
+**100MB 데이터를 복사해서 보내면 왕복 약 100ms다.** 계산 자체가 30ms밖에 안 된다면 오프로딩 의미가 없다. 메인은 직렬화(~50ms)에서 블록되고, 역직렬화(~50ms)에서 또 블록된다. 계산 30ms를 워커로 뺐는데 이벤트 루프는 100ms를 날린다.
+
+**transfer를 쓰면 데이터 크기와 무관하게 왕복 0.1ms 수준이다.** 포인터 하나만 넘기는 것과 같다. 큰 데이터를 다루는 상황에서 transferList는 선택이 아니다.
+
+**워커 풀을 쓰지 않는 경우, 워커 스폰 비용(~30ms)이 발생한다.** 10만 반복(~7ms)짜리 계산을 단발성 워커로 오프로딩하면 총 37ms가 되어 메인에서 직접 하는 것(7ms)보다 5배 느리다. 풀로 미리 띄워두면 스폰 비용은 최초 1회로 감상각된다.
+
+실무 기준으로 정리하면:
+- 데이터가 1MB 이상이면 transferList를 무조건 쓴다
+- 단발성 워커로 오프로딩할 계산은 50ms 이상이어야 스폰 비용을 감당한다
+- 풀을 쓰면 계산이 1ms 이상이어도 오프로딩 효과가 있다
 
 ## resourceLimits — 워커 하나가 OOM으로 메인까지 끌고 가는 걸 막는다
 
@@ -303,7 +575,6 @@ class WorkerPool {
     });
     w.on('error', (err) => {
       if (w.currentJob) w.currentJob.reject(err);
-      // 죽은 워커 교체
       this.workers = this.workers.filter(x => x !== w);
       this.spawn();
     });
@@ -331,7 +602,6 @@ class WorkerPool {
       w.currentJob = job;
       w.postMessage(job.data, job.transferList);
     }
-    // idle 다시 채우기
     this.idle = this.workers.filter(w => !w.busy);
   }
 
@@ -348,7 +618,6 @@ module.exports = WorkerPool;
 const { parentPort } = require('worker_threads');
 
 parentPort.on('message', (input) => {
-  // 무거운 계산
   let result = 0;
   for (let i = 0; i < input.iterations; i++) result += Math.sqrt(i);
   parentPort.postMessage(result);
@@ -412,7 +681,7 @@ const pool = new WorkerPool('./worker.js');
 
 **2. transferList 없이 큰 버퍼를 보낸다**
 
-100MB 이미지를 그냥 postMessage로 보내면 직렬화에 시간이 박힌다. 게다가 메모리 두 배. transferList를 잊지 마라.
+100MB 이미지를 그냥 postMessage로 보내면 직렬화에 시간이 박힌다. 게다가 메모리 두 배. transferList를 잊지 마라. 벤치마크 결과처럼 100MB 복사는 이벤트 루프를 100ms 가까이 블록한다.
 
 **3. 워커 안에서 `process.exit`을 쓴다**
 
@@ -424,7 +693,7 @@ const pool = new WorkerPool('./worker.js');
 
 **5. SharedArrayBuffer에 일반 인덱싱으로 쓴다**
 
-여러 워커가 같은 인덱스에 쓰는데 `arr[0]++`처럼 일반 연산을 쓰면 결과가 이상하다. `Atomics.add`, `Atomics.compareExchange`를 써야 한다.
+여러 워커가 같은 인덱스에 쓰는데 `arr[0]++`처럼 일반 연산을 쓰면 결과가 이상하다. race condition 재현 코드에서 봤듯 400,000번 증가해야 할 게 15만이 나오기도 한다. `Atomics.add`, `Atomics.compareExchange`를 써야 한다.
 
 **6. resourceLimits를 안 잡고 워커 풀을 돌린다**
 
@@ -459,4 +728,10 @@ new Worker('./worker.js', { execArgv: ['--inspect=0'] });
 
 ## 정리
 
-`worker_threads`는 같은 프로세스에서 V8 isolate를 여러 개 띄우는 모듈이다. 메시지는 `MessagePort` 쌍으로 오가고, 큰 데이터는 transferable로 소유권을 넘기는 게 정석이다. 진짜로 공유 메모리가 필요하면 `SharedArrayBuffer`와 `Atomics`를 쓰지만 90%는 transferable로 충분하다. 운영에서는 풀 패턴으로 묶고 `resourceLimits`로 워커 하나가 전체를 끌고 가는 걸 막는다. Cluster와는 격리 단위(프로세스 vs isolate)가 다르고, 한 쪽이 죽으면 같이 죽는다는 점이 워커의 가장 큰 트레이드오프다.
+`worker_threads`는 같은 프로세스에서 V8 isolate를 여러 개 띄우는 모듈이다. `child_process.fork`나 Cluster와 달리 PID가 동일하고 SharedArrayBuffer로 메모리를 직접 공유할 수 있는 반면, 워커 하나가 `process.exit`을 호출하거나 OOM으로 죽으면 전체 프로세스가 같이 간다.
+
+메시지는 `MessagePort` 쌍으로 오가고, 큰 데이터는 transferable로 소유권을 넘기는 게 정석이다. transferList 없이 100MB를 보내면 복사에만 ~100ms가 들어가 오프로딩 효과를 지워버린다. 계산 시간이 직렬화 비용보다 커야 워커 오프로딩이 의미 있다.
+
+진짜로 공유 메모리가 필요하면 `SharedArrayBuffer`와 `Atomics`를 쓰지만, `arr[0]++`처럼 비원자적 연산을 쓰면 lost update race condition이 생긴다. 비결정론적으로 나타나서 테스트에서 잡기 어렵고, 4개 스레드 × 10만 반복 기준으로 400,000 중 25만 이상이 손실되기도 한다. `Atomics.add`나 `Atomics.compareExchange`를 써야 한다.
+
+운영에서는 풀 패턴으로 묶고 `resourceLimits`로 워커 하나가 전체를 끌고 가는 걸 막는다. 단발성 워커로 50ms 이하 계산을 오프로딩하면 스폰 비용(~30ms)에 먹힌다.

@@ -30,7 +30,7 @@ hide:
 
 - [TCP vs UDP - 실무 선택 기준](TCP_vs_UDP.md)
 - [TCP 소켓 프로그래밍 실무 패턴](TCP_Socket_Programming_Patterns.md)
-- [TCP 패킷 구조 상세 설명](PacketStructure.md)
+- [TCP 패킷 구조 — Wireshark 실측 기준](PacketStructure.md)
 - [TCP 프로토콜 동작 메커니즘](TCP.md)
 - [TCP 혼잡 제어와 커널 파라미터 튜닝](TCP_Congestion_Control_Tuning.md)
 - [TCP와 OSI 7 계층](<TCP와 OSI 7 계층.md>)

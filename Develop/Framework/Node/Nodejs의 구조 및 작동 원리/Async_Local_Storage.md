@@ -1,7 +1,7 @@
 ---
 title: AsyncLocalStorage (요청 단위 컨텍스트 전파)
 tags: [nodejs, observability]
-updated: 2026-06-02
+updated: 2026-09-28
 ---
 
 # AsyncLocalStorage (요청 단위 컨텍스트 전파)
@@ -425,17 +425,110 @@ als.run({ reqId: 'A' }, () => {
 
 `AsyncResource.bind`는 함수에 현재 비동기 컨텍스트를 고정한다. 이벤트 핸들러, 콜백 큐에 넣는 함수, 커넥션 풀에 등록하는 콜백처럼 "나중에, 다른 흐름에서 호출될 함수"에 컨텍스트를 들고 가야 할 때 쓴다.
 
+### Promise 없는 일반 콜백
+
+`run` 안에서 콜백을 정의해도, 그 콜백이 외부 저장소에 보관됐다가 다른 흐름에서 호출되면 컨텍스트가 끊긴다. `await`나 `setTimeout`처럼 비동기 체인이 이어지는 경우와 달리, 나중에 직접 호출되는 콜백은 호출 시점의 컨텍스트를 본다.
+
+```js
+const als = new AsyncLocalStorage();
+const { AsyncResource } = require('node:async_hooks');
+
+// 커스텀 이벤트 버스 (단순화)
+const handlers = new Map();
+
+function subscribe(event, fn) {
+  handlers.set(event, fn); // 등록 시점 컨텍스트를 보존하지 않는다
+}
+
+function dispatch(event, data) {
+  handlers.get(event)?.(data); // 발신 시점 컨텍스트로 실행된다
+}
+
+// 요청 A 처리 중 구독
+als.run({ reqId: 'req-A' }, () => {
+  subscribe('inventory-update', (data) => {
+    console.log(als.getStore()?.reqId); // 기대: 'req-A' / 실제: 발신 시점에 따라 달라짐
+  });
+});
+
+// 요청 B 처리 중 발신
+als.run({ reqId: 'req-B' }, () => {
+  dispatch('inventory-update', { sku: 'ABC', qty: 10 }); // 'req-B' 출력
+});
+
+// 컨텍스트 없는 곳에서 발신 (스케줄러, 메시지 큐)
+dispatch('inventory-update', { sku: 'DEF', qty: 5 }); // undefined 출력
+```
+
+등록 시점 컨텍스트를 고정하려면 `subscribe`에서 `AsyncResource.bind`로 감싼다.
+
+```js
+function subscribe(event, fn) {
+  handlers.set(event, AsyncResource.bind(fn)); // 등록 시점 컨텍스트를 스냅샷
+}
+```
+
+이 패턴은 커스텀 이벤트 버스, WebSocket 메시지 핸들러 등록, 배치 처리 결과 수신에서 자주 나온다.
+
 ### 커넥션 풀과 재사용되는 객체
 
 DB 드라이버나 HTTP keep-alive 클라이언트는 소켓을 풀에 담아 재사용한다. 이 소켓은 어떤 요청보다도 먼저, 서버 부팅 시점에 만들어졌을 수 있다. 소켓이 만들어진 흐름과 요청 흐름이 다르니, 풀에서 꺼낸 소켓의 내부 콜백은 요청의 저장소를 못 볼 때가 있다.
 
 대부분의 메이저 드라이버(`pg`, `mysql2` 등)는 사용자 콜백/프로미스를 호출할 때 호출 시점의 컨텍스트를 유지하도록 동작하므로, `await db.query(...)` 뒤에서 `getStore()`는 보통 잘 나온다. 문제가 되는 건 드라이버가 내부적으로 영구 소켓의 `data` 이벤트 등에 직접 건 콜백 정도다. 직접 풀이나 커넥션 관리 코드를 짠다면, 콜백을 풀에 넣기 전에 `AsyncResource.bind`로 감싸는 걸 고려해야 한다.
 
-### 스트림 경계와 수동 콜백 큐
+### setTimeout 체이닝과 수동 콜백 큐
 
-스트림 파이프라인 도중에 컨텍스트가 끊기는 경우도 비슷한 원리다. 스트림 인스턴스가 `run` 밖에서 만들어졌고, `data`/`end` 핸들러를 그 스트림에 거는 흐름이 요청 흐름과 다르면 저장소를 놓친다. 직접 콜백 배열에 함수를 쌓아 두고 나중에 꺼내 호출하는 코드(자체 작업 큐, 배치 처리기)도 같은 함정을 갖는다. 해법은 동일하다. 나중에 실행될 함수를 큐에 넣기 전에 `AsyncResource.bind`로 컨텍스트를 묶는다.
+`run` 안에서 예약한 `setTimeout`은 컨텍스트를 전파한다. 콜백이 실행될 때도 같은 저장소를 본다.
 
-정리하면 규칙은 하나다. 함수를 "지금 이 흐름에서 정의하지만 나중에 다른 흐름에서 호출"한다면 컨텍스트가 끊길 수 있고, `AsyncResource.bind`로 막는다. `await`, `then`, `setTimeout`, `setImmediate`, `process.nextTick`처럼 흐름이 자연스럽게 이어지는 비동기는 자동으로 전파되니 손댈 필요가 없다.
+```js
+const als = new AsyncLocalStorage();
+
+als.run({ reqId: 'A' }, () => {
+  setTimeout(() => {
+    console.log(als.getStore()?.reqId); // 'A'
+    setTimeout(() => {
+      console.log(als.getStore()?.reqId); // 'A' — 체이닝해도 전파됨
+    }, 100);
+  }, 100);
+});
+```
+
+끊기는 건 타이머가 `run` 바깥에서 등록된 경우다. 가장 흔한 실수는 작업 큐를 외부 `setInterval`로 처리하는 패턴이다.
+
+```js
+const als = new AsyncLocalStorage();
+const { AsyncResource } = require('node:async_hooks');
+
+const workQueue = [];
+
+// 서버 시작 시 등록 — run 컨텍스트 없음
+setInterval(() => {
+  const fn = workQueue.shift();
+  if (fn) fn(); // setInterval은 run 이전에 생성됨 → 컨텍스트 없는 흐름에서 실행
+}, 10);
+
+als.run({ reqId: 'job-1' }, () => {
+  workQueue.push(() => {
+    console.log(als.getStore()?.reqId); // undefined
+  });
+});
+```
+
+큐에 넣을 때 `AsyncResource.bind`로 컨텍스트를 고정한다.
+
+```js
+als.run({ reqId: 'job-1' }, () => {
+  workQueue.push(
+    AsyncResource.bind(() => {
+      console.log(als.getStore()?.reqId); // 'job-1'
+    })
+  );
+});
+```
+
+스트림 파이프라인 도중에 컨텍스트가 끊기는 경우도 원리가 같다. 스트림 인스턴스가 `run` 밖에서 만들어졌고, `data`/`end` 핸들러를 그 스트림에 거는 흐름이 요청 흐름과 다르면 저장소를 놓친다.
+
+기준은 하나다. 함수를 "지금 이 흐름에서 정의하지만 나중에 다른 흐름에서 호출"한다면 컨텍스트가 끊길 수 있고, `AsyncResource.bind`로 막는다. `await`, `then`, `setTimeout`, `setImmediate`, `process.nextTick`처럼 흐름이 자연스럽게 이어지는 비동기는 자동으로 전파되니 손댈 필요가 없다.
 
 ## 성능 오버헤드 측정
 
@@ -492,9 +585,62 @@ async function withALS() {
 
 이 비용은 Promise 생성마다 무시 못할 정도로 붙는다. 핫 패스에서 마이크로벤치를 돌렸을 때 `await Promise.resolve()` 1억 번이 ALS 없이 1.2초 걸리던 게, Node 18에서 ALS 켰을 때 1.9초, Node 22에서는 1.3초 정도로 측정되는 식이다(시스템에 따라 다르다). 일반 웹 서버 요청 처리는 이 단위로 묶이지 않으니 신경 쓸 일이 거의 없다.
 
-### 무거운 저장소가 만드는 비용
+### store.run 내 메모리 누수 패턴
 
-ALS 자체의 성능 외에 한 가지 더. 저장소 객체가 무거우면 그 객체가 비동기 자원이 살아 있는 동안 계속 GC에 잡히지 않는다. 1MB짜리 객체를 통째로 넣어 두고 요청이 30초 걸리면, 그 30초 동안 1MB가 메모리에 떠 있다. 초당 1000 요청이면 30GB가 떠 있는 셈이다. ALS에는 작은 메타데이터(id, 이름, 권한 같은)만 넣는다.
+저장소는 해당 비동기 흐름의 모든 자원이 GC될 때까지 살아 있다. 저장소 자체가 무겁거나, 저장소를 참조하는 객체가 오래 살면 메모리가 회수되지 않는다.
+
+가장 눈에 안 띄는 패턴은 EventEmitter 리스너를 제거하지 않는 경우다. 리스너 클로저가 `als.getStore()` 참조를 가지면, 그 리스너가 `bus`에 살아 있는 동안 저장소가 GC 대상이 되지 않는다.
+
+```js
+// 누수: 요청당 리스너를 달고 제거하지 않음
+als.run(new Map([['reqId', id], ['payload', largeObject]]), async () => {
+  bus.on('config-reload', () => {
+    const store = als.getStore(); // store를 클로저로 캡처
+    applyConfig(store.get('payload'));
+  });
+
+  await processRequest();
+  res.json(result);
+  // 리스너가 bus에 남아 있고 클로저가 store를 참조한다
+  // largeObject는 이 리스너가 제거될 때까지 GC되지 않는다
+});
+```
+
+요청이 끝나면 반드시 리스너를 제거한다.
+
+```js
+als.run(new Map([['reqId', id]]), async () => { // largeObject는 store에 넣지 않는다
+  const handler = () => applyConfig();
+  bus.on('config-reload', handler);
+
+  try {
+    await processRequest();
+    res.json(result);
+  } finally {
+    bus.off('config-reload', handler);
+  }
+});
+```
+
+두 번째 패턴은 처리 중 `Map` store에 중간 결과를 쌓는 경우다. store는 비동기 흐름이 살아 있는 동안 전체가 메모리에 머무른다.
+
+```js
+als.run(new Map(), async () => {
+  const store = als.getStore();
+
+  for await (const chunk of largeStream) {
+    const result = heavyTransform(chunk);
+    store.set(chunk.id, result); // 모든 청크 결과가 store에 누적됨
+  }
+  // 스트림이 끝날 때까지 전체 결과가 메모리에 유지된다
+});
+```
+
+store에는 `reqId`, `userId`, `tenantId` 같은 작은 메타데이터만 넣는다. 처리 결과는 로컬 변수나 DB로 관리한다.
+
+인스턴스를 여러 개 만드는 것도 누수 요인이 된다. 각 인스턴스가 자체 컨텍스트 체인을 유지하고, 사용하지 않아도 GC가 완전히 처리하지 못하는 경우가 있다. 파일당 `new AsyncLocalStorage()`를 만들면 이 비용이 모듈 수만큼 누적된다.
+
+간단히 말하면, 1MB짜리 객체를 통째로 넣어 두고 요청이 30초 걸리면 그 30초 동안 1MB가 떠 있다. 초당 1000 요청이면 30GB가 떠 있는 셈이다.
 
 ## 흔히 만나는 버그 패턴
 
@@ -590,6 +736,61 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'internal', reqId });
 });
 ```
+
+### 이벤트 핸들러에서 undefined가 나올 때
+
+Express 미들웨어에서 correlation ID를 심어도 하위 이벤트 핸들러에서 `undefined`가 나오는 경우가 있다. `emit`이 요청 처리 도중 동기로 호출되면 리스너도 같은 컨텍스트로 실행된다. 문제는 리스너 등록과 `emit` 발생이 서로 다른 흐름에서 일어날 때다.
+
+```js
+const { EventEmitter } = require('node:events');
+const { AsyncResource } = require('node:async_hooks');
+
+const bus = new EventEmitter();
+
+// SSE 또는 Long-Polling — 연결을 유지하면서 이벤트 대기
+app.get('/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+
+  const reqId = als.getStore()?.get('reqId');
+  console.log('구독 등록:', reqId); // 'req-xxxxx' — 정상
+
+  const listener = (data) => {
+    // emit이 다른 요청 또는 WebSocket에서 일어나면 컨텍스트가 다르다
+    console.log('이벤트 수신:', als.getStore()?.get('reqId')); // undefined
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  bus.on('price-update', listener);
+  req.on('close', () => bus.off('price-update', listener));
+});
+
+// 다른 요청에서 emit
+app.post('/prices', async (req, res) => {
+  await updatePrice(req.body);
+  bus.emit('price-update', req.body); // POST /prices 컨텍스트로 리스너 실행
+  res.json({ ok: true });
+});
+```
+
+`bus.emit('price-update', ...)`이 `POST /prices` 컨텍스트에서 실행되므로, `/stream`에서 등록한 리스너는 `/stream`의 `reqId`가 아니라 `/prices`의 `reqId`를 본다. `emit`이 스케줄러나 WebSocket 핸들러에서 일어나면 HTTP `reqId` 자체가 없다.
+
+등록 시점 컨텍스트를 유지하려면 리스너를 `AsyncResource.bind`로 감싼다.
+
+```js
+app.get('/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+
+  const listener = AsyncResource.bind((data) => {
+    console.log('이벤트 수신:', als.getStore()?.get('reqId')); // 등록 시점 reqId
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  });
+
+  bus.on('price-update', listener);
+  req.on('close', () => bus.off('price-update', listener));
+});
+```
+
+단순 요청-응답 흐름에서는 이 문제가 발생하지 않는다. 연결이 유지되는 동안 다른 요청 또는 시스템 이벤트에 의해 트리거되는 SSE, WebSocket 구독, 장기 폴링에서만 발생한다.
 
 ## Fastify 연동
 

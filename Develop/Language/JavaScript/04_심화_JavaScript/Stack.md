@@ -1,54 +1,196 @@
 ---
 title: JavaScript Stack (스택) 자료구조
 tags: [language, javascript]
-updated: 2025-08-10
-description: "LIFO 방식으로 동작하는 스택 자료구조의 개념과 JavaScript 구현 정리"
+updated: 2026-09-28
 ---
 
 # JavaScript Stack (스택) 자료구조
 
-## 스택의 개념과 필요성
-스택은 **후입선출(LIFO, Last In First Out)** 방식으로 데이터를 관리하는 자료구조다. 마지막에 들어온 데이터가 가장 먼저 나간다. 접시 쌓기, 책 쌓기, 프링글스 통 같은 일상의 예로 이해하면 된다.
+## Call Stack — JS 엔진이 실제로 쓰는 스택
 
-### 스택의 필요성
-- **함수 호출 관리**: 함수의 실행 컨텍스트와 반환 주소 저장
-- **브라우저 히스토리**: 뒤로 가기/앞으로 가기 기능 구현
-- **실행 취소**: Ctrl+Z 같은 실행 취소 기능
-- **괄호 검증**: 수식의 괄호 짝 맞추기 검증
-- **깊이 우선 탐색**: 그래프나 트리의 깊이 우선 탐색
+JavaScript 엔진은 함수를 호출할 때마다 호출 프레임을 Call Stack에 쌓는다. 함수가 반환하면 프레임이 제거된다. LIFO 규칙 그대로다.
 
-### 기본 개념
-- **LIFO**: Last In First Out (후입선출)
-- **push**: 데이터를 스택의 맨 위에 추가
-- **pop**: 스택의 맨 위 데이터를 제거하고 반환
-- **peek**: 스택의 맨 위 데이터를 확인 (제거하지 않음)
-- **isEmpty**: 스택이 비어있는지 확인
-- **size**: 스택에 저장된 데이터 개수 확인
+```javascript
+function c() {
+    // 이 시점 Call Stack (아래에서 위 순서):
+    // anonymous → a → b → c
+    console.trace('c 실행 중');
+}
+
+function b() {
+    c();
+}
+
+function a() {
+    b();
+}
+
+a();
+```
+
+`console.trace()` 실제 출력:
+```
+Trace: c 실행 중
+    at c (example.js:3)
+    at b (example.js:9)
+    at a (example.js:13)
+    at <anonymous>:1:1
+```
+
+맨 위(첫 줄)가 현재 실행 중인 함수다. `c`가 반환하면 그 프레임이 제거되고 `b`가 실행을 재개한다. `b`가 반환하면 `a`로, `a`가 반환하면 호출 지점으로 돌아간다.
+
+프레임에는 지역 변수, 매개변수, 반환 주소가 들어있다. 함수가 중첩될수록 프레임이 쌓이고, 모두 반환해야 원래 상태로 돌아온다.
+
+`Error.stack`으로 호출 스택을 문자열로 잡을 수 있다.
+
+```javascript
+function getStackTrace() {
+    return new Error().stack;
+}
+
+function inner() {
+    console.log(getStackTrace());
+}
+
+function outer() {
+    inner();
+}
+
+outer();
+// Error
+//     at getStackTrace (example.js:2)
+//     at inner (example.js:6)
+//     at outer (example.js:11)
+//     at <anonymous>:1:1
+```
+
+스택은 후입선출(LIFO)로 동작하는 자료구조다. push로 맨 위에 쌓고, pop으로 맨 위를 꺼낸다. JS 엔진의 Call Stack, 브라우저 뒤로가기, 실행 취소(Ctrl+Z), 괄호 검증, DFS 탐색이 모두 이 구조를 쓴다.
+
+## 스택 오버플로우
+
+재귀 함수가 종료 조건 없이 계속 호출되면 Call Stack이 꽉 찬다.
+
+```javascript
+function infinite() {
+    return infinite();
+}
+infinite();
+// Uncaught RangeError: Maximum call stack size exceeded
+```
+
+V8의 콜 스택 한도는 프레임 크기에 따라 달라진다. Node.js 20 기준으로 지역 변수가 없는 단순 함수는 약 14,000~15,000프레임 수준에서 터진다. `--stack-size=<KB>` 플래그로 스택 크기를 늘릴 수 있다.
+
+```javascript
+// 실제 한도 측정
+let count = 0;
+function measure() {
+    count++;
+    measure();
+}
+try {
+    measure();
+} catch (e) {
+    console.log(`재귀 한도: ${count}`);
+    // Node.js 20 실측: 약 14,165 (환경마다 다름)
+}
+```
+
+### Chrome DevTools로 확인하는 방법
+
+DevTools를 열고(F12) Sources 패널로 이동한다. 오른쪽 상단 "Pause on exceptions" 아이콘(육각형 멈춤 표시)을 클릭하면 예외가 발생하는 순간 실행이 멈춘다. 스택 오버플로우가 터지면 오른쪽 Call Stack 패널에 같은 함수 이름이 수백~수천 줄 반복되는 게 보인다. DevTools는 프레임을 전부 표시하지 않고 "... N more frames" 형태로 접어둔다.
+
+중간 상태를 확인하고 싶으면 `console.trace()`를 조건부로 찍는다.
+
+```javascript
+function countdown(n) {
+    if (n % 500 === 0) console.trace(`n=${n}`); // 500마다 스택 출력
+    if (n <= 0) return;
+    countdown(n - 1);
+}
+countdown(3000);
+```
+
+Performance 패널에서 녹화하면 깊은 재귀가 JS 스레드를 얼마나 잡아먹는지 플레임 차트로 확인할 수 있다. 같은 함수가 수직으로 쌓인 구간이 보이면 재귀 깊이 문제다.
+
+## V8에서 꼬리 재귀 최적화가 동작하지 않는 이유
+
+ES2015 스펙에 TCO(Proper Tail Calls)가 포함됐다. 함수가 반환하기 직전(꼬리 위치)에서 다른 함수를 호출할 때 새 프레임을 쌓는 대신 현재 프레임을 재사용해도 된다는 내용이다. 이론상 꼬리 재귀 함수는 스택 오버플로우가 발생하지 않는다.
+
+```javascript
+// 꼬리 재귀 형태
+function factorial(n, acc = 1) {
+    if (n <= 1) return acc;
+    return factorial(n - 1, n * acc); // 꼬리 위치 — TCO 대상
+}
+```
+
+V8은 2016년 Chrome 54 즈음에 `--harmony-tailcalls` 플래그로 TCO를 실험적으로 지원했다가 제거했다. 현재까지 V8 메인라인에 TCO는 없다. Safari의 JavaScriptCore만 TCO를 구현하고 있다.
+
+V8이 TCO를 제거한 이유는 두 가지다. 첫째, 디버깅이 불가능해진다. 프레임을 제거하면 DevTools Call Stack에서 호출 경로가 사라지고 `Error.stack`도 끊긴다. 어느 함수에서 호출했는지 추적할 수 없게 된다. 둘째, TCO가 적용되는 조건이 까다롭다. `return f()` 형태여야 하고 `return f() + 1`이나 `return 1 + f()` 같은 경우는 해당 안 된다. 이 판정 비용과 실용적 이점을 견준 결과 지원을 중단했다.
+
+Node.js에서 실제로 확인하면 꼬리 재귀 형태라도 스택 오버플로우가 난다.
+
+```javascript
+// Node.js 20 (V8 11.x) 기준 실측
+function factorial(n, acc = 1) {
+    if (n <= 1) return acc;
+    return factorial(n - 1, n * acc);
+}
+
+try {
+    console.log(factorial(100000));
+} catch (e) {
+    console.log(e.message); // Maximum call stack size exceeded
+}
+```
+
+V8에서 깊은 재귀가 필요한 경우 트램폴린(trampolining) 패턴을 쓴다.
+
+```javascript
+function trampoline(fn) {
+    return function(...args) {
+        let result = fn(...args);
+        while (typeof result === 'function') {
+            result = result();
+        }
+        return result;
+    };
+}
+
+// 호출 대신 함수를 반환하도록 변환
+function factorial(n, acc = 1) {
+    if (n <= 1) return acc;
+    return () => factorial(n - 1, n * acc);
+}
+
+const safeFactorial = trampoline(factorial);
+safeFactorial(100000); // 스택 오버플로우 없이 동작 (결과는 Infinity — 정수 오버플로)
+```
+
+`trampoline`이 반환값이 함수인 동안 반복 실행하므로 스택 깊이가 항상 1을 유지한다. 재귀를 루프로 바꾼 것과 같다.
 
 ## push·pop·peek 핵심 연산
-### 1. 기본 스택 구현
+
+### 기본 스택 구현
 
 #### 배열을 이용한 스택 구현
 ```javascript
 class Stack {
     constructor() {
-        this.items = []; // 스택을 저장할 배열
+        this.items = [];
     }
 
-    // 스택에 요소 추가 (맨 위에 쌓기)
     push(element) {
         this.items.push(element);
     }
 
-    // 스택에서 요소 제거 (맨 위에서 꺼내기)
     pop() {
         if (this.isEmpty()) {
-            return undefined; // 스택이 비어있으면 undefined 반환
+            return undefined;
         }
         return this.items.pop();
     }
 
-    // 스택의 가장 위에 있는 요소 확인 (제거하지 않음)
     peek() {
         if (this.isEmpty()) {
             return undefined;
@@ -56,22 +198,18 @@ class Stack {
         return this.items[this.items.length - 1];
     }
 
-    // 스택이 비어 있는지 확인
     isEmpty() {
         return this.items.length === 0;
     }
 
-    // 스택의 크기 확인
     size() {
         return this.items.length;
     }
 
-    // 스택 비우기
     clear() {
         this.items = [];
     }
 
-    // 스택 내용 출력
     printStack() {
         console.log(this.items.toString());
     }
@@ -80,147 +218,27 @@ class Stack {
 
 #### 기본 사용법
 ```javascript
-// 스택 생성
 const stack = new Stack();
 
-// 스택에 요소 추가 (아래에서 위로 쌓임)
 stack.push(10);  // [10]
 stack.push(20);  // [10, 20]
 stack.push(30);  // [10, 20, 30]
 
-// 스택 상태 출력
 stack.printStack(); // "10,20,30"
 
-// 스택의 크기 확인
 console.log(stack.size()); // 3
-
-// 스택의 가장 위에 있는 요소 확인 (제거하지 않음)
 console.log(stack.peek()); // 30
 
-// 스택에서 요소 제거
 console.log(stack.pop()); // 30
 console.log(stack.pop()); // 20
 console.log(stack.pop()); // 10
 
-// 스택이 비어있는지 확인
 console.log(stack.isEmpty()); // true
 ```
 
-### 2. 고급 스택 구현
+## 실전 예제
 
-#### 제네릭 스택 클래스
-```javascript
-class GenericStack {
-    constructor() {
-        this.items = [];
-    }
-
-    push(element) {
-        this.items.push(element);
-        return this; // 메서드 체이닝을 위해 this 반환
-    }
-
-    pop() {
-        if (this.isEmpty()) {
-            throw new Error('Stack is empty');
-        }
-        return this.items.pop();
-    }
-
-    peek() {
-        if (this.isEmpty()) {
-            throw new Error('Stack is empty');
-        }
-        return this.items[this.items.length - 1];
-    }
-
-    isEmpty() {
-        return this.items.length === 0;
-    }
-
-    size() {
-        return this.items.length;
-    }
-
-    clear() {
-        this.items = [];
-        return this;
-    }
-
-    // 스택의 모든 요소를 배열로 반환
-    toArray() {
-        return [...this.items];
-    }
-
-    // 스택의 요소들을 문자열로 변환
-    toString() {
-        return this.items.toString();
-    }
-
-    // 스택 복사
-    clone() {
-        const newStack = new GenericStack();
-        newStack.items = [...this.items];
-        return newStack;
-    }
-}
-```
-
-#### 스택 이터레이터 구현
-```javascript
-class IterableStack extends GenericStack {
-    [Symbol.iterator]() {
-        let index = this.items.length - 1;
-        return {
-            next: () => {
-                if (index >= 0) {
-                    return {
-                        value: this.items[index--],
-                        done: false
-                    };
-                } else {
-                    return { done: true };
-                }
-            }
-        };
-    }
-
-    // 스택의 모든 요소를 순회 (위에서부터)
-    forEach(callback) {
-        for (let i = this.items.length - 1; i >= 0; i--) {
-            callback(this.items[i], this.items.length - 1 - i);
-        }
-    }
-
-    // 스택에서 조건에 맞는 요소 찾기
-    find(predicate) {
-        for (let i = this.items.length - 1; i >= 0; i--) {
-            if (predicate(this.items[i])) {
-                return this.items[i];
-            }
-        }
-        return undefined;
-    }
-}
-
-// 사용 예시
-const iterableStack = new IterableStack();
-iterableStack.push(1).push(2).push(3);
-
-// 이터레이터 사용
-for (const item of iterableStack) {
-    console.log(item); // 3, 2, 1 (위에서부터)
-}
-
-// forEach 사용
-iterableStack.forEach((item, index) => {
-    console.log(`Index ${index}: ${item}`);
-});
-```
-
-### 3. 스택 활용 사례
-
-#### 괄호 검증
+### 괄호 검증
 ```javascript
 class BracketValidator {
     static isValid(expression) {
@@ -233,10 +251,8 @@ class BracketValidator {
 
         for (const char of expression) {
             if (brackets[char]) {
-                // 여는 괄호는 스택에 push
                 stack.push(char);
             } else if (Object.values(brackets).includes(char)) {
-                // 닫는 괄호는 스택의 top과 매칭 확인
                 if (stack.isEmpty() || brackets[stack.pop()] !== char) {
                     return false;
                 }
@@ -247,14 +263,13 @@ class BracketValidator {
     }
 }
 
-// 사용 예시
-console.log(BracketValidator.isValid('()')); // true
+console.log(BracketValidator.isValid('()'));     // true
 console.log(BracketValidator.isValid('({[]})')); // true
 console.log(BracketValidator.isValid('({[}])')); // false
-console.log(BracketValidator.isValid('(((')); // false
+console.log(BracketValidator.isValid('((('));    // false
 ```
 
-#### 실행 취소 기능
+### 실행 취소
 ```javascript
 class UndoManager {
     constructor() {
@@ -262,14 +277,12 @@ class UndoManager {
         this.redoStack = new Stack();
     }
 
-    // 액션 실행
     execute(action) {
         this.undoStack.push(action);
-        this.redoStack.clear(); // 새로운 액션 실행 시 redo 스택 초기화
+        this.redoStack.clear();
         action.execute();
     }
 
-    // 실행 취소
     undo() {
         if (this.undoStack.isEmpty()) {
             return false;
@@ -281,7 +294,6 @@ class UndoManager {
         return true;
     }
 
-    // 다시 실행
     redo() {
         if (this.redoStack.isEmpty()) {
             return false;
@@ -293,18 +305,15 @@ class UndoManager {
         return true;
     }
 
-    // 실행 취소 가능 여부
     canUndo() {
         return !this.undoStack.isEmpty();
     }
 
-    // 다시 실행 가능 여부
     canRedo() {
         return !this.redoStack.isEmpty();
     }
 }
 
-// 액션 클래스 예시
 class TextAction {
     constructor(text, oldValue, newValue) {
         this.text = text;
@@ -322,7 +331,58 @@ class TextAction {
 }
 ```
 
-#### 깊이 우선 탐색 (DFS)
+### 브라우저 히스토리 관리
+```javascript
+class BrowserHistory {
+    constructor() {
+        this.backStack = new Stack();
+        this.forwardStack = new Stack();
+        this.currentPage = null;
+    }
+
+    visit(page) {
+        if (this.currentPage) {
+            this.backStack.push(this.currentPage);
+        }
+        this.currentPage = page;
+        this.forwardStack.clear();
+        console.log(`방문: ${page}`);
+    }
+
+    back() {
+        if (this.backStack.isEmpty()) {
+            console.log('뒤로 갈 페이지가 없습니다.');
+            return;
+        }
+
+        this.forwardStack.push(this.currentPage);
+        this.currentPage = this.backStack.pop();
+        console.log(`뒤로 가기: ${this.currentPage}`);
+    }
+
+    forward() {
+        if (this.forwardStack.isEmpty()) {
+            console.log('앞으로 갈 페이지가 없습니다.');
+            return;
+        }
+
+        this.backStack.push(this.currentPage);
+        this.currentPage = this.forwardStack.pop();
+        console.log(`앞으로 가기: ${this.currentPage}`);
+    }
+}
+
+const browser = new BrowserHistory();
+browser.visit('google.com');
+browser.visit('github.com');
+browser.visit('stackoverflow.com');
+
+browser.back();    // 뒤로 가기: github.com
+browser.back();    // 뒤로 가기: google.com
+browser.forward(); // 앞으로 가기: github.com
+```
+
+### 깊이 우선 탐색 (DFS)
 ```javascript
 class Graph {
     constructor() {
@@ -340,7 +400,6 @@ class Graph {
         this.adjacencyList.get(vertex2).push(vertex1);
     }
 
-    // 스택을 이용한 깊이 우선 탐색
     dfs(startVertex) {
         const visited = new Set();
         const result = [];
@@ -355,7 +414,6 @@ class Graph {
                 visited.add(currentVertex);
                 result.push(currentVertex);
 
-                // 인접한 정점들을 스택에 추가
                 const neighbors = this.adjacencyList.get(currentVertex);
                 for (let i = neighbors.length - 1; i >= 0; i--) {
                     if (!visited.has(neighbors[i])) {
@@ -369,7 +427,6 @@ class Graph {
     }
 }
 
-// 사용 예시
 const graph = new Graph();
 graph.addVertex('A');
 graph.addVertex('B');
@@ -380,88 +437,21 @@ graph.addEdge('A', 'C');
 graph.addEdge('B', 'D');
 graph.addEdge('C', 'D');
 
-console.log(graph.dfs('A')); // ['A', 'C', 'D', 'B']
+console.log(graph.dfs('A')); // ['A', 'B', 'D', 'C']
 ```
 
-실제로 돌리면 `['A', 'B', 'D', 'C']` 가 나온다. 주석이 틀렸다.
+이웃을 역순으로 스택에 넣기 때문이다. `A`의 이웃 `['B', 'C']`를 뒤에서부터 넣으면 스택은 `[C, B]`가 되고, `pop`은 맨 위인 `B`를 먼저 꺼낸다. 재귀 DFS와 같은 방문 순서를 맞추려고 뒤집은 것이라, 인접 리스트 순서 그대로 방문한다고 읽으면 어긋난다. `for` 루프를 정순으로 바꾸면 `['A', 'C', 'D', 'B']`가 나온다. 어느 쪽이든 유효한 DFS지만 **결과가 다르므로**, 이 순서에 의존하는 테스트를 짜기 전에 실제 출력을 확인해야 한다.
 
-이웃을 **역순으로** 스택에 넣기 때문이다. `A` 의 이웃 `['B', 'C']` 를 뒤에서부터 넣으면 스택은 `[C, B]` 가 되고, `pop` 은 맨 위인 `B` 를 먼저 꺼낸다. 재귀 DFS 와 같은 방문 순서를 맞추려고 일부러 뒤집은 것이라, 인접 리스트 순서 그대로 방문한다고 읽으면 어긋난다.
-
-`for` 루프를 정순으로 바꾸면 `['A', 'C', 'D', 'B']` 가 나온다. 어느 쪽이든 유효한 DFS 지만 **결과가 다르므로**, 이 순서에 의존하는 테스트를 짜기 전에 실제 출력을 확인해야 한다.
-
-`addEdge` 는 정점이 없으면 던진다.
+`addEdge`는 정점이 없으면 던진다.
 
 ```javascript
 graph.addEdge('A', 'Z');
 // TypeError: Cannot read properties of undefined (reading 'push')
 ```
 
-`addVertex` 를 먼저 부르지 않으면 `adjacencyList.get('Z')` 가 `undefined` 이고 거기에 `push` 를 부른다. 에지 목록을 파일이나 API 에서 읽어 넣는 코드라면 정점이 빠지는 일이 흔하다. `addEdge` 안에서 `addVertex` 를 먼저 호출하게 하는 편이 안전하다.
+`addVertex`를 먼저 부르지 않으면 `adjacencyList.get('Z')`가 `undefined`이고 거기에 `push`를 부른다. 에지 목록을 파일이나 API에서 읽어 넣는 코드라면 정점이 빠지는 일이 흔하다. `addEdge` 안에서 `addVertex`를 먼저 호출하게 하는 편이 안전하다.
 
-## 괄호 검증·실행 취소 실전 예제
-### 1. 실제 사용 사례
-
-#### 브라우저 히스토리 관리
-```javascript
-class BrowserHistory {
-    constructor() {
-        this.backStack = new Stack();
-        this.forwardStack = new Stack();
-        this.currentPage = null;
-    }
-
-    // 페이지 방문
-    visit(page) {
-        if (this.currentPage) {
-            this.backStack.push(this.currentPage);
-        }
-        this.currentPage = page;
-        this.forwardStack.clear(); // 새로운 페이지 방문 시 forward 스택 초기화
-        console.log(`방문: ${page}`);
-    }
-
-    // 뒤로 가기
-    back() {
-        if (this.backStack.isEmpty()) {
-            console.log('뒤로 갈 페이지가 없습니다.');
-            return;
-        }
-
-        this.forwardStack.push(this.currentPage);
-        this.currentPage = this.backStack.pop();
-        console.log(`뒤로 가기: ${this.currentPage}`);
-    }
-
-    // 앞으로 가기
-    forward() {
-        if (this.forwardStack.isEmpty()) {
-            console.log('앞으로 갈 페이지가 없습니다.');
-            return;
-        }
-
-        this.backStack.push(this.currentPage);
-        this.currentPage = this.forwardStack.pop();
-        console.log(`앞으로 가기: ${this.currentPage}`);
-    }
-
-    // 현재 페이지
-    getCurrentPage() {
-        return this.currentPage;
-    }
-}
-
-// 사용 예시
-const browser = new BrowserHistory();
-browser.visit('google.com');
-browser.visit('github.com');
-browser.visit('stackoverflow.com');
-
-browser.back(); // 뒤로 가기: github.com
-browser.back(); // 뒤로 가기: google.com
-browser.forward(); // 앞으로 가기: github.com
-```
-
-#### 계산기 구현 (후위 표기법)
+### 계산기 구현 (후위 표기법)
 ```javascript
 class PostfixCalculator {
     static evaluate(expression) {
@@ -501,145 +491,46 @@ class PostfixCalculator {
     }
 }
 
-// 사용 예시
-console.log(PostfixCalculator.evaluate('5 3 +')); // 8
-console.log(PostfixCalculator.evaluate('10 5 2 * -')); // 0
-console.log(PostfixCalculator.evaluate('3 4 5 * +')); // 23
+console.log(PostfixCalculator.evaluate('5 3 +'));       // 8
+console.log(PostfixCalculator.evaluate('10 5 2 * -'));  // 0
+console.log(PostfixCalculator.evaluate('3 4 5 * +'));   // 23
 ```
 
-`isNumber` 가 숫자를 제대로 걸러내지 못한다. `isNaN` 은 인자를 먼저 숫자로 **변환**하고 나서 판정하기 때문에, 숫자로 변환되는 것은 전부 통과한다.
+`isNumber`가 숫자를 제대로 걸러내지 못한다. `isNaN`은 인자를 먼저 숫자로 **변환**하고 나서 판정하기 때문에, 숫자로 변환되는 것은 전부 통과한다.
 
 ```javascript
 const isNumber = t => !isNaN(t) && t !== '';
 
-isNumber(' ');         // true   ← 공백은 0 으로 변환된다
-isNumber(null);        // true   ← null 도 0 이다
-isNumber('0x10');      // true
-isNumber('Infinity');  // true
+isNumber(' ');        // true   ← 공백은 0으로 변환된다
+isNumber(null);       // true   ← null도 0이다
+isNumber('0x10');     // true
+isNumber('Infinity'); // true
 ```
 
-그 다음 줄의 `parseFloat` 는 변환 규칙이 또 달라서 값이 어긋난다.
+그 다음 줄의 `parseFloat`는 변환 규칙이 또 달라서 값이 어긋난다.
 
 ```javascript
-parseFloat(' ');       // NaN   ← isNumber 는 통과시켰는데 파싱은 실패
-parseFloat('0x10');    // 0     ← 16 이 아니다
+parseFloat(' ');    // NaN   ← isNumber는 통과시켰는데 파싱은 실패
+parseFloat('0x10'); // 0     ← 16이 아니다
 ```
 
-`'0x10'` 이 스택에 `0` 으로 들어가면 계산 결과만 틀리고 에러는 없다. 입력 검증과 실제 파싱이 **서로 다른 함수**를 쓰면 이런 틈이 생긴다. 판정과 변환을 한 번에 하는 편이 안전하다.
+`'0x10'`이 스택에 `0`으로 들어가면 계산 결과만 틀리고 에러는 없다. 입력 검증과 실제 파싱이 **서로 다른 함수**를 쓰면 이런 틈이 생긴다. 판정과 변환을 한 번에 하는 편이 안전하다.
 
 ```javascript
 const n = Number(token);
 if (Number.isFinite(n)) stack.push(n);
 ```
 
-`evaluate` 에는 검증이 하나 더 빠져 있다. 피연산자가 모자라면 `pop()` 이 `undefined` 를 돌려주고 그대로 계산에 들어간다.
+피연산자가 모자라면 `pop()`이 `undefined`를 돌려주고 그대로 계산에 들어간다.
 
 ```javascript
-PostfixCalculator.evaluate('5 +');   // NaN — undefined + 5
+PostfixCalculator.evaluate('5 +'); // NaN — undefined + 5
 ```
 
-`NaN` 은 이후 모든 연산을 오염시키며 끝까지 흘러간다. 잘못된 수식이 에러 대신 `NaN` 으로 반환되면 호출부는 계산이 성공했다고 믿는다. 스택 크기를 먼저 확인하고 부족하면 던져야 한다.
+`NaN`은 이후 모든 연산을 오염시키며 끝까지 흘러간다. 잘못된 수식이 에러 대신 `NaN`으로 반환되면 호출부는 계산이 성공했다고 믿는다. 스택 크기를 먼저 확인하고 부족하면 던져야 한다.
 
-### 2. 고급 패턴
+### SafeStack 분석
 
-#### 스택 기반 메모리 관리
-```javascript
-class MemoryManager {
-    constructor() {
-        this.memoryStack = new Stack();
-        this.freeList = new Stack();
-    }
-
-    // 메모리 할당
-    allocate(size) {
-        if (!this.freeList.isEmpty()) {
-            const freeBlock = this.freeList.pop();
-            if (freeBlock.size >= size) {
-                return freeBlock;
-            }
-        }
-
-        const newBlock = { id: Date.now(), size, data: null };
-        this.memoryStack.push(newBlock);
-        return newBlock;
-    }
-
-    // 메모리 해제
-    deallocate(blockId) {
-        const tempStack = new Stack();
-        let found = false;
-
-        while (!this.memoryStack.isEmpty()) {
-            const block = this.memoryStack.pop();
-            if (block.id === blockId) {
-                this.freeList.push(block);
-                found = true;
-                break;
-            }
-            tempStack.push(block);
-        }
-
-        // 스택 복원
-        while (!tempStack.isEmpty()) {
-            this.memoryStack.push(tempStack.pop());
-        }
-
-        return found;
-    }
-
-    // 메모리 상태 출력
-    getMemoryStatus() {
-        return {
-            allocated: this.memoryStack.size(),
-            free: this.freeList.size(),
-            totalBlocks: this.memoryStack.size() + this.freeList.size()
-        };
-    }
-}
-```
-
-## 스택 오버플로 방지 및 성능 고려사항
-### 성능 최적화
-
-#### 메모리 효율성
-```javascript
-// 스택 크기 제한
-class LimitedStack {
-    constructor(maxSize = 1000) {
-        this.items = [];
-        this.maxSize = maxSize;
-    }
-
-    push(element) {
-        if (this.items.length >= this.maxSize) {
-            this.items.shift(); // 가장 오래된 요소 제거
-        }
-        this.items.push(element);
-    }
-
-    // 기타 메서드들...
-}
-
-// 스택 풀링 (객체 재사용)
-class StackPool {
-    constructor() {
-        this.pool = [];
-    }
-
-    getStack() {
-        return this.pool.pop() || new Stack();
-    }
-
-    returnStack(stack) {
-        stack.clear();
-        this.pool.push(stack);
-    }
-}
-```
-
-### 에러 처리
-
-#### 안전한 스택 조작
 ```javascript
 class SafeStack extends Stack {
     pop() {
@@ -650,44 +541,21 @@ class SafeStack extends Stack {
             return null;
         }
     }
-
-    peek() {
-        try {
-            return super.peek();
-        } catch (error) {
-            console.warn('스택이 비어있습니다.');
-            return null;
-        }
-    }
-
-    // 스택 오버플로우 방지
-    push(element) {
-        if (this.size() >= 10000) {
-            console.warn('스택 크기가 너무 큽니다.');
-            return false;
-        }
-        super.push(element);
-        return true;
-    }
 }
 ```
 
-`SafeStack` 의 `try/catch` 는 한 번도 실행되지 않는다. **`SafeStack` 이 상속한 `Stack` 은 던지지 않기 때문이다.**
+이 `try/catch`는 한 번도 실행되지 않는다. **`SafeStack`이 상속한 `Stack`은 던지지 않기 때문이다.**
 
 ```javascript
 const s = new SafeStack();
-s.pop();   // undefined — 경고도 안 찍히고 null 도 아니다
+s.pop(); // undefined — 경고도 안 찍히고 null도 아니다
 ```
 
-이 문서 안에 스택 클래스가 두 개 있다. 맨 위 `Stack` 은 비어 있을 때 `undefined` 를 **반환**하고, 아래 `GenericStack` 만 `throw new Error('Stack is empty')` 를 한다. `SafeStack extends Stack` 이니 잡을 예외 자체가 없다.
+맨 위의 `Stack`은 비어 있을 때 `undefined`를 **반환**한다. 잡을 예외 자체가 없다.
 
-이런 종류의 코드가 특히 나쁜 이유는 **아무 증상이 없다**는 것이다. 에러가 나지도, 경고가 찍히지도 않고, 그냥 문서가 약속한 `null` 대신 `undefined` 가 나온다. 호출부가 `if (v === null)` 로 검사하고 있으면 빈 스택을 못 알아챈다. `GenericStack` 을 상속하도록 바꾸면 의도대로 동작한다.
+이런 종류의 코드가 특히 나쁜 이유는 **아무 증상이 없다**는 것이다. 에러도 없고 경고도 없고, 약속한 `null` 대신 `undefined`가 나온다. 호출부가 `if (v === null)`로 검사하면 빈 스택을 못 알아챈다. `try/catch`로 감싸 놓고 "이제 안전하다"고 믿기 전에 **잡으려는 예외가 실제로 던져지는지** 확인해야 한다.
 
-여기서 되짚을 만한 건 `try/catch` 로 감싸 놓고 "이제 안전하다"고 믿게 되는 구조다. **잡으려는 예외가 실제로 던져지는지** 확인해야 검증이 성립한다. 이 문서의 코드는 한 파일 안에서도 두 스택의 빈 스택 규약이 갈리는데(`undefined` 반환 vs `throw`), 그런 상태에서 예외 기반 방어는 성립하지 않는다.
-
-## 참고
-
-### 스택 vs 다른 자료구조
+## 스택 vs 다른 자료구조
 
 | 자료구조 | 접근 방식 | 삽입/삭제 | 용도 |
 |----------|-----------|-----------|------|
@@ -695,26 +563,3 @@ s.pop();   // undefined — 경고도 안 찍히고 null 도 아니다
 | **큐** | FIFO | O(1) | 작업 대기열, BFS |
 | **배열** | 인덱스 | O(n) | 일반적인 데이터 저장 |
 | **링크드 리스트** | 순차 | O(1) | 동적 데이터 구조 |
-
-### 스택 사용 권장사항
-
-| 상황 | 권장사항 | 이유 |
-|------|----------|------|
-| **함수 호출 관리** | 스택 사용 | 자연스러운 LIFO 구조 |
-| **실행 취소 기능** | 스택 사용 | 액션 히스토리 관리 |
-| **괄호 검증** | 스택 사용 | 짝 맞추기 로직 |
-| **깊이 우선 탐색** | 스택 사용 | 재귀 대체 |
-| **대용량 데이터** | 크기 제한 고려 | 메모리 효율성 |
-
-### 결론
-스택은 후입선출(LIFO) 방식의 효율적인 자료구조다.
-함수 호출 관리와 실행 취소 기능에 자연스럽게 들어맞는다.
-괄호 검증과 깊이 우선 탐색에 특히 유용하다.
-메모리를 생각하면 적절한 크기 제한을 걸어 두는 편이 좋다.
-스택을 쓰면 복잡한 알고리즘도 간단하게 구현된다.
-
-
-
-
-
-

@@ -51,7 +51,7 @@ hide:
 - [SOAP](<Transport Layer/TCP/RPC/SOAP.md>)
 - [TCP vs UDP - 실무 선택 기준](<Transport Layer/TCP/TCP_vs_UDP.md>)
 - [TCP 소켓 프로그래밍 실무 패턴](<Transport Layer/TCP/TCP_Socket_Programming_Patterns.md>)
-- [TCP 패킷 구조 상세 설명](<Transport Layer/TCP/PacketStructure.md>)
+- [TCP 패킷 구조 — Wireshark 실측 기준](<Transport Layer/TCP/PacketStructure.md>)
 - [TCP 프로토콜 동작 메커니즘](<Transport Layer/TCP/TCP.md>)
 - [TCP 혼잡 제어와 커널 파라미터 튜닝](<Transport Layer/TCP/TCP_Congestion_Control_Tuning.md>)
 - [TCP와 OSI 7 계층](<Transport Layer/TCP/TCP와 OSI 7 계층.md>)
