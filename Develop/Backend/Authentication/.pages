@@ -1,14 +1,18 @@
 title: Authentication
 nav:
   - index.md
+  - JWT 구조와 검증: JWT_Structure.md
   - 인증/인가 방식 비교: Authentication_Strategy.md
   - 인증 전략 심화: Auth_Strategy_Deep_Dive.md
   - 로그인 무차별 대입 방어: Login_Brute_Force_Protection.md
   - OAuth·OIDC Flow 심화: O_Auth2_OIDC_Flows.md
+  - "OAuth2 Authorization Code + PKCE": O_Auth2_PKCE.md
   - 비밀번호 해싱과 저장: Password_Hashing.md
   - 다중 인증과 패스키: MFA_Passkey.md
   - 마이크로서비스 환경의 인증/인가: MSA_Auth.md
   - RBAC·ABAC: RBAC_ABAC.md
   - API Key 인증 구현: API_Key_Auth.md
+  - API 키 관리: API_Key_Management.md
   - JWT 토큰 무효화: Token_Revocation.md
   - Refresh Token Rotation: Refresh_Token_Rotation.md
+  - 서버 세션 인증: Session_Authentication.md
