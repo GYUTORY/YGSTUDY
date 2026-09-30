@@ -1,7 +1,7 @@
 ---
 title: Message Queue 심화 (RabbitMQ vs Kafka vs SQS 비교, 전달 보증/순서 보장/DLQ/멱등성)
 tags: [backend, messaging, architecture]
-updated: 2026-04-17
+updated: 2026-09-30
 ---
 
 # Message Queue 심화: RabbitMQ vs Kafka vs SQS
@@ -41,6 +41,31 @@ SQS는 AWS의 관리형 큐인데, 다른 둘과 가장 큰 차이는 **visibili
 
 이 구조 때문에 SQS에서 중복은 거의 피할 수 없다. 컨슈머가 메시지를 잘 처리하고 DB 커밋까지 끝냈는데 DeleteMessage 호출이 네트워크 타임아웃으로 실패하면, 그 메시지는 visibility timeout이 지나고 다시 나타난다.
 
+### 1.4 세 모델을 한 장에 놓으면
+
+메시지가 "언제 사라지는가"를 기준으로 보면 세 브로커의 차이가 한 번에 드러난다. 그림에서 RabbitMQ는 ack가 오면 메시지가 큐에서 삭제되고, Kafka는 메시지가 그대로 남고 컨슈머 그룹이 offset만 움직이며, SQS는 받은 메시지가 잠시 숨었다가 Delete가 오지 않으면 되돌아온다.
+
+```mermaid
+flowchart LR
+    subgraph R[RabbitMQ 큐 소비]
+        R1[큐에 적재] -->|push| R2[컨슈머 처리]
+        R2 -->|ack| R3[큐에서 삭제]
+        R2 -->|nack requeue=true| R1
+    end
+    subgraph K[Kafka 로그 오프셋]
+        K1[파티션 로그에 append] -->|poll| K2[컨슈머 그룹 처리]
+        K2 -->|offset commit| K3[읽은 위치만 이동]
+        K3 -.->|메시지는 retention까지 유지| K1
+    end
+    subgraph S[SQS 가시성 타임아웃]
+        S1[큐에 적재] -->|ReceiveMessage| S2[in-flight 상태로 숨김]
+        S2 -->|DeleteMessage| S3[큐에서 삭제]
+        S2 -->|timeout 만료| S1
+    end
+```
+
+이 구도가 뒤의 모든 장을 결정한다. 재처리 가능 여부는 메시지가 남아 있느냐로 갈리고, 중복이 생기는 지점은 "삭제·커밋·ack가 처리 완료보다 늦게 도착하는 구간"으로 갈린다.
+
 ## 2. 전달 보증: 같은 단어, 다른 구현
 
 ```mermaid
@@ -60,6 +85,27 @@ graph LR
 ### 2.2 At-least-once — 현실적인 기본값
 
 실무에서 대부분의 비동기 파이프라인은 여기에 있다. 네트워크 타임아웃, 컨슈머 크래시, 중간에 재시작된 노드 같은 상황에서 **메시지가 여러 번 전달될 수 있음을 받아들이는** 모델이다.
+
+유실과 중복을 가르는 건 처리 완료와 ack(커밋·삭제) 중 무엇이 먼저 실행되느냐 하나뿐이다. 아래 그림은 같은 지점에서 컨슈머가 죽었을 때 두 순서가 어떻게 다른 결과를 내는지 보여준다. 브로커 종류와 무관하게 성립한다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브로커
+    participant C as 컨슈머
+    participant D as DB
+    B->>C: 메시지 전달
+    alt 처리 후 ack (at-least-once)
+        C->>D: 비즈니스 로직 커밋
+        Note over C: 여기서 크래시하면 ack가 없어 재전달, 결과는 중복
+        C->>B: ack, offset commit, DeleteMessage
+    else ack 먼저 (at-most-once)
+        C->>B: ack, offset commit, DeleteMessage
+        Note over C: 여기서 크래시하면 처리 없이 메시지만 사라짐, 결과는 유실
+        C->>D: 비즈니스 로직 커밋
+    end
+```
+
+at-least-once는 위쪽 분기를 고르는 것이고, 그 대가로 재전달 시 같은 처리가 한 번 더 도는 걸 컨슈머가 감당해야 한다. 5장의 멱등 처리가 이 지점을 메운다.
 
 **RabbitMQ at-least-once 계약**
 
@@ -216,6 +262,31 @@ RabbitMQ는 exactly-once 세미틱스를 공식적으로 제공하지 않는다.
 
 순서 보장은 전달 보증보다 더 까다롭다. 순서를 지키려면 대부분 **병렬성을 희생**해야 하기 때문이다. 모든 메시지를 한 줄로 세우면 처리량이 하나의 컨슈머에 묶인다.
 
+세 브로커는 "같은 주문의 이벤트를 한 컨슈머에게만 보낸다"는 목표를 각자 다른 단위로 구현한다. 그림에서 컨슈머 바로 앞의 노드(샤드 큐, 파티션, 메시지 그룹)가 순서가 유지되는 단위이고, 이 단위가 다른 메시지끼리는 순서 보장이 없다.
+
+```mermaid
+flowchart LR
+    subgraph R[RabbitMQ]
+        RP[프로듀서] -->|user_id mod 32| RQ[샤드 큐 orders.user.N]
+        RQ --> RA[Single Active Consumer]
+        RQ -.->|active 장애 시 승격| RS[대기 컨슈머]
+    end
+    subgraph K[Kafka]
+        KP[프로듀서] -->|key=order_id 해시| KT[파티션 N]
+        KT --> KC[파티션당 컨슈머 1개, 스레드 1개]
+    end
+    subgraph S[SQS FIFO]
+        SP[프로듀서] -->|MessageGroupId=order_id| SG[메시지 그룹]
+        SG -->|그룹당 in-flight 1건| SC[컨슈머 풀]
+    end
+```
+
+| 순서 유지 단위 | 경계 안에서의 병렬성 | 경계를 넘는 병렬성 |
+|---|---|---|
+| RabbitMQ 샤드 큐 하나 | 없음 (active 1개) | 샤드 수 |
+| Kafka 파티션 하나 | 없음 (스레드 1개) | 파티션 수 |
+| SQS FIFO 그룹 하나 | 없음 (in-flight 1건) | 그룹 수 |
+
 ### 3.1 RabbitMQ — 큐 하나 + 컨슈머 하나
 
 RabbitMQ는 하나의 큐에 컨슈머가 여러 개 붙으면 브로커가 round-robin으로 메시지를 뿌린다. 이 순간 순서는 깨진다. 특정 주문의 이벤트를 순서대로 처리하고 싶다면 두 가지 중 하나다.
@@ -286,11 +357,28 @@ FIFO 큐 제약:
 
 DLQ는 "실패한 메시지를 담아두는 곳"이라는 단순한 정의 뒤에 놓치기 쉬운 설계 포인트가 많다. 몇 번 실패하면 DLQ로 보낼지, DLQ에 쌓인 메시지를 누가 언제 다시 볼지, 영원히 쌓이게 둘지.
 
+이 장은 세 브로커가 DLQ를 어떻게 구성하는지만 비교한다. DLQ에 들어가기 전의 재시도 tier(Kafka)는 [Kafka 논블로킹 재시도 토픽 패턴](Kafka_Retry_Topic_Pattern.md)에, DLQ에 들어간 뒤의 분류·재주입·루프 차단은 [DLQ 재처리 자동화](DLQ_Reprocessing_Strategy.md)에 따로 정리했다.
+
 ### 4.1 Poison Message와 재시도 폭주
 
 가장 흔한 사고는 **독성 메시지**(poison message)가 재시도 루프에서 무한히 돌면서 다른 메시지의 처리를 막는 경우다. 역직렬화 실패나 null 필드 같은 **절대 성공하지 못할** 메시지가 있다. 이걸 즉시 걸러내서 DLQ로 보내지 않으면, 같은 메시지가 브로커 ↔ 컨슈머 사이를 수백 번 왕복하면서 로그를 가득 채우고 CPU를 태운다.
 
-재시도 정책은 대략 이런 모양이 된다.
+폭주가 어떻게 만들어지는지는 그림으로 보는 게 빠르다. 컨슈머가 실패할 때마다 requeue(또는 ack 누락)로 메시지가 큐 맨 앞이나 같은 파티션 위치로 돌아오므로, 그 뒤에 있는 정상 메시지는 한 건도 처리되지 못한다.
+
+```mermaid
+sequenceDiagram
+    participant Q as 원본 큐
+    participant C as 컨슈머
+    Q->>C: poison message 전달
+    loop 성공할 수 없는 재시도
+        C->>C: 역직렬화 실패
+        C->>Q: nack requeue=true 또는 ack 누락
+        Q->>C: 같은 메시지 즉시 재전달
+    end
+    Note over Q,C: 뒤에 쌓인 정상 메시지는 대기, CPU와 로그만 소모
+```
+
+루프를 끊으려면 실패 원인에 따라 갈래를 나눠야 한다. 재시도 정책은 대략 이런 모양이 된다.
 
 1. 일시적 에러(네트워크, DB 락) → 재시도 가능, 지수 백오프
 2. 영구적 에러(스키마 불일치, 필수 필드 누락) → 즉시 DLQ
@@ -335,7 +423,7 @@ def should_dlq(properties):
 
 ### 4.3 Kafka DLQ — 토픽 이름 컨벤션
 
-Kafka는 DLQ라는 내장 기능이 없다. 컨슈머 애플리케이션이 실패 시 **별도의 dead-letter 토픽으로 publish**하는 패턴이 표준이다. 컨슈머 애플리케이션에서 실패 시 dead-letter 토픽으로 직접 publish하는 패턴이 표준이다.
+Kafka는 DLQ라는 내장 기능이 없다. 컨슈머 애플리케이션이 실패 시 **별도의 dead-letter 토픽으로 publish**하는 패턴이 표준이다. 아래 코드는 역직렬화 오류 같은 재시도 불가 에러만 DLT로 보내고 나머지는 throw하는 최소 형태다. 일시적 에러를 파티션을 막지 않고 재시도하는 방법은 [Kafka 논블로킹 재시도 토픽 패턴](Kafka_Retry_Topic_Pattern.md)에서 다룬다.
 
 ```typescript
 import { Kafka } from 'kafkajs';
@@ -424,13 +512,13 @@ flowchart LR
     C -->|개발자 수동 확인| D[수정 후 재발행 or 폐기]
 ```
 
-파킹 랏은 retention을 충분히 길게(30~90일) 잡고, 알람을 건다. DLQ의 나이가 오래되면 자동으로 파킹 랏으로 옮기는 배치를 돌리는 팀도 있다.
+파킹 랏은 retention을 충분히 길게(30~90일) 잡고, 알람을 건다. DLQ의 나이가 오래되면 자동으로 파킹 랏으로 옮기는 배치를 돌리는 팀도 있다. 어떤 메시지를 재주입하고 어떤 메시지를 파킹 랏으로 보낼지 가르는 분류 기준과 이관 자동화는 [DLQ 재처리 자동화](DLQ_Reprocessing_Strategy.md)에 있다.
 
 ### 4.6 DLQ 운영 주의사항
 
 - **DLQ에 알람 없는 DLQ는 블랙홀**이다. 적어도 "DLQ 메시지 수 > 0" 또는 "DLQ 최고 나이 > 10분" 같은 경보를 걸어둔다.
 - **DLQ의 DLQ는 만들지 마라.** 체인이 길어지면 모두가 추적을 포기한다. DLQ → Parking Lot 정도에서 멈춘다.
-- DLQ에 쌓인 메시지를 재처리할 때는 **원본 큐의 컨슈머가 버그가 고쳐진 버전**인지 반드시 먼저 확인한다. 안 고쳐진 상태에서 되돌리면 다시 DLQ로 간다.
+- DLQ 메시지를 되돌리는 절차(컨슈머 수정 여부 확인, 재주입 속도 제한, 순서 처리)는 [DLQ 재처리 자동화](DLQ_Reprocessing_Strategy.md)를 따른다. 컨슈머가 안 고쳐진 상태에서 되돌리면 다시 DLQ로 간다는 것만 여기서 기억해 둔다.
 - DLQ 메시지의 **payload를 기록·검색 가능한 저장소**(S3, Elasticsearch)에도 동시에 저장해 두면 디버깅이 빠르다.
 
 ## 5. 멱등성 처리
@@ -466,6 +554,27 @@ def handle(message):
 ### 5.2 Inbox Pattern
 
 outbox pattern의 반대쪽이다. 컨슈머가 받은 메시지를 **먼저 inbox 테이블에 저장**하고, 트랜잭션 안에서 비즈니스 로직을 실행한 뒤 커밋한다. inbox 저장이 충돌하면(같은 ID가 이미 있으면) 처리를 건너뛴다.
+
+트랜잭션 경계가 핵심이다. inbox INSERT와 비즈니스 UPDATE는 같은 DB 트랜잭션 안에 있고, 브로커 ack는 그 바깥에 있다. 그림에서 COMMIT 직후 ack 전에 크래시가 나도 재전달된 메시지는 inbox 충돌로 건너뛰므로 결과가 한 번만 반영된다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브로커
+    participant C as 컨슈머
+    participant D as DB
+    B->>C: 메시지 전달 message_id=m1
+    C->>D: BEGIN
+    C->>D: INSERT inbox ON CONFLICT DO NOTHING
+    alt 영향 행 1, 첫 수신
+        C->>D: UPDATE orders, INSERT audit_log
+        C->>D: COMMIT
+        Note over C,D: 트랜잭션 경계는 여기까지
+        C->>B: ack
+    else 영향 행 0, 중복 수신
+        C->>D: ROLLBACK
+        C->>B: ack
+    end
+```
 
 ```sql
 BEGIN;
@@ -526,6 +635,20 @@ const producer = kafka.producer({
 
 ### 6.1 질문 순서
 
+아래 다섯 질문을 위에서부터 물어서 처음 "예"가 나오는 곳에서 멈추면 된다. 그림은 같은 순서를 분기로 그린 것이다.
+
+```mermaid
+flowchart TD
+    Q1{메시지를 나중에 다시 읽는가} -->|예| K[Kafka]
+    Q1 -->|아니오| Q2{AWS 안에서 운영 부담을 피하고 싶은가}
+    Q2 -->|예| S[SQS]
+    Q2 -->|아니오| Q3{복잡한 라우팅이 필요한가}
+    Q3 -->|예| R[RabbitMQ]
+    Q3 -->|아니오| Q4{처리량이 초당 수십만 건 이상인가}
+    Q4 -->|예| K2[Kafka]
+    Q4 -->|아니오| Q5[작업 큐 + 순서 필요 시 SQS FIFO 또는 RabbitMQ Single Active Consumer]
+```
+
 1. **메시지를 나중에 다시 읽을 일이 있는가?** 있다면 Kafka. 이벤트 소싱, 신규 컨슈머 추가, 장애 후 재처리, 분석 파이프라인 등.
 2. **AWS 생태계 안에서만 돌고, 직접 운영 부담을 피하고 싶은가?** SQS. Lambda 트리거와의 통합이 압도적으로 편하다.
 3. **복잡한 라우팅(topic exchange, header exchange, fanout)이 필요한가?** RabbitMQ. 3개 중 라우팅 유연성은 RabbitMQ가 가장 좋다.
@@ -552,7 +675,15 @@ const producer = kafka.producer({
 
 ### 7.1 "메시지가 사라진 것 같다"
 
-유실 조사는 **publish → 브로커 수신 → 컨슈머 수신 → 처리** 네 지점에서 로그/메트릭을 찍어야 한다.
+유실 조사는 **publish → 브로커 수신 → 컨슈머 수신 → 처리** 네 지점에서 로그/메트릭을 찍어야 한다. 앞 지점에는 있는데 뒤 지점에 없는 곳이 유실이 난 구간이다.
+
+```mermaid
+flowchart LR
+    P[프로듀서 publish 로그] --> B[브로커 수신 확인]
+    B --> C[컨슈머 수신 로그]
+    C --> H[처리 전후 로그]
+    H --> A[커밋 또는 ack 로그]
+```
 
 - Kafka: 프로듀서에서 `metadata.offset`과 `partition`을 로그에 남긴다. 컨슈머에서 `poll()` 직후 수신 로그, 처리 전후 로그, 커밋 후 로그를 남긴다. 유실이 의심되면 `kafka-console-consumer --from-beginning`으로 해당 offset이 실제로 존재하는지 확인.
 - RabbitMQ: Publisher Confirms가 꺼져 있으면 publish 성공 여부 자체를 프로듀서가 모른다. 먼저 Confirms를 켠다. `rabbitmqctl list_queues name messages_ready messages_unacknowledged`로 큐 상태 확인.
