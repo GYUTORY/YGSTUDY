@@ -427,6 +427,7 @@ plugins:
       exclude:
         - "*/index.md"
         - "최근.md"
+        - "_group/*"
   - rss:
       enabled: !ENV [BUILD_RSS, FULL_BUILD, false]
       # 자동 생성 목록 페이지를 피드에서 뺀다.
