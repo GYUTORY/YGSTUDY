@@ -1,7 +1,7 @@
 ---
 title: RDS Multi-AZ
 tags: [aws, database, dns, cloud]
-updated: 2026-07-25
+updated: 2026-09-30
 ---
 
 # RDS Multi-AZ
@@ -31,6 +31,75 @@ Writer 1개와 Reader 2개, 총 3개 노드가 각각 다른 AZ에 위치한다.
 | Instance endpoint | 특정 인스턴스에 직접 연결 (디버깅·유지보수) |
 
 운영 환경에서 Instance endpoint로 직접 연결하는 건 피해야 한다. 페일오버 시 인스턴스가 교체되면 그 연결이 끊긴다.
+
+## Multi-AZ DB instance와 Multi-AZ DB cluster 구분
+
+콘솔에서 "Multi-AZ 배포"를 고를 때 나오는 선택지가 이 두 가지다. AWS 문서의 정식 이름은 Multi-AZ DB instance 배포와 Multi-AZ DB cluster 배포이고, 이 문서에서 말하는 Multi-AZ 인스턴스와 Multi-AZ 클러스터가 각각 여기에 해당한다. 클러스터라는 이름이 붙었어도 Aurora와는 별개 제품이다. Aurora와의 차이는 [AWS Multi-AZ 고가용성 설계](../Network/AWS_Multi_AZ_High_Availability.md)의 Aurora 절에 표로 정리해 두었다.
+
+| 항목 | Multi-AZ DB instance | Multi-AZ DB cluster |
+|---|---|---|
+| 노드 구성 | Primary 1 + Standby 1 | Writer 1 + Reader 2 |
+| 사용하는 AZ | 2개 | 3개 |
+| 복제 | 동기 | 반동기 (Reader 1대 이상이 확인해야 커밋) |
+| Standby 읽기 | 불가 | 가능 (Reader endpoint) |
+| 엔드포인트 | DB 인스턴스 endpoint 하나 | Cluster, Reader, Instance endpoint |
+| 페일오버 | 보통 60~120초 | 보통 35초 미만 |
+| 지원 엔진 | MySQL, PostgreSQL, MariaDB, Oracle, SQL Server | MySQL, PostgreSQL |
+| 인스턴스 클래스 | 버스터블(`db.t3` 등) 포함 | 로컬 NVMe 계열(`db.m5d`, `db.m6gd`, `db.r6gd` 등) 위주 |
+
+페일오버 시간은 AWS 문서의 "보통"이라는 전제가 붙은 값이다([instance 문서](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html), [cluster 문서](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts-failover.html)). 큰 트랜잭션이 돌고 있었거나 Reader의 복제 지연이 크면 이 범위를 넘는다.
+
+### 내가 쓰는 게 어느 쪽인지 확인하기
+
+가장 헷갈리는 지점이 여기다. 두 방식은 조회하는 API가 다르다. Multi-AZ DB instance는 `describe-db-instances`에서 `MultiAZ`가 `true`로 나오고, Multi-AZ DB cluster는 `describe-db-clusters`에 클러스터 단위로 잡힌다. 엔진이 `mysql`이나 `postgres`인데도 `describe-db-clusters`에 나오면 Aurora가 아니라 Multi-AZ DB cluster다. 엔진 이름이 `aurora-mysql`이면 Aurora다.
+
+```bash
+# Multi-AZ DB instance 여부
+aws rds describe-db-instances \
+  --db-instance-identifier my-db-instance \
+  --query 'DBInstances[].[DBInstanceIdentifier,MultiAZ,SecondaryAvailabilityZone]'
+
+# 클러스터 배포 여부 (Engine이 mysql/postgres면 Multi-AZ DB cluster, aurora-*면 Aurora)
+aws rds describe-db-clusters \
+  --query 'DBClusters[].[DBClusterIdentifier,Engine,MultiAZ,DBClusterInstanceClass]'
+```
+
+인스턴스 배포에서 `SecondaryAvailabilityZone`이 비어 있으면 Standby가 없다는 뜻이라 Multi-AZ가 꺼진 상태다.
+
+### 구분을 모르고 만든 자동화가 깨지는 곳
+
+운영 자동화는 대부분 인스턴스 배포를 기준으로 짜여 있어서, 클러스터 배포로 옮기면 조용히 안 맞는 부분이 생긴다.
+
+- 강제 페일오버 명령이 다르다. 인스턴스는 `reboot-db-instance --force-failover`, 클러스터는 `failover-db-cluster`다. 테스트 스크립트와 런북에 어느 쪽 명령이 적혀 있는지 먼저 확인한다.
+- EventBridge 룰이 페일오버를 못 잡는다. 이 문서 아래쪽 예시의 룰은 `detail-type`이 `RDS DB Instance Event`라서 클러스터 단위 이벤트를 받지 못한다. 클러스터 배포에는 `RDS DB Cluster Event`를 받는 룰을 따로 만든다.
+- Terraform 리소스가 다르다. 인스턴스 배포는 `aws_db_instance`에 `multi_az = true`를 주면 끝난다. 클러스터 배포는 `aws_rds_cluster`에 `db_cluster_instance_class`를 지정하고, 노드 3개는 클러스터가 만든다. `aws_rds_cluster_instance`를 따로 붙이는 Aurora 방식으로 쓰면 안 된다.
+- 애플리케이션이 Instance endpoint를 박아 두었다면 클러스터 배포에서 더 위험하다. 페일오버 뒤 Writer였던 노드가 Reader가 되므로 쓰기가 `read-only` 오류로 실패한다.
+
+```hcl
+resource "aws_rds_cluster" "app" {
+  cluster_identifier        = "app-multi-az-cluster"
+  engine                    = "mysql"
+  engine_version            = "8.0.36"
+  db_cluster_instance_class = "db.m6gd.large"
+  storage_type              = "io1"
+  allocated_storage         = 100
+  iops                      = 3000
+  master_username           = "admin"
+  manage_master_user_password = true
+  db_subnet_group_name      = aws_db_subnet_group.app.name
+  vpc_security_group_ids    = [aws_security_group.rds.id]
+}
+```
+
+스토리지 타입과 IOPS 조건은 엔진과 버전마다 달라진다. 위 값은 형태를 보이는 예시라서, 만들기 전에 해당 엔진의 지원 조합을 문서에서 확인해야 한다.
+
+### 무엇을 고를지
+
+읽기 부하가 거의 없고 `db.t3` 같은 작은 인스턴스로 충분하면 인스턴스 배포가 맞다. 비용이 노드 2대분이고, 엔진 제약이 없다. Oracle이나 SQL Server를 쓰면 선택지가 이것 하나다.
+
+읽기 쿼리를 나눠 받을 곳이 필요하거나 페일오버를 35초대로 줄여야 하면 클러스터 배포를 본다. 노드가 3대라 비용은 그만큼 늘고, Reader에서 무거운 쿼리를 돌리면 복제 지연이 커져 페일오버도 길어진다. 읽기를 받으면서 AZ 장애 대비도 하는 구성이라고 보고 Reader를 분석용으로 쓰면 이 이점이 사라진다.
+
+인스턴스 배포에서 클러스터 배포로 바꾸는 인플레이스 변환은 없다. 스냅샷을 복원해서 새 클러스터를 만들거나 기존 인스턴스를 소스로 한 Read Replica로 클러스터를 붙였다가 승격하는 방식으로 옮기고, 그동안 엔드포인트가 바뀌므로 앱의 접속 정보 교체 시점을 계획에 넣어야 한다.
 
 ## 페일오버 발생 조건
 

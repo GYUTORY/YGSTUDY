@@ -1,7 +1,7 @@
 ---
 title: AWS NAT Gateway
 tags: [aws, vpc, network, cloud]
-updated: 2026-05-20
+updated: 2026-09-30
 ---
 
 # AWS NAT Gateway
@@ -39,11 +39,11 @@ sequenceDiagram
 
 ## 다중 AZ에서 흔히 밟는 함정
 
-NAT Gateway는 AZ 단위 리소스다. `ap-northeast-2a`에 만든 NAT Gateway는 그 AZ에서만 살아 있다. 해당 AZ에 장애가 나면 NAT도 같이 죽는다. 그래서 운영 환경에서는 AZ마다 NAT Gateway를 하나씩 둔다.
+기본 NAT Gateway(zonal)는 AZ 단위 리소스다. `ap-northeast-2a`에 만든 NAT Gateway는 그 AZ에서만 살아 있다. 해당 AZ에 장애가 나면 NAT도 같이 죽는다. 그래서 운영 환경에서는 AZ마다 NAT Gateway를 하나씩 둔다. 최근에는 여러 AZ를 한 리소스로 묶는 regional 모드도 생겼는데, 뒤의 "AZ 장애와 NAT 배치 설계" 절에서 다룬다.
 
 여기서 첫 번째 함정. 라우팅 테이블을 AZ별로 분리하지 않고 프라이빗 서브넷 전부를 한 개의 라우팅 테이블에 묶어 두면, 모든 AZ의 트래픽이 그 라우팅 테이블이 가리키는 단 하나의 NAT Gateway로 빨려 들어간다. AZ-A의 NAT가 죽었을 때 트래픽을 AZ-B로 옮기려고 그렇게 했을 수도 있지만, 평상시에는 AZ-B와 AZ-C의 인스턴스가 죄다 AZ-A로 우회한다. 그러면 AZ 간 데이터 전송 요금(GB당 $0.01)이 그대로 발생한다.
 
-내부 트래픽은 한 방향만 과금되는 게 아니다. 인스턴스 → NAT Gateway 구간과 NAT Gateway → 인스턴스(응답) 구간 양쪽에 발생한다. 즉 1GB의 외부 호출이 실제로는 2GB의 AZ 간 트래픽으로 환산된다. 여기에 NAT 처리량 요금($0.045/GB)이 따로 붙는다. 평상시 트래픽이 큰 서비스라면 라우팅 테이블 잘못 묶은 것 하나로 월 청구서가 두 배로 뛰는 일이 흔하다.
+AZ 간 전송 요금은 보내는 쪽과 받는 쪽 양쪽에 GB당 $0.01씩 붙는다. 서울 리전 가격표 문구가 "in/out/between AZs"다. 인스턴스 → NAT 요청도, NAT → 인스턴스 응답도 AZ를 넘으면 각각 GB당 $0.02가 된다. 여기에 NAT 처리량 요금(서울 기준 $0.059/GB)이 따로 붙는다. 평상시 트래픽이 큰 서비스라면 라우팅 테이블 잘못 묶은 것 하나로 월 청구서가 눈에 띄게 뛰는 일이 흔하다. 정확히 얼마부터 손해인지는 뒤의 손익분기 계산에서 다룬다.
 
 해결은 단순하다. AZ마다 라우팅 테이블을 하나씩 만들고, 각 라우팅 테이블의 `0.0.0.0/0`은 같은 AZ의 NAT Gateway를 가리키게 한다.
 
@@ -75,13 +75,126 @@ resource "aws_route_table_association" "private" {
 
 두 번째 함정은 장애 대응이다. AZ-A의 NAT Gateway가 죽었을 때 AZ-A 인스턴스들이 자동으로 AZ-B의 NAT로 우회해 주지 않는다. AZ-A 라우팅 테이블을 손으로 수정해 NAT를 AZ-B 쪽으로 돌려야 한다. 자동화하려면 Route 53 헬스체크와 Lambda를 묶거나, NAT Gateway 모니터링용 별도 람다가 라우팅 테이블을 갱신하도록 짜야 한다. 다만 AZ-A 워크로드 자체가 죽었을 가능성이 더 크니, NAT만 살려서 의미가 있는지부터 따져야 한다.
 
+## AZ 장애와 NAT 배치 설계
+
+NAT를 몇 개 두느냐는 결국 "AZ 하나가 죽었을 때 나머지 AZ의 외부 통신을 지킬 것인가"와 "고정비 월 $47을 AZ 수만큼 더 낼 것인가"의 교환이다. 증상, 손익분기, 코드, 환경별 판단 순서로 정리한다. 요금은 서울(ap-northeast-2) 기준이고, 2026-09-25자 AWS Price List JSON에서 직접 뽑았다.
+
+### NAT가 단일일 때 AZ 장애 증상
+
+서브넷이 2a, 2b, 2c에 있고 NAT Gateway가 2a에만 있으며, 프라이빗 서브넷 셋이 모두 2a의 NAT를 가리키는 구성을 가정한다. 2a에 장애가 나면 2b, 2c 인스턴스는 멀쩡히 떠 있다. ALB로 들어오는 인바운드 요청도 정상 처리된다. 끊기는 건 아웃바운드 전부다.
+
+증상은 애플리케이션 쪽에서 먼저 보인다. 결제, 푸시, 외부 검색 같은 API 호출이 전부 connect timeout으로 떨어지고, 인프라 대시보드에서는 2b, 2c의 CPU와 인스턴스 상태가 초록색이라 원인이 어디인지 헷갈린다. NAT 경유로 ECR, CloudWatch Logs, Secrets Manager에 붙고 있었다면 이쪽도 같이 끊긴다. 새로 뜨는 ECS 태스크나 EKS 파드는 이미지를 못 받아 `CannotPullContainerError`나 `ImagePullBackOff`에 걸린다. 스케일 아웃으로 늘린 용량이 제 역할을 못 하는 것이다. 헬스체크 엔드포인트가 외부 의존성까지 확인하는 서비스는 2b, 2c 인스턴스까지 unhealthy로 빠져서 AZ 하나의 장애가 전체 장애로 번진다.
+
+NAT를 AZ마다 두면 같은 장애에서 2a 워크로드만 영향을 받고 2b, 2c는 그대로 돈다. Multi-AZ로 인스턴스를 나눠 놓고 NAT만 하나로 두면 인스턴스 분산의 효과가 아웃바운드 구간에서 사라진다.
+
+### 비용 손익분기
+
+비교에 쓰는 단가를 표로 먼저 둔다.
+
+| 항목 | 서울 단가 | 월 환산(730시간) |
+|---|---|---|
+| NAT Gateway 시간당 | $0.059 | $43.07 |
+| NAT용 Public IPv4(EIP) 시간당 | $0.005 | $3.65 |
+| NAT 1대 고정비 합계 | | $46.72 |
+| NAT 처리량 | $0.059/GB | AZ 배치와 무관하게 동일 |
+| AZ 간 전송 | $0.01/GB, 송신·수신 각각 | AZ를 넘는 1GB당 $0.02 |
+
+NAT 처리량 요금은 NAT가 하나든 셋이든 처리한 GB가 같으면 같으니 비교에서 뺀다. 갈리는 건 고정비와 AZ 간 전송뿐이다.
+
+AZ 3개에 NAT를 하나만 두면 워크로드가 AZ에 고르게 퍼져 있을 때 트래픽의 2/3가 AZ를 넘는다. NAT가 처리한 트래픽 1GB(요청과 응답을 합친 양)당 추가 비용은 2/3 × $0.02 = $0.0133이다. 서울 NAT 처리량 단가의 약 23%가 더 붙는 셈이다. AZ별 NAT는 고정비가 2대분($93.44) 늘고 AZ 간 전송이 0이 된다.
+
+| 월 NAT 처리 트래픽 | 단일 NAT의 AZ 간 전송 비용(3AZ) | AZ별 NAT 추가 고정비 |
+|---|---|---|
+| 200GB | $2.67 | $93.44 |
+| 1,000GB | $13.33 | $93.44 |
+| 5,000GB | $66.67 | $93.44 |
+| 7,000GB | $93.33 | $93.44 |
+| 50,000GB | $666.67 | $93.44 |
+
+손익분기는 3AZ에서 월 약 7,008GB, 2AZ(NAT 추가 1대 $46.72, AZ 간 비중 1/2로 GB당 $0.01)에서 약 4,672GB다. 이 이상이면 AZ별 NAT가 가용성과 무관하게 그냥 더 싸다. 이 계산은 트래픽이 AZ에 고르게 퍼져 있다는 가정이다. 워크로드가 한 AZ에 몰려 있으면 NAT를 그 AZ에 두는 것만으로 AZ 간 전송이 크게 줄어든다.
+
+ECR 이미지 풀이나 S3 트래픽을 VPC Endpoint로 빼면 NAT 처리량이 줄어서 손익분기 아래로 내려오는 서비스가 많다. 그때는 비용만 놓고 보면 단일 NAT가 이기고, 남는 판단 근거는 가용성 하나다. 월 $90 남짓을 아끼려고 AZ 장애 시 외부 통신 전체를 잃을지가 질문이 된다.
+
+### AZ별 라우트 테이블 Terraform
+
+앞 절의 AZ별 NAT 예제에 단일 NAT 스위치를 붙인 형태다. 환경마다 변수 하나로 갈리게 해 두면 dev와 prod가 같은 코드를 쓴다. 프라이빗·퍼블릭 서브넷은 AZ 이름을 키로 하는 `for_each` 리소스이고, `aws_internet_gateway.main`이 있으며 `aws_route_table_association`은 앞 절 코드를 그대로 쓴다고 가정한다.
+
+```hcl
+variable "azs" {
+  type    = list(string)
+  default = ["ap-northeast-2a", "ap-northeast-2b", "ap-northeast-2c"]
+}
+
+variable "single_nat_gateway" {
+  type    = bool
+  default = false
+}
+
+locals {
+  nat_azs   = var.single_nat_gateway ? slice(var.azs, 0, 1) : var.azs
+  nat_az_of = { for az in var.azs : az => var.single_nat_gateway ? var.azs[0] : az }
+}
+
+resource "aws_eip" "nat" {
+  for_each = toset(local.nat_azs)
+  domain   = "vpc"
+}
+
+resource "aws_nat_gateway" "az" {
+  for_each      = toset(local.nat_azs)
+  allocation_id = aws_eip.nat[each.key].id
+  subnet_id     = aws_subnet.public[each.key].id
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+resource "aws_route_table" "private" {
+  for_each = toset(var.azs)
+  vpc_id   = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.az[local.nat_az_of[each.key]].id
+  }
+}
+```
+
+프라이빗 라우트 테이블은 단일 모드에서도 AZ마다 하나씩 만든다. 라우트 테이블을 하나로 합치면 나중에 AZ별 NAT로 갈 때 서브넷 연결부터 다시 짜야 한다. 스위치를 켜고 끄는 게 `nat_gateway_id` 한 줄이 되도록 구조를 나눠 둔 것이다.
+
+`single_nat_gateway`를 `true`에서 `false`로 바꾸면 NAT와 EIP가 새로 생기고 라우트가 교체되면서 기존 연결이 한 번 끊긴다. 더 조심할 것은 EIP다. AZ별로 EIP가 새로 붙기 때문에, 제휴사 방화벽에 NAT의 공인 IP를 등록해 둔 서비스는 3개를 다 등록해야 한다. 단일 NAT였을 때 등록한 IP 하나만 열려 있으면 AZ 2개분 트래픽이 외부에서 막힌다. 반대 방향(`false`에서 `true`)은 NAT 2개와 EIP 2개가 삭제되어 등록해 둔 IP가 없어진다.
+
+### regional NAT Gateway는 절감 수단이 아니다
+
+zonal NAT를 AZ마다 만들고 라우트를 AZ마다 나누는 작업을 없애는 regional 모드가 나와 있다. Terraform에서는 `availability_mode = "regional"`로 만든다.
+
+```hcl
+resource "aws_nat_gateway" "regional" {
+  vpc_id            = aws_vpc.main.id
+  availability_mode = "regional"
+}
+```
+
+이 모드에서는 퍼블릭 서브넷이 필요 없고, 워크로드 ENI가 있는 AZ로 NAT가 자동 확장된다. 프라이빗 서브넷은 AZ와 무관하게 이 NAT 하나의 ID를 가리키면 된다. AZ당 EIP 한도도 zonal의 8개보다 큰 32개다. 반면 확장 완료까지 최대 60분이 걸리고, 그동안 새 AZ의 트래픽은 기존 AZ의 NAT를 거치므로 그 구간은 AZ 간 전송 요금이 붙는다. private NAT는 지원하지 않는다.
+
+요금이 zonal과 같은 구조라는 점이 중요하다. AWS 가격 페이지는 regional NAT가 세 AZ에서 돌면 NAT Gateway-hour 3개가 청구된다고 명시한다. 그래서 regional로 바꿔도 고정비는 줄지 않고, 줄어드는 건 라우트 테이블과 퍼블릭 서브넷 관리 부담이다. 비용을 줄이려는 목적이면 단일 zonal NAT가 여전히 가장 싸다. 자동 모드는 EIP도 AWS가 관리하므로, 외부 방화벽에 IP를 등록해야 하는 서비스는 EIP를 직접 지정하는 manual 모드를 써야 한다. 이 절의 regional 동작은 공식 문서를 근거로 적은 것이고, 직접 띄워서 확장 시간을 재보지는 않았다.
+
+### dev와 prod에서 갈리는 기준
+
+prod는 AZ별 NAT로 간다. 손익분기와 무관하게 이유는 가용성이다. 월 트래픽이 500GB든 50TB든 AZ 장애 때 외부 결제 API와 이미지 풀이 같이 끊기는 구성은 Multi-AZ 인스턴스 분산의 의미를 없앤다.
+
+dev와 staging은 단일 NAT로 절감한다. 3AZ, 월 200GB 기준으로 계산하면 AZ별 NAT는 고정비 $140.16(3 × $46.72), 단일 NAT는 고정비 $46.72에 AZ 간 전송 $2.67을 더한 $49.39다. NAT 처리량은 양쪽 모두 $11.80(200 × $0.059)으로 같다. 차액이 월 약 $90.77, 연 $1,089 정도다. 환경이 여러 개면 이 숫자에 환경 수를 곱한다.
+
+단일 NAT로 가도 되는 조건은 세 가지가 동시에 맞을 때다. 고객 트래픽이 없어서 AZ 장애 때 외부 통신이 끊겨도 매출과 무관해야 한다. 월 트래픽이 손익분기(3AZ 7,008GB, 2AZ 4,672GB) 밑이어야 한다. 그리고 그 환경에서 AZ 장애 대응을 검증할 계획이 없어야 한다. 마지막 조건이 빠지기 쉽다. dev가 단일 NAT면 AZ 하나를 끊어 보는 장애 훈련에서 prod와 다른 증상이 나오므로 훈련 결과를 prod에 그대로 옮길 수 없다. 장애 훈련은 staging에서 하는 팀이라면 staging만은 AZ별 NAT로 둔다.
+
+부하 테스트 환경은 반대로 움직인다. 수십 TB를 외부로 쏘는 테스트라면 단일 NAT의 AZ 간 전송이 NAT 고정비를 금방 넘긴다. 그 기간만 `single_nat_gateway = false`로 돌리는 편이 싸다. dev 서브넷 자체를 2AZ로 줄이는 방법도 있다. 이 경우 AZ별 NAT의 추가 고정비가 $46.72로 줄어든다. 단일 NAT가 이기는 트래픽 상한도 4,672GB로 내려간다.
+
 ## 포트 고갈(ErrorPortAllocation) 대응
 
 `ErrorPortAllocation` 메트릭이 0이 아닌 값으로 잡히기 시작하면 그 시점부터는 일부 외부 연결이 실패한다. 애플리케이션 로그에는 `connection timeout`이나 `connection refused`로 보일 텐데 NAT 쪽에서 패킷이 그냥 드롭되는 것이라 원인을 찾기가 까다롭다.
 
 원인은 거의 항상 셋 중 하나다.
 
-첫째, 외부 호출이 소수의 동일한 대상(IP+포트)으로 집중된다. 결제 게이트웨이, 외부 검색 API, 푸시 알림 서비스 같은 곳으로 트래픽이 쏠리는 경우다. 이때는 NAT Gateway에 secondary IP를 추가하면 포트 풀이 IP 수만큼 늘어난다. 한 NAT Gateway에 최대 8개의 EIP를 붙일 수 있고, 그러면 동일 대상에 대해 약 55K × 8 = 약 44만 포트까지 확장된다. EIP를 추가했을 때 어떤 출발지 IP가 어떤 EIP를 쓰는지는 NAT Gateway 내부 해시로 결정되니, 특정 인스턴스를 특정 EIP에 묶으려는 시도는 의미가 없다.
+첫째, 외부 호출이 소수의 동일한 대상(IP+포트)으로 집중된다. 결제 게이트웨이, 외부 검색 API, 푸시 알림 서비스 같은 곳으로 트래픽이 쏠리는 경우다. 이때는 NAT Gateway에 secondary IP를 추가하면 포트 풀이 IP 수만큼 늘어난다. zonal NAT Gateway 하나에는 최대 8개의 EIP를 붙일 수 있고(regional은 AZ당 32개), 그러면 동일 대상에 대해 약 55K × 8 = 약 44만 포트까지 확장된다. EIP를 추가했을 때 어떤 출발지 IP가 어떤 EIP를 쓰는지는 NAT Gateway 내부 해시로 결정되니, 특정 인스턴스를 특정 EIP에 묶으려는 시도는 의미가 없다.
 
 ```bash
 # secondary IP 할당
@@ -102,7 +215,7 @@ aws ec2 associate-nat-gateway-address \
 
 ## 비용이 폭발하는 진짜 이유
 
-NAT Gateway는 시간당 요금($0.045/시간, 월 약 $32)보다 처리량 요금($0.045/GB)이 청구서를 무겁게 만든다. 1TB가 NAT를 통과하면 $46이 추가된다. 외부 API 호출만 있을 때는 별 게 아니지만, S3나 DynamoDB로 가는 트래픽이 NAT를 거치고 있으면 청구서가 단숨에 수백 달러로 뛴다.
+NAT Gateway는 시간당 요금보다 처리량 요금이 청구서를 무겁게 만든다. 서울 리전은 시간당 $0.059(월 730시간 기준 약 $43), 처리량 $0.059/GB다. 버지니아 북부는 둘 다 $0.045라서 예전 자료의 숫자와 다르다. 1TB(1,000GB)가 서울 NAT를 통과하면 $59가 추가된다. 외부 API 호출만 있을 때는 별 게 아니지만, S3나 DynamoDB로 가는 트래픽이 NAT를 거치고 있으면 청구서가 단숨에 수백 달러로 뛴다.
 
 가장 흔한 사례가 ECR이다. ECS나 EKS 노드가 컨테이너 이미지를 ECR에서 받아오는데, ECR은 퍼블릭 엔드포인트라 NAT Gateway를 통과한다. 이미지 한 개가 500MB라면 노드 100대가 새 버전을 받을 때마다 50GB가 NAT를 지난다. 배포가 잦으면 이 비용만 월 수십만 원이 된다.
 
@@ -145,7 +258,7 @@ ECR Endpoint를 붙일 때는 `ecr.api`와 `ecr.dkr` 두 개를 모두 만들어
 
 거의 없다. 다음 두 경우 정도다.
 
-소규모 개발/스테이징 환경에서 비용이 우선인 경우. t4g.nano 한 대(월 약 $3)에 SNAT을 켜면 NAT Gateway($32 + 처리량)보다 한참 싸다. 트래픽이 적고, 가용성 요구도 없다는 전제다.
+소규모 개발/스테이징 환경에서 비용이 우선인 경우. t4g.nano 한 대(서울 온디맨드 월 약 $3.8)에 SNAT을 켜면 NAT Gateway(서울 기준 월 $43 + EIP $3.65 + 처리량)보다 한참 싸다. 트래픽이 적고, 가용성 요구도 없다는 전제다.
 
 특수한 요구사항이 있을 때. 예를 들어 아웃바운드 SNAT의 소스 포트를 특정 범위로 강제하거나, 외부에 노출할 EIP를 한 번 더 변환해야 하거나, NAT 인스턴스 위에 iptables 규칙을 직접 얹어야 하는 경우다. NAT Gateway는 사용자가 손댈 여지가 거의 없으므로 이런 요구는 NAT Instance 또는 자체 구축이 답이 된다.
 
@@ -225,9 +338,9 @@ LIMIT 50;
 
 NAT Gateway는 이런 인스턴스별 포트 할당 개념이 없다. 모든 인스턴스가 같은 풀을 공유하므로 한 인스턴스의 폭주가 다른 인스턴스에 영향을 준다. 대신 NAT Gateway는 secondary EIP를 붙여 풀 자체를 키우는 방식으로 대응한다.
 
-가용성 모델도 다르다. Cloud NAT는 리전 단위로 동작해 단일 NAT가 모든 존을 커버하는 반면, AWS NAT Gateway는 AZ 단위라 운영자가 직접 AZ마다 배치하고 AZ별 라우팅 테이블을 분리해야 한다. 운영 부담은 NAT Gateway 쪽이 더 크지만, AZ 격리 측면에서는 명확하다.
+가용성 모델은 기본 모드 기준으로 다르다. Cloud NAT는 리전 단위로 동작해 단일 NAT가 모든 존을 커버하는 반면, zonal NAT Gateway는 AZ 단위라 운영자가 직접 AZ마다 배치하고 AZ별 라우팅 테이블을 분리해야 한다. 다만 AWS에도 여러 AZ를 한 리소스로 묶는 regional 모드가 생겨서 이 차이는 좁혀졌다. 배치 판단은 "AZ 장애와 NAT 배치 설계" 절을 본다.
 
-비용 구조도 다르다. NAT Gateway는 시간당 + 처리량($0.045/시간 + $0.045/GB)이고, Cloud NAT는 게이트웨이 시간당 + 처리량(약 $0.0014/시간 + $0.045/GB)이라 베이스 비용은 Cloud NAT가 훨씬 싸다. 다만 GCP는 NAT IP를 EIP처럼 별도 청구하니 총액은 트래픽 패턴에 따라 갈린다.
+비용 구조도 다르다. Cloud NAT 쪽 숫자(게이트웨이 시간당, 처리량 단가)는 이번에 다시 확인하지 못했다. AWS 쪽 숫자는 리전마다 다르니 [[gcp-cloud-nat]] 문서와 각 클라우드의 현재 가격표를 나란히 놓고 비교한다.
 
 ## 참조
 
@@ -235,4 +348,7 @@ NAT Gateway는 이런 인스턴스별 포트 할당 개념이 없다. 모든 인
 - [NAT Gateway 메트릭 목록](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway-cloudwatch.html)
 - [secondary IP로 포트 한계 늘리기](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-working-with.html)
 - [VPC Endpoint 카탈로그](https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html)
+- [Regional NAT Gateway 공식 문서](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateways-regional.html)
+- [Amazon VPC 요금](https://aws.amazon.com/vpc/pricing/)
+- [서울 리전 EC2 Price List JSON](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-northeast-2/index.json)
 - [Reachability Analyzer 가이드](https://docs.aws.amazon.com/vpc/latest/reachability/what-is-reachability-analyzer.html)
