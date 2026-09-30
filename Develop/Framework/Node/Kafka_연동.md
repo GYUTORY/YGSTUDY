@@ -1,6 +1,6 @@
 ---
 title: "NestJS Kafka 연동과 Consumer Group 운영"
-tags: [nodejs, nestjs, messaging, event-driven, backend, architecture]
+tags: [nodejs, messaging, event-driven, backend, architecture]
 updated: 2026-09-19
 ---
 
