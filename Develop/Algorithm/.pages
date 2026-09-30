@@ -13,4 +13,5 @@ nav:
     - Algorithm: Greedy.md
     - 알고리즘 심화: Greedy_Deep_Dive.md
     - 문제 패턴 모음: Greedy_Problem_Patterns.md
+    - 정렬·구간 덮기 패턴: Greedy_Sequencing_And_Covering_Patterns.md
   - 그래프 탐색 (DFS/BFS): Graph_Traversal.md
