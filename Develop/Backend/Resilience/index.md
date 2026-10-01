@@ -9,7 +9,7 @@ hide:
 
 # Resilience 전체 보기
 
-문서 4개.
+문서 5개.
 
 ## 개요
 
@@ -17,4 +17,5 @@ hide:
 - [Rate Limiting & Bulkhead 패턴](Rate_Limiting_and_Bulkhead.md)
 - [장애 대응 패턴 (Fault Tolerance)](Fault_Tolerance.md)
 - [장애 주입 테스트 (Chaos Engineering)](Chaos_Engineering.md)
+- [헤지 요청 - 꼬리 지연을 줄이고 부하로 값을 치르는 방법](Hedged_Requests.md)
 
