@@ -9,10 +9,11 @@ hide:
 
 # Cloudflare 전체 보기
 
-문서 7개.
+문서 8개.
 
 ## 개요
 
+- [CDN 상위 캐시 계층 비교 (Cloudflare Tiered Cache·Cache Reserve와 CloudFront Origin Shield)](CDN_Tiered_Cache_and_Origin_Shield.md)
 - [Cloudflare DNS 설정 실무](Cloudflare_DNS.md)
 - [Cloudflare Pages](Cloudflare_Pages.md)
 - [Cloudflare R2](Cloudflare_R2.md)

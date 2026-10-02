@@ -119,6 +119,7 @@ Obsidian 커뮤니티 플러그인 중 vault + LLM 워크플로우에 실제로 
 
 `.obsidian/community-plugins.json`에 활성화된 플러그인 목록이 들어간다.
 
+<<<<<<< Updated upstream
 ```json
 [
   "dataview",
@@ -126,6 +127,46 @@ Obsidian 커뮤니티 플러그인 중 vault + LLM 워크플로우에 실제로 
   "obsidian-git"
 ]
 ```
+=======
+### 4.4 claude -p 로 터미널에서 직접 질의
+
+Claude Code의 `-p` 플래그는 인터랙티브 세션 없이 단발로 LLM을 호출한다. vault 파일을 표준입력으로 파이프하면 그게 컨텍스트가 된다.
+
+```bash
+# 단일 노트 질의
+cat ~/vault/notes/kafka-consumer-rebalance.md \
+  | claude -p "이 노트에서 rebalance 진단 절차만 뽑아줘"
+
+# grep으로 관련 파일 모아서 한 번에 넘기기
+grep -rl "#kafka" ~/vault/notes/ \
+  | xargs cat \
+  | claude -p "kafka 관련 메모에서 주요 트러블슈팅 케이스를 정리해줘"
+
+# 이번 주 daily 노트 요약 — brace expansion으로 날짜 범위 지정
+cat ~/vault/daily/2026-04-{14..20}.md 2>/dev/null \
+  | claude -p "이번 주 작업 내용과 다음 주 할 일을 뽑아줘"
+
+# inbox 분류 후보 제안 — 파일명을 구분자로 박아서 넘긴다
+{
+  for f in ~/vault/inbox/*.md; do
+    echo "=== $(basename "$f") ==="
+    cat "$f"
+  done
+} | claude -p "각 파일(=== 구분자로 분리됨)이 어떤 notes/ 카테고리에 들어가면 좋을지 제안해줘"
+```
+
+`grep -rl` + `xargs cat` 조합이 실전에서 가장 자주 쓰인다. 태그로 파일을 골라낸 뒤 통째로 넘기면 RAG 없이도 해당 범위 안에서는 전수 컨텍스트가 된다.
+
+넘기기 전에 크기를 재는 습관이 중요하다:
+
+```bash
+grep -rl "#kafka" ~/vault/notes/ | xargs cat | wc -c
+```
+
+100,000바이트(약 25,000 토큰)를 넘으면 응답이 잘리거나 느려진다. 토큰 초과 처리는 7.1에서 다룬다.
+
+---
+>>>>>>> Stashed changes
 
 **Dataview 설정** (`.obsidian/plugins/dataview/data.json`)
 
@@ -431,11 +472,69 @@ system prompt와 vault 컨텍스트 양쪽에 `cache_control: { type: "ephemeral
 
 실제로 vault + LLM 연동을 운영하면서 겪은 실패들이다.
 
+<<<<<<< Updated upstream
 **컨텍스트 초과 후 조용한 잘림.**
+=======
+### 7.1 컨텍스트 비용과 토큰 초과 처리
+>>>>>>> Stashed changes
 
 `buildContext`에서 byte 한도를 안 뒀을 때, 80개 노트를 그대로 던졌더니 API가 200K 토큰 한도에서 조용히 잘랐다. LLM은 "뒤쪽 노트는 없다"는 사실을 모르고 답했다. 에러가 없었기 때문에 한참 뒤에 "왜 그 노트 내용을 모르지?"라고 의아해하면서 발견했다. 지금은 byte 체크 후 잘린 노트 수를 경고로 출력한다.
 
+<<<<<<< Updated upstream
 **inbox 자동 이동 스크립트가 wrong move를 냈다.**
+=======
+토큰이 초과되면 응답이 잘리거나 아예 안 온다. 세 가지 처리 패턴이 있다.
+
+**사전 필터링** — 파일 수가 적을 때 먼저 쓰는 방법이다.
+
+```bash
+# grep으로 관련 파일을 추린 뒤, 큰 파일은 핵심 섹션만 뽑는다
+grep -rl "#kafka" ~/vault/notes/ | while read -r f; do
+  size=$(wc -c < "$f")
+  if [ "$size" -lt 5000 ]; then
+    cat "$f"
+  else
+    # 파일이 크면 특정 h2 섹션만 뽑는다
+    awk '/^## /{found=0} /^## (핵심|결론|트러블슈팅)/{found=1} found' "$f"
+  fi
+done | claude -p "질문"
+```
+
+**2단 요약** — 관련 파일이 30개를 넘을 때 쓴다.
+
+```bash
+# 1단: 파일마다 개별 요약
+mkdir -p /tmp/vault-summary
+grep -rl "#kafka" ~/vault/notes/ | while read -r f; do
+  fname=$(basename "$f" .md)
+  cat "$f" | claude -p "이 노트의 핵심을 3줄 이내로 요약해줘" \
+    > /tmp/vault-summary/"${fname}".txt
+done
+
+# 2단: 요약본 모아서 최종 질의
+cat /tmp/vault-summary/*.txt \
+  | claude -p "위 요약들에서 공통 패턴과 핵심 인사이트를 뽑아줘"
+```
+
+API 호출이 파일 수만큼 늘어나지만, 각 호출이 작아서 합산 비용은 한 번에 큰 컨텍스트를 보내는 것보다 적다.
+
+**슬라이딩 청크** — 시간 순 daily 노트처럼 순서가 중요한 경우에 쓴다.
+
+```bash
+# 7일 단위로 묶어서 순차 요약
+mapfile -t DAYS < <(find ~/vault/daily -name "*.md" | sort)
+
+for ((i=0; i<${#DAYS[@]}; i+=7)); do
+  cat "${DAYS[@]:$i:7}" \
+    | claude -p "이 기간 메모를 주요 작업/결정/배운 것으로 요약해줘"
+done > /tmp/period-summaries.txt
+
+cat /tmp/period-summaries.txt \
+  | claude -p "전체 기간 요약에서 장기 패턴을 뽑아줘"
+```
+
+어느 패턴을 쓸지 기준은 단순하다. 관련 파일 10개 미만이면 직접 넘기고, 10~30개면 사전 필터링, 30개 이상이면 2단 요약이다. 임베딩 기반 벡터 검색은 vault가 50MB를 넘어야 고려할 만하다.
+>>>>>>> Stashed changes
 
 LLM이 `inbox/2026-09-10.md`를 읽고 "이건 `notes/redis-session.md`와 합치면 좋겠다"고 판단해서 자동으로 이동시키는 스크립트를 만들었다. 3주 뒤에 inbox 파일 12개가 사라졌는데, 일부는 LLM이 판단을 잘못해서 엉뚱한 notes 파일에 합쳐져 있었다. git history로 복구했지만 원본 복구에 한 시간이 걸렸다. 지금은 자동 이동을 완전히 없앴다. LLM은 "이동 후보 목록"만 출력하고, 실행은 사람이 한다.
 

@@ -1,7 +1,7 @@
 ---
 title: 비밀번호 해싱과 저장
 tags: [backend, auth, security]
-updated: 2026-08-07
+updated: 2026-10-01
 ---
 
 # 비밀번호 해싱과 저장
@@ -23,6 +23,23 @@ updated: 2026-08-07
 둘째, 솔트(salt)가 자동으로 들어가야 한다. 솔트는 사용자마다 다른 무작위 값으로, 같은 비밀번호라도 해시 결과가 다르게 나오도록 만든다. 솔트가 없으면 미리 계산해 둔 레인보우 테이블로 매칭해서 뚫을 수 있다.
 
 셋째, 의도적으로 느려야 한다. cost factor라는 파라미터로 연산량을 늘려서, 한 번의 검증에 수십~수백 ms가 걸리도록 만든다. 정상 로그인은 사용자가 한 번만 기다리면 되지만, 공격자는 수십억 번 시도해야 하므로 비용이 천문학적으로 늘어난다.
+
+가입 때 저장한 salt와 cost를 로그인 때 그대로 꺼내 같은 KDF를 다시 돌려 비교한다. 도식에서 가입과 로그인이 같은 KDF를 공유하는 지점을 보면 된다.
+
+```mermaid
+flowchart LR
+    subgraph REG["가입"]
+        A["평문 비밀번호"] --> C["KDF (cost factor)"]
+        B["무작위 salt"] --> C
+        C --> D[("DB 저장: salt, cost, 해시")]
+    end
+    subgraph LOGIN["로그인"]
+        D --> F["저장된 salt, cost 꺼냄"]
+        E["입력한 비밀번호"] --> G["같은 KDF, 같은 cost"]
+        F --> G
+        G --> H{"저장된 해시와 일치?"}
+    end
+```
 
 ### 메모리 hardness가 왜 중요해졌나
 
@@ -120,6 +137,18 @@ argon2에는 세 가지 변종이 있다.
 
 OWASP가 argon2id를 1순위로 두지만 bcrypt를 여전히 권장 목록에 둔 이유는 호환성과 검증 이력 때문이다. Node.js에서는 `argon2` npm 패키지로 쉽게 사용할 수 있다.
 
+위 표를 상황별 선택으로 풀면 다음과 같다. 신규 구축이냐 운영 중이냐가 첫 분기다.
+
+```mermaid
+flowchart TD
+    A{"신규 구축인가"} -- "예" --> B{"argon2 라이브러리 사용 가능하고 인증 서버 메모리 확보 가능?"}
+    B -- "예" --> C["argon2id (1순위)"]
+    B -- "아니오" --> D["bcrypt, cost 12 이상 (72바이트 제한 주의)"]
+    A -- "아니오, 운영 중" --> E{"현재 알고리즘"}
+    E -- "scrypt" --> F["유지, 파라미터 점검"]
+    E -- "bcrypt" --> G["유지하거나 로그인 시 재해싱으로 argon2id 이전"]
+```
+
 ## cost factor 튜닝
 
 서버 CPU에서 한 번 해시하는 데 100ms 걸리도록 잡는 게 보통의 기준이다. 이유는 두 가지다. 사용자가 로그인할 때 100ms 정도는 체감하지 않는다. 공격자가 한 비밀번호를 시도하는 데도 100ms가 걸리니까, 초당 시도 횟수가 10회로 제한된다.
@@ -127,6 +156,20 @@ OWASP가 argon2id를 1순위로 두지만 bcrypt를 여전히 권장 목록에 �
 ### 측정 방법
 
 운영 서버와 동일한 사양에서 측정해야 한다. 노트북에서 측정한 값을 그대로 운영에 쓰면 너무 빠르거나 너무 느릴 수 있다.
+
+측정은 한 번으로 끝나지 않고 목표 시간에 맞을 때까지 파라미터를 조정하며 반복한다. 마지막에 동시 로그인 부하와 메모리를 확인하는 단계가 빠지기 쉽다.
+
+```mermaid
+flowchart TD
+    A["운영과 같은 사양의 서버 준비"] --> B["후보 파라미터로 해시 1회 시간 측정"]
+    B --> C{"목표 100ms 대비"}
+    C -- "너무 느림" --> D["cost 또는 t 낮춤, 메모리가 빠듯하면 m 낮춤"]
+    C -- "너무 빠름" --> E["cost 또는 t 올림"]
+    D --> B
+    E --> B
+    C -- "100ms 근처" --> F["동시 로그인 시 CPU와 메모리 확인"]
+    F --> G["파라미터 확정"]
+```
 
 bcrypt cost factor 측정 예제:
 
@@ -275,6 +318,17 @@ hash = bcrypt(password + pepper, salt)
 
 pepper는 모든 사용자에게 동일한 시크릿이고, DB가 아닌 별도 저장소(환경변수, KMS, HashiCorp Vault 등)에 둔다. DB만 유출되면 pepper를 모르니 크래킹 시도 자체가 의미가 없다.
 
+salt는 DB에 해시와 함께 남고, pepper는 DB 밖에서 입력으로만 합류한다. 도식에서 두 값이 어느 저장소에서 오는지를 보면 된다.
+
+```mermaid
+flowchart LR
+    P["평문 비밀번호"] --> M["pepper 적용"]
+    K["pepper (KMS, Vault, 환경변수)"] --> M
+    M --> H["bcrypt 또는 argon2id"]
+    S["salt (해시 문자열에 포함)"] --> H
+    H --> D[("DB: 해시 문자열")]
+```
+
 장점은 명확하지만 단점도 있다.
 
 - pepper가 유출되면 다시 모든 비밀번호를 마이그레이션해야 한다.
@@ -327,6 +381,25 @@ export class PepperedHasher {
 3. 해당 알고리즘으로 검증
 4. 검증 성공 시, 현재 권장 알고리즘/파라미터인지 확인
 5. 구버전이면 평문을 새 알고리즘으로 해시하고 DB 업데이트
+
+아래 시퀀스는 위 다섯 단계를 주체별로 나눈 것이다. 재해싱은 검증이 성공한 요청 안에서만 일어난다.
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant S as 인증 서버
+    participant D as DB
+
+    U->>S: 로그인 요청 (평문 비밀번호)
+    S->>D: 저장된 해시 조회
+    D-->>S: 해시 문자열
+    S->>S: prefix로 알고리즘 판별 후 검증
+    alt 검증 성공이고 구버전 해시
+        S->>S: 평문을 argon2id로 재해싱
+        S->>D: 해시 갱신
+    end
+    S-->>U: 로그인 결과
+```
 
 ```typescript
 // npm install argon2 bcrypt @types/bcrypt
@@ -466,6 +539,26 @@ API 호출: GET https://api.pwnedpasswords.com/range/5BAA6
 
 서버에 전체 해시를 보내지 않으니까 프라이버시가 보장된다.
 
+요청이 오가는 순서를 보면 비교가 어느 쪽에서 일어나는지 분명해진다. 평문 비밀번호와 전체 해시는 우리 서버 밖으로 나가지 않고, suffix 대조는 응답을 받은 뒤 로컬에서 한다.
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant S as 우리 서버
+    participant H as HIBP API
+
+    U->>S: 비밀번호 입력
+    S->>S: SHA-1 계산 후 prefix 5자와 suffix 분리
+    S->>H: GET /range/5BAA6 (Add-Padding 헤더)
+    H-->>S: 같은 prefix를 가진 suffix 목록과 발견 횟수
+    S->>S: 목록에서 로컬 suffix 비교
+    alt suffix 일치
+        S-->>U: 유출된 비밀번호, 거부 또는 재설정 요구
+    else 일치 없음
+        S-->>U: 통과
+    end
+```
+
 TypeScript 구현 예제:
 
 ```typescript
@@ -510,6 +603,112 @@ API 응답이 느리거나 실패하면 회원가입이 막힌다. 타임아웃�
 
 API 호출이 부담스러우면 전체 데이터셋(약 40GB)을 다운로드 받아서 자체 서버에 두는 방법도 있다. 한 달에 한 번 갱신한다.
 
+### 가입·변경 시점 검사만으로는 부족하다
+
+위 검사는 비밀번호가 새로 정해지는 순간에만 돈다. 이미 저장된 계정은 검사를 받은 적이 없다. 3년 전에 가입한 계정의 비밀번호가 작년에 다른 사이트에서 유출돼 HIBP에 올라갔더라도, 그 사용자가 비밀번호를 바꾸지 않는 한 우리 서비스는 모른다. 크리덴션 스터핑은 정확히 이런 계정을 노린다. 공격 구조는 [크리덴션 스터핑](../../Security/Credential_Stuffing.md)에서 다룬다.
+
+저장된 해시로는 재검사를 할 수 없다. argon2id 해시에서 SHA-1을 만들 방법이 없기 때문이다. 평문이 메모리에 올라오는 시점은 로그인 성공 직후뿐이다. 알고리즘 마이그레이션에서 재해싱하는 자리와 같은 자리다. 그 시점에 한 번 조회해서 유출로 판정되면 비밀번호 재설정을 강제한다.
+
+```mermaid
+flowchart TD
+    A["로그인 요청: 이메일, 평문 비밀번호"] --> B{"해시 검증 성공?"}
+    B -- "실패" --> X["401 반환, 실패 카운터 증가"]
+    B -- "성공" --> C{"최근 N일 안에 검사한 계정?"}
+    C -- "예" --> G["정상 세션 발급"]
+    C -- "아니오" --> D["SHA-1 prefix로 HIBP 조회"]
+    D --> E{"조회 결과"}
+    E -- "타임아웃 또는 오류" --> F["fail-open: 검사 생략, 로그만 남김"]
+    E -- "유출 없음" --> H["checked_at 갱신"]
+    E -- "유출됨" --> I["must_reset_password = true"]
+    F --> G
+    H --> G
+    I --> J["재설정 전용 세션 발급, 이메일 본인 확인 후 변경"]
+```
+
+판정 결과는 세 가지다. 유출됨, 유출 안 됨, 알 수 없음. HIBP가 응답하지 않은 경우를 유출 안 됨으로 합치면 안 된다. 그러면 `checked_at`이 갱신돼서 다음 검사까지 N일 동안 그 계정이 검사 대상에서 빠진다. 알 수 없음일 때는 아무것도 기록하지 않고 다음 로그인에서 다시 시도하게 둔다.
+
+```typescript
+import { createHash } from 'crypto';
+import axios from 'axios';
+
+export type BreachStatus = 'pwned' | 'clean' | 'unknown';
+
+export class BreachChecker {
+  // 로그인 경로에 들어가므로 가입 화면(3초)보다 짧게 잡는다
+  private static readonly TIMEOUT_MS = 800;
+
+  async check(password: string): Promise<BreachStatus> {
+    const sha1 = createHash('sha1').update(password, 'utf-8').digest('hex').toUpperCase();
+    const prefix = sha1.slice(0, 5);
+    const suffix = sha1.slice(5);
+
+    try {
+      const res = await axios.get<string>(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        headers: { 'Add-Padding': 'true' },
+        timeout: BreachChecker.TIMEOUT_MS,
+        responseType: 'text',
+      });
+      for (const line of res.data.split('\n')) {
+        const [s, count] = line.trim().split(':');
+        // Add-Padding 응답에는 횟수가 0인 가짜 행이 섞여 있다
+        if (s === suffix && parseInt(count, 10) > 0) return 'pwned';
+      }
+      return 'clean';
+    } catch {
+      return 'unknown';
+    }
+  }
+}
+
+export class LoginBreachGuard {
+  private static readonly RECHECK_DAYS = 7;
+
+  constructor(
+    private readonly checker: BreachChecker,
+    private readonly users: {
+      markMustReset(userId: string): Promise<void>;
+      markChecked(userId: string, at: Date): Promise<void>;
+    },
+    private readonly logger: { warn(msg: string, meta?: object): void },
+  ) {}
+
+  // 해시 검증이 성공한 직후, 평문이 아직 메모리에 있을 때 호출한다
+  async afterLoginSuccess(
+    user: { id: string; breachCheckedAt: Date | null },
+    rawPassword: string,
+  ): Promise<'ok' | 'reset_required'> {
+    if (this.isRecentlyChecked(user.breachCheckedAt)) return 'ok';
+
+    const status = await this.checker.check(rawPassword);
+
+    if (status === 'pwned') {
+      await this.users.markMustReset(user.id);
+      return 'reset_required';
+    }
+    if (status === 'clean') {
+      await this.users.markChecked(user.id, new Date());
+      return 'ok';
+    }
+    // unknown: HIBP 장애. 로그인은 통과시키고 checked_at은 건드리지 않는다
+    this.logger.warn('hibp_check_skipped', { userId: user.id });
+    return 'ok';
+  }
+
+  private isRecentlyChecked(at: Date | null): boolean {
+    if (!at) return false;
+    return Date.now() - at.getTime() < LoginBreachGuard.RECHECK_DAYS * 86_400_000;
+  }
+}
+```
+
+`check()`가 예외를 던지지 않고 `unknown`을 돌려주는 구조라서 호출하는 쪽에서 try/catch를 빼먹어도 로그인이 500으로 떨어지지 않는다. 타임아웃을 800ms로 잡은 이유는 로그인 응답 시간에 그대로 더해지기 때문이다. HIBP가 느려지는 날에도 로그인 지연은 800ms를 넘지 않는다. 장애가 길어져서 로그인마다 800ms씩 낭비되는 게 신경 쓰이면 연속 실패 횟수를 세다가 일정 시간 호출 자체를 건너뛰는 서킷 브레이커를 앞에 둔다.
+
+운영하면서 걸리는 지점이 몇 가지 있다.
+
+- `must_reset_password`가 켜진 계정에 정상 세션을 주면 의미가 없다. 비밀번호 변경 화면과 변경 API만 열리는 제한 세션을 발급해야 한다. 변경 전에 이메일 링크 같은 두 번째 확인을 거치게 한다. 로그인에 성공한 쪽이 공격자일 수도 있어서, 새 비밀번호를 공격자가 정하게 두면 계정 탈취가 완성된다.
+- 모든 로그인에서 조회하면 HIBP 호출량이 로그인 트래픽과 같아진다. 스터핑 공격이 들어오는 날에는 성공한 로그인이 늘어서 호출도 같이 늘어난다. 그래서 `checked_at`으로 주기를 둔다. 7일은 임의로 잡은 값이고, 유출 DB가 갱신되는 속도와 호출량을 보고 조정한다.
+- 이 검사는 스터핑으로 이미 성공한 로그인을 사후에 걸러내는 장치다. 로그인 시도 자체를 막는 레이트 리밋이나 봇 차단을 대체하지 못한다.
+
 ## DelegatingPasswordEncoder 패턴
 
 여러 알고리즘 해시를 동시에 DB에 저장하고, 해시 prefix로 어떤 인코더를 쓸지 결정하는 구조다. NestJS에서는 직접 구현하거나 `PasswordService`에 통합하면 된다.
@@ -525,6 +724,17 @@ DB에 저장되는 해시 형식:
 ```
 
 `{알고리즘ID}` prefix로 어떤 인코더로 검증할지 알 수 있다. `matches()` 호출 시 prefix를 보고 적절한 인코더로 위임한다. `encode()`는 현재 디폴트로 설정된 인코더를 쓴다.
+
+아래 도식은 `matches()`가 prefix를 보고 인코더를 고르는 분기다. prefix가 없는 `$2` 구버전 해시는 bcrypt로 빠지고, 어디에도 해당하지 않으면 false다.
+
+```mermaid
+flowchart TD
+    A["matches(rawPassword, encodedPassword)"] --> B{"encodedPassword prefix"}
+    B -- "argon2id 접두" --> C["argon2.verify"]
+    B -- "bcrypt 접두" --> D["bcrypt.compare"]
+    B -- "접두 없는 $2 구버전" --> D
+    B -- "그 외" --> E["false"]
+```
 
 ### 설정 예제
 

@@ -1,12 +1,14 @@
 ---
 title: 로그인 무차별 대입 방어
 tags: [backend, auth, security, performance]
-updated: 2026-06-27
+updated: 2026-10-01
 ---
 
 # 로그인 무차별 대입 방어
 
 로그인 엔드포인트는 외부에 노출된 입력 검증 지점 중에서 공격이 가장 집중되는 곳이다. 인증 방식이 세션이든 JWT든 OAuth2든, 비밀번호를 검증하는 순간 무차별 대입(brute force)과 크리덴셜 스터핑(credential stuffing)의 표적이 된다. 인증 방식 선택과는 별개로 로그인 엔드포인트 자체를 어떻게 지킬지는 따로 설계해야 한다.
+
+크리덴셜 스터핑은 다른 사이트에서 유출된 이메일·비밀번호 쌍을 그대로 넣어 보는 공격이다. 계정 하나에 1~2회만 시도하고 다음 계정으로 넘어가서, 계정별 실패 카운터가 1에서 멈추고 잠금 임계값에 닿지 않는다. 계정 단위 방어만 있는 로그인은 이 공격을 그대로 통과시킨다. 공격 흐름과 탐지 방법은 [Credential_Stuffing.md](../../Security/Credential_Stuffing.md)에서 따로 다룬다.
 
 이 문서는 토큰 저장이나 CSRF 같은 인증 방식 내부 문제가 아니라, `POST /login` 하나를 운영하면서 실제로 부딪히는 문제와 처리 방법을 다룬다.
 
@@ -31,7 +33,36 @@ updated: 2026-06-27
   - 계정당 시도 횟수가 임계값 아래라 계정 잠금을 우회한다
 ```
 
+세 유형을 시도 대상으로 나눠 보면 계정 카운터가 어디서 무력해지는지 드러난다. 아래 도식은 공격자가 한 번에 묶어 보내는 계정 수와 계정당 비밀번호 수가 유형마다 어떻게 다른지 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph BF["Brute Force"]
+        direction TB
+        BF1["계정 1개"] --> BF2["비밀번호 수천 개"]
+    end
+    subgraph SP["Password Spraying"]
+        direction TB
+        SP1["계정 수천 개"] --> SP2["비밀번호 1개 (흔한 값)"]
+    end
+    subgraph CS["Credential Stuffing"]
+        direction TB
+        CS1["계정 수천 개"] --> CS2["계정마다 유출된 비밀번호 1~2개"]
+    end
+    BF2 --> R1["계정당 실패 수천 회 - 계정 카운터가 잡는다"]
+    SP2 --> R2["계정당 실패 1회 - 계정 카운터를 우회"]
+    CS2 --> R3["계정당 실패 1~2회 - 계정 카운터를 우회"]
+```
+
+| 유형 | 계정 수 | 계정당 시도 | 계정 카운터 | 잡히는 신호 |
+|---|---|---|---|---|
+| Brute Force | 1 | 수백~수천 | 잡힌다 | 한 계정의 실패 급증 |
+| Password Spraying | 수천 | 1 | 우회 | 같은 비밀번호 해시가 여러 계정에 반복 |
+| Credential Stuffing | 수천 | 1~2 | 우회 | IP 하나가 다수 계정 시도, 전체 성공률 급락 |
+
 계정 단위 잠금만 걸어두면 스터핑과 스프레이는 그대로 통과한다. 계정 단위와 IP/네트워크 단위 방어를 같이 둬야 하는 이유다.
+
+스터핑은 계정 카운터의 한계가 가장 분명하게 드러나는 유형이다. 계정마다 실패가 1~2회라 `MAX_FAILS`에 닿는 계정이 없고, IP를 요청마다 바꾸는 봇넷이면 IP 카운터도 낮게 유지된다. 이 문서의 계정 단위 카운터는 단일 계정 무차별 대입에만 효과가 있다. 스터핑은 전체 로그인 성공률, 계정 대비 고유 IP 비율, 유출 비밀번호 여부처럼 요청 전체의 분포를 보는 방어가 따로 필요하다. 이쪽은 [Credential_Stuffing.md](../../Security/Credential_Stuffing.md)를 본다.
 
 ## 레이트 리미팅: 고정 윈도우 vs 토큰 버킷
 
@@ -122,6 +153,25 @@ await redis.expire(key, 900);
 
 INCR로 키를 만든 직후, EXPIRE를 실행하기 전에 프로세스가 죽거나 네트워크가 끊기면 TTL이 안 걸린 카운터가 영원히 남는다. 그 키는 절대 리셋되지 않으니 해당 계정이나 IP는 영구 잠금 상태가 된다. 실제로 운영 중에 "특정 사용자만 계속 로그인이 막힌다"는 문의가 들어와서 Redis를 까보면 TTL이 -1인 카운터가 나오는 경우가 있다.
 
+`count === 1`일 때만 EXPIRE를 거는 흔한 변형도 같은 문제를 가진다. 두 요청이 동시에 들어와 첫 요청이 INCR 직후 죽으면, 두 번째 요청은 값이 2라서 EXPIRE를 건너뛴다. 아래 도식에서 요청 A가 죽는 순간부터 키에 TTL을 거는 주체가 없어진다.
+
+```mermaid
+sequenceDiagram
+    participant A as 요청 A
+    participant B as 요청 B
+    participant R as Redis
+
+    A->>R: INCR login:fail:account:42
+    R-->>A: 1
+    B->>R: INCR login:fail:account:42
+    R-->>B: 2
+    Note over A: count가 1이라 EXPIRE를 보내야 하는데 프로세스 종료 또는 연결 끊김
+    Note over B: count가 2라서 EXPIRE를 건너뜀
+    B->>R: TTL login:fail:account:42
+    R-->>B: -1 (만료 없음)
+    Note over R: 키가 영구히 남고 카운터는 계속 증가
+```
+
 해결은 둘을 원자적으로 묶는 것이다. INCR 결과가 1일 때(=키가 막 생성됐을 때)만 EXPIRE를 거는 패턴은 여전히 두 명령 사이 틈이 있으니, Lua로 한 번에 처리한다.
 
 ```javascript
@@ -201,6 +251,22 @@ async function onLoginSuccess(accountId) {
 ```
 
 실패 카운터 키 하나로 카운트와 잠금 시간을 동시에 표현하면 별도 잠금 플래그를 관리할 필요가 없다. 카운터가 살아있는 동안(TTL 안) 임계값을 넘었으면 잠긴 상태고, TTL이 끝나 카운터가 사라지면 자동으로 풀린다.
+
+아래 상태 전이도는 실패 카운터 키 하나가 정상, 실패 누적, 잠금 세 상태를 어떻게 오가는지 보여준다. 별도 잠금 플래그 없이 카운터의 값과 TTL만으로 전이가 결정된다.
+
+```mermaid
+stateDiagram-v2
+    state "정상 (카운터 없음)" as Normal
+    state "실패 누적 (count가 MAX_FAILS 미만)" as Counting
+    state "소프트 락 (count가 MAX_FAILS 이상)" as Locked
+
+    [*] --> Normal
+    Normal --> Counting: 비밀번호 불일치, INCR과 TTL 15분 설정
+    Counting --> Counting: 비밀번호 불일치, 카운터 증가
+    Counting --> Locked: count가 MAX_FAILS에 도달
+    Counting --> Normal: 비밀번호 검증 통과, 카운터 삭제
+    Locked --> Normal: LOCK_TTL 만료로 카운터 소멸
+```
 
 성공 시 카운터를 지우는 것도 중요하다. 어제 3번 틀린 기록이 남아서 오늘 2번 틀렸다고 잠기면 사용자는 영문을 모른다. 단, 카운터 삭제는 비밀번호 검증을 통과한 다음에만 한다. 통과 전에 지우면 카운터를 우회하는 길이 생긴다.
 
@@ -306,6 +372,26 @@ if (pwnedCount > 0) {
 
 5자리 접두사로 조회하면 같은 접두사를 가진 해시 수백 개가 한 번에 응답으로 온다. 그 안에서 내 나머지 해시를 로컬 비교하니, HIBP 서버는 사용자가 어떤 비밀번호를 조회했는지 알 수 없다. SHA-1을 쓰는 건 저장용 해싱이 아니라 단순 조회 식별용이라 문제되지 않는다(저장은 당연히 bcrypt/argon2로 한다. → [Password_Hashing.md](Password_Hashing.md)).
 
+아래 도식에서 HIBP로 나가는 값은 접두사 5자리뿐이고, 접미사 비교는 애플리케이션 안에서 끝난다는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant S as 애플리케이션 서버
+    participant H as HIBP API
+
+    U->>S: 비밀번호 설정 또는 변경 요청
+    Note over S: SHA-1 해시 계산 후 prefix 5자리와 suffix로 분리
+    S->>H: GET /range/prefix (5자리만 전송)
+    H-->>S: 같은 prefix를 가진 suffix:노출횟수 목록
+    Note over S: 목록에서 내 suffix를 로컬 비교
+    alt suffix가 목록에 있음
+        S-->>U: 유출 비밀번호라며 거부
+    else suffix가 목록에 없음
+        S-->>U: 통과
+    end
+```
+
 이 검사는 회원가입과 비밀번호 변경 시점에 거는 게 기본이다. 로그인 시점에 거는 건 외부 API 호출이 로그인 지연으로 들어오니 신중해야 한다. 외부 의존을 로그인 임계 경로에 넣고 싶지 않으면, HIBP 데이터셋을 내려받아 자체 Redis/DB에 적재해두고 로컬 조회하는 방법도 있다.
 
 ## 타이밍 공격과 사용자 존재 여부 노출
@@ -350,6 +436,25 @@ async function verifyLogin(email, password) {
 
 `user ? ... : DUMMY_HASH`로 분기해도 두 경로의 bcrypt 비용이 같으니 시간 차가 사라진다. 더미 해시의 cost factor는 실제 해시와 같게 맞춰야 의미가 있다. cost가 다르면 다시 시간 차가 생긴다.
 
+아래 도식은 더미 해시가 없을 때와 있을 때 계정이 없는 요청의 처리 경로가 어떻게 달라지는지 비교한다. 왼쪽 경로만 bcrypt 비교를 건너뛰어 응답이 빨라진다.
+
+```mermaid
+flowchart LR
+    subgraph BAD["더미 해시 없음"]
+        direction TB
+        B1["findByEmail"] --> B2{"user 존재?"}
+        B2 -->|없음| B3["즉시 실패 응답 (수 ms)"]
+        B2 -->|있음| B4["bcrypt.compare (수십~수백 ms)"]
+        B4 --> B5["실패 응답"]
+    end
+    subgraph GOOD["더미 해시 사용"]
+        direction TB
+        G1["findByEmail"] --> G2["hash = user 해시 또는 DUMMY_HASH"]
+        G2 --> G3["bcrypt.compare (수십~수백 ms)"]
+        G3 --> G4["동일한 실패 응답"]
+    end
+```
+
 이 방어는 비밀번호 재설정 같은 다른 엔드포인트에도 똑같이 적용해야 한다. "가입된 이메일이면 메일 발송"을 응답이나 시간으로 구분되게 만들면 거기서 열거가 뚫린다. 어느 경로든 "해당 이메일로 안내를 보냈습니다"로 통일한다.
 
 ## 감사 로그 설계
@@ -385,6 +490,28 @@ async function logAuthEvent(event) {
 ## 방어 계층 정리
 
 로그인 하나를 지키는 데 여러 층이 겹친다. 어느 한 층도 단독으로 완전하지 않아서 같이 둔다.
+
+요청 하나가 통과하는 순서와 각 분기의 판정 기준은 아래와 같다. 임계값은 이 문서의 예제 코드 값이고 서비스 트래픽에 맞춰 조정한다.
+
+```mermaid
+flowchart TD
+    REQ["로그인 요청"] --> IP{"IP 레이트 리밋<br/>토큰 버킷 5회/분 초과?"}
+    IP -->|초과| R429["429 거부"]
+    IP -->|통과| ACC{"계정 실패 카운터<br/>MAX_FAILS 5회 이상?"}
+    ACC -->|5회 이상, 신뢰 디바이스 아님| LOCK["소프트 락 15분<br/>retryAfter 반환"]
+    ACC -->|5회 미만 또는 신뢰 디바이스| DELAY{"실패 3회 이상?"}
+    DELAY -->|예| WAIT["점진적 지연<br/>250ms x 2의 거듭제곱, 상한 8초"]
+    DELAY -->|아니오| CAP
+    WAIT --> CAP{"CAPTCHA 필요?<br/>계정 실패 3회 이상 또는 IP 실패 10회 이상"}
+    CAP -->|필요| CAPV["서버에서 토큰 검증"]
+    CAP -->|불필요| PW["비밀번호 검증<br/>더미 해시로 시간 평탄화"]
+    CAPV -->|실패| R403["차단"]
+    CAPV -->|통과| PW
+    PW -->|일치| OK["성공: 계정 카운터 삭제"]
+    PW -->|불일치| FAIL["실패 카운터 증가 후 동일 메시지 응답"]
+```
+
+카운터는 도식 맨 아래 비밀번호 검증이 실패한 뒤에 올라가고, 다음 요청부터 위쪽 분기가 그 값을 읽는다.
 
 ```
 요청 도착

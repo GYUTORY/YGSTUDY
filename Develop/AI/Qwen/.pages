@@ -1,3 +1,7 @@
 nav:
   - index.md
   - 모델과 실무 사용: Qwen.md
+  - 도구 호출과 Agent: Qwen_Tool_Calling_Agent.md
+  - 자체 호스팅과 서빙: Qwen_Self_Hosting_v_LLM.md
+  - 임베딩과 리랭커 RAG 연동: Qwen_Embedding_Reranker.md
+  - Fine-tuning 실무: Qwen_Fine_Tuning.md

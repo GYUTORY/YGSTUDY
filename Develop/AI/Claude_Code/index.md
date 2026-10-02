@@ -9,7 +9,7 @@ hide:
 
 # Claude Code 전체 보기
 
-문서 19개.
+문서 27개.
 
 ## 기능
 
@@ -43,5 +43,13 @@ hide:
 ## 개요
 
 - [Claude Code](Claude_Code.md)
+- [Claude Code Headless와 CI 연동](Claude_Code_Headless_CI.md)
+- [Claude Code Hooks](Claude_Code_Hooks.md)
+- [Claude Code MCP 서버 연결과 운영](Claude_Code_MCP.md)
 - [Claude Code SDK로 자체 하네스 구현](Claude_Code_SDK_Harness.md)
+- [Claude Code settings.json과 권한 규칙 동작](Claude_Code_Settings_Permissions.md)
+- [Claude Code 샌드박스 격리](Claude_Code_Sandbox.md)
+- [Claude Code 슬래시 명령과 커스텀 명령](Claude_Code_Slash_Command.md)
+- [Claude Code 컨텍스트 관리와 토큰 비용](Claude_Code_Context_Management.md)
+- [Claude Code 플러그인과 사설 마켓플레이스](Claude_Code_Plugin.md)
 

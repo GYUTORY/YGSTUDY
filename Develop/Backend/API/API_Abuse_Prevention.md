@@ -1,7 +1,7 @@
 ---
 title: API 남용 방지 실무 패턴
 tags: [api, security, performance, backend]
-updated: 2026-08-02
+updated: 2026-10-01
 ---
 
 # API 남용 방지 실무 패턴
@@ -48,6 +48,124 @@ export class LoginAttemptTracker {
 ```
 
 핵심은 **실패 횟수가 아니라 시도 패턴**이다. 정상 사용자는 자기 계정 하나로 로그인을 시도하지, 10분 안에 서로 다른 계정 5개를 번갈아 시도하지 않는다.
+
+공격의 원리, 로그 패턴, 봇넷 구성은 [크리덴션 스터핑](../../Security/Credential_Stuffing.md)에 따로 정리했다. 이 문서는 API 계층에서 어떤 신호를 모아 어떻게 판정하는지만 다룬다.
+
+### 이벤트가 위험 점수가 되기까지
+
+위 코드는 IP 하나만 본다. 실제로는 로그인 이벤트 하나를 IP, User-Agent, JA3, ASN, 계정 다섯 축으로 동시에 집계하고, 각 축의 이상 신호를 합산해 한 번에 판정한다. 축 하나가 회피당해도 다른 축이 잡도록 하기 위해서다.
+
+아래 흐름도에서 볼 것은 집계 축이 병렬이라는 점과, 판정이 축별이 아니라 합산 점수로 나뉜다는 점이다.
+
+```mermaid
+flowchart TD
+    A["로그인 요청"] --> B["이벤트 기록<br/>IP, UA, JA3, ASN, username"]
+    B --> C1["IP 축<br/>10분 내 distinct username"]
+    B --> C2["UA/JA3 축<br/>서비스 전체 distinct username"]
+    B --> C3["ASN 축<br/>분당 시도 수와 실패율"]
+    B --> C4["계정 축<br/>distinct IP, 처음 보는 장치"]
+    C1 --> D["위험 점수 합산"]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E{"점수"}
+    E -->|"3 미만"| F["허용"]
+    E -->|"3 이상 8 미만"| G["챌린지<br/>CAPTCHA 또는 MFA"]
+    E -->|"8 이상"| H["차단"]
+    G --> I{"챌린지 통과"}
+    I -->|"통과"| F
+    I -->|"실패"| H
+```
+
+점수 구간은 뒤의 [계층별 차단 구조](#계층별-차단-구조)와 같은 값을 쓴다. 탐지 로직과 차단 로직이 서로 다른 임계값을 들고 있으면 한쪽만 고쳤을 때 동작이 어긋난다.
+
+### 위 탐지 코드가 놓치는 경우
+
+`isCredentialStuffing`은 한 IP에서 10분 안에 서로 다른 계정 5개 이상을 시도해야 걸린다. 레지덴셜 프록시를 쓰는 공격은 IP 하나당 요청이 1~3건이라 `scard`가 5에 닿지 않는다. 키 TTL이 600초라서 요청을 느리게 보내면 집합이 비워지기도 한다. 이 코드는 서버 한 대에서 오는 단순한 스터핑만 잡는다고 보면 된다.
+
+IP 축 대신 올려야 하는 건 IP보다 바꾸기 어려운 축이다. UA, JA3, ASN은 요청마다 바꾸기 어렵고, 서비스 전체를 한 키로 집계하면 분산돼도 합쳐진다. distinct 개수만 필요하므로 집합 대신 HyperLogLog를 쓰면 메모리가 고정된다.
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+
+@Injectable()
+export class GlobalStuffingSignal {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  // 분 단위 버킷에 username 을 HLL 로 쌓는다. dimension 은 'ua', 'ja3', 'asn' 중 하나
+  async record(dimension: string, value: string, username: string, now = new Date()): Promise<void> {
+    const key = `stuff:${dimension}:${value}:${this.minute(now)}`;
+    await this.redis.pfadd(key, username);
+    await this.redis.expire(key, 3600);
+  }
+
+  // 최근 windowMin 분 동안 이 값으로 시도된 distinct username 수
+  async distinctUsers(dimension: string, value: string, windowMin: number, now = new Date()): Promise<number> {
+    const keys: string[] = [];
+    for (let i = 0; i < windowMin; i++) {
+      keys.push(`stuff:${dimension}:${value}:${this.minute(new Date(now.getTime() - i * 60_000))}`);
+    }
+    return this.redis.pfcount(...keys);
+  }
+
+  private minute(d: Date): string {
+    return d.toISOString().slice(0, 16);
+  }
+}
+```
+
+같은 JA3 해시에서 30분 동안 고유 username이 수천 개 나오면 IP가 몇 개로 나뉘어 있든 이상이다. 다만 사내망이나 학교처럼 한 ASN에 정상 사용자가 몰리는 곳, 모바일 앱이 같은 UA와 JA3를 쓰는 경우는 기준선이 높다. 축마다 평소 distinct 수를 먼저 재고 임계값을 정해야 한다. 모바일 앱처럼 사용자 전원이 같은 UA를 쓰는 경우 UA 축 임계값을 IP 축처럼 잡으면 앱 사용자 전체가 챌린지에 걸린다.
+
+### 로그인 말고 다른 입구로 들어온다
+
+로그인 API에만 방어를 쌓으면 공격자는 같은 자격 증명 검증이 일어나는 다른 엔드포인트로 옮겨간다. 비밀번호 검증과 계정 존재 확인이 일어나는 곳은 로그인만이 아니다.
+
+| 우회 경로 | 공격자가 얻는 것 | 로그인 방어가 안 먹는 이유 |
+|---|---|---|
+| 비밀번호 재설정 요청 | 계정 존재 여부. 가입 안 된 이메일 목록을 걸러낸다 | 존재 여부에 따라 응답 문구나 응답 시간이 다르면 열거 수단이 된다. 로그인과 다른 rate limit 키를 쓴다 |
+| 모바일 API | 로그인 성공 여부 | 구버전 앱 경로에 CAPTCHA 연동이 없고, 인증 방식이 달라 WAF 규칙이 안 걸린다 |
+| GraphQL 로그인 mutation | 한 요청 안에서 수십 건 검증 | 별칭(alias)으로 mutation을 한 요청에 여러 번 넣으면 HTTP 요청 기준 카운터는 1만 오른다 |
+| 비밀번호 변경의 현재 비밀번호 확인 | 이미 탈취한 세션으로 다른 비밀번호 검증 | 로그인이 아니라서 실패 카운터가 로그인과 분리돼 있다 |
+| 소셜·SSO 전환 엔드포인트 | 이메일 기반 계정 연결 | 연결 시도가 로그인 이벤트로 기록되지 않는다 |
+
+GraphQL 별칭 공격은 이런 요청으로 들어온다. 요청은 한 건이고 검증은 세 번이다.
+
+```graphql
+mutation {
+  a: login(email: "user1@example.com", password: "pw1") { token }
+  b: login(email: "user2@example.com", password: "pw2") { token }
+  c: login(email: "user3@example.com", password: "pw3") { token }
+}
+```
+
+HTTP 계층의 rate limit은 이 요청을 1건으로 센다. 카운터를 resolver 안에서 올려야 한다. 별칭 수 자체를 제한(쿼리 복잡도 또는 같은 mutation의 호출 수 상한)하는 방법도 같이 쓴다. 배열 형태 배치 요청을 허용하는 서버에서는 같은 문제가 생긴다.
+
+그래서 시도 기록은 엔드포인트가 아니라 **자격 증명 검증 함수**에서 남긴다. 로그인, 재설정, 모바일, GraphQL이 모두 같은 `verifyCredential()`을 지나가게 하고 그 안에서 위의 다섯 축 집계를 호출하면 우회로를 하나씩 막으러 다닐 필요가 없다.
+
+```mermaid
+flowchart LR
+    L["웹 로그인"] --> V["verifyCredential"]
+    M["모바일 API"] --> V
+    G["GraphQL mutation<br/>별칭마다 호출"] --> V
+    P["비밀번호 변경<br/>현재 비밀번호 확인"] --> V
+    V --> S["다차원 집계<br/>IP, UA, JA3, ASN, 계정"]
+    S --> D["허용 / 챌린지 / 차단"]
+```
+
+### 계정당 1회 저속 공격이 안 잡히는 이유
+
+계정당 시도가 하루 한 번인 공격은 계정 축으로는 흔적이 없다. 실패 카운터는 1에서 TTL로 사라지고, 잠금 조건은 한 번도 충족되지 않는다. IP 축도 매번 다른 IP라 비어 있다. 개별 이벤트 하나는 오타를 낸 정상 사용자와 구분되지 않는다.
+
+신호는 개별 이벤트가 아니라 **합계의 모양**에 있다.
+
+- 서비스 전체 로그인 성공률이 평소 기준선보다 내려가서 시간이 지나도 회복되지 않는다.
+- 존재하지 않는 username으로 시도한 비율이 오른다. 정상 사용자는 자기 계정을 쓰므로 이 비율이 낮다.
+- 고유 username 수가 요청 수와 거의 같다. 정상 트래픽은 한 사용자가 여러 번 시도해서 요청 수가 고유 수보다 많다.
+- 같은 UA/JA3 조합이 시간대와 무관하게 평탄한 분포로 들어온다.
+
+이 수치들은 계정이나 IP가 아니라 서비스 단위 시계열로 봐야 한다. 뒤의 시계열 기반 이상 탐지 절처럼 시간대별 기준선을 두고, 개별 요청은 허용하되 점수에 가산해서 성공 이후의 단계(새 장치 확인, MFA)에 영향을 주는 방식이 현실적이다. 요청 단위로 차단하면 정상 사용자 오탐이 먼저 나온다.
 
 ### 유출 비밀번호 사전 차단
 
@@ -148,6 +266,57 @@ export class SessionRiskEvaluator {
 ```
 
 위험도가 HIGH이면 민감한 작업(비밀번호 변경, 결제 등) 시 재인증을 요구한다. 세션을 즉시 끊는 건 정상 사용자도 영향받으니 신중해야 한다.
+
+아래 시퀀스에서 볼 것은 위험도 평가가 민감 작업 요청 한복판에서 일어나고, LOW가 아니면 재인증이 끼어든다는 점이다. 세션을 끊지 않고 해당 요청만 보류한다.
+
+```mermaid
+sequenceDiagram
+    participant U as 로그인한 클라이언트
+    participant API as API 서버
+    participant R as SessionRiskEvaluator
+    participant G as GeoIP
+    participant A as SensitiveActionGuard
+
+    U->>API: 비밀번호 변경, 이메일 변경, API 키 발급 요청
+    API->>R: evaluate(loginCtx, request)
+    R->>R: IP, User-Agent, 장치 지문 비교
+    R->>G: getCountry(clientIp)
+    G-->>R: 국가 코드
+    R-->>API: RiskLevel
+    alt LOW
+        API->>A: canActivate
+        A-->>API: 로그인 5분 이내면 통과, 아니면 비밀번호 재입력
+    else MEDIUM 또는 HIGH
+        API-->>U: 401 재인증 필요
+        U->>API: 현재 비밀번호 또는 MFA 코드
+        API->>A: 재인증 검증
+        alt 재인증 성공
+            A-->>API: 통과
+            API-->>U: 요청 처리
+        else 재인증 실패
+            A-->>API: 거부
+            API-->>U: 403, 실패 이벤트 기록
+        end
+    end
+```
+
+### 아래 Guard 코드의 구멍
+
+바로 아래 `SensitiveActionGuard`는 로그인 후 5분 이내면 재인증 없이 통과시킨다. 스터핑 공격자는 로그인에 성공하자마자 비밀번호와 이메일을 바꾼다. 로그인 직후 몇 분이 가장 위험한 구간인데, 이 코드는 그 구간을 가장 느슨하게 둔다. 위 시퀀스의 `RiskLevel`을 Guard가 전혀 쓰지 않는 것도 문제다.
+
+처음 보는 장치에서의 로그인이거나 위험도가 LOW가 아니면 5분 면제를 적용하지 않아야 한다.
+
+```typescript
+const risk = await this.riskEvaluator.evaluate(ctx, request);
+const trustedDevice = await this.deviceStore.isKnown(username, ctx.deviceFingerprint);
+
+// 면제는 LOW 이면서 알려진 장치일 때만
+if (risk === RiskLevel.LOW && trustedDevice && ctx.loginTime > fiveMinutesAgo) {
+  return true;
+}
+```
+
+이메일 변경은 변경 요청을 받은 시점이 아니라 기존 주소로 알림을 보내고 일정 시간 되돌릴 수 있게 두는 것까지 같이 설계해야 한다. 공격자가 이메일을 먼저 바꾸면 이후 재설정 메일이 전부 공격자에게 간다.
 
 ### 민감 작업 보호
 
@@ -541,6 +710,23 @@ IP 차단은 가장 기본적인 방어인데, 실무에서는 몇 가지 문제
 그래서 IP 차단은 **단독으로 쓰지 않고** 다른 신호와 조합해서 사용한다.
 
 ### 계층별 차단 구조
+
+요청은 블랙리스트, 화이트리스트, 점수 판정 순서로 내려간다. 블랙리스트가 화이트리스트보다 앞이라서 파트너 IP라도 블랙리스트에 올라가 있으면 막힌다. 점수 구간은 높은 쪽부터 BLOCK, THROTTLE, CAPTCHA 순이다.
+
+```mermaid
+flowchart TD
+    R["요청"] --> L1{"1단계<br/>블랙리스트<br/>IP 또는 API 키"}
+    L1 -->|"해당"| BLOCK["BLOCK"]
+    L1 -->|"없음"| L2{"2단계<br/>화이트리스트<br/>내부, 파트너"}
+    L2 -->|"해당"| ALLOW["ALLOW"]
+    L2 -->|"없음"| L3["3단계<br/>위험 점수 계산<br/>IP 평판, 실패율, rpm, 봇 점수"]
+    L3 --> S{"점수"}
+    S -->|"8 이상"| BLOCK
+    S -->|"5 이상 8 미만"| TH["THROTTLE<br/>요청 속도 제한"]
+    S -->|"3 이상 5 미만"| CP["CAPTCHA"]
+    S -->|"3 미만"| ALLOW
+    BLOCK --> LOG["차단 이벤트 로깅<br/>점진적 차단 시간 적용"]
+```
 
 ```typescript
 import { Injectable } from '@nestjs/common';

@@ -1,7 +1,7 @@
 ---
 title: Claude Code Auto Mode 실전 활용
 tags: [ai]
-updated: 2026-09-12
+updated: 2026-09-24
 volatility: high
 ---
 
@@ -289,6 +289,198 @@ allow 리스트에 `git add -A`나 `git add .`를 넣기보다 경로를 명시�
   }
 }
 ```
+
+---
+
+## 승인 임계값 조정 — 케이스 스터디
+
+allow/deny 리스트를 처음 만들 때 적정 범위를 한 번에 잡기는 어렵다. 너무 좁히면 Auto Mode가 매번 승인 프롬프트를 띄워서 자동화 효과가 없어지고, 너무 넓히면 예상치 못한 명령이 실행된다. 설정을 조정하면서 실제로 발생한 케이스들이다.
+
+### npm 와일드카드 allow가 publish를 열었다
+
+npm 관련 명령을 자동화하려고 `"Bash(npm:*)"` 를 allow에 넣었다. `npm install`, `npm run build`, `npm test`가 프롬프트 없이 실행되길 기대했다.
+
+모델이 의존성 충돌을 해결하다가 `npm publish --dry-run`으로 패키지 상태를 확인했다. dry-run이라 실제 배포는 아니었지만, allow 패턴이 `npm publish` 자체를 막지 않는다는 걸 그때 알았다. `--dry-run`이 빠진 채로 다음에 실행됐다면 실제 배포가 나갔을 것이다.
+
+`npm:*` 를 쓰면 `npm publish`, `npm deprecate`, `npm unpublish`도 전부 포함된다. 필요한 서브 커맨드만 명시하는 방식으로 바꿨다.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm ci:*)"
+    ],
+    "deny": [
+      "Bash(npm publish:*)",
+      "Bash(npm deprecate:*)"
+    ]
+  }
+}
+```
+
+와일드카드 패턴을 쓸 때는 "이 커맨드의 서브 커맨드가 전부 열려도 괜찮은가"를 확인한다. `npm:*`, `git:*`, `docker:*`, `kubectl:*`, `terraform:*` 전부 같은 함정이 있다.
+
+### git add -A allow로 .env.local이 커밋됐다
+
+`"Bash(git add:*)"` 와 `"Bash(git commit:*)"` 를 allow에 넣었다. Auto Mode에서 모델이 작업을 마무리하면서 `git add -A && git commit -m "..."` 을 실행했다.
+
+`.env.local` 파일이 `.gitignore`에 빠져 있었다. 그 파일에 로컬 DB 접속 정보가 들어 있었다. 커밋이 된 걸 `git log` 확인하다 발견했고 히스토리 정리에 시간이 꽤 걸렸다.
+
+`git add -A` 는 deny에 박고, 경로를 명시하는 패턴만 allow에 올린다.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add src/:*)",
+      "Bash(git add tests/:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [
+      "Bash(git add -A:*)",
+      "Bash(git add .:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
+```
+
+### deny만 쓰고 allow를 비우면 자동화가 안 된다
+
+처음에 deny 리스트만 정성껏 만들었다. `git push`, `rm -rf`, `kubectl apply` 같은 위험한 것들을 막았다.
+
+Auto Mode를 켜고 테스트 추가 작업을 시켰더니 모델이 `npm test` 를 실행하려 할 때마다 승인 프롬프트가 떴다. deny에 없는 명령은 기본적으로 승인이 필요하다는 걸 놓쳤다. 결국 매번 엔터를 쳐야 했고, Auto Mode를 켠 의미가 없었다.
+
+deny는 막는 것, allow는 여는 것이다. Auto Mode에서 실질적인 자동화가 되려면 자주 쓰는 명령을 allow에 명시해야 한다. 한쪽만 채워서는 안 된다.
+
+### git push 허용 범위를 좁혀간 과정
+
+처음엔 모든 git 명령을 열었다.
+
+```json
+"allow": ["Bash(git:*)"]
+```
+
+`git log`, `git diff`, `git status` 전부 프롬프트 없이 실행되니 편했다. 그런데 모델이 브랜치 확인 없이 `git push origin main`을 실행했다. feature 브랜치에서 작업 중이었는데 main으로 나가버렸다.
+
+1차 조정 — push를 deny로 이동했다.
+
+```json
+"deny": ["Bash(git push:*)"]
+```
+
+push 자체가 막혔다. 그런데 며칠 후 브랜치 히스토리를 정리해야 할 상황이 생겼고, `git rebase`도 같이 막혀 있었다. deny 패턴이 `git:*`로 열었던 범위 전부를 역으로 커버하지 못한다는 걸 다시 실감했다.
+
+2차 조정 — 읽기 전용과 로컬 변경만 allow, 원격에 영향 가는 건 전부 프롬프트로 남겼다.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add src/:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git rebase:*)"
+    ]
+  }
+}
+```
+
+읽기·스테이징·커밋은 allow, 원격에 영향 가거나 히스토리를 바꾸는 건 deny, 나머지는 프롬프트. 이 구조가 안정적이었다.
+
+---
+
+## 권한 범위별 실패 패턴
+
+Auto Mode에서 사고가 나는 경로는 어떤 권한이 어떻게 열려 있는지에 따라 유형이 나뉜다.
+
+### 파일 편집 — 지시 범위 밖의 파일이 수정된다
+
+파일 편집 도구(`Edit`, `Write`)는 allow/deny 리스트 밖에 있다. 기본적으로 프롬프트 없이 실행된다. Auto Mode에서 가장 조용히 문제가 생기는 경로다.
+
+모델이 "관련 있다"고 판단한 파일을 스스로 수정 범위에 포함시킨다. "src/api/user.ts 고쳐줘"라고 했는데 같은 폴더의 `auth.ts`와 `types.ts`까지 건드리고 나서 "의존성 정리까지 했다"고 리포트한다. 지시에 없던 파일이 수정됐고 `git diff`를 보기 전까지 몰랐다.
+
+파일 편집 범위는 CLAUDE.md로 제어한다. deny 리스트로는 특정 파일 경로를 막을 수 없다.
+
+```markdown
+## 수정 범위
+- 지시에 명시된 파일만 수정
+- 의존성이 있다고 판단해도 지시에 없는 파일은 수정 전에 확인
+- 아래 경로는 절대 수정 금지:
+  - src/generated/
+  - migrations/
+  - .github/workflows/
+```
+
+이 규칙을 넣어도 완전히 막히지는 않는다. 중간에 redirect할 수 있는 환경에서만 파일 편집 위주 작업을 Auto Mode로 돌린다.
+
+### Bash allow 와일드카드 — 서브 커맨드 전체가 열린다
+
+상위 커맨드를 allow로 열면 서브 커맨드 전체가 따라온다.
+
+| allow 패턴 | 의도치 않게 열리는 서브 커맨드 |
+|---|---|
+| `Bash(npm:*)` | `npm publish`, `npm unpublish`, `npm deprecate` |
+| `Bash(git:*)` | `git push --force`, `git reset --hard`, `git clean -fd` |
+| `Bash(docker:*)` | `docker rm`, `docker rmi`, `docker volume rm` |
+| `Bash(kubectl:*)` | `kubectl delete`, `kubectl apply`, `kubectl exec` |
+| `Bash(terraform:*)` | `terraform destroy`, `terraform apply` |
+
+안전한 서브 커맨드를 명시하고 나머지는 deny나 프롬프트로 남겨두는 게 낫다.
+
+### deny 패턴 — 우회 표현에 뚫린다
+
+deny에 등록된 패턴은 그 문자열이 정확히 일치할 때만 차단된다.
+
+```json
+"deny": ["Bash(rm -rf:*)"]
+```
+
+`rm -rf /tmp/test`는 막히지만 `rm -r -f /tmp/test`, `find . -type f -delete`는 통과한다. 셸 one-liner로 같은 결과를 내는 표현은 무수히 많다.
+
+deny는 "이 커맨드는 절대 안 된다"는 확실한 것에 쓴다. "이 외에는 전부 허용"이라는 의미로 deny를 allowlist처럼 쓰면 안 된다. 중요한 경계는 allow로 좁히는 쪽이 맞다.
+
+### 하위 에이전트 — 세션 컨텍스트가 없다
+
+`/agent`로 만든 하위 에이전트는 부모 세션에서 누적된 대화 컨텍스트를 받지 않는다. CLAUDE.md는 읽지만, 세션 중에 암묵적으로 확립된 제약들은 모른다.
+
+부모가 Auto Mode이면 에이전트도 Auto Mode 상태로 동작하면서 자신이 합리적이라고 판단한 범위로 일을 처리한다. "아까 legacy 폴더는 건드리지 말라고 했잖아"는 에이전트에게 없는 컨텍스트다.
+
+에이전트로 넘기는 지시는 그 자체로 완결된 제약을 담아야 한다.
+
+```
+나쁜 지시:
+"아까 합의한 방식으로 나머지 파일도 처리해"
+
+좋은 지시:
+"src/api 하위 .js 파일을 .ts로 변환해.
+src/legacy, src/generated는 수정하지 마.
+타입 추론이 안 되면 any 쓰지 말고 확인 요청해라."
+```
+
+### --dangerously-skip-permissions — deny가 작동하지 않는다
+
+이 플래그로 실행하면 deny 리스트가 완전히 무시된다. 모든 도구가 승인 없이 실행된다. Auto Mode와 함께 쓰면 어떤 제약도 없는 상태가 된다.
+
+실제로 문제가 난 케이스: CI 환경에서 격리된 컨테이너가 아닌 공유 빌드 서버에서 이 플래그로 실행했다. 클린업 단계에서 경로를 잘못 잡은 `rm -rf` 명령이 실행됐다. 공유 서버라 다른 빌드 산출물도 같이 날아갔다.
+
+이 플래그는 컨테이너 안에서만 써야 한다. 실행 환경이 컨테이너인지 확인하는 방법:
+
+```bash
+cat /proc/1/cgroup | grep -q docker && echo "container" || echo "host"
+ls /.dockerenv 2>/dev/null && echo "container"
+```
+
+컨테이너 밖이라면 `--dangerously-skip-permissions`는 쓰지 않는다.
 
 ---
 

@@ -52,10 +52,12 @@ nav:
   - 공격 방어:
     - DDoS 공격 방어: D_Do_S_Defense.md
     - Rate Limiting: Rate_Limiting.md
+    - 크리덴션 스터핑: Credential_Stuffing.md
     - 웹 애플리케이션 방화벽: Web_Application_Firewall.md
     - 서버 취약점 공격 방어: Server_Attack_Defense.md
     - DNS Security: DNS_Security.md
     - 공급망 공격 방어: Supply_Chain_Security.md
+    - CI/CD 파이프라인 공격: CI_CD_Pipeline_Attacks.md
   - 인프라 보안:
     - Zero Trust: Zero_Trust_Architecture.md
     - Docker 컨테이너 보안: Container_Security.md
@@ -67,10 +69,16 @@ nav:
     - SAST / DAST / IAST: Security_Testing_SAST_DAST_IAST.md
     - 보안 로깅과 감사: Security_Logging_and_Auditing.md
     - 보안 사고 대응 절차: Incident_Response.md
+    - 최근 보안사고 사례 2021~2025: Recent_Security_Incidents.md
+    - SaaS 자격증명과 토큰 탈취 사고: Saa_S_Token_Theft_Incidents.md
+    - 엣지 장비 제로데이 대응: Edge_Device_Zero_Day_Response.md
+    - 랜섬웨어 사고 대응과 복구: Ransomware_Response.md
+    - 국내 개인정보 유출 사고 사례: Korea_Data_Breach_Cases.md
     - PII 데이터 보호: PII_Data_Protection.md
     - GDPR 컴플라이언스: GDPR_and_Privacy_Compliance.md
     - ISMS / ISMS-P: ISMS.md
     - AI로 보안 강화하기: AI_for_Security.md
+    - 딥페이크와 AI 사기: Deepfake_and_AI_Fraud.md
     - DID: DID.md
   - SQL Injection:
     - 공격 원리와 ORM 함정: SQL_Injection.md

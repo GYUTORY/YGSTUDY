@@ -1,12 +1,12 @@
 ---
 title: AWS CloudFront — CDN & 캐싱 이해
 tags: [aws, cdn, cache, network]
-updated: 2026-09-10
+updated: 2026-10-01
 ---
 
 # AWS CloudFront
 
-CloudFront는 전 세계 POP(Point of Presence) 서버에 콘텐츠를 캐싱해 가까운 곳에서 전달하는 AWS CDN 서비스다.
+CloudFront는 전 세계 POP(Point of Presence) 서버에 콘텐츠를 캐싱해 가까운 곳에서 전달하는 AWS CDN 서비스다. Cloudflare와의 제품 비교는 [Cloudflare vs CloudFront](../../Cloudflare/Cloudflare_vs_Cloud_Front.md)에 있다.
 
 CloudFront는 리전 서비스가 아니다. 배포(Distribution)를 생성하면 특정 리전에 귀속되지 않고, AWS가 운영하는 400개 이상의 엣지 로케이션 전체에 설정이 전파된다. 콘솔에서 리전 선택 없이 `us-east-1`로 고정된 것처럼 보이는 이유는 CloudFront 컨트롤플레인 자체가 us-east-1에 있어서다. 배포 ID(`E1234ABCD...`)는 리전 코드를 포함하지 않는다.
 
@@ -20,21 +20,53 @@ CloudFront는 리전 서비스가 아니다. 배포(Distribution)를 생성하�
 
 ## 작동 흐름
 
-```
-사용자 → Edge Location (캐시 확인)
-      ├ 히트(HIT): 캐시된 콘텐츠 즉시 반환
-      └ 미스(MISS): Origin으로 요청 전달 → 캐싱 후 사용자에게 응답
+캐시 계층은 엣지 하나로 끝나지 않는다. 엣지 로케이션에서 미스가 나면 Regional Edge Cache(자동, 끌 수 없다)를 거치고, Origin Shield를 켜 두었다면 그 뒤에 한 겹이 더 있다. 아래 시퀀스에서 각 계층이 어느 시점에 응답을 끊는지, 그때 뷰어가 받는 `X-Cache` 값이 뭔지 본다.
+
+```mermaid
+sequenceDiagram
+    participant V as Viewer
+    participant E as Edge Location
+    participant R as Regional Edge Cache
+    participant S as Origin Shield
+    participant O as Origin
+
+    V->>E: GET /api/products?page=1
+    alt Edge 히트
+        E-->>V: 200 (X-Cache: Hit from cloudfront)
+    else Edge 미스
+        E->>R: 캐시 키로 조회
+        alt Regional Edge Cache 히트
+            R-->>E: 객체 전달
+            E-->>V: 200 (X-Cache: Miss from cloudfront)
+        else Regional Edge Cache 미스
+            R->>S: 조회
+            alt Origin Shield 히트
+                S-->>R: 객체 전달
+                R-->>E: 객체 전달
+                E-->>V: 200 (X-Cache: Miss from cloudfront)
+            else Origin Shield 미스
+                S->>O: 요청
+                O-->>S: 200 + Cache-Control
+                S-->>R: 저장 후 전달
+                R-->>E: 저장 후 전달
+                E-->>V: 200 (X-Cache: Miss from cloudfront)
+            end
+        end
+    end
+    Note over V,O: TTL 만료 후 재검증이 304로 끝나면 Edge가 RefreshHit from cloudfront 로 응답
 ```
 
-첫 요청 시 Origin에서 받아온 응답을 POP 디스크에 저장한다. 이후 요청은 TTL이 남아있는 동안 Origin 없이 응답한다. TTL 만료 또는 Invalidation이 발생하면 다음 요청에서 Origin을 다시 호출한다.
+첫 요청 시 Origin에서 받아온 응답은 지나온 계층마다 저장된다. 이후 요청은 TTL이 남아있는 동안 가까운 계층에서 끊긴다. TTL 만료 또는 Invalidation이 발생하면 다음 요청에서 Origin을 다시 호출한다.
 
-응답 헤더에서 `X-Cache`로 히트 여부를 바로 확인할 수 있다.
+응답 헤더에서 `X-Cache`로 엣지 기준 히트 여부를 확인할 수 있다.
 
 ```
-X-Cache: Hit from cloudfront    # 캐시 히트
-X-Cache: Miss from cloudfront   # 캐시 미스, Origin 호출
+X-Cache: Hit from cloudfront    # 엣지 캐시 히트
+X-Cache: Miss from cloudfront   # 엣지 미스, 상위 계층 또는 Origin 호출
 X-Cache: RefreshHit from cloudfront  # TTL 만료 후 Origin 재검증 통과 (304)
 ```
+
+`X-Cache`는 뷰어에게 보이는 엣지 시점의 결과라서 Regional Edge Cache나 Origin Shield에서 끊겼는지 Origin까지 갔는지는 구분하지 않는다. 계층별로 보려면 Access Log의 `x-edge-detailed-result-type`을 본다. Origin Shield 히트는 `OriginShieldHit`으로 따로 찍힌다. Origin 서버 로그에 요청이 얼마나 찍히는지와 엣지 `Miss` 비율이 크게 어긋나면 상위 계층이 미스를 흡수하고 있는 것이다.
 
 ---
 
@@ -170,6 +202,26 @@ aws cloudfront create-origin-request-policy \
 
 주의할 점은 Origin Request Policy에 캐시 키에 없는 헤더를 넣어도 히트율에 영향을 주지 않는다는 것이다. 캐시 키는 Cache Policy만 결정한다. Origin Request Policy는 캐시 미스 때 Origin에 뭘 보낼지만 제어한다.
 
+### 세 정책이 닿는 자리
+
+Behavior 하나에는 Cache Policy, Origin Request Policy, Response Headers Policy를 각각 하나씩 붙인다. 세 정책이 요청·응답 경로의 서로 다른 지점에 작용한다. 아래 도식은 캐시 키가 만들어지는 곳, Origin으로 나가는 요청이 만들어지는 곳, 뷰어에게 나가는 응답이 가공되는 곳을 나눠 보여준다.
+
+```mermaid
+flowchart LR
+    V["Viewer 요청<br/>URL, 헤더, 쿠키, 쿼리스트링"] --> CP["Cache Policy<br/>캐시 키에 넣을 값 선택"]
+    CP --> KEY["캐시 키"]
+    KEY --> LOOKUP{"캐시 조회"}
+    LOOKUP -->|"히트"| RHP
+    LOOKUP -->|"미스"| FWD["Origin 전달 값 조립<br/>캐시 키에 든 값 + ORP가 고른 값"]
+    ORP["Origin Request Policy<br/>캐시 키 밖에서 추가로 보낼 값"] --> FWD
+    FWD --> ORG["Origin"]
+    ORG -->|"응답 + Cache-Control"| STORE["캐시 저장<br/>TTL은 Cache Policy 범위 안"]
+    STORE --> RHP["Response Headers Policy<br/>CORS, 보안 헤더, 커스텀 헤더 추가"]
+    RHP --> OUT["Viewer 응답"]
+```
+
+Cache Policy에서 캐시 키에 넣은 값은 Origin Request Policy에 적지 않아도 Origin에 전달된다. 반대로 Origin Request Policy만으로 넣은 값은 키에 반영되지 않는다. Response Headers Policy는 캐시된 객체를 바꾸지 않고 응답이 뷰어로 나갈 때 헤더를 얹는다. 히트든 미스든 같은 헤더가 붙고, 캐시 키와 Origin 요청에는 영향이 없다. 그래서 CORS 헤더를 Origin 코드에서 내리다가 Response Headers Policy로 옮겨도 히트율은 그대로다.
+
 ---
 
 ## 캐시 키 설계와 히트율
@@ -228,6 +280,28 @@ Authorization: Bearer <user-B-token>
 → user-A의 장바구니 데이터 반환
 ```
 
+캐시 키에 Authorization 헤더가 들어 있는지에 따라 같은 요청이 어떻게 갈라지는지 비교한다. 왼쪽이 사고가 난 구성이고 오른쪽이 키에 헤더를 넣은 구성이다.
+
+```mermaid
+flowchart TB
+    subgraph Bad["캐시 키에 Authorization 없음"]
+        A1["사용자 A 요청<br/>Authorization: A 토큰"] --> K1["캐시 키 = /api/cart"]
+        K1 --> M1["미스 → Origin이 A의 장바구니 응답<br/>Cache-Control: public"]
+        M1 --> S1["/api/cart 키로 저장"]
+        B1["사용자 B 요청<br/>Authorization: B 토큰"] --> K1b["캐시 키 = /api/cart"]
+        K1b --> H1["히트 → A의 장바구니가 B에게 반환"]
+        S1 -.-> H1
+    end
+    subgraph Good["캐시 키에 Authorization 포함"]
+        A2["사용자 A 요청<br/>Authorization: A 토큰"] --> K2["캐시 키 = /api/cart + A 토큰"]
+        K2 --> M2["미스 → A의 응답 저장"]
+        B2["사용자 B 요청<br/>Authorization: B 토큰"] --> K2b["캐시 키 = /api/cart + B 토큰"]
+        K2b --> M2b["미스 → Origin이 B의 응답 생성"]
+    end
+```
+
+키에 헤더를 넣으면 데이터 혼용은 막힌다. 대신 토큰이 사용자마다, 로그인 세션마다 다르니 사실상 모든 요청이 다른 키가 되어 히트율이 0에 가까워진다. 캐시 비용만 들고 이득은 없는 구성이라 사용자별 응답에는 키에 헤더를 넣는 방식보다 아래의 `private`·`CachingDisabled` 쪽을 쓴다. 공개 데이터만 내리는 경로와 사용자별 경로를 Path Pattern으로 분리하는 것이 먼저다.
+
 방어법은 두 가지다.
 
 첫째, Origin에서 사용자별 데이터를 반환하는 엔드포인트에는 `Cache-Control: private, no-store`를 명시한다. CloudFront는 `private` 또는 `no-store`가 붙은 응답을 캐시하지 않는다.
@@ -278,6 +352,21 @@ aws cloudfront wait invalidation-completed \
 
 배포를 자주 하는 프론트엔드 빌드라면 Invalidation 비용과 전파 지연을 피하면서 즉각적인 캐시 갱신이 가능하다.
 
+같은 파일을 갱신할 때 두 방식이 캐시를 어떻게 다르게 다루는지 비교한다. Invalidation은 같은 URL의 캐시를 지우고 전파를 기다리지만, 버전 URL은 새 URL이 처음부터 미스로 시작해서 기다릴 일이 없다.
+
+```mermaid
+flowchart LR
+    subgraph INV["Invalidation 방식"]
+        I1["main.js 수정 후 배포"] --> I2["create-invalidation<br/>/main.js"]
+        I2 --> I3["POP 전파 10초~2분<br/>이 동안 일부 엣지는 옛 파일"]
+        I3 --> I4["다음 요청이 Miss<br/>Origin에서 새 파일 수신"]
+    end
+    subgraph VER["버전 URL 방식"]
+        V1["빌드가 main.a3f1c2.js 생성<br/>HTML이 새 URL 참조"] --> V2["새 URL은 캐시에 없음<br/>즉시 Miss 후 저장"]
+        V2 --> V3["옛 main.9b8e7d.js는<br/>TTL까지 남다 만료"]
+    end
+```
+
 동적 데이터(API 응답)는 버전 URL 방식을 쓰기 어렵기 때문에 애초에 짧은 TTL을 설정하거나 Invalidation을 쓴다.
 
 ---
@@ -301,6 +390,19 @@ aws cloudwatch get-metric-statistics \
 ```
 
 히트율이 갑자기 내려가는 경우 확인할 것들:
+
+아래 순서도는 네 가지 원인을 어떤 증상으로 구분하는지 보여준다. 배포 시점과 겹치는지부터 보고, 아니면 Access Log의 `x-edge-result-type` 비율과 `cs-uri-query`를 본다.
+
+```mermaid
+flowchart TD
+    START["CacheHitRate 하락"] --> Q1{"Cache Policy 변경<br/>직후인가"}
+    Q1 -->|"예"| R1["기존 키와 새 키가 달라 전부 Miss<br/>시간이 지나면 회복"]
+    Q1 -->|"아니오"| Q2{"Access Log에서<br/>RefreshHit 비율이 높은가"}
+    Q2 -->|"예"| R2["TTL이 너무 짧음<br/>Default/Max TTL 점검"]
+    Q2 -->|"아니오"| Q3{"cs-uri-query에<br/>같은 파라미터가 순서만 다른가"}
+    Q3 -->|"예"| R3["쿼리 스트링 정렬 미적용<br/>Sort query strings 활성화"]
+    Q3 -->|"아니오"| R4["캐시 키에 불필요한 헤더·쿠키 포함<br/>Cache Policy 구성 점검"]
+```
 
 **캐시 키에 불필요한 값이 포함된 경우** — 헤더 하나가 캐시 키에 들어가면 그 헤더 값이 다른 모든 요청이 별도 캐시를 만든다. Cache Policy에서 헤더 구성을 점검한다.
 
@@ -369,6 +471,18 @@ HTTPS를 쓰려면 ACM 인증서가 필요하다. CloudFront용 인증서는 반
 
 **왜 us-east-1인가.** TLS 핸드셰이크는 엣지 로케이션에서 발생한다. 엣지 로케이션은 특정 AWS 리전에 속하지 않는다 — 서울 엣지는 ap-northeast-2 리전 내 인프라가 아니라 AWS 글로벌 네트워크 위에 있다. CloudFront가 엣지에 인증서를 배포할 때 us-east-1 컨트롤플레인을 통해 전 세계 엣지로 밀어 넣는다. 그래서 us-east-1 ACM에서 발급한 인증서만 CloudFront가 가져갈 수 있다.
 
+인증서가 엣지까지 가는 경로와 뷰어의 TLS 종단 위치를 아래에 그렸다. 발급 리전이 us-east-1이어야 하는 이유는 컨트롤플레인이 거기 있기 때문이고, 핸드셰이크 자체는 뷰어와 가까운 엣지에서 끝난다.
+
+```mermaid
+flowchart LR
+    ACM["ACM us-east-1<br/>인증서 발급"] --> CP["CloudFront 컨트롤플레인<br/>us-east-1"]
+    CP --> E1["서울 엣지"]
+    CP --> E2["도쿄 엣지"]
+    CP --> E3["기타 엣지 로케이션"]
+    V["Viewer"] -->|"TLS 핸드셰이크"| E1
+    E1 -->|"캐시 미스 시"| O["Origin"]
+```
+
 ap-northeast-2 같은 다른 리전에서 발급한 인증서는 CloudFront 배포 설정의 인증서 선택 목록 자체에 뜨지 않는다. CLI로 붙이려 해도 `InvalidViewerCertificate` 오류가 난다.
 
 ```bash
@@ -398,3 +512,63 @@ cdn.example.com   A(ALIAS)   d1234abcd.cloudfront.net
 | Origin Shield | 추가 캐시 계층 사용 시 별도 과금 |
 
 캐시 히트 시에는 Origin 요청 비용이 발생하지 않는다. 히트율이 높을수록 Origin 인프라 비용이 줄어든다.
+
+---
+
+## Cloudflare와 비교할 때 알아야 할 CloudFront 고유 동작
+
+Cloudflare에서 CloudFront로 넘어오거나 둘을 같이 운영하면 같은 이름의 개념이 다르게 동작해서 막힌다. 제품 전체 비교(요금, WAF, 엣지 컴퓨팅, 선택 기준)는 [Cloudflare vs CloudFront](../../Cloudflare/Cloudflare_vs_Cloud_Front.md)에 있고, 여기서는 CloudFront 쪽 동작만 짚는다.
+
+### DNS 기반 라우팅
+
+CloudFront는 Anycast가 아니다. `d1234abcd.cloudfront.net`을 질의하면 AWS DNS가 리졸버 위치와 엣지 부하를 보고 엣지 IP를 골라 답한다. 사용자가 어느 엣지에 붙는지는 DNS 응답 시점에 정해진다. 커스텀 도메인은 Route 53 ALIAS나 CNAME으로 이 도메인에 연결한다. 이 구조의 영향이 두 가지 있다.
+
+- 사용자가 공용 DNS(8.8.8.8 등)를 쓰면 리졸버 위치 기준으로 엣지가 골라져 실제 사용자와 먼 엣지가 배정되는 경우가 있다. 이 경우 `X-Amz-Cf-Pop` 응답 헤더로 어느 POP가 응답했는지 확인한다.
+- 엣지 선택을 바꾸려면 DNS 응답이 바뀌어야 하므로 전환이 TTL 단위로 일어난다. 이미 열린 연결은 그 엣지에 계속 붙어 있다.
+
+### 캐시 키는 Cache Policy로만 정해진다
+
+CloudFront에서 캐시 키를 바꾸는 방법은 Behavior에 붙은 Cache Policy를 바꾸는 것뿐이다. Origin Request Policy나 Response Headers Policy를 아무리 고쳐도 키는 안 바뀐다. Cloudflare는 Cache Rules의 Custom cache key 항목과 규칙 목록이 같은 자리에 있어서, 규칙 하나를 보면 조건과 키 구성이 함께 보인다. CloudFront는 키가 정책 리소스에 있고 Behavior가 그것을 참조하는 구조라, 키를 확인하려면 Behavior에서 정책 이름을 따라가야 한다.
+
+정책이 여러 Behavior에 공유되는 점도 사고 지점이다. `CachingOptimized`를 고쳐 쓸 수는 없고(관리형 정책), 커스텀 정책을 수정하면 그 정책을 붙인 모든 Behavior에 같이 반영된다. 하나만 바꾸려다 다른 경로의 키까지 바뀌어 히트율이 한꺼번에 떨어지는 경우가 있다. 경로별로 정책을 복제해서 따로 두는 편이 안전하다.
+
+### 쿼리스트링·쿠키·헤더는 기본 캐시 키에서 빠진다
+
+Cache Policy에서 `none`으로 두면 쿼리스트링, 쿠키, 헤더가 전부 키에서 빠진다. 관리형 `CachingOptimized`가 이 상태다(`Accept-Encoding`은 압축 협상용 플래그로 따로 키에 들어간다). `?lang=ko`, `?version=2`로 응답이 달라지는 경로에 이 정책을 붙이면 모든 사용자가 먼저 캐시된 하나를 받는다. 키에서 빠진 값은 Origin Request Policy에 적어도 캐시 미스일 때만 전달될 뿐 구분 기준이 되지 못한다.
+
+Cloudflare 기본 캐시 키는 호스트, 경로, 쿼리스트링을 포함하고 쿠키·헤더는 넣지 않는다. 쿼리스트링을 무시하려면 규칙을 따로 써야 한다. CloudFront는 반대로 아무것도 안 넣은 상태에서 출발해 필요한 값을 추가하는 방식이다. Cloudflare 설정을 그대로 옮긴다고 생각하고 쿼리스트링 규칙을 빼먹으면, 페이지네이션이나 검색 파라미터 응답이 전부 첫 번째 응답으로 고정된다.
+
+### 오리진 VPC origin 연결
+
+CloudFront는 VPC origin 기능으로 프라이빗 서브넷의 ALB, NLB, EC2를 퍼블릭 IP 없이 오리진으로 쓸 수 있다. 예전에는 ALB를 퍼블릭으로 열고 보안 그룹에 CloudFront 관리형 프리픽스 리스트(`com.amazonaws.global.cloudfront.origin-facing`)를 허용한 뒤, 커스텀 헤더 값을 ALB 리스너 규칙으로 검증하는 방식을 썼다. 이 방식은 ALB의 DNS 이름을 아는 사람이 헤더만 알아내면 CloudFront를 우회할 여지가 남는다. VPC origin은 ALB 자체를 인터넷에서 안 보이게 해서 그 경로를 없앤다.
+
+```mermaid
+flowchart LR
+    subgraph Old["퍼블릭 오리진 방식"]
+        CF1["CloudFront"] -->|"인터넷 경유<br/>프리픽스 리스트 + 커스텀 헤더 검증"| ALB1["퍼블릭 ALB"]
+        X1["직접 접근 시도"] -.->|"헤더 유출 시 우회 가능"| ALB1
+    end
+    subgraph New["VPC origin 방식"]
+        CF2["CloudFront"] -->|"VPC origin 연결"| ALB2["프라이빗 서브넷 ALB"]
+        X2["직접 접근 시도"] -.->|"퍼블릭 경로 없음"| ALB2
+    end
+```
+
+Cloudflare에서 같은 목적은 [Cloudflare Tunnel](../../Cloudflare/Cloudflare_Tunnel.md)이 맡는다. 방향이 반대다. Tunnel은 오리진 쪽 `cloudflared`가 바깥으로 연결을 열고, VPC origin은 CloudFront가 VPC 안쪽으로 들어온다. 그래서 Tunnel은 오리진 쪽에 프로세스를 띄우고 관리해야 하지만, VPC origin은 보안 그룹 설정이 주된 작업이다.
+
+### Cloudflare Cache Rules와 대응되는 설정 항목
+
+| Cloudflare Cache Rules / 관련 기능 | CloudFront 대응 | 차이 |
+|---|---|---|
+| 규칙 조건(호스트, 경로, 헤더) | Behavior의 Path Pattern | 조건이 경로 패턴뿐이다. 헤더·쿠키 조건 분기는 Behavior로 못 하고 CloudFront Functions로 처리한다 |
+| 규칙 평가 순서(위에서 아래) | Behavior 우선순위 | 요청에 매칭되는 Behavior 하나만 적용된다. 규칙이 겹쳐 쌓이는 Cloudflare와 다르다 |
+| Eligible for cache / Bypass cache | `CachingOptimized` / `CachingDisabled` 정책 | 기본이 캐시이므로 제외할 경로를 명시해야 한다 |
+| Edge TTL | Cache Policy의 Min/Default/Max TTL | Origin 헤더와 세 값이 조합된다. 단일 값 지정이 아니다 |
+| Custom cache key | Cache Policy의 헤더·쿠키·쿼리스트링 설정 | 설정 위치가 정책 리소스 |
+| 오리진 요청 헤더 추가·전달 | Origin Request Policy | 캐시 키와 분리되어 있다 |
+| Browser TTL | Origin의 `max-age` 또는 Response Headers Policy의 커스텀 `Cache-Control` | CloudFront에 Browser TTL 전용 항목은 없다 |
+| 응답 헤더 수정(Transform Rules) | Response Headers Policy | CORS·보안 헤더는 관리형 정책이 있다 |
+| Tiered Cache | Regional Edge Cache(자동), Origin Shield(선택) | Regional Edge Cache는 끌 수 없다 |
+| Purge | Invalidation | path 건수 단위 과금, 와일드카드는 한 레벨 |
+
+대응표에서 걸리는 건 두 번째 행이다. Cloudflare는 규칙 여러 개가 순서대로 적용돼 마지막 규칙이 앞 규칙의 설정을 덮어쓰는 방식으로 조합이 가능하다. CloudFront Behavior는 가장 먼저 매칭되는 것 하나로 끝나서, `/api/*`와 `/api/products/*`를 둘 다 만들어 두었다면 더 구체적인 패턴을 목록 위에 둬야 한다. 순서를 거꾸로 두면 `/api/*`가 먼저 잡혀서 상품 API에 `CachingDisabled`가 걸린 채로 운영되는 경우가 있다. 이 경우 히트율이 0으로 나오는데 설정은 맞아 보여서 원인을 찾는 데 시간이 걸린다.

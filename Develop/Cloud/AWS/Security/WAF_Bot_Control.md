@@ -1,12 +1,12 @@
 ---
 title: AWS WAF Bot Control과 봇 방어
-tags: [aws, security, cloud]
-updated: 2026-06-19
+tags: [aws, security, cloud, auth]
+updated: 2026-10-01
 ---
 
 # AWS WAF Bot Control과 봇 방어
 
-기본 Web ACL 생성, SQLi/XSS, IP 차단 같은 내용은 [WAF.md](WAF.md)에 정리되어 있다. 이 문서는 거기서 다루지 않는 봇 방어만 따로 정리한다. Bot Control 매니지드 룰 그룹, CAPTCHA/Challenge 액션, ATP, Rate-based 규칙과 라벨 체이닝, 그리고 정상 봇을 오탐 없이 통과시키는 운영 작업이 대상이다.
+기본 Web ACL 생성, SQLi/XSS, IP 차단 같은 내용은 [WAF.md](WAF.md)에 정리되어 있다. 이 문서는 거기서 다루지 않는 봇 방어만 따로 정리한다. Bot Control 매니지드 룰 그룹, CAPTCHA/Challenge 액션, ATP, Rate-based 규칙과 라벨 체이닝, 그리고 정상 봇을 오탐 없이 통과시키는 운영 작업이 대상이다. 크리덴셜 스터핑 공격 자체의 동작과 애플리케이션 쪽 방어는 [크리덴션 스터핑](../../../Security/Credential_Stuffing.md)에 따로 있고, 이 문서는 그중 WAF가 맡는 구간만 다룬다.
 
 ## SQLi/XSS 룰로는 봇을 못 막는 이유
 
@@ -57,6 +57,30 @@ User-Agent, 알려진 봇 IP 목록, 요청 헤더 정합성 같은 정적 시�
 Targeted를 켜면 토큰 발급/검증을 위해 응답에 자동으로 Challenge가 삽입되거나, JS SDK를 직접 붙여야 하는 룰이 생긴다. SDK 없이 켜면 토큰이 없는 요청이 전부 의심 라벨을 받아 오탐이 폭증한다. SDK는 아래에서 따로 다룬다.
 
 Common과 Targeted는 비용 차이가 크다. 처음에는 Common만 켜서 정상 봇 분류가 어떻게 되는지 보고, 자동화 공격이 실제로 들어올 때 Targeted를 올리는 순서가 맞다.
+
+### 평가 순서와 액션 분기
+
+Targeted 레벨은 Common 룰을 포함한 상위 집합이다. Targeted로 올려도 Common 룰이 빠지지 않고, 그 위에 토큰 기반 룰이 얹힌다. 룰 그룹이 라벨을 붙인 뒤에 뒤쪽 규칙이 액션을 정하는 흐름을 그리면 이렇다.
+
+```mermaid
+flowchart TD
+    REQ["요청"] --> IPS{"IP Set<br/>AllowKnownGoodBots"}
+    IPS -- 일치 --> ALLOW1["Allow"]
+    IPS -- 불일치 --> COMMON["Common 평가<br/>UA, 알려진 봇 IP, 헤더 정합성"]
+    COMMON --> LV{"InspectionLevel"}
+    LV -- COMMON --> LABEL["라벨 부착<br/>OverrideAction Count"]
+    LV -- TARGETED --> TGT["Targeted 평가<br/>토큰 검증, 헤드리스 탐지, 세션 행위"]
+    TGT --> LABEL
+    LABEL --> MATCH{"뒤따르는<br/>라벨 매칭 규칙"}
+    MATCH -- search_engine --> ALLOW2["Allow"]
+    MATCH -- scraping_framework --> BLOCK["Block"]
+    MATCH -- non_browser_user_agent --> CHAL["Challenge<br/>JS 연산 퍼즐"]
+    MATCH -- 고볼륨 세션 --> CAPTCHA["CAPTCHA<br/>사람이 직접 풀이"]
+    MATCH -- 관찰 중인 라벨 --> COUNT["Count<br/>메트릭만 기록"]
+    MATCH -- 매칭 없음 --> PASS["다음 규칙으로"]
+```
+
+위쪽 분기가 평가 순서이고 아래쪽 분기가 액션이다. Allow가 두 군데 있는 이유가 있다. 고정 IP 봇은 Bot Control 앞에서 빼 두고, 검색엔진처럼 IP가 바뀌는 봇은 라벨이 붙은 뒤에 허용한다. Challenge와 CAPTCHA는 Block과 달리 토큰을 받은 클라이언트가 다시 요청하면 통과하는 액션이라, 같은 규칙을 두 번 타는 요청이 로그에 남는다. 로그에서 같은 IP가 한 번은 Challenge, 한 번은 통과로 찍히는 건 정상이다.
 
 ## 라벨과 규칙 체이닝
 
@@ -197,7 +221,59 @@ IP 집계는 한계가 있다. 공격자가 수천 개 IP를 돌리면 IP당 횟
 }
 ```
 
-`CustomKeys`에는 IP와 헤더를 같이 넣어 조합 키로도 만들 수 있다. 키를 여러 개 넣으면 그 조합 단위로 카운트한다.
+`CustomKeys`에는 IP와 헤더를 같이 넣어 조합 키로도 만들 수 있다. 키를 여러 개 넣으면 그 조합 단위로 카운트한다. 요청 본문의 필드는 집계 키로 쓸 수 없어서, username을 키로 잡으려면 클라이언트나 앞단 프록시가 본문 값을 헤더로 복사해 줘야 한다. 위 예제의 `x-username`이 그런 헤더다.
+
+### 저속·분산 스터핑을 위한 키 조합
+
+스터핑은 IP를 요청마다 바꾸고 요청 간격도 벌린다. 이 경우 IP 하나만 키로 쓰는 규칙은 IP당 1~3건에서 카운터가 멈춰 영원히 임계치에 닿지 않는다. 로그에서 본 형태가 딱 그랬다. 키를 IP, 헤더, 쿠키로 나눠 세 규칙을 따로 두고, 하나라도 걸리면 막는 구성이 현실적이다.
+
+| 규칙 | 집계 키 | 잡는 대상 | 놓치는 대상 |
+|---|---|---|---|
+| IP 단독 | `IP` | 단일 서버에서 쏘는 단순 봇 | 요청마다 IP를 바꾸는 레지덴셜 프록시 |
+| IP + 헤더 | `IP` + `x-username` | 같은 IP에서 여러 계정을 도는 봇 | IP를 계속 바꾸는 봇넷 |
+| 헤더 단독 | `x-username` 또는 JA3 | 한 계정을 여러 IP로 노리는 분산 공격 | 계정마다 1~2건만 시도하는 스터핑 |
+| 쿠키 + JA3 | `aws-waf-token` 쿠키 + `JA3Fingerprint` | IP가 달라도 같은 도구·같은 세션 | 쿠키를 매번 비우고 TLS 스택까지 바꾸는 공격 |
+
+네 번째 줄이 스터핑에 가장 잘 맞는다. 계정은 매번 다르고 IP도 매번 다르지만, 공격 도구는 하나라서 TLS 핸드셰이크 지문(JA3)이 몇 개로 몰린다. 토큰 쿠키까지 키에 넣으면 같은 세션에서 나온 요청이 묶인다.
+
+```json
+{
+  "Name": "LoginRateByFingerprint",
+  "Priority": 11,
+  "Statement": {
+    "RateBasedStatement": {
+      "Limit": 30,
+      "EvaluationWindowSec": 600,
+      "AggregateKeyType": "CUSTOM_KEYS",
+      "CustomKeys": [
+        { "JA3Fingerprint": { "FallbackBehavior": "NO_MATCH" } },
+        {
+          "Cookie": {
+            "Name": "aws-waf-token",
+            "TextTransformations": [ { "Priority": 0, "Type": "NONE" } ]
+          }
+        }
+      ],
+      "ScopeDownStatement": {
+        "ByteMatchStatement": {
+          "SearchString": "/api/login",
+          "FieldToMatch": { "UriPath": {} },
+          "PositionalConstraint": "STARTS_WITH",
+          "TextTransformations": [ { "Priority": 0, "Type": "NONE" } ]
+        }
+      }
+    }
+  },
+  "Action": { "Challenge": {} },
+  "VisibilityConfig": {
+    "SampledRequestsEnabled": true,
+    "CloudWatchMetricsEnabled": true,
+    "MetricName": "LoginRateByFingerprint"
+  }
+}
+```
+
+두 가지를 알고 써야 한다. 첫째, 키를 여러 개 넣으면 요청에 그 키가 전부 있어야 카운트된다. 쿠키가 없는 요청은 이 규칙에서 집계되지 않는다. 공격자가 토큰 쿠키를 아예 안 보내면 빠져나가므로, 쿠키가 없는 로그인 요청은 Challenge로 보내는 규칙을 앞에 하나 더 둬야 한다. 둘째, 평가 창은 최대 600초다. 10분에 임계치 미만으로 느리게 흘리는 공격은 Rate-based 규칙으로 잡히지 않는다. 그 구간은 아래 ATP의 세션 집계와 애플리케이션의 위험 점수가 맡아야 한다. 액션을 Block이 아니라 Challenge로 둔 이유는 JA3가 몰리는 것만으로는 정상 사용자의 같은 브라우저 버전과 구분이 안 되기 때문이다. 오탐이 나도 사람은 토큰을 받고 통과한다.
 
 라벨과 결합하면 더 좁힐 수 있다. Bot Control이 단 `non_browser_user_agent` 라벨이 붙은 요청만 Rate 집계 대상으로 넣으면, 정상 브라우저 사용자는 임계치 계산에서 아예 빠진다. `ScopeDownStatement` 안에 `LabelMatchStatement`를 넣으면 된다. 정상 트래픽이 카운트에서 빠지니 임계치를 훨씬 공격적으로 낮춰도 오탐이 안 난다.
 
@@ -267,6 +343,34 @@ SDK URL은 Web ACL의 Application Integration URL에서 가져온다. CloudFront
 
 ATP는 로그인 엔드포인트 경로와 요청 본문에서 username/password 필드 위치를 알려줘야 동작한다. 응답까지 보고 로그인 실패가 반복되는 패턴, 유출된 자격증명 데이터베이스와 일치하는 자격증명(stolen credentials)을 라벨로 분류한다.
 
+로그인 한 건이 지나가는 순서를 먼저 보자. 요청 쪽 판정(유출 DB 대조)과 응답 쪽 판정(성공·실패 집계)이 서로 다른 시점에 일어난다는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant W as WAF ATP
+    participant A as 애플리케이션
+    C->>W: POST /api/login (username, password)
+    W->>W: 유출 자격증명 DB 대조, 세션 단위 집계 확인
+    W->>A: credential_compromised 라벨을 헤더로 전달
+    A->>A: 비밀번호 검증
+    alt 라벨 있음, 비밀번호 일치
+        A-->>W: 200 + 재설정 필요 플래그
+        W->>W: 응답 검사 성공으로 기록
+        W-->>C: 로그인 보류, 비밀번호 재설정 또는 추가 인증 요구
+    else 라벨 있음, 비밀번호 불일치
+        A-->>W: 401
+        W->>W: 응답 검사 실패로 기록
+        W-->>C: 401
+    else 라벨 없음
+        A-->>W: 200 또는 401
+        W->>W: 응답 검사 결과를 세션 집계에 누적
+        W-->>C: 응답 그대로 전달
+    end
+```
+
+라벨을 달고 헤더로 넘기는 건 요청 단계에서 끝난다. 애플리케이션은 그 헤더를 읽어 자기 로직으로 분기한다. 응답을 보고 쌓은 실패 집계는 이미 지나간 요청을 되돌리지 못하고, 같은 세션이나 IP에서 오는 이후 요청의 라벨에 반영된다.
+
 ```json
 {
   "Name": "ATP",
@@ -304,7 +408,31 @@ ATP는 로그인 엔드포인트 경로와 요청 본문에서 username/password
 }
 ```
 
-`RequestInspection`의 `Identifier`는 JSON 본문일 때 JSON 포인터(`/username`)로 쓴다. 폼 인코딩이면 `PayloadType`을 `FORM_ENCODED`로 두고 필드명을 쓴다. `ResponseInspection`은 ATP가 로그인 성공/실패를 구분하는 근거다. 상태 코드 외에 본문 문자열이나 헤더로도 판별할 수 있다. 이걸 잘못 설정하면 ATP가 성공/실패를 거꾸로 학습해서 정상 로그인을 공격으로 본다.
+`RequestInspection`의 `Identifier`는 JSON 본문일 때 JSON 포인터(`/username`)로 쓴다. 폼 인코딩이면 `PayloadType`을 `FORM_ENCODED`로 두고 필드명을 쓴다. `ResponseInspection`은 ATP가 로그인 성공/실패를 구분하는 근거다. 이걸 잘못 설정하면 ATP가 성공/실패를 거꾸로 학습해서 정상 로그인을 공격으로 본다.
+
+### 응답 본문까지 보고 실패를 판정하는 방식
+
+상태 코드만 믿으면 안 되는 서비스가 많다. 로그인 실패에도 200을 주고 본문에 `{"success": false}`를 담는 API가 흔하다. 위 예제처럼 `SuccessCodes: [200]`만 두면 이런 서비스에서는 실패한 로그인이 전부 성공으로 집계된다. ATP 입장에서는 로그인 성공률이 100%인 평화로운 엔드포인트가 되고, 실패 급증 시그널이 아예 만들어지지 않는다. 스터핑 공격 중에 성공률이 1~3%로 떨어지는 게 가장 먼저 보이는 신호인데, 그 신호를 눈앞에서 지우는 설정이다.
+
+이런 서비스는 `Json`이나 `BodyContains`로 본문을 본다.
+
+```json
+"ResponseInspection": {
+  "Json": {
+    "Identifier": "/success",
+    "SuccessValues": ["true"],
+    "FailureValues": ["false"]
+  }
+}
+```
+
+본문 문자열로 판별하는 `BodyContains`도 있다. 응답 검사에는 제약이 셋 있다.
+
+- 응답 검사는 CloudFront 배포에 붙은 Web ACL에서만 쓸 수 있다. ALB나 API Gateway에 붙인 Web ACL에서는 요청 검사만 동작한다.
+- 본문은 앞쪽 일부(문서 기준 64KB)만 검사한다. 로그인 응답이 이보다 크면 판별 필드를 앞에 둬야 한다.
+- 성공·실패 판별값은 오탈자 하나로 전부 어긋난다. 배포 전에 Sampled Requests의 라벨과 실제 로그인 결과를 몇 건 대조한다.
+
+응답을 보는 검사는 시간차가 있다. 시퀀스 다이어그램에서 본 것처럼 실패 집계는 응답이 나간 뒤에 쌓인다. 분당 수천 건을 쏘는 봇이면 라벨이 붙기 전에 수백 건이 이미 통과한다. ATP를 단독으로 믿지 말고 위의 Rate-based 규칙을 앞에 같이 둬야 하는 이유다.
 
 ATP가 다는 라벨로 다시 체이닝한다.
 
@@ -312,7 +440,44 @@ ATP가 다는 라벨로 다시 체이닝한다.
 - `awswaf:managed:aws:atp:aggregate:volumetric:session:high` — 세션 단위 로그인 시도 과다
 - `awswaf:managed:aws:atp:signal:missing_credential` — 자격증명 누락(폼 스캔)
 
-`credential_compromised`는 막아야 하지만 바로 Block보다 비밀번호 재설정을 강제하는 쪽이 사용자 보호에 맞는 경우가 있다. 그래서 ATP도 Count로 두고 라벨을 애플리케이션이 읽어 처리하는 패턴을 많이 쓴다. WAF가 라벨을 요청 헤더로 백엔드에 전달하므로 애플리케이션 단에서 "이 로그인은 유출 자격증명이니 추가 인증" 같은 분기를 넣는다.
+`credential_compromised`는 막아야 하지만 바로 Block보다 비밀번호 재설정을 강제하는 쪽이 사용자 보호에 맞는 경우가 있다. 진짜 사용자가 다른 사이트에서 유출된 비밀번호를 그대로 쓰고 있을 수 있기 때문이다. 그래서 ATP도 Count로 두고 라벨을 애플리케이션이 읽어 처리하는 패턴을 많이 쓴다.
+
+라벨은 저절로 백엔드에 가지 않는다. 라벨을 매칭하는 규칙을 하나 두고, 그 규칙의 Count 액션에 커스텀 요청 헤더를 붙여야 한다. 헤더 이름 앞에는 WAF가 `x-amzn-waf-`를 자동으로 붙인다.
+
+```json
+{
+  "Name": "ForwardCompromisedLabel",
+  "Priority": 5,
+  "Statement": {
+    "LabelMatchStatement": {
+      "Scope": "LABEL",
+      "Key": "awswaf:managed:aws:atp:signal:credential_compromised"
+    }
+  },
+  "Action": {
+    "Count": {
+      "CustomRequestHandling": {
+        "InsertHeaders": [
+          { "Name": "credential-compromised", "Value": "true" }
+        ]
+      }
+    }
+  },
+  "VisibilityConfig": {
+    "SampledRequestsEnabled": true,
+    "CloudWatchMetricsEnabled": true,
+    "MetricName": "ForwardCompromisedLabel"
+  }
+}
+```
+
+애플리케이션은 `x-amzn-waf-credential-compromised` 헤더가 있고 비밀번호도 맞으면 세션을 발급하지 않고 재설정 메일이나 MFA 단계로 보낸다. 클라이언트가 같은 이름의 헤더를 직접 보내 위조하는 경우를 막으려면 앞단에서 `x-amzn-waf-` 접두 헤더를 제거하거나, 규칙이 항상 값을 덮어쓰는 구조인지 확인해야 한다.
+
+### 유출 DB 매칭의 한계
+
+`credential_compromised`는 AWS가 가진 유출 자격증명 데이터베이스에 대한 대조 결과다. 그 데이터베이스에 없는 쌍은 라벨이 안 붙는다. 공격자가 방금 터진 유출본이나 비공개로 거래되는 combo list를 쓰면 ATP의 이 시그널은 조용하다. 유출 직후 몇 주가 가장 위험한 구간인데 DB 반영에는 시간이 걸리므로 그 구간에 구멍이 생긴다.
+
+그러니 이 라벨이 없다는 사실을 안전하다는 뜻으로 읽으면 안 된다. 라벨이 붙은 요청은 확실히 위험하다는 정보지만, 라벨이 없는 요청은 아무 정보도 없다는 정보다. 실제로 새 유출본을 쓰는 공격에서는 `credential_compromised` 건수가 0에 가까운데도 로그인 성공률이 바닥으로 떨어진다. 이때 남는 시그널은 앞서 본 응답 기반 실패 집계, Rate-based 규칙의 지문 키, 그리고 애플리케이션이 가진 정보(새 기기, 새 국가, 평소와 다른 시간대)다. 애플리케이션 쪽 위험 점수와 유출 비밀번호 사전 대조 방법은 [크리덴션 스터핑](../../../Security/Credential_Stuffing.md)에서 다룬다.
 
 ATP는 Bot Control과 별개 룰 그룹이고 요금도 따로 붙는다. 둘 다 켜면 WCU와 비용이 합산된다.
 
@@ -434,3 +599,4 @@ Count로 충분히 보고 허용 규칙을 다 깔았으면 한 번에 전체를
 - CAPTCHA/Challenge와 JS SDK: https://docs.aws.amazon.com/waf/latest/developerguide/waf-captcha-and-challenge.html
 - WAF 요금: https://aws.amazon.com/waf/pricing/
 - 기본 Web ACL/SQLi/XSS는 [WAF.md](WAF.md) 참고
+- 스터핑 공격 흐름과 애플리케이션 단 방어는 [크리덴션 스터핑](../../../Security/Credential_Stuffing.md) 참고

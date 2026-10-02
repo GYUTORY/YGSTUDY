@@ -1,3 +1,6 @@
 nav:
   - index.md
   - 사용법: Codex.md
+  - 설정 병합과 Profile: Codex_Config_Profiles.md
+  - CI 자동화: Codex_CI_Automation.md
+  - "샌드박스와 승인 정책의 한계": Codex_Sandbox_Security.md

@@ -1,13 +1,13 @@
 ---
-title: AWS CloudFront 캐시 무효화(Cache Invalidation) 정책
+title: CDN 캐시 무효화 정책 (CloudFront·Cloudflare)
 tags: [aws, cdn, cache, terraform]
-updated: 2026-04-24
+updated: 2026-10-01
 ---
 
-# CDN 캐시 무효화 정책 (AWS CloudFront 중심)
+# CDN 캐시 무효화 정책 (CloudFront 중심, Cloudflare 비교)
 
 CloudFront 같은 CDN은 엣지 로케이션(POP)에 콘텐츠를 캐싱해두고 요청 시 빠르게 제공한다.
-콘텐츠가 변경되었을 때, 캐시된 오래된 파일을 어떻게 갱신할 것인가가 관건이다. 이 작업을 **Cache Invalidation(무효화)** 이라고 한다.
+콘텐츠가 변경되었을 때, 캐시된 오래된 파일을 어떻게 갱신할 것인가가 관건이다. 이 작업을 **Cache Invalidation(무효화)** 이라고 한다. Cloudflare에서는 같은 작업을 퍼지(purge)라고 부른다. 본문은 CloudFront 기준으로 쓰고, 10장에서 Cloudflare 퍼지 방식을 비교한다.
 
 ---
 
@@ -54,7 +54,9 @@ aws cloudfront create-invalidation \
   --paths "/index.html" "/main.js"
 ```
 
-여러 경로를 한 번에 지정할 수 있다. 공식 한도는 경로 3,000개(요청당)지만, 실무에서는 와일드카드 하나가 경로 1개로 카운트된다는 점을 알아야 한다.
+여러 경로를 한 번에 지정할 수 있다. 동시에 진행 중일 수 있는 일반 경로는 3,000개, 와일드카드 경로는 15개가 기본 한도다([Invalidation 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html)). 한도에 걸리면 이전 무효화가 끝날 때까지 새 요청이 거절되므로 배포가 몰리는 시간대에는 요청을 합쳐서 보내야 한다. 와일드카드 하나는 경로 1개로 카운트된다.
+
+쿼리스트링을 캐시 키에 넣은 배포라면 무효화 경로에도 쿼리스트링을 붙여야 한다. `/api/list`만 무효화하면 `/api/list?page=1` 사본은 남는다. 이 경우 `/api/list*`로 묶는 편이 낫다.
 
 ---
 
@@ -215,6 +217,42 @@ CloudFront 무효화는 매월 기본 1,000개 경로가 무료다. 그 이후�
 - 도쿄, 싱가포르 엣지에서는 1~3분 동안 구버전 HTML을 계속 응답
 - 이 사이에 도쿄에서 접속한 사용자는 구버전 HTML + 신버전 JS를 받아서 앱이 깨짐
 
+아래 시퀀스에서 붉게 칠한 구간이 일부 엣지만 옛 파일을 서빙하는 시간이다. 무효화 요청이 접수된 시점과 도쿄 엣지에서 사본이 지워지는 시점 사이가 그 구간이고, 배포 스크립트가 `InProgress` 응답을 받고 끝나버리면 이 구간은 아무도 보지 않는다.
+
+```mermaid
+sequenceDiagram
+    participant D as 배포 스크립트
+    participant CP as CloudFront 제어 영역
+    participant S as 서울 엣지
+    participant T as 도쿄 엣지
+    participant O as 오리진 S3
+    participant U as 도쿄 사용자
+
+    Note over S,T: 두 엣지 모두 index.html v1을 캐시 중
+    D->>O: index.html v2 업로드
+    D->>CP: create-invalidation /index.html
+    CP-->>D: Status InProgress
+    CP->>S: 무효화 전파
+    S->>S: v1 삭제
+    CP->>T: 무효화 전파, 아직 도달 전
+
+    rect rgb(255, 228, 228)
+    Note over T: v1이 남아 있는 구간
+    U->>T: GET /index.html
+    T-->>U: v1, 캐시 HIT
+    end
+
+    T->>T: v1 삭제
+    U->>T: GET /index.html
+    T->>O: 캐시 MISS
+    O-->>T: v2
+    T-->>U: v2
+    D->>CP: wait invalidation-completed
+    CP-->>D: Completed
+```
+
+서울 엣지는 첫 요청부터 v2를 받고, 도쿄 엣지는 `T->>T: v1 삭제` 전까지 v1을 내보낸다. 전파가 끝나는 시점은 엣지마다 다르기 때문에 `Completed`가 떨어지기 전에 트래픽을 전환하거나 검증 요청을 날리면 엣지마다 결과가 갈린다.
+
 ### 대응 방법
 
 **방법 1: 파일명 해시로 JS/CSS 버전 관리**
@@ -251,13 +289,30 @@ echo "Invalidation completed"
 
 ## 8. 캐시 계층별 무효화 순서
 
-CloudFront 무효화만 해도 충분한 경우가 많지만, 앱 서버 자체에 로컬 캐시나 Redis 캐시가 있다면 순서대로 무효화해야 한다.
+CloudFront 무효화만 해도 충분한 경우가 많지만, 앱 서버 자체에 로컬 캐시나 Redis 캐시가 있다면 순서를 맞춰야 한다. 원칙은 오리진에 가까운 계층부터 지우고, 사용자에게 가까운 CDN을 마지막에 지우는 것이다.
 
-```
-CDN(CloudFront) → 앱 로컬 캐시 → Redis
+```text
+Redis → 앱 로컬 캐시 → CDN(CloudFront) → 브라우저(서버에서 지울 수 없음)
 ```
 
-이 순서를 거꾸로 하면 문제가 생긴다. Redis 캐시를 먼저 지워도 CDN이 여전히 구버전을 캐싱하고 있으면 Redis까지 요청이 도달하지 않는다.
+CDN을 먼저 지우면 문제가 생긴다. 무효화 직후 들어온 첫 요청이 CDN MISS로 앱까지 내려오는데, 이때 앱이나 Redis에 구버전이 남아 있으면 구버전을 받아서 CDN에 다시 캐싱한다. 방금 지운 사본이 새 TTL을 달고 되살아나는 셈이고, 무효화를 한 번 더 실행해야 한다.
+
+아래 flowchart는 오리진 갱신부터 브라우저까지의 순서와, 파일명 해시를 쓰는 경우와 같은 URL을 무효화하는 경우의 분기를 보여 준다. 해시 파일명 쪽은 CDN 퍼지 단계를 건너뛰고, 브라우저 캐시는 어느 경로로 가든 `Cache-Control`에 달려 있다는 점을 보면 된다.
+
+```mermaid
+flowchart TD
+    A["1. 오리진 갱신<br/>Redis, 앱 로컬 캐시 정리 후 새 파일 업로드"] --> Q{"배포 후 URL이 바뀌는가"}
+    Q -->|"해시 파일명<br/>main.9f2a84a.js"| H["CDN은 새 URL을 MISS 처리<br/>퍼지 불필요"]
+    Q -->|"같은 URL<br/>index.html, /api/*"| P["2. CDN 퍼지<br/>CloudFront 무효화 또는 Cloudflare 퍼지"]
+    P --> W["전파 완료까지 대기<br/>invalidation-completed"]
+    H --> B["3. 브라우저 캐시<br/>서버가 직접 지울 수 없음"]
+    W --> B
+    B --> N{"응답의 Cache-Control"}
+    N -->|"no-cache"| R["다음 요청에서 CDN에 재검증<br/>새 파일을 받음"]
+    N -->|"max-age 남음"| S["TTL이 끝날 때까지<br/>브라우저가 옛 파일 사용"]
+```
+
+해시 파일명 쪽에서 하나 주의할 게 있다. 위 4.1의 `aws s3 sync --delete`는 새 배포에 없는 옛 해시 파일을 S3에서 바로 지운다. 아직 옛 `index.html`을 캐시한 엣지나 브라우저가 `main.old123.js`를 요청하면 오리진에서 403이나 404가 난다. 옛 해시 파일은 한두 배포 주기 동안 남겨두고 정리하는 편이 안전하다.
 
 ### 계층별 무효화 예제
 
@@ -268,21 +323,22 @@ DIST_ID=$1
 APP_ENDPOINT=$2
 CACHE_KEY_PATTERN=$3
 
-echo "1. Invalidating CloudFront..."
-aws cloudfront create-invalidation \
-  --distribution-id "$DIST_ID" \
-  --paths "/api/*"
+echo "1. Clearing Redis cache..."
+redis-cli -h "$REDIS_HOST" -p 6379 \
+  --scan --pattern "$CACHE_KEY_PATTERN" \
+  | xargs -r redis-cli -h "$REDIS_HOST" -p 6379 DEL
 
 echo "2. Clearing app local cache..."
 curl -X POST "$APP_ENDPOINT/internal/cache/clear" \
   -H "Authorization: Bearer $INTERNAL_TOKEN"
 
-echo "3. Clearing Redis cache..."
-redis-cli -h "$REDIS_HOST" -p 6379 \
-  --scan --pattern "$CACHE_KEY_PATTERN" | xargs redis-cli DEL
+echo "3. Invalidating CloudFront..."
+aws cloudfront create-invalidation \
+  --distribution-id "$DIST_ID" \
+  --paths "/api/*"
 ```
 
-실무에서는 앱 로컬 캐시(예: Guava Cache, Caffeine)를 별도로 지우는 API를 만들어두는 경우가 있다. 이 API에 CDN 무효화 완료 이후 순차적으로 호출하는 방식이다.
+`xargs -r`을 빼면 매칭되는 키가 없을 때 인자 없는 `DEL`이 실행되어 에러가 난다. 앱 로컬 캐시(예: Guava Cache, Caffeine)를 별도로 지우는 API는 인스턴스가 여러 대면 한 대에만 호출되기 쉽다. 로드밸런서 뒤에서 `curl` 한 번으로 끝내면 나머지 인스턴스의 캐시는 그대로 남는다. 인스턴스 목록을 순회하거나, 로컬 캐시 TTL을 짧게 두고 무효화 대상에서 빼는 쪽이 낫다.
 
 ---
 
@@ -336,8 +392,61 @@ MaxTTL: 31536000 (1년)
 
 ---
 
+## 11. Cloudflare 퍼지와 CloudFront 무효화 비교
+
+Cloudflare는 퍼지 단위가 CloudFront보다 다양하다. 특히 `Cache-Tag` 응답 헤더로 객체에 태그를 붙여두고 태그 단위로 지우는 기능은 CloudFront에 대응하는 게 없다. CloudFront는 경로 기반이라 지울 단위를 미리 URL 구조로 설계해야 한다.
+
+| 항목 | CloudFront 무효화 | Cloudflare 퍼지 |
+|---|---|---|
+| 지정 단위 | 경로, 경로 끝 `*` 와일드카드 | URL, prefix, 호스트, 태그, 전체 |
+| 태그 퍼지 | 없음 | 있음. 응답의 `Cache-Tag` 헤더 기준 |
+| 전체 삭제 | `/*` (경로 1개로 카운트) | `purge_everything` |
+| 쿼리스트링 | 캐시 키에 포함한 쿼리는 경로에 붙여야 함 | 캐시 키에 포함한 쿼리는 URL에 붙여야 함 |
+| 비용 | 월 1,000경로 무료, 초과분 경로당 $0.005 | 퍼지 호출 자체는 과금 없음 |
+| 요청 한도 | 동시 진행 중 일반 경로 3,000개, 와일드카드 15개 | 계정당 초당 URL 수 Free 800, Pro·Business 1,500, Enterprise 3,000 |
+| 요청당 URL 수 | 요청당 경로 수는 위 동시 진행 한도에 포함 | Free·Pro·Business 100개, Enterprise 500개 |
+| 태그·prefix·호스트 퍼지 | 해당 없음 | 전 플랜 사용 가능, Free는 분당 5회 수준의 요청 한도 |
+| 전파 시간 | 보통 수십 초에서 수 분 | 수 초 이내를 표방, 공식 수치는 문서 확인 |
+
+Cloudflare 수치는 [Purge cache 문서](https://developers.cloudflare.com/cache/how-to/purge-cache/) 기준이고 플랜 정책이 바뀌는 항목이라 적용 전에 다시 확인해야 한다. 전파 시간은 두 CDN 모두 배포 시점의 실측이 낫다. 문서의 수치를 그대로 믿고 `sleep`을 넣었다가 엣지 한 곳에서 구버전이 나가는 경우가 있다.
+
+Cloudflare 퍼지는 API로 호출한다. 토큰에는 Cache Purge 권한만 준다.
+
+```bash
+# URL 단위
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"files":["https://example.com/index.html"]}'
+
+# 태그 단위: 오리진이 응답에 Cache-Tag: product-123,category-9 를 붙여둔 경우
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"tags":["product-123"]}'
+
+# prefix 단위: 스킴 없이 호스트부터 쓴다
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"prefixes":["example.com/static/"]}'
+```
+
+`{"purge_everything":true}`는 모든 사본을 한 번에 지우므로 직후 오리진 요청이 몰린다. CloudFront의 `/*`도 같은 문제가 있어서 둘 다 장애 복구 같은 상황이 아니면 쓰지 않는 게 좋다.
+
+### CDN을 바꿀 때는 양쪽을 다 퍼지한다
+
+CloudFront와 Cloudflare를 같이 쓰는 기간이 있다. 전환 중이거나 Cloudflare를 앞에 두고 CloudFront를 오리진으로 쓰는 구성이다. 이때는 퍼지 대상이 두 곳이고, 순서는 8장과 같다. 오리진에 가까운 쪽을 먼저, 사용자에 가까운 쪽을 나중에 지운다.
+
+1. 오리진 갱신 (Redis, 앱 캐시 포함)
+2. CloudFront 무효화, `aws cloudfront wait invalidation-completed`로 완료 확인
+3. Cloudflare 퍼지
+
+CloudFront 무효화가 끝나기 전에 Cloudflare를 먼저 지우면, Cloudflare가 MISS로 CloudFront에 내려와 아직 남아 있는 옛 사본을 가져가서 새 TTL로 다시 캐싱한다. 전환 방향이 어느 쪽이든 DNS 변경 전에 기존 CDN을 퍼지해야 하고, DNS TTL과 기존 캐시 TTL이 겹치는 구간은 퍼지로 줄어들지 않는다. 이 구간 계산과 전환 순서는 [Cloudflare vs CloudFront의 CDN 전환 시 stale 콘텐츠](../../Cloudflare/Cloudflare_vs_Cloud_Front.md#cdn-전환-시-stale-콘텐츠)에 정리해 두었다.
+
 ## 참고 자료
 
 - [CloudFront Invalidation 공식 문서](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html)
 - [CloudFront 가격 정책](https://aws.amazon.com/cloudfront/pricing/)
+- [Cloudflare Purge cache 문서](https://developers.cloudflare.com/cache/how-to/purge-cache/)
 - [웹 정적 리소스 캐싱](https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching)

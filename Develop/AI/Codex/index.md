@@ -9,9 +9,12 @@ hide:
 
 # Codex 전체 보기
 
-문서 1개.
+문서 4개.
 
 ## 개요
 
+- [Codex CI 자동화 (codex exec를 파이프라인에 붙이기)](Codex_CI_Automation.md)
+- [Codex config.toml 병합 순서와 profile 운영](Codex_Config_Profiles.md)
+- [Codex 샌드박스와 승인 정책, 어디까지 막고 어디서 새는가](Codex_Sandbox_Security.md)
 - [OpenAI Codex 사용법 및 핵심 개념](Codex.md)
 

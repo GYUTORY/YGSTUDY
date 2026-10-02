@@ -1,7 +1,7 @@
 ---
 title: Cloudflare Workers
 tags: [cloud, backend, javascript, typescript, performance]
-updated: 2026-09-25
+updated: 2026-10-01
 ---
 
 # Cloudflare Workers
@@ -14,7 +14,59 @@ Lambda는 요청마다 컨테이너를 띄우거나 재사용한다. 이미 떠 
 
 대신 제약이 있다. Isolate는 OS 프로세스가 아니라서 Node.js 표준 라이브러리를 쓸 수 없다. `fs`, `net`, `child_process`는 없다. `fetch`, `crypto`, `TextEncoder` 같은 Web API만 쓸 수 있다. npm 패키지도 Node API 없이 동작하는 것만 번들링해서 올릴 수 있다.
 
-CPU 시간 제한도 있다. 무료 플랜은 요청당 CPU 10ms, 유료(Workers Paid)는 30ms다. 네트워크 I/O 대기 시간은 여기 포함되지 않는다. `fetch()`로 외부 API를 부르는 동안 CPU 카운터는 멈춘다.
+CPU 시간 제한도 있다. 무료 플랜은 요청당 CPU 10ms다. 유료(Workers Paid)는 기본 30초이고 설정으로 최대 5분까지 늘린다. 예전 문서에 "유료 30ms"로 적힌 것이 많은데, 30ms가 아니라 30초다. 네트워크 I/O 대기 시간은 여기 포함되지 않는다. `fetch()`로 외부 API를 부르는 동안 CPU 카운터는 멈춘다.
+
+## 요청이 처리되는 경로
+
+Worker 코드가 실행되기 전과 후에 어떤 단계를 거치는지 알아야 KV, Cache API, Durable Objects 중 무엇을 어디에 쓸지 정해진다. 아래 flowchart는 하나의 요청이 PoP에 도착해서 응답으로 나가기까지의 분기를 그린 것이다. 판단 지점은 Cache API 조회와 데이터 저장소 선택이다.
+
+```mermaid
+flowchart TD
+    REQ["사용자 요청"] --> POP["가장 가까운 PoP<br/>TLS 핸드셰이크"]
+    POP --> ROUTE{"Route 매칭"}
+    ROUTE -->|"매칭 안 됨"| PASS["Worker 없이 일반 CDN 경로<br/>캐시 또는 오리진"]
+    ROUTE -->|"매칭"| ISO["V8 Isolate 할당<br/>기존 isolate 재사용 또는 새로 생성"]
+    ISO --> HANDLER["fetch 핸들러 실행<br/>CPU 시간 카운트 시작"]
+    HANDLER --> CACHE{"Cache API<br/>caches.default.match"}
+    CACHE -->|"HIT"| RES["응답"]
+    CACHE -->|"MISS"| DATA{"어떤 데이터가 필요한가"}
+    DATA -->|"읽기 많은 설정, 정적 JSON"| KV["KV<br/>최종 일관성, 전파 최대 60초"]
+    DATA -->|"방 상태, 락, 카운터"| DO["Durable Object<br/>단일 위치, 요청 직렬화"]
+    DATA -->|"관계형 조회"| D1["D1<br/>SQLite, 읽기는 복제본"]
+    DATA -->|"원본 응답"| ORIGIN["fetch로 오리진 호출<br/>대기 시간은 CPU에 불포함"]
+    KV --> BUILD["응답 조립"]
+    DO --> BUILD
+    D1 --> BUILD
+    ORIGIN --> BUILD
+    BUILD --> PUT["ctx.waitUntil<br/>cache.put, 로그 전송"]
+    BUILD --> RES
+```
+
+콜드스타트가 거의 없는 이유는 `ISO` 단계에 있다. Cloudflare는 TLS 핸드셰이크가 진행되는 동안 해당 Worker의 isolate를 미리 띄워 둔다. 핸드셰이크에 걸리는 왕복 시간이 isolate 생성 시간을 가려 주기 때문에, 첫 요청도 핸들러 진입 시점에는 이미 준비된 상태가 된다. 다만 Worker 번들이 크고 모듈 최상위에서 무거운 초기화를 하면 이 시간이 늘어난다. 최상위에서 큰 JSON을 파싱하거나 정규식을 수백 개 컴파일하는 코드는 첫 요청마다 지연으로 나타난다.
+
+Cache API는 두 가지를 알고 써야 한다. 첫째, `caches.default`는 요청을 받은 데이터센터의 로컬 캐시다. 도쿄 PoP에서 `put`한 항목이 서울 PoP에서 보이지 않는다. 전역으로 공유되는 값은 KV를 써야 한다. 둘째, `workers.dev` 서브도메인에서는 Cache API가 동작하지 않는다. 로컬과 `workers.dev`에서 캐시가 계속 MISS라서 코드를 의심하다가, 사실은 도메인 문제였던 경우가 흔하다.
+
+```typescript
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const cache = caches.default;
+    const cacheKey = new Request(request.url, { method: "GET" });
+
+    const hit = await cache.match(cacheKey);
+    if (hit) return hit;
+
+    const origin = await fetch(request);
+    // 캐시에 넣을 응답은 body를 한 번만 읽을 수 있어서 clone이 필요하다
+    const response = new Response(origin.body, origin);
+    response.headers.set("Cache-Control", "public, max-age=300");
+
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    return response;
+  },
+};
+```
+
+`cache.put`을 `await`하면 응답이 그만큼 늦어진다. `waitUntil`로 넘기면 응답은 먼저 나가고 저장은 뒤에서 끝난다.
 
 ## Request/Response 가로채기
 
@@ -80,7 +132,18 @@ export default {
 
 `scheduled` 핸들러는 `Response`를 반환하지 않는다. 실행 결과를 외부에 알릴 방법이 없으니, 작업 상태를 KV나 D1에 기록해두는 경우가 많다.
 
-`event.cron`으로 어떤 크론 표현식이 발동했는지 알 수 있다. cron을 여러 개 등록하면 이걸로 분기한다.
+`event.cron`으로 어떤 크론 표현식이 발동했는지 알 수 있다. cron을 여러 개 등록하면 이걸로 분기한다. 아래 flowchart는 `fetch`와 달리 사용자 요청 없이 Cloudflare가 호출하는 `scheduled` 경로를 그린 것이다.
+
+```mermaid
+flowchart TD
+    TRIG["Cron 트리거<br/>wrangler.toml crons"] --> SCHED["scheduled 핸들러 호출<br/>event.cron, event.scheduledTime"]
+    SCHED --> SW{"event.cron 값"}
+    SW -->|"0 * * * *"| HOURLY["hourlySync"]
+    SW -->|"0 0 * * *"| DAILY["dailyReport"]
+    HOURLY --> WU["ctx.waitUntil로 작업 유지"]
+    DAILY --> WU
+    WU --> STATUS["Response 없음<br/>작업 상태는 KV나 D1에 기록"]
+```
 
 ```typescript
 async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
@@ -210,6 +273,25 @@ export default {
 };
 ```
 
+위 코드의 흐름을 순서대로 보면 아래와 같다. 읽기는 엣지에서 끝나지만 쓰기는 전파 시간이 지나야 다른 PoP에서 보인다는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant W as Worker
+    participant KV as KV 엣지 캐시
+    participant O as 오리진
+    W->>KV: get(key)
+    alt 값이 있음
+        KV-->>W: cached
+    else 값이 없음
+        KV-->>W: null
+        W->>O: fetch
+        O-->>W: data
+        W->>KV: put(key, data, expirationTtl 3600)
+        Note over KV: 다른 PoP에는 최대 60초 뒤 반영
+    end
+```
+
 KV에는 객체를 그대로 넣을 수 없다. 반드시 `JSON.stringify()`로 직렬화해서 저장하고, 꺼낼 때 `JSON.parse()`로 복원한다. `getWithMetadata()`를 쓰면 메타데이터를 함께 저장하고 읽을 수 있는데, 만료 시간을 별도로 추적할 때 유용하다.
 
 ## D1 SQLite 연동
@@ -285,11 +367,42 @@ wrangler d1 migrations apply my-app-db --local
 
 D1이 SQLite 기반이라 단순해 보이지만, 분산 환경에서 돌아간다. 읽기는 리전 복제본에서 처리되고 쓰기는 프라이머리로 간다. 쓰기 직후 읽기가 이전 값을 반환하는 경우가 있다. 쓰기 직후 결과를 다시 읽어야 하는 경우 쿼리 흐름을 다시 설계해야 한다.
 
+아래 시퀀스는 쓰기와 읽기가 서로 다른 곳으로 가서 이전 값이 보이는 구간을 그린 것이다.
+
+```mermaid
+sequenceDiagram
+    participant W as Worker
+    participant P as 프라이머리
+    participant R as 읽기 복제본
+    W->>P: INSERT
+    P-->>W: last_row_id
+    P-)R: 변경 복제 (비동기)
+    W->>R: SELECT 바로 이어서
+    R-->>W: 이전 값 (복제 전)
+    Note over W,R: 복제가 끝난 뒤의 SELECT에서야 새 값이 보인다
+```
+
 ## Durable Objects
 
 KV는 eventually consistent다. 쓰기 후 읽기가 이전 값을 반환할 수 있다. 채팅방 참여자 목록, 게임 세션 상태, 분산 락처럼 강한 일관성이 필요한 경우 Durable Objects(DO)를 쓴다.
 
 DO는 클래스 하나가 하나의 인스턴스 타입이다. 각 인스턴스는 단일 위치에서 실행되고, 해당 인스턴스로 들어오는 요청은 직렬화해서 처리한다. 여러 Worker가 동시에 같은 DO에 요청을 보내도 DO 내부에서는 동시 실행이 없다.
+
+아래 시퀀스는 서로 다른 PoP의 Worker 두 개가 같은 방 DO에 동시에 요청을 보낼 때 DO가 요청을 하나씩 처리하는 모습이다.
+
+```mermaid
+sequenceDiagram
+    participant A as Worker (PoP A)
+    participant B as Worker (PoP B)
+    participant DO as ChatRoom DO
+    A->>DO: /join (user1)
+    B->>DO: /join (user2)
+    Note over DO: 요청 직렬화, 동시 실행 없음
+    DO->>DO: storage.get, put (user1)
+    DO-->>A: count 1
+    DO->>DO: storage.get, put (user2)
+    DO-->>B: count 2
+```
 
 `wrangler.toml`에 바인딩과 마이그레이션을 등록한다.
 
@@ -390,6 +503,14 @@ URL 호스트 부분은 어떤 값이든 상관없다. Cloudflare가 바인딩�
 
 주의할 점은 서브요청 카운트다. A Worker가 B를 호출하고 B가 C를 호출하면, A 기준으로 서브요청이 2개로 잡힌다. 깊은 체인을 만들면 무료 플랜의 50개 제한에 빨리 걸린다.
 
+```mermaid
+flowchart LR
+    U["사용자 요청"] --> A["Worker A<br/>서브요청 카운트 기준"]
+    A -->|"Service Binding 1"| B["Worker B"]
+    B -->|"Service Binding 2"| C["Worker C"]
+    A -.->|"A 기준 합계 2개"| CNT["무료 플랜 한도 50개"]
+```
+
 ## wrangler CLI 배포
 
 로컬에서 개발할 때는 `wrangler dev`를 쓴다.
@@ -473,6 +594,132 @@ export default {
 };
 ```
 
-`subrequest` 제한도 있다. Workers 하나에서 보낼 수 있는 서브요청(fetch 호출)은 무료 플랜 50개, 유료 1000개다. 여러 외부 API를 병렬로 호출하는 경우 `Promise.all()`을 써도 카운트는 각각 잡힌다.
+아래 시퀀스에서 응답이 나가는 시점과 `waitUntil` 작업이 끝나는 시점이 어긋나는 것을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant W as Worker
+    participant L as 로그 서버
+    C->>W: 요청
+    W->>W: handleRequest
+    W->>L: waitUntil(logToAnalytics) 시작
+    W-->>C: 응답 반환
+    Note over W,L: 응답 이후에도 isolate가 유지되어 작업을 마무리한다
+    L-->>W: 전송 완료
+```
+
+`subrequest` 제한도 있다. Workers 하나에서 보낼 수 있는 서브요청(fetch 호출)은 무료 플랜 50개이고, 유료는 이보다 훨씬 높다(예전 문서의 1,000개에서 상향되었으니 [한도 표](https://developers.cloudflare.com/workers/platform/limits/)에서 현재 값을 확인한다). 여러 외부 API를 병렬로 호출하는 경우 `Promise.all()`을 써도 카운트는 각각 잡힌다.
 
 메모리 상태를 전역 변수에 저장하면 안 된다고 알려져 있지만, 실제로는 같은 Isolate가 재사용되는 동안에는 전역 상태가 유지된다. 다만 언제 새 Isolate로 전환되는지 보장이 없다. 요청 간 공유 상태가 필요하면 KV나 Durable Objects를 써야 한다.
+
+## CloudFront Functions, Lambda@Edge와 실행 조건 비교
+
+엣지에서 코드를 돌리는 선택지는 세 가지다. 같은 "엣지 함수"라는 이름이지만 실행 위치와 한도가 달라서, 로직이 한 군데에서 다른 군데로 그대로 옮겨지지 않는다. 제약이 제일 큰 CloudFront Functions부터 Workers까지 한 표에 놓으면 이렇다.
+
+| 항목 | CloudFront Functions | Lambda@Edge | Workers |
+|------|---------------------|-------------|---------|
+| 실행 위치 | Edge Location (600개 이상) | Regional Edge Cache (13개 리전) | 모든 PoP |
+| 실행 시간 한도 | 1ms | viewer 5초 / origin 30초 | CPU 기준. 무료 10ms, 유료 기본 30초(최대 5분) |
+| 메모리 | 2MB | 128MB ~ 10GB (origin 이벤트 기준) | isolate당 128MB |
+| 외부 네트워크 호출 | 불가 | 가능 | 가능 (`fetch`, 서비스 바인딩) |
+| 런타임 | JavaScript 제한 런타임 | Node.js, Python | V8 isolate, Web API + `nodejs_compat` 일부 |
+| 상태 저장 | 없음 (KeyValueStore 읽기 정도) | 없음 (DynamoDB 등을 직접 호출) | KV, Durable Objects, D1, R2 |
+| 배포 반영 | 수 초 ~ 수십 초 | 수 분 | 수 초 |
+| 과금 단위 | 호출 수 | 호출 수 + 실행 시간(GB-초) | 요청 수 + CPU 시간 |
+
+CloudFront Functions와 Lambda@Edge의 세부 한도는 [CloudFront Functions와 Lambda@Edge](../AWS/Network/Cloud_Front_Functions_and_Lambda_at_Edge.md)에 따로 정리했다. 두 서비스와 Workers를 CDN 전체 관점에서 비교한 내용은 [Cloudflare vs CloudFront](Cloudflare_vs_Cloud_Front.md)의 엣지 컴퓨팅 절에 있다. 여기서는 Workers 쪽에서 본다.
+
+표만으로는 어느 걸 골라야 할지 정해지지 않는다. 판단은 대체로 세 질문으로 갈린다. 외부 호출이나 저장소 조회가 필요한가, 1ms와 2MB 안에 들어가는가, 이미 AWS 계정과 IAM에 묶여 있는가.
+
+```mermaid
+flowchart TD
+    START["엣지에서 돌릴 로직"] --> NET{"외부 API나 저장소 조회가 필요한가"}
+    NET -->|"아니오"| SMALL{"1ms, 2MB 안에 들어가는가<br/>헤더 조작, 리다이렉트, URL 재작성"}
+    SMALL -->|"예"| CFF["CloudFront Functions"]
+    SMALL -->|"아니오"| AWSBOUND
+    NET -->|"예"| AWSBOUND{"CloudFront 앞단이고<br/>AWS 서비스를 IAM으로 호출하는가"}
+    AWSBOUND -->|"예"| LONG{"origin 이벤트에서<br/>5초 이상 걸리거나 네이티브 모듈이 필요한가"}
+    LONG -->|"예"| LE["Lambda@Edge"]
+    LONG -->|"아니오"| MOVE{"CDN 자체를 옮길 수 있는가"}
+    MOVE -->|"예"| WK["Workers"]
+    MOVE -->|"아니오"| LE
+    AWSBOUND -->|"아니오"| STATE{"엣지에서 상태를 읽고 써야 하는가"}
+    STATE -->|"예"| WK
+    STATE -->|"아니오"| WK2["Workers<br/>또는 CloudFront Functions로 충분한지 재검토"]
+```
+
+`MOVE` 분기에서 막히는 경우가 많다. CloudFront 뒤에 이미 S3, ALB, 인증 구성이 붙어 있으면 엣지 함수 하나 때문에 DNS와 인증서와 WAF 규칙을 전부 옮기게 된다. 로직이 가벼우면 CloudFront Functions로 끝내는 편이 낫고, 로직이 무거운데 CloudFront를 못 버리면 Lambda@Edge가 현실적인 답이다.
+
+## CloudFront로 옮길 때 깨지는 지점
+
+Workers 코드를 CloudFront Functions나 Lambda@Edge로 가져가거나 반대로 가져올 때 실제로 막히는 곳은 정해져 있다. 문법 문제보다는 실행 환경이 가정하던 것이 없어서 생기는 문제다.
+
+**Node API 의존.** Workers는 `fetch`, `Request`, `Response`, `crypto.subtle`, `URL` 같은 Web 표준 API 위에 있다. Lambda@Edge의 Node.js 런타임에서는 `Buffer`, `fs`, `zlib`, `https`, AWS SDK를 쓴다. 반대 방향이 더 아프다. Lambda@Edge 코드가 `sharp`로 이미지를 리사이즈하거나 `fs`로 임시 파일을 쓰고 있으면 Workers로 옮길 수 없다. `nodejs_compat` 플래그를 켜면 `Buffer`, `crypto`, `stream` 일부가 동작하지만 소켓을 쓰는 `net`이나 네이티브 애드온은 안 된다. 이미지 변환은 Workers에서 직접 하지 않고 Cloudflare 이미지 변환 기능에 넘기는 식으로 구조를 바꿔야 한다. CloudFront 쪽 구현은 [CDN 적응형 썸네일](../AWS/Network/CDN_Adaptive_Thumbnail.md)에 있다.
+
+CloudFront Functions로 내려갈 때는 의존성이 더 줄어든다. `require`와 `import`가 없고 `fetch`도 없다. npm 패키지를 번들해서 올리는 방식 자체를 못 쓰고, 함수 하나에 순수 JavaScript만 넣는다. JWT 서명 검증처럼 라이브러리에 기대던 코드는 런타임이 제공하는 해시·HMAC 모듈로 다시 써야 하고, 그 코드가 1ms 안에 끝나는지는 콘솔 테스트 탭에서 실행 시간을 직접 재 봐야 안다.
+
+**서브요청 제한.** Workers에서는 `fetch`를 여러 번 부르는 코드가 흔하다. 인증 서버 호출, 설정 조회, 오리진 호출이 한 요청 안에 들어간다. CloudFront Functions로 옮기면 이 호출이 전부 사라져야 한다. 설정 조회는 KeyValueStore 같은 읽기 전용 저장소로 바꾸고, 인증 서버 호출은 서명 검증으로 대체하는 식이다. Lambda@Edge로 옮길 때는 호출 자체는 가능하지만, viewer 이벤트의 5초 제한 안에서 리전 왕복이 붙는다. 사용자는 한국인데 Lambda@Edge가 다른 리전에서 돌고, 거기서 다시 서울 리전의 API를 부르면 왕복이 두 번 생긴다. Workers에서 서비스 바인딩으로 수 ms 걸리던 호출이 Lambda@Edge에서는 수십~수백 ms로 늘어난다.
+
+반대로 Lambda@Edge에서 Workers로 갈 때는 AWS SDK 호출이 문제다. DynamoDB를 SDK로 부르던 코드는 Workers에서 SDK 번들 크기와 Node 의존 때문에 그대로 안 돌아가는 경우가 많다. HTTP로 직접 SigV4 서명을 만들어 부르거나, 데이터를 KV·D1로 옮겨야 한다. 데이터 이전은 코드 수정보다 훨씬 큰 일이다.
+
+**시간·메모리 한도.** 두 한도는 측정 방식이 달라서 숫자만 비교하면 틀린다.
+
+```mermaid
+flowchart LR
+    subgraph WKS["Workers"]
+        direction TB
+        W1["CPU 시간 기준<br/>I/O 대기는 불포함"]
+        W2["메모리 128MB<br/>isolate 전체가 공유"]
+    end
+    subgraph LES["Lambda@Edge"]
+        direction TB
+        L1["벽시계 시간 기준<br/>viewer 5초, origin 30초"]
+        L2["함수별 메모리 설정<br/>요청마다 독립 실행 환경"]
+    end
+    subgraph CFS["CloudFront Functions"]
+        direction TB
+        C1["1ms 안에 종료"]
+        C2["2MB, 네트워크 없음"]
+    end
+    WKS -->|"이전 시 확인"| LES
+    LES -->|"이전 시 확인"| CFS
+```
+
+Workers의 128MB는 요청 하나가 아니라 isolate 하나에 걸린다. 같은 isolate가 여러 요청을 동시에 처리하기 때문에, 요청마다 50MB짜리 응답을 `await response.arrayBuffer()`로 통째로 읽으면 동시 요청 몇 개에서 메모리 한도에 걸려 isolate가 종료된다. 스트리밍(`response.body`를 그대로 통과)으로 쓰는 코드였다면 문제가 없는데, Lambda@Edge에서 버퍼링 방식으로 짠 코드를 그대로 옮기면 여기서 터진다. 증상은 간헐적으로 나오는 1102 오류다.
+
+Lambda@Edge는 반대 방향으로 한도가 있다. origin 이벤트에서 생성한 응답 본문은 1MB까지이고, 이 값은 base64 인코딩 이후 크기라서 원본 이미지 기준으로는 700KB대에서 막힌다. Workers에서 응답 크기 제한 없이 스트리밍하던 코드를 옮기면 큰 응답에서 CloudFront가 오류를 반환한다.
+
+반대로 Workers의 CPU 시간 개념은 Lambda@Edge에 없다. 외부 API를 2초 기다리는 코드는 Workers에서는 CPU 몇 ms만 쓰지만 Lambda@Edge에서는 2초 전체가 실행 시간으로 과금되고 viewer 이벤트라면 5초 한도에 가까워진다. 호출 대기가 긴 로직일수록 Lambda@Edge로 옮긴 뒤 비용이 크게 뛴다.
+
+## Workers 요금 모델의 함정
+
+Workers 요금은 요청 수와 CPU 시간 두 축으로 나온다. 유료 플랜은 월 $5가 기본이고, 여기에 요청 1,000만 건과 CPU 3,000만 ms가 포함된다. 초과분은 요청 100만 건당 $0.30, CPU 100만 ms당 $0.02다. 무료 플랜은 하루 10만 요청이다. 최신 단가는 [Workers 요금 페이지](https://developers.cloudflare.com/workers/platform/pricing/)에서 확인한다.
+
+월 1억 요청에서 요청당 평균 CPU 시간이 5ms인 경우와 50ms인 경우를 계산하면 차이가 보인다.
+
+| 평균 CPU 시간 | 요청 비용 | CPU 비용 | 월 합계 |
+|--------------|----------|---------|--------|
+| 5ms | 9,000만 × $0.30/백만 = $27 | (5억 − 3,000만) ms × $0.02/백만 = $9.4 | 약 $41 ($5 기본료 포함) |
+| 50ms | $27 | (50억 − 3,000만) ms × $0.02/백만 = $99.4 | 약 $131 ($5 기본료 포함) |
+
+요청 수는 똑같은데 CPU 시간 10배가 비용을 3배 이상 올린다. I/O 위주 Worker는 CPU 시간이 거의 안 잡혀서 싸고, 압축·암호화·큰 JSON 파싱·이미지 처리가 들어가면 CPU 항이 요청 항을 넘어선다. 비용을 줄이려면 요청 수보다 핸들러 안의 CPU 시간부터 본다.
+
+실제로 자주 놓치는 함정은 이렇다.
+
+**정적 파일 요청도 전부 과금된다.** 라우트를 `example.com/*`로 걸면 이미지, CSS, JS까지 Worker를 거친다. 캐시 HIT여도 Worker가 먼저 실행되니 요청 수에 잡힌다. 페이지 하나에 정적 자산이 40개면 사용자 한 명이 Worker를 41번 호출한다. 라우트를 `example.com/api/*`처럼 좁히고 정적 경로는 Worker를 타지 않게 한다. 정적 사이트라면 [Cloudflare Pages](Cloudflare_Pages.md)가 더 맞다.
+
+**`waitUntil` 안의 CPU도 CPU 시간이다.** 응답을 먼저 보내고 뒤에서 로그를 직렬화하거나 분석 이벤트를 만드는 작업은 사용자 지연에는 안 보이지만 CPU 시간으로는 그대로 합산된다. 지연 지표가 좋아졌다고 비용이 같이 내려가지 않는다.
+
+**무료 플랜의 10ms가 개발과 운영에서 다르게 보인다.** 로컬 Miniflare에서는 통과하던 코드가 운영에서 1102 오류를 내는 경우가 있다. 앞의 "로컬 개발 시 주의사항"에서 다룬 내용이고, 요금제를 정할 때도 유료 플랜의 30초 한도가 느슨해 보여서 무거운 로직을 넣다가 CPU 비용이 늘어나는 경우가 생긴다.
+
+**저장소는 따로 과금된다.** 위 계산에는 KV 읽기·쓰기, Durable Objects 요청과 지속 시간, D1 행 읽기·쓰기가 들어 있지 않다. 엣지에서 카운터를 Durable Object로 처리하면 요청마다 DO 호출이 추가되고, 이 비용이 Worker 비용보다 큰 경우가 있다. Worker 비용만 보고 CloudFront Functions 대비 싸다고 결론 내리면 월말에 어긋난다.
+
+**비교 상대에 따라 결론이 뒤집힌다.** CloudFront Functions는 호출당 단가가 가장 낮지만 1ms 안에 끝나는 로직만 올라간다. 그 범위 안이면 Workers보다 CloudFront Functions가 싸다. 외부 호출이 있는 로직이면 Lambda@Edge가 비교 대상이고, 이때는 대기 시간이 과금되지 않는 Workers가 유리해지는 구간이 있다. 어느 구간인지는 평균 CPU 시간과 평균 대기 시간을 실제로 재 봐야 나온다.
+
+## 관련 문서
+
+- [Cloudflare vs CloudFront](Cloudflare_vs_Cloud_Front.md): CDN 전체 관점의 비교와 선택 기준
+- [CloudFront Functions와 Lambda@Edge](../AWS/Network/Cloud_Front_Functions_and_Lambda_at_Edge.md): 반대편 두 서비스의 한도와 구현
+- [CDN 적응형 썸네일](../AWS/Network/CDN_Adaptive_Thumbnail.md): Lambda@Edge로 만든 이미지 변환 구조
+- [Cloudflare R2](Cloudflare_R2.md), [Cloudflare Pages](Cloudflare_Pages.md): Workers와 같이 쓰는 저장소와 정적 호스팅

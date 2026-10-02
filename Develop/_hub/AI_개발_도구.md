@@ -1,7 +1,7 @@
 ---
 title: AI 개발 도구 허브
 tags: [ai, llm, rag, mcp]
-updated: 2026-08-04
+updated: 2026-09-24
 ---
 
 # AI 개발 도구 허브
@@ -69,6 +69,8 @@ updated: 2026-08-04
 | [LLM Context Window](../AI/Concepts/LLM_Context_Window.md) | RoPE·YaRN·Long Context·Prompt Caching 동작 원리 | 심화 |
 | [Prompt Caching](../AI/Concepts/Prompt_Caching.md) | Anthropic·Gemini 캐시 동작, TTL별 비용 계산식, 무효화 케이스 | 실무 |
 | [LangChain / LlamaIndex vs 순수 SDK](../AI/Concepts/Lang_Chain_vs_SDK.md) | 프레임워크 도입 비용·버전 의존성 문제, SDK 직접 구현과의 트레이드오프 | 실무 |
+| [LangChain LCEL 파이프라인](../AI/Concepts/Lang_Chain_LCEL.md) | 파이프 연산자로 Runnable을 조합하는 내부 구조, 타입 불일치로 파이프라인이 조용히 깨지는 패턴 | 실무 |
+| [LangChain Agent](../AI/Concepts/Lang_Chain_Agents.md) | AgentExecutor ReAct 루프 — Thought·Action·Observation 사이클, Tool 등록과 루프 무한 반복 원인 | 실무 |
 | [LLM 보안 위협과 대응](../AI/Concepts/LLM_Security.md) | Prompt Injection·PII 유출·Jailbreak·Guardrails | 실무 |
 | [바이브 코딩 보안 대처법](../AI/Concepts/Vibe_Coding_Security.md) | Slopsquatting·Prompt Injection·SAST 연동으로 위험 줄이기 | 실무 |
 | [AI 할루시네이션](../AI/Concepts/AI_Hallucination.md) | 코드 생성에서 할루시네이션이 발생하는 이유와 검증 전략 | 실무 |
@@ -288,9 +290,7 @@ Claude Code `.claude/settings.json`에 서버를 등록한다.
 | 주제 | 관련 문서 | 부족한 부분 |
 |---|---|---|
 | MCP 서버 구현 (TypeScript·Python) | [MCP 서버 직접 구현](../AI/MCP/MCP_Server_Implementation.md) | OAuth 2.1 인증 흐름 세부 없음 |
-| Prompt Caching 비용 최적화 | [Prompt Caching](../AI/Concepts/Prompt_Caching.md) | Anthropic·Gemini 동작 원리, TTL별 비용 계산, 무효화 케이스 |
 | AI 코드 리뷰 CI/CD 연동 | [UltraReview](../AI/Concepts/Ultra_Review.md) | Semgrep + LLM 파이프라인 구성 세부 없음 |
-| Tool Use 루프·병렬 호출 | [Tool Use / Function Calling](../AI/Concepts/Tool_Use.md) | 위의 기본 패턴으로 먼저 돌려볼 수 있음 |
 
 **문서 없음 — 필요하면 작성**
 

@@ -8,3 +8,4 @@ nav:
   - Cloudflare_WAF.md
   - Cloudflare_Pages.md
   - Cloudflare_vs_Cloud_Front.md
+  - CDN_Tiered_Cache_and_Origin_Shield.md
