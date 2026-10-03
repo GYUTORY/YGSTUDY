@@ -1,11 +1,11 @@
 ---
 title: Spring Boot 2.x vs 3.x 마이그레이션 의사결정
 tags: [java, spring, devops, observability]
-updated: 2026-04-28
+updated: 2026-10-03
 ---
 
 # Spring Boot 2.x vs 3.x 마이그레이션 의사결정
-이 문서는 Spring Boot 2.x와 3.x를 어떤 기준으로 비교하고, 마이그레이션을 언제 어떤 방식으로 결정해야 하는지를 다룬다. 실제 마이그레이션 실행 절차는 별도 문서(Spring_Boot_Migration_2_to_3.md)에서 다루므로, 여기서는 차이의 본질과 의사결정에 집중한다.
+이 문서는 Spring Boot 2.x와 3.x를 어떤 기준으로 비교하고, 마이그레이션을 언제 어떤 방식으로 결정해야 하는지를 다룬다. 실제 마이그레이션 실행 절차는 [Spring_Boot_Migration_2_to_3.md](Spring_Boot_Migration_2_to_3.md)에서 다루므로, 여기서는 차이의 본질과 의사결정에 집중한다.
 
 ## 왜 이 비교가 필요한가
 
@@ -32,64 +32,41 @@ Spring Boot 3.x는 단일 라이브러리 업그레이드가 아니다. 한 번�
 
 여기서 중요한 건 한 줄도 옵셔널이 아니라는 점이다. Spring Boot 3.x를 쓰려면 Java 17이 강제되고, Java EE는 강제로 Jakarta EE로 바뀌고, Tomcat 10은 Servlet 6 기반이라 9.x용 서블릿 필터가 그대로 안 돌아간다. 따라서 마이그레이션 견적을 낼 때 "Spring Boot만 올린다"는 시나리오는 존재하지 않는다.
 
+아래 도식은 위 표의 항목이 서로 어떻게 물려 있는지를 보여준다. 가운데 Jakarta EE 노드가 Tomcat과 Hibernate를 동시에 끌고 올라가는 축이고, Java 17은 Boot와 Framework 양쪽에서 걸린다. 한 칸만 떼어서 올릴 수 없는 이유가 이 그림이다.
+
+```mermaid
+flowchart LR
+    Boot["Spring Boot 3.x"] --> FW["Spring Framework 6"]
+    Boot --> Java["Java 17 이상"]
+    FW --> Java
+    FW --> Jakarta["Jakarta EE 9/10<br/>jakarta.* 패키지"]
+    FW --> Sec["Spring Security 6"]
+    Boot --> Data["Spring Data 2023.x"]
+    Jakarta --> Tomcat["Tomcat 10.1<br/>Servlet 6.0"]
+    Jakarta --> Hib["Hibernate ORM 6<br/>JPA 3.x"]
+    Jakarta --> Val["Hibernate Validator 8<br/>Bean Validation 3"]
+    Data --> Hib
+    Sec --> Tomcat
+```
+
+Spring Security 6가 Servlet 6 기반 컨테이너를 전제로 하고, Spring Data JPA가 Hibernate 6을 끌고 온다. 그래서 `javax`를 쓰는 서드파티 jar가 하나라도 남아 있으면 이 그래프의 어느 쪽에서든 런타임에 터진다.
+
 ### Spring Framework 6의 영향 범위
 
 Spring Framework 6은 Spring Boot 외부에서도 영향을 준다. 직접 `spring-context`나 `spring-web`을 의존하는 별도 모듈이 회사 내에 있다면 그 모듈도 같이 올라가야 한다. 보통 사내 공통 라이브러리(인증, 로깅, 메시징 SDK 등)가 여기 해당한다. 이 공통 라이브러리가 javax 기반인 채로 머물러 있으면 Spring Boot 3.x 애플리케이션 빌드 단계에서는 통과하지만 런타임에 `NoClassDefFoundError: javax/servlet/ServletException` 같은 형태로 터진다. 마이그레이션 우선순위에서 사내 공통 라이브러리를 가장 먼저 올려야 하는 이유다.
 
-## javax에서 jakarta로 - IDE 일괄 변환이 놓치는 것들
+## javax에서 jakarta로 - 견적에서 따로 떼어 볼 부분
 
-가장 단순해 보이지만 가장 사고가 많이 나는 영역이다. IntelliJ의 "Migrate javax.* to jakarta.*" 액션이나 OpenRewrite의 `JavaxMigrationToJakarta` 레시피로 한 번에 끝낼 수 있을 것 같지만, 정적 import 변환이 닿지 않는 영역이 네 가지 있다.
+가장 단순해 보이지만 가장 사고가 많이 나는 영역이다. IDE의 일괄 변환이나 OpenRewrite 레시피를 돌려도 import 문만 바뀌고, 컴파일러가 못 보는 곳에 `javax`가 남는다. 변환 절차와 코드 예제는 [Spring_Boot_Migration_2_to_3.md](Spring_Boot_Migration_2_to_3.md)의 javax → jakarta 절에 있고, 여기서는 견적에 반영해야 할 범위만 적는다.
 
-### 리플렉션과 문자열 클래스명
+| 남는 위치 | 증상이 드러나는 시점 | 찾는 방법 |
+|-----------|----------------------|-----------|
+| 문자열 FQCN (리플렉션, AOP 포인트컷, SpEL) | 운영에서 해당 메서드가 처음 호출될 때 `ClassNotFoundException` | `grep -rn "javax\." src/`로 import 외 줄을 직접 훑는다 |
+| 어노테이션 파라미터의 클래스 리터럴 (`@Constraint(validatedBy=...)`) | 빈 등록 시점에 `HV000074` | 사용자 정의 validator 구현체를 전수 확인 |
+| `persistence.xml`, `web.xml` 등 XML | `EntityManagerFactory` 부팅 실패 | namespace URL과 version을 같이 바꿨는지 grep |
+| 외부 jar (PG사, SMS, SSO SDK) | 빌드는 통과, 런타임에 `NoClassDefFoundError` | vendor에 jakarta 빌드를 요청하거나 `transformer-cli`로 jar를 변환해 사내 저장소에 올린다 |
 
-```java
-// 변환 도구가 잡지 못하는 케이스
-Class<?> clazz = Class.forName("javax.persistence.EntityManager");
-
-// AOP 포인트컷 표현식 안의 문자열
-@Around("@within(javax.transaction.Transactional)")
-public Object around(ProceedingJoinPoint pjp) { ... }
-
-// SpEL 표현식
-@PreAuthorize("T(javax.servlet.http.HttpServletRequest).METHOD_POST.equals(#req.method)")
-```
-
-이 세 줄은 빌드도 되고 IDE 경고도 안 뜬다. 하지만 런타임에 `ClassNotFoundException`이 난다. 마이그레이션 후 통합 테스트가 통과해도 운영에서 처음 호출되는 메서드에서 터지는 이유 대부분이 이것이다. 검출 방법은 `grep -rn "javax\." src/`로 텍스트 검색해서 import 외에 남아있는 문자열을 직접 훑는 것뿐이다.
-
-### 외부 라이브러리 미전환
-
-사내가 아닌 외부 OSS 중에 jakarta 버전이 없거나, 있어도 메이저 버전이 같이 올라가는 경우가 많다.
-
-- `org.apache.commons:commons-email` 1.x는 javax.mail, 2.x부터 jakarta.mail
-- `com.sun.mail:jakarta.mail`로 패키지명까지 바뀐 케이스
-- 결제 PG사, SMS 발송, 사내 SSO SDK처럼 vendor가 제공하는 jar 중 javax 의존이 박힌 채로 멈춘 것들
-
-이 경우 단순히 의존성 버전을 올리는 게 아니라 vendor에 jakarta 호환 빌드를 요청하거나, 바이트코드 레벨에서 패키지를 치환하는 `org.eclipse.transformer:transformer-cli`를 써서 jar를 변환해야 한다. 변환된 jar를 사내 nexus에 별도 group으로 올려서 임시로 쓰는 패턴이 흔하다.
-
-### 어노테이션 파라미터의 클래스 리터럴
-
-```java
-@JsonDeserialize(using = MyDeserializer.class)
-@Validated
-@Constraint(validatedBy = MyValidator.class)
-```
-
-`Constraint.validatedBy`가 `javax.validation.ConstraintValidator`를 구현한 클래스라면, IDE는 import만 바꾸고 슈퍼타입 호환성은 검증하지 않는다. 변환 후 컴파일이 통과해도 빈 등록 시점에 `IllegalStateException: HV000074`로 터진다. 사용자 정의 validator가 많은 프로젝트일수록 이 비용이 크다.
-
-### XML 설정과 properties
-
-`web.xml`, `persistence.xml`, `applicationContext.xml`은 IDE 자바 변환 액션의 대상에 포함되지 않는다.
-
-```xml
-<!-- persistence.xml - 그대로 두면 EntityManagerFactory 부팅 실패 -->
-<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence" version="2.2">
-  <!-- jakarta로 바꿔야 함 -->
-</persistence>
-
-<persistence xmlns="https://jakarta.ee/xml/ns/persistence" version="3.1">
-```
-
-namespace URL과 version 둘 다 바뀌었다. xsd 위치도 마찬가지다. 변환 도구를 돌렸다고 안심하지 말고 XML 파일은 따로 grep해서 확인해야 한다.
+네 번째 줄이 일정을 가장 많이 흔든다. vendor 응답이 한 달 걸리면 다른 작업이 다 끝나도 배포가 못 나간다. 의존성 매트릭스 분석에서 외부 SDK 조사를 제일 먼저 시작해야 하는 이유다.
 
 ## GraalVM Native Image - 마케팅과 실무의 간극
 
@@ -145,6 +122,25 @@ public class NativeHintsConfig implements RuntimeHintsRegistrar {
 ```
 
 `spring-boot-starter-test`로 돌리는 단위 테스트는 JVM 모드라 이 hints 누락을 감지하지 못한다. 반드시 `nativeTest` 단계까지 CI에 넣어야 한다. 누락된 클래스는 운영에서 처음 호출될 때 `MissingReflectionRegistrationException`으로 터진다.
+
+### 빌드 흐름에서 hints가 끼는 자리
+
+JVM 모드와 달리 Native Image는 빌드 시점에 도달 가능한 코드를 전부 확정한다(closed world). 그래서 런타임에 리플렉션으로 찾는 클래스는 빌드 전에 목록으로 넘겨야 한다. 아래 도식에서 AOT 단계가 만든 hints와 직접 등록한 `RuntimeHints`가 합쳐져 `native-image` 입력이 된다. 점선 쪽이 개발자가 놓치기 쉬운 경로다.
+
+```mermaid
+flowchart LR
+    Src["애플리케이션 소스<br/>+ 의존성 jar"] --> AOT["processAot<br/>빈 정의를 Java 코드로 생성"]
+    AOT --> Auto["자동 설정이 만든 hints"]
+    Own["RuntimeHintsRegistrar<br/>@RegisterReflectionForBinding"] -.-> Merge["reflect-config 등<br/>메타데이터 병합"]
+    Auto --> Merge
+    AOT --> Compile["생성 코드 컴파일"]
+    Merge --> NI["native-image<br/>도달 가능성 분석 + AOT 컴파일"]
+    Compile --> NI
+    NI --> Bin["네이티브 실행 파일"]
+    Bin --> NT["nativeTest<br/>hints 누락 검증"]
+```
+
+`processAot`가 만드는 hints는 Spring이 아는 범위(자동 설정, `@ConfigurationProperties` 바인딩, `@RegisterReflectionForBinding` 등)까지다. 사내 라이브러리가 리플렉션으로 읽는 DTO나 `Class.forName`으로 찾는 구현체는 점선 경로로 직접 넣어야 한다. 이 경로가 비어 있는 채로 빌드는 성공하고, `nativeTest` 단계를 안 돌리면 운영에서 처음 터진다.
 
 ### 의사결정 매트릭스
 
@@ -333,9 +329,99 @@ String name = jdbc.queryForObject(
 
 RestTemplate은 deprecated는 아니지만 maintenance mode다. Spring Framework 6.1에서 `RestClient`가 도입됐고 신규 코드는 RestClient 권장이다. 마이그레이션 자체에 이걸 같이 끼우면 PR이 비대해지므로, 마이그레이션 단계와 RestClient 전환은 분리하는 게 일반적이다.
 
+## 3.x 라인 안에서 따로 들어온 기능
+
+3.0으로 올린 직후에는 쓸 수 없고, 어느 마이너부터 되는지 알아야 하는 기능이 있다. "3.x로 올렸으니 다 된다"고 가정했다가 3.0이나 3.1에 멈춘 서비스에서 설정 키가 안 먹는 경우가 있다.
+
+| 기능 | 도입 시점 | 켜는 방법 | 주의할 점 |
+|------|-----------|-----------|-----------|
+| ProblemDetail (RFC 7807) | Framework 6.0, Boot 3.0 | `spring.mvc.problemdetails.enabled=true` | 기본값이 꺼짐. 켜면 Spring MVC 기본 예외의 응답 본문이 `application/problem+json`으로 바뀌어 클라이언트 파서가 깨질 수 있다 |
+| HTTP Interface (`@HttpExchange`) | Framework 6.0, Boot 3.0 | `HttpServiceProxyFactory`로 프록시 빈 생성 | 3.0에서는 WebClient 어댑터만 있었고, RestClient 어댑터는 3.2에서 붙었다. 자동 설정은 없어 팩토리를 직접 빈으로 등록한다 |
+| 가상 스레드 | Boot 3.2 | `spring.threads.virtual.enabled=true` | Java 21 필수. Java 17에서는 설정을 넣어도 적용되지 않으니 런타임 버전을 먼저 확인한다 |
+
+세 기능은 모두 선택 사항이다. 마이그레이션 PR에 끼워 넣으면 견적이 두 배가 된다는 앞의 경고가 그대로 적용된다.
+
+### ProblemDetail
+
+`@ExceptionHandler`마다 `Map`이나 사내 `ErrorResponse` 클래스를 만들던 자리를 표준 포맷이 대신한다.
+
+```java
+@RestControllerAdvice
+class ApiExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    ProblemDetail handle(OrderNotFoundException e) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+        pd.setTitle("주문을 찾을 수 없음");
+        pd.setProperty("orderId", e.getOrderId());
+        return pd;
+    }
+}
+```
+
+사내 공통 에러 포맷(`code`, `message`)을 쓰는 서비스는 `ProblemDetail`로 바꾸는 순간 응답 스키마가 달라진다. 모바일 앱이 `message` 필드를 읽고 있으면 앱 배포와 맞물려야 하므로 마이그레이션과 같은 릴리스에 넣지 않는다.
+
+### HTTP Interface
+
+`RestTemplate`을 감싼 사내 클라이언트 클래스를 인터페이스 선언으로 줄인다.
+
+```java
+@HttpExchange("/users")
+interface UserClient {
+    @GetExchange("/{id}")
+    UserResponse find(@PathVariable long id);
+}
+
+@Bean
+UserClient userClient(RestClient.Builder builder) {
+    RestClient client = builder.baseUrl("https://user-api.internal").build();
+    return HttpServiceProxyFactory
+            .builderFor(RestClientAdapter.create(client))
+            .build()
+            .createClient(UserClient.class);
+}
+```
+
+`RestClientAdapter`는 3.2(Framework 6.1) 이상이다. 3.0, 3.1에서는 같은 코드가 컴파일되지 않고 `WebClientAdapter`를 써야 해서 서블릿 스택 프로젝트에 `spring-webflux` 의존이 추가된다.
+
+### 가상 스레드
+
+```yaml
+spring:
+  threads:
+    virtual:
+      enabled: true
+```
+
+한 줄로 Tomcat 요청 스레드와 `@Async`용 `applicationTaskExecutor`가 가상 스레드로 바뀐다. 요청 스레드 수 제한이 사라져도 DB 커넥션 풀 크기(`HikariCP` 기본 10)는 그대로라, 트래픽이 몰리면 대기 지점이 스레드에서 풀로 옮겨갈 뿐이다. Java 21~23에서는 `synchronized` 블록 안에서 블로킹 I/O를 하면 캐리어 스레드가 고정(pinning)되므로, `synchronized`를 쓰는 구형 JDBC 드라이버나 사내 SDK가 있는지 확인하고 켠다.
+
+3.x 마이너 버전을 단계별로 올리는 순서는 `Spring_Boot_3_Minor_Version_Upgrade_Path.md`를 본다.
+
 ## 의사결정 - 언제 미루고 언제 진행할지
 
-순수 기술 관점이 아니라 비즈니스 관점에서 판단해야 한다.
+순수 기술 관점이 아니라 비즈니스 관점에서 판단해야 한다. 네 가지 질문에 답하면 세 갈래로 나뉜다. 2.7 지원 상태, Java 17 가능 여부, 서드파티 jakarta 대응, 네이티브 이미지 필요 여부 순서로 본다. Native Image는 마이그레이션 여부와 별개 질문이라 마지막에 붙는 분기로 그렸다.
+
+```mermaid
+flowchart TD
+    Start["2.7 사용 중"] --> Q1{"2.7 지원 종료가<br/>감사·보안 인증에 걸리는가"}
+    Q1 -- "걸림" --> Q2{"Java 17 런타임<br/>가능한가"}
+    Q1 -- "안 걸림, 1년 내 폐기 예정" --> Defer["미뤄도 됨<br/>2.7 유지"]
+    Q1 -- "안 걸림, 계속 운영" --> Q2
+    Q2 -- "불가 (OS·컨테이너 이미지 제약)" --> Prep["Java 17 전환을 먼저<br/>Boot는 2.7 그대로"]
+    Prep --> Q2
+    Q2 -- "가능" --> Q3{"핵심 서드파티가<br/>jakarta 대응했는가"}
+    Q3 -- "전부 대응" --> Q4{"멀티 모듈·MSA인가"}
+    Q3 -- "일부 미대응" --> Wait["vendor 빌드 요청 또는<br/>transformer 변환 후 진행<br/>불가하면 미룸"]
+    Wait --> Q4
+    Q4 -- "모놀리식" --> Full["지금 시작<br/>한 번에 전환"]
+    Q4 -- "멀티 모듈·MSA" --> Part["부분 마이그레이션<br/>공통 라이브러리 먼저<br/>트레이싱·캐시·JMS 격리"]
+    Full --> Q5{"cold start·메모리가<br/>비용에 직결되는가"}
+    Part --> Q5
+    Q5 -- "예" --> Native["Native Image 별도 평가<br/>nativeTest 포함"]
+    Q5 -- "아니오" --> JVM["JVM 모드로 종료"]
+```
+
+다이아몬드 두 개가 갈림길을 만든다. Q2에서 Java 17이 안 되면 Boot와 상관없이 런타임부터 올려야 하고, 이건 Spring 변경 없이 2.7에서 먼저 끝낼 수 있다. Q3의 "일부 미대응"은 단순 보류가 아니라 대응 시점을 vendor에 물어서 일정을 확정하는 작업이다. 아래 세 절은 각 갈래의 근거다.
 
 ### 지금 당장 시작해야 하는 경우
 
@@ -353,7 +439,7 @@ RestTemplate은 deprecated는 아니지만 maintenance mode다. Spring Framework
 
 ### 부분 마이그레이션의 함정
 
-가장 흔한 실패 패턴이 "일부 모듈만 먼저 3.x로 올리고 나머지는 나중에" 전략이다. 모놀리식이면 강제로 한 번에 가야 하니 문제가 없다. 하지만 멀티 모듈 빌드, 또는 마이크로서비스 환경에서 다음 함정이 자주 터진다.
+가장 흔한 실패 패턴이 "일부 모듈만 먼저 3.x로 올리고 나머지는 나중에" 방식이다. 모놀리식이면 강제로 한 번에 가야 하니 문제가 없다. 하지만 멀티 모듈 빌드, 또는 마이크로서비스 환경에서 다음 함정이 자주 터진다.
 
 - **공통 라이브러리 분기**: 같은 사내 라이브러리의 2.x용/3.x용을 동시 유지해야 함. 버그 수정 시 양쪽 패치 필수
 - **메시지 큐 호환성**: Kafka/RabbitMQ는 괜찮지만, JMS는 javax.jms vs jakarta.jms 컨버터 충돌
@@ -401,6 +487,7 @@ EOL 일정상 2025년 후반 이후에는 미루는 비용이 진행하는 비�
 
 ## 같이 보기
 
-- 실행 절차와 단계별 명령은 `Spring_Boot_Migration_2_to_3.md` 참조
+- 실행 절차와 단계별 명령은 [Spring_Boot_Migration_2_to_3.md](Spring_Boot_Migration_2_to_3.md) 참조
+- 3.x 마이너 버전 단계별 업그레이드는 `Spring_Boot_3_Minor_Version_Upgrade_Path.md`
 - Spring Security 6의 자세한 변경은 `Spring_Security.md`
 - Spring Data JPA / Hibernate 관련은 `Spring_Data_JPA.md`

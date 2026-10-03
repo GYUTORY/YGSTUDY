@@ -1,7 +1,7 @@
 ---
 title: Java EE (Jakarta EE)
 tags: [language, java]
-updated: 2026-03-30
+updated: 2026-10-03
 ---
 
 # Java EE (Jakarta EE)
@@ -13,6 +13,19 @@ Java EE(Java Platform, Enterprise Edition)는 서블릿, JPA, EJB, JMS 등 엔�
 ---
 
 ## javax에서 jakarta로의 전환
+
+버전이 바뀔 때마다 무엇이 깨지는지 한 줄로 놓으면 이렇다. 9에서만 소스와 바이너리 호환이 끊기고, 나머지는 기능 추가나 이름 변경이다.
+
+```mermaid
+flowchart LR
+    A["J2EE 1.4<br/>2003"] -->|"EJB 3 어노테이션 도입<br/>EJB 2.x 코드 재작성"| B["Java EE 5~8<br/>2006~2017"]
+    B -->|"패키지 그대로 javax.*<br/>거버넌스만 이전"| C["Jakarta EE 8<br/>2019"]
+    C -->|"javax.* 에서 jakarta.* 로<br/>import, XML 네임스페이스, 서드파티 전부 깨짐"| D["Jakarta EE 9<br/>2020"]
+    D -->|"CDI Lite, Core Profile<br/>Java 11 이상 필수"| E["Jakarta EE 10<br/>2022"]
+    E -->|"Java 17 이상 필수<br/>레거시 스펙 제거"| F["Jakarta EE 11<br/>2024"]
+```
+
+Jakarta EE 8은 이름만 바뀌었으므로 `javax.*` 코드를 그대로 쓴다. 문제는 9에서 시작된다. 9는 기능 변화 없이 패키지 이름만 바꾼 릴리스라서, 코드를 한 줄도 고치지 않았는데 라이브러리 버전만 올려도 부팅이 안 되는 상황이 생긴다. 10 이후로는 패키지가 그대로이고 Java 버전 요구만 올라간다.
 
 ### 네임스페이스 변경
 
@@ -65,6 +78,61 @@ Jakarta EE 전환 시기에 라이브러리마다 지원 버전이 다르다. Hi
 **Eclipse Transformer**
 
 대규모 프로젝트에서는 Eclipse Transformer 같은 도구로 바이트코드 레벨에서 `javax` → `jakarta` 변환을 자동화하는 방법도 있다. 하지만 리플렉션으로 클래스 이름을 문자열로 참조하는 코드는 변환되지 않으니 주의해야 한다.
+
+Spring Boot 프로젝트에서 이 전환을 겪는 경우라면 Boot 3 업그레이드 절차와 의존성 정리 순서를 [Spring Boot 2에서 3 마이그레이션](../../../Framework/Java/Spring/Spring_Boot_Migration_2_to_3.md)에서 따로 다룬다. 이 문서는 컨테이너와 스펙 쪽, 그 문서는 Spring과 빌드 설정 쪽이다.
+
+### WAR가 어느 Tomcat에서 뜨는가
+
+WAR 안의 코드가 `javax.servlet`을 쓰는지 `jakarta.servlet`을 쓰는지와 Tomcat 메이저 버전이 맞아야 한다. 맞지 않아도 Tomcat은 WAR를 거부하는 경우보다 배포는 성공하고 요청만 처리하지 못하는 경우가 훨씬 많다.
+
+```mermaid
+flowchart TB
+    W["WAR 배포"] --> Q1{"WAR 안의 코드가 쓰는 패키지"}
+    Q1 -->|"javax.servlet"| Q2{"Tomcat 버전"}
+    Q1 -->|"jakarta.servlet"| Q3{"Tomcat 버전"}
+    Q2 -->|"9 이하"| OK1["정상 배포"]
+    Q2 -->|"10 이상"| Q4{"webapps-javaee 에 넣었나"}
+    Q4 -->|"예"| CONV["시작 시 바이트코드 변환<br/>javax 를 jakarta 로 바꿔 webapps 에 배포"]
+    Q4 -->|"아니오, webapps 직접"| BAD1["서블릿, 필터 로드 실패<br/>ClassNotFoundException<br/>또는 컨텍스트만 뜨고 404"]
+    CONV --> OK2["정상 배포<br/>변환 못 한 문자열 참조는 별도 확인"]
+    Q3 -->|"10 이상"| OK3["정상 배포"]
+    Q3 -->|"9 이하"| BAD2["컨테이너가 jakarta 클래스를 모름<br/>ClassNotFoundException 또는 404"]
+```
+
+Tomcat 10부터 `webapps-javaee` 디렉터리가 생겼다. Java EE 8 이하용으로 만든 WAR를 이 디렉터리에 넣으면 Tomcat이 `javax`를 `jakarta`로 변환한 결과를 `webapps`에 풀어 배포한다. 반대 방향, 즉 Jakarta WAR를 Tomcat 9에 올리는 경우를 위한 변환은 없다. 그쪽은 빌드 단계에서 Jakarta 의존성을 `javax` 계열로 되돌려야 한다.
+
+**Tomcat 9에 Jakarta WAR를 올렸을 때**
+
+Spring Boot 3로 올린 프로젝트의 WAR를 기존 Tomcat 9 서버에 그대로 복사하면 겪는다. Tomcat 9는 `javax.servlet.*`만 알고 있다.
+
+- 로그에 `java.lang.ClassNotFoundException: jakarta.servlet.ServletContext`나 `jakarta.servlet.Filter`가 찍히면서 컨텍스트 시작이 실패한다. 이때 Manager 화면에서는 앱이 stopped 상태다.
+- 시작은 성공하는데 모든 요청이 404인 경우도 있다. Tomcat 9는 `META-INF/services/javax.servlet.ServletContainerInitializer`만 찾기 때문에, `jakarta.servlet.ServletContainerInitializer`를 구현한 Spring 6의 초기화 클래스가 호출되지 않는다. DispatcherServlet이 등록되지 않은 빈 컨텍스트가 떠 있는 셈이다. `localhost.log`에 에러가 없어서 원인을 찾기 어렵다.
+- `@WebServlet`, `@WebFilter`를 `jakarta.servlet.annotation` 패키지에서 import한 클래스도 스캔 대상이 되지 않아 같은 식으로 조용히 무시된다.
+
+확인은 `catalina.out`이 아니라 `$CATALINA_BASE/logs/localhost.<날짜>.log`와 `catalina.<날짜>.log` 두 곳을 본다. 시작 실패 스택트레이스는 보통 `localhost.log`에 있다. 서버 버전은 `bin/version.sh`로 확인한다.
+
+**webapps-javaee 마이그레이션 도구 사용법**
+
+반대 경우, 즉 `javax` 기반의 기존 WAR를 Tomcat 10 이상으로 옮기는 경우에 쓴다.
+
+```bash
+# Tomcat 10.1 기준
+cp legacy-app.war $CATALINA_HOME/webapps-javaee/
+$CATALINA_HOME/bin/startup.sh
+# webapps 에 변환된 legacy-app.war 가 생기고 legacy-app 디렉터리로 풀린다
+```
+
+변환은 `webapps-javaee`에 있는 WAR를 Tomcat 시작 시점에 처리하는 것이 기본 동작이다. WAR를 새 버전으로 교체할 때는 `webapps`에 남은 이전 결과물(`webapps/legacy-app*`)을 지우고 다시 넣는다. 이전 결과물이 남은 채로 두면 새 WAR가 반영됐는지 확인하기 어렵다. 실행 중에 넣었을 때의 동작은 버전별로 차이가 있을 수 있어 사용 중인 버전의 문서를 확인한다.
+
+같은 변환기를 단독 실행 파일로도 받을 수 있다. 배포 전에 CI에서 변환해서 결과를 확인하려는 경우에 이쪽을 쓴다.
+
+```bash
+# Tomcat 배포판의 lib/jakartaee-migration-*-shaded.jar 사용
+java -jar $CATALINA_HOME/lib/jakartaee-migration-*-shaded.jar \
+    legacy-app.war legacy-app-jakarta.war
+```
+
+변환기가 못 바꾸는 것도 있다. 문자열로 `"javax.servlet.http.HttpServletRequest"`를 쓰는 리플렉션, 외부 설정 파일에 적힌 `javax.*` 클래스 이름, 변환 대상 라이브러리 안에서 `Class.forName`으로 조립하는 이름이 그렇다. 변환 후에도 부팅 로그에서 `javax`가 들어간 `ClassNotFoundException`을 한 번은 grep해 봐야 한다. 변환기는 임시 수단이고, 오래 쓸 코드라면 소스에서 import를 바꾸고 의존성을 Jakarta 버전으로 올려서 다시 빌드하는 쪽이 낫다.
 
 ---
 
@@ -351,6 +419,29 @@ EJB 3.x(2006)에서 어노테이션 기반으로 대폭 개선되었지만, 이�
 ## CDI vs Spring DI
 
 CDI(Contexts and Dependency Injection)는 Java EE의 의존성 주입 표준이다. Spring DI와 비슷한 목적이지만 동작 방식에 차이가 있다.
+
+EJB, CDI, Spring 세 가지는 "누가 객체를 만들고 어떤 경로로 주입하는가"가 다르다. EJB는 서버가 풀(pool)에서 꺼내 프록시로 넘기고, CDI는 컨테이너가 스코프별 컨텍스트에서 찾으며, Spring은 ApplicationContext의 싱글톤 맵에서 꺼낸다.
+
+```mermaid
+flowchart TB
+    subgraph EJB["EJB"]
+        E1["@EJB 또는 JNDI lookup"] --> E2["EJB 컨테이너"]
+        E2 --> E3["인스턴스 풀"]
+        E3 --> E4["컨테이너 프록시<br/>트랜잭션, 보안 인터셉트"]
+    end
+    subgraph CDI["CDI"]
+        C1["@Inject + Qualifier"] --> C2["Bean Manager"]
+        C2 --> C3["스코프 컨텍스트<br/>Request, Session, Application"]
+        C3 --> C4["클라이언트 프록시<br/>호출마다 현재 스코프 인스턴스 조회"]
+    end
+    subgraph SPR["Spring DI"]
+        S1["@Autowired 또는 생성자 주입"] --> S2["ApplicationContext"]
+        S2 --> S3["BeanDefinition 으로 생성된 싱글톤 맵"]
+        S3 --> S4["필요한 빈만 AOP 프록시<br/>@Transactional 등"]
+    end
+```
+
+세 방식 모두 호출자가 받는 것은 실제 객체가 아니라 프록시인 경우가 많다. 다만 EJB와 CDI는 컨테이너가 모든 빈을 프록시로 감쌀 수 있고, Spring은 어드바이스가 붙는 빈만 감싼다. 그래서 `@RequestScoped` 빈을 `@ApplicationScoped` 빈에 주입하면 CDI는 호출마다 올바른 인스턴스로 연결해 주지만, Spring은 `@RequestScope`의 프록시 모드가 기본으로 켜져 있는 어노테이션 대신 `@Scope("request")`를 `proxyMode` 없이 쓰면 부팅 시점에 "No thread-bound request" 오류가 난다.
 
 ### 스코프 관리
 

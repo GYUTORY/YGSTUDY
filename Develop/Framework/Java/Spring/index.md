@@ -9,7 +9,7 @@ hide:
 
 # Spring 전체 보기
 
-문서 29개.
+문서 34개.
 
 ## DI와 Bean
 
@@ -55,6 +55,11 @@ hide:
 - [Gradle vs Maven](Gradle__vs__Maven.md)
 - [Boot 2.x vs 3.x 의사결정](Boot2.0__vs__Boot3.0.md)
 - [Boot 2.x→3.x 마이그레이션](Spring_Boot_Migration_2_to_3.md)
+- [Jakarta 전환 도구](Jakarta_Migration_Tooling.md)
+- [Boot 3 웹 계층 변경점](Spring_Boot_3_Web_Layer_Changes.md)
+- [Hibernate 6 업그레이드 함정](Hibernate_6_Migration_Pitfalls.md)
+- [Spring Batch 5 전환](Spring_Batch_5_Migration.md)
+- [Boot 3.x 마이너 업그레이드 경로](Spring_Boot_3_Minor_Version_Upgrade_Path.md)
 
 ## 개요
 

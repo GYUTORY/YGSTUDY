@@ -9,23 +9,28 @@ hide:
 
 # Framework · Java 전체 보기
 
-문서 30개.
+문서 35개.
 
 ## Spring
 
 - [Gradle vs Maven (빌드 도구 비교)](Spring/Gradle__vs__Maven.md)
+- [Hibernate 6 업그레이드에서 깨지는 것들](Spring/Hibernate_6_Migration_Pitfalls.md)
 - [JPA @Lock 어노테이션 종류 비교](Spring/JPA_Lock_Annotations.md)
 - [JPA 소프트 삭제 (deleted_at)](Spring/JPA_Soft_Delete.md)
+- [Jakarta 전환 도구와 이진 의존성 처리](Spring/Jakarta_Migration_Tooling.md)
 - [Lombok 보조 어노테이션](Spring/Lombok_Minor_Annotations.md)
 - [Project Lombok](Spring/Lombok.md)
 - [SLF4J (Simple Logging Facade for Java)](Spring/SLF4J.md)
 - [Spring AOP & 트랜잭션 심화](Spring/AOP_트랜잭션.md)
 - [Spring Actuator Micrometer 심화](Spring/Spring_Actuator_Micrometer.md)
 - [Spring Batch](Spring/Spring_Batch.md)
+- [Spring Batch 5 전환 (Boot 2 에서 3 으로)](Spring/Spring_Batch_5_Migration.md)
 - [Spring Bean 개념과 사용법](Spring/Bean.md)
 - [Spring Bean 심화](Spring/Spring_Bean_심화.md)
 - [Spring Boot 2.x vs 3.x 마이그레이션 의사결정](Spring/Boot2.0__vs__Boot3.0.md)
 - [Spring Boot 2.x → 3.x 마이그레이션 심화](Spring/Spring_Boot_Migration_2_to_3.md)
+- [Spring Boot 3 웹 계층에서 조용히 달라지는 동작](Spring/Spring_Boot_3_Web_Layer_Changes.md)
+- [Spring Boot 3.x 마이너 업그레이드 경로 (3.0 이후 3.5 까지)](Spring/Spring_Boot_3_Minor_Version_Upgrade_Path.md)
 - [Spring Boot Profiles 심화](<Spring/Spring Boot Profiles.md>)
 - [Spring Boot Rate Limiting 구현](Spring/Rate_Limiting.md)
 - [Spring Boot 로깅](Spring/Spring_Logging.md)
