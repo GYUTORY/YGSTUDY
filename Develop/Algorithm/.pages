@@ -5,6 +5,7 @@ nav:
   - 시간복잡도와 공간복잡도: Time_Complexity.md
   - 정렬 알고리즘: Sorting.md
   - Binary Search: Binary_Search.md
+  - Skip List: Skip_List.md
   - Dynamic Programming:
     - 동적 계획법: Dynamic_Programming.md
     - 심화: Dynamic_Programming_Advanced.md

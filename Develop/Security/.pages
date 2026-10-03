@@ -43,6 +43,7 @@ nav:
     - Command Injection: Command_Injection.md
     - 안전하지 않은 역직렬화: Insecure_Deserialization.md
     - ReDoS: ReDoS.md
+    - 프로토타입 오염: Prototype_Pollution.md
     - XXE 주입: XML_External_Entity.md
     - Path Traversal: Path_Traversal.md
     - Open Redirect: Open_Redirect.md
