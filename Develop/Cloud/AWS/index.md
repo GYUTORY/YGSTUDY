@@ -9,7 +9,7 @@ hide:
 
 # AWS 전체 보기
 
-문서 186개.
+문서 187개.
 
 ## AI
 
@@ -121,12 +121,13 @@ hide:
 - [Aurora MySQL vs RDS for MySQL 상세 비교](Database/Aurora_DB.md)
 - [Aurora MySQL 메이저 버전 업그레이드 (2.x → 3.x)](Database/Aurora_Version_Upgrade.md)
 - [Aurora MySQL에서의 JSON 타입 실무](Database/Aurora_My_SQL_JSON.md)
-- [Performance Insights로 RDS 성능 진단하기](Database/RDS_Performance_Insights.md)
 - [RDS Backup & Snapshot](Database/RDS_Backup_Snapshot.md)
 - [RDS Blue/Green Deployment](Database/RDS_Blue_Green_Deployment.md)
 - [RDS Multi-AZ](Database/RDS_Multi_AZ.md)
 - [RDS Parameter Groups](Database/RDS_Parameter_Groups.md)
+- [RDS Performance Insights (쿼리 성능 분석과 대기 이벤트 해석)](Database/RDS_Performance_Insights.md)
 - [RDS Storage](Database/RDS_Storage.md)
+- [RDS 대기 이벤트 참조 (MySQL·PostgreSQL 이벤트별 원인과 확인 쿼리)](Database/RDS_Wait_Events_Reference.md)
 - [RDS 보안](Database/RDS_Security.md)
 
 ## Load Balancer

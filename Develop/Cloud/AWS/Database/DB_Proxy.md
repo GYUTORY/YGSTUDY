@@ -1,7 +1,7 @@
 ---
 title: AWS DB Proxy
-tags: [aws, database, rdbms, cloud]
-updated: 2026-04-26
+tags: [aws, database, rdbms, postgresql, monitoring, cloud]
+updated: 2026-10-05
 ---
 
 # AWS DB Proxy
@@ -14,7 +14,7 @@ RDS Proxy는 애플리케이션과 RDS/Aurora 사이에 끼는 완전관리형 �
 
 ## 2. 도입을 고민할 시점
 
-다음 상황 중 하나에 해당하면 Proxy 도입을 검토할 만하다.
+아래 상황 중 하나에 해당하면 Proxy 도입을 검토할 만하다.
 
 - Lambda 동시 실행 수가 100을 넘어가면서 DB의 `max_connections`에 근접하고 있다
 - ECS task가 오토스케일링으로 늘어났을 때 DB 연결이 폭증한다
@@ -27,11 +27,64 @@ RDS Proxy는 애플리케이션과 RDS/Aurora 사이에 끼는 완전관리형 �
 
 Proxy의 풀링은 클라이언트 연결 N개가 백엔드 DB 연결 M개를 공유하는 구조다. 이상적으로는 N >> M이 되어야 의미가 있다. 그런데 실무에서 "왜 백엔드 연결이 클라이언트 연결만큼 많지?"라는 일이 자주 생기는데, 거의 대부분 Pinning이 원인이다.
 
+아래 flowchart는 같은 클라이언트 연결이 두 갈래로 나뉘는 모습이다. 위쪽 갈래는 쿼리나 트랜잭션이 끝날 때마다 백엔드 연결을 풀에 돌려주고, 아래쪽 핀닝 갈래는 세션이 끝날 때까지 백엔드 연결 하나를 혼자 쥐고 있다. 풀에 남는 연결은 핀닝 갈래가 늘수록 줄어든다.
+
+```mermaid
+flowchart LR
+    subgraph App["애플리케이션 (클라이언트 연결 N개)"]
+        L1["Lambda A"]
+        L2["Lambda B"]
+        E1["ECS task"]
+    end
+    subgraph Proxy["RDS Proxy"]
+        CP["클라이언트 연결 수락<br/>ClientConnections"]
+        POOL["백엔드 연결 풀<br/>max_connections_percent"]
+        PIN["핀닝된 백엔드 연결<br/>세션 종료까지 1:1 점유"]
+    end
+    DB[("RDS / Aurora<br/>max_connections")]
+    L1 --> CP
+    L2 --> CP
+    E1 --> CP
+    CP -->|"트랜잭션 단위로 빌리고 반환"| POOL
+    CP -->|"SET, prepare 등을 만난 세션"| PIN
+    POOL -->|"M개를 공유"| DB
+    PIN -->|"세션 수만큼 점유"| DB
+```
+
 ### 3.1 Pinning이 발생하는 조건
 
-Proxy가 클라이언트 세션을 특정 백엔드 연결에 고정시키는 것을 Pinning(핀닝)이라고 한다. 핀이 박힌 연결은 풀로 반환되지 않고 클라이언트가 연결을 끊을 때까지 점유된다. 즉 그 시간 동안 풀링 효과가 사라진다.
+Proxy가 클라이언트 세션을 특정 백엔드 연결에 고정시키는 것을 Pinning(핀닝)이라고 한다. 핀이 박힌 연결은 풀로 반환되지 않고 클라이언트가 연결을 끊을 때까지 점유된다. 그 시간 동안 풀링 효과가 사라진다.
 
-MySQL에서 Pinning이 일어나는 대표적인 케이스는 다음과 같다.
+아래 sequenceDiagram은 세션 A가 `SET`을 보내는 순간부터 백엔드 연결 1이 A 전용이 되고, 풀에 남은 연결이 줄어 세션 C가 대기하는 과정이다. 핀닝 전의 `SELECT 1`은 연결을 빌렸다가 바로 돌려주지만, `SET` 이후의 쿼리는 전부 같은 연결로 간다.
+
+```mermaid
+sequenceDiagram
+    participant A as 세션 A
+    participant B as 세션 B
+    participant C as 세션 C
+    participant P as RDS Proxy
+    participant D1 as 백엔드 연결 1
+    participant D2 as 백엔드 연결 2
+
+    A->>P: SELECT 1
+    P->>D1: 풀에서 연결 1을 빌려 실행
+    D1-->>P: 결과
+    P-->>A: 결과 전달, 연결 1은 풀로 반환
+    A->>P: SET time_zone = '+09:00'
+    P->>D1: 연결 1에 세션 상태 설정, 핀닝
+    Note over A,D1: 이후 A의 쿼리는 세션 종료까지 연결 1로만 간다
+    B->>P: SELECT 2
+    P->>D2: 풀에서 연결 2를 빌려 실행
+    D2-->>P: 결과
+    P-->>B: 결과 전달, 연결 2는 풀로 반환
+    B->>P: SET @v = 1
+    P->>D2: 연결 2도 핀닝
+    C->>P: SELECT 3
+    Note over P: 풀에 빌려줄 연결이 없다
+    Note over C,P: connection_borrow_timeout까지 대기하다 실패
+```
+
+MySQL에서 Pinning이 일어나는 대표적인 케이스를 꼽으면 이렇다.
 
 - `SET` 문으로 세션 변수 변경 (`SET autocommit`, `SET time_zone`, `SET names` 등)
 - 사용자 정의 변수 사용 (`SET @var = 1`, `SELECT @var := 1`)
@@ -54,13 +107,34 @@ PostgreSQL은 조건이 조금 다르다.
 
 CloudWatch에서 풀링이 제대로 되고 있는지 가장 빠르게 확인할 수 있는 메트릭은 `DatabaseConnectionsCurrentlySessionPinned`다. 이 값이 `DatabaseConnections` 대비 얼마나 차지하는지가 풀 효율의 직접적인 지표가 된다.
 
-해석 기준을 잡으면:
+해석 기준은 이렇게 잡는다.
 
 - 핀닝 비율 10% 미만: 풀링이 정상 작동 중
 - 10~50%: 일부 세션이 핀닝됨, ORM/드라이버 설정 점검 필요
 - 50% 이상: 사실상 풀링이 안 되는 상태, 풀러를 둔 의미가 없음
 
-Performance Insights에서 `EnhancedMonitoring`을 켜면 어떤 SQL이 핀닝을 유발했는지 RDS Proxy logs에서 추적할 수 있다. 로그에 `The client session was pinned to the database connection ... for the remainder of the session. Reason: ...` 형태로 핀닝 사유가 남는다. 이걸 `aws logs filter-log-events`로 한 번 훑어보면 어떤 패턴 때문에 풀이 망가지는지 바로 잡힌다.
+어떤 SQL이 핀닝을 유발했는지는 Performance Insights로 추적하지 못한다. PI는 DB 엔진 안의 활성 세션을 샘플링하는 기능이라 Proxy 내부의 세션 고정 여부를 모른다. 이름이 비슷한 기능이 셋이라 PI나 Enhanced Monitoring을 켜 놓고 핀닝 로그를 찾는 실수가 흔하다.
+
+| 이름 | 실제 대상 | 핀닝 추적과의 관계 |
+|---|---|---|
+| Performance Insights | DB 인스턴스의 활성 세션·대기 이벤트 샘플링 | 없음. Proxy가 DB로 보낸 쿼리만 보인다 |
+| Enhanced Monitoring (`monitoring_interval`) | DB 인스턴스 OS 지표(CPU, 메모리, 프로세스) | 없음. Proxy와 무관한 인스턴스 설정이다 |
+| Proxy enhanced logging (API `DebugLogging`, Terraform `debug_logging`) | Proxy가 CloudWatch Logs에 쓰는 로그의 상세도 | 있음. 핀닝 사유와 SQL 문 수준 정보가 로그 그룹에 남는다 |
+
+핀닝 사유는 프록시 로그 그룹 `/aws/rds/proxy/<프록시 이름>`에 `The client session was pinned to the database connection ... for the remainder of the session. Reason: ...` 형태로 남는다. SQL 문 단위 상세까지 필요하면 Proxy 설정에서 enhanced logging을 켠다. 이 설정은 로그량이 크게 늘고 콘솔에서 켜면 24시간 뒤 자동으로 꺼지는 디버깅용이라, 켠 시점과 로그를 본 시점을 같이 적어 둔다. CloudWatch Logs Insights에서 사유별로 세면 어떤 패턴 때문에 풀이 망가지는지 한 번에 보인다.
+
+```
+fields @timestamp, @message
+| filter @message like /pinned to the database connection/
+| parse @message /Reason: (?<reason>.*)/
+| stats count(*) as pinned_sessions by reason
+| sort pinned_sessions desc
+```
+
+```bash
+aws rds modify-db-proxy --db-proxy-name myapp-proxy --debug-logging
+aws rds modify-db-proxy --db-proxy-name myapp-proxy --no-debug-logging
+```
 
 ### 3.3 prepared statement 핀닝의 함정
 
@@ -75,6 +149,29 @@ PgBouncer를 써본 사람은 `pool_mode = transaction`과 `pool_mode = session`
 이 동작 때문에 PostgreSQL에서 한 가지 주의할 점이 생긴다. `BEGIN`만 보내고 다음 쿼리를 한참 안 보내는 클라이언트가 있으면, 그동안 백엔드 연결이 점유된 채로 풀에 못 돌아간다. 이걸 `idle_in_transaction` 상태라고 하는데, RDS PostgreSQL은 `idle_in_transaction_session_timeout` 파라미터로 강제 종료할 수 있지만 Proxy 자체는 트랜잭션 중인 연결을 강제로 회수하지 않는다.
 
 실무에서는 RDS 파라미터 그룹에 `idle_in_transaction_session_timeout = 30000` (30초) 정도를 설정해두는 편이 안전하다. 트랜잭션을 열어두고 외부 API를 호출하는 코드가 어딘가 숨어 있으면 풀이 순식간에 고갈된다. MySQL에서도 비슷하게 `wait_timeout`을 짧게 잡아두면 좀비 트랜잭션이 백엔드 연결을 잡고 있는 시간을 줄일 수 있다.
+
+아래 sequenceDiagram은 `BEGIN` 뒤에 외부 API를 호출하는 코드가 백엔드 연결을 얼마나 오래 붙잡는지 보여준다. 단발 쿼리는 끝나는 즉시 풀로 돌아가지만, 트랜잭션 안에서는 `COMMIT`이 올 때까지 연결이 반환되지 않는다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant P as RDS Proxy
+    participant D as 백엔드 연결
+
+    C->>P: SELECT 1 (단발 쿼리)
+    P->>D: 풀에서 연결을 빌려 실행
+    D-->>P: 결과
+    P-->>C: 결과 전달, 연결은 즉시 풀로 반환
+    C->>P: BEGIN
+    P->>D: 연결을 빌려 트랜잭션 시작
+    Note over C,D: 클라이언트가 외부 API를 호출하는 동안 쿼리를 보내지 않는다
+    Note over P,D: idle in transaction, 연결은 풀로 돌아가지 못한다
+    Note over D: idle_in_transaction_session_timeout 이 지나면 DB가 세션을 종료한다
+    C->>P: COMMIT
+    P->>D: 커밋 실행
+    D-->>P: 완료
+    P-->>C: 완료 전달, 이제 연결이 풀로 반환된다
+```
 
 세션 수준 동작이 강제되는 케이스(앞서 본 핀닝 조건)에서는 transaction-level의 장점이 사라지기 때문에, 핀닝 모니터링과 `idle_in_transaction` 모니터링은 같이 봐야 한다.
 
@@ -141,6 +238,27 @@ in-flight query 동작도 알아둬야 한다. failover 순간에 진행 중이�
 
 write 쿼리는 retry가 위험하다. failover 시점에 해당 트랜잭션이 커밋됐는지 안 됐는지 클라이언트가 확신할 수 없기 때문이다. 멱등성 키(idempotency key)나 `INSERT ... ON CONFLICT DO NOTHING`으로 중복 실행에 안전하게 만들어 두지 않으면 retry로 데이터를 망가뜨릴 수 있다.
 
+아래 sequenceDiagram은 failover 순간 in-flight query가 실패하고, 애플리케이션이 retry하면 Proxy가 새 writer로 보내는 순서다. 클라이언트가 보는 엔드포인트는 그대로이고 바뀌는 것은 Proxy 뒤의 백엔드 라우팅뿐이다.
+
+```mermaid
+sequenceDiagram
+    participant C as 애플리케이션
+    participant P as RDS Proxy
+    participant W1 as 기존 writer
+    participant W2 as 새 writer
+
+    C->>P: 쿼리 요청
+    P->>W1: 쿼리 전달
+    Note over W1,W2: failover 시작, standby가 promote된다
+    P-->>C: 에러 반환 (Communications link failure 등)
+    Note over P: Proxy는 자동 retry하지 않는다
+    Note over P,W2: promote가 끝나면 백엔드 라우팅이 새 writer로 바뀐다
+    C->>P: retry (idempotent read, 또는 멱등성 키가 있는 write)
+    P->>W2: 쿼리 전달
+    W2-->>P: 결과
+    P-->>C: 결과 전달
+```
+
 ## 7. Aurora Reader endpoint vs Proxy Read-only endpoint
 
 Aurora를 쓰면 원래 reader endpoint가 있다. 그러면 Proxy의 read-only endpoint는 뭐가 다른가?
@@ -159,7 +277,28 @@ writer 쿼리를 read-only endpoint에 보내면 둘 다 에러가 나는 건 �
 
 ## 8. Secrets Manager 자격증명 로테이션 이슈
 
-Secrets Manager가 자격증명을 자동 로테이션할 때 일시적인 인증 실패가 발생할 수 있다. 동작 순서가 이렇다.
+Secrets Manager가 자격증명을 자동 로테이션할 때 일시적인 인증 실패가 발생할 수 있다. 동작 순서는 아래 sequenceDiagram과 같고, 인증 실패는 DB가 새 password를 받은 뒤 Proxy가 값을 갱신하기 전 구간에서 난다.
+
+```mermaid
+sequenceDiagram
+    participant SM as Secrets Manager
+    participant R as 로테이션 Lambda
+    participant DB as RDS / Aurora
+    participant P as RDS Proxy
+
+    SM->>R: 새 password 생성 후 로테이션 호출
+    R->>DB: ALTER USER 로 새 password 적용
+    R->>SM: AWSCURRENT 라벨을 새 password로 이동
+    Note over DB,P: DB는 새 password, Proxy는 아직 옛 password
+    P->>DB: 신규 백엔드 연결 (옛 password)
+    DB-->>P: 인증 실패
+    P->>SM: 변경 감지 후 새 secret 조회
+    SM-->>P: 새 password
+    P->>DB: 신규 백엔드 연결 (새 password)
+    DB-->>P: 인증 성공
+```
+
+단계별로 적으면 이렇다.
 
 1. Secrets Manager가 새 password 생성
 2. Lambda 로테이션 함수가 DB에 새 password 적용 (`ALTER USER ... PASSWORD ...`)
@@ -168,7 +307,7 @@ Secrets Manager가 자격증명을 자동 로테이션할 때 일시적인 인�
 
 3번과 4번 사이에 Proxy가 아직 이전 password를 쓰고 있는데 DB는 이미 새 password를 받았다면, 그 동안의 신규 백엔드 연결은 인증 실패한다. 이 시간이 짧으면 수 초, 길면 수십 초까지 갈 수 있다.
 
-대응 방법은 다음과 같다.
+대응 방법은 세 가지다.
 
 - 로테이션 함수에서 `multi-user` 패턴을 쓴다. AWS가 제공하는 RDS rotation Lambda 템플릿 중 `single-user`와 `multi-user`가 있는데, multi-user는 두 개의 DB 사용자를 번갈아 사용한다. 로테이션 시점에 한쪽 사용자가 점진적으로 전환되므로 인증 실패 윈도우가 거의 없다
 - 애플리케이션 레벨에서 인증 실패 시 짧은 backoff retry를 둔다. 1초 sleep 후 한 번 더 시도하면 대부분 통과한다
@@ -191,7 +330,50 @@ Secrets Manager가 자격증명을 자동 로테이션할 때 일시적인 인�
 1. CloudWatch에서 `DatabaseConnections` vs `MaxDatabaseConnections` 비교. 100% 근접이면 풀 부족
 2. `DatabaseConnectionsCurrentlySessionPinned` 비율 확인. 높으면 핀닝이 원인
 3. `MaxDatabaseConnections`는 `max_connections_percent`(기본 100)와 RDS 인스턴스의 `max_connections` 파라미터 곱이다. RDS `max_connections`가 충분한지 확인
-4. RDS Performance Insights에서 long-running query 또는 `idle in transaction` 세션 확인
+4. `idle in transaction` 세션 확인. PI 그래프가 아니라 `pg_stat_activity`로 직접 센다. 이유는 아래에 푼다
+
+아래 flowchart는 위 네 단계를 분기로 그린 것이다. 어느 지표가 먼저 이상한지에 따라 원인이 갈린다.
+
+```mermaid
+flowchart TD
+    S["connection borrow timeout 발생"] --> Q1{"DatabaseConnections가<br/>MaxDatabaseConnections의 100%에 근접?"}
+    Q1 -->|"아니오"| Q4{"pg_stat_activity에서<br/>idle in transaction 세션이 많은가?"}
+    Q1 -->|"예"| Q2{"DatabaseConnectionsCurrentlySessionPinned<br/>비율이 높은가?"}
+    Q2 -->|"예"| R1["핀닝이 원인<br/>ORM/드라이버 설정 점검"]
+    Q2 -->|"아니오"| Q3{"max_connections_percent × max_connections<br/>가 충분한가?"}
+    Q3 -->|"아니오"| R2["RDS max_connections 또는<br/>max_connections_percent 상향 검토"]
+    Q3 -->|"예"| Q4
+    Q4 -->|"예"| R3["idle in transaction이 연결을 점유<br/>idle_in_transaction_session_timeout 설정"]
+```
+
+#### idle in transaction이 PI에서 보이는 모습
+
+풀이 가득 찼는데 PI의 DB Load(AAS)가 평평한 경우가 있다. PI의 AAS는 같은 순간에 쿼리를 실행 중인 활성 세션 수의 평균이다. `idle in transaction` 세션은 `BEGIN` 이후 다음 문장을 기다리며 쿼리를 돌리지 않으므로, 100개가 백엔드 연결을 쥐고 있어도 AAS에는 거의 올라오지 않는다. Proxy 입장에서는 연결 100개가 묶인 장애인데 PI만 보면 DB가 한가해 보인다.
+
+PI에서 보이는 흔적은 두 가지다.
+
+- 이 세션들이 잡은 행 락을 기다리는 다른 세션이 `Lock:transactionid`로 쌓인다. 이때 AAS가 오르지만 원인은 대기하는 쪽이 아니라 락을 쥔 쪽이다.
+- `Client:ClientRead`는 서버가 클라이언트 입력을 기다리는 이벤트다. `pg_stat_activity`에서는 `idle in transaction` 세션에도 이 이벤트가 찍히지만, PI 그래프에서는 활성 상태로 입력을 기다리는 세션(대량 COPY, 왕복이 많은 ORM, 네트워크 지연)이 두꺼운 띠로 나온다. Proxy를 거치면 서버가 기다리는 상대는 앱이 아니라 Proxy이므로, 이 띠가 두꺼워도 앱 지연이라고 단정하지 말고 Proxy와 DB 사이 구간도 의심한다.
+
+PI 슬라이스에서 호스트 차원으로 나눠도 접속 주체가 전부 Proxy 주소 하나로 나와 어느 앱이 범인인지 가려지지 않는다. 마지막으로 실행한 쿼리 텍스트로 앱을 추적한다.
+
+```sql
+-- 상태·대기 이벤트별 세션 수. idle in transaction + ClientRead가 많은지 본다
+SELECT state, wait_event_type, wait_event, count(*)
+FROM pg_stat_activity
+WHERE backend_type = 'client backend'
+GROUP BY 1, 2, 3
+ORDER BY count(*) DESC;
+
+-- 오래 열려 있는 쪽부터 마지막 쿼리와 함께
+SELECT pid, usename, now() - xact_start AS xact_age, left(query, 80) AS last_query
+FROM pg_stat_activity
+WHERE state = 'idle in transaction'
+ORDER BY xact_start
+LIMIT 20;
+```
+
+PI에서 이 구분이 어떻게 나오는지는 직접 확인해 두는 편이 낫다. 테스트 인스턴스에서 세션 몇 개로 `BEGIN`만 보내고 방치한 뒤 PI의 AAS와 위 쿼리 결과를 같이 보면 된다. 엔진 버전과 PI 설정에 따라 표시가 다를 수 있다. 대기 이벤트별 해석은 [RDS_Performance_Insights.md](RDS_Performance_Insights.md)의 3절(AAS)과 6.4절(Client와 IPC), `Lock:transactionid` 추적은 6.1절에 있다. 근본 대응은 4절에서 본 `idle_in_transaction_session_timeout`이다.
 
 `max_connections_percent`를 200처럼 100 이상으로 설정할 수도 있다. 이건 클라이언트 연결 N개에 대해 백엔드를 N의 200%까지 띄울 수 있다는 게 아니라, RDS 인스턴스의 `max_connections` 대비 비율이다. 100을 넘기면 burst 트래픽을 받을 때 잠깐 더 띄울 수 있는 여지가 생기지만, 실제로 많이 쓰지는 않는다.
 
@@ -230,7 +412,7 @@ CloudWatch에서 봐야 하는 메트릭과 해석 기준을 묶어둔다.
 
 `DatabaseConnectionsBorrowLatency`가 늘어나기 시작하면 borrow timeout이 곧 발생한다는 신호다. timeout이 실제로 터지기 전에 alarm을 걸어두면 대응 시간을 벌 수 있다.
 
-쿼리 로깅이 필요하면 `EnhancedMonitoring`을 켠다. 다만 로그 양이 많아지므로 운영 환경에서는 평소엔 끄고 디버깅 시점에만 켜는 패턴을 쓴다. 토큰 발급 로그까지 다 남기면 비용이 빠르게 늘어난다.
+SQL 단위 로그가 필요하면 Proxy의 enhanced logging(`DebugLogging`)을 켠다. Enhanced Monitoring은 DB 인스턴스의 OS 지표 수집이라 이 용도가 아니다. enhanced logging은 로그 양이 많아 운영 환경에서는 평소엔 끄고 디버깅 시점에만 켜는 패턴을 쓴다. 로그를 다 남기면 CloudWatch Logs 비용이 빠르게 늘어난다.
 
 ## 11. 코드 예제
 
@@ -295,6 +477,7 @@ resource "aws_db_proxy" "main" {
   engine_family          = "MYSQL"
   idle_client_timeout    = 1800
   require_tls            = true
+  debug_logging          = false # enhanced logging. 핀닝 조사 때만 true
   role_arn               = aws_iam_role.rds_proxy.arn
   vpc_security_group_ids = [aws_security_group.proxy.id]
   vpc_subnet_ids         = aws_subnet.private[*].id

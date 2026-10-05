@@ -1,7 +1,7 @@
 ---
 title: RDS Storage
-tags: [aws, database, encryption, cloud]
-updated: 2026-07-25
+tags: [aws, database, encryption, cloud, rdbms, performance, monitoring, observability]
+updated: 2026-10-05
 ---
 
 # RDS Storage
@@ -77,6 +77,48 @@ io2 Block Express는 Oracle RAC 같은 극단적인 IOPS 요구 사항이 있을
 
 io2는 IOPS 사용량에 따라 단가가 다르다. 처음 32,000 IOPS는 $0.10/IOPS, 이후 구간은 단가가 낮아진다.
 
+### 유형별 IOPS·처리량 한도 비교
+
+유형을 고를 때 먼저 볼 것은 IOPS 상한이 어디서 정해지느냐다. gp2는 볼륨 크기가 정하고, gp3는 설정값이 정하고, io1·io2는 설정값에 크기 비율 제한이 걸린다. 아래 그림은 네 유형이 볼륨 한도를 만드는 입력과, 그 뒤에 인스턴스 클래스의 EBS 한도가 한 번 더 걸리는 구조를 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph G2["gp2"]
+        G2S["볼륨 크기 GiB"] -->|"x 3"| G2B["기준 IOPS 100~16,000"]
+        G2B --> G2C["크레딧이 남으면 3,000까지 버스트"]
+    end
+    subgraph G3["gp3"]
+        G3I["IOPS 설정 기본 3,000"]
+        G3T["처리량 설정 기본 125 MB/s"]
+    end
+    subgraph IO1["io1"]
+        IO1I["IOPS 설정<br/>크기 1 GiB당 최대 50"]
+    end
+    subgraph IO2["io2 Block Express"]
+        IO2I["IOPS 설정<br/>크기 1 GiB당 최대 1,000"]
+    end
+    G2C --> VOL["볼륨 한도"]
+    G3I --> VOL
+    G3T --> VOL
+    IO1I --> VOL
+    IO2I --> VOL
+    VOL --> INST["인스턴스 클래스의 EBS 한도"]
+    INST --> EFF["실제로 나오는 IOPS·처리량<br/>둘 중 낮은 쪽"]
+```
+
+| 유형 | IOPS를 정하는 것 | 최대 IOPS | 최대 처리량 | 버스트 |
+|------|------------------|-----------|-------------|--------|
+| gp2 | 크기 x 3 (최소 100) | 16,000 | 250 MB/s | 1,000 GiB 미만에서 3,000까지, 크레딧 소진 시 기준값 |
+| gp3 | IOPS 설정값 | 16,000 | 1,000 MB/s | 없음. 설정한 값이 항상 나옴 |
+| io1 | IOPS 설정값 (크기의 50배 이내) | 64,000 | 1,000 MB/s | 없음 |
+| io2 Block Express | IOPS 설정값 (크기의 1,000배 이내) | 256,000 | 4,000 MB/s | 없음 |
+
+수치는 [EBS 범용 SSD 문서](https://docs.aws.amazon.com/ebs/latest/userguide/general-purpose.html)와 [Provisioned IOPS SSD 문서](https://docs.aws.amazon.com/ebs/latest/userguide/provisioned-iops.html)의 볼륨 사양이다. RDS는 엔진과 스토리지 크기 구간에 따라 허용 범위와 볼륨 구성이 달라질 수 있어서, 변경하기 전에 콘솔의 입력 가능 범위나 RDS 공식 문서로 확인해야 한다.
+
+IOPS와 처리량은 따로 닿는다. 처리량은 대략 IOPS x I/O 크기다. 16 KiB 단위 I/O로 16,000 IOPS를 채우면 250 MiB/s이고, 풀 스캔처럼 큰 단위로 읽는 쿼리는 IOPS가 한참 남아도 처리량 한도에 먼저 닿는다. gp3에서 IOPS만 올리고 처리량을 기본 125 MB/s로 둔 채 분석 쿼리를 돌리면, `ReadIOPS`는 여유인데 `ReadLatency`만 오르는 모양이 나온다.
+
+한 가지 더 있다. 볼륨 한도를 올려도 인스턴스 클래스가 감당하는 EBS 대역폭이 그보다 작으면 의미가 없다. io1 64,000 IOPS를 설정했는데 작은 클래스에서 그만큼 안 나오는 경우가 이 때문이다. 이 한도에 닿았는지는 IOPS 병목 진단 절의 `EBSIOBalance%`, `EBSByteBalance%`로 본다.
+
 ---
 
 ## 엔진별 최대 스토리지 한도
@@ -91,7 +133,7 @@ io2는 IOPS 사용량에 따라 단가가 다르다. 처음 32,000 IOPS는 $0.10
 | Oracle | 64 TiB |
 | SQL Server | 16 TiB |
 
-SQL Server는 다른 엔진의 1/4 수준이다. SQL Server 기반 워크로드를 설계할 때 이 제한을 처음부터 고려해야 한다. 16 TiB를 넘어서는 데이터는 파티셔닝이나 아카이브 전략을 별도로 세워야 한다.
+SQL Server는 다른 엔진의 1/4 수준이다. SQL Server 기반 워크로드를 설계할 때 이 제한을 처음부터 고려해야 한다. 16 TiB를 넘어서는 데이터는 파티셔닝이나 아카이브 방식을 별도로 정해야 한다.
 
 Aurora는 RDS 스토리지 제한과 별도로 동작한다. Aurora는 128 TiB까지 자동으로 확장되며, 스토리지 타입 개념이 없다.
 
@@ -103,11 +145,44 @@ gp2는 버스트 크레딧 잔액이 있을 때 최대 3,000 IOPS까지 올라�
 
 ### 버스트 크레딧 계산 방식
 
-- 크레딧 적립: 1초당 (기본 IOPS - 현재 소비 IOPS) × 1 크레딧
-- 최대 크레딧 잔액: 스토리지 크기 × 3,600 I/O 크레딧 (초기 잔액 기준으로 환산)
-- 100 GiB 볼륨 기준 초기 크레딧 = 540만 크레딧, 3,000 IOPS 버스트로 소진하면 약 50분
+- 크레딧 버킷은 볼륨당 5,400,000 크레딧이고 처음에는 가득 차 있다. 볼륨 크기와 무관하다.
+- 적립: 기준 IOPS보다 덜 쓰는 만큼 1초에 그 차이만큼 쌓인다.
+- 소비: 기준 IOPS를 넘겨 쓰는 만큼 1초에 그 차이만큼 빠진다.
+- 3,000 IOPS 상한으로 계속 쓸 때 소진 시간은 `5,400,000 / (3,000 - 기준 IOPS)`초다.
+- 기준 IOPS가 3,000인 1,000 GiB 이상 볼륨에는 버스트가 없다.
 
-실제 문제 상황: 평소에는 문제없다가 배포 후 트래픽이 몰리거나 대용량 쿼리가 실행될 때 갑자기 DB 응답이 느려지는 경우다. CloudWatch의 `BurstBalance` 지표가 0%에 가까워지면 버스트 크레딧 고갈이 원인일 가능성이 높다.
+| 볼륨 크기 | 기준 IOPS | 3,000 IOPS로 계속 쓸 때 소진까지 |
+|-----------|-----------|----------------------------------|
+| 100 GiB | 300 | 2,000초 (약 33분) |
+| 200 GiB | 600 | 2,250초 (약 38분) |
+| 500 GiB | 1,500 | 3,600초 (60분) |
+| 1,000 GiB | 3,000 | 버스트 없음 |
+
+공식([EBS 범용 SSD 문서](https://docs.aws.amazon.com/ebs/latest/userguide/general-purpose.html))으로 계산한 값이고 RDS 인스턴스에서 측정한 값은 아니다. 크기가 클수록 오래 버티는 것처럼 보이지만 기준 IOPS가 같이 올라가기 때문이고, 소진 뒤에 떨어지는 값도 그 기준 IOPS다. 100 GiB는 33분 뒤 초당 300으로, 500 GiB는 60분 뒤 초당 1,500으로 내려간다.
+
+실제 문제 상황: 평소에는 문제없다가 배포 후 트래픽이 몰리거나 대용량 쿼리가 실행될 때 갑자기 DB 응답이 느려지는 경우다. 평균 IOPS가 기준값의 70~80% 근처에서 하루 종일 도는 DB는 버킷이 거의 안 쌓인 채로 지내다가, 야간 배치 한 번에 바닥을 본다. CloudWatch의 `BurstBalance` 지표가 0%에 가까워지면 버스트 크레딧 고갈이 원인일 가능성이 높다.
+
+### 크레딧 소진이 쿼리 지연이 되는 경로
+
+크레딧이 떨어진 순간 쿼리가 바로 느려지는 것이 아니다. 볼륨이 기준 IOPS로 제한되고, 요청이 큐에 쌓이고, 지연이 오르고, 그 시간 동안 세션이 IO 대기 상태로 머무르면서 DB Load(AAS)가 올라가는 순서다. 아래 그림은 이 연쇄와 함께, 쿼리가 느려진 앱이 재시도와 커넥션을 늘리면서 큐를 더 채우는 되먹임을 보여준다.
+
+```mermaid
+flowchart TD
+    A["배치나 트래픽 증가로 요청 IOPS가 기준 IOPS를 넘음"] --> B["버스트 크레딧 소비<br/>BurstBalance 하락"]
+    B --> C["BurstBalance 0 근처<br/>볼륨 IOPS가 기준값으로 제한"]
+    C --> D["ReadIOPS, WriteIOPS가 기준값에서 평평해짐"]
+    C --> E["DiskQueueDepth 상승"]
+    E --> F["ReadLatency, WriteLatency 상승"]
+    F --> G["세션이 IO 대기에 오래 머묾<br/>PI에서 IO 계열 대기 이벤트 증가"]
+    G --> H["DB Load(AAS) 증가"]
+    H --> I["쿼리 응답 시간 증가"]
+    I --> J["앱 타임아웃, 재시도, 커넥션 풀 확대"]
+    J -->|"세션과 요청이 더 쌓임"| E
+```
+
+AAS가 오르는 이유는 요청 수가 늘어서가 아니다. AAS는 동시에 활성인 세션 수의 평균이라서 대략 초당 도착하는 쿼리 수 x 쿼리 하나가 걸리는 시간이다. 도착하는 쿼리 수가 그대로여도 쿼리당 시간이 IO 대기 때문에 늘면 AAS가 같이 올라간다. 그래서 트래픽 그래프는 평평한데 DB Load만 치솟는 모양이 나온다.
+
+IOPS 쪽 신호는 반대로 간다. 요청이 늘어도 볼륨이 기준값 이상 처리하지 못하니 `ReadIOPS + WriteIOPS` 합은 기준 IOPS 선에 눕고, 지연만 오른다. 큐 길이는 대략 IOPS x 지연(초)이므로 기준 IOPS 300에서 지연이 20ms면 `DiskQueueDepth`는 6 근처가 된다. IOPS 그래프가 천장에 붙은 채 큐와 지연이 오르는 모양이 gp2 소진의 지문이다. 커넥션 풀을 키우면 이 큐가 더 길어지기만 한다.
 
 해결 방법은 두 가지다. 스토리지를 늘려 기본 IOPS를 높이거나, gp3로 전환해 크레딧 방식 자체를 없애는 것이다. gp3는 버스트 크레딧 개념이 없고 기본 3,000 IOPS를 항상 제공한다.
 
@@ -131,6 +206,25 @@ RDS 스토리지 오토스케일링을 활성화하면 용량이 부족할 때 �
 
 예를 들어 100 GiB 스토리지에서 오토스케일이 트리거되면 최소 10 GiB(10%)가 추가된다. 하루에 2 GiB씩 증가하는 패턴이면 14 GiB를 예측해 적용한다.
 
+세 조건은 AND로 묶이고, 통과한 뒤 늘어날 크기는 세 후보 중 최댓값이 된다. 아래 그림에서 어느 조건 하나라도 빠지면 확장이 일어나지 않는다는 점을 보면 된다.
+
+```mermaid
+flowchart TD
+    A["여유 스토리지 확인"] --> B{"여유 공간이<br/>할당 용량의 10% 미만인가"}
+    B -->|"아니오"| N["확장하지 않음"]
+    B -->|"예"| C{"5분 이상 지속되었는가"}
+    C -->|"아니오"| N
+    C -->|"예"| D{"마지막 스토리지 수정 후<br/>6시간이 지났는가"}
+    D -->|"아니오"| N
+    D -->|"예"| E["확장 크기 계산"]
+    E --> F["후보 1: 현재 크기의 10%"]
+    E --> G["후보 2: 7일치 성장 예측량"]
+    E --> H["후보 3: 최소 5 GiB"]
+    F --> I["가장 큰 값만큼 확장"]
+    G --> I
+    H --> I
+```
+
 ### 주의사항
 
 오토스케일링이 트리거된 이후 다시 트리거되려면 6시간을 기다려야 한다. 갑자기 대용량 데이터가 들어오는 상황에서는 이 인터벌이 문제가 된다. 오토스케일링을 믿고 최소 용량으로 운영하기보다는 여유 있게 잡아두는 편이 낫다.
@@ -151,6 +245,18 @@ RDS는 스토리지를 줄이는 기능을 제공하지 않는다. 한 번 늘�
 2. 스냅샷에서 새 인스턴스 생성 시 더 작은 스토리지 크기 지정
 3. 애플리케이션을 새 인스턴스로 전환
 4. 기존 인스턴스 삭제
+
+아래 그림은 이 우회 경로의 분기를 보여준다. 새 스토리지 크기가 실제 데이터 크기보다 작으면 복원 단계에서 막히므로, 크기 확인이 맨 앞에 온다.
+
+```mermaid
+flowchart TD
+    A["실제 사용 중인 데이터 크기 확인"] --> B["현재 DB 인스턴스의 스냅샷 생성"]
+    B --> C{"새 스토리지 크기가<br/>실제 데이터 크기 이상인가"}
+    C -->|"아니오"| X["복원 실패<br/>크기를 다시 정한다"]
+    C -->|"예"| D["스냅샷에서 새 인스턴스 생성<br/>더 작은 스토리지 크기 지정"]
+    D --> E["애플리케이션을 새 인스턴스로 전환<br/>다운타임 발생"]
+    E --> F["기존 인스턴스 삭제"]
+```
 
 단, 스냅샷 복원 시 실제 데이터 크기보다 작은 스토리지를 지정하면 실패한다. 현재 실제 사용 중인 데이터 크기를 먼저 확인해야 한다.
 
@@ -193,6 +299,22 @@ Multi-AZ 환경에서 스토리지를 변경하면 처리 순서가 다르다.
 
 이 방식 덕분에 실제 서비스 영향 시간은 Failover에 걸리는 몇 초 수준으로 줄어든다. 하지만 전체 변경 작업이 완료되는 데는 Single-AZ보다 오래 걸린다. 두 인스턴스에 순차적으로 적용되기 때문이다.
 
+아래 순서도에서 애플리케이션이 영향을 받는 구간은 Failover 한 지점뿐이고, 나머지 변경은 모두 Standby 쪽에서 진행된다는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant App as 애플리케이션
+    participant P as Primary
+    participant S as Standby
+    App->>P: 쿼리 처리 중
+    Note over S: 1. 스토리지 변경 적용
+    S-->>P: 변경 완료
+    P->>S: 2. Failover 수행
+    Note over P,S: 몇 초 동안 연결 끊김
+    App->>S: Standby가 Primary로 승격되어 쿼리 처리
+    Note over P: 3. 기존 Primary에 변경 적용
+```
+
 Multi-AZ 환경에서 스토리지 변경 중 Failover가 발생하면 기존 Primary가 Standby 역할을 맡아 변경 작업을 이어받는다. 변경 작업이 완전히 끝날 때까지 추가 변경 요청은 블록된다.
 
 ---
@@ -206,6 +328,18 @@ Multi-AZ 환경에서 스토리지 변경 중 Failover가 발생하면 기존 Pr
 암호화를 활성화하면 스토리지, 자동 백업, Read Replica, 스냅샷 모두 동일한 KMS 키로 암호화된다. KMS 키는 AWS 관리형 키(`aws/rds`)나 고객 관리형 키(CMK) 중 선택한다.
 
 스냅샷 복원 시 암호화 키를 교체하거나 암호화되지 않은 스냅샷을 암호화된 인스턴스로 복원하는 것은 가능하다.
+
+기존 인스턴스를 암호화하는 경로는 인스턴스를 직접 바꾸는 방식이 아니라 스냅샷 사본을 만들면서 KMS 키를 붙이는 방식이다. 아래 그림에서 암호화가 걸리는 지점은 스냅샷 복사 단계이고, 마지막 전환 단계에서 엔드포인트가 바뀐다.
+
+```mermaid
+flowchart LR
+    A["암호화되지 않은 DB 인스턴스"] --> B["스냅샷 생성"]
+    B --> C["스냅샷 복사<br/>KMS 키 지정"]
+    C --> D["암호화된 스냅샷"]
+    D --> E["스냅샷에서 새 인스턴스 복원"]
+    E --> F["암호화된 DB 인스턴스"]
+    F --> G["애플리케이션을 새 엔드포인트로 전환"]
+```
 
 ### 스토리지 타입과 암호화의 관계
 
@@ -298,6 +432,9 @@ DB가 느려질 때 CPU나 메모리보다 먼저 스토리지 IOPS를 의심해
 | `BurstBalance` | gp2 크레딧 잔량 (%) |
 | `ReadThroughput` | 초당 읽기 처리량 (bytes) |
 | `WriteThroughput` | 초당 쓰기 처리량 (bytes) |
+| `EBSIOBalance%` | 인스턴스 클래스의 EBS IOPS 버스트 잔량. 해당 클래스에서만 나온다 |
+| `EBSByteBalance%` | 인스턴스 클래스의 EBS 대역폭 버스트 잔량. 해당 클래스에서만 나온다 |
+| `DBLoad`, `DBLoadCPU`, `DBLoadNonCPU` | PI를 켜면 CloudWatch에 올라오는 DB Load(AAS). CPU 성분과 그 외 대기 성분 |
 
 `DiskQueueDepth`가 1을 넘어가면 I/O 요청이 쌓이고 있다는 신호다. 지속적으로 1 이상이면 프로비저닝된 IOPS가 부족한 상태다.
 
@@ -305,19 +442,110 @@ DB가 느려질 때 CPU나 메모리보다 먼저 스토리지 IOPS를 의심해
 
 ### Performance Insights로 확인
 
-Performance Insights의 `db load` 그래프에서 대기 이벤트를 확인할 수 있다. `wait/io/file/innodb/innodb_data_file` (MySQL) 또는 `io` 관련 대기 이벤트 비중이 높으면 스토리지 I/O가 병목이다.
+CloudWatch 지표는 볼륨이 얼마나 막혔는지를 보여주고, Performance Insights(PI)는 그 막힘 때문에 어떤 쿼리가 얼마나 서 있는지를 보여준다. 둘 중 하나만 보면 반쪽이다. `DiskQueueDepth`가 올라도 DB가 그 시간에 한가했다면 서비스 영향이 없고, PI에서 IO 대기가 높아도 스토리지가 멀쩡하면 원인은 쿼리 쪽이다.
+
+PI의 `db load` 그래프를 대기 이벤트로 나눴을 때 IO 계열이 큰 비중을 차지하면 스토리지 I/O를 의심한다. 엔진별로 보이는 이름은 이렇다.
+
+| 엔진 | 데이터 읽기·쓰기 | 쓰기(로그·커밋) |
+|------|------------------|-----------------|
+| MySQL | `io/file/innodb/innodb_data_file` | `io/file/innodb/innodb_log_file` |
+| PostgreSQL | `IO:DataFileRead` | `IO:WALWrite`, `IO:WALSync` |
+| Aurora | Aurora 스토리지 계층 이벤트. EBS 지표는 해당 없음 | `IO:XactSync`, `io/aurora_redo_log_flush` |
+
+이벤트별 원인과 확인 쿼리는 [RDS_Wait_Events_Reference.md](RDS_Wait_Events_Reference.md)의 [io/file/innodb/innodb_data_file](RDS_Wait_Events_Reference.md#32-iofileinnodbinnodb_data_file)와 [IO:DataFileRead, IO:XactSync, IO:WALWrite](RDS_Wait_Events_Reference.md#43-iodatafileread-ioxactsync-iowalwrite)에 정리돼 있다. PI 자체를 켜고 AAS를 읽는 방법은 [RDS_Performance_Insights.md](RDS_Performance_Insights.md)에 있다. 이 문서에서는 IO 대기 이벤트가 떴을 때 스토리지 지표를 어떻게 맞춰 읽는지만 다룬다.
+
+#### 같은 시간축에 올리기
+
+PI 콘솔과 CloudWatch 콘솔을 창 두 개로 띄워 놓고 눈으로 맞추면 자주 어긋난다. 조회 구간 길이가 다르면 집계 단위가 달라지고, 시간대 표시도 콘솔 설정에 따라 달라서 10분짜리 변화가 한 칸 안에 뭉개지거나 한 시간씩 밀려 보인다. PI를 켜 두었다면 `DBLoadNonCPU`가 CloudWatch 지표로 올라오므로, 스토리지 지표와 같은 그래프·같은 period로 겹쳐 보는 쪽이 편하다.
+
+```json
+[
+  {"Id": "burst",  "MetricStat": {"Metric": {"Namespace": "AWS/RDS", "MetricName": "BurstBalance",
+    "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": "my-db-instance"}]}, "Period": 60, "Stat": "Minimum"}},
+  {"Id": "queue",  "MetricStat": {"Metric": {"Namespace": "AWS/RDS", "MetricName": "DiskQueueDepth",
+    "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": "my-db-instance"}]}, "Period": 60, "Stat": "Maximum"}},
+  {"Id": "rlat",   "MetricStat": {"Metric": {"Namespace": "AWS/RDS", "MetricName": "ReadLatency",
+    "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": "my-db-instance"}]}, "Period": 60, "Stat": "Average"}},
+  {"Id": "wlat",   "MetricStat": {"Metric": {"Namespace": "AWS/RDS", "MetricName": "WriteLatency",
+    "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": "my-db-instance"}]}, "Period": 60, "Stat": "Average"}},
+  {"Id": "noncpu", "MetricStat": {"Metric": {"Namespace": "AWS/RDS", "MetricName": "DBLoadNonCPU",
+    "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": "my-db-instance"}]}, "Period": 60, "Stat": "Average"}}
+]
+```
 
 ```bash
-# AWS CLI로 CloudWatch 지표 확인
-aws cloudwatch get-metric-statistics \
-  --namespace AWS/RDS \
-  --metric-name DiskQueueDepth \
-  --dimensions Name=DBInstanceIdentifier,Value=my-db-instance \
-  --start-time 2026-07-25T00:00:00Z \
-  --end-time 2026-07-25T01:00:00Z \
-  --period 60 \
-  --statistics Average \
+# 위 JSON을 queries.json 으로 저장하고 다섯 지표를 같은 구간·같은 period로 한 번에 받는다
+aws cloudwatch get-metric-data \
+  --metric-data-queries file://queries.json \
+  --start-time 2026-10-05T00:00:00Z \
+  --end-time 2026-10-05T03:00:00Z \
+  --scan-by TimestampAscending \
   --region ap-northeast-2
 ```
 
-운영 중에 IOPS 조정이 필요하면 피크 시간대를 피해서 진행하고, 변경 중에도 CloudWatch로 지연 시간을 모니터링한다.
+```text
+{
+  "MetricDataResults": [
+    { "Id": "burst", "Timestamps": ["<시각>", ...], "Values": [<퍼센트>, ...], "StatusCode": "Complete" },
+    { "Id": "queue", "Timestamps": ["<시각>", ...], "Values": [<큐 길이>, ...], "StatusCode": "Complete" },
+    ...
+  ]
+}
+```
+
+통계는 지표마다 다르게 잡는다. `BurstBalance`는 바닥을 봐야 하니 `Minimum`, `DiskQueueDepth`는 순간 적체를 놓치지 않도록 `Maximum`, 지연은 `Average`가 기본이다. 시간은 UTC로 넣고, 콘솔의 PI 차트와 대조할 때는 콘솔이 보여주는 시간대를 먼저 확인한다. 이 명령은 문법을 AWS CLI 문서 기준으로 썼고 이 문서를 쓴 환경에서 실행하지는 않았다. 출력은 값 자리를 비운 형태다.
+
+PI 쪽 값을 같은 구간에서 대기 이벤트별로 받고 싶으면 PI API를 쓴다. `--identifier`는 인스턴스 이름이 아니라 `DbiResourceId`(`db-`로 시작)다.
+
+```bash
+aws rds describe-db-instances --db-instance-identifier my-db-instance \
+  --query 'DBInstances[0].DbiResourceId' --output text
+
+aws pi get-resource-metrics \
+  --service-type RDS \
+  --identifier db-<DbiResourceId> \
+  --metric-queries '[{"Metric":"db.load.avg","GroupBy":{"Group":"db.wait_event","Limit":5}}]' \
+  --start-time 2026-10-05T00:00:00Z \
+  --end-time 2026-10-05T03:00:00Z \
+  --period-in-seconds 60
+```
+
+#### 지표가 움직이는 순서
+
+gp2 크레딧 소진이라면 지표는 정해진 순서로 움직인다. 순서가 어긋나면 그 가설은 버린다. 가장 흔한 오판은 `BurstBalance`가 0인 것만 보고 크레딧 탓을 하는 것이다. 크레딧이 어제부터 바닥이었는데 AAS는 오늘 오후에 올랐다면, 오늘 오후에 바뀐 것을 따로 찾아야 한다.
+
+| 순서 | 지표 | 변화 | 읽는 법 |
+|------|------|------|---------|
+| 1 | `BurstBalance` | 완만하게 내려가 0 근처 | 원인 후보. 내려가는 구간이 AAS 상승보다 앞서야 한다 |
+| 2 | `ReadIOPS`, `WriteIOPS` | 오르다가 한 값에서 평평 | 평평한 값이 기준 IOPS와 맞으면 볼륨 한도다 |
+| 3 | `DiskQueueDepth` | 오름 | IOPS는 못 늘고 요청은 계속 들어온다 |
+| 4 | `ReadLatency`, `WriteLatency` | 오름 | 큐에서 기다린 시간이 지연으로 보인다 |
+| 5 | PI의 IO 계열 대기, `DBLoadNonCPU` | 오름 | 지연이 세션 체류 시간이 돼 AAS가 된다 |
+| 6 | 앱의 응답 시간, 타임아웃 | 오름 | 사용자가 느끼는 증상 |
+
+1번이 5번보다 늦게 움직였다면 크레딧 소진은 결과이거나 우연히 겹친 것이다. 이때는 쿼리나 작업 집합이 먼저 바뀐 경우를 본다. gp3·io1·io2에는 1번이 없으므로 2번부터 시작한다. 2번의 평평한 값은 gp3면 설정한 IOPS, io1·io2면 프로비저닝한 IOPS와 비교한다.
+
+#### 다음에 볼 지표 고르기
+
+PI에서 IO 계열 대기가 AAS 상위로 올라왔을 때 CloudWatch를 어떤 순서로 열지 정리한 흐름이다. 앞 질문에서 걸리면 뒤는 볼 필요가 없다. 마지막 두 갈래가 스토리지 문제가 아닌 경우와 인스턴스 쪽 한도인 경우다.
+
+```mermaid
+flowchart TD
+    S["PI에서 IO 계열 대기가 AAS 상위"] --> Q1{"BurstBalance가 0 근처로 내려갔는가<br/>gp2만 해당"}
+    Q1 -->|"예"| R1["gp2 크레딧 소진<br/>gp3 전환 또는 볼륨 확대"]
+    Q1 -->|"아니오"| Q2{"ReadIOPS + WriteIOPS가<br/>프로비저닝 IOPS에 붙어 있는가"}
+    Q2 -->|"예"| R2["볼륨 IOPS 한도<br/>gp3, io1 IOPS 상향"]
+    Q2 -->|"아니오"| Q3{"ReadThroughput + WriteThroughput이<br/>처리량 한도에 붙어 있는가"}
+    Q3 -->|"예"| R3["처리량 한도<br/>gp3 처리량 상향, 큰 순차 읽기 쿼리 분리"]
+    Q3 -->|"아니오"| Q4{"DiskQueueDepth와 지연이<br/>평소 수준인가"}
+    Q4 -->|"예"| R4["스토리지는 정상<br/>풀 스캔이나 작업 집합 증가<br/>Wait Events Reference의 IO 이벤트로"]
+    Q4 -->|"아니오"| R5["인스턴스 클래스의 EBS 한도<br/>EBSIOBalance%, EBSByteBalance% 확인"]
+```
+
+Q4에서 "예"가 나오는 경우가 생각보다 많다. 스토리지는 한가한데 쿼리가 풀 스캔으로 데이터 파일을 계속 읽으면 IO 계열 대기가 AAS를 채운다. 이때 볼륨을 키우거나 IOPS를 올려도 대기 이벤트가 줄지 않는다. 인덱스를 보거나 버퍼 풀·shared buffers 대비 작업 집합이 커졌는지 본다.
+
+마지막 갈래인 인스턴스 한도는 볼륨 설정값을 아무리 올려도 지표가 안 움직일 때 의심한다. 볼륨은 16,000 IOPS인데 `ReadIOPS + WriteIOPS` 합이 그보다 훨씬 낮은 값에서 평평하다면, 클래스가 감당하는 EBS 대역폭이 먼저 닿은 것이다. 해당 클래스에서는 `EBSIOBalance%`와 `EBSByteBalance%`가 0 근처로 내려가 있다. 이 경우 처방은 볼륨이 아니라 인스턴스 클래스를 올리는 쪽이다.
+
+#### 조치와 변경 중 모니터링
+
+조치가 정해지면 변경 중에도 같은 다섯 지표를 같은 대시보드로 계속 본다. 스토리지 유형 변경이나 IOPS 조정은 진행 중에 성능이 일시적으로 떨어질 수 있다(앞 절의 유형 변경 동작 참고). 운영 중에 IOPS 조정이 필요하면 피크 시간대를 피해서 진행하고, `DBLoadNonCPU`가 변경 전보다 올라가는지 확인한다. 변경이 끝난 뒤에는 `BurstBalance`에 CloudWatch 경보를 걸어 두면 같은 일이 조용히 반복되지 않는다.

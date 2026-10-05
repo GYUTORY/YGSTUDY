@@ -1,14 +1,14 @@
 ---
 title: Aurora MySQL vs RDS for MySQL 상세 비교
-tags: [aws, rdbms, mysql, database]
-updated: 2026-04-27
+tags: [aws, rdbms, mysql, database, monitoring, performance]
+updated: 2026-10-05
 ---
 
 # Aurora MySQL vs RDS for MySQL 상세 비교
 
 같은 "MySQL"이라 부르지만 Aurora MySQL과 RDS for MySQL은 엔진 내부 동작이 다르다. 둘 다 MySQL Wire 프로토콜을 말하고 SQL도 거의 같지만, 스토리지 계층, 복제 메커니즘, 페일오버 흐름, 파라미터 그룹의 디폴트값, max_connections 산정식, DDL 처리 방식까지 다른 부분이 곳곳에 숨어 있다. 운영하다 보면 "RDS에서 잘 돌던 쿼리가 Aurora로 옮기니 동작이 미묘하게 다르다"는 상황을 반드시 만난다.
 
-이 문서는 두 엔진을 "MySQL 호환 엔진" 관점에서 비교한다. 클러스터 페일오버 운영 패턴은 [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md)에서, RDS 일반 개념은 [RDS.md](RDS.md)에서 다룬다.
+이 문서는 두 엔진을 "MySQL 호환 엔진" 관점에서 비교한다. 클러스터 페일오버 운영 패턴은 [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md)에서, RDS 일반 개념은 [RDS.md](RDS.md)에서 다룬다. Performance Insights에서 두 엔진의 차트가 어떻게 달라 보이는지는 13절에 따로 모았다.
 
 ---
 
@@ -90,6 +90,26 @@ prod-aurora-1-reader-1.xxx.rds.amazonaws.com          # 인스턴스 직결
 
 애플리케이션은 보통 Writer/Reader 엔드포인트만 쓰면 되는데, 페일오버 시 DNS TTL(약 5초) 만료 후 자동으로 새 Writer를 가리킨다.
 
+아래 그림은 엔드포인트가 인스턴스를 거쳐 하나의 클러스터 볼륨으로 이어지는 구조다. Reader 엔드포인트만 여러 Reader로 분산하고, 모든 인스턴스는 같은 볼륨을 본다.
+
+```mermaid
+flowchart LR
+  APP[애플리케이션]
+  WE["Writer 엔드포인트<br/>cluster-xxx"]
+  RE["Reader 엔드포인트<br/>cluster-ro-xxx"]
+  W[Writer 인스턴스]
+  R1[Reader 1]
+  R2[Reader 2]
+  V[(클러스터 볼륨)]
+  APP --> WE --> W
+  APP --> RE
+  RE -->|라운드로빈| R1
+  RE -->|라운드로빈| R2
+  W --- V
+  R1 --- V
+  R2 --- V
+```
+
 ---
 
 ## 3. 스토리지 아키텍처 — 6 copies/3 AZ vs Multi-AZ 동기 복제
@@ -128,7 +148,7 @@ RDS Multi-AZ는 Primary가 트랜잭션을 커밋할 때 Standby에 동기적으
 
 ### 3.2 Aurora의 6 copies / 3 AZ 쿼럼
 
-Aurora는 데이터를 4KB 페이지 단위로 쪼개서 **3개 AZ × 2 copy = 총 6 copy**로 분산 저장한다. 쓰기는 6개 중 4개에 도달하면 커밋(write quorum 4/6), 읽기는 6개 중 3개에서 같은 버전을 가져오면 일관성 확인(read quorum 3/6). 이 쿼럼 모델 덕분에 AZ 1개 + 디스크 1개가 동시에 죽어도(즉 6 copy 중 3개 손실) 서비스가 계속 돌아간다.
+Aurora는 데이터를 4KB 페이지 단위로 쪼개서 **3개 AZ × 2 copy = 총 6 copy**로 분산 저장한다. 쓰기는 6개 중 4개에 도달하면 커밋(write quorum 4/6), 읽기 쿼럼은 6개 중 3개(3/6)다. 평소 읽기는 쿼럼을 쓰지 않는다. 엔진이 어느 스토리지 노드가 어느 시점까지 받았는지 추적하고 있어서, 버퍼 풀 미스가 나면 최신 상태가 확인된 노드 한 곳에 페이지를 요청한다. 읽기 쿼럼은 장애 후 복구 때 쓴다. 이 쿼럼 모델 덕분에 AZ 1개 + 디스크 1개가 동시에 죽어도(즉 6 copy 중 3개 손실) 서비스가 계속 돌아간다.
 
 트러블슈팅 관점에서 의미 있는 차이는 두 가지다.
 
@@ -141,6 +161,22 @@ Aurora는 데이터를 4KB 페이지 단위로 쪼개서 **3개 AZ × 2 copy = �
 ## 4. Replica lag — binlog 복제 vs redo log 전파
 
 같은 "복제본"이라는 단어를 써도 두 엔진이 의미하는 바가 다르다.
+
+아래 그림에서 RDS는 Replica가 SQL을 처음부터 다시 실행하는 단계(SQL thread)를 거치고, Aurora는 그 단계 없이 redo 레코드를 페이지에 적용만 한다. lag이 벌어지는 지점이 이 차이다.
+
+```mermaid
+flowchart LR
+  subgraph B["RDS Read Replica (binlog)"]
+    P1[Primary 커밋] --> BL[binlog dump]
+    BL --> IO[Replica IO thread]
+    IO --> RL[relay log]
+    RL --> SQL["SQL thread: SQL 재실행"]
+  end
+  subgraph A["Aurora Reader (redo log)"]
+    W1[Writer 커밋] --> RS[redo 레코드 전송]
+    RS --> BP["Reader buffer pool 에 올라온 페이지만 적용"]
+  end
+```
 
 ### 4.1 RDS Read Replica의 binlog 복제
 
@@ -163,7 +199,7 @@ SHOW REPLICA STATUS\G
 
 ### 4.2 Aurora의 redo log 기반 전파
 
-Aurora Reader는 binlog를 받지 않는다. Writer가 만든 **redo log를 공유 스토리지에서 직접 읽어** 자기 buffer pool의 페이지를 무효화/갱신한다. SQL을 재실행할 필요가 없으니 트랜잭션 크기와 무관하다. 1000만 row UPDATE도 Writer가 redo log만 다 보내면 Reader는 거의 즉시 동기화된다.
+Aurora Reader는 binlog를 받지 않는다. Writer가 만든 **redo log 레코드를 스토리지 쓰기와 별개 경로로 비동기로 받아**, 자기 buffer pool에 이미 올라와 있는 페이지에만 적용한다. 올라와 있지 않은 페이지는 나중에 필요할 때 공유 스토리지에서 읽으면 된다. SQL을 재실행할 필요가 없으니 트랜잭션 크기와 무관하다. 1000만 row UPDATE도 Writer가 redo log만 다 보내면 Reader는 거의 즉시 동기화된다.
 
 체감 lag은 보통 10~30ms 수준, 부하가 높아도 100ms를 넘기 어렵다.
 
@@ -230,6 +266,23 @@ while True:
 
 - **RDS Multi-AZ**: 평균 60~120초. 90초 부근이 가장 흔하다. EBS 볼륨 detach/attach + DNS 갱신 + InnoDB recovery까지 거치기 때문에 짧아지기 어렵다.
 - **Aurora MySQL**: 평균 10~30초. Reader가 이미 워밍업되어 있고 redo log 동기화가 끝나 있어서, 사실상 "Writer 엔드포인트의 DNS 갱신 + 새 Writer의 read-write 모드 전환" 시간만 걸린다.
+
+두 엔진이 페일오버에서 거치는 단계를 나란히 놓으면 시간 차이가 어디서 나는지 보인다. RDS는 볼륨 재연결과 InnoDB recovery가 끼고, Aurora는 이미 공유 볼륨을 보고 있는 Reader를 승격하면 된다.
+
+```mermaid
+flowchart LR
+  subgraph RM["RDS Multi-AZ (평균 60~120초)"]
+    direction TB
+    r1[장애 감지] --> r2["EBS 볼륨 detach/attach"]
+    r2 --> r3[InnoDB recovery]
+    r3 --> r4[DNS 갱신]
+  end
+  subgraph AU["Aurora MySQL (평균 10~30초)"]
+    direction TB
+    a1[장애 감지] --> a2["Reader 를 read-write 모드로 전환"]
+    a2 --> a3[Writer 엔드포인트 DNS 갱신]
+  end
+```
 
 여기서 한 가지 함정. Aurora 30초는 **데이터베이스 측면 페일오버 시간**이다. 애플리케이션 입장의 끊김은 더 길어질 수 있다. JDBC 드라이버의 DNS 캐시(JVM 기본 30초)나 HikariCP의 connection validation 주기에 따라 60~90초까지 늘어나기도 한다. 이 부분은 [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md)에서 다룬다.
 
@@ -317,6 +370,18 @@ SELECT * FROM information_schema.replica_host_status;
 | 비용 | 백업 스토리지 + 새 인스턴스 | 변경 레코드 보관 시간당 과금 |
 
 Backtrack은 "방금 실수로 DELETE FROM users WHERE 1=1을 날렸다" 같은 상황에서 즉시 5분 전으로 되돌릴 수 있다. 단, **Aurora MySQL 3.x(MySQL 8.0 호환)에서는 Backtrack이 빠졌다**. 현재 신규 구축은 대부분 3.x이라 Backtrack을 쓸 일이 사실상 없다. 8.0 환경에서는 PITR로 새 클러스터를 만들고, 거기서 필요한 테이블만 mysqldump로 받아서 원본에 다시 넣는 방식으로 복구해야 한다.
+
+실수로 데이터를 지웠을 때 어느 경로를 타는지 정리하면 아래와 같다. 3.x에서는 왼쪽 가지(Backtrack)가 막혀 있어 PITR 경로만 남는다.
+
+```mermaid
+flowchart TD
+  X["실수로 데이터 삭제"] --> Q{"Aurora MySQL 1.x/2.x 이고 Backtrack 사용 중인가"}
+  Q -->|"예"| BT["Backtrack: 같은 클러스터를 과거 시점으로 되돌림<br/>수십 초~수 분"]
+  Q -->|"아니오 (3.x 포함)"| PI["PITR: 새 클러스터 생성"]
+  PI --> CI["create-db-instance 로 인스턴스 추가"]
+  CI --> DUMP["필요한 테이블만 mysqldump"]
+  DUMP --> BACK["원본 클러스터에 다시 입력"]
+```
 
 ```bash
 # PITR로 Aurora 클러스터 복구 (5분 전 시점)
@@ -434,6 +499,20 @@ ALTER TABLE orders MODIFY COLUMN memo TEXT;
 
 대용량 테이블에서 INPLACE/COPY로 떨어지면 binlog가 폭발하고 Read Replica lag도 같이 폭발한다. pt-online-schema-change나 gh-ost 같은 외부 도구를 쓰는 이유다.
 
+위 세 예제가 어느 알고리즘으로 떨어지는지, 그리고 그 뒤 복제 지연이 어떻게 이어지는지를 보면 아래와 같다.
+
+```mermaid
+flowchart TD
+  ALT["ALTER TABLE"] --> K{"변경 내용"}
+  K -->|"컬럼을 끝에 추가"| I1["INSTANT<br/>메타데이터만 변경, 즉시 완료"]
+  K -->|"AFTER 로 중간에 추가"| I2["INPLACE<br/>시간이 걸림"]
+  K -->|"컬럼 타입 변경"| I3["COPY<br/>full table rebuild"]
+  I2 --> L{"엔진"}
+  I3 --> L
+  L -->|"RDS for MySQL"| RL["binlog 폭발 → Read Replica lag 폭발"]
+  L -->|"Aurora MySQL (binlog 꺼짐)"| AL["ALTER 는 오래 걸리지만 Reader lag 은 거의 없음"]
+```
+
 ### 11.2 Aurora MySQL의 Fast DDL
 
 Aurora MySQL 1.x에는 "Fast DDL"이라는 자체 기능이 있어서 NULLable 컬럼 추가를 메타데이터 변경만으로 끝낼 수 있었다. 하지만 **Aurora MySQL 3.x(8.0 호환)에서는 Fast DDL 대신 MySQL 8.0의 INSTANT ADD COLUMN을 그대로 쓴다**. 즉 동작은 RDS for MySQL 8.0과 같다.
@@ -468,10 +547,129 @@ I/O가 무거운 분석 워크로드(랜덤 읽기 많음, 버퍼풀 히트율 �
 
 ---
 
+## 13. Performance Insights에서 Aurora는 다르게 보인다
+
+PI를 켜고 AAS와 Max vCPU 선을 읽는 방법은 [RDS_Performance_Insights.md](RDS_Performance_Insights.md)에, 이벤트 하나가 상위에 올라왔을 때 펼쳐 보는 확인 쿼리는 [RDS_Wait_Events_Reference.md](RDS_Wait_Events_Reference.md)에 있다. 이 절은 3~4절에서 본 구조 차이가 PI 차트에 어떤 모양으로 남는지만 적는다. 이벤트 이름은 AWS의 [Aurora MySQL 대기 이벤트 목록](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Reference.Waitevents.html) 기준이다. 직접 돌려서 얻은 출력은 싣지 않았고, 이름이 버전마다 바뀌는 경우가 있어 쓰는 클러스터의 PI에서 한 번은 확인해야 한다.
+
+### 13.1 쓰기 경로와 읽기 경로가 갈라진다
+
+RDS에서는 Primary와 Read Replica가 각자 자기 EBS를 갖는다. Aurora에서는 Writer와 Reader가 같은 클러스터 볼륨을 보고, 인스턴스 사이에는 redo 스트림만 오간다. 그래서 같은 인스턴스 안에서도 쓰기 대기와 읽기 대기가 서로 다른 경로를 기다린다. 아래 그림에서 실선은 쓰기와 읽기 미스가 스토리지로 향하는 길이고, 점선은 Reader로 가는 redo 전달이다. 간선에 붙인 문구가 그 구간에서 PI나 CloudWatch에 찍히는 이름이다.
+
+```mermaid
+flowchart LR
+  subgraph WR["Writer"]
+    WB["buffer pool"]
+    WL["redo 레코드 생성"]
+    WL --- WB
+  end
+  subgraph ST["클러스터 볼륨 (3 AZ x 2 copy)"]
+    N1["AZ-a 노드 2개"]
+    N2["AZ-b 노드 2개"]
+    N3["AZ-c 노드 2개"]
+  end
+  subgraph RD["Reader"]
+    RB["buffer pool"]
+  end
+  WL -->|"쓰기: 6개에 전송, 4개 응답에서 커밋<br/>io/aurora_redo_log_flush"| ST
+  WL -.->|"redo 스트림 비동기 전달<br/>AuroraReplicaLag"| RB
+  ST -->|"Writer 읽기 미스: 노드 1곳에서 페이지 읽기<br/>io/file/innodb/innodb_data_file"| WB
+  ST -->|"Reader 읽기 미스: 같은 경로"| RB
+```
+
+이 그림에서 PI로 읽어낼 수 있는 것이 네 가지다.
+
+Writer의 커밋 대기는 6개 중 네 번째로 빠른 노드의 응답 시간이다. 느린 노드가 한두 개 있어도 커밋 지연에는 거의 안 나타난다. 반대로 AZ 사이 네트워크 지연이 전체적으로 늘면 모든 커밋이 같이 느려진다. 이 경우 단일 쿼리의 실행 계획은 그대로인데 `io/aurora_redo_log_flush` 점유만 오른다.
+
+Reader에는 커밋할 redo가 없다. Reader의 PI에서 이 이벤트가 안 보이는 것이 정상이고, Reader의 대기는 CPU와 `innodb_data_file`로 몰린다. Reader를 늘려도 쓰기 지연은 달라지지 않는다.
+
+읽기 미스는 Writer와 Reader가 각자 낸다. Reader 4대가 같은 테이블을 서로 다른 시간에 훑으면 스토리지 읽기도 각자 한 번씩 나간다. 클러스터 단위 `VolumeReadIOPs`는 이 합이고 Aurora Standard에서는 6절의 I/O 요금으로 이어진다. Reader에서 `innodb_data_file` 대기가 상위로 올라오면 인스턴스 클래스보다 그 Reader에 어떤 쿼리가 라우팅되는지를 먼저 본다.
+
+Writer는 데이터 페이지를 스토리지에 내려쓰지 않고 redo만 보낸다. RDS MySQL에서 보이던 더티 페이지 flush와 doublewrite 쪽 쓰기 대기가 Aurora Writer의 PI에는 거의 올라오지 않는다. RDS에서 Aurora로 옮긴 직후 `innodb_data_file`의 구성이 읽기 위주로 바뀌는 것은 이 때문이다.
+
+### 13.2 이벤트 이름이 어떻게 대응되는가
+
+같은 증상을 두 엔진이 다른 이름으로 보여 준다. 이름만 보고 "Aurora에 없는 이벤트"라고 넘기면 원인을 놓친다.
+
+| 증상 | RDS MySQL | Aurora MySQL | 읽는 법의 차이 |
+|---|---|---|---|
+| 커밋이 느림 | `io/file/innodb/innodb_log_file`(redo fsync), binlog를 켰으면 `io/file/sql/binlog` | `io/aurora_redo_log_flush`. 목록에는 `io/redo_log_flush`도 있다 | Aurora는 로컬 fsync가 아니라 스토리지 쿼럼 응답이다. EBS 지표(`WriteLatency` 등)로 설명되지 않는다 |
+| 버퍼 풀 미스 읽기 | `io/file/innodb/innodb_data_file` | 같은 이름 | 이름이 같아서 EBS의 `BurstBalance`를 보던 습관이 남는다. Aurora에는 해당 지표가 없고 `VolumeReadIOPs`와 버퍼 풀 미스율을 본다 |
+| 더티 페이지·doublewrite 쓰기 | `innodb_data_file`, `innodb_dblwr_file`에 쓰기 대기 | Writer에서 거의 안 보임 | 쓰기 병목을 `innodb_data_file`에서 찾으면 Aurora에서는 허탕을 친다. 커밋 쪽 이벤트로 간다 |
+| 결과를 클라이언트에 넘기는 시간 | 전용 이벤트로 분리되지 않는 경우가 많다 | `io/aurora_respond_to_client` | DB가 아니라 앱의 수신 속도나 결과셋 크기 문제다 |
+| 복제 지연 | Replica 쪽 SQL thread 지연 | Writer 대기 이벤트로 안 나옴 | 13.3 참고 |
+
+Aurora PostgreSQL은 커밋 자리가 `IO:XactSync`로 찍힌다. 일반 RDS PostgreSQL의 `IO:WALWrite`, `IO:WALSync`와 같은 증상을 가리킨다. 이 이벤트들의 원인과 조치는 [RDS_Wait_Events_Reference.md](RDS_Wait_Events_Reference.md)의 3.5절과 4.3절에 있다. 커밋 대기에 대한 조치는 두 엔진 모두 건건이 커밋하던 것을 묶는 것이고, `innodb_flush_log_at_trx_commit`은 9.2절에서 본 것처럼 Aurora에서 손댈 자리가 아니다.
+
+### 13.3 복제 지연은 대기 이벤트로 안 보인다
+
+Writer는 redo 스트림을 Reader로 비동기로 보내고, 커밋은 Reader의 적용을 기다리지 않는다. 그래서 Reader가 얼마나 뒤처지든 Writer의 PI에는 그걸 가리키는 이벤트가 없다. "Reader에서 방금 쓴 데이터가 안 보인다"는 민원이 들어오면 PI가 아니라 지표를 먼저 연다.
+
+| 어디를 보나 | 무엇이 보이나 |
+|---|---|
+| CloudWatch `AuroraReplicaLag`, `AuroraReplicaLagMaximum` | Reader별, 클러스터 최대 지연(ms). 4.2절의 `replica_host_status`와 같은 값이다 |
+| Reader 인스턴스의 PI | AAS가 Max vCPU 선 위인지. 선 위인 구간에서 지연이 같이 오르는 경우가 있다 |
+| Writer의 CloudWatch `RollbackSegmentHistoryListLength` | Reader에서 오래 열려 있는 트랜잭션이 Writer의 undo 정리를 붙잡고 있는지 |
+
+세 번째 줄은 놓치기 쉽다. Aurora MySQL에서는 Reader에서 시작한 긴 쿼리나 열어 둔 트랜잭션이 Writer의 purge를 늦추는 경우가 있다. Writer 쪽에서는 쿼리도 안 바뀌고 부하도 그대로인데 `io/table/sql/handler`가 며칠에 걸쳐 천천히 오르는 모양으로 나타난다. 기록해 둔 평소 값과 비교해 History list length가 계속 자란다면 Reader에서 도는 리포트 쿼리를 찾는다.
+
+증상이 Writer에서 나타나지만 원인은 Reader에 있는 연쇄를 그림으로 보면 아래와 같다. 화살표를 따라가면 Writer에서 확인할 지표와 Reader에서 찾을 대상이 각각 어디인지 드러난다.
+
+```mermaid
+flowchart LR
+  R["Reader: 긴 쿼리 또는 열어 둔 트랜잭션"] --> P["Writer 의 undo purge 지연"]
+  P --> H["RollbackSegmentHistoryListLength 증가"]
+  H --> E["io/table/sql/handler 가 며칠에 걸쳐 천천히 상승"]
+  E --> F["Reader 에서 information_schema.innodb_trx 로 오래된 트랜잭션 찾기"]
+```
+
+```sql
+-- Writer에서. History list length 한 줄만 본다
+SHOW ENGINE INNODB STATUS\G
+-- TRANSACTIONS 절: "History list length <n>"
+-- 평소 값을 기록해 두고 비교한다. 절대값의 기준은 워크로드마다 다르다
+
+-- Reader에서. 오래 열린 트랜잭션
+SELECT trx_id, trx_started, TIMESTAMPDIFF(SECOND, trx_started, NOW()) AS age_sec,
+       trx_mysql_thread_id
+FROM information_schema.innodb_trx
+ORDER BY trx_started
+LIMIT 5;
+```
+
+### 13.4 Serverless에서 AAS를 읽는 기준
+
+Aurora Serverless v1은 PI를 지원하지 않는다. AAS 시계열이 없으니 CloudWatch 지표, 슬로우 쿼리 로그, 접속해서 `information_schema.processlist`를 직접 조회하는 방식으로 가야 한다. v2는 PI를 지원한다. 지원 범위는 [Database Insights 지원 범위](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_DatabaseInsights.Engines.html) 표에서 확인한다.
+
+v2의 문제는 PI 차트의 기준선이 고정이 아니라는 점이다. Provisioned에서는 Max vCPU 선이 평평하다. v2에서는 ACU가 오르내리면 선도 같이 움직인다. 같은 AAS 6이어도 ACU가 낮은 새벽에는 선 위이고 ACU가 높은 낮에는 선 아래일 수 있다. 그래서 AAS의 절대값에 알람을 걸거나 "평소 AAS는 4 정도"라고 외우는 방식이 v2에서는 맞지 않는다. 읽는 규칙은 다섯 가지다.
+
+1. AAS는 같은 시각의 선과만 비교한다. 다른 시간대에서 본 선 높이를 기억해서 대입하지 않는다.
+2. ServerlessDatabaseCapacity(ACU)를 PI와 같은 시간축에 겹쳐 본다. ACU가 오르는 중이면 선도 따라 올라오고, AAS가 선 위로 나간 구간은 스케일업을 기다리는 몇 초일 수 있다.
+3. ACU가 max에 붙은 채 AAS가 선 위에 머무르면 천장에 닿은 것이다. max ACU를 올리거나 Top SQL로 간다.
+4. AAS가 선 위인데 ACU가 안 오르면 AAS의 성분을 본다. ACU는 CPU, 메모리, 네트워크 사용률로 움직이기 때문에 Lock이나 IO가 AAS를 채운 구간에서는 ACU도 선도 그대로고 AAS만 오른다. 3절의 Lock 적체와 같은 모양이다.
+5. 스케일다운 직후에 `innodb_data_file` 성분이 커지는지 본다. ACU가 내려가면 buffer pool이 같이 줄어서 한가한 시간대의 첫 쿼리들이 스토리지까지 간다. min ACU가 낮을수록 심하다. 이 부분은 [Aurora_Serverless_V2.md](Aurora_Serverless_V2.md)의 min/max ACU 절과 이어진다.
+
+네 번째 규칙까지를 순서로 정리하면 이렇다.
+
+```mermaid
+flowchart TD
+  A["AAS 가 Max vCPU 선 위"] --> B{"ServerlessDatabaseCapacity 가 올라가는 중인가"}
+  B -->|"예"| C["스케일업 지연<br/>선이 따라올 때까지의 구간만 본다"]
+  B -->|"아니오"| D{"ACU 가 max 에 붙어 있나"}
+  D -->|"예"| E["천장 도달<br/>max ACU 상향 또는 Top SQL"]
+  D -->|"아니오"| F{"AAS 의 큰 성분이 CPU 인가"}
+  F -->|"예"| G["부하 증가 속도를 ACU 가 못 따라간다<br/>min ACU 상향 검토"]
+  F -->|"아니오"| H["Lock 또는 IO 가 성분<br/>ACU 는 CPU·메모리·네트워크로 움직이므로 안 오른다<br/>대기 이벤트 쪽으로"]
+```
+
+알람도 같은 이유로 바꿔야 한다. AAS 절대값 대신 CPU 성분인 `DBLoadCPU`와 `ACUUtilization`을 같이 본다. ACUUtilization이 높고 DBLoadCPU가 높으면 용량 문제이고, DBLoadCPU만 낮은데 `DBLoad`가 높으면 대기 이벤트 문제다. 같은 AAS 숫자가 용량 문제일 수도 경합 문제일 수도 있다는 점은 Provisioned와 같고, 달라진 것은 기준선이 움직인다는 점뿐이다.
+
+---
+
 ## 참고
 
 - Amazon Aurora User Guide — Storage, Replication, Parameters
 - Amazon RDS User Guide — Multi-AZ deployments, Read Replicas
 - Aurora MySQL Database Engine Updates (버전별 변경 사항)
 - AWS Pricing — RDS for MySQL, Aurora Standard / I/O-Optimized
-- 관련 문서: [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md), [RDS.md](RDS.md), [DB_Proxy.md](DB_Proxy.md)
+- Aurora MySQL 대기 이벤트 목록 (io/aurora_redo_log_flush 등)
+- 관련 문서: [Aurora_DB_Cluster.md](Aurora_DB_Cluster.md), [RDS.md](RDS.md), [DB_Proxy.md](DB_Proxy.md), [RDS_Performance_Insights.md](RDS_Performance_Insights.md), [RDS_Wait_Events_Reference.md](RDS_Wait_Events_Reference.md), [Aurora_Serverless_V2.md](Aurora_Serverless_V2.md)

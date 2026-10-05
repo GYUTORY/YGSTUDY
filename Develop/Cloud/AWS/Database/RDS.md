@@ -1,7 +1,7 @@
 ---
 title: AWS RDS (Relational Database Service)
 tags: [aws, database, mysql, postgresql]
-updated: 2026-07-24
+updated: 2026-10-05
 ---
 
 # AWS RDS (Relational Database Service)
@@ -66,6 +66,18 @@ SQL Server는 Multi-AZ 구성 시 내부적으로 SQL Server Database Mirroring 
 
 SQL Server는 Windows 인증 연동(Kerberos)을 지원하는데, 이 기능을 쓰려면 AWS Directory Service와 연동해야 한다.
 
+아래 그림은 엔진별로 설정을 어디서 제어하는지 비교한다. MySQL/PostgreSQL/MariaDB는 파라미터 그룹 하나로 대부분 끝나고, Oracle과 SQL Server는 옵션 그룹을 추가로 다룬다.
+
+```mermaid
+flowchart LR
+    ENG["RDS 엔진"] --> G1["MySQL, PostgreSQL, MariaDB"]
+    ENG --> G2["Oracle, SQL Server"]
+    G1 --> PG["파라미터 그룹<br/>대부분의 설정"]
+    G2 --> PG
+    G2 --> OG["옵션 그룹<br/>TDE, Statspack, S3 연동, Audit 등"]
+    G1 -.->|"예외: 감사 로그, Memcached 플러그인"| OG
+```
+
 ## 인스턴스 클래스별 특성
 
 인스턴스 클래스는 처음 만들 때 대충 잡았다가 나중에 바꾸는 경우가 많은데, 변경할 때 다운타임이 생기므로(Multi-AZ면 페일오버로 수십 초, Single-AZ면 그보다 길다) 처음에 한 단계 여유 있게 잡는 편이 낫다.
@@ -119,6 +131,25 @@ Read Replica 구조
 
 페일오버가 무중단인 것도 아니다. 그 60~120초 동안 커넥션은 다 끊기고, 애플리케이션은 새 엔드포인트로 다시 붙어야 한다. 커넥션 풀이 죽은 커넥션을 오래 붙잡고 있으면 페일오버가 끝나도 한참 에러가 난다. 이 구간을 줄이려면 [DB_Proxy.md](DB_Proxy.md)의 RDS Proxy를 앞에 두거나, 애플리케이션 JDBC 설정에서 커넥션 validation과 짧은 socket timeout을 잡아야 한다.
 
+아래 시퀀스는 Multi-AZ 페일오버 동안 애플리케이션이 겪는 순서를 보여준다. primary 장애부터 엔드포인트 전환까지 커넥션이 끊겨 있는 구간을 본다.
+
+```mermaid
+sequenceDiagram
+    participant APP as 애플리케이션
+    participant DNS as DB 엔드포인트 DNS
+    participant PRI as Primary AZ-a
+    participant STB as Standby AZ-b
+    PRI->>STB: 동기 복제
+    Note over PRI: 장애 발생
+    APP->>PRI: 쿼리
+    PRI-->>APP: 연결 실패, 커넥션 끊김
+    DNS->>STB: 엔드포인트를 standby로 전환
+    Note over APP,STB: 60~120초 동안 커넥션 끊김
+    APP->>DNS: 재연결 시도
+    DNS-->>APP: 새 primary 주소 응답
+    APP->>STB: 쿼리 재개
+```
+
 **Read Replica**는 읽기 부하를 분산한다. RDS for MySQL/PostgreSQL 기준 최대 15개까지 만들 수 있고, 각 레플리카는 자체 엔드포인트를 가진다. 핵심은 비동기 복제라는 점이다. primary에 쓴 데이터가 레플리카에 바로 보이지 않는다. 평소엔 수 밀리초~수 초지만, primary에 쓰기가 몰리거나 무거운 DDL이 돌면 복제 지연이 분 단위로 벌어진다.
 
 "방금 회원가입했는데 로그인하니 없는 회원이라고 나온다" 같은 버그는 거의 다 회원가입(쓰기)은 primary에, 직후 로그인 조회(읽기)는 레플리카로 보냈는데 복제가 안 따라온 경우다. 읽기/쓰기 분리는 지연을 감내할 수 있는 읽기에만 적용한다. 통계, 리포트, 목록 조회처럼 몇 초 늦어도 되는 건 레플리카로, 방금 쓴 걸 바로 읽어야 하는 조회는 primary로 보낸다. `ReplicaLag` 메트릭은 항상 알람을 건다.
@@ -133,6 +164,28 @@ Read Replica는 장애 대비 수단이 아니다. Multi-AZ 없이 Read Replica�
 | 자동 페일오버 | 있음 (60~120초) | 없음 (수동 승격) |
 | 비용 | 인스턴스 2배 | 레플리카 수만큼 추가 |
 
+아래 그림은 Multi-AZ와 Read Replica를 함께 쓰는 구성에서 각 구성 요소가 어디에 붙는지 보여준다. 스토리지는 인스턴스마다 따로 있고 복제로 맞춰진다는 점, 파라미터 그룹은 인스턴스에 붙는 설정이라 레플리카에도 따로 지정된다는 점을 본다.
+
+```mermaid
+flowchart LR
+    APP["애플리케이션"] -->|"쓰기/최신 읽기"| PRI
+    APP -->|"지연 허용 읽기"| REP
+    subgraph AZA["AZ-a"]
+        PRI["Primary 인스턴스"] --- ST1[("EBS 스토리지")]
+    end
+    subgraph AZB["AZ-b"]
+        STB["Standby 인스턴스<br/>읽기 불가"] --- ST2[("EBS 스토리지")]
+    end
+    subgraph AZC["AZ-c"]
+        REP["Read Replica"] --- ST3[("EBS 스토리지")]
+    end
+    PG["파라미터 그룹"] -.->|"설정 적용"| PRI
+    PG -.-> STB
+    PGR["레플리카용 파라미터 그룹"] -.-> REP
+    PRI ==>|"동기 복제"| STB
+    PRI -->|"비동기 복제"| REP
+```
+
 ## 파라미터 그룹과 옵션 그룹
 
 ### 파라미터 그룹
@@ -140,6 +193,16 @@ Read Replica는 장애 대비 수단이 아니다. Multi-AZ 없이 Read Replica�
 RDS는 OS 접근이 막혀 있어서 DB 엔진 설정을 파라미터 그룹으로만 바꾼다. 기본 파라미터 그룹은 수정이 안 되므로, 처음에 커스텀 파라미터 그룹을 하나 만들어 붙이고 시작한다.
 
 파라미터에는 `immediate`로 바로 적용되는 것과 재부팅해야 적용되는 `pending-reboot`짜리가 섞여 있다. `innodb_buffer_pool_size`처럼 재부팅이 필요한 걸 바꾸면 적용하려고 reboot할 때 다운타임이 생기므로, 변경 시점을 미리 잡아야 한다.
+
+아래 그림은 파라미터를 수정한 뒤 `ApplyMethod`에 따라 반영 시점이 갈리는 흐름이다. 재부팅 쪽 경로에서만 다운타임이 생긴다.
+
+```mermaid
+flowchart TD
+    A["파라미터 그룹 수정"] --> B{"ApplyMethod"}
+    B -->|"immediate"| C["즉시 적용<br/>예: max_connections, slow_query_log"]
+    B -->|"pending-reboot"| D["pending-reboot 상태로 대기<br/>예: innodb_buffer_pool_size"]
+    D --> E["reboot 시점에 적용<br/>다운타임 발생"]
+```
 
 ```bash
 # 커스텀 파라미터 그룹 생성
@@ -311,6 +374,19 @@ aws rds modify-db-parameter-group \
 
 근본 해결은 `max_connections`를 무작정 올리는 게 아니다. DB 인스턴스 메모리를 넘어설 정도로 커넥션을 늘리면 메모리 압박이 생긴다. 앱 쪽 커넥션 풀 크기를 줄이거나, [RDS Proxy](DB_Proxy.md)를 앞에 두어 커넥션 풀링을 위임하는 게 맞는 방향이다. RDS Proxy는 앱에서 오는 커넥션을 대신 모아 DB에는 적은 수의 커넥션만 유지하기 때문에, 스케일아웃 환경에서 특히 효과가 크다.
 
+아래 그림은 앱 인스턴스가 늘 때 DB가 받는 커넥션 수가 Proxy 유무에 따라 어떻게 달라지는지 비교한다.
+
+```mermaid
+flowchart LR
+    subgraph NOPX["RDS Proxy 없이"]
+        A1["앱 인스턴스 N대<br/>각자 커넥션 풀"] -->|"N × 풀 크기 그대로"| A2["RDS DB<br/>max_connections 초과 위험"]
+    end
+    subgraph PX["RDS Proxy 사용"]
+        B1["앱 인스턴스 N대<br/>각자 커넥션 풀"] --> B2["RDS Proxy<br/>커넥션 풀링"]
+        B2 -->|"적은 수의 커넥션만 유지"| B3["RDS DB"]
+    end
+```
+
 커넥션 수를 모니터링할 때 `DatabaseConnections` CloudWatch 메트릭이 `max_connections`의 80% 선에서 알람을 걸면, 터지기 전에 대응할 수 있다.
 
 ### 스토리지 꽉 참 (STORAGE_FULL)
@@ -393,9 +469,45 @@ RDS 백업은 두 가지다. 헷갈리면 복구할 때 큰일 나므로 차이�
 
 복구는 항상 기존 인스턴스를 덮어쓰는 게 아니라 새 인스턴스를 만든다. 그래서 복구 후엔 새 엔드포인트가 생기고, 애플리케이션 연결 정보를 바꾸거나 DNS를 갈아끼워야 한다. 복구 시간도 데이터 크기에 비례해서 수십 분 걸릴 수 있으니, RTO 계산할 때 이걸 빼먹으면 안 된다.
 
+아래 그림은 두 백업이 어떤 경로로 복구에 쓰이는지와, 인스턴스 삭제가 자동 백업에만 영향을 준다는 점을 보여준다.
+
+```mermaid
+flowchart LR
+    AUTO["자동 백업<br/>일 1회 스냅샷 + 트랜잭션 로그"] -->|"PITR, 보관 기간 안의 임의 시점"| NEW["새 인스턴스<br/>새 엔드포인트"]
+    MAN["수동 스냅샷<br/>명시적으로 지울 때까지 보존"] -->|"복원"| NEW
+    MAN -->|"리전 간 복사"| DR["다른 리전 DR"]
+    DEL["인스턴스 삭제"] -.->|"자동 백업도 함께 삭제"| AUTO
+    NEW --> SW["연결 정보 변경 또는 DNS 교체"]
+```
+
 ## 슬로우 쿼리 잡기
 
 RDS에서 성능 문제는 결국 슬로우 쿼리 추적으로 귀결된다. OS에 못 들어가니 슬로우 로그를 CloudWatch Logs로 내보내거나 API로 받아서 본다.
+
+### 진단 도구 4단계
+
+"DB가 느리다"는 신고가 오면 도구를 한꺼번에 열지 않고 위에서 아래로 좁혀 내려간다. 각 단계는 앞 단계가 못 보여주는 것을 보여준다.
+
+```mermaid
+flowchart TD
+    A["CloudWatch 메트릭<br/>CPUUtilization, DatabaseConnections, ReadIOPS"] -->|"증상 감지: 언제부터, 어느 지표가 튀는가"| B["Enhanced Monitoring<br/>프로세스별 CPU, 메모리, 스왑"]
+    B -->|"OS 원인: mysqld/postgres 프로세스가 먹는가, 백그라운드 작업인가"| C["Performance Insights<br/>DB Load(AAS), 대기 이벤트, Top SQL"]
+    C -->|"쿼리 원인: 어떤 SQL이 어떤 대기에 걸렸는가"| D["슬로우 쿼리 로그<br/>실제 파라미터 값, Rows_examined"]
+    D -->|"재현: 그 SQL을 그 값으로 EXPLAIN"| E["인덱스·쿼리 수정"]
+```
+
+CloudWatch는 1분 단위 인스턴스 전체 수치라서 CPU가 튀었다는 것까지만 알려준다. Enhanced Monitoring은 에이전트가 OS에서 직접 수집해 프로세스 단위로 쪼개 보여주므로, CPU를 DB 엔진이 쓰는지 다른 것이 쓰는지 가린다. Performance Insights는 그 CPU를 어떤 SQL과 대기 이벤트가 만들었는지 짚는다. 슬로우 쿼리 로그는 PI가 못 주는 마지막 조각, 즉 실제로 바인딩된 파라미터 값을 갖고 있다.
+
+### PI를 먼저 보는 경우와 슬로우 쿼리 로그가 필요한 경우
+
+Performance Insights는 쿼리를 정규화해서 `WHERE user_id = ?` 형태로 묶어 보여준다. 로그 파싱 없이 부하 순위가 바로 나오니 대부분의 첫 대응은 PI에서 시작한다.
+
+- PI를 먼저 본다: 특정 시간대에 갑자기 느려졌고 원인 쿼리를 모를 때, 개별 쿼리는 짧은데 실행 횟수가 많아 부하가 쌓일 때(슬로우 로그 임계값 아래라 로그에 안 찍힌다), 락 대기나 I/O 대기 같은 대기 이벤트 유형을 알고 싶을 때.
+- 슬로우 쿼리 로그가 필요하다: 같은 SQL인데 파라미터 값에 따라 어떤 때만 느릴 때(PI는 값을 지운다), `Rows_examined`와 `Lock_time`을 쿼리 한 건 단위로 봐야 할 때, PI 보존 기간(기본 7일)보다 오래된 사건을 되짚을 때, PI를 켜지 않은 인스턴스일 때.
+
+PI에서 대기 이벤트 이름이 나오면 [RDS_Wait_Events_Reference.md](RDS_Wait_Events_Reference.md)에서 이벤트별 원인과 확인 쿼리를 찾는다. PI 화면을 읽는 순서와 슬로우 로그로 보완하는 방법은 [RDS_Performance_Insights.md](RDS_Performance_Insights.md)에 정리해 뒀다.
+
+### 슬로우 쿼리 로그 가져오기
 
 ```bash
 # 슬로우 쿼리 로그 받기
@@ -429,6 +541,8 @@ fields @timestamp, @message
 - `ReplicaLag` — 리드 레플리카 쓰면 필수.
 - `BurstBalance` / `CPUCreditBalance` — gp2나 t 계열 쓰면 바닥나기 전에 알람.
 - `ReadIOPS` / `WriteIOPS` — 스토리지 IOPS 한도 근처에서 지연이 폭증한다.
+
+이 메트릭은 증상만 알려주고 원인 쿼리는 못 짚는다. CPU나 커넥션이 튀면 위의 4단계 순서대로 Enhanced Monitoring, Performance Insights로 내려간다.
 
 알람은 SNS로 받아서 Slack이나 PagerDuty로 흘린다. 임계값은 처음엔 보수적으로 잡고, 오탐이 많으면 조정한다.
 

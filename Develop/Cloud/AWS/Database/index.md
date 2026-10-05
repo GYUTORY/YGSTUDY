@@ -9,7 +9,7 @@ hide:
 
 # Database 전체 보기
 
-문서 22개.
+문서 23개.
 
 ## 개요
 
@@ -28,11 +28,12 @@ hide:
 - [Aurora MySQL vs RDS for MySQL 상세 비교](Aurora_DB.md)
 - [Aurora MySQL 메이저 버전 업그레이드 (2.x → 3.x)](Aurora_Version_Upgrade.md)
 - [Aurora MySQL에서의 JSON 타입 실무](Aurora_My_SQL_JSON.md)
-- [Performance Insights로 RDS 성능 진단하기](RDS_Performance_Insights.md)
 - [RDS Backup & Snapshot](RDS_Backup_Snapshot.md)
 - [RDS Blue/Green Deployment](RDS_Blue_Green_Deployment.md)
 - [RDS Multi-AZ](RDS_Multi_AZ.md)
 - [RDS Parameter Groups](RDS_Parameter_Groups.md)
+- [RDS Performance Insights (쿼리 성능 분석과 대기 이벤트 해석)](RDS_Performance_Insights.md)
 - [RDS Storage](RDS_Storage.md)
+- [RDS 대기 이벤트 참조 (MySQL·PostgreSQL 이벤트별 원인과 확인 쿼리)](RDS_Wait_Events_Reference.md)
 - [RDS 보안](RDS_Security.md)
 
