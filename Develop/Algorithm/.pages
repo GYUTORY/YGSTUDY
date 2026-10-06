@@ -6,6 +6,7 @@ nav:
   - 정렬 알고리즘: Sorting.md
   - Binary Search: Binary_Search.md
   - Skip List: Skip_List.md
+  - 일관된 해싱: Consistent_Hashing.md
   - Dynamic Programming:
     - 동적 계획법: Dynamic_Programming.md
     - 심화: Dynamic_Programming_Advanced.md
