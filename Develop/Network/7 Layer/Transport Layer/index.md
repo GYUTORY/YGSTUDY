@@ -9,7 +9,7 @@ hide:
 
 # Transport Layer 전체 보기
 
-문서 16개.
+문서 17개.
 
 ## TCP
 
@@ -28,6 +28,7 @@ hide:
 - [TCP와 OSI 7 계층](<TCP/TCP와 OSI 7 계층.md>)
 - [WSDL (Web Services Description Language)](TCP/RPC/WSDL.md)
 - [gRPC (Google Remote Procedure Call)](TCP/RPC/gRPC.md)
+- [gRPC 로드밸런싱](TCP/RPC/g_RPC_Load_Balancing.md)
 
 ## 개요
 

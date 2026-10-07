@@ -9,7 +9,7 @@ hide:
 
 # OSI 7계층 전체 보기
 
-문서 53개.
+문서 54개.
 
 ## Application Layer
 
@@ -62,6 +62,7 @@ hide:
 - [UDP 프로토콜 동작 메커니즘](<Transport Layer/UDP.md>)
 - [WSDL (Web Services Description Language)](<Transport Layer/TCP/RPC/WSDL.md>)
 - [gRPC (Google Remote Procedure Call)](<Transport Layer/TCP/RPC/gRPC.md>)
+- [gRPC 로드밸런싱](<Transport Layer/TCP/RPC/g_RPC_Load_Balancing.md>)
 
 ## 데이터 링크 계층
 

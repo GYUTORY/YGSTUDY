@@ -9,7 +9,7 @@ hide:
 
 # Transport Layer · TCP 전체 보기
 
-문서 15개.
+문서 16개.
 
 ## Mqtt
 
@@ -25,6 +25,7 @@ hide:
 - [SOAP](RPC/SOAP.md)
 - [WSDL (Web Services Description Language)](RPC/WSDL.md)
 - [gRPC (Google Remote Procedure Call)](RPC/gRPC.md)
+- [gRPC 로드밸런싱](RPC/g_RPC_Load_Balancing.md)
 
 ## 개요
 

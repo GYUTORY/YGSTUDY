@@ -4,5 +4,6 @@ nav:
   - SOAP: SOAP.md
   - WSDL: WSDL.md
   - gRPC: gRPC.md
+  - gRPC 로드밸런싱: g_RPC_Load_Balancing.md
   - JSON-RPC: JSON_RPC.md
   - "Apache Thrift": Apache_Thrift.md
