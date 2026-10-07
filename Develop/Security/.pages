@@ -75,6 +75,7 @@ nav:
     - 보안 사고 대응 절차: Incident_Response.md
     - 최근 보안사고 사례 2021~2025: Recent_Security_Incidents.md
     - SaaS 자격증명과 토큰 탈취 사고: Saa_S_Token_Theft_Incidents.md
+    - GitHub를 입구로 터진 보안사고: Git_Hub_Security_Incidents.md
     - 엣지 장비 제로데이 대응: Edge_Device_Zero_Day_Response.md
     - 의존성 취약점 알림 선별과 VEX: Dependency_Vulnerability_Triage.md
     - 랜섬웨어 사고 대응과 복구: Ransomware_Response.md
