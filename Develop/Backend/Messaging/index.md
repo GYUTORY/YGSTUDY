@@ -9,7 +9,7 @@ hide:
 
 # Messaging 전체 보기
 
-문서 14개.
+문서 15개.
 
 ## 개요
 
@@ -22,6 +22,7 @@ hide:
 - [Kafka Consumer Group Rebalancing](Kafka_Consumer_Group_Rebalancing.md)
 - [Kafka Exactly-Once Semantics (EOS)](Kafka_Exactly_Once_Semantics.md)
 - [Kafka 논블로킹 재시도 토픽 패턴](Kafka_Retry_Topic_Pattern.md)
+- [Kafka 이벤트 스키마 호환성 검증](Event_Schema_Contract_Testing.md)
 - [Message Queue 심화 (RabbitMQ vs Kafka vs SQS 비교, 전달 보증/순서 보장/DLQ/멱등성)](MQ_Delivery_Guarantee_Deep_Dive.md)
 - [RabbitMQ MQTT Plugin - AMQP와 MQTT 브릿지 실무](RabbitMQ_MQTT.md)
 - [RabbitMQ 심화](Rabbit_MQ.md)
