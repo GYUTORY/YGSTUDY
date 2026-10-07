@@ -1,138 +1,55 @@
 ---
 title: MSA 테스트
 tags: [microservices, testing, architecture]
-updated: 2026-08-06
+updated: 2026-10-07
 ---
 
 # MSA 테스트
 
 ## 왜 MSA 테스트가 어려운가
 
-모놀리스에서는 단위 테스트 돌리고 통합 테스트 한 번 돌리면 대부분의 문제를 잡았다. MSA에서는 그게 안 된다. 서비스 A가 정상이고, 서비스 B도 정상인데, 둘을 붙이면 터진다. 이유는 보통 이렇다:
+모놀리스에서는 단위 테스트 돌리고 통합 테스트 한 번 돌리면 대부분의 문제를 잡았다. MSA에서는 그게 안 된다. 서비스 A가 정상이고, 서비스 B도 정상인데, 둘을 붙이면 터진다. 이유는 보통 이렇다.
 
 - 서비스 A가 응답 필드명을 바꿨는데, 서비스 B는 옛날 필드명을 기대하고 있다
 - 서비스 A의 API 스펙이 문서에는 업데이트됐지만, 실제 코드는 다르다
 - 배포 순서 때문에 잠깐 동안 호환이 안 되는 상태가 생긴다
 
-서비스 수가 10개를 넘어가면 전체를 한번에 띄워서 테스트하는 것 자체가 비현실적이다. 여기서 Contract Testing이 등장한다.
+세 경우 모두 각 서비스의 자체 테스트는 초록불이다. 어긋남은 서비스 경계에 있고, 서비스 안쪽만 보는 테스트로는 보이지 않는다.
+
+```mermaid
+flowchart LR
+    subgraph A["서비스 A 저장소"]
+        AT["A 단위/통합 테스트"] --> AR["통과"]
+    end
+    subgraph B["서비스 B 저장소"]
+        BT["B 단위/통합 테스트<br/>옛 필드명으로 만든 Stub 사용"] --> BR["통과"]
+    end
+    AR --> DEP["각자 배포"]
+    BR --> DEP
+    DEP --> RUN["운영에서 B가 A를 호출"]
+    RUN --> ERR["필드명 불일치로 B가 null 처리 또는 예외"]
+```
+
+B의 테스트가 쓰는 Stub은 B 팀이 기억하는 A의 응답이다. A가 바뀌어도 Stub은 그대로라서 B 테스트는 계속 통과한다. 이 구멍을 서비스를 전부 띄워서 막으려 하면 서비스 수가 늘수록 비용이 커진다. 10개를 넘어가면 전체를 한번에 띄워서 테스트하는 것 자체가 비현실적이다. 여기서 Contract Testing이 등장한다.
 
 
 ## Contract Testing
 
-Contract Testing은 서비스 간 API 호출의 "약속"을 검증하는 방식이다. 실제 서비스를 띄우지 않아도, 요청/응답의 형식이 서로 맞는지 확인할 수 있다.
+Consumer가 기대하는 요청/응답 형식을 계약 파일로 남기고, Provider가 그 계약을 자기 API로 실행해 보는 방식이다. 실제 서비스를 띄우지 않아도 서비스 간 형식이 맞는지 확인한다. 도구 사용법, Provider State 관리, `can-i-deploy` 판정, 운영 중 조용히 깨지는 지점은 [Service Contract Testing](Service_Contract_Testing.md)에 따로 정리했다. 이 문서에서는 흐름만 요약한다.
 
-### Consumer-Driven Contract
-
-핵심 아이디어는 간단하다: API를 호출하는 쪽(Consumer)이 "나는 이런 요청을 보내고, 이런 응답을 기대한다"는 계약(Contract)을 작성한다. API를 제공하는 쪽(Provider)은 그 계약을 만족시키는지 검증한다.
-
-```
-Consumer(주문 서비스) → "상품 ID 123을 조회하면 name, price 필드가 와야 한다"
-                          ↓
-                    Contract(Pact 파일)
-                          ↓
-Provider(상품 서비스) → 이 계약을 실행해서 실제 응답이 맞는지 확인
+```mermaid
+flowchart LR
+    C["Consumer 주문 서비스<br/>계약 테스트 실행"] --> P["Pact 파일 생성<br/>상품 조회 시 id, name, price 기대"]
+    P --> BR["Pact Broker<br/>계약과 검증 결과 보관"]
+    BR --> V["Provider 상품 서비스<br/>계약을 실제 API에 실행"]
+    V --> R{"응답이 계약을 만족하는가"}
+    R -- "예" --> OK["Broker에 성공 기록"]
+    R -- "아니오" --> NG["Provider 변경 차단"]
 ```
 
-이 방식의 장점은 Provider가 API를 변경하기 전에, 어떤 Consumer가 영향을 받는지 미리 알 수 있다는 것이다. 필드 하나 지우려고 할 때 "이 필드를 쓰는 Consumer가 3개 있습니다"라고 알려주니까, 깨지는 걸 배포 전에 잡는다.
+Consumer가 쓰는 필드만 계약에 들어가므로, Provider는 필드 하나를 지우기 전에 영향받는 Consumer가 누구인지 검증 결과로 알 수 있다. 계약 작성에서 가장 흔한 실수는 값을 정확히 매칭하는 것이다. `stringValue("name", "노트북")`은 테스트 데이터가 바뀌면 깨지고, `stringType`은 문자열이기만 하면 통과한다. 계약은 필드의 존재와 타입을 확인하는 것이지 비즈니스 로직을 검증하는 자리가 아니다.
 
-### Pact 사용법
-
-Pact는 Contract Testing의 사실상 표준 도구다. Java(Spring Boot) 기준으로 설명한다.
-
-**Consumer 쪽 테스트 작성:**
-
-```java
-@ExtendWith(PactConsumerTestExt.class)
-@PactTestFor(providerName = "product-service", port = "8080")
-class OrderServiceContractTest {
-
-    @Pact(consumer = "order-service")
-    public V4Pact createPact(PactDslWithProvider builder) {
-        return builder
-            .given("상품 123이 존재한다")
-            .uponReceiving("상품 조회 요청")
-                .path("/api/products/123")
-                .method("GET")
-            .willRespondWith()
-                .status(200)
-                .body(newJsonBody(body -> {
-                    body.numberType("id", 123);
-                    body.stringType("name", "노트북");
-                    body.numberType("price", 1500000);
-                }).build())
-            .toPact(V4Pact.class);
-    }
-
-    @Test
-    @PactTestFor(pactMethod = "createPact")
-    void 상품_조회_시_id_name_price가_포함된다(MockServer mockServer) {
-        // mockServer.getUrl()로 실제 HTTP 호출
-        ProductResponse response = productClient.getProduct(
-            mockServer.getUrl(), 123L
-        );
-
-        assertThat(response.getName()).isNotNull();
-        assertThat(response.getPrice()).isGreaterThan(0);
-    }
-}
-```
-
-이 테스트를 실행하면 Pact 파일(JSON)이 생성된다. 이 파일이 계약서 역할을 한다.
-
-**Provider 쪽 검증:**
-
-```java
-@Provider("product-service")
-@PactBroker(url = "https://pact-broker.company.com")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class ProductServiceContractVerificationTest {
-
-    @TestTemplate
-    @ExtendWith(PactVerificationInvocationContextProvider.class)
-    void verifyPact(PactVerificationContext context) {
-        context.verifyInteraction();
-    }
-
-    @State("상품 123이 존재한다")
-    void setupProduct() {
-        productRepository.save(new Product(123L, "노트북", 1500000));
-    }
-}
-```
-
-Provider는 Pact Broker에서 자기와 관련된 계약을 가져와서, 실제 API가 그 계약을 만족하는지 확인한다. `@State`로 테스트 데이터를 세팅하는 게 핵심이다.
-
-### Pact Broker
-
-팀이 2~3개일 때는 Pact 파일을 Git에 넣어도 된다. 그 이상이면 Pact Broker를 쓴다. Pact Broker는 계약을 중앙에서 관리하고, 어떤 버전끼리 호환되는지 추적한다.
-
-```bash
-# can-i-deploy로 배포 전 호환성 확인
-pact-broker can-i-deploy \
-  --pacticipant product-service \
-  --version 2.1.0 \
-  --to-environment production
-```
-
-CI/CD에 이 명령을 넣으면, 호환 안 되는 버전이 프로덕션에 나가는 걸 막을 수 있다. 실제로 이게 없으면 금요일 저녁에 한 서비스 배포 후 다른 서비스가 터지는 일이 생긴다.
-
-### Contract Testing에서 자주 하는 실수
-
-**1. 응답 값을 정확히 매칭하려고 한다**
-
-```java
-// 잘못된 예 - 정확한 값을 비교
-body.stringValue("name", "노트북");
-
-// 올바른 예 - 타입만 확인
-body.stringType("name", "노트북");
-```
-
-`stringValue`는 "노트북"이라는 정확한 값을 기대한다. 테스트 데이터가 바뀌면 깨진다. `stringType`은 문자열이기만 하면 된다. Contract Testing의 목적은 "필드가 있고 타입이 맞는가"를 확인하는 거지, 비즈니스 로직을 검증하는 게 아니다.
-
-**2. Provider 상태 관리를 대충 한다**
-
-`@State` 메서드에서 테스트 데이터를 제대로 세팅하지 않으면, Provider 검증이 실패한다. 특히 여러 Consumer가 같은 Provider를 테스트할 때, State 이름이 충돌하거나 데이터가 겹치는 경우가 있다. State 이름을 구체적으로 짓는 게 중요하다.
+팀이 2~3개일 때는 Pact 파일을 Git에 넣어도 된다. 그 이상이면 Pact Broker를 쓰고, 배포 직전에 `pact-broker can-i-deploy`로 대상 환경과 호환되는 버전인지 묻는다. 이 명령이 없으면 금요일 저녁에 한 서비스를 배포한 뒤 다른 서비스가 터지는 일이 생긴다.
 
 
 ## Expand/Contract 단계별 Contract Testing
@@ -140,6 +57,32 @@ body.stringType("name", "노트북");
 Expand-Migrate-Contract 패턴으로 스키마를 변경할 때 각 단계마다 Contract 테스트가 통과해야 한다는 조건을 CI에 걸어두면 단계를 실수로 건너뛰는 걸 막을 수 있다.
 
 시나리오: `product-service`가 `price` 필드를 `discountPrice`로 교체한다. 두 필드가 의미적으로 달라서 단순 이름 변경이 아닌 교체다.
+
+세 단계에서 계약 테스트가 어디에 걸리는지는 글보다 흐름으로 보는 편이 빠르다. 각 단계의 끝에 있는 판정 노드가 다음 단계로 넘어가는 조건이고, 실패하면 직전 작업으로 돌아간다.
+
+```mermaid
+flowchart TB
+    subgraph EX["Expand"]
+        E1["Provider: price 유지 + discountPrice 추가"] --> E2["기존 Consumer 계약으로 Provider Verification"]
+        E2 --> E3{"기존 계약 전부 통과"}
+    end
+    subgraph MG["Migrate"]
+        M1["Consumer별 PR: 계약을 discountPrice 기준으로 갱신"] --> M2["Pact 게시, Provider가 Verification 결과 기록"]
+        M2 --> M3{"Pact Matrix에서 price를 기대하는 최신 계약이 남았는가"}
+    end
+    subgraph CT["Contract"]
+        C1["Provider: price 필드 제거"] --> C2["남은 Consumer 계약으로 Provider Verification"]
+        C2 --> C3{"can-i-deploy 통과"}
+    end
+    E3 -- "예" --> M1
+    E3 -- "아니오: 기존 필드를 건드렸다" --> E1
+    M3 -- "예: 해당 팀에 Migrate 요청" --> M1
+    M3 -- "아니오" --> C1
+    C3 -- "아니오: price 참조 Consumer가 남았다" --> M3
+    C3 -- "예" --> Done["배포 완료"]
+```
+
+Expand에서는 Provider 쪽 검증만 돈다. Consumer 계약은 아직 바뀌지 않았으므로 기존 계약이 통과하는지가 전부다. Migrate는 Consumer 팀마다 시점이 달라서 이 단계가 가장 오래 걸린다. Contract는 Migrate의 판정 노드가 비었다는 것을 확인한 뒤에만 시작한다.
 
 ### Expand 단계 검증
 
@@ -327,6 +270,28 @@ Expand 단계 테스트와 Contract 단계 테스트를 동시에 CI에 두면 �
 ### 계약 위반이 발생하는 두 시점
 
 Consumer 쪽 PR에서 Pact 파일을 게시할 때, Broker가 기존 Provider 버전과 호환성을 즉시 체크한다. Provider 쪽 PR에서 Provider Verification을 실행할 때, 현재 등록된 모든 Consumer Contract를 가져와 실제 API와 비교한다.
+
+PR 단계는 계약이 깨졌다는 사실을 머지 전에 알려주고, 배포 단계의 `can-i-deploy`는 머지된 버전이 대상 환경에 떠 있는 상대 버전과 맞는지 마지막으로 확인한다. 둘은 막는 대상이 다르다. 아래 도식에서 Provider와 Consumer 두 갈래가 각각 어디서 실패하는지 본다.
+
+```mermaid
+flowchart TB
+    subgraph PR["PR 단계"]
+        direction TB
+        C1["Consumer PR: 계약 테스트 실행"] --> C2["Pact 파일을 Broker에 게시"]
+        P1["Provider PR: Verification 실행"] --> P2{"등록된 Consumer 계약을 모두 만족하는가"}
+        P2 -- "아니오" --> PF["PR 실패<br/>Webhook으로 Slack 알림"]
+        P2 -- "예" --> PM["머지 가능"]
+    end
+    subgraph DEP["배포 단계"]
+        direction TB
+        D1["main 머지 후 빌드"] --> D2["Verification 결과를 Broker에 게시"]
+        D2 --> D3{"can-i-deploy: 대상 환경의 상대 버전과 호환되는가"}
+        D3 -- "아니오" --> DF["배포 중단<br/>Pact Matrix에서 실패 인터랙션 확인"]
+        D3 -- "예" --> DS["배포 진행"]
+    end
+    C2 --> P1
+    PM --> D1
+```
 
 ### GitHub Actions 파이프라인
 
@@ -790,12 +755,28 @@ MSA 테스트에서 가장 골치 아픈 문제 중 하나가 환경 격리다. 
 
 ### 문제 상황
 
-```
-개발자 A: 주문 서비스 테스트 중 → 상품 123의 재고를 0으로 변경
-개발자 B: 동시에 주문 테스트 → 상품 123의 재고가 0이라 주문 실패
+```mermaid
+sequenceDiagram
+    participant A as 개발자 A 테스트
+    participant DB as 공용 테스트 DB
+    participant B as 개발자 B 테스트
+    A->>DB: 상품 123 재고를 0으로 변경
+    B->>DB: 상품 123 주문 생성
+    DB-->>B: 재고 0, 주문 실패
+    Note over B: B의 코드는 정상인데 테스트가 실패한다
 ```
 
-이런 일은 공용 테스트 DB를 쓸 때 매일 일어난다.
+이런 일은 공용 테스트 DB를 쓸 때 매일 일어난다. 실패한 B는 자기 코드를 의심하며 시간을 쓰고, 원인은 A의 테스트 데이터다. 아래 세 가지 방법은 격리 단위가 다르다. 네임스페이스는 서비스 전체를, 데이터 격리는 행 단위를, 전용 DB는 DB 인스턴스를 나눈다.
+
+```mermaid
+flowchart LR
+    P["공용 환경 충돌"] --> N["네임스페이스 격리<br/>격리 단위: 서비스 전체<br/>비용: 개발자 수 x 서비스 수"]
+    P --> D["테스트 데이터 격리<br/>격리 단위: 행<br/>비용: 정리 코드 유지"]
+    P --> I["전용 DB 인스턴스<br/>격리 단위: DB<br/>비용: CI 리소스"]
+    N --> NC["서비스 간 호출까지 재현해야 할 때"]
+    D --> DC["공용 환경을 유지해야 할 때"]
+    I --> IC["서비스 하나의 통합 테스트"]
+```
 
 ### 해결 방법 1: 네임스페이스 격리
 
@@ -886,7 +867,16 @@ pipeline {
 
 ## 테스트 피라미드 정리
 
-MSA에서 테스트 비율을 어떻게 가져갈지 정리한다.
+MSA에서 테스트 비율을 어떻게 가져갈지 정리한다. 모놀리스 피라미드에서 달라진 점은 단위 테스트와 E2E 사이에 서비스 경계를 맡는 층이 둘(서비스 통합, 계약) 생긴다는 것이다. 아래 도식은 위로 갈수록 실행 비용이 커지고, 각 층이 잡는 실패 종류가 서로 겹치지 않는다는 점을 보여준다.
+
+```mermaid
+flowchart TB
+    E2E["E2E 테스트 5%<br/>수 분 / 게이트웨이부터 전체 서비스<br/>잡는 것: 라우팅, 설정 누락, 환경 연결"]
+    CT["계약 테스트 10%<br/>수 초 / 서비스 간 API 형식<br/>잡는 것: 필드 삭제, 타입 변경, 배포 순서 불일치"]
+    IT["서비스 통합 테스트 15%<br/>수 초 / 서비스 하나 + 실제 DB, 브로커<br/>잡는 것: 쿼리 오류, 직렬화, 트랜잭션 경계"]
+    UT["단위 테스트 70%<br/>수 ms / 클래스, 메서드<br/>잡는 것: 비즈니스 로직 오류"]
+    E2E --- CT --- IT --- UT
+```
 
 | 테스트 종류 | 비중 | 실행 시간 | 범위 |
 |-------------|------|-----------|------|
