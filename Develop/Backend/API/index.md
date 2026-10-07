@@ -9,7 +9,7 @@ hide:
 
 # Backend · API Design 전체 보기
 
-문서 13개.
+문서 14개.
 
 ## 개요
 
@@ -22,6 +22,7 @@ hide:
 - [API 페이지네이션 패턴](API_Pagination_Patterns.md)
 - [HTTP 에러 응답 설계 (RFC 7807 Problem Details)](HTTP_Error_Response_Design.md)
 - [HTTP 조건부 요청 심화](HTTP_Conditional_Requests.md)
+- [OpenAPI 명세 기반 Breaking Change 검증 자동화](Open_API_Breaking_Change_Detection.md)
 - [Polling과 Webhook](Polling_and_Webhook.md)
 - [REST 리소스 모델링 심화](REST_Resource_Modeling.md)
 - [서비스 간 API 인증 — mTLS](m_TLS_Service_Auth.md)

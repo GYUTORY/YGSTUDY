@@ -1,2 +1,4 @@
 nav:
   - index.md
+  - JUnit_Mockito.md
+  - Spring_Cloud_Contract.md

@@ -249,6 +249,8 @@ spring:
             logger-level: BASIC
 ```
 
+Feign 인터페이스는 provider 응답이 바뀌면 런타임에야 깨진다. consumer가 기대하는 요청·응답 모양을 provider 빌드에서 검증하려면 [Spring Cloud Contract](../Testing/Spring_Cloud_Contract.md)로 계약을 걸어 둔다.
+
 ### 5. 분산 추적 (Distributed Tracing)
 
 여러 서비스를 거치는 요청의 **전체 흐름을 추적**한다.
@@ -1273,6 +1275,7 @@ services:
 - [Spring Cloud Gateway](https://docs.spring.io/spring-cloud-gateway/reference/)
 - [OpenFeign](https://docs.spring.io/spring-cloud-openfeign/reference/)
 - [Resilience4j 공식 문서](https://resilience4j.readme.io/docs)
+- [Spring Cloud Contract](../Testing/Spring_Cloud_Contract.md) — Feign 호출 계약 검증
 - [Spring Cloud Bus](https://docs.spring.io/spring-cloud-bus/reference/)
 - [HashiCorp Vault](https://developer.hashicorp.com/vault/docs)
 - [MSA](../../../Architecture/MSA/Saga_패턴_및_분산_트랜잭션.md) — MSA 아키텍처 패턴

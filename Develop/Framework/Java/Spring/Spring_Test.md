@@ -544,6 +544,8 @@ class OrderApiTest {
 
 대부분의 통합 테스트는 `@SpringBootTest` + MockMvc면 충분하다. 실제 직렬화/역직렬화, 필터, HTTP 상태까지 진짜로 확인해야 하는 핵심 시나리오만 `RANDOM_PORT`를 쓴다. 네트워크를 타는 쪽이 당연히 느리다.
 
+서비스 사이 HTTP·메시지 계약이 깨지는 걸 배포 전에 잡으려면 E2E 대신 계약 테스트를 쓴다. Spring 단일 스택이면 [Spring Cloud Contract](../Testing/Spring_Cloud_Contract.md)가 provider 테스트와 consumer용 stub을 계약 파일 하나에서 만들어 준다.
+
 ### RestAssured
 
 API 호출/검증을 BDD 스타일로 쓴다. 응답 JSON 검증이 길어질 때 MockMvc의 `jsonPath` 체인보다 읽기 편하다는 사람이 많다.
@@ -903,4 +905,5 @@ tasks.named('test') {
 - [Spring Security Testing](https://docs.spring.io/spring-security/reference/servlet/test/index.html)
 - [Testcontainers 공식 문서](https://testcontainers.com/)
 - [RestAssured](https://rest-assured.io/)
+- [Spring Cloud Contract](../Testing/Spring_Cloud_Contract.md) — 서비스 간 계약 테스트
 - [AssertJ 공식 문서](https://assertj.github.io/doc/)
