@@ -1,7 +1,7 @@
 ---
 title: ECS에서 Task 여러 개 연결하기 — 단일 Task 다중 컨테이너부터 Service 간 통신까지
 tags: [aws, microservices, cloud]
-updated: 2026-07-25
+updated: 2026-10-07
 ---
 
 # ECS Multi Task Connection
@@ -113,12 +113,36 @@ awsvpc 모드라 같은 Task 안 컨테이너끼리는 **포트 충돌**에 주�
 }
 ```
 
-condition 종류와 실제 의미는 다음과 같다.
+condition은 네 종류이고, 각각 컨테이너가 어떤 상태에 도달했을 때 충족되는지가 다르다.
 
 - **START**: 대상 컨테이너가 `Running` 상태가 되면 다음을 진행한다. 헬스체크 결과는 보지 않는다. 가장 약한 조건.
 - **HEALTHY**: 대상 컨테이너의 `healthCheck`가 healthy 판정이 나야 한다. 프록시 사이드카 앞단으로 트래픽을 흘리려면 이 조건이 필수다.
 - **COMPLETE**: 대상 컨테이너가 종료되어야 한다 (exit code 무관). init 컨테이너의 작업을 기다릴 때.
 - **SUCCESS**: 대상 컨테이너가 exit code 0으로 종료되어야 한다. 마이그레이션이 실패하면 앱도 안 뜬다.
+
+컨테이너 하나가 거치는 상태와 조건별로 충족되는 지점을 한 장으로 놓으면 이렇다. RUNNING에 닿으면 START가, healthCheck를 통과하면 HEALTHY가 충족되고, 종료 쪽 두 조건은 exit code로 갈린다. COMPLETE는 실패 종료도 통과시키기 때문에, 마이그레이션이 깨졌는데 앱이 떠버리는 사고는 대부분 SUCCESS를 써야 할 자리에 COMPLETE를 쓴 경우다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> RUNNING : 프로세스 기동
+    RUNNING --> HEALTHY : healthCheck 통과
+    HEALTHY --> UNHEALTHY : healthCheck 실패
+    UNHEALTHY --> HEALTHY : 다시 통과
+    RUNNING --> EXIT_ZERO : exit code 0
+    RUNNING --> EXIT_NONZERO : exit code 0 아님
+    HEALTHY --> EXIT_ZERO : exit code 0
+    HEALTHY --> EXIT_NONZERO : exit code 0 아님
+    EXIT_ZERO --> [*]
+    EXIT_NONZERO --> [*]
+
+    note right of RUNNING : START 충족
+    note right of HEALTHY : HEALTHY 충족
+    note right of EXIT_ZERO : COMPLETE와 SUCCESS 충족
+    note right of EXIT_NONZERO : COMPLETE만 충족
+```
+
+앱은 `dependsOn`에 건 조건이 전부 충족된 뒤에야 시작한다. 하나라도 충족되지 않으면 앱은 PENDING에 머문다.
 
 `SUCCESS`/`COMPLETE`로 의존하는 init 컨테이너는 반드시 `essential: false`로 두어야 한다. essential인 컨테이너가 종료되면 ECS는 그것을 "Task 실패"로 해석해서 전체를 재기동한다. init이 essential이면 정상 종료된 순간 무한 재시작 루프에 빠진다.
 
@@ -426,6 +450,24 @@ graph LR
 
 ### 패턴 선택 기준
 
+질문 순서가 중요하다. 외부 노출 여부는 다른 질문과 독립이라 먼저 떼어내고, 내부 호출 방식은 프로토콜 제약, L7 기능 요구, 규모 순으로 좁힌다. 아래 흐름에서 위쪽 조건에 걸리면 뒤쪽은 볼 필요가 없다.
+
+```mermaid
+flowchart TB
+    Start["Service 간 호출 방식 결정"] --> Ext{"인터넷에서 들어오는<br/>트래픽이 있나"}
+    Ext -->|"있다"| ExtALB["외부 ALB를 앞단에 둔다"]
+    Ext -->|"없다"| Proto
+    ExtALB --> Proto{"TCP 그대로 통과시켜야 하나<br/>또는 정적 IP가 필요한가"}
+    Proto -->|"그렇다"| NLB["내부 NLB"]
+    Proto -->|"아니다"| L7{"WAF, 경로 라우팅이 필요하거나<br/>bridge 모드 레거시와 붙나"}
+    L7 -->|"그렇다"| IALB["내부 ALB"]
+    L7 -->|"아니다"| Small{"호출 대상이 Task 1~2개짜리<br/>단순 백엔드인가"}
+    Small -->|"그렇다"| CM["Cloud Map"]
+    Small -->|"아니다"| SC["Service Connect"]
+```
+
+아래 표는 같은 결정을 상황별로 풀어 쓴 것이다.
+
 | 상황 | 권장 패턴 | 이유 |
 |------|---------|------|
 | 외부 노출 + 내부 호출 둘 다 | 외부 ALB (퍼블릭) + Service Connect | 외부는 ALB가 정통, 내부는 LB 비용 절감 |
@@ -439,22 +481,26 @@ graph LR
 
 ECS에서 통신이 안 될 때 70%는 보안 그룹 문제다. 패턴별로 정확한 SG 구성이 중요하다.
 
-### 같은 Task 내 컨테이너 통신
+SG 규칙은 항상 받는 쪽에 쓴다. 화살표 방향은 트래픽이 가는 방향이고, 각 화살표 라벨은 도착지 SG의 inbound 규칙에 들어갈 source와 포트다. 같은 Task 안 컨테이너끼리는 같은 ENI를 공유하므로 localhost 통신에 SG가 관여하지 않는다. 그래서 SG는 Task 바깥에서 들어오는 경로만 정리하면 된다.
 
-같은 Task 안 컨테이너는 같은 ENI를 공유한다. localhost 통신은 SG가 관여하지 않는다. SG 설정은 외부에서 들어오는 트래픽만 신경 쓰면 된다.
+```mermaid
+flowchart LR
+    subgraph Local["같은 Task, ENI 공유"]
+        AppX["app"] -->|"localhost, SG 무관"| EnvoyX["envoy"]
+    end
 
-### 다른 Service Task 간 호출 (ALB 경유)
+    SGA["Service A Task SG"]
+    SGALB["Internal ALB SG"]
+    SGB["Service B Task SG"]
 
+    SGA -->|"ALB inbound: source A SG, 80/443"| SGALB
+    SGALB -->|"B inbound: source ALB SG, 8080"| SGB
+    SGA -.->|"Service Connect, Cloud Map<br/>B inbound: source A SG, 8080"| SGB
 ```
-[Service A Task SG] ──────┐
-                          ▼
-                   [ALB SG] ── inbound: A의 SG, port 80/443
-                          │
-                          ▼
-                   [Service B Task SG] ── inbound: ALB SG, port 8080
-```
 
-세 개의 SG가 사슬로 연결된다. 각 단계에서 **이전 단계의 SG ID를 source로** 허용해야 한다. CIDR 대역으로 열어두면 잡다한 트래픽까지 들어온다. SG ID로 거는 게 깔끔하다.
+실선은 ALB를 거치는 경로로 SG 세 개가 사슬로 연결되고, 점선은 LB 없이 Task ENI끼리 직접 통신하는 Service Connect와 Cloud Map 경로다. 한 Service가 두 방식으로 호출되면 B의 inbound에 ALB SG와 A SG가 둘 다 들어가야 한다. 이 규칙 하나가 빠져서 "ALB로는 되는데 직접 호출만 안 되는" 증상이 나는 경우가 많다.
+
+사슬의 각 단계에서는 **이전 단계의 SG ID를 source로** 허용한다. CIDR 대역으로 열어두면 같은 서브넷의 다른 Task 트래픽까지 들어온다.
 
 ```bash
 # ALB SG: Service A Task SG에서 들어오는 것만 허용
@@ -470,20 +516,7 @@ aws ec2 authorize-security-group-ingress \
   --source-group sg-internal-alb
 ```
 
-### Service Connect / Cloud Map 직접 통신
-
-Service Connect나 Cloud Map은 LB를 거치지 않고 Task ENI 간 직접 통신이다.
-
-```
-[Service A Task SG] ──────────────► [Service B Task SG]
-                                    inbound: A의 SG, port 8080
-```
-
-Service B의 Task SG에서 Service A의 Task SG를 source로 허용한다. Service Connect를 쓰면 Envoy 사이드카가 같은 Task의 Envoy로 호출하므로 destination port는 Task Definition의 `portMappings.containerPort`다.
-
-awsvpc 모드의 핵심 장점이 여기서 빛난다. Task별로 SG가 다르니, "Service A → Service B만 허용, Service C → Service B는 차단" 같은 세밀한 제어가 가능하다.
-
-### bridge 모드의 SG 한계
+Service Connect를 쓰면 A의 Envoy가 B의 Envoy로 호출하므로 destination port는 Task Definition의 `portMappings.containerPort`다. awsvpc 모드는 Task별로 SG를 따로 줄 수 있어서 "Service A → Service B만 허용, Service C → Service B는 차단" 같은 제어가 된다.
 
 bridge 모드에서는 SG가 인스턴스 단위다. 같은 EC2에 떠 있는 모든 Task가 같은 SG를 공유한다. Service A의 Task와 Service B의 Task가 같은 인스턴스에 떠 있으면 둘이 같은 SG를 쓰니 SG로 격리가 안 된다. 보안이 중요하다면 awsvpc로 가야 한다.
 
@@ -505,9 +538,40 @@ Task 간 호출에서 장애가 안 나려면 여러 단계의 타임아웃 값�
 [ALB Deregistration Delay (default 300초)]
 ```
 
-가장 흔한 함정 두 가지.
+계층마다 연결을 먼저 끊는 쪽이 정해져 있고, 그 순서가 뒤집히면 요청이 이미 닫힌 연결로 나간다. 가장 흔한 함정은 두 가지다.
 
-**1. ALB Idle Timeout이 백엔드 keep-alive 보다 짧을 때.** ALB가 60초 후 연결을 끊는데, Java HTTP 클라이언트는 그 연결이 살아있다고 생각하고 재사용하다가 `Connection reset by peer`로 실패한다. 백엔드 keep-alive를 ALB 타임아웃보다 짧게(예: 55초) 설정하거나, 클라이언트에서 connection eviction을 켠다.
+**1. 백엔드 keep-alive가 ALB Idle Timeout보다 짧을 때.** ALB는 타겟과 맺은 연결을 idle timeout(기본 60초) 동안 재사용한다. 백엔드가 그보다 먼저 연결을 닫으면 ALB는 닫힌 줄 모르고 그 연결로 요청을 보내고, RST를 맞은 요청은 502로 돌아온다. Node.js `http.Server`의 `keepAliveTimeout` 기본값이 5초라서 별다른 설정 없이 Express를 올리면 그대로 이 상태가 된다. 요청이 드문 시간대에 연결이 오래 놀다가 끊기므로 오히려 새벽에 간헐적으로 찍혀서 원인을 늦게 잡는다. 백엔드 keep-alive를 ALB idle timeout보다 길게(예: 65초) 잡는다.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as ALB (idle 60초)
+    participant A as app (keepAlive 5초)
+
+    C->>L: 요청 1
+    L->>A: 요청 1 (새 연결)
+    A-->>L: 200
+    L-->>C: 200
+    Note over L,A: ALB는 연결을 60초까지 재사용할 수 있다고 본다
+    Note over A: 5초 idle, app이 먼저 연결을 닫는다
+    A-->>L: FIN
+    C->>L: 요청 2 (FIN 처리 전후로 도착)
+    L->>A: 요청 2 (닫힌 연결 재사용)
+    A-->>L: RST
+    L-->>C: 502 Bad Gateway
+```
+
+**클라이언트와 ALB 구간은 부등식이 반대다.** 이쪽은 ALB가 60초 idle 연결을 먼저 끊는다. Java HTTP 클라이언트가 풀에 보관한 연결을 그보다 오래 쥐고 있으면 `Connection reset by peer`로 실패한다. 클라이언트 풀의 idle 보관 시간을 ALB idle timeout보다 짧게(예: 55초) 잡거나 eviction을 켠다. 같은 "keep-alive"라도 구간에 따라 누가 더 길어야 하는지가 다르다는 점이 헷갈리는 지점이다.
+
+구간별로 어느 값이 더 길어야 하는지는 표에 정리했다. 어긋났을 때 나오는 증상이 서로 달라서 로그만 봐도 어느 구간 문제인지 대체로 좁혀진다.
+
+| 구간 | 더 길어야 하는 값 | 어긋났을 때 증상 |
+|------|------------------|----------------|
+| ALB idle timeout vs 백엔드 keep-alive | 백엔드 keep-alive | 간헐적 502 |
+| 클라이언트 풀 idle 보관 vs ALB idle timeout | ALB idle timeout | `Connection reset by peer` |
+| ALB idle timeout vs 요청 처리 시간 | ALB idle timeout | 504 |
+| Deregistration delay vs 가장 긴 요청 처리 시간 | Deregistration delay | 배포 중 요청 끊김 |
+| `stopTimeout` vs 앱 graceful shutdown 시간 | `stopTimeout` | SIGKILL로 in-flight 요청 유실 |
 
 **2. Deregistration Delay가 너무 길거나 짧다.** Task가 Service에서 빠지면 ALB가 Target Group에서 deregister 하는데, 이 delay 동안에는 새 요청은 안 보내지만 기존 연결은 유지된다. 너무 짧으면 (예: 30초) graceful shutdown이 끝나기 전에 연결이 끊기고, 너무 길면 (예: 600초) 배포가 한참 동안 안 끝난다. 일반 HTTP API는 60~120초가 적당하다. WebSocket이나 long polling 쓰는 서비스는 600초까지 늘리기도 한다.
 
@@ -526,16 +590,53 @@ Spring Boot라면 `server.shutdown=graceful`과 `spring.lifecycle.timeout-per-sh
 
 ### healthCheck — 컨테이너와 LB 두 층
 
-ALB 타겟 그룹 헬스체크와 Task Definition 컨테이너 헬스체크는 별개다.
+ALB 타겟 그룹 헬스체크와 Task Definition 컨테이너 헬스체크는 별개다. 판정하는 주체가 다르고 unhealthy가 났을 때 일어나는 일도 다르다.
 
-- **ALB 헬스체크**: 외부에서 본 가용성. unhealthy면 Target Group에서 빠진다.
-- **컨테이너 헬스체크**: ECS가 본 가용성. unhealthy면 ECS가 Task를 종료하고 새로 띄운다.
+```mermaid
+flowchart LR
+    subgraph LBSide["ALB 헬스체크"]
+        L1["ALB가 Task IP로 요청"] --> L2{"응답 정상"}
+        L2 -->|"연속 실패"| L3["Target Group에서 제외<br/>Task는 그대로 실행"]
+    end
+    subgraph ECSSide["컨테이너 헬스체크"]
+        E1["ECS Agent가 컨테이너 안에서 command 실행"] --> E2{"exit code 0"}
+        E2 -->|"retries 소진"| E3["essential이면 Task 종료<br/>Service가 새 Task 기동"]
+    end
+```
+
+ALB 쪽은 트래픽만 끊고 Task는 살려 두고, 컨테이너 쪽은 Task를 죽인다. 이 차이 때문에 컨테이너 헬스체크를 느슨하게 잡지 않으면 일시적 부하에서 Task가 연쇄로 재시작된다.
 
 둘이 같은 엔드포인트(`/health`)를 보면 일관성이 있다. 다르게 잡으면 ALB는 healthy인데 ECS가 컨테이너를 자꾸 죽이는 식의 모순이 생긴다. 일반적인 권장은 ALB 헬스체크 하나로 충분하다는 것이다. 컨테이너 헬스체크는 sidecar 의존성(`dependsOn: HEALTHY`)을 정의할 때만 추가한다.
 
 `healthCheckGracePeriodSeconds`(Service 레벨)를 부팅 시간보다 충분히 크게 잡아야 한다. Spring Boot는 120초 이상, 일반 Node.js/Go는 30~60초 정도가 무난하다.
 
 ## 트러블슈팅
+
+증상이 세 부류로 갈린다. 호출이 안 붙는 경우는 DNS 응답 유무로 디스커버리와 네트워크를 가르고, ALB 5xx는 상태 코드로 갈리고, Task가 PENDING에서 멈추는 경우는 이벤트 메시지의 리소스 이름으로 갈린다. 아래 흐름은 증상별로 가장 먼저 볼 곳을 순서대로 적은 것이고, 각 항목의 상세는 이어지는 절에 있다.
+
+```mermaid
+flowchart TB
+    Sym{"증상"}
+
+    Sym -->|"호출이 안 붙는다"| N1{"Task 안에서 nslookup<br/>응답이 오나"}
+    N1 -->|"NXDOMAIN, 무응답"| N2["namespace 일치 확인<br/>PHZ가 호출 측 VPC에 연결됐는지<br/>enableDnsSupport, enableDnsHostnames"]
+    N1 -->|"IP가 나온다"| N3{"B의 SG inbound에<br/>A의 SG가 있나"}
+    N3 -->|"없다"| N4["source SG와 포트 추가"]
+    N3 -->|"있다"| N5{"ss -tnlp 결과가<br/>0.0.0.0 listen인가"}
+    N5 -->|"127.0.0.1만"| N6["바인딩 주소 수정"]
+    N5 -->|"0.0.0.0"| N7["라우팅 테이블, Peering, Transit Gateway"]
+
+    Sym -->|"ALB가 5xx를 뱉는다"| H1{"ELB_5XX와 Target_5XX<br/>어느 쪽이 늘었나"}
+    H1 -->|"Target_5XX"| H2["앱 로그 확인<br/>앱이 직접 낸 5xx"]
+    H1 -->|"ELB_5XX"| H3{"상태 코드"}
+    H3 -->|"502"| H4["백엔드 keep-alive vs idle timeout<br/>종료 중인 Task로 간 요청"]
+    H3 -->|"503"| H5["healthy 타겟 없음<br/>헬스체크 실패 또는 스케일링 중"]
+    H3 -->|"504"| H6["처리 시간이 idle timeout 초과"]
+
+    Sym -->|"Task가 PENDING에서 안 넘어간다"| P1{"이벤트 메시지의<br/>RESOURCE 종류"}
+    P1 -->|"PORTS"| P2["bridge 모드 hostPort 충돌<br/>hostPort 0 또는 desiredCount 조정"]
+    P1 -->|"ENI"| P3["ENI Trunking 활성화<br/>또는 인스턴스 타입 상향"]
+```
 
 ### "Service A에서 Service B를 호출하는데 연결 안 됨"
 
@@ -619,11 +720,34 @@ awsvpc 모드에서 같은 Task의 컨테이너는 같은 ENI를 공유한다. �
 
 Service Connect 또는 ALB에서 새 Task가 healthy로 전환되는 순간, 옛 Task가 deregister 되는 순간에 트래픽이 잠시 죽은 endpoint로 갈 수 있다.
 
-체크 포인트.
-- **ALB**: Target Group의 Deregistration Delay가 앱 graceful shutdown 시간보다 길게.
-- **Service Connect**: Task `stopTimeout`이 충분한지(90~120초). Envoy가 in-flight 요청을 마무리할 시간을 줘야 한다.
-- **Service deployment**: `minimumHealthyPercent: 100`으로 새 Task가 healthy가 된 후 옛 Task를 내리도록.
-- **Application graceful shutdown**: SIGTERM 받으면 새 요청 거부하고 기존 요청 완료 후 종료. 이게 안 되어 있으면 어떤 설정도 의미 없다.
+옛 Task가 내려가는 동안 시간 축에는 세 개의 시계가 따로 돈다. ALB의 deregistration delay, ECS가 컨테이너에 보내는 SIGTERM, SIGKILL까지의 `stopTimeout`이다. 도식은 deregister 직전에 시작된 긴 요청이 이 세 시계 중 어디에서 잘리는지를 보여준다. SIGTERM이 deregistration 완료 이전에 가는지 이후에 가는지는 서비스 구성에 따라 달라질 수 있으니, 컨테이너 로그에 SIGTERM 수신 시각을 남겨 Task 이벤트의 deregister 시각과 비교해 보는 편이 확실하다.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as ALB
+    participant E as ECS
+    participant A as 옛 Task app
+
+    C->>L: 긴 요청 (처리에 40초)
+    L->>A: 전달
+    E->>L: 옛 Task deregister
+    Note over L,A: deregistration delay 시작<br/>신규 요청은 새 Task로만 간다
+    E->>A: SIGTERM
+    A->>A: 신규 수락 중단, in-flight 처리 계속
+    alt 처리가 delay와 stopTimeout 안에 끝남
+        A-->>L: 200
+        L-->>C: 200
+    else delay 또는 stopTimeout 만료
+        Note over L,A: ALB가 연결을 끊거나 SIGKILL이 도착한다
+        A-->>L: 연결 끊김
+        L-->>C: 5xx
+    end
+```
+
+여기서 두 부분이 자주 어긋난다. 하나는 deregistration delay가 가장 긴 요청보다 짧은 경우로, 앱은 멀쩡히 처리 중인데 ALB가 먼저 연결을 자른다. 다른 하나는 SIGTERM을 받은 앱이 listen 소켓을 즉시 닫는 경우다. deregister 상태가 ALB 내부에 퍼지기 전에 이미 라우팅된 신규 요청이 닫힌 소켓에 부딪혀 502가 난다. 이 경우는 SIGTERM을 받고 몇 초 뒤에 소켓을 닫도록 entrypoint에서 시그널을 가로채 지연시켜야 한다.
+
+배포 설정에서는 `minimumHealthyPercent: 100`을 걸어 새 Task가 healthy가 된 뒤에 옛 Task를 내리게 한다. Service Connect 환경에서는 `stopTimeout`을 90~120초로 잡아 Envoy가 in-flight 요청을 마무리할 시간을 준다. 이 모든 설정은 앱이 SIGTERM을 받고 새 요청을 거부한 채 기존 요청을 끝내는 동작을 구현했다는 전제 위에서만 의미가 있다. 앱이 시그널을 무시하면 어느 값을 바꿔도 `stopTimeout` 만료 때 SIGKILL로 끊긴다.
 
 ## 마이크로서비스 구성 시나리오
 
