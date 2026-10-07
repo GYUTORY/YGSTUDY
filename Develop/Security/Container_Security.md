@@ -1,7 +1,7 @@
 ---
 title: Docker 컨테이너 보안
 tags: [security, docker, kubernetes]
-updated: 2026-05-03
+updated: 2026-10-08
 ---
 
 # Docker 컨테이너 보안
@@ -9,6 +9,45 @@ updated: 2026-05-03
 ## 컨테이너는 VM이 아니다
 
 컨테이너는 커널을 호스트와 공유한다. 격리 수준이 VM보다 낮기 때문에, 컨테이너 내부에서 권한 상승이 발생하면 호스트까지 영향을 줄 수 있다. 보안 설정 없이 `docker run`만 하면 사실상 호스트에 루트 쉘을 열어두는 것과 다를 바 없는 경우가 생긴다.
+
+## 어느 단계가 어느 위협을 막는가
+
+컨테이너 보안은 한 군데에서 끝나지 않는다. 이미지를 만들 때, 레지스트리에 올릴 때, 클러스터가 받아줄 때, 돌아가는 중에 각각 다른 위협을 다룬다. 아래 그림은 단계별로 이 문서의 어느 절이 어떤 위협을 막는지 묶은 것이다. 점선으로 연결된 오른쪽 상자가 그 방어책이 막는 위협이다.
+
+```mermaid
+flowchart LR
+    subgraph build["이미지 빌드"]
+        B1["멀티스테이지 / 베이스 이미지 선택"]
+        B2["BuildKit secret mount"]
+        B3["Trivy / Grype 스캔, SBOM"]
+    end
+    subgraph registry["레지스트리"]
+        R1["Cosign 서명"]
+        R2["digest 고정"]
+    end
+    subgraph admission["배포 (admission)"]
+        A1["Pod Security Standards"]
+        A2["Kyverno 서명 / 레지스트리 검증"]
+        A3["NetworkPolicy"]
+    end
+    subgraph runtime["런타임"]
+        T1["non-root, read-only, cap-drop"]
+        T2["seccomp / AppArmor"]
+        T3["pids / 메모리 제한"]
+        T4["Falco 탐지"]
+    end
+    build --> registry --> admission --> runtime
+    B1 -.- X1["알려진 CVE, 불필요한 바이너리"]
+    B2 -.- X2["이미지 레이어에 남은 시크릿"]
+    R1 -.- X3["태그 덮어쓰기, 위조 이미지"]
+    A1 -.- X4["privileged, hostPath, 루트 실행"]
+    A3 -.- X5["Pod 간 횡이동"]
+    T1 -.- X6["탈출 후 호스트 권한 상승"]
+    T3 -.- X7["fork bomb, OOM으로 노드 장애"]
+    T4 -.- X8["이미 침투한 뒤의 이상 행위"]
+```
+
+앞 단계에서 걸러야 비용이 싸다. 스캔에서 걸린 CVE는 Dockerfile 한 줄로 고치지만, 런타임에서 Falco가 잡은 시점에는 이미 침투가 끝난 뒤다. 반대로 앞 단계를 다 통과해도 제로데이는 남기 때문에 런타임 제한(non-root, capability, seccomp)은 따로 걸어야 한다. 런타임 탐지는 [Container Runtime Security — Falco](Container_Runtime_Security_Falco.md)에서 다룬다.
 
 ---
 
@@ -118,36 +157,102 @@ seccomp이 시스템콜 레벨, AppArmor는 리소스 접근 레벨이다. 둘 �
 
 ---
 
+## capability 최소화와 no-new-privileges
+
+root가 아닌 유저로 돌려도 컨테이너에는 Docker 기본 capability 14개 안팎이 남아 있다. `NET_RAW`(raw 소켓, ARP 스푸핑에 쓰인다), `SETUID`/`SETGID`, `CHOWN`, `DAC_OVERRIDE`, `MKNOD` 같은 것들이다. 웹 애플리케이션이 이 중 쓰는 건 거의 없다. 전부 버리고 필요한 것만 되돌리는 쪽이 낫다.
+
+```bash
+docker run \
+  --cap-drop=ALL \
+  --cap-add=NET_BIND_SERVICE \
+  --security-opt=no-new-privileges \
+  myimage
+```
+
+`--cap-drop=ALL`만 걸어 보면 어떤 capability가 필요한지는 앱이 알려 준다. 부팅 중 `EPERM`(`Operation not permitted`)이 나는 시스템콜을 `strace -f`로 찾고, 해당 capability를 하나씩 `--cap-add`로 되돌린다. 처음부터 "혹시 모르니" 하고 `--cap-add=SYS_ADMIN`을 넣으면 의미가 없다. `SYS_ADMIN`은 `mount`, 네임스페이스 조작까지 열어서 거의 root와 같다.
+
+Docker 20.10 이상에서는 컨테이너의 `net.ipv4.ip_unprivileged_port_start`가 기본 0이라 non-root가 80 포트를 바인딩할 수 있다(`docker run --rm alpine cat /proc/sys/net/ipv4/ip_unprivileged_port_start`로 확인). 이 경우 `NET_BIND_SERVICE`는 필요 없다. K8s에서는 이 값이 기본으로 풀려 있지 않다.
+
+`setcap`으로 바이너리에 파일 capability를 박는 방식은 `--cap-drop=ALL`과 같이 쓰면 깨진다. Docker가 drop한 capability는 프로세스의 bounding set에서 빠지기 때문이다. 같은 조건을 `setpriv`로 재현해 보면 이렇다.
+
+```bash
+setcap 'cap_net_bind_service=+ep' ./myapp
+
+# bounding set 을 전부 비움 (cap-drop=ALL 과 같은 상태)
+setpriv --reuid=65534 --regid=65534 --clear-groups --bounding-set=-all ./myapp
+# setpriv: failed to execute ./myapp: Operation not permitted
+
+# net_bind_service 만 남김 (cap-add=NET_BIND_SERVICE 와 같은 상태)
+setpriv --reuid=65534 --regid=65534 --clear-groups \
+  --bounding-set=-all,+net_bind_service ./myapp
+# 정상 실행
+```
+
+바이너리가 아예 실행되지 않으니 "포트 바인딩 실패"가 아니라 "컨테이너가 시작하자마자 죽는다"로 나타난다. `setcap` 방식을 쓸 거면 `--cap-add=NET_BIND_SERVICE`도 같이 줘야 한다. 아래 Linux Capabilities 절의 `setcap` 예시는 `drop: ALL`을 같이 건 환경에서는 add 없이 성립하지 않는다.
+
+### no-new-privileges
+
+`no-new-privileges`는 프로세스가 `execve`로 권한을 더 얻는 경로를 막는다. setuid 비트가 켜진 바이너리(`su`, `sudo`, `passwd`, 이미지에 남은 오래된 setuid 헬퍼)를 실행해도 euid가 올라가지 않는다. 컨테이너 안에서 non-root로 셸을 얻은 공격자가 setuid 바이너리의 취약점으로 root가 되는 경로가 닫힌다.
+
+```mermaid
+flowchart TD
+    S["컨테이너 안 non-root 셸 (UID 1000)"] --> E["setuid 바이너리 실행<br/>(예: 오래된 su, 취약한 헬퍼)"]
+    E --> C{"no-new-privileges"}
+    C -->|"꺼짐"| ROOT["euid 0 획득<br/>컨테이너 내 root"]
+    C -->|"켜짐"| STAY["euid 1000 유지<br/>setuid 비트 무시"]
+```
+
+켜면 깨지는 것도 있다. 컨테이너 안에서 `sudo`로 패키지를 설치하거나 `ping`이 setuid 방식으로 설치된 베이스 이미지는 동작이 바뀐다. 운영 이미지에서는 어차피 쓰지 않는 방식이라 대부분 문제없다. K8s에서는 `securityContext.allowPrivilegeEscalation: false`가 같은 효과를 낸다. 아래 Restricted 레벨 스펙에도 들어 있다.
+
+---
+
+## 자원 제한 — fork bomb와 OOM
+
+자원 제한이 없는 컨테이너는 노드 하나를 통째로 죽일 수 있다. 공격자가 아니어도 버그 하나로 같은 상황이 된다. 프로세스를 끝없이 만드는 fork bomb 계열(자식 프로세스를 정리하지 않는 워커, 무한 재시도 `exec`)은 PID 한계에 닿으면 같은 노드의 다른 컨테이너도 `fork`에 실패한다. 메모리 누수는 노드 OOM killer가 어떤 프로세스를 죽일지 고르게 만들어서 kubelet이나 DB 컨테이너가 대신 죽기도 한다.
+
+| 위협 | 증상 | 막는 설정 (Docker) | K8s |
+|---|---|---|---|
+| fork bomb | 노드 전체에서 `fork: retry: Resource temporarily unavailable` | `--pids-limit=200` | kubelet `podPidsLimit` (노드 단위) |
+| 메모리 누수 | 노드 OOM, 엉뚱한 프로세스가 죽음 | `--memory=512m --memory-swap=512m` | `resources.limits.memory` |
+| CPU 독점 | 같은 노드 컨테이너 응답 지연 | `--cpus=1.5` | `resources.limits.cpu` |
+
+```bash
+docker run \
+  --pids-limit=200 \
+  --memory=512m --memory-swap=512m \
+  --cpus=1.5 \
+  myimage
+```
+
+`--memory-swap`을 `--memory`와 같은 값으로 주면 스왑을 쓰지 않는다. 안 주면 Docker는 메모리의 2배까지 스왑을 허용하는 쪽으로 동작해서, 한도를 넘은 컨테이너가 죽지 않고 스왑으로 느려지기만 하는 경우가 생긴다. 한도에 닿아 죽은 컨테이너는 종료 코드 137이고 아래 명령으로 원인이 OOM인지 확인한다.
+
+```bash
+docker inspect --format '{{.State.OOMKilled}} {{.State.ExitCode}}' <container>
+# true 137
+```
+
+`--pids-limit`은 값을 너무 낮게 잡으면 정상 앱이 깨진다. JVM은 GC·JIT·커넥션 풀 스레드가 모두 PID를 쓰므로 Java 서비스를 `--pids-limit=50`으로 띄우면 `unable to create new native thread`가 난다. 먼저 `docker stats`의 PIDS 열로 평상시 값을 보고, 그 3~4배 정도로 시작한다. K8s는 PID 제한이 Pod 스펙이 아니라 kubelet 설정이라 클러스터 관리자 권한이 필요하다는 점도 다르다.
+
+---
+
 ## 이미지 취약점 스캔
 
 ### CI/CD 파이프라인에서 스캔 위치
 
 컨테이너 이미지 스캔은 파이프라인의 어느 단계에 넣느냐에 따라 역할이 달라진다.
 
+```mermaid
+flowchart LR
+    SRC["Source Commit"] --> BLD["Build Image"]
+    BLD --> SCAN{"Image Scan<br/>(Gate)"}
+    SCAN -->|"CRITICAL 발견"| STOP["파이프라인 중단"]
+    SCAN -->|"통과"| PUSH["Push to Registry"]
+    PUSH --> DEP["Deploy (Staging)"]
+    DEP --> RT["Runtime Scan<br/>(정기 스캔)"]
+    RT -.->|"새 CVE 공개"| BLD
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     CI/CD Pipeline                                  │
-│                                                                     │
-│  ┌──────────┐   ┌──────────┐   ┌──────────────┐   ┌─────────────┐  │
-│  │  Source   │──>│  Build   │──>│  Image Scan  │──>│   Push to   │  │
-│  │  Commit   │   │  Image   │   │  (Gate)      │   │  Registry   │  │
-│  └──────────┘   └──────────┘   └──────┬───────┘   └──────┬──────┘  │
-│                                       │                   │         │
-│                              CRITICAL 발견 시             │         │
-│                              파이프라인 중단              │         │
-│                                                           v         │
-│                                                  ┌─────────────┐   │
-│                                                  │   Deploy     │   │
-│                                                  │   (Staging)  │   │
-│                                                  └──────┬──────┘   │
-│                                                         │          │
-│                                                         v          │
-│                                               ┌──────────────┐    │
-│                                               │  Runtime Scan │    │
-│                                               │  (정기 스캔)  │    │
-│                                               └──────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
-```
+
+위 그림에서 게이트는 Build와 Push 사이에 있고, 배포 이후 정기 스캔이 새로 공개된 CVE를 잡아 다시 빌드로 되돌린다.
 
 핵심은 **Image Scan** 단계가 Registry Push 앞에 위치해야 한다는 점이다. 취약한 이미지가 레지스트리에 올라가면 다른 팀이 가져다 쓸 수 있다. 레지스트리에 올라간 뒤에 스캔하면 이미 늦다.
 
@@ -248,6 +353,46 @@ Recommendations for base image upgrade:
 ```
 
 `--file=Dockerfile`을 넘기면 위처럼 base 이미지별 취약점 수 비교가 나온다. `node:20`에서 `node:20-alpine`으로 바꾸는 것만으로 취약점이 크게 줄어드는 걸 바로 확인할 수 있다.
+
+### Trivy와 Snyk 비교
+
+둘 다 이미지의 OS 패키지와 언어 의존성을 CVE DB와 대조한다. 차이는 어디서 DB를 받고, 결과 뒤에 무엇이 붙느냐에 있다.
+
+| 항목 | Trivy | Snyk |
+|---|---|---|
+| 형태 | 오픈소스 CLI, 로컬에서 바로 실행 | SaaS, 계정 인증(`snyk auth`) 필요 |
+| 취약점 DB | 공개 DB를 로컬에 내려받아 캐시 | Snyk 서버에 질의 |
+| 폐쇄망 | DB를 미리 받아 두면 가능 | 사실상 불가 |
+| base 이미지 교체 제안 | 없음 | 있음 (`--file=Dockerfile` 필요) |
+| 지속 모니터링 | 직접 cron으로 재스캔 | `snyk container monitor`로 내장 |
+| 비용 | 무료 | 무료 플랜은 월 스캔 횟수 제한 |
+| 같이 보는 것 | 설정 오류(misconfig), 하드코딩 시크릿, SBOM 출력 | IaC, 라이선스 |
+
+CI 게이트로는 Trivy를 넣고, base 이미지를 어디로 옮길지 판단할 때만 Snyk 결과를 참고하는 조합이 흔하다. 한 도구만 믿고 CVE 0건을 기대하면 안 된다. 같은 이미지를 두 도구에 넣으면 건수가 다르게 나오는 경우가 많은데, 배포판별 보안 트래커와 DB 갱신 시점이 달라서다.
+
+### SBOM — Syft로 목록을 뽑고 Grype로 대조
+
+스캔은 "지금 이미지에 CVE가 있는가"를 이미지 단위로 매번 다시 계산한다. SBOM은 이미지에 무슨 패키지가 들어 있는지를 파일로 남겨 두는 방식이다. 새 CVE가 공개되면 이미지를 다시 빌드하거나 풀 필요 없이 SBOM만 새 DB와 대조하면 된다. Log4Shell 때 "우리 이미지 중 log4j 들어간 게 어디인가"에 답하지 못해 레지스트리 전체를 다시 돌린 팀이 많았다.
+
+```bash
+# 이미지에서 SBOM 생성 (SPDX JSON)
+syft myapp:1.2.3 -o spdx-json=sbom.spdx.json
+
+# SBOM을 취약점 DB와 대조 (이미지를 다시 풀지 않는다)
+grype sbom:./sbom.spdx.json --fail-on high
+
+# 이미지 직접 스캔도 된다
+grype myapp:1.2.3
+```
+
+빌드 때 만든 SBOM은 이미지 digest와 같이 보관해야 의미가 있다. 이미지에 첨부하는 방법은 Cosign을 쓴다.
+
+```bash
+cosign attest --key cosign.key --type spdxjson \
+  --predicate sbom.spdx.json ghcr.io/myorg/myapp@sha256:<digest>
+```
+
+주의할 점이 있다. Syft는 이미지 파일시스템에서 패키지 메타데이터(dpkg, apk, `package-lock.json`, JAR 등)를 읽는다. 멀티스테이지로 컴파일한 Go 바이너리는 빌드 정보가 바이너리에 박혀 있으면 읽히지만, 정적 링크된 C 라이브러리나 소스를 복사해 컴파일한 의존성은 목록에 안 나온다. SBOM에 없다고 이미지에 없는 건 아니다.
 
 ### CI에 통합하기 — GitHub Actions
 
@@ -476,6 +621,15 @@ Alpine은 musl libc를 쓴다. glibc 기반 바이너리(prebuilt npm 패키지,
 - Puppeteer/Playwright — Chromium 의존성 때문에 Alpine에서 매우 까다롭다. 차라리 `-slim` 쓰는 게 낫다
 - DNS resolver 동작 차이 — Alpine은 `/etc/nsswitch.conf`를 안 쓴다. `getaddrinfo`가 다르게 동작해서 search domain 처리가 달라진다
 
+실제로 겪는 첫 증상은 대개 이렇다. `node:20-slim`에서 `COPY --from=builder`로 네이티브 모듈이 포함된 `node_modules`를 가져와 `node:20-alpine` 런타임에 올리면, 빌드는 통과하고 컨테이너가 뜰 때 죽는다.
+
+```
+Error: Error loading shared library ld-linux-x86-64.so.2: No such file or directory
+  (needed by /app/node_modules/<패키지>/build/Release/<모듈>.node)
+```
+
+`.node` 파일이 glibc용 로더(`ld-linux-x86-64.so.2`)를 찾는데 Alpine에는 그 경로가 없다. 빌드 스테이지와 런타임 스테이지의 libc가 다르면 생기는 문제라, 한쪽만 Alpine으로 바꾸지 말고 두 스테이지를 같은 계열(`node:20-alpine` / `node:20-alpine`, 또는 둘 다 `-slim`)로 맞춘다. `apk add gcompat`으로 glibc 호환 계층을 얹어 넘기는 방법도 있지만, 호환 계층 위에서 도는 바이너리는 재현이 어려운 문제를 만들 수 있어서 운영 이미지에는 권하지 않는다.
+
 Python의 경우 `python:3.12-alpine`은 wheel이 없어서 native 패키지를 매번 컴파일한다. 빌드 시간이 5배 이상 느려지고 이미지 크기도 결국 비슷해진다. Python은 `python:3.12-slim`이 더 합리적이다.
 
 ### Distroless
@@ -578,6 +732,30 @@ docker build --secret id=npmrc,src=.npmrc -t myapp .
 ```
 
 `--mount=type=secret`은 해당 `RUN` 명령어 실행 중에만 마운트되고, 이미지 레이어에 기록되지 않는다.
+
+`rm`으로 지워도 시크릿이 남는 이유는 이미지가 파일시스템 스냅샷이 아니라 레이어(변경분 tar)의 쌓임이기 때문이다. 아래 그림은 `COPY`로 넣고 `RUN rm`으로 지운 경우 각 레이어에 무엇이 들어가는지를 보여준다.
+
+```mermaid
+flowchart TD
+    L1["레이어 1: COPY .npmrc /root/.npmrc<br/>tar 안에 .npmrc 원본 포함"]
+    L2["레이어 2: RUN npm ci<br/>node_modules 추가"]
+    L3["레이어 3: RUN rm /root/.npmrc<br/>.wh..npmrc (whiteout) 표식만 추가"]
+    L1 --> L2 --> L3
+    L3 --> RUNC["컨테이너 실행 시 합쳐진 뷰<br/>.npmrc 안 보임"]
+    L1 -.->|"docker save 후 레이어 tar 추출"| LEAK["레지스트리에서 pull 한 누구든<br/>.npmrc 복원 가능"]
+    L1 -.->|"docker history"| LEAK
+```
+
+컨테이너 안에서는 `.npmrc`가 안 보이지만 레이어 1의 tar에는 원본이 그대로 있다. 레지스트리에 올라간 이미지를 `docker pull`한 사람은 누구나 꺼낼 수 있다.
+
+```bash
+docker save myapp:latest -o myapp.tar
+mkdir x && tar -xf myapp.tar -C x
+# 레이어 tar 중 .npmrc 가 들어 있는 것을 찾는다
+for f in x/blobs/sha256/*; do tar -tf "$f" 2>/dev/null | grep -q 'root/.npmrc' && echo "$f"; done
+```
+
+`ARG`로 넘긴 값도 같다. `docker build --build-arg NPM_TOKEN=...`은 `docker history --no-trunc`에 `|1 NPM_TOKEN=...` 형태로 남는다. 시크릿은 `ARG`/`ENV`로 넘기지 않는다. 이미 유출된 이미지는 레이어를 다시 만들어도 소용없고, 토큰을 폐기하는 것이 먼저다.
 
 ---
 
@@ -779,14 +957,43 @@ spec:
 
 ## NetworkPolicy
 
-![방화벽으로 네트워크를 분리한 DMZ 구성도 — NetworkPolicy의 기본 차단 개념과 유사](../assets/images/auto/보안/506d8891.svg)
-
-![이중 방화벽 DMZ 다이어그램 — 필요한 트래픽만 허용하는 분리 정책 시각화](../assets/images/auto/보안/4143dc9f.svg)
-
-![격리 기반 보안 시스템 다이어그램 — 횡이동 차단을 위한 네트워크 분리 개념](../assets/images/auto/보안/d47e7ba5.webp)
-
-
 기본적으로 Kubernetes Pod은 클러스터 내 모든 Pod과 통신할 수 있다. 하나의 Pod이 뚫리면 횡이동(lateral movement)이 가능하다는 뜻이다.
+
+아래 그림은 `myapp` 네임스페이스에 default deny를 걸기 전과 `allow-api-to-db` 하나를 붙인 뒤의 통신 가능 여부를 나란히 놓은 것이다. 실선은 통과, 점선은 드롭이다.
+
+```mermaid
+flowchart LR
+    subgraph before["정책 없음"]
+        direction LR
+        f1["frontend"] --> a1["api-server"]
+        a1 --> d1[("postgres")]
+        w1["worker (침해됨)"] --> d1
+        w1 --> a1
+    end
+    subgraph after["deny-all-ingress + allow-api-to-db"]
+        direction LR
+        f2["frontend"] -.->|"드롭"| a2["api-server"]
+        a2 -->|"TCP 5432 허용"| d2[("postgres")]
+        w2["worker (침해됨)"] -.->|"드롭"| d2
+        w2 -.->|"드롭"| a2
+    end
+    before ~~~ after
+```
+
+오른쪽에서 `frontend`에서 `api-server`로 가는 선도 끊겼다는 점을 봐야 한다. `podSelector: {}`로 건 default deny는 네임스페이스의 모든 Pod을 선택하므로 `api-server`의 인바운드도 같이 막힌다. `frontend`를 살리려면 `allow-frontend-to-api` 같은 정책을 하나 더 만들어야 한다. default deny를 먼저 적용하고 서비스가 죽은 뒤에야 이걸 알아채는 경우가 많다. 스테이징에서 먼저 걸고 허용 규칙을 쌓은 다음 운영에 올린다.
+
+패킷 하나가 들어올 때 허용 여부를 가르는 흐름이다. 정책이 하나도 선택하지 않은 Pod은 열려 있고, 한 개라도 선택하면 그 방향은 허용 규칙에 맞는 것만 통과한다.
+
+```mermaid
+flowchart TD
+    P["Pod으로 패킷 도착"] --> Q{"이 Pod을 선택하는<br/>Ingress 정책이 있는가"}
+    Q -->|"없음"| OPEN["허용 (정책 미적용 Pod)"]
+    Q -->|"있음"| R{"어느 정책의 from/ports에<br/>하나라도 맞는가"}
+    R -->|"맞음"| OK["허용"]
+    R -->|"모두 불일치"| DROP["드롭"]
+```
+
+정책은 합집합이다. 정책 여러 개가 같은 Pod을 선택하면 각각이 허용하는 것을 모두 합친 만큼 열린다. 어떤 정책이 다른 정책의 허용을 취소하는 방식은 없다.
 
 ### 기본 차단 후 필요한 것만 허용
 
@@ -873,7 +1080,7 @@ spec:
 
 ## 실무에서 자주 놓치는 것들
 
-**Docker Socket 마운트**: CI에서 Docker-in-Docker를 위해 `/var/run/docker.sock`을 마운트하는 경우가 많다. 이 소켓에 접근하면 호스트의 모든 컨테이너를 제어할 수 있다. 사실상 호스트 루트 권한이다. CI에서는 kaniko 같은 rootless 빌드 도구를 쓰는 게 낫다.
+**Docker Socket 마운트**: CI에서 Docker-in-Docker를 위해 `/var/run/docker.sock`을 마운트하면 그 컨테이너가 호스트의 모든 컨테이너를 제어한다. 사실상 호스트 루트 권한이다. CI에서는 kaniko 같은 rootless 빌드 도구를 쓴다. 소켓을 이용한 탈출 과정은 [Container Escape](Container_Escape.md)에서 다룬다.
 
 **latest 태그**: `image: myapp:latest`는 어떤 버전이 배포됐는지 추적이 안 된다. 취약점이 있는 이미지가 배포돼도 롤백할 수 없다. SHA digest를 쓰거나, 최소한 버전 태그를 써야 한다.
 
@@ -884,11 +1091,11 @@ image: myapp@sha256:abc123...
 image: myapp:1.2.3
 ```
 
-**`--privileged` 플래그**: 모든 Linux capability를 부여하고, 모든 디바이스에 접근 가능하게 하며, seccomp과 AppArmor를 비활성화한다. 컨테이너 격리가 사실상 없어진다. GPU 사용이나 특수한 하드웨어 접근이 필요한 경우가 아니면 쓰지 않는다.
+**`--privileged` 플래그**: 모든 capability와 디바이스 접근을 주고 seccomp·AppArmor를 끈다. 격리가 사실상 없어진다. GPU처럼 꼭 필요한 경우가 아니면 쓰지 않고, 필요하면 `--device`와 필요한 capability만 개별로 준다. 탈출 경로는 [Container Escape](Container_Escape.md)를 본다.
 
 **hostPath 볼륨**: `/`, `/etc`, `/var/run/docker.sock`, `/proc` 같은 경로를 hostPath로 마운트하면 컨테이너에서 호스트 파일시스템을 그대로 본다. 노드의 kubelet 인증서 같은 걸 읽으면 클러스터 전체 권한으로 이어진다. PSS Restricted 레벨에서는 hostPath 자체가 막힌다.
 
-**커널 공유의 한계**: 커널 익스플로잇(예: dirty pipe, dirty cow)이 터지면 컨테이너 격리가 무력화된다. 멀티테넌시가 필요한 SaaS나 고객 코드를 실행하는 환경(Lambda, CI runner 같은)에서는 일반 컨테이너 격리만으로 부족하다. gVisor(Google), Kata Containers(VM 기반)가 대안이다. EKS는 노드 그룹별로 RuntimeClass를 다르게 줄 수 있다:
+**커널 공유의 한계**: 커널 익스플로잇(예: dirty pipe, dirty cow)이 터지면 컨테이너 격리가 무력화된다. 침투 이후의 이상 행위를 잡는 쪽은 [Container Runtime Security — Falco](Container_Runtime_Security_Falco.md)가 맡는다. 멀티테넌시가 필요한 SaaS나 고객 코드를 실행하는 환경(Lambda, CI runner 같은)에서는 일반 컨테이너 격리만으로 부족하다. gVisor(Google), Kata Containers(VM 기반)가 대안이다. EKS는 노드 그룹별로 RuntimeClass를 다르게 줄 수 있다:
 
 ```yaml
 apiVersion: node.k8s.io/v1
