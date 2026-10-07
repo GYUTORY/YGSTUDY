@@ -63,6 +63,7 @@ nav:
   - 인프라 보안:
     - Zero Trust: Zero_Trust_Architecture.md
     - Docker 컨테이너 보안: Container_Security.md
+    - Rootless 컨테이너와 User Namespace: Rootless_Containers_User_Namespaces.md
     - 쿠버네티스 보안: Kubernetes_Security.md
     - 시크릿 관리: Secrets_Management.md
     - SSH 키 라이프사이클 관리: SSH_Key_Management.md
