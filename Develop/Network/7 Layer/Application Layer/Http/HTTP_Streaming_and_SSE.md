@@ -1,7 +1,7 @@
 ---
 title: HTTP 스트리밍과 실시간 통신
-tags: [network, http, messaging]
-updated: 2026-07-25
+tags: [network, http, messaging, performance]
+updated: 2026-10-07
 ---
 
 # HTTP 스트리밍과 실시간 통신
@@ -10,7 +10,7 @@ updated: 2026-07-25
 
 HTTP는 기본적으로 요청-응답 모델이다. 클라이언트가 요청하면 서버가 응답하고 연결이 끝난다. 그런데 실시간 알림, 채팅, 주식 시세처럼 서버에서 클라이언트로 데이터를 계속 보내야 하는 상황이 있다. 이때 매번 새로운 요청을 보내는 건 비효율적이다.
 
-이 문제를 해결하기 위해 여러 방식이 존재한다. 각각 동작 원리가 다르고, 적합한 상황도 다르다.
+이 문제를 푸는 방식은 Long Polling, Chunked 전송, SSE, WebSocket, WebTransport 다섯 가지다. 차이는 "요청 한 번에 응답이 어떻게 이어지느냐"에서 갈린다. 아래에서 방식마다 시퀀스를 하나씩 보고, 마지막에 비교표와 선택 흐름도로 묶는다.
 
 ## Long Polling
 
@@ -20,12 +20,21 @@ HTTP는 기본적으로 요청-응답 모델이다. 클라이언트가 요청하
 
 Long Polling은 이 문제를 개선한 방식이다. 클라이언트가 요청을 보내면 서버가 즉시 응답하지 않고, 새 데이터가 생길 때까지 연결을 유지한다. 데이터가 생기면 응답을 보내고, 클라이언트는 응답을 받자마자 다시 요청을 보낸다.
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: GET /updates
+    Note over S: 데이터가 없으면 응답을 보류하고 연결 유지
+    Note over S: 30초 뒤 새 데이터 발생
+    S-->>C: 200 OK (데이터 포함)
+    C->>S: GET /updates (받자마자 재요청)
+    Note over S: 다시 대기
+    S-->>C: 204 No Content (타임아웃)
+    C->>S: GET /updates (재요청)
 ```
-Client → Server: GET /updates (대기)
-            ... 30초 후 새 데이터 발생 ...
-Server → Client: 200 OK (데이터 포함)
-Client → Server: GET /updates (다시 대기)
-```
+
+요청 하나에 응답 하나다. 응답이 나가면 그 요청은 끝나고, 다음 이벤트를 받으려면 요청을 새로 보내야 한다. 응답을 받고 재요청하는 사이에 생긴 이벤트는 서버가 따로 쌓아두지 않으면 놓친다.
 
 ### 구현 시 주의사항
 
@@ -90,21 +99,25 @@ World!\r\n
 
 각 chunk는 `크기(16진수)\r\n데이터\r\n` 형식이다. 크기가 0인 chunk가 전송 종료를 의미한다.
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: GET /report
+    S-->>C: 200 OK, Transfer-Encoding chunked (헤더 1회)
+    S-->>C: chunk 1
+    Note over S: 쿼리 진행 중
+    S-->>C: chunk 2
+    S-->>C: chunk 3
+    S-->>C: 0 (종료 chunk)
+    Note over C,S: 응답 하나의 본문이 여러 조각으로 이어지고 서버가 끝내면 응답이 닫힌다
+```
+
 ### 스트리밍에 활용
 
-Chunked Transfer-Encoding 자체가 실시간 통신 프로토콜은 아니다. 원래 목적은 큰 파일이나 동적 콘텐츠를 점진적으로 전송하는 것이다. 하지만 서버가 chunk를 천천히 보내면 스트리밍처럼 동작한다. SSE가 내부적으로 이 방식을 사용한다.
+Chunked Transfer-Encoding 자체가 실시간 통신 프로토콜은 아니다. 원래 목적은 큰 파일이나 동적 콘텐츠를 점진적으로 전송하는 것이다. 서버가 chunk를 천천히 보내면 스트리밍처럼 동작하고, HTTP/1.1에서 SSE 응답이 이 방식으로 나간다. HTTP/2에는 chunked 가 없고 DATA 프레임이 같은 역할을 한다.
 
-### 실무에서 겪는 문제
-
-Nginx를 리버스 프록시로 사용하면 기본적으로 응답을 버퍼링한다. 서버가 chunk를 보내도 Nginx가 전부 모았다가 한 번에 클라이언트로 보내는 현상이 발생한다. 스트리밍이 필요하면 `proxy_buffering off` 설정이 필요하다.
-
-```nginx
-location /stream {
-    proxy_pass http://backend;
-    proxy_buffering off;
-    proxy_cache off;
-}
-```
+Nginx 같은 리버스 프록시가 chunk를 모았다가 한꺼번에 내보내는 문제는 [프록시 버퍼링](#프록시-버퍼링으로-스트림이-막히는-구조)에서 따로 다룬다.
 
 ## Server-Sent Events (SSE)
 
@@ -129,6 +142,21 @@ data: 세 번째 메시지
 
 각 이벤트는 빈 줄(`\n\n`)로 구분한다. `data:` 필드가 실제 데이터이고, `event:` 필드로 이벤트 타입을 지정할 수 있다. `id:` 필드는 재연결 시 마지막으로 받은 이벤트를 서버에 알려주는 용도다.
 
+```mermaid
+sequenceDiagram
+    participant B as Browser EventSource
+    participant S as Server
+    B->>S: GET /sse, Accept text/event-stream
+    S-->>B: 200 OK, Content-Type text/event-stream
+    S-->>B: id 1, data 첫 번째
+    Note over S: 이벤트가 생길 때마다 같은 응답에 이어 쓴다
+    S-->>B: id 2, event notification, data 알림
+    S-->>B: id 3, data 세 번째
+    Note over B,S: 요청 1회, 응답은 끝나지 않고 계속 이어진다
+```
+
+Long Polling과 달리 응답이 닫히지 않는다. 이벤트마다 요청-응답이 새로 생기지 않아서 이벤트 사이의 공백이 없다.
+
 ### 자동 재연결
 
 SSE의 큰 장점은 연결이 끊어지면 브라우저가 자동으로 재연결을 시도한다는 점이다. 서버가 `retry:` 필드로 재연결 간격(밀리초)을 지정할 수 있다.
@@ -139,6 +167,25 @@ data: 5초 후 재연결하도록 설정
 ```
 
 재연결할 때 브라우저는 `Last-Event-ID` 헤더에 마지막으로 받은 `id` 값을 보낸다. 서버는 이를 확인해서 놓친 이벤트부터 다시 보내주면 된다.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as Server
+    S-->>B: id 41, data
+    S-->>B: id 42, data
+    Note over B,S: 네트워크 단절, id 43과 44는 도착하지 못함
+    Note over B: retry 값만큼 대기 (지정이 없으면 브라우저 기본값)
+    B->>S: GET /sse, Last-Event-ID 42
+    Note over S: 42 이후 이벤트를 저장소에서 조회
+    S-->>B: id 43, data (재전송)
+    S-->>B: id 44, data (재전송)
+    S-->>B: id 45, data (실시간 이벤트)
+```
+
+`Last-Event-ID`는 서버가 이벤트를 보관하고 있어야 쓸모가 있다. 메모리에서 바로 브로드캐스트만 하는 구조면 헤더를 받아도 43, 44를 되돌려줄 곳이 없다. 이벤트 ID를 단조 증가하는 값으로 부여하고, 최근 N분치를 Redis Stream이나 DB에 두고 `id > Last-Event-ID` 조건으로 읽는 구조가 흔하다.
+
+재연결 헤더는 브라우저가 자동 재연결할 때만 붙는다. 코드에서 `new EventSource(url)`을 새로 만들면 `Last-Event-ID`가 가지 않는다. 직접 재연결하는 경로(탭 복귀 등)에서는 쿼리 파라미터로 마지막 ID를 넘기는 처리가 따로 필요하다. 이 부분은 [모바일 백그라운드 전환](#모바일-백그라운드-전환과-연결-유지)에서 코드로 본다.
 
 ### Spring 구현 예제
 
@@ -214,13 +261,166 @@ function broadcast(event, data) {
 
 Node.js는 이벤트 루프 기반이라 연결을 오래 유지해도 스레드를 점유하지 않는다. Long Polling이나 SSE 구현에 유리한 이유다.
 
-### SSE 사용 시 주의사항
-
-HTTP/1.1에서는 브라우저별로 동일 도메인에 대한 SSE 연결 수가 제한된다. 대부분의 브라우저에서 6개가 최대다. 탭을 여러 개 열면 금방 한계에 도달한다. HTTP/2를 사용하면 멀티플렉싱 덕분에 이 제한이 사라진다.
-
 IE는 SSE를 지원하지 않는다. polyfill 라이브러리를 사용하거나, IE 지원이 필요하면 Long Polling으로 대체해야 한다.
 
+## 동시 연결 제한과 HTTP/2
+
+### HTTP/1.1은 오리진당 6연결
+
+HTTP/1.1에서 브라우저는 같은 오리진(호스트+포트)에 동시에 6개까지만 TCP 연결을 연다. SSE는 연결 하나를 계속 붙잡고 있으므로 6개 중 하나가 영구히 사라진다. 같은 오리진으로 탭을 여섯 개 열면 일곱 번째 탭의 SSE는 연결 시도조차 못 하고 대기한다. 이 한도는 탭마다 따로 세는 게 아니라 브라우저 전체에서 오리진 기준으로 합산한다.
+
+증상이 헷갈린다. 탭 몇 개까지는 정상인데 어느 순간부터 새 탭의 API 호출까지 pending 상태로 멈춘다. SSE가 슬롯을 다 먹은 탓에 일반 XHR/fetch 요청이 줄을 서는 것이다. 서버 로그에는 아무것도 찍히지 않아서 서버 문제로 오해하기 쉽다.
+
+### HTTP/2에서는 스트림 수가 한도다
+
+HTTP/2는 연결 하나에 스트림을 여러 개 올린다. SSE 연결 하나는 스트림 하나가 된다. 6연결 제한이 사라지는 대신 서버가 `SETTINGS_MAX_CONCURRENT_STREAMS`로 광고한 값이 새 한도가 된다. RFC 9113은 이 값을 100 이상으로 두라고 권고하고, Nginx의 `http2_max_concurrent_streams` 기본값은 128이다.
+
+```mermaid
+flowchart LR
+    subgraph H1["HTTP/1.1"]
+        T1["탭 A: SSE"] --> C1["TCP 연결 1"]
+        T2["탭 B: SSE"] --> C2["TCP 연결 2"]
+        T3["탭 C ~ F: SSE"] --> C3["TCP 연결 3 ~ 6"]
+        T4["탭 G: SSE 또는 API 호출"] -.-> W["6개 소진, 대기"]
+    end
+    subgraph H2["HTTP/2"]
+        U1["탭 A ~ G: SSE 7개"] --> ST["스트림 7개"]
+        ST --> CN["TCP 연결 1개"]
+        CN -.-> L["한도는 MAX_CONCURRENT_STREAMS (보통 100 ~ 128)"]
+    end
+```
+
+다만 HTTP/2는 클라이언트와 프록시 구간의 얘기다. 일반적인 `proxy_pass` 설정에서 Nginx는 업스트림과 HTTP/1.1로 통신한다. 클라이언트 쪽 스트림 100개는 업스트림 쪽 커넥션 100개로 풀린다. 앱 서버의 최대 연결 수, 파일 디스크립터 한도, Nginx의 `worker_connections`(클라이언트와 업스트림 양쪽을 각각 센다)를 같이 봐야 한다.
+
+HTTP/2로 바꿨는데도 SSE 연결이 안 늘어나는 경우는 대부분 프록시나 로드밸런서가 HTTP/1.1로 내려 보내고 있는 것이다. 브라우저 개발자 도구의 Protocol 열이 `h2`인지 먼저 확인한다.
+
+### HTTP/1.1을 못 벗어날 때
+
+탭 간에 SSE를 하나만 공유하는 방법이 있다. `SharedWorker`에서 `EventSource`를 하나 열고 각 탭에 `postMessage`로 나눠주거나, `BroadcastChannel`과 리더 선출(Web Locks API)로 한 탭만 연결을 유지하게 만든다. 서브도메인을 나눠 오리진을 늘리는 방법도 있지만 CORS와 쿠키 설정이 따라와서 마지막 수단이다.
+
+## 모바일 백그라운드 전환과 연결 유지
+
+앱이나 브라우저가 백그라운드로 가면 OS가 네트워크와 CPU를 제한한다. iOS는 앱이 백그라운드로 내려간 뒤 수 초에서 수십 초 안에 일반 소켓 작업을 중단시킨다. Android는 Doze와 App Standby 상태에서 네트워크 접근을 막는다. 모바일 브라우저는 백그라운드 탭의 타이머를 늦추고, 메모리가 모자라면 탭을 통째로 버린다. SSE든 WebSocket이든 장시간 연결은 이 영향을 그대로 받는다.
+
+문제는 끊김을 클라이언트가 모를 수 있다는 점이다. 연결이 정상적으로 닫히지 않고 반쯤 죽은 채 남으면(half-open) `EventSource`는 `error` 이벤트를 내지 않고 `readyState`가 `OPEN`으로 남는다. 서버는 이미 그 연결을 정리했는데 화면에는 "연결됨"으로 보이고 이벤트는 오지 않는다.
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant B as 브라우저/앱
+    participant S as Server
+    S-->>B: id 80, data
+    U->>B: 앱을 백그라운드로 전환
+    Note over B: OS가 네트워크 중단, 소켓은 반쯤 죽은 상태
+    S-->>B: id 81, 82 (도착하지 못함)
+    Note over S: 쓰기 실패 또는 타임아웃으로 연결 정리
+    U->>B: 앱 복귀 (visibilitychange)
+    Note over B: readyState는 OPEN인데 이벤트가 없음
+    B->>S: 기존 연결 close 후 GET /sse?lastEventId=80
+    S-->>B: id 81, 82 (저장소에서 재전송)
+    S-->>B: id 83 (실시간)
+```
+
+대응은 세 가지를 같이 건다.
+
+서버가 15~30초마다 주석 줄(`: ping\n\n`)을 보낸다. 주석은 `EventSource`가 무시하지만 연결이 살아 있다는 신호가 되고, 프록시의 idle timeout도 막아준다. 클라이언트는 일정 시간 아무것도 못 받으면 연결이 죽었다고 보고 직접 닫고 다시 연다. 탭이나 앱이 포그라운드로 돌아오는 순간에도 같은 처리를 한다.
+
+```javascript
+let es;
+let lastId = null;
+let watchdog;
+
+function connect() {
+    if (es) es.close();
+    const url = lastId
+        ? `/sse?lastEventId=${encodeURIComponent(lastId)}`
+        : '/sse';
+    es = new EventSource(url);
+
+    es.onmessage = (e) => {
+        lastId = e.lastEventId;
+        armWatchdog();
+        render(e.data);
+    };
+    armWatchdog();
+}
+
+function armWatchdog() {
+    clearTimeout(watchdog);
+    // 서버 ping 주기(20초)의 두 배 넘게 조용하면 죽은 연결로 본다
+    watchdog = setTimeout(connect, 45_000);
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') connect();
+});
+```
+
+직접 `connect()`를 부르는 경로에서는 `Last-Event-ID` 헤더가 붙지 않으므로 서버가 `lastEventId` 쿼리 파라미터도 같이 읽어야 한다. 헤더와 쿼리 둘 다 받는 핸들러를 만들어 두는 게 편하다.
+
+세 번째는 한계를 인정하는 것이다. 앱이 오래 백그라운드에 있는 동안 연결을 붙들어 둘 수는 없다. 그 시간에 발생한 알림은 FCM/APNs 같은 푸시로 보내고, 복귀했을 때 SSE를 다시 열면서 놓친 이벤트를 `lastEventId` 이후로 조회한다. 실시간 연결은 포그라운드용, 백그라운드는 푸시로 역할을 나누는 구조가 안정적이다.
+
+복귀하는 사용자가 한꺼번에 재연결하는 시간대(출근 시간, 알림 발송 직후)가 있다. 클라이언트에 지수 백오프와 jitter를 넣지 않으면 서버로 요청이 몰린다. 이 문제는 [비정상 종료 패턴 분석](#비정상-종료-패턴-분석)에서 다시 본다.
+
+## 프록시 버퍼링으로 스트림이 막히는 구조
+
+로컬에서는 이벤트가 즉시 오는데 배포하면 한참 조용하다가 한꺼번에 도착하는 경우가 있다. 앱 서버 문제가 아니라 클라이언트와 앱 사이에 있는 장비 중 하나가 응답을 모으고 있어서다.
+
+```mermaid
+flowchart LR
+    CLI["클라이언트<br/>EventSource"]
+    CDN["CDN / ALB"]
+    NGX["Nginx"]
+    APP["앱 서버"]
+    CLI -->|"요청"| CDN
+    CDN -->|"요청"| NGX
+    NGX -->|"요청"| APP
+    APP ==>|"이벤트 write"| B1[("1. 앱 출력 버퍼<br/>flush 호출 필요")]
+    B1 ==> B2[("2. Nginx proxy 버퍼<br/>proxy_buffering on")]
+    B2 ==> B3[("3. CDN 버퍼<br/>응답 완료까지 보관 또는 gzip")]
+    B3 ==> CLI
+```
+
+버퍼는 세 곳에 있고 하나라도 막으면 스트림은 멈춘다. 번호는 응답이 지나가는 순서다.
+
+1번은 앱 자체다. Spring `SseEmitter.send()`는 내부에서 flush 하지만, Express는 `compression` 미들웨어가 응답을 모아서 압축하기 때문에 `res.flush()`를 직접 불러야 한다. 서블릿 필터나 Gzip 설정이 응답 전체를 감싸는 경우도 같다.
+
+2번이 가장 흔하다. Nginx는 `proxy_buffering`이 기본 `on`이라 업스트림 응답을 `proxy_buffers`(기본 8개)에 모은다. 이벤트 한 건이 수백 바이트면 버퍼가 차는 데 이벤트가 수십 개 쌓여야 하고, 그 전까지 클라이언트는 아무것도 못 받는다. 이벤트 간격이 길면 "몇 분 조용하다가 한꺼번에 도착"하는 증상으로 나타난다.
+
+```nginx
+location /sse {
+    proxy_pass http://backend;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_cache off;
+    gzip off;
+    proxy_read_timeout 3600s;
+}
+```
+
+`proxy_buffering off`는 location 단위 설정이다. 앱 팀이 Nginx 설정을 못 건드리는 상황이라면 응답 헤더 `X-Accel-Buffering: no`로 해당 응답만 버퍼링을 끌 수 있다. Nginx가 이 헤더를 보면 그 응답에 한해 `proxy_buffering off`와 같이 동작한다.
+
+```java
+@GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public ResponseEntity<SseEmitter> subscribe() {
+    SseEmitter emitter = new SseEmitter(0L);
+    return ResponseEntity.ok()
+            .header("X-Accel-Buffering", "no")
+            .header("Cache-Control", "no-cache")
+            .body(emitter);
+}
+```
+
+Express에서는 `res.setHeader('X-Accel-Buffering', 'no')`를 `writeHead` 전에 호출한다. 헤더 방식은 Nginx가 그 헤더를 무시하도록 `proxy_ignore_headers X-Accel-Buffering`가 걸려 있으면 안 먹는다. 안 먹는 것 같으면 `nginx -T`로 실제 적용된 설정부터 본다.
+
+`proxy_read_timeout` 기본값은 60초다. 이벤트 간격이 60초보다 길면 Nginx가 업스트림이 죽었다고 보고 504로 끊는다. 주기적인 ping 주석으로 간격을 줄이거나 타임아웃을 늘려야 한다.
+
+3번은 Nginx 앞단이다. 응답이 `text/event-stream`이어도 CDN이 응답 완료를 기다리거나 압축하느라 모을 수 있다. CloudFront, Cloudflare 같은 서비스는 캐시·압축 동작을 경로 단위로 바꿀 수 있으니 SSE 경로는 캐시 비활성화와 압축 제외로 둔다. 안 되면 실시간 경로를 CDN 밖으로 빼는 쪽이 낫다. ALB는 응답을 모으지는 않지만 `idle_timeout` 기본 60초에 걸린다.
+
 ## WebSocket과 HTTP Upgrade
+
+WebSocket 자체의 프로토콜 동작, 프레임 구조, 하트비트, 인증 처리는 [WebSocket](../../../Protocol/WebSocket.md)에서 다룬다. Nginx 앞에 WebSocket 서버를 둘 때의 Upgrade 헤더 전달과 타임아웃 설정은 [WebSocket 프록시](../../../../WebServer/Nginx/Web_Socket_Proxy.md)에 정리돼 있다. 이 절에서는 HTTP 스트리밍 방식과 비교하는 데 필요한 부분만 본다.
 
 ### HTTP Upgrade 메커니즘
 
@@ -244,73 +444,33 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
 
 이 핸드셰이크가 완료되면 HTTP 연결이 WebSocket 연결로 전환된다. 이후부터는 HTTP가 아니라 WebSocket 프레임 단위로 양방향 통신이 이루어진다.
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: GET /ws, Upgrade websocket
+    S-->>C: 101 Switching Protocols
+    Note over C,S: 여기서부터 HTTP가 아니라 WebSocket 프레임
+    C->>S: text frame
+    S-->>C: text frame
+    S-->>C: text frame
+    C->>S: ping
+    S-->>C: pong
+    C->>S: close frame
+    S-->>C: close frame
+```
+
+요청 1회, 응답(101) 1회가 끝나면 같은 TCP 연결에서 양쪽이 아무 때나 프레임을 보낸다. SSE와 달리 클라이언트가 서버로 보내는 메시지에도 요청-응답 짝이 필요 없다.
+
 ### SSE와의 차이
 
 WebSocket은 양방향 통신이다. 클라이언트와 서버 모두 자유롭게 메시지를 보낼 수 있다. SSE는 서버에서 클라이언트 방향만 가능하다. 클라이언트가 서버로 데이터를 보내려면 별도의 HTTP 요청을 사용해야 한다.
 
 WebSocket은 바이너리 데이터도 전송할 수 있다. SSE는 텍스트만 가능하다. 이미지나 파일 같은 바이너리를 실시간으로 주고받아야 하면 WebSocket이 맞다.
 
-### Spring WebSocket 예제
+### 프록시 환경에서의 차이
 
-```java
-@Configuration
-@EnableWebSocket
-public class WebSocketConfig implements WebSocketConfigurer {
-
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(chatHandler(), "/ws/chat")
-                .setAllowedOrigins("*");
-    }
-
-    @Bean
-    public WebSocketHandler chatHandler() {
-        return new TextWebSocketHandler() {
-
-            private final Set<WebSocketSession> sessions
-                    = ConcurrentHashMap.newKeySet();
-
-            @Override
-            public void afterConnectionEstablished(WebSocketSession session) {
-                sessions.add(session);
-            }
-
-            @Override
-            protected void handleTextMessage(WebSocketSession session,
-                                             TextMessage message) throws Exception {
-                // 받은 메시지를 모든 세션에 전달
-                for (WebSocketSession s : sessions) {
-                    if (s.isOpen()) {
-                        s.sendMessage(message);
-                    }
-                }
-            }
-
-            @Override
-            public void afterConnectionClosed(WebSocketSession session,
-                                              CloseStatus status) {
-                sessions.remove(session);
-            }
-        };
-    }
-}
-```
-
-### 프록시 환경에서의 문제
-
-WebSocket은 HTTP Upgrade를 사용하므로 중간에 프록시가 있으면 연결이 실패하는 경우가 있다. Nginx에서 WebSocket을 지원하려면 별도 설정이 필요하다.
-
-```nginx
-location /ws/ {
-    proxy_pass http://backend;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_read_timeout 3600s;
-}
-```
-
-`proxy_read_timeout`을 늘려줘야 한다. 기본값 60초가 지나면 Nginx가 유휴 상태의 WebSocket 연결을 끊어버린다.
+WebSocket은 `Upgrade`와 `Connection` 헤더를 프록시가 업스트림으로 그대로 넘겨줘야 연결된다. SSE는 일반 HTTP 응답이라 이런 설정이 필요 없고, 대신 위에서 본 버퍼링이 문제가 된다. Nginx 설정 예시와 `proxy_read_timeout` 기본값 60초로 유휴 연결이 끊기는 문제는 [WebSocket 프록시](../../../../WebServer/Nginx/Web_Socket_Proxy.md)를 본다.
 
 AWS ALB는 WebSocket을 기본 지원하지만, Classic Load Balancer는 지원하지 않는다. Classic ELB 환경이면 TCP 모드로 설정하거나 ALB로 변경해야 한다.
 
@@ -375,6 +535,23 @@ await writer.write(new TextEncoder().encode('hello'));
 // 데이터그램 (비신뢰 전송)
 const writer2 = transport.datagrams.writable.getWriter();
 await writer2.write(new Uint8Array([1, 2, 3]));
+```
+
+QUIC 연결을 맺은 뒤 HTTP/3 확장 CONNECT로 세션을 열고, 그 위에서 스트림과 데이터그램을 독립적으로 주고받는다.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    Note over C,S: QUIC 핸드셰이크 (TLS 1.3 포함)
+    C->>S: HTTP/3 확장 CONNECT (webtransport)
+    S-->>C: 200 OK
+    C->>S: 양방향 스트림 1 열기, 데이터
+    S-->>C: 스트림 1 응답
+    C->>S: 양방향 스트림 2 열기, 데이터
+    Note over C,S: 스트림 1에서 패킷이 손실돼도 스트림 2는 멈추지 않음
+    C->>S: datagram (손실되어도 재전송 없음)
+    S-->>C: datagram
 ```
 
 ### WebSocket 대비 장점
@@ -492,7 +669,7 @@ data: {"type":"message_stop"}
 
 이벤트 타입을 보고 처리 분기를 만들어야 한다. tool_use, thinking 같은 별도 콘텐츠 블록 타입도 있고, 최근에는 캐시 관련 이벤트도 추가됐다. 단순히 `delta.text`만 뽑아 쓰면 새 기능이 추가됐을 때 놓친다.
 
-### 중간 끊김 시 재시도 전략
+### 중간 끊김 시 재시도 방법
 
 LLM 스트리밍에서 가장 까다로운 부분이다. 모바일 환경에서 와이파이가 끊기거나, 프록시가 idle timeout으로 연결을 끊는 경우가 자주 있다. 일반 SSE처럼 `Last-Event-ID`로 재개할 수가 없다. LLM은 같은 입력에도 다른 출력을 내기 때문이다.
 
@@ -530,6 +707,20 @@ async def stream_with_retry(messages, max_retries=2):
 ### 클라이언트가 느릴 때 일어나는 일
 
 서버가 SSE로 초당 1000개의 이벤트를 보내는데 클라이언트가 100개밖에 처리하지 못한다고 가정하자. 차이만큼은 어딘가에 쌓인다. 처음에는 TCP 송신 버퍼에 쌓이고, 그게 차면 OS가 서버 애플리케이션의 `write()`를 블록하거나 버퍼링한다.
+
+```mermaid
+flowchart LR
+    P["이벤트 발행<br/>초당 1000건"] --> Q["앱 큐 / 출력 버퍼"]
+    Q --> SB["커널 TCP 송신 버퍼"]
+    SB --> NET["네트워크"]
+    NET --> RB["클라이언트 수신 버퍼"]
+    RB --> CL["느린 클라이언트<br/>초당 100건 처리"]
+    RB -. "수신 윈도우 축소" .-> SB
+    SB -. "가득 참: write 블록 또는 앱 쪽으로 적체" .-> Q
+    Q -. "큐 한도 초과" .-> D["이벤트 드롭 또는 연결 종료"]
+```
+
+차이만큼이 오른쪽에서 왼쪽으로 거꾸로 쌓여 올라온다. 클라이언트가 읽지 않으면 수신 윈도우가 줄고, 송신 버퍼가 차고, 마지막에 앱의 큐나 힙이 부풀어 오른다. 앱 큐에 한도를 두지 않으면 이 줄의 끝은 OOM이다.
 
 문제는 서버 애플리케이션이 이걸 인지하지 못하는 경우다. `SseEmitter.send()`나 `res.write()`가 정상 반환됐다고 데이터가 클라이언트에 도착했다는 뜻이 아니다. 메모리 어딘가에 적재된 것뿐이다.
 
@@ -716,40 +907,40 @@ ALB나 Nginx의 idle timeout이 짧으면 활동 없는 SSE/WebSocket이 일정 
 
 ## 방식별 비교
 
-| 항목 | Long Polling | SSE | WebSocket | WebTransport |
-|------|-------------|-----|-----------|--------------|
-| 통신 방향 | 단방향 (서버 → 클라이언트) | 단방향 (서버 → 클라이언트) | 양방향 | 양방향 |
-| 전송 계층 | TCP (HTTP) | TCP (HTTP) | TCP (WS) | UDP (QUIC/HTTP/3) |
-| 데이터 형식 | 텍스트/바이너리 | 텍스트 | 텍스트/바이너리 | 바이너리 (스트림+데이터그램) |
-| 자동 재연결 | 직접 구현 | 브라우저 내장 | 직접 구현 | 직접 구현 |
-| 연결 유지 | 요청마다 새 연결 | 하나의 연결 유지 | 하나의 연결 유지 | 하나의 연결 유지 |
-| HoL 블로킹 | 무관 | 발생 | 발생 | 스트림 단위 격리 |
-| 브라우저 지원 | 모든 브라우저 | IE 외 모든 브라우저 | 모든 브라우저 | Chromium 계열만 |
+| 항목 | Long Polling | Chunked | SSE | WebSocket | WebTransport |
+|------|-------------|---------|-----|-----------|--------------|
+| 양방향성 | 서버 → 클라이언트 (반대 방향은 별도 요청) | 서버 → 클라이언트 | 서버 → 클라이언트 (반대 방향은 별도 요청) | 양방향 | 양방향 (스트림과 데이터그램) |
+| 요청과 응답 | 요청 1회에 응답 1회, 반복 | 요청 1회에 본문이 조각으로 이어짐 | 요청 1회에 응답이 계속 이어짐 | 요청 1회 후 101로 전환 | CONNECT 1회 후 스트림 다중화 |
+| 프록시 호환 | 가장 좋음 (일반 HTTP) | 버퍼링 설정 필요 | 버퍼링 해제와 idle timeout 조정 필요 | Upgrade 헤더 전달 필요 | UDP 443 허용 필요, 대부분 미지원 |
+| 재연결 | 직접 구현 (응답 직후 재요청) | 없음 (응답 종료 = 끝) | 브라우저 내장, Last-Event-ID | 직접 구현 | 직접 구현 |
+| 데이터 형식 | 텍스트/바이너리 | 텍스트/바이너리 | 텍스트 | 텍스트/바이너리 | 바이너리 |
+| 전송 계층 | TCP | TCP | TCP | TCP | QUIC (UDP) |
+| HoL 블로킹 | 무관 | 발생 | 발생 (HTTP/2에서도 TCP 수준에서 발생) | 발생 | 스트림 단위 격리 |
+| 브라우저 지원 | 모든 브라우저 | 모든 브라우저 | IE 제외 | 모든 브라우저 | Chromium과 Firefox만, Safari 미지원 |
 
 ## 실무에서 선택하는 기준
 
-### SSE
+```mermaid
+flowchart TD
+    A["서버가 클라이언트로 데이터를 계속 보내야 한다"] --> B{"클라이언트도 같은 연결로<br/>메시지를 자주 보내는가"}
+    B -- "예" --> C{"독립 스트림이나 비신뢰 전송이 필요하고<br/>Safari 제외와 UDP 허용이 가능한가"}
+    C -- "예" --> WT["WebTransport<br/>(WebSocket 폴백 필수)"]
+    C -- "아니오" --> WS["WebSocket"]
+    B -- "아니오" --> D{"프록시 버퍼링을 끌 수 있고<br/>IE 지원이 필요 없는가"}
+    D -- "예" --> SSE["SSE"]
+    D -- "아니오" --> LP["Long Polling"]
+```
 
-서버에서 클라이언트로 이벤트를 보내는 단방향 통신이면 SSE가 가장 단순하다. 알림 시스템, 실시간 피드, 대시보드 업데이트 같은 상황에 적합하다. LLM 응답 스트리밍(ChatGPT 같은 서비스)도 SSE를 사용한다. 브라우저 내장 자동 재연결이 있어서 안정적이다.
+Chunked 전송은 선택지에 없다. 실시간 이벤트용이 아니라 SSE의 하위 메커니즘이고, 단발성 대용량 응답(진행률이 있는 다운로드, 큰 리포트의 점진 렌더링)에 쓴다.
 
-### WebSocket
+분기마다 현실에서 걸리는 지점은 이렇다.
 
-채팅, 실시간 게임, 공동 편집처럼 클라이언트와 서버가 동시에 데이터를 주고받아야 하면 WebSocket이 맞다. 바이너리 데이터 전송이 필요한 경우에도 WebSocket을 선택한다.
+양방향 메시지가 많은 쪽은 채팅, 실시간 게임, 공동 편집이다. 이때 WebSocket을 쓴다. WebTransport는 클라우드 게임이나 영상 협업처럼 WebSocket의 HoL 블로킹이 병목이 되는 경우에 한정한다. Safari 미지원, 서버 라이브러리 부족, UDP 차단 환경 때문에 WebSocket 폴백을 같이 만들어야 해서, 안정성이 필요한 신규 서비스는 WebSocket을 기본으로 두고 WebTransport는 점진적 도입 대상으로 본다.
 
-### Long Polling
+서버에서 클라이언트로 가는 단방향이면 SSE가 가장 단순하다. 알림, 실시간 피드, 대시보드, LLM 토큰 스트리밍이 여기에 해당한다. 클라이언트가 서버로 보낼 일은 일반 POST로 처리한다. 브라우저 내장 재연결이 있어 구현이 짧다.
 
-SSE나 WebSocket을 쓸 수 없는 환경에서 대안으로 사용한다. IE 지원이 필요하거나, 인프라가 WebSocket/SSE를 지원하지 않는 레거시 환경에서 선택하게 된다. 새로 만드는 서비스에서 의도적으로 Long Polling을 선택하는 경우는 거의 없다.
-
-### Chunked Transfer-Encoding
-
-파일 다운로드 진행률 표시나 대용량 응답의 점진적 렌더링 같은 상황에서 사용한다. 실시간 이벤트 스트리밍 목적이면 SSE를 사용하는 게 맞다. Chunked Transfer-Encoding은 SSE의 하위 메커니즘이지 독립적인 실시간 통신 방법은 아니다.
-
-### WebTransport
-
-클라우드 게임, 실시간 영상 협업, 다수의 독립 스트림을 동시에 처리해야 하는 시나리오에서 WebSocket의 HoL 블로킹이 병목이 되는 경우다. Chromium 외 브라우저 미지원, 서버 라이브러리 부족, UDP 차단 환경 같은 제약이 있어서 WebSocket으로 폴백하는 구조가 필수다. 신규 서비스에서 안정성이 필요하면 WebSocket을 기본으로 두고 WebTransport는 점진적 도입 대상으로 본다.
+Long Polling은 SSE를 쓸 수 없을 때의 대안이다. IE 지원이 필요하거나 인프라가 스트리밍 응답을 허용하지 않는 레거시 환경에서 선택하게 된다. 새 서비스에서 의도적으로 고르는 경우는 거의 없다.
 
 ## 인프라 설정 시 확인할 것
 
-어떤 방식을 쓰든 서버와 클라이언트 사이에 있는 중간 장비 설정을 확인해야 한다.
-
-Nginx/Apache는 프록시 버퍼링, 타임아웃, WebSocket Upgrade 헤더 전달 설정을 봐야 한다. 로드밸런서는 WebSocket 지원 여부와 sticky session 필요성, idle timeout 값을 점검한다. 대부분의 CDN은 SSE와 WebSocket을 제대로 처리하지 못하므로 실시간 통신 경로는 CDN을 우회하도록 구성한다. 기업 방화벽이 WebSocket을 차단하는 경우도 있다. 이때는 SSE나 Long Polling으로 폴백하는 로직이 필요하고, Socket.IO 같은 라이브러리가 이 폴백을 자동으로 처리한다.
+방식과 무관하게 클라이언트와 서버 사이 장비의 설정이 먼저 걸린다. Nginx/Apache는 [프록시 버퍼링](#프록시-버퍼링으로-스트림이-막히는-구조)과 타임아웃, WebSocket은 Upgrade 헤더 전달을 본다. 로드밸런서는 WebSocket 지원 여부, sticky session 필요성, idle timeout 값을 점검한다. 실시간 경로는 CDN의 캐시와 압축을 끄거나 CDN을 우회시킨다. 기업 방화벽이 WebSocket을 막는 경우도 있어서 SSE나 Long Polling으로 폴백하는 로직이 필요하고, Socket.IO 같은 라이브러리가 이 폴백을 자동으로 처리한다.
