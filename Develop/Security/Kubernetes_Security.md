@@ -1,7 +1,7 @@
 ---
 title: 쿠버네티스 보안
-tags: [security, kubernetes]
-updated: 2026-08-02
+tags: [security, kubernetes, docker]
+updated: 2026-10-08
 ---
 
 # 쿠버네티스 보안
@@ -12,7 +12,7 @@ updated: 2026-08-02
 
 ## 위협 모델 — 어디서 뚫리는가
 
-쿠버네티스 공격 경로는 대체로 다음과 같다.
+공격 경로는 Pod 침투, API Server 직접 공격, 공급망 이미지 세 입구로 갈린다. 입구마다 이어지는 단계가 달라서 막는 위치도 다르다.
 
 ```mermaid
 flowchart TB
@@ -32,7 +32,7 @@ flowchart TB
 
 내가 본 실제 사고 패턴은 크게 세 가지다. 첫째, 컨테이너 안 애플리케이션 취약점으로 RCE가 났는데 default ServiceAccount가 list pods 권한이 있어서 공격자가 클러스터 구조를 다 파악한 경우. 둘째, NetworkPolicy 없이 운영하다가 한 Pod에서 다른 네임스페이스의 DB Pod로 직접 접근한 경우. 셋째, etcd 백업이 평문으로 S3에 올라가 있었는데 그 버킷이 public이었던 경우.
 
-대응은 결국 권한 최소화, 네트워크 분리, 데이터 암호화 이 세 축이다.
+대응은 결국 권한 최소화, 네트워크 분리, 데이터 암호화 이 세 축이다. 컨테이너 자체의 격리는 [Docker 컨테이너 보안](Container_Security.md)에서, 컨테이너 안에서 일어나는 행위 탐지는 [컨테이너 런타임 탐지와 Falco](Container_Runtime_Security_Falco.md)에서 다룬다. 이 문서는 클러스터 레벨 통제와 Pod 스펙 강제에 집중한다.
 
 ## RBAC 설계 — 권한 최소화의 출발점
 
@@ -191,9 +191,16 @@ spec:
 
 ### Token 종류 — Secret 기반 토큰의 위험성
 
-쿠버네티스 1.24 이전에는 ServiceAccount를 만들면 Secret이 자동 생성되고 그 안에 영구 토큰이 들어갔다. 이 방식은 토큰이 만료되지 않아서 한 번 새면 영원히 위험하다.
+쿠버네티스 1.24 이전에는 ServiceAccount를 만들면 Secret이 자동 생성되고 그 안에 영구 토큰이 들어갔다. 1.24부터는 Projected ServiceAccount Token이 기본이다. 두 방식의 차이는 토큰이 새는 순간의 피해 범위에서 갈린다.
 
-1.24부터는 Projected ServiceAccount Token이 기본이다. Pod가 시작될 때 짧은 만료 시간을 가진 JWT를 마운트하고, kubelet이 자동으로 갱신한다.
+| 항목 | Secret 기반 토큰 (1.24 이전) | Projected 토큰 |
+|---|---|---|
+| 만료 | 없음 | 기본 1시간, kubelet이 갱신 |
+| 수명 | SA 를 지울 때까지 | Pod 가 사라지면 무효 |
+| audience | 없음 (API Server 용) | 지정 가능 |
+| 유출 시 | 발견해서 Secret 을 지울 때까지 유효 | 만료나 Pod 삭제로 자연 소멸 |
+
+Pod가 시작될 때 짧은 만료 시간을 가진 JWT를 마운트하는 스펙은 이렇게 쓴다.
 
 ```yaml
 apiVersion: v1
@@ -340,6 +347,21 @@ spec:
 
 Ingress와 Egress를 둘 다 잡아야 한다. payment-db에서 ingress를 열어줘도 payment-api에서 egress가 막혀있으면 통신이 안 된다. 처음 NetworkPolicy 설계할 때 가장 헷갈리는 부분이다.
 
+default-deny-all 아래에서 payment-api가 나가는 경로마다 어떤 정책이 열어줘야 하는지 그림으로 보면 이렇다. payment-api에서 payment-db로 가는 화살표는 양쪽 Pod의 정책이 모두 있어야 이어진다.
+
+```mermaid
+flowchart LR
+    subgraph NS["team-payment (default-deny-all 적용)"]
+        API["payment-api"]
+        DB["payment-db"]
+    end
+    DNS["CoreDNS (kube-system)"]
+    EXT["외부 결제 게이트웨이 443"]
+    API -->|"allow-dns: egress 53"| DNS
+    API -->|"payment-api-egress-to-db 와 payment-db-ingress 둘 다 필요"| DB
+    API -->|"payment-api-egress-external: egress 443"| EXT
+```
+
 ### 외부 트래픽 제어
 
 운영하다 보면 Pod에서 외부 API를 호출하는 경우가 많다. 예를 들어 결제 API에서 토스/카카오 결제 게이트웨이를 호출한다고 치자. IP CIDR 기반으로 외부 트래픽을 제어할 수 있다.
@@ -405,19 +427,34 @@ web-frontend는 payment-api의 특정 path만 호출할 수 있다. admin path�
 
 ## Pod Security Standards (PSS)
 
-PodSecurityPolicy(PSP)는 1.25에서 제거됐다. 그 자리를 Pod Security Standards가 차지했다. 네임스페이스 레이블만 붙이면 알아서 강제된다.
+PodSecurityPolicy(PSP)는 1.25에서 제거됐다. 그 자리를 Pod Security Standards가 차지했다. 기준표는 PSS이고, 이를 API Server 안에서 실행하는 내장 admission 플러그인이 Pod Security Admission(PSA)이다. 네임스페이스 레이블만 붙이면 강제된다. PSA가 요청 처리 중 어느 단계에서 도는지는 뒤의 Admission Controller 흐름 절에 시퀀스로 그려두었다.
 
-세 가지 레벨이 있다.
+레벨은 무엇을 허용하느냐, 모드는 위반했을 때 어떻게 하느냐를 정한다. 둘은 독립이라 네임스페이스 하나에 모드마다 다른 레벨을 걸 수 있다.
 
-- **privileged**: 제한 없음. 시스템 컴포넌트용
-- **baseline**: 최소한의 보안. 흔히 알려진 권한 상승만 차단
-- **restricted**: 가장 엄격. 운영 워크로드 기본값
+| 레벨 | 허용 범위 | 용도 |
+|---|---|---|
+| privileged | 제한 없음 | kube-system 같은 시스템 컴포넌트 |
+| baseline | 알려진 권한 상승 경로만 차단 (privileged, hostPath, hostNetwork 등) | 이미지를 못 고치는 서드파티 |
+| restricted | non-root, seccomp, capability 전부 drop 까지 요구 | 운영 워크로드 기본값 |
 
-세 가지 모드가 있다.
+| 모드 | 위반 시 동작 |
+|---|---|
+| enforce | Pod 생성 거부 |
+| audit | 감사 로그에 주석만 남기고 통과 |
+| warn | kubectl 에 경고를 찍고 통과 |
 
-- **enforce**: 위반 시 Pod 생성 거부
-- **audit**: 위반 시 감사 로그만 남김
-- **warn**: 위반 시 kubectl에 경고만 표시
+### PSA 는 Pod 만 본다
+
+enforce 는 Pod 오브젝트에만 걸린다. Deployment 는 PSA 를 위반해도 그대로 만들어지고, 문제는 ReplicaSet 이 Pod 를 만들려는 시점에 터진다. `kubectl apply` 는 성공하는데 `READY 0/3` 에서 멈추는 모양이라 처음 보면 원인 찾기가 오래 걸린다.
+
+```bash
+kubectl -n team-payment describe rs -l app=payment-api | grep -A3 FailedCreate
+# Error creating: pods "payment-api-6d9f7c-" is forbidden: violates PodSecurity
+# "restricted:latest": allowPrivilegeEscalation != false (container "app" must set
+# securityContext.allowPrivilegeEscalation=false), unrestricted capabilities ...
+```
+
+warn 과 audit 은 Deployment 같은 워크로드 리소스에도 걸린다. 그래서 `kubectl apply` 시점에 경고가 보이려면 warn 을 같이 켜둔다.
 
 ### 네임스페이스에 PSS 적용
 
@@ -433,7 +470,15 @@ metadata:
     pod-security.kubernetes.io/warn: restricted
 ```
 
-새 네임스페이스를 만들 때부터 restricted로 잡아두는 게 좋다. 운영 중에 baseline에서 restricted로 올리면 기존 Pod가 위반해서 재배포할 때 막힐 수 있다.
+새 네임스페이스를 만들 때부터 restricted로 잡아두는 게 좋다. 운영 중에 baseline에서 restricted로 올리면 기존 Pod가 위반해서 재배포할 때 막힐 수 있다. 올리기 전에 서버 사이드 dry-run 으로 기존 Pod 중 위반하는 것을 먼저 뽑는다.
+
+```bash
+kubectl label --dry-run=server --overwrite ns team-payment \
+  pod-security.kubernetes.io/enforce=restricted
+# Warning: existing pods in namespace "team-payment" violate the new PodSecurity
+# enforce level "restricted:latest"
+# Warning: payment-worker-7c8d-x2k9p: allowPrivilegeEscalation != false, ...
+```
 
 ### restricted를 만족시키는 Pod 스펙
 
@@ -473,9 +518,93 @@ spec:
     emptyDir: {}
 ```
 
-여기서 중요한 점이 readOnlyRootFilesystem이다. 컨테이너 안 파일시스템을 읽기 전용으로 만들면 공격자가 RCE 후에도 추가 페이로드를 떨굴 수가 없다. 그런데 애플리케이션이 /tmp나 /var/log에 쓰는 경우가 많아서 emptyDir로 따로 마운트해줘야 한다.
+### securityContext 항목이 막는 공격
 
-readOnlyRootFilesystem 적용하다가 부트 시점 파일 쓰기가 실패해서 한참 디버깅한 적이 있다. JVM이 /tmp에 클래스 파일을 쓰는데 그게 막힌 거였다. 처음 적용할 때는 warn 모드로 두고 위반 사항을 보고 fix한 다음에 enforce로 바꾸는 게 안전하다.
+restricted 가 요구하는 항목은 각각 다른 공격 단계를 자른다. 항목 하나만 켜고 끝내면 나머지 경로가 열려 있다.
+
+| 항목 | 막는 공격 | 막지 못하는 것 | 켜면 깨지는 것 |
+|---|---|---|---|
+| runAsNonRoot + runAsUser | 컨테이너 root 로 마운트된 호스트 파일 수정, root 를 전제로 한 익스플로잇. 탈출 취약점이 터져도 호스트에서 비특권 UID | 호스트의 같은 UID 사용자와 권한이 겹침 | 80 포트 바인딩, root 소유 디렉터리에 쓰는 앱 |
+| readOnlyRootFilesystem | 웹셸 저장, 바이너리 교체, 설정 파일 변조 | emptyDir 에 쓴 파일의 실행, 메모리상 실행 | /tmp, 로그, 캐시 디렉터리에 쓰는 앱 |
+| allowPrivilegeEscalation: false | setuid 바이너리와 file capability 로 권한 상승 (no_new_privs) | 커널 취약점 | sudo, su 를 쓰는 엔트리포인트 스크립트 |
+| seccompProfile: RuntimeDefault | 위험한 syscall 호출 (bpf, keyctl, mount, unshare 등). 커널 익스플로잇 표면 축소 | 허용된 syscall 안의 취약점 | 비표준 syscall 을 쓰는 일부 프로파일러, 디버거 |
+| capabilities drop ALL | NET_RAW 로 ARP 스푸핑, SYS_ADMIN 으로 마운트, 파일 소유권 변경 | 커널 취약점 | ping, 1024 미만 포트 바인딩 (NET_BIND_SERVICE 만 다시 추가) |
+
+몇 가지는 켜기 전에 알아둬야 한다.
+
+runAsNonRoot 는 이미지의 `USER app` 처럼 이름으로 지정된 경우 kubelet 이 UID 를 확인하지 못해 컨테이너를 시작하지 않는다. `CreateContainerConfigError: image has non-numeric user (app), cannot verify user is non-root` 가 이 경우다. `runAsUser: 1000` 처럼 숫자를 같이 적는다. 호스트 UID 와 겹치는 문제는 [Rootless 컨테이너와 User Namespace](Rootless_Containers_User_Namespaces.md)의 `hostUsers: false` 가 푸는 영역이다.
+
+readOnlyRootFilesystem 은 RCE 후 페이로드를 떨구는 걸 막는다고 알려져 있는데, 쓰기 가능한 emptyDir 를 /tmp 에 마운트하면 거기에 내려받아 실행할 수 있다. emptyDir 는 기본적으로 noexec 가 아니다. 크립토마이너가 /tmp 에 바이너리를 받아 돌리는 사고는 이 설정을 켜둔 Pod 에서도 났다. 쓰기 경로는 최소로 줄이고, 실행까지 막으려면 [Falco](Container_Runtime_Security_Falco.md) 규칙으로 /tmp 아래 실행 파일을 탐지한다. JVM 이 /tmp 에 클래스 파일을 쓰는데 막혀서 부트가 실패해 한참 디버깅한 적도 있다. 처음 적용할 때는 warn 모드로 두고 위반 사항을 보고 고친 다음에 enforce 로 바꾸는 게 안전하다.
+
+seccompProfile 은 Pod 스펙에 적지 않으면 Unconfined 로 뜨는 클러스터가 많다. kubelet 의 `--seccomp-default` 를 켜야 RuntimeDefault 가 기본이 되는데 기본값은 꺼져 있다. restricted 레벨이 이 필드를 요구하는 이유다. 프로파일 자체와 capability 상세는 [Docker 컨테이너 보안](Container_Security.md)에 정리해 두었다.
+
+## RuntimeClass — 커널을 공유하지 않는 격리
+
+securityContext 는 같은 커널을 쓰는 컨테이너끼리의 경계를 조인다. 커널 취약점이 터지면 이 경계가 통째로 뚫린다. 결제나 외부 사용자 코드 실행처럼 침해 가능성이 높은 워크로드는 커널 자체를 분리하는 런타임을 붙이고, 쿠버네티스에서는 RuntimeClass 로 Pod 단위 선택을 한다.
+
+```mermaid
+flowchart LR
+    subgraph RUNC["runc (기본)"]
+        direction TB
+        P1["컨테이너 프로세스"] --> K1["호스트 커널"]
+    end
+    subgraph GV["gVisor (runsc)"]
+        direction TB
+        P2["컨테이너 프로세스"] --> S2["Sentry: 유저스페이스 커널"]
+        S2 -->|"제한된 syscall 만"| K2["호스트 커널"]
+    end
+    subgraph KT["Kata Containers"]
+        direction TB
+        P3["컨테이너 프로세스"] --> G3["게스트 커널"]
+        G3 --> H3["경량 VM 하이퍼바이저"] --> K3["호스트 커널"]
+    end
+```
+
+runc 는 컨테이너가 호스트 커널의 syscall 을 직접 호출한다. gVisor 는 syscall 을 유저스페이스 Sentry 가 받아 처리하고 호스트 커널에는 좁은 syscall 만 내려보낸다. Kata 는 Pod 마다 경량 VM 을 띄워 게스트 커널을 따로 쓴다. 호스트 커널에 닿는 표면은 runc, gVisor, Kata 순으로 좁아지고, 시작 시간과 호환성 비용은 같은 순서로 커진다.
+
+노드에는 런타임이 설치돼 있어야 하고, RuntimeClass 의 `handler` 는 containerd 설정의 런타임 이름과 같아야 한다.
+
+```toml
+# /etc/containerd/config.toml (격리 노드)
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.gvisor]
+  runtime_type = "io.containerd.runsc.v1"
+```
+
+```yaml
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: gvisor
+overhead:
+  podFixed:
+    cpu: 100m
+    memory: 64Mi
+scheduling:
+  nodeSelector:
+    runtime: gvisor
+  tolerations:
+  - key: runtime
+    operator: Equal
+    value: gvisor
+    effect: NoSchedule
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: user-code-runner
+spec:
+  runtimeClassName: gvisor
+  containers:
+  - name: runner
+    image: registry.company.com/app/code-runner:1.4
+```
+
+`scheduling.nodeSelector` 와 `tolerations` 는 Pod 스펙에 합쳐진다. 격리 노드에 taint 를 걸어두면 일반 Pod 가 거기 올라오지 않고, `runtimeClassName: gvisor` 를 쓴 Pod 만 그 노드로 간다. `overhead.podFixed` 는 스케줄링과 ResourceQuota 계산에 더해지므로 값을 빼먹으면 노드가 실제보다 여유 있어 보인다.
+
+주의할 점이 있다. gVisor 는 syscall 을 재구현한 것이라 일부 syscall 과 /proc, /sys 경로, eBPF 를 쓰는 앱은 동작하지 않을 수 있다. 네트워크 성능과 파일 I/O 가 느려지는 경우도 있어서 적용 전에 실제 워크로드로 돌려본다. Kata 는 hostPath 마운트와 일부 privileged 사용 방식이 달라진다. 어느 쪽이든 RuntimeClass 는 선택 사항이라, 정책 엔진이 `runtimeClassName` 을 강제하지 않으면 개발자가 필드를 빼는 것으로 격리가 사라진다. 민감 네임스페이스는 Kyverno 나 Gatekeeper 로 `runtimeClassName` 필수를 걸어둔다.
+
+RuntimeClass 는 컨테이너 탈출을 어렵게 하지만 불가능하게 만들지는 않는다. 어떤 경로로 탈출이 일어나는지, RuntimeClass 가 어느 경로를 막는지는 [Container Escape](Container_Escape.md)에서 다룬다. Pod 의 root 를 호스트의 비특권 UID 로 매핑하는 `hostUsers: false` 는 런타임을 바꾸지 않고도 쓸 수 있는 낮은 비용의 방법이고, [Rootless 컨테이너와 User Namespace](Rootless_Containers_User_Namespaces.md)에서 다룬다.
 
 ## OPA/Gatekeeper — 정책 엔진
 
@@ -542,12 +671,15 @@ spec:
 
 ### 흔히 쓰는 Gatekeeper 정책
 
-- 모든 Pod에 resource limits 강제
-- privileged Pod 차단
-- hostPath 마운트 차단
-- 특정 레이블(cost-center, team) 필수
-- LoadBalancer Service 차단 (비용 통제)
-- 외부 트래픽 허용된 Ingress 호스트만 사용
+| 정책 | 막는 사고 |
+|---|---|
+| resource limits 강제 | Pod 하나가 노드 메모리를 먹어 이웃 Pod 까지 OOM |
+| privileged Pod 차단 | 노드 장악. PSS 를 안 거는 네임스페이스의 안전망 |
+| hostPath 마운트 차단 | 호스트 파일, docker.sock 접근 |
+| cost-center, team 레이블 필수 | 비용 귀속 불가, 장애 시 담당자 불명 |
+| LoadBalancer Service 차단 | 의도치 않은 외부 노출과 비용 |
+| 허용된 Ingress 호스트만 | 남의 호스트명 선점 |
+| runtimeClassName 필수 | 격리 노드용 Pod 가 일반 런타임으로 뜨는 것 |
 
 ### Audit과 Dry-run
 
@@ -569,35 +701,54 @@ kubectl get k8sallowedrepos allowed-repos -o yaml
 
 ## Admission Controller 흐름
 
-Admission Controller는 API Server가 요청을 받아서 etcd에 저장하기 전에 끼어드는 단계다. 두 종류가 있다.
+Admission Controller는 API Server가 요청을 인증·인가한 뒤 etcd에 저장하기 전에 끼어드는 단계다. 두 종류가 있다.
 
-- **Mutating Admission**: 객체를 수정한다. 사이드카 주입, 기본값 설정
+- **Mutating Admission**: 객체를 수정한다. 사이드카 주입, 기본값 설정, 이미지 태그를 digest 로 치환
 - **Validating Admission**: 객체를 검증만 한다. 통과 못 하면 거부
+
+PSA, Kyverno, Gatekeeper 가 각각 어느 단계에서 도는지가 중요하다. 같은 Pod 를 두고 mutating 이 먼저 고치고, validating 은 고쳐진 결과를 검사한다. 사이드카를 주입하는 mutating webhook 이 있으면 validating 쪽 정책은 사이드카 컨테이너까지 보게 된다.
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API as API Server
-    participant Mut as Mutating Admission
-    participant Val as Validating Admission
-    participant ETCD as etcd
+    participant U as kubectl
+    participant A as API Server
+    participant M as Mutating 단계
+    participant V as Validating 단계
+    participant E as etcd
 
-    Client->>API: kubectl apply pod.yaml
-    API->>API: 인증/인가
-    API->>Mut: Pod 객체 전달
-    Mut->>Mut: 사이드카 주입, 레이블 추가
-    Mut-->>API: 수정된 Pod 반환
-    API->>API: 스키마 검증
-    API->>Val: 수정된 Pod 전달
-    Val->>Val: 정책 검사 OPA/PSS
-    Val-->>API: 통과/거부
-    alt 통과
-        API->>ETCD: 저장
-        API-->>Client: 201 Created
-    else 거부
-        API-->>Client: 403 Forbidden
+    U->>A: POST /api/v1/namespaces/team-payment/pods
+    A->>A: 인증 (OIDC 토큰, 클라이언트 인증서)
+    A->>A: 인가 (RBAC 에서 create pods 확인)
+    A->>M: AdmissionReview (원본 Pod)
+    Note over M: 내장 플러그인 LimitRanger, ServiceAccount<br/>Kyverno mutate, verifyImages 의 digest 치환<br/>사이드카 주입 webhook
+    M-->>A: 수정된 Pod (JSON patch)
+    A->>A: 스키마 검증
+    A->>V: AdmissionReview (수정된 Pod)
+    Note over V: PodSecurity (PSA 네임스페이스 레이블)<br/>ValidatingAdmissionPolicy<br/>Kyverno validate, Gatekeeper<br/>ResourceQuota
+    alt 모든 검증 통과
+        V-->>A: allowed
+        A->>E: Pod 저장
+        A-->>U: 201 Created
+    else 하나라도 거부
+        V-->>A: denied 와 사유
+        A-->>U: 403 Forbidden
     end
 ```
+
+시퀀스에서 볼 것은 두 가지다. 인가를 통과해도 admission 에서 막히면 etcd 에 아무것도 남지 않는다. 그리고 거부는 Validating 단계 한 곳에서 모아서 판정되므로, 정책 엔진이 여럿이어도 하나라도 denied 를 내면 요청 전체가 403 이 된다.
+
+정책 엔진마다 되는 일이 다르다. 겹치는 부분이 많아서 처음에는 하나만 고르면 되는지 헷갈린다.
+
+| 항목 | PSA | ValidatingAdmissionPolicy | Kyverno | Gatekeeper |
+|---|---|---|---|---|
+| 동작 방식 | 내장 플러그인 | 내장, CEL 표현식 | webhook | webhook |
+| 정책 작성 | 네임스페이스 레이블 | YAML 안에 CEL | YAML | Rego |
+| mutate | 불가 | 불가 | 가능 | 별도 Assign 리소스로 가능 |
+| 이미지 서명 검증 | 불가 | 불가 | verifyImages 로 가능 | Ratify 같은 별도 구성요소 필요 |
+| 정책 대상 | Pod 스펙의 고정된 항목 | 임의 리소스 | 임의 리소스 | 임의 리소스 |
+| 장애 시 영향 | 없음 (API Server 안) | 없음 (API Server 안) | webhook 죽으면 failurePolicy 에 따라 | 동일 |
+
+PSA 는 항상 깔고, 그 위에 PSA 로 표현 못 하는 조직 규칙(허용 레지스트리, 레이블, 서명)을 Kyverno 나 Gatekeeper 중 하나로 얹는 구성이 흔하다. 두 엔진을 동시에 운영하면 정책이 어느 쪽에 있는지 찾는 비용이 커지니 하나로 정한다. 이미지 서명까지 같은 엔진으로 처리하려면 Kyverno 쪽이 짧다. 이미 Rego 자산이 있는 조직은 Gatekeeper 를 쓰고 서명은 별도로 붙인다.
 
 내장 Admission Controller가 여러 개 있는데, 운영하면서 신경 쓸 것은 다음이다.
 
@@ -643,9 +794,9 @@ resources:
       - secrets
     providers:
       - kms:
+          apiVersion: v2
           name: aws-kms
           endpoint: unix:///var/run/kmsplugin/socket.sock
-          cachesize: 1000
           timeout: 3s
       - aescbc:
           keys:
@@ -656,7 +807,40 @@ resources:
 
 providers 순서가 중요하다. 위에서부터 시도하고, 쓰기는 첫 번째 것으로 한다. 읽기는 모든 provider로 시도한다. identity를 마지막에 두면 기존 평문 데이터도 읽을 수 있다.
 
-KMS provider는 외부 KMS(AWS KMS, GCP KMS, HashiCorp Vault Transit)와 통신해서 DEK(Data Encryption Key)를 암호화한다. etcd에는 KMS로 암호화된 DEK와 그 DEK로 암호화된 Secret이 같이 저장된다. KMS를 거치니 키 회전, 감사 로그, 접근 제어가 다 KMS에서 관리된다.
+KMS provider는 외부 KMS(AWS KMS, GCP KMS, HashiCorp Vault Transit)와 통신해서 DEK(Data Encryption Key)를 암호화한다. etcd에는 KMS로 암호화된 DEK와 그 DEK로 암호화된 Secret이 같이 저장된다. KMS를 거치니 키 회전, 감사 로그, 접근 제어가 다 KMS에서 관리된다. `apiVersion: v2` 를 명시하는 이유는 v1 이 1.28 에서 deprecated 됐고 1.29 부터 기본 비활성이라 옛 설정 예제를 그대로 가져오면 API Server 가 뜨지 않을 수 있어서다. v1 설정에 있던 `cachesize` 도 v2 에는 없다.
+
+Secret 하나를 읽고 쓸 때 KMS 가 어디에 끼는지를 보면, KMS 장애가 왜 읽기에도 영향을 주는지 보인다. 쓰기는 DEK 를 KMS 가 감싸는 단계가 필요하고, 읽기는 DEK 를 풀어야 해서 캐시에 없으면 KMS 를 다시 호출한다.
+
+```mermaid
+sequenceDiagram
+    participant A as kube-apiserver
+    participant P as KMS plugin
+    participant K as 외부 KMS
+    participant E as etcd
+
+    Note over A,E: Secret 쓰기
+    A->>A: DEK 생성, DEK 로 Secret 암호화
+    A->>P: Encrypt (DEK)
+    P->>K: KEK 로 DEK 암호화 요청
+    K-->>P: 암호화된 DEK
+    P-->>A: 암호화된 DEK
+    A->>E: 암호화된 DEK 와 암호문 저장
+
+    Note over A,E: Secret 읽기
+    A->>E: 조회
+    E-->>A: 암호화된 DEK 와 암호문
+    alt DEK 캐시에 있음
+        A->>A: 캐시된 DEK 로 복호화
+    else 캐시에 없음
+        A->>P: Decrypt (암호화된 DEK)
+        P->>K: KEK 로 복호화 요청
+        K-->>P: DEK
+        P-->>A: DEK
+        A->>A: DEK 로 복호화
+    end
+```
+
+KMS 가 일시적으로 죽어도 캐시된 DEK 로 풀리는 Secret 은 읽힌다. API Server 를 재시작한 직후처럼 캐시가 비어 있을 때 KMS 까지 죽어 있으면 Secret 을 읽지 못하고, 그 Secret 을 마운트하는 Pod 가 시작하지 못할 수 있다. KMS 쪽 접근 권한과 응답 지연이 API Server 가용성에 영향을 주니 `timeout` 값은 KMS 응답 시간을 보고 잡는다.
 
 ### 기존 Secret 재암호화
 
@@ -857,7 +1041,126 @@ spec:
                 -----END PUBLIC KEY-----
 ```
 
-서명되지 않은 이미지로 Pod를 만들려고 하면 admission 단계에서 거부된다. 공격자가 자기 이미지를 클러스터에 띄우려고 해도 서명이 없어서 막힌다.
+서명되지 않은 이미지로 Pod를 만들려고 하면 admission 단계에서 거부된다. 공격자가 자기 이미지를 클러스터에 띄우려고 해도 서명이 없어서 막힌다. 다만 이 정책을 처음부터 Enforce 로 적용하면 정상 배포부터 막힌다. 위 YAML 은 도착점이고, 거기까지 가는 길이 문제다.
+
+### Enforce 로 올리기
+
+처음 서명 검증을 켜면 거의 항상 같은 상황이 된다. 서명 도입 전에 빌드한 사내 이미지, 외부에서 미러링해 온 이미지, 애드온 이미지가 서명 없이 사내 레지스트리에 이미 있다. 이걸 모르고 Enforce 로 켜면 다음 배포나 노드 교체 때 Pod 가 안 뜬다. Audit 으로 먼저 돌려서 실패 목록을 뽑고, 유형별로 처리한 뒤에 Enforce 로 간다.
+
+```mermaid
+flowchart LR
+    A["Audit 로 배포"] --> B["PolicyReport 의 fail 수집"]
+    B --> C{"fail 이미지 유형"}
+    C -->|"사내 빌드, 서명 없음"| D["CI 에 cosign sign 추가 후 재빌드"]
+    C -->|"미러링한 외부 이미지"| E["미러 키로 서명"]
+    C -->|"kube-system, 애드온"| F["exclude 로 제외"]
+    D --> G{"fail 0건 유지"}
+    E --> G
+    F --> G
+    G -->|"아니오"| B
+    G -->|"예"| H["한 네임스페이스만 Enforce"]
+    H --> I["전체 Enforce"]
+```
+
+Audit 단계 정책이다. 사내 빌드 이미지와 미러 이미지를 경로로 나누고 키를 따로 쓴다. 미러 이미지는 원래 서명자가 우리가 아니므로 우리가 직접 검증해서 서명했다는 별도 키를 둔다.
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signature
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
+spec:
+  validationFailureAction: Audit
+  failurePolicy: Ignore
+  webhookTimeoutSeconds: 15
+  rules:
+    - name: verify-app-images
+      match:
+        any:
+        - resources:
+            kinds: ["Pod"]
+      exclude:
+        any:
+        - resources:
+            namespaces: ["kube-system", "kyverno", "cert-manager"]
+      verifyImages:
+      - imageReferences:
+        - "registry.company.com/app/*"
+        mutateDigest: true
+        verifyDigest: true
+        required: true
+        attestors:
+        - entries:
+          - keys:
+              publicKeys: |-
+                -----BEGIN PUBLIC KEY-----
+                (사내 빌드 서명 공개키)
+                -----END PUBLIC KEY-----
+    - name: verify-mirror-images
+      match:
+        any:
+        - resources:
+            kinds: ["Pod"]
+      exclude:
+        any:
+        - resources:
+            namespaces: ["kube-system", "kyverno", "cert-manager"]
+      verifyImages:
+      - imageReferences:
+        - "registry.company.com/mirror/*"
+        required: true
+        attestors:
+        - entries:
+          - keys:
+              publicKeys: |-
+                -----BEGIN PUBLIC KEY-----
+                (미러 서명 공개키)
+                -----END PUBLIC KEY-----
+```
+
+Audit 에서는 Pod 가 그대로 뜨고 결과가 PolicyReport 에만 fail 로 남는다. 어떤 이미지가 걸리는지 집계한다.
+
+```bash
+kubectl get policyreport -A -o json | jq -r '
+  .items[].results[]?
+  | select(.policy=="verify-image-signature" and .result=="fail")
+  | .message' | sort | uniq -c | sort -rn
+```
+
+내부 레지스트리에 서명 없이 올라온 외부 이미지는 가져온 시점에 한 번 우리 쪽에서 서명한다. 태그가 아니라 digest 로 서명한다. 태그는 나중에 다른 이미지를 가리키도록 바뀔 수 있어서 서명이 의미를 잃는다.
+
+```bash
+crane copy docker.io/library/redis:7.2.4 registry.company.com/mirror/redis:7.2.4
+DIGEST=$(crane digest registry.company.com/mirror/redis:7.2.4)
+cosign sign --key mirror.key --yes registry.company.com/mirror/redis@${DIGEST}
+cosign verify --key mirror.pub registry.company.com/mirror/redis@${DIGEST}
+```
+
+서명을 붙였다고 끝나지 않고, Audit 로 돌리는 동안 발견하기 어려운 문제가 몇 가지 있다.
+
+| 증상 | 원인 | 처리 |
+|---|---|---|
+| Enforce 후 새벽 CronJob 만 실패 | Audit 관찰 기간 동안 한 번도 안 돈 CronJob 이 서명 이전의 오래된 태그를 참조 | 관찰 기간을 가장 긴 CronJob 주기 이상으로 잡고, 모든 CronJob 이미지를 미리 목록화 |
+| Argo CD 가 Deployment 를 OutOfSync 로 표시 | autogen 규칙이 Deployment 템플릿의 이미지를 digest 로 바꿔 Git 과 달라짐 | 위 YAML 의 autogen-controllers: none 으로 Pod 만 대상으로 하거나 ignoreDifferences 로 처리 |
+| 서명이 있는데 verify 실패 | Kyverno 가 사설 레지스트리의 서명을 읽을 자격이 없음 | Kyverno 에 레지스트리 pull 자격 증명을 준다. 설정 방법이 버전마다 달라 Helm 차트 values 를 확인 |
+| 배포가 느리거나 timeout | Pod 생성마다 레지스트리 호출. 레지스트리 지연이 그대로 admission 지연 | webhookTimeoutSeconds 를 늘리고 레지스트리 가용성을 같이 본다 |
+| 레지스트리나 Kyverno 장애 시 Pod 생성 전체 중단 | failurePolicy: Fail | 아래 설명 |
+
+failurePolicy 는 Audit 단계에서 Ignore, Enforce 로 올릴 때 Fail 로 바꾸는 게 일반적이다. 하지만 Fail 이면 Kyverno 가 죽은 동안 노드 장애로 재스케줄되는 Pod 도 못 뜬다. Kyverno replica 를 3개 이상으로 두고 PodDisruptionBudget 을 걸며, Kyverno 자기 네임스페이스는 반드시 제외한다. 앞의 Admission 절에서 본 webhook 자기 참조 데드락과 같은 문제다.
+
+유형 분류와 정리가 끝나서 fail 이 0건이 되면 네임스페이스 하나에서만 Enforce 로 시작한다. `validationFailureActionOverrides` 로 네임스페이스별로 올릴 수 있다.
+
+```yaml
+spec:
+  validationFailureAction: Audit
+  validationFailureActionOverrides:
+  - action: Enforce
+    namespaces: ["team-payment"]
+```
+
+Kyverno 1.13 부터 `validationFailureAction` 이 deprecated 되고 규칙 안의 `failureAction` 으로 옮겨가는 중이다. 쓰는 버전의 CRD 를 확인하고 필드명을 맞춘다. 위 YAML 은 필드가 버전에 따라 거부될 수 있어서 `kubectl apply --dry-run=server` 로 먼저 확인한다.
 
 ### SBOM과 출처 검증
 
