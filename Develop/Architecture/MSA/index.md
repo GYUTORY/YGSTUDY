@@ -9,7 +9,7 @@ hide:
 
 # MSA 전체 보기
 
-문서 28개.
+문서 29개.
 
 ## 설계와 전환
 
@@ -52,5 +52,6 @@ hide:
 - [BFF 패턴 - NestJS 구현](BFF_Nest_JS_구현.md)
 - [Expand-Migrate-Contract 패턴](Expand_Migrate_Contract.md)
 - [MSA 서비스 체인 멱등성](MSA_Idempotency_Chain.md)
+- [Service Contract Testing](Service_Contract_Testing.md)
 - [마이크로서비스 아키텍처](Microservices_Architecture.md)
 

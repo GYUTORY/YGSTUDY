@@ -27,6 +27,7 @@ nav:
     - 배포 패턴: 배포_패턴.md
     - 설정 관리 및 Secret 관리: 설정_관리_및_Secret_관리.md
     - 테스트 전략: MSA_테스트_전략.md
+    - 서비스 계약 테스트: Service_Contract_Testing.md
     - 분산 추적 및 Observability: 분산_추적_및_Observability.md
     - 장애 격리 패턴: 장애_격리_패턴.md
     - 운영 및 장애 대응: 마이크로서비스_운영_및_장애_대응.md
