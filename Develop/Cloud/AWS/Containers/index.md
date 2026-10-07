@@ -9,7 +9,7 @@ hide:
 
 # Containers 전체 보기
 
-문서 39개.
+문서 40개.
 
 ## 개요
 
@@ -25,6 +25,7 @@ hide:
 - [ECS ENI 제한과 Task 한계 — awsvpc / bridge / host 네트워크 모드 비교](ECS_ENI_제한과_Task_한계.md)
 - [ECS Event-Driven RunTask — 이벤트 패턴으로 standalone Task 띄우기](ECS_Event_Driven_Run_Task.md)
 - [ECS Exec — 실행 중인 컨테이너에 SSH 없이 접속하기](ECS_Exec.md)
+- [ECS Fargate 컨테이너 하드닝](ECS_Container_Hardening.md)
 - [ECS IAM Role 설정 — Task Role, Execution Role, ECR 권한](ECS_IAM_Role_설정.md)
 - [ECS Networking Modes — awsvpc / bridge / host / none 모드 상세](ECS_Networking_Modes.md)
 - [ECS Scheduled Tasks — EventBridge로 RunTask 예약 실행하기](ECS_Scheduled_Tasks.md)
