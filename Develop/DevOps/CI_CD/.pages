@@ -3,6 +3,7 @@ nav:
   - index.md
   - GitHub Actions CI/CD: GitHub_Actions.md
   - GitHub Actions 표현식과 워크플로 명령: Git_Hub_Actions_Expressions_And_Workflow_Commands.md
+  - GitHub Actions 머지 관문 운영, 필수 체크와 머지 큐: Git_Hub_Actions_Branch_Protection_And_Merge_Queue.md
   - Jenkins: Jenkins.md
   - Bitbucket Pipelines: Bitbucket_Pipeline.md
   - Vercel: Vercel.md
