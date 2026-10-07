@@ -1,7 +1,7 @@
 ---
 title: "Expand-Migrate-Contract 패턴"
-tags: [microservices, spring, architecture]
-updated: 2026-08-06
+tags: [microservices, spring, architecture, testing]
+updated: 2026-10-08
 ---
 
 # Expand-Migrate-Contract 패턴
@@ -32,6 +32,44 @@ EMC는 이 문제를 단계별로 해결한다.
 ```
 
 각 단계 사이에 모든 서비스가 새 상태에 맞게 배포되어야 다음 단계로 넘어간다. 한 단계가 끝나면 그 상태가 stable하기 때문에 언제든 멈출 수 있다.
+
+아래 상태도는 단계 전이와 각 전이에서 일어나는 배포·DB 작업을 보여준다. 화살표가 되돌아가는 방향이 롤백이고, Contract 중 `full_name` DROP 이후에는 되돌아가는 화살표가 없다.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "시작 - full_name만 읽고 쓴다" as S0
+    state "Expand 완료 - 새 컬럼 추가, 아무도 안 쓴다" as S1
+    state "Migrate 1 - 이중 쓰기, 읽기는 full_name" as S2
+    state "Migrate 2 - 백필 끝, 읽기를 새 컬럼으로 전환" as S3
+    state "Contract 1 - 이중 쓰기 코드 제거" as S4
+    state "Contract 2 - full_name DROP" as S5
+
+    [*] --> S0
+    S0 --> S1: DB ADD COLUMN, 서비스 배포 없음
+    S1 --> S2: 서비스 A, B 배포
+    S2 --> S3: 배치 백필 후 서비스 A, B 읽기 전환 배포
+    S3 --> S4: 서비스 A, B 배포
+    S4 --> S5: DB DROP COLUMN
+    S1 --> S0: 컬럼 삭제
+    S2 --> S1: 서비스 이전 버전으로 롤백
+    S3 --> S2: 읽기 전환 롤백
+    S4 --> S3: 서비스 이전 버전으로 롤백
+    S5 --> [*]
+```
+
+이중 쓰기 제거(S4)가 DROP(S5)보다 앞이다. 순서를 뒤집으면 어디서 깨지는지는 뒤의 다중 서비스 절에서 시퀀스로 본다.
+
+단계마다 구 컬럼과 새 컬럼에 누가 무엇을 하는지는 이 표로 정리된다.
+
+| 단계 | 쓰기 | 읽기 | DB 상태 |
+|---|---|---|---|
+| 시작 | `full_name` | `full_name` | 구 컬럼만 |
+| Expand | `full_name` | `full_name` | 새 컬럼 NULL로 추가 |
+| Migrate 1 | `full_name` + 새 컬럼 | `full_name` | 새 컬럼이 신규 쓰기부터 채워지는 중 |
+| Migrate 2 | `full_name` + 새 컬럼 | 새 컬럼 | 백필 완료, `first_name IS NULL` 0건 |
+| Contract 1 | 새 컬럼 | 새 컬럼 | 구 컬럼은 남아 있지만 아무도 안 쓴다 |
+| Contract 2 | 새 컬럼 | 새 컬럼 | 구 컬럼 DROP |
 
 ---
 
@@ -160,14 +198,7 @@ public String getFullName(User user) {
 
 ## 3단계: Contract
 
-모든 서비스가 새 컬럼으로 읽고 쓰는 상태가 확인되면, 구 컬럼을 제거한다.
-
-```sql
--- Contract: 구 컬럼 제거
-ALTER TABLE users DROP COLUMN full_name;
-```
-
-서비스 코드에서도 이중 쓰기 코드를 제거한다.
+모든 서비스가 새 컬럼으로 읽고 쓰는 상태가 확인되면 구 컬럼을 제거한다. 순서는 서비스 코드에서 이중 쓰기를 먼저 걷어내 배포하고, 그다음에 컬럼을 DROP한다.
 
 ```java
 @Transactional
@@ -182,6 +213,15 @@ public User updateName(Long userId, String firstName, String lastName) {
     return userRepository.save(user);
 }
 ```
+
+이 코드가 모든 인스턴스에 나간 뒤에 컬럼을 지운다.
+
+```sql
+-- Contract: 구 컬럼 제거
+ALTER TABLE users DROP COLUMN full_name;
+```
+
+DROP을 먼저 하면 `setFullName`이 남아 있는 인스턴스의 UPDATE가 `Unknown column 'full_name'`으로 실패한다. Hibernate는 매핑된 컬럼을 전부 SQL에 넣기 때문에 `full_name`을 안 건드리는 요청도 같이 죽는다.
 
 Contract 단계는 되돌릴 수 없다. 컬럼을 DROP하면 데이터가 사라지기 때문에, 이 단계 전에 모든 서비스의 배포가 완료됐는지 반드시 확인해야 한다.
 
@@ -221,11 +261,11 @@ END;
 4. 배치 마이그레이션 실행
 5. 서비스 A 배포 (새 컬럼으로 읽기 전환)
 6. 서비스 B 배포 (새 컬럼으로 읽기 전환)
-7. DB Contract (구 컬럼 제거)
-8. 서비스 A, B 배포 (이중 쓰기 코드 제거)
+7. 서비스 A, B 배포 (이중 쓰기 코드 제거)
+8. DB Contract (구 컬럼 제거)
 ```
 
-단계가 많아지지만, 어느 시점이든 구 컬럼 또는 새 컬럼 중 하나는 반드시 유효한 데이터를 갖고 있다.
+단계가 많아지지만, 어느 시점이든 구 컬럼 또는 새 컬럼 중 하나는 반드시 유효한 데이터를 갖고 있다. 이중 쓰기 제거(7)가 DROP(8)보다 먼저여야 한다.
 
 ### Kafka 이벤트와 이중 쓰기
 
@@ -260,6 +300,69 @@ public void handleUserUpdated(UserUpdatedEvent event) {
 }
 ```
 
+아래 시퀀스는 Provider(서비스 A, `users` 테이블 소유)와 Consumer(서비스 B, 이벤트로만 이름을 받는다)의 배포 순서가 맞을 때 단계별로 어떤 필드가 오가는지 보여준다. 볼 곳은 두 군데다. Migrate 1에서 Consumer가 먼저 나가고, Contract에서 Provider가 이중 쓰기를 걷어낸 뒤에 DROP이 실행된다.
+
+```mermaid
+sequenceDiagram
+    participant P as Provider (서비스 A)
+    participant DB as users 테이블
+    participant K as user-updated 토픽
+    participant C as Consumer (서비스 B)
+
+    Note over P,C: Expand - 새 컬럼 추가, 코드 변경 없음
+    P->>DB: UPDATE full_name
+    P->>K: 발행 fullName
+    C->>K: 소비 fullName
+
+    Note over P,C: Migrate 1 - Consumer 먼저 배포, 두 필드 다 처리
+    C->>K: 소비 firstName이 있으면 사용, 없으면 fullName 파싱
+
+    Note over P,C: Migrate 1 - Provider 배포, 이중 쓰기
+    P->>DB: UPDATE full_name, first_name, last_name
+    P->>K: 발행 fullName, firstName, lastName
+    Note over DB: 배치 백필, first_name IS NULL 0건이 되면 종료
+
+    Note over P,C: Migrate 2 - 읽기를 새 필드로 전환
+    P->>DB: SELECT first_name, last_name
+    C->>K: 소비 firstName, lastName
+
+    Note over P,C: Contract 1 - Provider 이중 쓰기 제거
+    P->>DB: UPDATE first_name, last_name
+    P->>K: 발행 firstName, lastName
+
+    Note over P,C: Contract 2 - 구 컬럼 DROP
+    P->>DB: ALTER TABLE DROP COLUMN full_name
+```
+
+배포 순서가 뒤집히면 세 군데에서 깨진다. 아래 시퀀스는 각각 어느 메시지에서 실패하는지 보여준다. 앞의 두 개는 오류가 나지 않고 null이 조용히 들어가서, 장애가 한참 뒤에 데이터 불일치로 드러난다.
+
+```mermaid
+sequenceDiagram
+    participant P as Provider (서비스 A)
+    participant DB as users 테이블
+    participant K as user-updated 토픽
+    participant C as Consumer (서비스 B)
+
+    Note over P,C: 뒤집힘 1 - Provider가 새 필드만 발행, Consumer는 구 버전
+    P->>K: 발행 firstName, lastName
+    C->>K: 소비 fullName
+    K-->>C: fullName = null
+    Note over C: 구 코드는 fullName을 그대로 저장, 이름이 null로 들어감
+
+    Note over P,C: 뒤집힘 2 - Consumer가 새 필드만 읽음, Provider는 아직 구 버전
+    P->>K: 발행 fullName
+    C->>K: 소비 firstName, lastName
+    K-->>C: firstName = null, lastName = null
+    Note over C: fallback 없는 읽기 전환 코드는 빈 이름을 처리
+
+    Note over P,C: 뒤집힘 3 - DROP이 이중 쓰기 제거 배포보다 먼저
+    P->>DB: UPDATE full_name, first_name, last_name
+    DB-->>P: Unknown column full_name
+    Note over P: 이중 쓰기 코드가 남은 인스턴스의 모든 UPDATE 실패
+```
+
+뒤집힘 2는 Migrate 1에서 본 fallback 코드(`getFirstName() != null ? ... : splitName(...)`)가 있으면 막힌다. fallback을 빼고 새 필드만 읽는 코드는 Provider가 이중 쓰기로 나가고 Kafka의 이전 메시지가 다 소비된 뒤에 배포한다. 토픽에 구 형식 메시지가 남아 있는 동안은 새 필드가 없는 메시지가 계속 들어온다.
+
 ---
 
 ## 단계별 롤백 시나리오
@@ -286,11 +389,7 @@ ALTER TABLE users
 
 Contract 단계, 즉 `DROP COLUMN` 이후에는 롤백이 없다. DB 백업에서 복원하는 것 말고는 방법이 없다.
 
-Contract에 진입하기 전에 아래를 확인해야 한다.
-
-- 모든 서비스의 새 버전 배포가 완료됐는가
-- `full_name IS NULL`인 레코드가 0건인가 (반대로 새 컬럼이 NULL인 레코드가 0건인가)
-- 최소 1주일 이상 새 컬럼으로만 읽기를 했는가
+Contract에 진입하기 전에 모든 서비스의 새 버전 배포가 끝났는지, 새 컬럼이 NULL인 레코드가 0건인지 확인한다. 새 컬럼으로만 읽는 상태를 최소 1주일은 유지해서 월말 배치나 주간 리포트처럼 드물게 도는 코드가 구 컬럼을 읽지 않는지도 거른다.
 
 ---
 
@@ -381,3 +480,10 @@ Contract를 실행하고 나서 구 버전 서비스가 일부 인스턴스에 �
 ---
 
 EMC는 패턴이 간단한 것처럼 보이지만, 다중 서비스가 엮이고 이벤트 스키마까지 바꿔야 할 때는 조율해야 할 포인트가 많다. 중요한 것은 각 단계가 끝난 후의 상태가 독립적으로 stable해야 한다는 점이다. 언제든 멈출 수 있고, 언제든 롤백할 수 있는 상태를 유지하면서 다음 단계로 넘어가야 한다.
+
+---
+
+## 단계 통과 조건을 can-i-deploy로 확인
+
+이벤트 필드가 소비자 계약에 들어 있으면 뒤집힘 1, 2는 배포 전에 걸린다. Consumer가 새 필드만 읽는 버전(Migrate 2)은 Provider의 새 필드 발행 버전이 prod에 `record-deployment`로 기록돼 있어야 `can-i-deploy`를 통과하고, Provider가 `fullName` 발행을 끊는 버전(Contract 1)은 prod에 `fullName`을 요구하는 소비자 계약이 남아 있으면 `can-i-deploy`에서 막힌다.
+컬럼 DROP(뒤집힘 3)은 계약에 안 잡히는 DB 내부 변경이라 `can-i-deploy`가 막아주지 못한다. 이 단계는 Contract 1 배포가 모든 인스턴스에 끝났는지로 직접 확인한다. 명령어와 브로커 기록 누락으로 미탐이 나는 경우는 [Service Contract Testing](Service_Contract_Testing.md)에 있다.
