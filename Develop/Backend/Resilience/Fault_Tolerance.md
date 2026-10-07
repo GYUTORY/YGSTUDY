@@ -1398,6 +1398,7 @@ export class ResilienceMetricsService {
 
 ## 참고
 
+- [마이크로서비스 통신 패턴](../../Framework/Node/아키텍처/마이크로서비스_통신_패턴.md): 타임아웃 계층, retry storm, cascade failure 사례를 통신 방식별로 정리
 - opossum (Circuit Breaker): https://nodeshift.dev/opossum/
 - NestJS Terminus (Health Check): https://docs.nestjs.com/recipes/terminus
 - Martin Fowler - Circuit Breaker: https://martinfowler.com/bliki/CircuitBreaker.html
