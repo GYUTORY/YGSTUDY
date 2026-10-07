@@ -8,7 +8,7 @@ updated: 2026-10-07
 
 Direct Connect(이하 DX)는 온프레미스 데이터센터와 AWS를 통신사 전용선으로 잇는 서비스다. 트래픽이 인터넷을 거치지 않아 지연이 일정하고, 대용량 전송 단가가 인터넷 송신보다 낮다. 회선은 통신사가 깔고, AWS는 그 끝단에 가상 인터페이스(VIF)를 붙여 준다.
 
-이 문서는 회선 계약보다 BGP 쪽에 무게를 둔다. DX 운영에서 사고가 나는 자리는 대부분 회선이 아니라 BGP 정책이다. prefix 한도, community, 백업 경로 우선순위, 장애 감지 시간이 그렇다. BGP 자체의 경로 선택 알고리즘은 [BGP](../../../Network/7%20Layer/Network%20Layer/BGP.md), community와 route-map 문법은 [BGP community와 라우팅 정책](../../../Network/7%20Layer/Network%20Layer/BGP_Community_and_Routing_Policy.md), keepalive·hold timer와 세션 상태 전이는 [BGP 세션 상태와 타이머](../../../Network/7%20Layer/Network%20Layer/BGP_Session_State_and_Timers.md)에서 다룬다. 여기서는 그 내용이 DX에서 어떻게 달라지는지만 적는다.
+이 문서는 회선 계약보다 BGP 쪽에 무게를 둔다. DX 운영에서 사고가 나는 자리는 대부분 회선이 아니라 BGP 정책이다. prefix 한도, community, 백업 경로 우선순위, 장애 감지 시간이 그렇다. BGP 자체의 경로 선택 알고리즘은 [BGP](../../../Network/7%20Layer/Network%20Layer/BGP.md), community와 route-map 문법은 [BGP community와 라우팅 정책](../../../Network/7%20Layer/Network%20Layer/BGP_Community_and_Routing_Policy.md), keepalive·hold timer와 세션 상태 전이는 [BGP](../../../Network/7%20Layer/Network%20Layer/BGP.md)에서 다룬다. 여기서는 그 내용이 DX에서 어떻게 달라지는지만 적는다.
 
 ## 회선, VIF, Gateway의 관계
 
@@ -332,7 +332,7 @@ flowchart LR
 
 AWS 쪽은 비동기 BFD가 기본으로 켜져 있고 기본값은 300ms, multiplier 3이다. 고객 라우터에서 켜지 않으면 동작하지 않는다. Cisco는 인터페이스에 `bfd interval 300 min_rx 300 multiplier 3`과 `neighbor fall-over bfd`가 둘 다 필요하고, FRR은 `neighbor X bfd`로 켠다. 설정 방법은 [BFD 설정 문서](https://repost.aws/knowledge-center/enable-bfd-direct-connect)를 따른다.
 
-BFD를 켰는데 세션이 흔들리면 간격을 AWS 권장값보다 줄이지 말고 원인부터 본다. 라우터 컨트롤 플레인이 바쁜 장비는 BFD 패킷을 늦게 처리해서 정상 회선인데도 세션이 내려간다. 또 BFD는 라우터와 AWS 장비 사이 구간만 본다. AWS 내부 라우팅이 깨진 경우는 BFD가 up이라서 감지하지 못한다. 이건 CloudWatch 알람이나 애플리케이션 헬스 체크로 잡는다. hold timer 자체를 줄이는 방법도 있지만 AWS와 협상되는 값이어서 세션이 쉽게 흔들린다. 세션 상태 전이와 timer 계산은 [BGP 세션 상태와 타이머](../../../Network/7%20Layer/Network%20Layer/BGP_Session_State_and_Timers.md)에 있다.
+BFD를 켰는데 세션이 흔들리면 간격을 AWS 권장값보다 줄이지 말고 원인부터 본다. 라우터 컨트롤 플레인이 바쁜 장비는 BFD 패킷을 늦게 처리해서 정상 회선인데도 세션이 내려간다. 또 BFD는 라우터와 AWS 장비 사이 구간만 본다. AWS 내부 라우팅이 깨진 경우는 BFD가 up이라서 감지하지 못한다. 이건 CloudWatch 알람이나 애플리케이션 헬스 체크로 잡는다. hold timer 자체를 줄이는 방법도 있지만 AWS와 협상되는 값이어서 세션이 쉽게 흔들린다. 세션 상태 전이와 timer 계산은 [BGP](../../../Network/7%20Layer/Network%20Layer/BGP.md)에 있다.
 
 ## DX와 Site-to-Site VPN 백업의 경로 우선순위
 
@@ -418,4 +418,4 @@ MTU는 private VIF가 1500 또는 9001, transit VIF가 1500 또는 8500이다. J
 - [Virtual interface prerequisites](https://docs.aws.amazon.com/directconnect/latest/UserGuide/WorkingWithVirtualInterfaces.html)
 - [Site-to-Site VPN route priority](https://docs.aws.amazon.com/vpn/latest/s2svpn/vpn-route-priority.html)
 - [Transit Gateway route evaluation order](https://docs.aws.amazon.com/vpc/latest/tgw/how-transit-gateways-work.html#tgw-route-evaluation-overview)
-- 내부 문서: [BGP](../../../Network/7%20Layer/Network%20Layer/BGP.md), [BGP community와 라우팅 정책](../../../Network/7%20Layer/Network%20Layer/BGP_Community_and_Routing_Policy.md), [BGP 세션 상태와 타이머](../../../Network/7%20Layer/Network%20Layer/BGP_Session_State_and_Timers.md)
+- 내부 문서: [BGP](../../../Network/7%20Layer/Network%20Layer/BGP.md), [BGP community와 라우팅 정책](../../../Network/7%20Layer/Network%20Layer/BGP_Community_and_Routing_Policy.md)
