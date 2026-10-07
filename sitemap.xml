@@ -889,6 +889,10 @@
          <lastmod>2026-10-07</lastmod>
     </url>
     <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Backend/API/Open_API_Breaking_Change_Detection/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+    <url>
          <loc>https://gyutory.github.io/YGSTUDY/Backend/API/Polling_and_Webhook/</loc>
          <lastmod>2026-10-07</lastmod>
     </url>
@@ -3346,6 +3350,10 @@
     </url>
     <url>
          <loc>https://gyutory.github.io/YGSTUDY/Framework/Java/Testing/JUnit_Mockito/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://gyutory.github.io/YGSTUDY/Framework/Java/Testing/Spring_Cloud_Contract/</loc>
          <lastmod>2026-10-07</lastmod>
     </url>
     <url>
