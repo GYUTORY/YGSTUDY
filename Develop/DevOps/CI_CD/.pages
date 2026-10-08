@@ -7,6 +7,7 @@ nav:
   - "GitHub Actions 커스텀 액션, JavaScript·Docker·Composite 직접 만들기": Git_Hub_Actions_Custom_Actions.md
   - "GitHub Actions self-hosted 러너 운영, ephemeral·ARC·디스크·비용": Git_Hub_Actions_Self_Hosted_Runner_Operations.md
   - "GitHub Actions 컨테이너 이미지 빌드와 릴리스, buildx 캐시·멀티 아키텍처·태그·attestation": Git_Hub_Actions_Container_Build_And_Release.md
+  - "GitHub Actions 워크플로 린트와 디버깅, actionlint·zizmor·act·gh run": Git_Hub_Actions_Workflow_Linting_And_Debugging.md
   - Jenkins: Jenkins.md
   - Bitbucket Pipelines: Bitbucket_Pipeline.md
   - Vercel: Vercel.md
