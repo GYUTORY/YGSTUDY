@@ -1,7 +1,7 @@
 ---
 title: 브라우저 렌더링 파이프라인
 tags: [frontend, javascript, performance]
-updated: 2026-08-28
+updated: 2026-10-09
 ---
 
 ## 파이프라인 다섯 단계
@@ -18,13 +18,16 @@ updated: 2026-08-28
 
 **Composite**: 페인트된 레이어들을 합성해서 최종 화면을 만든다. GPU가 이 단계를 담당한다. `transform`과 `opacity`만 바뀌면 Layout과 Paint를 건너뛰고 Composite만 실행된다. 애니메이션에서 이 두 속성이 권장되는 이유다.
 
-```
-CSS 속성 변경이 건드리는 파이프라인 단계:
+```mermaid
+flowchart LR
+    Parse["Parse"] --> Style["Style"] --> Layout["Layout"] --> Paint["Paint"] --> Composite["Composite"]
 
-width/height/margin  →  Layout → Paint → Composite
-color/background     →           Paint → Composite
-transform/opacity    →                   Composite
+    W["width / height / margin"] -.->|"여기서 시작"| Layout
+    Co["color / background"] -.->|"여기서 시작"| Paint
+    T["transform / opacity"] -.->|"여기서 시작"| Composite
 ```
+
+실선이 한 번의 렌더링에서 거치는 전체 순서이고, 점선은 CSS 속성이 바뀌었을 때 파이프라인에 들어오는 지점이다. 들어온 지점부터 오른쪽 단계가 전부 다시 돈다. `width`는 Layout부터라서 Paint와 Composite까지 따라오고, `transform`은 Composite 하나로 끝난다.
 
 `left: 100px`과 `transform: translateX(100px)`은 결과가 같아 보이지만 브라우저가 처리하는 단계 수가 다르다. 전자는 매 프레임마다 Layout을 다시 계산하고, 후자는 GPU가 레이어만 이동시킨다.
 
@@ -34,11 +37,26 @@ transform/opacity    →                   Composite
 
 브라우저가 파이프라인 첫 단계를 시작하려면 HTML 파싱이 어느 정도 진행되어야 하는데, CSS와 스크립트가 그 파싱을 막는 구조가 있다.
 
-CSS는 기본적으로 render-blocking 리소스다. `<link rel="stylesheet">`를 만나면 브라우저는 해당 CSS가 완전히 다운로드되고 파싱될 때까지 렌더링을 멈춘다. `<head>`에 외부 CSS 파일이 10개라면 가장 느린 것이 올 때까지 기다린다.
+```mermaid
+flowchart TD
+    Bytes["HTML 바이트 수신"] --> Parser["HTML 파서: DOM 구축"]
+    Parser -.->|"병렬"| Scanner["preload scanner: 남은 HTML을 훑어 다운로드 요청"]
+    Parser --> Tag{"만난 태그"}
 
-파서 차단 스크립트는 더 심각하다. `<head>`에 `defer`/`async` 없는 `<script src="">` 태그가 있으면 HTML 파서가 멈추고, 그 시점까지 만들어진 CSSOM이 완성될 때까지 기다렸다가 스크립트를 실행한다. 스크립트가 `getComputedStyle()`을 호출할 수 있어야 하기 때문이다. CSS 다운로드가 늦으면 스크립트 실행이 늦고, 스크립트가 파서를 막으니 DOM 완성이 늦고, DOM이 늦으면 렌더링이 늦는 연쇄가 생긴다.
+    Tag -->|"link rel=stylesheet"| CSS["CSS 다운로드 후 CSSOM 구축"]
+    Tag -->|"script (속성 없음)"| Stop["파서 정지"]
+    Tag -->|"script defer"| Defer["다운로드는 병렬, 실행은 파싱 종료 후 순서대로"]
+    Tag -->|"script async"| Async["다운로드는 병렬, 끝나는 즉시 실행하고 그동안 파서 정지"]
 
-브라우저는 이 지연을 줄이기 위해 preload scanner를 별도로 실행한다. 메인 파서가 스크립트 실행으로 멈춰 있는 동안, preload scanner는 남은 HTML을 미리 훑어 리소스 다운로드 요청을 미리 보낸다. 파서가 실제로 `<img>` 태그에 도달했을 때 이미 이미지 다운로드가 진행 중인 이유다.
+    Stop --> WaitCSS["앞선 CSS의 CSSOM 완성 대기"] --> Exec["스크립트 실행"] --> Parser
+    CSS --> Tree["렌더 트리: DOM + CSSOM"]
+    Parser --> Tree
+    Tree --> FirstPaint["Layout, Paint, 첫 화면"]
+```
+
+CSS는 렌더링을 막고, 속성 없는 스크립트는 파서를 막는다. 스크립트 앞에 CSS가 있으면 두 차단이 겹친다. 파서가 스크립트에서 멈추면 그 스크립트가 `getComputedStyle()`을 부를 수 있으니 앞선 CSS가 끝날 때까지 실행도 기다린다. CSS 다운로드가 늦으면 스크립트 실행이 늦고, 파서 재개가 늦고, DOM 완성이 늦고, 첫 화면이 늦는 연쇄가 된다. 외부 CSS가 `<head>`에 10개 있으면 가장 느린 파일이 도착해야 렌더 트리가 만들어진다.
+
+preload scanner는 이 지연을 줄이려고 파서와 별개로 돈다. 메인 파서가 스크립트 때문에 멈춰 있는 동안 남은 HTML에서 `<img>`, `<link>`, `<script src>`를 찾아 다운로드를 미리 시작한다. 파서가 `<img>`에 도착했을 때 이미지가 이미 내려오고 있는 이유다.
 
 preload scanner가 동작하지 못하는 경우가 있다. JavaScript가 동적으로 주입한 `<script>` 태그, CSS `@import`로 연결된 파일은 파서가 실행 중에 만들기 때문에 미리 볼 수 없다. 빌드 결과물에서 CSS `@import`를 없애야 하는 이유다. 번들러 설정에 따라 `@import`를 인라인으로 합치지 않는 경우 이 문제가 생긴다.
 
@@ -79,13 +97,29 @@ preload scanner가 동작하지 못하는 경우가 있다. JavaScript가 동적
 
 `width`나 `background-color`를 바꾸면 메인 스레드가 Layout이나 Paint를 다시 실행해야 한다. 이 작업이 끝나야 컴포지터 스레드가 합성을 시작한다.
 
-```
-메인 스레드가 무거운 JavaScript를 실행 중
-     ↓
-Layout, Paint를 처리할 수 없는 상태
-     ↓
-컴포지터 스레드: transform/opacity 애니메이션 → 계속 실행
-               width 변경 애니메이션 → 메인 스레드 대기 → 프레임 드롭
+메인 스레드가 무거운 JavaScript에 묶여 있을 때 두 애니메이션이 어떻게 다르게 움직이는지 아래 시퀀스로 비교한다. 위쪽 블록은 `transform`, 아래쪽 블록은 `width`다.
+
+```mermaid
+sequenceDiagram
+    participant Main as 메인 스레드
+    participant Comp as 컴포지터 스레드
+    participant GPU as GPU
+
+    Note over Main: 긴 JavaScript 실행 시작
+
+    alt transform 애니메이션
+        Comp->>GPU: 프레임 1, 기존 레이어 텍스처의 위치만 변경
+        GPU-->>Comp: 화면 갱신
+        Comp->>GPU: 프레임 2, 위치만 변경
+        GPU-->>Comp: 화면 갱신
+        Note over Comp: 메인 스레드를 기다리지 않고 프레임이 계속 나간다
+    else width 애니메이션
+        Comp->>Main: 새 Layout, Paint 결과 요청
+        Note over Main,Comp: JavaScript가 끝날 때까지 응답 없음, 이전 화면이 그대로 남는다
+        Main-->>Comp: JavaScript 종료 후 Layout, Paint 결과 전달
+        Comp->>GPU: 뒤늦게 합성
+        GPU-->>Comp: 화면 갱신, 그 사이 프레임은 드롭
+    end
 ```
 
 스크롤도 마찬가지다. 요즘 브라우저는 스크롤을 컴포지터 스레드에서 처리한다. JavaScript 스크롤 이벤트 핸들러가 없거나 `passive: true`로 등록된 경우, 메인 스레드가 바빠도 스크롤은 부드럽게 된다. 핸들러에서 `preventDefault()`를 호출할 가능성이 있으면 브라우저가 핸들러 완료를 기다려야 해서 컴포지터가 스크롤을 미루게 된다.
@@ -125,6 +159,28 @@ items.forEach(item => {
 
 루프가 100번 돌면 Layout이 100번 강제 실행된다. DevTools Performance 탭에서 보면 레이아웃 태스크가 촘촘하게 쌓여 있는 모습으로 나타난다.
 
+아래 시퀀스에서 위쪽 블록은 반복마다 읽기와 쓰기가 번갈아 나오는 경우, 아래쪽 블록은 읽기를 모은 경우다. 읽기마다 Layout이 끼어드는지를 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant JS as JavaScript
+    participant B as 브라우저
+
+    alt Layout Thrashing
+        loop 항목마다 반복
+            JS->>B: offsetWidth 읽기
+            B->>B: 쌓인 스타일 변경 반영 후 강제 레이아웃
+            B-->>JS: width 반환
+            JS->>B: style.width 쓰기, 변경만 누적
+        end
+    else 읽기 먼저, 쓰기 나중
+        JS->>B: 모든 항목의 offsetWidth 읽기
+        B-->>JS: Layout 한 번 계산 후 widths 반환
+        JS->>B: 모든 항목의 style.width 쓰기
+        Note over B: 변경이 누적만 되고 다음 렌더링에서 Layout 한 번
+    end
+```
+
 읽기를 먼저 모아서 처리하고, 쓰기를 나중에 일괄 처리하면 Layout은 한 번만 실행된다.
 
 ```javascript
@@ -142,6 +198,53 @@ items.forEach((item, i) => {
 
 ---
 
+## Paint 단계의 레이어 분할 기준
+
+Paint는 화면 전체를 한 장으로 그리지 않는다. 브라우저는 페이지를 여러 레이어로 나누고, 레이어마다 따로 그려서 텍스처로 만든 뒤 Composite에서 합친다. 레이어가 나뉘어 있어야 한 레이어만 바뀔 때 나머지를 다시 그리지 않는다. 문제는 나누는 기준이 CSS 문법에 그대로 드러나지 않는다는 점이다.
+
+먼저 stacking context와 합성 레이어를 구분해야 한다. stacking context는 z축 그리기 순서를 정하는 단위다. `position`과 `z-index`를 함께 쓰거나, `opacity`가 1 미만이거나, `transform`·`filter`가 있거나, `isolation: isolate`를 주면 새 stacking context가 생긴다. 이건 "어떤 순서로 칠하느냐"의 문제이고 GPU 레이어와는 별개다. stacking context가 생겼다고 별도 텍스처가 만들어지지는 않는다.
+
+별도 합성 레이어는 이유가 있을 때만 승격된다. Chrome DevTools는 이 이유를 Compositing Reasons로 보여준다. 자주 만나는 이유를 표로 정리한다.
+
+| 승격 이유 | 어떤 코드에서 생기나 |
+|---|---|
+| 3D transform | `translateZ(0)`, `translate3d()`, `rotateX()` |
+| 합성 전용 속성 선언 | `will-change: transform`, `will-change: opacity` |
+| 진행 중인 애니메이션 | `transform`·`opacity`에 걸린 CSS 애니메이션/트랜지션 |
+| 전용 표면 | `<video>`, 가속되는 `<canvas>` |
+| 겹침(overlap) | 이미 승격된 레이어 위에 겹쳐 그려지는 다른 엘리먼트 |
+
+실무에서 문제가 되는 쪽은 마지막 줄이다. 승격된 레이어 위에 z-order상 겹치는 엘리먼트가 있으면, 그 엘리먼트도 합성 순서를 맞추려고 같이 승격된다. 아래에 `will-change: transform`을 준 엘리먼트 하나가 있고 그 위로 `position: absolute` 요소 여러 개가 겹쳐 있으면, 의도한 레이어는 1개인데 실제로는 겹친 요소 수만큼 늘어날 수 있다. 이 현상이 "레이어 폭증"이다. 브라우저 버전에 따라 겹침 판정을 합치거나(squashing) 줄이는 정도가 다르므로 개수를 코드만 보고 예측하지 말고 DevTools로 센다. 관련 설명은 [web.dev의 레이어 수 관리 문서](https://web.dev/articles/stick-to-compositor-only-properties-and-manage-layer-count)에 있다.
+
+아래 도식은 레이어 하나가 겹침 승격을 거쳐 여러 개로 늘어나는 경로다. 분기에서 "겹치는 엘리먼트 있음" 쪽으로 가면 의도하지 않은 레이어가 생긴다.
+
+```mermaid
+flowchart TD
+    A["will-change: transform 엘리먼트"] --> B["별도 합성 레이어로 승격"]
+    B --> C{"z-order상 위에 겹치는 엘리먼트가 있나"}
+    C -->|"없음"| D["레이어 1개, 의도한 결과"]
+    C -->|"있음"| E["겹친 엘리먼트도 합성 순서를 맞추려고 승격"]
+    E --> F["레이어 수 증가, GPU 텍스처 메모리 증가"]
+    F --> G["Layers 패널의 Compositing Reasons에 overlap 표시"]
+```
+
+레이어가 늘어나는 비용은 GPU 메모리로 나온다. 레이어 하나는 대략 `가로 px × 세로 px × 4바이트(RGBA)`만큼의 텍스처를 차지한다. 여기서 px은 CSS px이 아니라 기기 픽셀이라서 `devicePixelRatio`가 2면 가로·세로에 각각 2를 곱해야 한다. 계산해 보면 1920×1080 전체 화면 레이어 하나는 약 7.9MiB이고, 화면이 390×844 CSS px인 기기에서 `devicePixelRatio` 2로 화면 전체를 덮는 레이어는 약 5.0MiB다. 그런 레이어가 20개면 약 100MiB다. 실제 사용량은 타일링과 압축 때문에 이보다 작을 수 있으므로 상한을 가늠하는 계산으로만 본다. 정확한 값은 아래 Layers 패널의 Memory estimate로 확인한다.
+
+### DevTools로 레이어를 확인하는 절차
+
+Layers 패널과 Rendering 탭은 용도가 다르다. Layers 패널은 "지금 레이어가 몇 개이고 왜 만들어졌나"를 보고, Paint flashing은 "움직이는 동안 무엇이 다시 그려지나"를 본다.
+
+1. DevTools를 열고 오른쪽 위 메뉴(점 세 개) → More tools → Layers를 연다. 패널이 비어 있으면 새로고침한다.
+2. 왼쪽 트리에서 레이어를 하나 고르면 오른쪽 상세에 Compositing Reasons, Memory estimate, Paint count가 나온다. 의도하지 않은 레이어는 Compositing Reasons에 overlap 계열 문구가 찍혀 있다.
+3. Memory estimate가 큰 레이어부터 본다. 화면 전체 크기인데 거의 안 움직이는 레이어가 대표적인 정리 대상이다.
+4. Command Menu(`Ctrl+Shift+P`, macOS는 `Cmd+Shift+P`)에서 `Show Rendering`을 실행해 Rendering 탭을 연다.
+5. Paint flashing을 켠다. 다시 그려지는 영역이 초록색으로 깜빡인다. Layer borders도 켜면 레이어 경계가 선으로 보인다.
+6. 애니메이션을 재생한다. `left`나 `width`를 바꾸는 애니메이션은 움직이는 영역과 주변이 프레임마다 초록으로 깜빡인다. `transform`으로 바꾸면 깜빡임이 거의 없다.
+
+스크롤만 해도 화면 전체가 초록으로 깜빡이는 페이지가 있다. `position: fixed` 헤더 아래 배경이 매 프레임 다시 그려지거나, 스크롤 핸들러가 `box-shadow`·`background`를 바꾸는 경우를 만난 적이 있다. 깜빡이는 영역을 `contain: paint`로 묶거나 `transform`/`opacity`로 표현할 수 있는 변화로 바꾸면 줄어든다.
+
+---
+
 ## will-change와 transform으로 GPU 레이어 분리
 
 `will-change` 속성은 브라우저에게 이 엘리먼트가 곧 변경될 것임을 미리 알려서 별도 합성 레이어를 만들도록 한다.
@@ -156,9 +259,9 @@ items.forEach((item, i) => {
 
 `transform: translateZ(0)`이나 `transform: translate3d(0,0,0)`도 레이어를 분리하는 효과가 있다. `will-change` 지원 전에 쓰던 방법이다. 지금은 `will-change`가 의도를 더 명확하게 표현한다.
 
-**남용하면 역효과가 난다.** 레이어를 분리하면 그 레이어를 GPU 메모리(VRAM)에 올려야 한다. 이미지가 많은 큰 엘리먼트에 `will-change: transform`을 붙이면 VRAM 사용량이 급증한다. 모바일에서 특히 문제가 된다. 페이지에 레이어가 100개를 넘어가면 합성 자체가 병목이 된다.
+**남용하면 역효과가 난다.** 레이어를 분리하면 그 레이어를 GPU 메모리(VRAM)에 올려야 한다. 이미지가 많은 큰 엘리먼트에 `will-change: transform`을 붙이면 VRAM 사용량이 급증한다. 모바일에서 특히 문제가 된다. 레이어가 많아지면 합성 작업량도 같이 늘어난다.
 
-DevTools의 Layers 패널에서 현재 페이지의 레이어를 볼 수 있다. 의도하지 않은 레이어가 많이 생겨 있으면 `will-change`나 `transform: translateZ(0)`이 남용된 것이다.
+레이어 개수와 메모리는 앞 절의 Layers 패널로 센다. 의도하지 않은 레이어가 많으면 `will-change`나 `transform: translateZ(0)`이 남용됐거나 겹침 승격이 일어난 것이다.
 
 사용 원칙은 단순하다. 실제로 애니메이션이 일어나는 엘리먼트에만, 애니메이션 직전에 붙이고 끝나면 제거한다.
 
@@ -194,7 +297,21 @@ contain: content;  /* layout + style + paint */
 
 `contain: layout`이 붙은 엘리먼트 안에서 DOM이 변경되면 브라우저는 그 엘리먼트 바깥의 레이아웃을 재계산하지 않는다. 100개의 카드가 있는 피드에서 한 카드 안의 텍스트가 바뀔 때 전체 페이지 레이아웃이 다시 계산되는 것을 막는다.
 
-독립적인 위젯이나 카드 컴포넌트에 적용하면 효과적이다:
+아래 도식은 카드 안의 텍스트가 바뀌었을 때 Layout 재계산이 퍼지는 범위를 `contain: layout` 유무로 나눠 비교한다.
+
+```mermaid
+flowchart LR
+    subgraph NoContain["contain 없음"]
+        direction LR
+        N1["카드 안 텍스트 변경"] --> N2["카드 Layout 다시 계산"] --> N3["주변 카드와 상위 엘리먼트로 전파"] --> N4["페이지 전체 Layout"]
+    end
+    subgraph WithContain["contain: layout"]
+        direction LR
+        W1["카드 안 텍스트 변경"] --> W2["카드 Layout 다시 계산"] --> W3["카드 경계에서 멈춤"]
+    end
+```
+
+독립적인 위젯이나 카드 컴포넌트에 적용한다.
 
 ```css
 .card {
@@ -253,6 +370,17 @@ contain: content;  /* layout + style + paint */
 `setTimeout(fn, 16)`으로 애니메이션을 만들면 브라우저 렌더링 주기와 동기화되지 않는다. 렌더 직후에 실행되면 다음 렌더까지 거의 32ms를 기다리거나, 렌더 직전에 실행되면 변경이 이번 프레임에 포함되지 못한다. 결과적으로 프레임 드롭이나 불규칙한 애니메이션이 나온다.
 
 `requestAnimationFrame`은 다음 프레임을 그리기 직전에 콜백을 실행한다. 브라우저 렌더링 주기와 정확히 맞물린다.
+
+아래 도식은 한 프레임 안에서 두 방식의 콜백이 들어가는 자리를 비교한다. `setTimeout`은 프레임 경계와 무관한 임의 지점에 끼어들고, rAF는 항상 Style 직전이다.
+
+```mermaid
+flowchart LR
+    subgraph Frame["한 프레임"]
+        direction LR
+        RAF["rAF 콜백"] --> S["Style"] --> L["Layout"] --> P["Paint"] --> C["Composite"]
+    end
+    T["setTimeout 콜백"] -.->|"프레임과 무관하게 임의 지점에서 실행"| Frame
+```
 
 ```javascript
 let startTime = null;
@@ -347,6 +475,24 @@ window.addEventListener('scroll', () => {
 });
 ```
 
+아래 시퀀스는 한 프레임 안에 스크롤 이벤트가 세 번 들어왔을 때의 흐름이다. 두 번째, 세 번째 이벤트는 `scheduled` 플래그에 막혀 rAF를 다시 예약하지 않는다.
+
+```mermaid
+sequenceDiagram
+    participant E as 스크롤 이벤트
+    participant H as 핸들러
+    participant R as rAF 콜백
+
+    E->>H: 이벤트 1
+    H->>R: scheduled가 false라서 rAF 예약
+    E->>H: 이벤트 2
+    Note over H: scheduled가 true라서 바로 return
+    E->>H: 이벤트 3
+    Note over H: scheduled가 true라서 바로 return
+    R->>R: 다음 프레임 직전에 scrollY 읽고 updateStickyHeader 한 번 실행
+    R->>R: scheduled를 false로 되돌림
+```
+
 스크롤 이벤트가 한 프레임 안에 여러 번 발생해도 rAF 콜백은 다음 프레임에 한 번만 실행된다. `window.scrollY`는 rAF 콜백 안에서 읽으면 강제 레이아웃 없이 읽을 수 있다. rAF 직전에 브라우저가 레이아웃을 이미 계산해둔 상태이기 때문이다.
 
 엘리먼트 크기 변화를 감지할 때는 `ResizeObserver`가 낫다. 이 API는 레이아웃 계산 후에 콜백을 호출하므로 강제 레이아웃 없이 현재 크기를 읽을 수 있다.
@@ -365,7 +511,7 @@ observer.observe(container);
 observer.disconnect();
 ```
 
-`window.addEventListener('resize', ...)`로 창 크기 변화를 감지하다가 `getBoundingClientRect()`를 호출하면 매 resize 이벤트마다 강제 레이아웃이 발생한다. `ResizeObserver`로 대체하면 브라우저가 최적화된 시점에 콜백을 호출하므로 이 문제가 없다.
+`window.addEventListener('resize', ...)`로 창 크기 변화를 감지하다가 `getBoundingClientRect()`를 호출하면 매 resize 이벤트마다 강제 레이아웃이 발생한다. `ResizeObserver`로 대체하면 브라우저가 레이아웃을 마친 시점에 콜백을 호출하므로 이 문제가 없다.
 
 viewport에 들어온 엘리먼트를 감지할 때도 스크롤 이벤트 + `getBoundingClientRect()` 조합 대신 `IntersectionObserver`를 쓴다. 같은 이유다.
 
@@ -391,9 +537,27 @@ document.querySelectorAll('.lazy-section').forEach(el => {
 
 ## Long Task와 16ms 예산
 
-60fps 기준으로 한 프레임에 주어지는 시간은 16.6ms다. 이 16ms 안에 JavaScript 실행 + Style + Layout + Paint + Composite 전부가 끝나야 한다. 어느 한 단계가 16ms를 넘기면 그 프레임은 드롭된다.
+60Hz 화면은 16.6ms마다 한 번 갱신된다. 그 간격 안에 JavaScript, Style, Layout, Paint, Composite가 전부 끝나야 새 프레임이 나간다. 합계가 16.6ms를 넘으면 그 갱신 시점을 놓치고 이전 화면이 한 번 더 보인다.
 
-브라우저는 50ms 이상 메인 스레드를 점유하는 작업을 Long Task로 분류한다. Long Task가 발생하면 그 시간 동안 사용자 입력(클릭, 스크롤)에 반응하지 못하고, 렌더링 파이프라인이 실행될 기회가 없다.
+아래 도식은 가정한 값으로 그린 두 프레임이다. 프레임 1은 단계 합이 13ms라 예산 안에 들어온다. 프레임 2는 JavaScript 하나가 22ms를 먹어서 합계가 36ms가 되고, 16.6ms와 33.3ms 두 번의 갱신 시점을 지나 세 번째(50ms)에 화면에 반영된다. 이 숫자는 설명을 위한 예시이고 실측값이 아니다.
+
+```mermaid
+flowchart LR
+    subgraph F1["프레임 1: 합계 13ms, 16.6ms 예산 안"]
+        direction LR
+        A1["JS 4ms"] --> A2["Style 1ms"] --> A3["Layout 3ms"] --> A4["Paint 3ms"] --> A5["Composite 2ms"]
+    end
+    subgraph F2["프레임 2: 합계 36ms, 예산 초과"]
+        direction LR
+        B1["JS 22ms"] --> B2["Style 2ms"] --> B3["Layout 6ms"] --> B4["Paint 4ms"] --> B5["Composite 2ms"]
+    end
+    A5 -->|"첫 갱신 시점에 반영"| B1
+    B5 -->|"갱신 시점 두 번 놓침, 세 번째에 반영"| Screen["화면"]
+```
+
+프레임 2에서 JavaScript를 4ms로 줄여도 합계는 18ms라 예산을 넘긴다. 한 단계만 줄여서는 해결되지 않는 프레임이 있으므로, 느린 프레임을 잡을 때는 DevTools Performance 탭에서 단계별 시간을 먼저 나눠 본다.
+
+브라우저는 50ms 이상 메인 스레드를 점유하는 작업을 Long Task로 분류한다([web.dev: Long Tasks 최적화](https://web.dev/articles/optimize-long-tasks)). Long Task가 도는 동안 클릭과 스크롤 입력은 큐에서 기다리고, 렌더링 파이프라인도 실행될 기회가 없다.
 
 ```javascript
 const observer = new PerformanceObserver(list => {
@@ -441,3 +605,25 @@ scheduler.postTask(() => {
 ```
 
 Long Task 감지와 청크 분할은 짝으로 쓴다. PerformanceObserver로 Long Task를 찾고, 그 함수를 청크 분할로 바꾸는 순서로 작업한다. 청크 크기는 하드코딩하지 않고 측정 후 조정한다. 복잡한 연산은 100개가 50ms를 넘을 수 있고, 단순한 연산은 1,000개로 잡아도 된다.
+
+### Long Task가 INP로 이어지는 경로
+
+INP(Interaction to Next Paint)는 클릭, 탭, 키 입력이 발생한 시점부터 그 입력의 결과가 화면에 다음으로 그려지는 시점까지의 시간이다. 기준값은 200ms 이하가 양호, 500ms 초과가 나쁨이다([web.dev: INP](https://web.dev/articles/inp)). 이 시간은 세 구간으로 나뉘고, Long Task는 세 구간 어디에든 끼어든다.
+
+```mermaid
+flowchart LR
+    subgraph INP["INP로 측정되는 구간"]
+        direction LR
+        In["사용자 클릭"] --> D["입력 지연: 메인 스레드가 다른 Long Task를 처리 중이라 핸들러가 시작하지 못함"]
+        D --> H["처리 시간: 이벤트 핸들러 실행, 핸들러가 길면 여기가 늘어남"]
+        H --> P["프레젠테이션 지연: Style, Layout, Paint 후 다음 프레임 표시"]
+    end
+    P --> Out["화면 갱신"]
+    LT1["다른 코드의 Long Task"] -.->|"입력 지연을 늘림"| D
+    LT2["핸들러 안의 무거운 계산"] -.->|"처리 시간을 늘림"| H
+    LT3["핸들러 뒤의 강제 레이아웃, 큰 DOM 변경"] -.->|"프레젠테이션 지연을 늘림"| P
+```
+
+클릭 직전에 다른 코드가 메인 스레드를 점유하고 있으면, 핸들러는 그 작업이 끝날 때까지 시작하지 못한다. 사용자는 아무것도 안 눌린 것처럼 느끼고, 이 대기 시간이 입력 지연으로 INP에 그대로 더해진다. 핸들러 자체가 무거우면 처리 시간이 늘고, 핸들러가 DOM을 크게 바꾸거나 강제 레이아웃을 일으키면 프레젠테이션 지연이 늘어난다.
+
+그래서 앞에서 다룬 청크 분할은 프레임 드롭만 줄이는 게 아니다. 청크 사이마다 브라우저가 큐에 쌓인 입력을 처리하므로 입력 지연의 상한이 "가장 긴 청크 하나의 길이"로 묶인다. Long Task를 찾을 때는 PerformanceObserver의 `longtask`로 어느 코드가 메인 스레드를 오래 잡는지 보고, INP는 Chrome DevTools Performance 탭의 Interactions 트랙에서 입력 지연·처리 시간·프레젠테이션 지연이 각각 얼마였는지 나눠 본다. 어느 구간이 긴지에 따라 고칠 곳이 다르다.
