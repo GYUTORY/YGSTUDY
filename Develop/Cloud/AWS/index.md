@@ -9,7 +9,7 @@ hide:
 
 # AWS 전체 보기
 
-문서 188개.
+문서 189개.
 
 ## AI
 
@@ -65,6 +65,7 @@ hide:
 - [ECS Capacity Providers](Containers/ECS_Capacity_Providers.md)
 - [ECS Cluster 생성과 설정](Containers/ECS_Cluster_Configuration.md)
 - [ECS Container Insights](Containers/ECS_Container_Insights.md)
+- [ECS Container Insights Enhanced Observability](Containers/ECS_Container_Insights_Enhanced.md)
 - [ECS Deployment Strategies](Containers/ECS_Deployment_Strategies.md)
 - [ECS ENI 제한과 Task 한계 — awsvpc / bridge / host 네트워크 모드 비교](Containers/ECS_ENI_제한과_Task_한계.md)
 - [ECS Event-Driven RunTask — 이벤트 패턴으로 standalone Task 띄우기](Containers/ECS_Event_Driven_Run_Task.md)
