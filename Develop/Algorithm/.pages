@@ -5,6 +5,7 @@ nav:
   - 시간복잡도와 공간복잡도: Time_Complexity.md
   - 정렬 알고리즘: Sorting.md
   - Binary Search: Binary_Search.md
+  - Binary Search 패턴: Binary_Search_Patterns.md
   - Skip List: Skip_List.md
   - 일관된 해싱: Consistent_Hashing.md
   - Dynamic Programming:
