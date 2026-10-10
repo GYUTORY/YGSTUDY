@@ -2,6 +2,31 @@
 # 푸시 전 로컬 검증 — CI 와 동일한 순서. 전부 통과해야 푸시한다.
 # 사용: bash tools/verify.sh
 set -u
+
+# 빌드 산출물 위치. 끝나면 지운다.
+#
+# 예전엔 "$VERIFY_SITE" 에 그냥 쌓았고 아무도 안 지웠다. 문서 1,500개를
+# 빌드하면 237MB 가 되는데, 이 스크립트가 돌 때마다 그 자리에 남았다.
+# 2026-10-10 에 서버 디스크가 꽉 찬 원인 중 하나가 이거였다.
+# 산출물은 검사 끝나면 쓸모가 없으니 trap 으로 반드시 치운다.
+#
+# YG_SITE_OUT 로 덮어쓸 수 있다 — 빌드 결과를 직접 열어보고 싶을 때 쓴다.
+# 그 경우엔 사용자가 정한 경로이므로 지우지 않는다.
+if [ -n "${YG_SITE_OUT:-}" ]; then
+  VERIFY_SITE="$YG_SITE_OUT"
+  VERIFY_SITE_KEEP=1
+else
+  VERIFY_SITE="$(mktemp -d "${TMPDIR:-/tmp}/ygverify.XXXXXX")"
+  VERIFY_SITE_KEEP=0
+fi
+cleanup_verify_site() {
+  [ "$VERIFY_SITE_KEEP" -eq 1 ] && return 0
+  case "$VERIFY_SITE" in
+    /tmp/ygverify.*|"${TMPDIR:-/tmp}"/ygverify.*) rm -rf "$VERIFY_SITE" ;;
+    *) ;;   # mktemp 가 만든 경로가 아니면 손대지 않는다
+  esac
+}
+trap cleanup_verify_site EXIT INT TERM
 cd "$(dirname "$0")/.."
 FAIL=0
 
@@ -75,17 +100,17 @@ AFTER_SHA="$(git rev-parse HEAD)" \
 run "check_sources"       python3 tools/check_sources.py --strict
 
 echo "── 빌드 (약 55초, minify·rss·git-date 제외) ──"
-DISABLE_MKDOCS_2_WARNING=true run "mkdocs build --strict" mkdocs build --strict -d /tmp/_verify_site
+DISABLE_MKDOCS_2_WARNING=true run "mkdocs build --strict" mkdocs build --strict -d "$VERIFY_SITE"
 
 echo "── 산출물 검사 ──"
-run "built assets"        python3 tools/check_built_assets.py /tmp/_verify_site --strict
+run "built assets"        python3 tools/check_built_assets.py "$VERIFY_SITE" --strict
 # 사이드바 펼침이 이 파일에 달려 있다. 비어도 화면은 멀쩡해 보인다 —
 # 화살표는 그대로 있고 눌렀을 때만 아무 일이 없어서 눈으로는 못 잡는다.
 # css contrast 는 빌드 뒤로 옮긴다 — 특이도 검사에 Material 스타일시트가 필요하다
 # (빌드 산출물이 없으면 그 검사만 건너뛰고 대비 검사는 그대로 돈다)
-YG_SITE_DIR=/tmp/_verify_site run "css contrast" python3 tools/check_contrast.py --strict
-run "nav index"           python3 tools/check_nav_index.py /tmp/_verify_site --strict
-SITE_DIR=/tmp/_verify_site run "redirects"        python3 tools/check_redirects.py
+YG_SITE_DIR="$VERIFY_SITE" run "css contrast" python3 tools/check_contrast.py --strict
+run "nav index"           python3 tools/check_nav_index.py "$VERIFY_SITE" --strict
+SITE_DIR="$VERIFY_SITE" run "redirects"        python3 tools/check_redirects.py
 # 브라우저 없이 도는 DOM 테스트. 여기 걸리는 것들은 전부 **조용한 실패**라
 # 빌드·링크 검사로는 절대 안 잡힌다 — 사이드바 펼침, 검색 인덱스 보류,
 # 레이아웃 재계산, GitHub 릴리스 요청 차단, 링크 선반입.
@@ -98,7 +123,7 @@ run "브라우저 없는 DOM 테스트" bash -c '
   for t in tools/tests/*.test.mjs; do
     case "$t" in *mermaid_contrast*) continue ;; esac   # 위에서 이미 돌았다
     echo "── $t"
-    node "$t" /tmp/_verify_site
+    node "$t" "$VERIFY_SITE"
   done'
 
 [ $FAIL -eq 0 ] && echo "✓ 전부 통과 — 푸시 가능" || echo "✗ 실패 있음 — 푸시하지 말 것"
