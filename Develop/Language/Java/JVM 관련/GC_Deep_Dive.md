@@ -1,15 +1,13 @@
 ---
 title: JVM Garbage Collection 심화
 tags: [java, os, docker, language]
-updated: 2026-04-09
+updated: 2026-10-10
 ---
 
 # JVM Garbage Collection 심화
-## 개요
+## GC를 모르면 못 잡는 증상들
 
-GC(Garbage Collection)는 JVM이 사용하지 않는 객체를 자동으로 해제하는 메모리 관리 메커니즘이다. 개발자가 직접 메모리를 해제하지 않아도 되지만, GC 동작을 이해해야 성능 문제를 진단하고 튜닝할 수 있다.
-
-### 왜 GC를 알아야 하는가
+GC는 JVM이 쓰지 않는 객체를 자동으로 해제하는 장치다. 직접 해제하지 않아도 되는 대신, 해제가 **언제 어떻게** 일어나는지를 모르면 아래 증상에서 원인을 짚을 수 없다.
 
 ```text
 문제 상황:
@@ -20,9 +18,7 @@ GC(Garbage Collection)는 JVM이 사용하지 않는 객체를 자동으로 해�
 → GC 로그를 읽고 튜닝할 수 있어야 한다
 ```
 
-## 핵심
-
-### 1. JVM 힙 메모리 구조
+## 힙은 어떻게 나뉘어 있는가
 
 ```text
 ┌──────────────────────────────────────────────┐
@@ -73,7 +69,7 @@ graph TB
     style ClassMeta fill:#a78bfa,stroke:#5b21b6,color:#000
 ```
 
-#### TLAB (Thread-Local Allocation Buffer)
+### TLAB (Thread-Local Allocation Buffer)
 
 멀티스레드 환경에서 객체를 Eden에 할당할 때, 스레드마다 잠금(lock) 없이 독립적으로 사용하는 작은 버퍼다.
 
@@ -113,9 +109,9 @@ TLAB 관련 주의사항:
 # slow allocs가 높으면 TLAB 크기가 작다는 의미
 ```
 
-### 2. GC 동작 원리
+## 객체가 수거되는 경로
 
-#### 객체 생명주기
+### 객체 생명주기
 
 ```text
 1. 객체 생성 → TLAB에 할당 (TLAB이 가득 찼거나 큰 객체면 Eden 직접 할당)
@@ -158,7 +154,7 @@ flowchart LR
     style E fill:#94a3b8,stroke:#475569,color:#000
 ```
 
-#### GC 유형 비교
+### GC 유형 비교
 
 | 유형 | 대상 | 빈도 | 시간 | STW |
 |------|------|------|------|-----|
@@ -166,9 +162,9 @@ flowchart LR
 | **Major GC** | Old 영역 | 가끔 | 길 수 있음 | 길 수 있음 |
 | **Full GC** | 전체 Heap + Metaspace | 드물게 | 가장 김 | 가장 김 |
 
-### 3. GC 알고리즘
+## 수거 알고리즘 — Mark and Sweep 과 그 변형
 
-#### Mark and Sweep
+### Mark and Sweep
 
 ```text
 1. Mark: 루트(GC Root)에서 시작하여 참조 체인을 따라 살아있는 객체 표시
@@ -216,7 +212,7 @@ flowchart TB
     Mark --> Sweep --> Compact
 ```
 
-### 4. Reference 타입과 GC
+## 참조 타입이 수거 시점을 바꾼다
 
 Java에는 일반 참조(Strong Reference) 외에 3가지 특수 참조 타입이 있다. 각각 GC 사이클에서 처리되는 시점이 다르다.
 
@@ -226,7 +222,7 @@ Java에는 일반 참조(Strong Reference) 외에 3가지 특수 참조 타입�
 | **SoftReference** | 메모리가 부족할 때만 수거 | 메모리 민감한 캐시 |
 | **PhantomReference** | finalize 이후 수거, get()은 항상 null | 리소스 정리, Cleaner |
 
-#### GC 사이클에서의 처리 순서
+### GC 사이클에서의 처리 순서
 
 ```text
 Mark 단계:
@@ -283,7 +279,7 @@ Reference 수가 많으면 GC pause가 늘어난다. G1 GC 로그에서 `Ref Pro
 -XX:+ParallelRefProcEnabled    # 기본 활성화
 ```
 
-### 5. GC 컬렉터
+## 컬렉터 고르기 — Serial 에서 ZGC 까지
 
 | 컬렉터 | 목표 | STW | 적합한 경우 |
 |--------|------|-----|-----------|
@@ -313,7 +309,7 @@ quadrantChart
 
 ---
 
-#### CMS GC (Concurrent Mark Sweep)
+### CMS GC (Concurrent Mark Sweep)
 
 Java 8까지 저지연이 필요한 웹 서비스에서 많이 사용됐다. Java 9에서 deprecated, Java 14에서 제거됐다. 지금도 Java 8 프로젝트에서는 만날 수 있다.
 
@@ -388,7 +384,7 @@ Java 8에서 CMS를 쓰고 있다면 G1으로 바꾸는 게 맞다. Java 8에서
 
 ---
 
-#### G1 GC (Garbage-First) 심화
+### G1 GC (Garbage-First) 심화
 
 Java 9+ 기본 GC. 힙을 리전(Region) 단위로 나누어 관리한다.
 
@@ -408,7 +404,7 @@ E=Eden, S=Survivor, O=Old, H=Humongous (대형 객체)
 → 가비지가 많은 리전부터 우선 수거 (Garbage-First)
 ```
 
-##### Remembered Set과 Card Table
+### Remembered Set과 Card Table
 
 Young GC를 할 때 Old 영역의 객체가 Young 객체를 참조하고 있는지 확인해야 한다. 그런데 Old 전체를 스캔하면 Minor GC 의미가 없다. 이 문제를 Remembered Set(RSet)과 Card Table로 해결한다.
 
@@ -443,7 +439,7 @@ RSet은 리전마다 유지해야 해서 메모리를 먹는다. 힙의 5~10%를
 
 **Write Barrier**: 객체 참조가 변경될 때마다 Card Table / RSet을 업데이트해야 한다. JVM은 참조 대입(store) 코드에 Write Barrier를 삽입해서 이 작업을 수행한다. Write Barrier는 모든 참조 대입에 들어가므로 애플리케이션 처리량에 약간의 오버헤드를 준다.
 
-##### SATB (Snapshot-At-The-Beginning)
+### SATB (Snapshot-At-The-Beginning)
 
 G1의 Concurrent Marking에서 사용하는 기법이다. Marking을 시작한 시점의 객체 그래프 스냅샷을 기준으로 마킹한다.
 
@@ -471,7 +467,7 @@ SATB 해결 방식:
 
 CMS는 Incremental Update 방식을 쓴다. 새로운 참조가 생길 때를 추적한다. SATB는 참조가 끊어질 때를 추적한다. SATB가 Remark 단계의 STW를 더 짧게 만든다.
 
-##### Mixed GC 단계별 흐름
+### Mixed GC 단계별 흐름
 
 G1은 Young GC만으로 Old 영역이 차오르면 Mixed GC를 수행한다. 전체 과정:
 
@@ -550,11 +546,11 @@ java -XX:+UseG1GC \
 
 ---
 
-#### ZGC (Z Garbage Collector) 심화
+### ZGC (Z Garbage Collector) 심화
 
 1ms 이하의 STW를 보장하는 초저지연 GC. 16TB까지 지원한다.
 
-##### Colored Pointer
+### Colored Pointer
 
 ZGC의 핵심 기술. 64비트 객체 포인터의 상위 비트에 메타데이터를 저장한다.
 
@@ -574,7 +570,7 @@ ZGC의 핵심 기술. 64비트 객체 포인터의 상위 비트에 메타데이
 
 Colored Pointer 덕분에 객체 헤더를 건드리지 않고도 GC 상태를 관리한다. 다만 포인터를 사용할 때마다 메타데이터 비트를 처리해야 해서, Load Barrier가 필요하다.
 
-##### Load Barrier
+### Load Barrier
 
 ZGC는 Write Barrier 대신 Load Barrier를 사용한다. 객체 참조를 읽을 때(load) 포인터의 색상 비트를 확인한다.
 
@@ -596,7 +592,7 @@ slow_path에서 하는 일:
 
 Write Barrier(G1)는 참조를 쓸 때마다 동작하고, Load Barrier(ZGC)는 참조를 읽을 때 동작한다. 읽기가 쓰기보다 훨씬 빈번하지만, ZGC는 bad color인 경우에만 slow path에 진입하기 때문에 실제 오버헤드는 2~5% 수준이다. self-healing 덕분에 같은 포인터에 대해 slow path는 한 번만 실행된다.
 
-##### ZGC 동작 과정
+### ZGC 동작 과정
 
 ```text
 1. Pause Mark Start (STW < 1ms)
@@ -637,7 +633,7 @@ gantt
 
 STW가 GC Root 스캔에만 발생하고, 나머지는 전부 concurrent다. 힙이 커져도 STW는 늘어나지 않는다.
 
-##### Generational ZGC (Java 21+)
+### Generational ZGC (Java 21+)
 
 Java 21부터 ZGC에도 세대 구분이 추가됐다. 기존 ZGC는 세대 구분 없이 전체 힙을 대상으로 GC를 수행해서, Young 객체의 빠른 수거에 불리했다.
 
@@ -675,7 +671,7 @@ java -XX:+UseZGC \
 
 ---
 
-### 6. GC Ergonomics — Adaptive Size Policy
+## JVM이 알아서 조절하는 값들
 
 JVM은 GC 성능 목표에 맞게 Young/Old 비율, Survivor 크기 등을 자동 조절한다. 이 자동 조절 메커니즘이 Adaptive Size Policy다.
 
@@ -729,9 +725,9 @@ Adaptive Size Policy가 동작하고 있는지 확인하려면 GC 로그에서 �
 # → GC마다 크기가 변하고 있으면 Adaptive Size Policy가 동작 중
 ```
 
-### 7. GC 튜닝
+## 튜닝 옵션과 관측 도구
 
-#### 기본 JVM 옵션
+### 기본 JVM 옵션
 
 ```bash
 # 힙 크기 (Xms = Xmx로 고정 권장)
@@ -748,7 +744,7 @@ Adaptive Size Policy가 동작하고 있는지 확인하려면 GC 로그에서 �
 -verbose:gc -Xloggc:gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps
 ```
 
-#### GC 로그 분석
+### GC 로그 분석
 
 ```text
 # G1 GC 로그 예시
@@ -765,7 +761,7 @@ Adaptive Size Policy가 동작하고 있는지 확인하려면 GC 로그에서 �
   12.345ms: GC 소요 시간 (STW)
 ```
 
-#### 분석 도구 — jstat, jmap, GCEasy
+### 분석 도구 — jstat, jmap, GCEasy
 
 ```bash
 # 실시간 메모리 모니터링
@@ -785,9 +781,9 @@ jmap -dump:live,format=b,file=heap.hprof <PID>
 
 jstat/jmap은 간단한 진단에는 충분하지만, 프로덕션 환경에서 GC 문제의 근본 원인을 파려면 부족한 경우가 많다.
 
-#### 분석 도구 — JFR과 async-profiler
+### 분석 도구 — JFR과 async-profiler
 
-##### JFR (Java Flight Recorder)
+### JFR (Java Flight Recorder)
 
 JDK에 내장된 프로파일링 도구. 프로덕션에서 상시 켜 놓을 수 있을 정도로 오버헤드가 낮다(1~2%).
 
@@ -825,7 +821,7 @@ jdk.OldObjectSample      — 오래 살아남은 객체의 할당 스택 트레�
   어떤 코드에서 Old로 넘어간 객체를 할당했는지 바로 보인다
 ```
 
-##### async-profiler
+### async-profiler
 
 네이티브 수준의 프로파일링 도구. JFR과 다르게 CPU 프로파일링과 메모리 할당 프로파일링을 동시에 할 수 있고, safepoint bias가 없다.
 
@@ -854,11 +850,11 @@ GC 문제 분석 시 도구 선택:
 | 프로덕션 상시 모니터링 | JFR (오버헤드 1~2%) |
 | STW 구간 세부 분석 | JFR GCPhasePause |
 
-### 8. 컨테이너 환경에서의 GC
+## 컨테이너에서 힙이 터지는 이유
 
 Docker/Kubernetes에서 JVM을 돌릴 때 가장 흔한 문제: **cgroup 메모리 제한과 JVM 힙 설정 불일치**.
 
-#### 문제 상황
+### 문제 상황
 
 ```text
 K8s Pod 설정:
@@ -877,7 +873,7 @@ JVM 설정:
 
 JVM은 힙만 관리하는 게 아니다. Metaspace, 스레드 스택, JIT 코드 캐시, Direct ByteBuffer, 네이티브 라이브러리 등 힙 밖에서도 메모리를 쓴다. 컨테이너 메모리 제한의 60~75%를 힙에 할당하는 게 안전하다.
 
-#### UseContainerSupport
+### UseContainerSupport
 
 Java 10+에서 추가된 옵션. JVM이 cgroup 메모리 제한을 인식하고, 그에 맞게 힙 크기를 자동 설정한다.
 
@@ -897,7 +893,7 @@ java -XshowSettings:vm -version
 # Max. Heap Size가 컨테이너 메모리의 75% 근처인지 확인
 ```
 
-#### 컨테이너 메모리 계산
+### 컨테이너 메모리 계산
 
 ```text
 컨테이너 메모리 제한: 2GB 기준
@@ -937,7 +933,7 @@ java -XX:+UseContainerSupport \
      -jar app.jar
 ```
 
-#### NativeMemoryTracking으로 확인
+### NativeMemoryTracking으로 확인
 
 힙 밖에서 어디가 메모리를 먹고 있는지 확인한다.
 
@@ -961,7 +957,7 @@ jcmd <PID> VM.native_memory summary
 # → committed 합계가 컨테이너 제한을 넘지 않는지 확인
 ```
 
-### 9. 메모리 누수 패턴
+## 누수를 만드는 코드 패턴
 
 ```java
 // 1. static 컬렉션에 계속 추가
@@ -979,7 +975,7 @@ Connection conn = dataSource.getConnection();
 // conn.close() 미호출 → 커넥션 풀 고갈
 ```
 
-### 10. 실전 튜닝 시나리오
+## 실전 — P99 지연 2초를 좁혀가는 순서
 
 ```text
 시나리오: API 응답 P99 지연이 2초를 넘는다

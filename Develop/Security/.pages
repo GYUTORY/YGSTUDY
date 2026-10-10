@@ -60,9 +60,11 @@ nav:
     - DNS Security: DNS_Security.md
     - 공급망 공격 방어: Supply_Chain_Security.md
     - CI/CD 파이프라인 공격: CI_CD_Pipeline_Attacks.md
+    - GitHub Actions 워크플로 인젝션: GitHub_Actions_Workflow_Injection.md
   - 인프라 보안:
     - Zero Trust: Zero_Trust_Architecture.md
     - Docker 컨테이너 보안: Container_Security.md
+    - 컨테이너 탈출(Container Escape): Container_Escape.md
     - 컨테이너 런타임 탐지와 Falco: Container_Runtime_Security_Falco.md
     - Rootless 컨테이너와 User Namespace: Rootless_Containers_User_Namespaces.md
     - 쿠버네티스 보안: Kubernetes_Security.md
