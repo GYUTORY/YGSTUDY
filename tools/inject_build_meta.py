@@ -87,12 +87,17 @@ def _doc_md_link(rel_path):
 
 
 def _recent_docs(repo_root, docs_dir, limit=60):
-    """최근 60일 내 변경된 .md 파일 목록 반환 [(date_str, display_name, rel_path)]"""
+    """최근 60일 내 변경된 .md 파일 목록 반환 [(date_str, display_name, rel_path, change_type)]
+
+    change_type: 'A' = 신규 추가(Added), 'M' = 기존 수정(Modified)
+    core.quotePath=false 로 비ASCII 경로를 UTF-8 로 직접 받는다.
+    """
     try:
         r = subprocess.run(
-            ["git", "log",
+            ["git", "-c", "core.quotePath=false",
+             "log",
              "--pretty=format:DATE:%ad", "--date=short",
-             "--name-only", "--diff-filter=AM",
+             "--name-status", "--diff-filter=AM",
              f"--since={limit} days ago",
              "--", "Develop/"],
             capture_output=True, text=True, check=True, cwd=repo_root
@@ -110,10 +115,12 @@ def _recent_docs(repo_root, docs_dir, limit=60):
             continue
         if line.startswith("DATE:"):
             current_date = line[5:]
-        elif line.endswith(".md") and current_date:
-            rel = line.replace("Develop/", "", 1)
-            # 메타 페이지는 "최근에 쓴 글"이 아니다. 404·태그·todo 가 목록에 섞이면
-            # 새 글을 보러 온 사람에게 노이즈가 된다.
+        elif line[:2] in ("A\t", "M\t") and current_date:
+            change_type = line[0]
+            filepath = line[2:].strip()
+            if not filepath.endswith(".md"):
+                continue
+            rel = filepath.replace("Develop/", "", 1)
             # rel 은 'Backend/Caching/index.md' 같은 전체 경로인데 _META_PAGES 는
             # 파일명 집합이라, 이 비교는 사이트 루트 index.md 하나에만 걸렸다.
             # 하위 섹션 인덱스는 전부 통과해서 "Caching 전체 보기" 같은 자동 생성
@@ -131,38 +138,65 @@ def _recent_docs(repo_root, docs_dir, limit=60):
             if not os.path.isfile(abs_path):
                 continue
             name = _doc_title(abs_path, Path(rel).stem.replace("_", " "))
-            entries.append((current_date, name, rel))
+            entries.append((current_date, name, rel, change_type))
 
     return entries
 
 
 def _summary_stats_lines(entries):
-    """60일 총 문서 수·카테고리 다양성 한 줄 요약 섹션."""
+    """60일 총 문서 수·카테고리별 집계 요약 섹션."""
     total = len(entries)
-    cats = set(p.split("/")[0] for _, _, p in entries)
+    cats: dict = {}
+    for _, _, p, _ in entries:
+        cat = p.split("/")[0]
+        cats[cat] = cats.get(cat, 0) + 1
     n_cats = len(cats)
+
+    cat_list = "  ".join(
+        f"`{c}` {n}건"
+        for c, n in sorted(cats.items(), key=lambda x: -x[1])
+    )
     return [
         "## 60일 요약\n\n",
         f"총 {total}건 · {n_cats}개 카테고리\n\n",
+        f"{cat_list}\n\n",
     ]
 
 
 def _new_vs_continuing_lines(entries):
-    """이번 달 새로 시작한 카테고리 vs 이전부터 이어진 카테고리 구분 섹션."""
+    """이번 달 신규 문서 vs 보강 문서 구분, 카테고리 분류 섹션."""
     this_month = date.today().strftime("%Y-%m")
+
+    this_new = 0
+    this_mod = 0
     this_cats: set = set()
     prev_cats: set = set()
-    for d_str, _name, path in entries:
+
+    for d_str, _name, path, ctype in entries:
         cat = path.split("/")[0]
         if d_str.startswith(this_month):
             this_cats.add(cat)
+            if ctype == "A":
+                this_new += 1
+            else:
+                this_mod += 1
         else:
             prev_cats.add(cat)
 
     new_cats = sorted(this_cats - prev_cats)
     cont_cats = sorted(this_cats & prev_cats)
+    total_this = this_new + this_mod
 
     lines = ["## 이번 달 학습 흐름\n\n"]
+
+    if total_this:
+        lines.append(
+            f"이번 달 총 {total_this}건 "
+            f"(신규 문서 {this_new}건 · 보강 문서 {this_mod}건)\n\n"
+        )
+    else:
+        lines.append("이번 달 커밋 없음\n\n")
+
     if new_cats:
         lines.append(
             f"새로 시작한 주제 ({len(new_cats)}개): "
@@ -182,6 +216,7 @@ def _new_vs_continuing_lines(entries):
         lines.append("이어서 학습한 주제: 없음\n\n")
 
     lines.append(
+        "신규 문서는 git `--diff-filter=A`(Added) 기준, 보강 문서는 `--diff-filter=M`(Modified) 기준이다. "
         "60일 기간 안에서 이번 달 이전에 커밋이 있는 카테고리는 '이어서', "
         "이번 달이 처음 등장하는 카테고리는 '새로 시작'으로 분류된다.\n\n"
     )
@@ -201,7 +236,7 @@ def _weekly_trend_lines(entries):
     week_labels = [f"{s.strftime('%m/%d')}~{e.strftime('%m/%d')}" for s, e in weeks]
 
     cat_week: dict = {}
-    for d_str, _name, path in entries:
+    for d_str, _name, path, _ in entries:
         try:
             d = date.fromisoformat(d_str)
         except ValueError:
@@ -266,9 +301,15 @@ def on_pre_build(config, **kwargs):
         "빌드마다 `git log --diff-filter=AM --since='60 days ago'`로 `Develop/` 디렉터리 안에서 추가·수정된 `.md` 파일을 읽어 다시 쓰는 파일이다. 생성은 `tools/inject_build_meta.py`의 `on_pre_build` 훅에서 처리된다.\n\n",
         "섹션 인덱스(`<!-- AUTO-SECTION-INDEX -->` 마커가 들어간 파일)와 `index.md`, `tags.md`, `todo.md`, `404.md` 같은 메타 페이지는 목록에서 제외된다. 커밋 이후 삭제되거나 경로가 바뀐 파일도 죽은 링크를 막기 위해 자동으로 걸러진다.\n\n",
         "이 파일을 직접 수정해도 다음 빌드에서 덮어써진다. 출력 형식을 바꾸려면 `tools/inject_build_meta.py`를 수정한다.\n\n",
+        "각 섹션 생성 기준:\n\n",
+        "- **60일 요약**: `--since='60 days ago'`로 집계한 총 건수와 카테고리별 문서 수.\n",
+        "- **이번 달 학습 흐름**: `--diff-filter=A`(신규)와 `--diff-filter=M`(보강)을 구분. 카테고리는 `Develop/` 하위 최상위 디렉터리명 기준.\n",
+        "- **주간 추이 (최근 4주)**: 오늘 기준 7일씩 4개 구간. 커밋 날짜가 구간에 속하는 파일 수.\n",
+        "- **카테고리별 요약**: 60일 전체 집계. 전월 대비는 이번 달 커밋 수에서 전월 커밋 수를 뺀 값.\n",
+        "- **월별 목록**: 커밋 날짜 내림차순. 같은 파일이 여러 번 수정돼도 가장 최근 커밋 기준으로 한 번만 표시.\n\n",
         "로컬에서 같은 목록을 확인하려면:\n\n",
         "```bash\n",
-        "git log --pretty=format:'%ad' --date=short --diff-filter=AM --since='60 days ago' --name-only -- Develop/\n",
+        "git -c core.quotePath=false log --pretty=format:'%ad' --date=short --diff-filter=AM --since='60 days ago' --name-status -- Develop/\n",
         "```\n\n",
     ]
 
@@ -282,24 +323,38 @@ def on_pre_build(config, **kwargs):
         # 주간 추이 테이블 (최근 4주)
         lines.extend(_weekly_trend_lines(entries))
 
-        # 카테고리별 요약
+        # 카테고리별 요약 (전월 대비 포함)
         cat_counts: dict = {}
         cat_latest: dict = {}
-        for d, name, path in entries:
+        for d, name, path, _ in entries:
             cat = path.split("/")[0]
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
             if cat not in cat_latest:
                 cat_latest[cat] = (d, name, path)
 
+        this_month = date.today().strftime("%Y-%m")
+        prev_month_last = date.today().replace(day=1) - timedelta(days=1)
+        prev_month = prev_month_last.strftime("%Y-%m")
+        this_month_counts: dict = {}
+        prev_month_counts: dict = {}
+        for d, _, path, _ in entries:
+            cat = path.split("/")[0]
+            if d.startswith(this_month):
+                this_month_counts[cat] = this_month_counts.get(cat, 0) + 1
+            elif d.startswith(prev_month):
+                prev_month_counts[cat] = prev_month_counts.get(cat, 0) + 1
+
         lines.append("## 카테고리별 요약\n\n")
-        lines.append("| 카테고리 | 문서 수 | 최근 문서 |\n")
-        lines.append("|----------|:------:|----------|\n")
+        lines.append("| 카테고리 | 문서 수 | 전월 대비 | 최근 문서 |\n")
+        lines.append("|----------|:------:|:--------:|----------|\n")
         for cat, count in sorted(cat_counts.items(), key=lambda x: -x[1]):
             d, name, path = cat_latest[cat]
             link = f"[{name}]({_doc_md_link(path)})"
-            lines.append(f"| {cat} | {count} | {link} |\n")
+            diff = this_month_counts.get(cat, 0) - prev_month_counts.get(cat, 0)
+            delta = f"+{diff}" if diff > 0 else ("=" if diff == 0 else str(diff))
+            lines.append(f"| {cat} | {count} | {delta} | {link} |\n")
         lines.append(
-            "\n문서 수 내림차순. `최근 문서` 열은 git 로그 기준 가장 늦게 커밋된 파일이다.\n\n"
+            "\n문서 수 내림차순. `전월 대비`는 이번 달 커밋 수에서 전월 커밋 수를 뺀 값이다. `최근 문서` 열은 git 로그 기준 가장 늦게 커밋된 파일이다.\n\n"
         )
 
         # 월별 목록
@@ -314,7 +369,7 @@ def on_pre_build(config, **kwargs):
             lines.append(f"## {month}\n\n")
             lines.append("| 날짜 | 문서 |\n")
             lines.append("|------|------|\n")
-            for d, name, path in months[month]:
+            for d, name, path, _ in months[month]:
                 lines.append(f"| {d} | [{name}]({_doc_md_link(path)}) |\n")
             lines.append("\n")
     else:
@@ -338,7 +393,7 @@ def _recent_cards_html(entries, limit=6):
     if not entries:
         return '<p class="yg-empty">최근 변경 이력을 읽을 수 없습니다.</p>'
     out = ['<div class="yg-series-grid">']
-    for d, name, rel in entries[:limit]:
+    for d, name, rel, *_ in entries[:limit]:
         top = rel.split("/")[0]
         label = _CAT_LABEL.get(top, top)
         out.append(

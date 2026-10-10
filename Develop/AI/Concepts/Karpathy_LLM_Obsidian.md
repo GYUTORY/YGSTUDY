@@ -1,7 +1,7 @@
 ---
 title: Karpathy의 LLM + Obsidian 워크플로우
 tags: [ai, llm]
-updated: 2026-04-17
+updated: 2026-09-24
 volatility: high
 ---
 
@@ -102,6 +102,43 @@ vault에 LLM을 붙이는 방식은 크게 세 가지다. 각각 트레이드오
 vault에서 필요한 파일만 골라서 Anthropic/OpenAI API로 보내는 스크립트를 짠다. 가장 유연하고, 비용이 가장 통제 가능하다. 민감 파일을 코드 단계에서 필터링할 수 있다는 점이 핵심이다.
 
 이 글의 6장에서 Node.js로 짜는 예제를 보여준다.
+
+### 4.4 claude -p 로 터미널에서 직접 질의
+
+Claude Code의 `-p` 플래그는 인터랙티브 세션 없이 단발로 LLM을 호출한다. vault 파일을 표준입력으로 파이프하면 그게 컨텍스트가 된다.
+
+```bash
+# 단일 노트 질의
+cat ~/vault/notes/kafka-consumer-rebalance.md \
+  | claude -p "이 노트에서 rebalance 진단 절차만 뽑아줘"
+
+# grep으로 관련 파일 모아서 한 번에 넘기기
+grep -rl "#kafka" ~/vault/notes/ \
+  | xargs cat \
+  | claude -p "kafka 관련 메모에서 주요 트러블슈팅 케이스를 정리해줘"
+
+# 이번 주 daily 노트 요약 — brace expansion으로 날짜 범위 지정
+cat ~/vault/daily/2026-04-{14..20}.md 2>/dev/null \
+  | claude -p "이번 주 작업 내용과 다음 주 할 일을 뽑아줘"
+
+# inbox 분류 후보 제안 — 파일명을 구분자로 박아서 넘긴다
+{
+  for f in ~/vault/inbox/*.md; do
+    echo "=== $(basename "$f") ==="
+    cat "$f"
+  done
+} | claude -p "각 파일(=== 구분자로 분리됨)이 어떤 notes/ 카테고리에 들어가면 좋을지 제안해줘"
+```
+
+`grep -rl` + `xargs cat` 조합이 실전에서 가장 자주 쓰인다. 태그로 파일을 골라낸 뒤 통째로 넘기면 RAG 없이도 해당 범위 안에서는 전수 컨텍스트가 된다.
+
+넘기기 전에 크기를 재는 습관이 중요하다:
+
+```bash
+grep -rl "#kafka" ~/vault/notes/ | xargs cat | wc -c
+```
+
+100,000바이트(약 25,000 토큰)를 넘으면 응답이 잘리거나 느려진다. 토큰 초과 처리는 7.1에서 다룬다.
 
 ---
 
@@ -271,11 +308,61 @@ ask("Kafka consumer rebalance가 자주 일어나면 어떻게 디버깅했지?"
 
 이 워크플로우가 만능은 아니다. 6개월 정도 운영하면서 부딪힌 문제들이다.
 
-### 7.1 컨텍스트 비용
+### 7.1 컨텍스트 비용과 토큰 초과 처리
 
 vault가 커질수록 매 질문마다 컨텍스트로 던지는 양이 늘어난다. 1MB짜리 vault를 통째로 던지면 한 번에 $0.5 정도 깨진다. 하루에 10번 질문하면 한 달 $150이다.
 
-해결책은 두 가지다. 첫째, 태그/폴더로 검색 범위를 좁힌다. 둘째, 임베딩 기반 검색을 앞단에 둬서 관련 노트만 컨텍스트로 보낸다. 후자는 벡터 DB를 들여야 해서 무게가 늘어난다. 본인 vault가 50MB 안 넘으면 그냥 grep + 태그 필터로 버틸 수 있다.
+토큰이 초과되면 응답이 잘리거나 아예 안 온다. 세 가지 처리 패턴이 있다.
+
+**사전 필터링** — 파일 수가 적을 때 먼저 쓰는 방법이다.
+
+```bash
+# grep으로 관련 파일을 추린 뒤, 큰 파일은 핵심 섹션만 뽑는다
+grep -rl "#kafka" ~/vault/notes/ | while read -r f; do
+  size=$(wc -c < "$f")
+  if [ "$size" -lt 5000 ]; then
+    cat "$f"
+  else
+    # 파일이 크면 특정 h2 섹션만 뽑는다
+    awk '/^## /{found=0} /^## (핵심|결론|트러블슈팅)/{found=1} found' "$f"
+  fi
+done | claude -p "질문"
+```
+
+**2단 요약** — 관련 파일이 30개를 넘을 때 쓴다.
+
+```bash
+# 1단: 파일마다 개별 요약
+mkdir -p /tmp/vault-summary
+grep -rl "#kafka" ~/vault/notes/ | while read -r f; do
+  fname=$(basename "$f" .md)
+  cat "$f" | claude -p "이 노트의 핵심을 3줄 이내로 요약해줘" \
+    > /tmp/vault-summary/"${fname}".txt
+done
+
+# 2단: 요약본 모아서 최종 질의
+cat /tmp/vault-summary/*.txt \
+  | claude -p "위 요약들에서 공통 패턴과 핵심 인사이트를 뽑아줘"
+```
+
+API 호출이 파일 수만큼 늘어나지만, 각 호출이 작아서 합산 비용은 한 번에 큰 컨텍스트를 보내는 것보다 적다.
+
+**슬라이딩 청크** — 시간 순 daily 노트처럼 순서가 중요한 경우에 쓴다.
+
+```bash
+# 7일 단위로 묶어서 순차 요약
+mapfile -t DAYS < <(find ~/vault/daily -name "*.md" | sort)
+
+for ((i=0; i<${#DAYS[@]}; i+=7)); do
+  cat "${DAYS[@]:$i:7}" \
+    | claude -p "이 기간 메모를 주요 작업/결정/배운 것으로 요약해줘"
+done > /tmp/period-summaries.txt
+
+cat /tmp/period-summaries.txt \
+  | claude -p "전체 기간 요약에서 장기 패턴을 뽑아줘"
+```
+
+어느 패턴을 쓸지 기준은 단순하다. 관련 파일 10개 미만이면 직접 넘기고, 10~30개면 사전 필터링, 30개 이상이면 2단 요약이다. 임베딩 기반 벡터 검색은 vault가 50MB를 넘어야 고려할 만하다.
 
 ### 7.2 민감 메모 분리
 
