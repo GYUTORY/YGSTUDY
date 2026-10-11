@@ -1,7 +1,7 @@
 ---
 title: AWS CloudTrail
 tags: [aws, security, cloud, monitoring, observability]
-updated: 2026-09-28
+updated: 2026-10-11
 ---
 
 # AWS CloudTrail
@@ -9,6 +9,29 @@ updated: 2026-09-28
 AWS 계정의 모든 API 호출을 기록하는 감사 서비스다. "누가 EC2 인스턴스를 삭제했나", "어떤 역할이 S3 버킷 정책을 바꿨나" 같은 질문에 답하는 게 주 목적이다.
 
 기본 제공되는 Event History는 90일, 단일 리전, 관리 이벤트만 포함한다. 장기 보관이나 멀티 리전 감사가 필요하면 Trail을 직접 생성해야 한다.
+
+---
+
+## 로그가 도착하는 경로
+
+API 호출 한 건이 어디에 어떤 형태로 남는지 알아야 사고 때 어디를 볼지 정해진다. 아래 도식은 호출이 이벤트가 되고, Trail을 거쳐 세 갈래로 나뉘는 흐름이다. 관리 이벤트는 기본으로 수집되고 데이터 이벤트는 직접 켠 대상만 수집된다.
+
+```mermaid
+flowchart LR
+    A["API 호출<br/>콘솔 · CLI · SDK"] --> M["관리 이벤트<br/>기본 수집"]
+    A --> D["데이터 이벤트<br/>S3 객체 · Lambda 실행<br/>켠 대상만 수집"]
+    M --> H["Event History<br/>90일 · 관리 이벤트만"]
+    M --> T["Trail"]
+    D --> T
+    T --> S3["S3 버킷<br/>5~15분 지연"]
+    T --> CW["CloudWatch Logs"]
+    T --> EB["EventBridge"]
+    S3 --> AT["Athena<br/>사후 분석"]
+    CW --> AL["메트릭 필터 · 알람"]
+    EB --> LM["Lambda · SNS<br/>자동 대응"]
+```
+
+S3 버킷에 로그 파일이 쓰이기까지 보통 5~15분이 걸린다. 침해가 진행 중인데 Athena에서 방금 일어난 호출이 안 보인다고 해서 안 일어난 것으로 판단하면 안 된다. 데이터 이벤트는 Trail에 명시적으로 켜지 않았다면 어디에도 없다. 누가 `GetObject`로 파일을 가져갔는지 묻는 시점에야 데이터 이벤트가 꺼져 있었다는 걸 알게 되는 경우가 많다.
 
 ---
 
@@ -342,6 +365,7 @@ CREATE EXTERNAL TABLE cloudtrail_logs (
     principalId: STRING,
     arn: STRING,
     accountId: STRING,
+    accessKeyId: STRING,
     userName: STRING,
     sessionContext: STRUCT<
       attributes: STRUCT<
@@ -426,6 +450,185 @@ GROUP BY sourceIPAddress
 HAVING COUNT(*) > 5
 ORDER BY failure_count DESC;
 ```
+
+---
+
+## 탈취된 액세스 키 추적
+
+GitHub에 올라간 `.env`, 퇴사자 노트북, CI 로그에 찍힌 환경변수에서 키가 새는 경우가 대부분이다. 키가 새면 공격자는 대개 비슷한 순서로 움직이고, 그 순서가 그대로 CloudTrail에 남는다. 추적은 이 순서를 알고 거꾸로 짚어 가는 일이다.
+
+```mermaid
+sequenceDiagram
+    participant X as 공격자
+    participant API as AWS API
+    participant CT as CloudTrail
+
+    Note over X: 유출된 AKIA 키 확보
+    X->>API: GetCallerIdentity
+    API-->>X: 계정 ID, 사용자 ARN
+    X->>API: ListAttachedUserPolicies, ListRoles, ListBuckets, DescribeInstances
+    API-->>X: 권한 범위와 리소스 목록, 일부는 AccessDenied
+    opt 권한이 넓은 경우
+        X->>API: GetObject, CopyObject 로 데이터 접근
+        X->>API: CreateAccessKey, CreateUser 로 새 진입로 확보
+        X->>API: AssumeRole 로 다른 역할 이동
+    end
+    X->>API: StopLogging, DeleteTrail
+    API->>CT: 호출마다 이벤트 기록
+    Note over API,CT: StopLogging 호출 자체도 이벤트로 남는다
+```
+
+정찰 단계는 읽기 호출이라 Trail을 쓰기 전용으로 만들어 두면 통째로 빠진다. 앞서 쓰기 이벤트만 켜도 충분하다고 한 것은 변경 이력 용도이고, 침해 조사까지 염두에 두면 읽기 이벤트가 있어야 정찰이 보인다.
+
+### 키 하나로 전체 활동 뽑기
+
+의심되는 키가 있으면 가장 먼저 그 키가 한 일 전부를 시간순으로 본다. 90일 이내이고 관리 이벤트라면 Athena를 세팅하지 않고도 CLI로 바로 된다.
+
+```bash
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=AccessKeyId,AttributeValue=AKIAIOSFODNN7EXAMPLE \
+  --query 'Events[].[EventTime,EventName,Username]' --output table
+```
+
+`lookup-events`는 리전 하나만 본다. 공격자가 쓴 리전을 모르면 리전별로 돌려야 하고, 그래서 멀티 리전 Trail을 Athena로 한 번에 보는 편이 빠르다. 앞의 DDL에는 `userIdentity.accessKeyId`가 있어야 이 쿼리가 돈다. 이 테이블은 파티션이 없어서 `eventTime` 범위를 좁히지 않으면 로그 전체를 스캔한다.
+
+```sql
+SELECT eventTime, awsRegion, eventSource, eventName,
+       sourceIPAddress, userAgent, errorCode
+FROM cloudtrail_logs
+WHERE userIdentity.accessKeyId = 'AKIAIOSFODNN7EXAMPLE'
+  AND eventTime >= '2026-10-01'
+ORDER BY eventTime;
+```
+
+### 평소와 다른 점 찾기
+
+공격자가 쓴 호출 하나하나는 정상 호출과 구분되지 않는다. 구분되는 것은 호출이 나온 환경이다. 같은 키에 대해 IP, userAgent, 리전을 묶어 처음과 마지막 시각, 횟수를 보면 평소 쓰던 환경과 새로 나타난 환경이 갈린다.
+
+```sql
+SELECT sourceIPAddress,
+       regexp_extract(userAgent, '^[^/ ]+') AS client,
+       awsRegion,
+       COUNT(*) AS calls,
+       MIN(eventTime) AS first_seen,
+       MAX(eventTime) AS last_seen
+FROM cloudtrail_logs
+WHERE userIdentity.accessKeyId = 'AKIAIOSFODNN7EXAMPLE'
+  AND eventTime >= '2026-09-01'
+GROUP BY 1, 2, 3
+ORDER BY first_seen;
+```
+
+| 단서 | 정상 | 의심 |
+|---|---|---|
+| sourceIPAddress | 사무실 NAT, 서버 EIP 대역 | 처음 보는 해외 IP, VPN·Tor 출구 노드 |
+| userAgent | 서버 키인데 `Boto3` 또는 `aws-sdk-java` | 서버용 키에 `aws-cli`, 브라우저 문자열, `Pacu`·`ScoutSuite` 같은 도구 이름 |
+| awsRegion | 서비스가 쓰는 리전 | 한 번도 안 쓴 리전의 `RunInstances` |
+| 시간대 | 업무 시간 또는 배치 주기 | 새벽에 갑자기 시작, 분 단위로 촘촘한 호출 |
+
+서버 애플리케이션용 키가 `aws-cli`로 호출됐다면 사람이 손으로 쳤다는 뜻이다. 애플리케이션이 쓰던 userAgent가 바뀌었다는 것만으로도 조사할 근거가 된다. IP는 VPN 때문에 단독 근거가 못 되고, userAgent는 공격자가 바꿀 수 있어서 둘 다 보조 증거로만 쓴다.
+
+### 정찰 호출 패턴
+
+탈취 직후에는 이 키가 살아 있는지, 무엇을 할 수 있는지를 확인하는 호출이 몰려 나온다. 서버 키는 평소에 `GetCallerIdentity`를 호출하지 않는 경우가 많아서 이 호출이 나오는 것만으로도 눈에 띈다. `GetCallerIdentity`는 권한이 없어도 항상 성공하기 때문에 공격자가 키 생존 확인용으로 가장 먼저 쓴다.
+
+```sql
+SELECT eventTime, eventName, sourceIPAddress, errorCode
+FROM cloudtrail_logs
+WHERE userIdentity.accessKeyId = 'AKIAIOSFODNN7EXAMPLE'
+  AND eventName IN (
+    'GetCallerIdentity', 'ListBuckets', 'DescribeInstances',
+    'ListUsers', 'ListRoles', 'ListAttachedUserPolicies',
+    'GetAccountAuthorizationDetails', 'DescribeSecurityGroups'
+  )
+  AND eventTime >= '2026-10-01'
+ORDER BY eventTime;
+```
+
+짧은 시간 안에 서로 다른 서비스의 List·Describe가 이어지고 중간에 `AccessDenied`가 섞여 있으면 권한을 하나씩 두드려 보는 중이다. `errorCode`가 있는 행의 비율이 높은 구간을 잡으면 정찰이 시작된 시각을 특정할 수 있고, 그 시각이 유출 시점의 하한이 된다.
+
+### AssumeRole 체인 따라가기
+
+공격자가 키로 `AssumeRole`을 호출하면 이후 활동은 원래 키가 아니라 `ASIA`로 시작하는 임시 자격증명으로 나온다. 앞의 키로만 필터링하면 여기서 추적이 끊긴다. `AssumeRole` 응답에 새 임시 키 ID가 들어 있으므로 그것을 꺼내 다시 필터링한다.
+
+```sql
+SELECT eventTime, eventName, sourceIPAddress,
+       json_extract_scalar(requestParameters, '$.roleArn') AS role_arn,
+       regexp_extract(responseElements,
+         '"accessKeyId"\s*:\s*"(ASIA[A-Z0-9]+)"', 1) AS temp_key
+FROM cloudtrail_logs
+WHERE eventName = 'AssumeRole'
+  AND userIdentity.accessKeyId = 'AKIAIOSFODNN7EXAMPLE'
+  AND eventTime >= '2026-10-01'
+ORDER BY eventTime;
+```
+
+나온 `temp_key`를 위의 첫 쿼리 조건에 넣어 다시 돌린다. 그 역할이 또 다른 역할을 맡았으면 같은 일을 반복한다. 임시 자격증명의 이벤트는 `userIdentity.sessionContext.sessionIssuer.arn`에 원래 역할이 찍히므로, 역할 기준으로 먼저 훑고 싶으면 이 필드로 필터링해도 된다. 다른 계정의 역할로 이동했다면 로그는 그쪽 계정 Trail에 있다. 조직 Trail이 없으면 그 계정 소유자에게 로그를 받아야 한다.
+
+### 지속 경로 확인
+
+조사 중에 가장 놓치기 쉬운 것은 키를 회수해도 공격자가 다른 진입로를 이미 만들어 뒀다는 점이다. 키를 비활성화하기 전에 아래 호출이 있었는지 먼저 확인한다.
+
+```sql
+SELECT eventTime, userIdentity.accessKeyId, eventName,
+       requestParameters, responseElements
+FROM cloudtrail_logs
+WHERE eventName IN (
+    'CreateAccessKey', 'CreateUser', 'CreateLoginProfile',
+    'UpdateLoginProfile', 'AttachUserPolicy', 'PutUserPolicy',
+    'UpdateAssumeRolePolicy', 'CreateRole'
+  )
+  AND eventTime >= '2026-10-01'
+ORDER BY eventTime;
+```
+
+`CreateAccessKey`의 `requestParameters.userName`이 다른 사용자라면 그 사용자도 오염된 것이다. 새로 생긴 키도 같은 방식으로 이어서 추적한다.
+
+### 로그가 꺼졌거나 조작됐을 때
+
+공격자가 권한이 충분하면 마지막에 `StopLogging`, `DeleteTrail`, `UpdateTrail`, `PutEventSelectors`로 흔적을 줄이려 한다. 이 호출들도 호출되는 순간에는 이벤트로 남는다. 먼저 이 이벤트를 찾고, 그 시각 이후 로그를 믿을 수 있는지를 따로 판단한다.
+
+```sql
+SELECT eventTime, userIdentity.arn, userIdentity.accessKeyId,
+       eventName, awsRegion, sourceIPAddress
+FROM cloudtrail_logs
+WHERE eventSource = 'cloudtrail.amazonaws.com'
+  AND eventName IN ('StopLogging', 'DeleteTrail', 'UpdateTrail',
+                    'PutEventSelectors', 'PutInsightSelectors')
+  AND eventTime >= '2026-10-01'
+ORDER BY eventTime;
+```
+
+Trail 상태를 확인하는 순서는 아래 도식과 같다. Trail이 살아 있으면 Digest 검증으로, 지워졌으면 Event History로 넘어간다.
+
+```mermaid
+flowchart TD
+    S["의심 시각 이후 로그가 비어 있다"] --> Q{"Trail이 존재하고<br/>IsLogging이 true인가"}
+    Q -->|"아니오"| E["Event History에서<br/>StopLogging · DeleteTrail 검색"]
+    Q -->|"예"| V["validate-logs로<br/>Digest 검증"]
+    V --> R{"실패 · 누락 파일이 있는가"}
+    R -->|"예"| B["로그 버킷의 DeleteObject ·<br/>버킷 정책 변경 이력 확인"]
+    R -->|"아니오"| O["다른 리전 Trail ·<br/>조직 Trail에 같은 구간이 있는지 확인"]
+    E --> O
+```
+
+Trail이 지워졌다면 S3의 로그는 이미 없을 수 있다. 이때는 Event History가 마지막 수단이다. Trail과 무관하게 리전별로 90일치 관리 이벤트를 따로 갖고 있어서, `lookup-events`로 `StopLogging`이나 `DeleteTrail`을 직접 찾을 수 있다.
+
+```bash
+aws cloudtrail describe-trails --include-shadow-trails
+aws cloudtrail get-trail-status --name my-audit-trail
+```
+
+`get-trail-status`에서 `IsLogging`이 `false`이거나 `LatestDeliveryTime`이 오래전이면 그 시각부터 구멍이 있다. `LatestDeliveryError`, `LatestDigestDeliveryError`가 채워져 있으면 버킷 정책이나 KMS 권한이 바뀌어 전달이 막힌 것이다.
+
+| 확인할 것 | 보는 이유 |
+|---|---|
+| Log file validation | `validate-logs`로 S3의 로그 파일이 지워졌거나 바뀌었는지 확인한다. Digest 파일이 끊긴 시간대가 있으면 그 구간이 의심 대상이다. 이 옵션을 안 켜고 만든 Trail은 검증 자체가 안 된다. |
+| 조직 트레일 | 멤버 계정에서는 조직 Trail을 중지하거나 삭제할 수 없다. 멤버 계정 Trail은 조용히 꺼져도 조직 Trail에는 같은 기간 이벤트가 그대로 남아 있다. |
+| 다른 리전 트레일 | 멀티 리전이 아닌 Trail은 만든 리전만 본다. 공격자가 안 쓰던 리전에서 활동했다면 그 리전에 Trail이 있는지, `describe-trails --include-shadow-trails`에 잡히는지 본다. |
+| 로그 버킷 자체 | 버킷에 `DeleteObject`나 `PutBucketPolicy`가 있었는지 본다. 버전 관리와 MFA Delete가 꺼져 있으면 지워진 로그는 복구할 방법이 없다. |
+
+가장 안전한 구성은 로그를 별도 계정 버킷으로 보내고, 그 계정에는 일반 운영 권한을 주지 않는 것이다. 운영 계정이 뚫려도 공격자가 지울 수 있는 것은 운영 계정 쪽 Trail 설정뿐이고, 조직 Trail이 그 구간을 이미 다른 곳에 쌓아 둔다.
 
 ---
 

@@ -1,14 +1,14 @@
 ---
 title: 서버 취약점 공격 방어
-tags: [security]
-updated: 2026-04-18
+tags: [security, linux, network]
+updated: 2026-10-11
 ---
 
 # 서버 취약점 공격 방어
 
-퍼블릭 IP 하나만 열려 있으면 공격은 자동으로 들어온다. AWS나 GCP에 인스턴스를 띄우고 10분 정도만 놔둬도 SSH 22번 포트로 초당 수십 건의 브루트포스 시도가 쌓이기 시작한다. 봇넷이 IP 대역을 통째로 스캔하면서 취약한 호스트를 찾고 있기 때문이다. 서버 취약점 공격은 대부분 특정 회사를 노린 것이 아니라 자동화된 대량 공격이다. 방어도 자동화된 기본기가 잘 깔려 있어야 막힌다.
+퍼블릭 IP 하나만 열려 있으면 공격은 자동으로 들어온다. AWS나 GCP에 인스턴스를 띄우고 10분만 놔둬도 SSH 22번 포트로 초당 수십 건의 브루트포스가 쌓인다. 봇넷이 IP 대역을 통째로 스캔하면서 취약한 호스트를 찾기 때문이다. 대부분은 특정 회사를 노린 자동화된 대량 공격이라서 방어도 자동화된 기본기가 깔려 있어야 막힌다.
 
-이 문서는 웹 애플리케이션 레벨(XSS, SQL Injection)이나 컨테이너 레벨이 아니라, 서버 인프라 자체에 대한 공격과 방어를 다룬다. OS, 네트워크, 프로세스, 로그 레벨에서의 하드닝이 주제다.
+이 문서는 웹 애플리케이션 레벨(XSS, SQL Injection)이나 컨테이너가 아니라 서버 인프라 자체의 공격과 방어를 다룬다. OS, 네트워크, 프로세스, 로그 레벨의 하드닝이 주제다.
 
 ---
 
@@ -16,11 +16,9 @@ updated: 2026-04-18
 
 ### 포트 스캔
 
-포트 스캔은 공격의 출발점이다. `nmap`이나 `masscan` 같은 툴로 서버의 열린 포트를 조사해서 어떤 서비스가 돌아가는지 파악한다. 공격자는 포트 스캔 결과에서 오래된 MySQL 3306, Redis 6379, Elasticsearch 9200 같은 포트가 열려 있으면 바로 공격을 시도한다.
+`nmap`, `masscan`으로 열린 포트를 조사해서 3306, 6379, 9200처럼 인증 없이 열린 서비스를 찾는다. 스캔 자체는 막을 수 없으니 노출 포트를 줄이고 시도를 로깅한다.
 
-실제로 겪은 사례: 개발자가 디버깅하려고 Redis 포트를 임시로 0.0.0.0으로 열어뒀다가 다음 날 `flushall`로 전체 데이터가 날아가고 암호화폐 채굴기가 설치된 경우가 있다. Redis는 기본 인증이 없고, `config set dir /root/.ssh/ && config set dbfilename authorized_keys` 같은 명령으로 공격자 공개키를 authorized_keys에 써넣을 수 있다.
-
-포트 스캔 자체는 막을 수 없다. 대신 노출되는 포트를 최소화하고, 스캔 시도를 로깅해서 이상 징후를 탐지한다.
+사례: 디버깅하려고 Redis를 0.0.0.0으로 열어둔 다음 날 `flushall`로 데이터가 날아가고 채굴기가 설치돼 있었다. 인증 없는 Redis는 `config set dir /root/.ssh/`와 `config set dbfilename authorized_keys`로 공격자 공개키를 써넣을 수 있다.
 
 ```bash
 # 현재 열린 포트 확인
@@ -34,11 +32,11 @@ apt install psad
 # /etc/psad/psad.conf에서 DANGER_LEVEL과 EMAIL_ALERT 설정
 ```
 
-실무에서 포트 스캔에 대응할 때 가장 먼저 해야 할 일은 보안 그룹(AWS SG, GCP 방화벽 규칙)에서 화이트리스트 기반으로 인바운드를 제한하는 것이다. 호스트 내부의 iptables는 2차 방어선이다.
+1차 방어는 보안 그룹(AWS SG, GCP 방화벽 규칙)의 화이트리스트 인바운드고, 호스트 iptables는 2차 방어선이다.
 
 ### SSH 브루트포스
 
-SSH 22번 포트를 열어두면 즉시 `root/123456`, `admin/admin`, `ubuntu/ubuntu` 같은 사전 공격이 들어온다. `/var/log/auth.log`를 보면 초당 수십 건의 `Failed password` 로그가 쌓인다. 계정 잠금 정책이 없으면 언젠가는 뚫린다.
+22번을 열어두면 `root/123456`, `ubuntu/ubuntu` 같은 사전 공격이 바로 들어온다. `/var/log/auth.log`에 `Failed password`가 초당 수십 건 쌓이고, 계정 잠금 정책이 없으면 언젠가 뚫린다.
 
 ```bash
 # 브루트포스 시도 로그 확인
@@ -50,13 +48,11 @@ grep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -
 #   1893 45.227.255.4
 ```
 
-실제로 본 사례: 스테이징 서버가 약한 패스워드(`dev123`)를 사용하고 있었는데, 브루트포스로 뚫린 뒤 공격자가 AWS 자격증명 환경변수를 덤프해서 그 계정으로 EC2 인스턴스 100개를 채굴용으로 띄운 일이 있었다. AWS 청구서로 2,000달러 날아가고 끝났다. 브루트포스는 패스워드 인증을 아예 끄지 않는 한 계속 시도된다.
+사례: 스테이징 서버가 `dev123` 패스워드로 뚫렸고, 공격자가 환경변수의 AWS 자격증명으로 EC2 100대를 채굴용으로 띄워 청구서 2,000달러가 나왔다. 패스워드 인증을 끄지 않는 한 시도는 끝나지 않는다.
 
 ### DDoS와 SYN Flood
 
-DDoS는 여러 층위가 있다. L3/L4 볼륨 공격(대역폭 고갈)은 ISP나 클라우드 프로바이더 레벨에서 막아야 하고 서버 단에서는 대응이 불가능하다. 서버에서 막을 수 있는 건 L7 애플리케이션 계층 공격과 SYN flood 정도다.
-
-SYN flood는 TCP 3-way handshake를 악용한다. 공격자가 SYN만 보내고 ACK는 보내지 않으면, 서버는 half-open 연결을 유지하느라 메모리와 연결 테이블을 소모한다. 기본 설정으로는 수천 개의 SYN만으로도 정상 접속이 막힌다.
+L3/L4 볼륨 공격은 ISP나 클라우드 레벨에서 막아야 하고, 서버에서 막을 수 있는 건 L7 공격과 SYN flood 정도다. SYN flood는 SYN만 보내고 ACK를 보내지 않아 서버가 half-open 연결로 메모리와 연결 테이블을 쓰게 만든다. 기본 설정에서는 수천 개의 SYN만으로 정상 접속이 막힌다.
 
 ```bash
 # 현재 SYN_RECV 상태 연결 수 확인 — SYN flood 의심
@@ -67,11 +63,11 @@ cat /proc/sys/net/netfilter/nf_conntrack_count
 cat /proc/sys/net/netfilter/nf_conntrack_max
 ```
 
-실제로 겪은 사례: 이벤트 페이지가 트위터에서 화제가 된 직후 정상 트래픽인 줄 알았는데, Cloudflare 뒤에 있지 않은 API 서버가 SYN flood에 가까운 커넥션을 받아서 conntrack 테이블이 가득 차고 모든 신규 연결이 거부된 적이 있다. 커널 파라미터 조정으로 복구했다.
+사례: 이벤트 페이지가 화제가 된 직후 Cloudflare 뒤에 있지 않던 API 서버가 SYN flood에 가까운 연결을 받아 conntrack 테이블이 차고 신규 연결이 전부 거부됐다. 커널 파라미터 조정으로 복구했다.
 
 ### 서비스 배너 노출
 
-서비스가 버전 정보를 응답 헤더나 초기 배너에 그대로 노출하면, 공격자는 해당 버전의 알려진 CVE를 바로 찾아서 익스플로잇한다.
+응답 헤더나 초기 배너에 버전이 드러나면 공격자가 그 버전의 CVE를 바로 찾는다.
 
 ```bash
 # nginx 버전 노출 확인
@@ -83,13 +79,39 @@ nc example.com 22
 # SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.3  ← Ubuntu 18.04 쓰는 거 다 보임
 ```
 
-SSH_7.6p1은 CVE-2018-15473 같은 사용자 열거 취약점이 있다. 버전 정보만으로도 공격 벡터가 좁혀진다. nginx는 `server_tokens off;`로, SSH는 `DebianBanner no`나 배너 파일 수정으로 노출을 줄일 수 있지만, 근본적인 해결은 최신 버전 유지다.
+OpenSSH 7.6p1에는 CVE-2018-15473 사용자 열거 취약점이 있다. nginx는 `server_tokens off;`, SSH는 `DebianBanner no`로 노출을 줄이지만 근본 해결은 최신 버전 유지다.
 
 ### 알려진 CVE 익스플로잇
 
-공격자는 새로운 CVE가 공개되면 즉시 대량 스캔을 시작한다. 2021년 log4shell(CVE-2021-44228)이 터졌을 때 공개 24시간 안에 인터넷 전체가 스캔됐다. 패치되지 않은 서버는 거의 예외 없이 뚫렸다.
+새 CVE가 공개되면 대량 스캔이 바로 시작된다. log4shell(CVE-2021-44228)은 공개 24시간 안에 인터넷 전체가 스캔됐고 패치 안 된 서버는 거의 예외 없이 뚫렸다. 방어는 패치 속도와 페이로드 차단(WAF/IPS) 두 갈래다. 커널이나 시스템 라이브러리 패치는 재부팅이 필요해서 적용까지 며칠에서 몇 주 걸리고, 그 사이를 WAF/IPS가 메운다.
 
-CVE 익스플로잇은 두 가지 관점에서 막는다. 하나는 패치를 빠르게 적용하는 것이고, 다른 하나는 익스플로잇 페이로드가 서버에 도달하기 전에 차단하는 것이다(WAF/IPS). 패치만으로는 한계가 있다. 커널이나 시스템 라이브러리 패치는 재부팅이 필요하고, 운영 중인 서비스를 재부팅하려면 조율이 필요해서 실제 패치 적용까지 며칠에서 몇 주가 걸린다.
+---
+
+## 공격 단계별 흔적과 방어 장치
+
+공격은 정찰, 침투, 권한 상승, 지속성 확보, 외부 반출 순서로 진행된다. 각 단계는 서버에 서로 다른 흔적을 남기고, 이 문서의 방어 장치는 단계마다 막는 것과 보는 것이 갈린다. 점선은 해당 단계를 탐지하거나 차단하는 장치다.
+
+```mermaid
+flowchart LR
+    R["정찰"] --> I["침투"] --> P["권한 상승"] --> S["지속성 확보"] --> X["외부 반출"]
+    FW["보안 그룹, iptables, psad"] -.->|차단 탐지| R
+    F2B["fail2ban, SSH 하드닝, WAF, 패치"] -.->|차단| I
+    AUD["auditd privilege_escalation 룰"] -.->|탐지| P
+    FIM["Wazuh FIM, rkhunter, auditd 감시 룰"] -.->|탐지| S
+    EGR["아웃바운드 제한, Suricata, conntrack"] -.->|차단 탐지| X
+```
+
+| 단계 | MITRE ATT&CK 전술 | 서버에 남는 흔적 | 막거나 보는 장치 |
+|---|---|---|---|
+| 정찰 | Reconnaissance (TA0043) | 방화벽 DROP 로그, psad 알림, 404가 연달아 찍힌 nginx access.log | 보안 그룹 화이트리스트, iptables `recent`, psad |
+| 침투 | Initial Access (TA0001) | `auth.log`에서 `Failed password` 뒤에 나온 `Accepted`, 로그에 박힌 익스플로잇 페이로드 | fail2ban, `PasswordAuthentication no`, WAF, 패치 |
+| 쉘 실행 | Execution (TA0002) | 웹서버 프로세스의 자식으로 뜬 `sh`, `bash`, `curl`, `wget` | auditd `svc_exec` 룰, `ps auxf` 트리 |
+| 권한 상승 | Privilege Escalation (TA0004) | `sudo` 로그, `setuid` 호출, 새로 생긴 SUID 바이너리 | auditd `privilege_escalation` 룰, Wazuh FIM |
+| 지속성 확보 | Persistence (TA0003) | `authorized_keys` 변경, cron, systemd 유닛, 커널 모듈 | auditd `-w` 감시, Wazuh FIM, rkhunter |
+| 흔적 제거 | Defense Evasion (TA0005) | 로그 삭제, `history` 비움, `ps` 출력에서 사라진 프로세스 | 중앙 로그 전송, rkhunter, 오프라인 이미지 검사 |
+| 외부 반출 | Exfiltration (TA0010), Command and Control (TA0011) | 낯선 IP로 나가는 아웃바운드 연결, 대용량 전송 | 아웃바운드 제한, Suricata, `ss -tanp` |
+
+흔적 제거 단계는 5단계 순서 중 어디에나 끼어든다. 로그가 로컬에만 있으면 공격자가 가장 먼저 지우므로 중앙 서버 전송이 앞의 모든 단계를 받치는 전제가 된다.
 
 ---
 
@@ -97,7 +119,7 @@ CVE 익스플로잇은 두 가지 관점에서 막는다. 하나는 패치를 �
 
 ### iptables와 ufw
 
-iptables는 리눅스 커널의 netfilter 프레임워크를 제어하는 툴이다. 문법이 복잡해서 ufw(Uncomplicated Firewall) 같은 래퍼를 쓰는 경우가 많다. 내부 동작은 같다.
+iptables는 커널 netfilter를 제어하는 툴이고 ufw는 그 래퍼다. 내부 동작은 같다.
 
 ```bash
 # ufw 기본 정책 — 인바운드 차단, 아웃바운드 허용
@@ -118,9 +140,9 @@ ufw limit 22/tcp
 ufw enable
 ```
 
-`ufw limit`은 내부적으로 iptables의 `recent` 모듈을 써서, 30초 안에 6회 이상 같은 IP에서 접속 시도가 있으면 차단한다. 이것만으로도 단순 브루트포스의 상당수는 걸러진다. 다만 여러 IP에서 분산 공격이 들어오면 효과가 없다.
+`ufw limit`은 iptables `recent` 모듈로 30초 안에 같은 IP에서 6회 이상 접속하면 차단한다. 단순 브루트포스 대부분이 걸러지지만 여러 IP에 분산된 공격에는 소용없다.
 
-iptables 직접 사용 예시도 알아둬야 한다. 컨테이너 환경이나 스크립트로 룰을 자동화할 때 ufw보다 세밀한 제어가 필요하다.
+컨테이너 환경이나 스크립트로 룰을 자동화할 때는 ufw보다 세밀한 iptables를 직접 쓴다.
 
 ```bash
 # SYN flood 완화 — SYN 패킷 초당 1개로 제한, 버스트 3까지 허용
@@ -136,11 +158,11 @@ iptables -A INPUT -m recent --name portscan --rcheck --seconds 86400 -j DROP
 iptables -A INPUT -p tcp -m multiport --dports 23,25,135,139,445,1433,3306,3389 -m recent --name portscan --set -j DROP
 ```
 
-iptables 룰은 순서가 중요하다. 먼저 매칭된 룰이 적용되기 때문에, 특정 IP 허용 같은 세부 룰을 위에 두고, 전체 차단 룰은 아래에 둔다. 룰이 100개 넘어가면 nftables로 옮기는 것도 고려한다. nftables는 iptables의 후속으로, 룰 조회 성능이 훨씬 낫다.
+먼저 매칭된 룰이 적용되므로 특정 IP 허용 같은 세부 룰을 위에, 전체 차단 룰을 아래에 둔다. 룰이 100개를 넘으면 조회 성능이 나은 nftables로 옮긴다.
 
 ### 상태 추적(stateful) 방화벽
 
-conntrack은 커널이 연결 상태를 추적하는 모듈이다. 방화벽 룰에서 `ESTABLISHED,RELATED` 상태의 패킷을 허용하면, 이미 내부에서 시작한 연결의 응답 패킷은 별도 룰 없이 통과된다. 이걸 활용해서 아웃바운드만 시작 가능하게 만들 수 있다.
+conntrack은 커널의 연결 상태 추적 모듈이다. `ESTABLISHED,RELATED` 패킷을 허용하면 내부에서 시작한 연결의 응답이 별도 룰 없이 통과한다.
 
 ```bash
 # 응답 트래픽 허용
@@ -149,7 +171,7 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 # 이후 신규 인바운드는 명시적으로 허용된 포트만
 ```
 
-문제는 conntrack 테이블이 가득 차면 신규 연결이 모두 거부된다는 점이다. 트래픽 많은 서버는 기본값 65,536으로는 부족하다.
+conntrack 테이블이 차면 신규 연결이 모두 거부된다. 트래픽 많은 서버는 기본값 65,536으로 부족하다.
 
 ```bash
 # conntrack 테이블 크기 확인
@@ -166,11 +188,29 @@ echo "net.netfilter.nf_conntrack_max = 524288" >> /etc/sysctl.conf
 
 ## fail2ban
 
-fail2ban은 로그를 감시해서 공격 패턴이 보이면 iptables 룰로 해당 IP를 차단하는 툴이다. SSH 브루트포스뿐 아니라 nginx, postfix, vsftpd 등 로그가 있는 서비스라면 대부분 적용할 수 있다.
+fail2ban은 로그를 감시하다가 공격 패턴이 보이면 해당 IP를 iptables로 차단한다. SSH뿐 아니라 nginx, postfix, vsftpd처럼 로그가 남는 서비스면 대부분 붙는다.
 
 ### 기본 동작 원리
 
-fail2ban은 세 가지 요소로 동작한다. filter(로그 패턴 매칭), jail(어떤 로그를 감시하고 몇 번 매칭되면 어떻게 대응할지), action(어떤 조치를 취할지). 기본 action은 iptables에 DROP 룰을 추가하는 것이다.
+구성 요소는 filter(로그 패턴 매칭), jail(감시 대상과 임계치), action(조치) 셋이다. 기본 action은 iptables에 DROP 룰을 추가하는 것이다.
+
+```mermaid
+sequenceDiagram
+    participant A as 공격자
+    participant S as sshd
+    participant L as auth.log
+    participant F as fail2ban
+    participant I as iptables
+    A->>S: 로그인 시도 반복
+    S->>L: Failed password 기록
+    F->>L: filter 정규식으로 읽기
+    F->>F: jail 임계치 확인 (findtime 안에 maxretry 회)
+    F->>I: action 실행, DROP 룰 추가
+    A-xS: 이후 패킷 차단
+    F->>I: bantime 경과 후 룰 제거
+```
+
+fail2ban은 로그를 사후에 읽기 때문에 임계치에 닿기 전의 시도 몇 번은 막지 못한다. 도는 동안 로그 파싱 지연이 있어 초당 수백 건이 들어오는 분산 공격에는 반응이 늦다.
 
 ```ini
 # /etc/fail2ban/jail.d/sshd.conf
@@ -185,11 +225,11 @@ bantime = 3600      # 1시간 차단
 ignoreip = 127.0.0.1/8 203.0.113.0/24  # 사무실 IP는 제외
 ```
 
-`maxretry=3`, `findtime=600`이면 10분 안에 3번 실패한 IP를 차단한다는 뜻이다. `bantime=-1`로 설정하면 영구 차단이 된다.
+`maxretry=3`, `findtime=600`은 10분 안에 3번 실패한 IP를 차단한다는 설정이고, `bantime=-1`은 영구 차단이다.
 
 ### recidive jail — 반복 차단자
 
-fail2ban의 기본 jail은 일시적으로 차단한다. 차단 시간이 풀리면 같은 IP가 다시 공격을 시도하고, 다시 차단되는 사이클이 반복된다. recidive jail은 fail2ban 자체의 로그를 감시해서, 여러 번 차단된 IP를 더 오래 차단한다.
+기본 jail은 일시 차단이라 시간이 풀리면 같은 IP가 돌아와 차단과 재시도가 반복된다. recidive jail은 fail2ban 자신의 로그를 감시해서 여러 번 차단된 IP를 더 오래 막는다.
 
 ```ini
 # /etc/fail2ban/jail.d/recidive.conf
@@ -203,7 +243,7 @@ maxretry = 3        # 3번 차단된 IP는
 action = iptables-allports[name=recidive]
 ```
 
-실무에서 fail2ban을 운영하다 보면 차단된 IP가 수천 개까지 늘어난다. iptables 룰이 너무 많아지면 성능 저하가 생기므로, ipset을 활용하는 action을 쓰는 것이 좋다. ipset은 해시 기반이라서 룰이 10만 개여도 O(1)에 조회된다.
+차단 IP가 수천 개로 늘면 iptables 룰이 성능을 갉아먹는다. ipset action을 쓰면 해시 기반이라 룰이 10만 개여도 O(1)로 조회된다.
 
 ```bash
 # ipset 기반 action 사용 — fail2ban.conf
@@ -212,20 +252,20 @@ banaction = iptables-ipset-proto6-allports
 
 ### 오탐 이슈
 
-fail2ban을 운영하다 보면 오탐으로 정상 사용자가 차단되는 일이 생긴다. 가장 흔한 케이스는 회사 전체가 NAT 뒤에 있어서 같은 외부 IP로 나오는 경우다. 누군가 SSH 비밀번호를 몇 번 틀리면 회사 전체가 차단된다.
+가장 흔한 오탐은 회사 전체가 NAT 뒤에서 같은 외부 IP로 나오는 경우다. 누가 SSH 비밀번호를 몇 번 틀리면 회사 전체가 차단된다.
 
-대응 방법:
-
-- `ignoreip`에 회사 IP 대역 추가
-- maxretry를 서비스별로 조정 — 공개 서비스는 엄격하게, 내부용은 느슨하게
-- 차단 전 알림 단계 추가 — 첫 감지는 경고만, 두 번째부터 차단
-- 차단 해제 명령어를 팀에 공유 — `fail2ban-client set sshd unbanip 1.2.3.4`
+| 대응 | 내용 |
+|---|---|
+| `ignoreip` | 회사 IP 대역을 추가한다 |
+| `maxretry` 조정 | 공개 서비스는 엄격하게, 내부용은 느슨하게 |
+| 경고 단계 | 첫 감지는 알림만, 두 번째부터 차단한다 |
+| 해제 명령 공유 | `fail2ban-client set sshd unbanip 1.2.3.4` 를 팀이 알아둔다 |
 
 ---
 
 ## SSH 하드닝
 
-SSH 키 관리는 별도 문서에서 다루므로, 여기서는 서버 측 sshd 설정 하드닝에 집중한다.
+서버 측 sshd 설정만 다룬다. SSH 키 관리는 별도 문서에 있다.
 
 ### 핵심 sshd_config 설정
 
@@ -264,17 +304,17 @@ DebianBanner no
 
 ### Port 변경에 대한 오해
 
-SSH 포트를 22에서 2222로 바꾸는 것만으로 보안이 올라가지는 않는다. 이는 "security through obscurity"에 불과하고, `masscan`으로 전체 포트 스캔하면 금방 찾아진다. 다만 22번에 쏟아지는 무차별 브루트포스 로그는 줄어들어서, `auth.log`에서 의미 있는 공격 시도를 찾기 쉬워진다. 로그 노이즈를 줄이는 용도로는 유용하다.
+포트를 2222로 바꿔도 `masscan` 전체 포트 스캔에 금방 찾아진다. 보안이 올라가는 게 아니라 22번에 쏟아지던 무차별 로그가 줄어 `auth.log`에서 의미 있는 시도를 찾기 쉬워지는 효과다.
 
-더 중요한 것은 패스워드 인증을 완전히 비활성화하는 것이다. `PasswordAuthentication no`와 `ChallengeResponseAuthentication no`를 둘 다 설정해야 한다. 하나만 꺼두면 다른 쪽으로 우회될 수 있다.
+핵심은 패스워드 인증 차단이다. `PasswordAuthentication no`와 `ChallengeResponseAuthentication no`를 둘 다 설정한다. 하나만 끄면 다른 쪽으로 우회될 수 있다.
 
 ### PermitRootLogin
 
-`PermitRootLogin no`가 기본이지만, `prohibit-password`라는 옵션도 있다. 이건 키 기반 인증으로는 root 로그인을 허용하는 설정이다. 자동화 스크립트에서 root 접근이 필요한 경우에 쓰지만, 가급적 일반 사용자로 접속한 뒤 sudo로 전환하는 방식이 감사 로그 측면에서 낫다. 누가 root로 무엇을 했는지 추적하려면 root 직접 로그인은 꺼야 한다.
+OpenSSH 기본값은 `prohibit-password`다. 키 인증으로는 root 로그인을 허용하는 값이라, 설정을 비워둔 서버는 root 키 로그인이 열려 있다. 자동화 스크립트 때문에 쓰기도 하지만 일반 사용자로 접속해 sudo로 전환해야 누가 root로 무엇을 했는지 감사 로그에 남는다.
 
 ### 2FA 추가
 
-SSH에 TOTP 기반 2FA를 추가하려면 `libpam-google-authenticator`를 쓴다. 키 파일 유출 시 추가 방어선이 된다.
+TOTP 2FA는 `libpam-google-authenticator`로 붙인다. 키 파일이 유출돼도 추가 방어선이 된다.
 
 ```bash
 apt install libpam-google-authenticator
@@ -288,13 +328,13 @@ google-authenticator  # 사용자별로 실행, QR 코드로 앱에 등록
 # AuthenticationMethods publickey,keyboard-interactive
 ```
 
-`AuthenticationMethods publickey,keyboard-interactive`는 키 + OTP 둘 다 통과해야 접속 가능하다는 의미다. 하나만 뚫려서는 들어올 수 없다.
+`AuthenticationMethods publickey,keyboard-interactive`는 키와 OTP를 모두 통과해야 접속되는 설정이다. 한쪽만 뚫려서는 들어올 수 없다.
 
 ---
 
 ## sysctl 커널 파라미터 튜닝
 
-커널 레벨에서 네트워크 공격에 대한 방어선을 설정한다. `/etc/sysctl.conf`나 `/etc/sysctl.d/`에 파일을 만들어 반영한다.
+커널 레벨에서 네트워크 공격 방어선을 건다. `/etc/sysctl.conf`나 `/etc/sysctl.d/`에 파일을 만들어 반영한다.
 
 ### SYN flood 대응
 
@@ -312,7 +352,7 @@ net.ipv4.tcp_synack_retries = 2
 net.ipv4.tcp_tw_reuse = 1
 ```
 
-SYN cookies는 SYN flood 공격 시 커널이 상태를 저장하지 않고 쿠키를 응답으로 보내는 기법이다. 쿠키가 다시 돌아오면 그때 실제 연결을 만든다. 정상 환경에서는 기본 3-way handshake가 동작하고, SYN backlog가 가득 찼을 때만 쿠키 모드로 폴백한다.
+SYN cookies는 SYN backlog가 가득 찼을 때만 켜진다. 커널이 상태를 저장하지 않고 쿠키를 응답하며, 쿠키가 돌아오면 그때 실제 연결을 만든다. 평소에는 일반 3-way handshake가 동작한다.
 
 ### ICMP 관련
 
@@ -360,13 +400,13 @@ sysctl -p /etc/sysctl.d/99-hardening.conf
 sysctl net.ipv4.tcp_syncookies
 ```
 
-주의: `tcp_tw_recycle`은 커널 4.12부터 제거됐다. 오래된 가이드에서 이걸 추천하면 무시해야 한다. NAT 환경에서 문제를 일으킨다.
+`tcp_tw_recycle`은 커널 4.12에서 제거됐다. 오래된 문서가 권하면 무시한다. NAT 환경에서 연결이 끊기는 문제를 일으켰다.
 
 ---
 
 ## 불필요한 서비스 비활성화
 
-공격 표면을 줄이는 가장 확실한 방법은 쓰지 않는 서비스를 아예 없애는 것이다. Ubuntu 서버 기본 설치에도 `cups-browsed`, `avahi-daemon`, `snapd` 같은 데스크톱 용도 서비스가 켜져 있는 경우가 있다.
+쓰지 않는 서비스를 없애는 것이 공격 표면을 줄이는 가장 확실한 방법이다. Ubuntu 서버 기본 설치에도 `cups-browsed`, `avahi-daemon`, `snapd` 같은 데스크톱용 서비스가 켜져 있는 경우가 있다.
 
 ```bash
 # 현재 돌아가는 서비스 목록
@@ -381,15 +421,15 @@ systemctl disable --now avahi-daemon
 systemctl disable --now bluetooth
 ```
 
-리스닝 포트를 기준으로 점검하는 것이 확실하다. `ss -tlnp` 결과에서 의도하지 않은 포트가 열려 있다면 그 프로세스가 왜 돌아가는지 파악해야 한다. 설치할 때 의존성으로 딸려온 서비스일 수도 있고, 침해의 흔적일 수도 있다.
+`ss -tlnp`에서 의도하지 않은 포트가 보이면 그 프로세스가 왜 도는지 파악한다. 의존성으로 딸려온 서비스일 수도, 침해 흔적일 수도 있다.
 
-실제 사례: Elasticsearch를 설치하면서 x-pack이 기본으로 포함됐는데 9300번 transport 포트가 외부에 열려 있던 경우가 있다. HTTP는 9200에 인증 걸어뒀지만 transport 포트로 클러스터 조인이 시도됐다. 리스닝 포트 전수조사를 하지 않으면 발견하기 어렵다.
+사례: Elasticsearch 설치 때 x-pack이 기본 포함돼 9300 transport 포트가 외부에 열려 있었다. HTTP 9200에만 인증을 걸어둔 상태에서 transport 포트로 클러스터 조인이 시도됐다. 리스닝 포트를 전수조사하지 않으면 발견하기 어렵다.
 
 ---
 
 ## 자동 패키지 업데이트
 
-패치가 느려지는 이유의 대부분은 "언젠가 해야지"가 미뤄지기 때문이다. 보안 패치만이라도 자동 적용하면 CVE 노출 시간이 크게 줄어든다. Debian/Ubuntu 계열은 `unattended-upgrades`를 쓴다.
+패치가 느려지는 이유는 "언젠가 해야지"가 미뤄지기 때문이다. 보안 패치만이라도 자동 적용하면 CVE 노출 시간이 줄어든다. Debian/Ubuntu 계열은 `unattended-upgrades`를 쓴다.
 
 ```bash
 apt install unattended-upgrades
@@ -415,21 +455,19 @@ Unattended-Upgrade::Mail "ops@example.com";
 Unattended-Upgrade::MailReport "on-change";
 ```
 
-`Allowed-Origins`에서 security 저장소만 허용하면 보안 패치만 받는다. DB나 웹서버처럼 재시작하면 서비스 중단이 생기는 패키지는 블랙리스트에 넣고 수동으로 관리한다.
+`Allowed-Origins`에 security 저장소만 두면 보안 패치만 받는다. DB나 웹서버처럼 재시작 시 중단이 생기는 패키지는 블랙리스트에 넣고 수동으로 관리한다.
 
-주의할 점: 자동 재부팅은 저녁/새벽 시간에만 돌아가도록 설정하고, 클러스터 환경에서는 절대 모든 노드가 동시에 재부팅되지 않도록 노드마다 시간을 분산시켜야 한다. 실제로 Ansible로 동일한 unattended-upgrades 설정을 배포했다가 모든 노드가 새벽 4시에 동시 재부팅되면서 5분간 서비스가 내려간 적이 있다.
-
-RHEL/CentOS 계열은 `dnf-automatic`을 쓴다. 설정은 비슷한 개념이다.
+자동 재부팅은 새벽에만 돌리고, 클러스터는 노드마다 시간을 분산한다. Ansible로 같은 설정을 배포했다가 전 노드가 새벽 4시에 동시 재부팅돼 5분간 서비스가 내려간 적이 있다. RHEL/CentOS 계열은 `dnf-automatic`을 쓴다.
 
 ---
 
 ## 루트킷 탐지
 
-루트킷은 공격자가 침투한 뒤 장기적으로 숨어있기 위해 설치하는 악성 소프트웨어다. 커널 모듈 형태로 시스템 콜을 후킹해서 `ps`, `ls`, `netstat` 같은 명령에서 자기 프로세스와 파일을 숨긴다. 일반 모니터링으로는 탐지가 어렵다.
+루트킷은 침투 뒤 장기간 숨어있으려고 설치하는 악성 소프트웨어다. 커널 모듈로 시스템 콜을 후킹해서 `ps`, `ls`, `netstat` 출력에서 자기 프로세스와 파일을 지운다. 일반 모니터링으로는 보이지 않는다.
 
 ### rkhunter
 
-rkhunter는 알려진 루트킷의 시그니처와 시스템 파일 변조를 검사한다.
+알려진 루트킷 시그니처와 시스템 파일 변조를 검사한다.
 
 ```bash
 apt install rkhunter
@@ -446,7 +484,7 @@ rkhunter --check --skip-keypress
 
 ### chkrootkit
 
-chkrootkit은 rkhunter와 비슷하지만 검사 방식이 다르다. 두 툴을 같이 쓰면 상호 검증이 된다.
+rkhunter와 검사 방식이 달라서 같이 쓰면 상호 검증이 된다.
 
 ```bash
 apt install chkrootkit
@@ -455,15 +493,15 @@ chkrootkit -q    # quiet 모드, 문제 있는 것만 출력
 
 ### 오탐과 한계
 
-루트킷 탐지 툴은 오탐이 많다. rkhunter는 SSH 설정에서 `AllowRootLogin` 관련 경고를 계속 띄우거나, 정상적으로 설치된 패키지를 의심스러운 파일로 마킹하는 경우가 있다. 처음 도입할 때 한 번 전체 훑어보고 화이트리스트를 정리해야 운영 가능한 수준이 된다.
+오탐이 많다. 정상 설치된 패키지 파일을 의심 파일로 마킹하거나 SSH 설정 경고를 계속 띄운다. 처음 한 번 전체를 훑어 화이트리스트를 정리해야 운영 가능한 수준이 된다.
 
-그리고 루트킷 탐지는 사후 대응 성격이 강하다. 이미 침투가 일어난 뒤에 발견하는 것이다. 침투 자체를 막는 것이 훨씬 중요하다. 또한 커널 자체에 심어진 루트킷은 해당 커널로 부팅된 상태에서는 탐지하기 거의 불가능하다. 의심스러우면 라이브 USB로 부팅해서 오프라인 분석하거나, 이미지를 떠서 다른 시스템에서 검사해야 한다.
+사후 탐지 성격이 강해서 침투를 막는 것이 먼저다. 커널에 심은 루트킷은 그 커널로 부팅한 상태에서는 사실상 탐지가 안 된다. 의심되면 라이브 USB로 부팅해 오프라인 분석하거나 디스크 이미지를 다른 시스템에서 검사한다.
 
 ---
 
 ## auditd 로그 감사
 
-auditd는 리눅스 커널의 감사 서브시스템 프론트엔드다. 시스템 콜 레벨에서 누가 어떤 파일에 접근하고, 어떤 명령을 실행했는지 기록한다. 침해 사고 분석과 규제 대응(PCI-DSS, HIPAA)에서 핵심이 되는 도구다.
+auditd는 리눅스 커널 감사 서브시스템의 프론트엔드다. 시스템 콜 단위로 누가 어떤 파일에 접근하고 어떤 명령을 실행했는지 기록한다. 침해 분석과 규제 대응(PCI-DSS, HIPAA)의 핵심 도구다.
 
 ```bash
 apt install auditd
@@ -499,32 +537,94 @@ ausearch -k sshd
 ausearch -ua deploy | aureport -x
 
 # 특정 IP에서의 활동
-aureport --summary
+ausearch -hn 61.177.173.45 -i
+```
+
+### 공격자 행동을 잡는 룰
+
+위 `user_commands` 룰은 `auid!=unset` 조건 때문에 서비스 계정이 띄운 프로세스를 놓친다. 웹서버나 cron이 실행한 프로세스에는 로그인 세션이 없어서 `auid`가 unset이다. 웹쉘로 `bash`를 띄우는 공격이 정확히 이 경우라서 서비스 계정은 `euid`로 따로 잡아야 한다.
+
+| 공격자 행동 | 룰 키 | 정상 작업과 구분하는 법 |
+|---|---|---|
+| 새 사용자·그룹 생성 | `user_create`, `user_modify` | 배포 자동화(Ansible 등)의 실행 시각과 대조한다 |
+| 파일 권한·소유자 변경 | `perm_mod` | `chmod u+s`, `/tmp` 아래 `chmod +x`를 우선 본다 |
+| 서비스 계정의 쉘·도구 실행 | `svc_exec` | 부모가 웹서버인데 자식이 `sh`, `curl`, `nc`면 웹쉘이다 |
+| SSH 키·cron·systemd 등록 | `persist` | 이 경로는 평소 변경이 거의 없어서 한 건도 의심한다 |
+
+```bash
+# /etc/audit/rules.d/attacker.rules
+
+# 새 사용자·그룹 생성
+-w /usr/sbin/useradd -p x -k user_create
+-w /usr/sbin/adduser -p x -k user_create
+-w /usr/sbin/groupadd -p x -k user_create
+-w /usr/sbin/usermod -p x -k user_modify
+
+# 파일 권한·소유자 변경 (로그인한 사용자 기준)
+-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat,chown,fchown,fchownat,lchown -F auid>=1000 -F auid!=unset -k perm_mod
+
+# 웹서버 계정이 실행하는 모든 프로그램 — 쉘이 보이면 웹쉘 의심
+-a always,exit -F arch=b64 -S execve -F euid=www-data -k svc_exec
+
+# 지속성 확보 경로
+-w /root/.ssh/ -p wa -k persist
+-w /home/deploy/.ssh/ -p wa -k persist
+-w /etc/cron.d/ -p wa -k persist
+-w /etc/systemd/system/ -p wa -k persist
+```
+
+웹서버 계정이 `www-data`가 아니면 실제 계정명으로 바꾼다. `svc_exec` 결과는 자식 프로세스 이름으로 거른다.
+
+```bash
+ausearch -k svc_exec -i | grep -E 'exe=/(usr/)?bin/(ba|da)?sh|curl|wget|nc'
+```
+
+커널이 이벤트를 만들고 중앙 서버까지 가는 흐름은 아래와 같다. 로컬 `audit.log`에 쓰는 것과 밖으로 내보내는 것이 별개 경로라서, 공격자가 로컬 파일을 지워도 이미 나간 이벤트는 남는다.
+
+```mermaid
+sequenceDiagram
+    participant A as 웹쉘 프로세스
+    participant K as 커널 audit
+    participant D as auditd
+    participant L as audit.log
+    participant W as Wazuh 에이전트
+    participant M as Wazuh 매니저
+    A->>K: execve 호출 (euid www-data)
+    K->>K: 룰 매칭 (svc_exec)
+    K->>D: netlink 으로 레코드 전달
+    D->>L: SYSCALL, EXECVE, PROCTITLE 기록
+    W->>L: 새 줄 읽기
+    W->>M: 이벤트 전송
+    M-->>M: 룰 매칭 후 알림 생성
+    A->>L: 로컬 로그 삭제 시도
+    Note over W,M: 이미 전송된 이벤트는 매니저에 남는다
 ```
 
 ### 운영상 주의사항
 
-auditd는 로그 볼륨이 어마어마하다. `execve` 시스템 콜을 모두 기록하면 하루에 수 GB가 쌓이는 서버도 있다. 디스크 용량이 부족해지면 `-f 2` 옵션이 기본일 때 시스템이 panic 상태가 될 수 있다. 프로덕션에서는 `max_log_file_action = rotate`와 적절한 rotate 설정이 필수다.
+`execve`를 전부 기록하면 하루에 수 GB가 쌓이는 서버도 있다. 디스크가 찼을 때의 동작은 `auditd.conf`의 `disk_full_action`이 정한다. `halt`면 서버가 멈추고 `suspend`면 그 시점부터 감사가 끊긴다. `max_log_file_action = rotate`와 보존 설정은 필수다.
 
-그리고 auditd 로그는 로컬에만 남기면 공격자가 지울 수 있다. syslog나 Wazuh/Graylog 같은 중앙 로그 서버로 실시간 전송해야 의미가 있다. 침해 사고가 나면 가장 먼저 지우는 것이 로그다.
+로그를 로컬에만 두면 공격자가 지운다. 침해 사고에서 가장 먼저 지우는 것이 로그라서 syslog나 Wazuh/Graylog로 실시간 전송해야 의미가 있다.
 
 ---
 
 ## HIDS — OSSEC과 Wazuh
 
-HIDS(Host-based Intrusion Detection System)는 호스트 내부에서 로그, 파일 무결성, 프로세스를 모니터링하는 도구다. 네트워크 기반 IDS가 외부 트래픽을 감시하는 반면, HIDS는 호스트 내부 상태 변화를 본다.
+HIDS(Host-based Intrusion Detection System)는 호스트 내부의 로그, 파일 무결성, 프로세스를 감시한다. 네트워크 IDS가 외부 트래픽을 본다면 HIDS는 호스트 안의 상태 변화를 본다.
 
 ### OSSEC과 Wazuh 관계
 
-OSSEC은 오픈소스 HIDS의 원조격이다. Wazuh는 OSSEC에서 포크된 프로젝트로, ELK 스택과 통합된 대시보드와 더 활발한 커뮤니티를 갖고 있다. 현재 실무에서는 Wazuh 쪽이 더 많이 쓰인다.
+OSSEC은 오픈소스 HIDS의 원조고 Wazuh는 OSSEC에서 포크된 프로젝트다. ELK 스택과 통합된 대시보드와 활발한 커뮤니티가 있어서 요즘 실무에서는 Wazuh가 더 많이 쓰인다.
 
 ### Wazuh 주요 기능
 
-- **로그 분석**: 다양한 로그를 파싱해서 공격 시그니처 매칭
-- **파일 무결성 모니터링(FIM)**: `/etc`, `/bin` 등의 파일 해시를 주기적으로 계산해서 변조 탐지
-- **루트킷 탐지**: rkhunter와 비슷한 기능 내장
-- **취약한 패키지 탐지**: 설치된 패키지의 버전을 NVD와 비교
-- **MITRE ATT&CK 매핑**: 탐지된 이벤트를 ATT&CK 프레임워크에 매핑
+| 기능 | 동작 |
+|---|---|
+| 로그 분석 | 여러 로그를 파싱해서 공격 시그니처와 매칭 |
+| 파일 무결성 모니터링(FIM) | `/etc`, `/bin` 등의 파일 해시를 주기적으로 계산해 변조 탐지 |
+| 루트킷 탐지 | rkhunter와 비슷한 기능 내장 |
+| 취약한 패키지 탐지 | 설치된 패키지 버전을 NVD와 비교 |
+| MITRE ATT&CK 매핑 | 탐지 이벤트를 ATT&CK 전술·기법에 연결 |
 
 ```yaml
 # Wazuh 에이전트 설정 예시 — /var/ossec/etc/ossec.conf 일부
@@ -541,33 +641,34 @@ OSSEC은 오픈소스 HIDS의 원조격이다. Wazuh는 OSSEC에서 포크된 �
 
 ### 실무 배치 구조
 
-에이전트는 모든 서버에 설치하고, 매니저 서버(중앙)에서 이벤트를 수집한다. 매니저는 보통 전용 서버에 두고, Kibana 대시보드를 통해 보안팀이 모니터링한다. 규모가 커지면 매니저 클러스터링이 필요하다.
-
-에이전트 하나당 매니저 CPU를 약간씩 소모한다. 1,000대 이상의 대규모 환경에서는 에이전트가 보내는 이벤트를 필터링해서 중요한 것만 매니저로 보내도록 에이전트 설정을 최적화해야 한다. 모든 로그 라인을 다 올리면 매니저가 먼저 죽는다.
+에이전트는 모든 서버에 깔고 중앙 매니저가 이벤트를 모은다. 매니저는 전용 서버에 두고 보안팀이 Kibana 대시보드로 본다. 1,000대 이상이면 매니저 클러스터링이 필요하고, 에이전트 설정에서 중요한 이벤트만 올리도록 걸러야 한다. 모든 로그 라인을 올리면 매니저가 먼저 죽는다.
 
 ---
 
 ## 취약점 스캐너
 
-취약점 스캐너는 서버를 외부에서 스캔해서 알려진 CVE에 해당하는 서비스가 노출돼 있는지 점검하는 도구다. 주기적으로 돌려서 패치 누락이나 설정 오류를 찾는다.
+서버를 외부에서 스캔해 알려진 CVE에 해당하는 서비스가 노출돼 있는지 점검한다. 주기적으로 돌려 패치 누락과 설정 오류를 찾는다.
 
 ### Nessus vs OpenVAS
 
-- **Nessus**: Tenable의 상용 제품. Nessus Professional은 연 3,000달러 정도. 스캔 정확도와 리포트 품질이 업계 표준이다. 컴플라이언스 스캔(PCI-DSS, CIS 벤치마크) 템플릿이 잘 갖춰져 있다.
-- **OpenVAS (Greenbone)**: 오픈소스. NVT(Network Vulnerability Tests)라는 자체 플러그인을 쓴다. 탐지 범위는 Nessus보다 좁지만 무료라서 많이 쓰인다.
+| 항목 | Nessus | OpenVAS (Greenbone) |
+|---|---|---|
+| 라이선스 | Tenable 상용, Professional 연 3,000달러 정도 | 오픈소스 |
+| 탐지 | 정확도와 리포트 품질이 업계 표준 | 자체 플러그인 NVT를 쓰고 범위는 Nessus보다 좁다 |
+| 컴플라이언스 | PCI-DSS, CIS 벤치마크 템플릿이 잘 갖춰짐 | 제한적 |
 
 ### 스캔 유형
 
-- **외부 스캔**: 인터넷에서 보이는 관점으로 스캔. 방화벽, 노출 서비스, SSL 설정 점검
-- **인증 스캔(credentialed scan)**: 서버에 SSH나 WinRM으로 로그인해서 내부까지 점검. 설치된 패키지 버전, 설정 파일, 커널 버전 등 상세 정보 수집. 외부 스캔보다 정확도가 훨씬 높다.
+| 유형 | 관점 | 점검 내용 |
+|---|---|---|
+| 외부 스캔 | 인터넷에서 보이는 모습 | 방화벽, 노출 서비스, SSL 설정 |
+| 인증 스캔(credentialed scan) | SSH나 WinRM으로 로그인해 내부까지 | 패키지 버전, 설정 파일, 커널 버전. 외부 스캔보다 정확도가 훨씬 높다 |
 
 ### 오탐과 운영
 
-취약점 스캐너는 오탐이 흔하다. 예를 들어 Apache 2.4.41에 CVE-2021-XXXX가 있다고 뜨지만, 실제로는 Ubuntu가 백포트 패치를 적용해서 이미 수정된 경우가 있다. 배포판이 관리하는 패키지는 버전 문자열만 보면 취약해 보여도 내부적으로 패치된 경우가 많다.
+Apache 2.4.41에 CVE가 있다고 뜨지만 Ubuntu가 백포트 패치를 적용해서 이미 수정된 경우가 있다. 배포판 패키지는 버전 문자열만 보면 취약해 보여도 내부는 패치된 경우가 많다.
 
-스캔 결과는 그대로 받아들이지 말고, CVSS 점수와 실제 exploitability(이 서버가 실제로 공격자에게 노출되는가, 공격이 가능한가)를 고려해서 우선순위를 매겨야 한다. 모든 "high" 항목을 해결하려고 하다 보면 운영이 마비된다.
-
-스캔 부하에도 주의해야 한다. credentialed scan은 서버에 SSH로 접속해서 수백 개의 명령을 실행한다. 피크 타임에 돌리면 영향이 있을 수 있다. 저녁 시간대에 스케줄링하는 것이 일반적이다.
+스캔 결과는 CVSS 점수와 실제 exploitability(이 서버가 공격자에게 노출되는지)를 같이 보고 우선순위를 매긴다. 모든 high 항목을 잡으려 들면 운영이 마비된다. 인증 스캔은 서버에서 수백 개 명령을 실행하므로 피크 타임을 피해 저녁에 돌린다.
 
 ---
 
@@ -575,29 +676,29 @@ OSSEC은 오픈소스 HIDS의 원조격이다. Wazuh는 OSSEC에서 포크된 �
 
 ### 각 도구의 역할
 
-- **WAF (Web Application Firewall)**: L7 레이어, 주로 HTTP/HTTPS 트래픽을 검사. SQL injection, XSS, path traversal 같은 웹 공격 패턴을 차단한다. ModSecurity, Cloudflare WAF, AWS WAF가 대표적이다.
-- **IDS (Intrusion Detection System)**: 네트워크 또는 호스트 레벨에서 공격 시그니처를 탐지. 감지만 하고 차단은 하지 않는다. Snort, Suricata가 대표적 NIDS.
-- **IPS (Intrusion Prevention System)**: IDS + 차단 기능. 탐지된 공격을 실시간으로 드롭한다.
+| 도구 | 계층 | 동작 | 대표 제품 |
+|---|---|---|---|
+| WAF (Web Application Firewall) | L7 | HTTP/HTTPS에서 SQL injection, XSS, path traversal 패턴 차단 | ModSecurity, Cloudflare WAF, AWS WAF |
+| IDS (Intrusion Detection System) | 네트워크 또는 호스트 | 시그니처 탐지만 하고 차단은 안 함 | Snort, Suricata |
+| IPS (Intrusion Prevention System) | 네트워크 | IDS에 실시간 드롭 기능 추가 | Suricata IPS 모드 |
 
 ### 배치 전략
 
-전형적인 구조는 다음과 같다:
+계층마다 막는 대상이 다르다. CDN은 L3/L4 볼륨 공격, WAF는 L7 애플리케이션 공격, IDS/IPS는 광범위한 네트워크 공격을 맡고, HIDS는 호스트 내부 이상 행위를 본다.
 
+```mermaid
+flowchart LR
+    NET["인터넷"] --> CDN["CDN / DDoS 방어 (Cloudflare, AWS Shield)"]
+    CDN --> WAF["WAF (L7)"]
+    WAF --> LB["Load Balancer"]
+    LB --> IDS["IDS/IPS (L3-L7)"]
+    IDS --> APP["웹 서버 / API 서버"]
+    APP --> INT["내부망 (HIDS 설치)"]
 ```
-인터넷 
-  → CDN/DDoS 방어(Cloudflare, AWS Shield)
-  → WAF (L7)
-  → Load Balancer
-  → IDS/IPS (L3-L7)
-  → 웹 서버 / API 서버
-  → 내부망 (HIDS 설치)
-```
-
-각 계층마다 역할이 다르다. CDN은 L3/L4 볼륨 공격을 막고, WAF는 L7 애플리케이션 공격을 막고, IDS/IPS는 광범위한 네트워크 공격을 탐지하고, HIDS는 호스트 내부 이상 행위를 감시한다.
 
 ### ModSecurity — 오픈소스 WAF
 
-nginx나 Apache에 ModSecurity 모듈로 얹는다. OWASP Core Rule Set(CRS)을 적용하면 일반적인 웹 공격 패턴이 대부분 커버된다.
+nginx나 Apache에 모듈로 얹는다. OWASP Core Rule Set(CRS)을 적용하면 일반적인 웹 공격 패턴 대부분이 커버된다.
 
 ```nginx
 # nginx with ModSecurity
@@ -609,11 +710,11 @@ http {
 }
 ```
 
-ModSecurity CRS는 paranoia level 1~4가 있다. 1은 확실한 공격만 차단, 4는 의심만 돼도 차단한다. 프로덕션에서는 보통 1 또는 2에서 시작해서, 오탐을 화이트리스트로 정리하면서 수준을 높인다. 처음부터 paranoia 4를 켜면 정상 요청까지 막혀서 서비스가 망가진다.
+CRS에는 paranoia level 1~4가 있다. 1은 확실한 공격만 차단하고 4는 의심만 돼도 차단한다. 보통 1 또는 2에서 시작해 오탐을 화이트리스트로 정리하며 올린다. 처음부터 4를 켜면 정상 요청까지 막혀 서비스가 망가진다.
 
 ### Suricata — IDS/IPS
 
-Suricata는 멀티스레드 기반 오픈소스 NIDS/NIPS다. Snort 룰 포맷과 호환된다.
+멀티스레드 오픈소스 NIDS/NIPS고 Snort 룰 포맷과 호환된다.
 
 ```
 # /etc/suricata/suricata.yaml 일부
@@ -625,23 +726,23 @@ af-packet:
     defrag: yes
 ```
 
-룰셋은 Emerging Threats(ET Open)가 무료로 제공된다. 주간 업데이트를 받아서 최신 공격 시그니처에 대응한다. `suricata-update` 명령으로 자동화할 수 있다.
+룰셋은 Emerging Threats(ET Open)가 무료로 제공하고 `suricata-update`로 주간 갱신을 자동화한다.
 
 ### 오탐과 성능 저하
 
-WAF/IDS 도입 시 현실적인 이슈:
+| 이슈 | 내용 |
+|---|---|
+| 오탐 폭풍 | 처음 켜면 수천 건의 알림이 쏟아진다. 일주일 이상 로그를 보며 룰을 튜닝해야 하고, 이 기간 없이 바로 IPS 차단 모드로 돌리면 서비스 장애가 난다 |
+| 성능 저하 | L7 검사는 CPU를 많이 쓴다. ModSecurity를 켜면 응답 시간이 10~30% 늘 수 있다. Suricata도 10Gbps 이상에서는 튜닝이 필요하다 |
+| SSL 검사 | 암호화 트래픽은 검사할 수 없다. WAF 앞에서 SSL termination을 하거나 복호화를 지원하는 솔루션이 필요한데 비용과 복잡도가 올라간다 |
 
-- **오탐 폭풍**: 처음 켜면 수천 건의 알림이 쏟아진다. 진짜 공격과 정상 요청의 오탐을 구분하려면 일주일 이상 로그를 분석하면서 룰을 튜닝해야 한다. 이 기간 없이 바로 차단 모드(IPS)로 돌리면 서비스 장애가 난다.
-- **성능 저하**: L7 검사는 CPU를 많이 쓴다. ModSecurity를 켜면 응답 시간이 10~30% 늘어날 수 있다. Suricata도 10Gbps 이상 트래픽에서는 튜닝이 필요하다.
-- **SSL 검사의 딜레마**: 암호화된 트래픽은 WAF/IDS가 검사할 수 없다. SSL termination을 WAF 앞에서 하거나, TLS 트래픽 복호화를 지원하는 솔루션이 필요한데 비용과 복잡도가 올라간다.
-
-실무에서는 "detection only" 모드로 먼저 운영해서 오탐을 모두 정리한 뒤, 블로킹 모드로 전환하는 것이 일반적이다. 급한 환경에서는 차단 리스트를 상위 N개 공격 패턴만으로 좁히고 점진적으로 확대한다.
+"detection only" 모드로 먼저 운영해 오탐을 정리한 뒤 블로킹으로 전환한다. 급하면 차단 대상을 상위 N개 공격 패턴으로 좁히고 점진적으로 넓힌다.
 
 ---
 
 ## 침해 의심 시 초기 대응
 
-하드닝과 탐지를 잘 했어도 결국 뚫릴 수 있다. 의심 정황이 생겼을 때 초기 대응 절차를 정리해둔다.
+하드닝과 탐지를 잘 해도 결국 뚫릴 수 있다. 의심 정황이 생겼을 때 초기 대응 절차를 정리해둔다.
 
 ```mermaid
 flowchart TD
@@ -658,23 +759,101 @@ flowchart TD
     I -->|오탐| K[탐지 룰 튜닝]
 ```
 
-가장 중요한 두 가지:
+가장 중요한 두 가지가 있다.
 
-1. **즉시 재부팅하지 않는다**: 메모리에 있는 악성 프로세스와 네트워크 연결 정보가 다 날아간다. 포렌식 관점에서 치명적이다. 먼저 `ps auxf`, `netstat -anp`, `/proc/*/exe` 정보를 수집하고, 필요하면 `LiME` 같은 도구로 메모리를 덤프한다.
-2. **침해된 서버는 수리하지 않는다**: 루트킷이나 백도어가 어디에 심어졌는지 완벽히 추적하기 어렵다. 데이터만 건지고 서버는 새로 구축하는 것이 안전하다. 공격자가 남긴 SSH 키, cron 작업, systemd 유닛, 커널 모듈이 한두 개가 아닐 수 있다.
+1. **즉시 재부팅하지 않는다**: 메모리의 악성 프로세스와 네트워크 연결 정보가 다 날아간다.
+2. **침해된 서버는 수리하지 않는다**: 루트킷이나 백도어가 어디 심어졌는지 완벽히 추적하기 어렵다. 공격자가 남긴 SSH 키, cron 작업, systemd 유닛, 커널 모듈이 한두 개가 아닐 수 있어서 데이터만 건지고 새로 구축한다.
 
-그리고 해당 서버에서 접근 가능했던 자격증명(AWS 키, DB 패스워드, API 토큰)은 모두 폐기하고 재발급한다. 서버가 뚫린 시점에 공격자가 환경변수를 덤프했다고 가정해야 한다.
+해당 서버에서 접근 가능했던 자격증명(AWS 키, DB 패스워드, API 토큰)은 모두 폐기하고 재발급한다. 공격자가 환경변수를 덤프했다고 가정해야 한다.
+
+### 휘발성 순서로 수집하기
+
+증거는 사라지는 속도가 빠른 것부터 뜬다. 메모리, 네트워크 연결, 프로세스, 임시 파일시스템, 디스크, 원격 로그 순이다. LiME 모듈이 현재 커널(`uname -r`)에 맞게 미리 빌드돼 있으면 메모리 덤프를 맨 앞에 두고, 없으면 `ss`, `ps` 스냅샷으로 시작한다. 모듈을 사고 중에 빌드하면 컴파일 도구가 서버 상태를 바꾸고 시간도 잡아먹는다.
+
+```mermaid
+flowchart TD
+    S["침해 의심 서버 (재부팅 금지)"] --> Q{"LiME 모듈이 uname -r 과 맞게 준비됨"}
+    Q -->|있음| M["메모리 덤프"]
+    Q -->|없음| N["네트워크 연결 ss -tanpe"]
+    M --> N
+    N --> P["프로세스 ps auxwwf, /proc/PID/exe"]
+    P --> O["열린 파일 lsof, 삭제된 바이너리"]
+    O --> U["로그인 세션 w, last"]
+    U --> T["임시 파일 /tmp, /dev/shm"]
+    T --> D["디스크 이미지"]
+    D --> L["로그 auditd, auth.log, syslog"]
+    L --> X["상세 분석 Attacker_Tracing_and_Forensics"]
+```
+
+출력 위치는 침해 서버의 로컬 디스크가 아니라 외부 볼륨이나 네트워크 마운트로 잡는다. 로컬에 쓰면 증거를 덮어쓰고 공격자가 지울 수도 있다.
+
+```bash
+EV=/mnt/evidence/$(hostname)-$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p "$EV" && cd "$EV"
+
+date -u > time.txt; uptime >> time.txt
+w > sessions.txt; last -aiF | head -100 >> sessions.txt
+ss -tanpe > net_tcp.txt; ss -uanp > net_udp.txt
+ps auxwwf > ps_tree.txt
+
+# 디스크에서 지워졌는데 아직 도는 바이너리, /tmp·/dev/shm 에서 실행 중인 프로세스
+ls -l /proc/[0-9]*/exe 2>/dev/null | grep -E 'deleted|/tmp/|/dev/shm/' > suspicious_exe.txt
+
+# 의심 PID 를 잡았다면 바이너리가 지워졌어도 /proc 에서 그대로 복사된다
+PID=4182
+cp /proc/$PID/exe ./pid_${PID}.bin
+tr '\0' ' ' < /proc/$PID/cmdline > pid_${PID}_cmdline.txt
+tr '\0' '\n' < /proc/$PID/environ > pid_${PID}_environ.txt
+ls -l /proc/$PID/cwd > pid_${PID}_cwd.txt
+ls -l /proc/$PID/fd/ > pid_${PID}_fd.txt
+
+# 삭제된 파일을 잡고 있는 프로세스, 네트워크 소켓을 쥔 프로세스
+lsof -nP +L1 > lsof_deleted.txt
+lsof -nPi > lsof_net.txt
+
+# 메모리 덤프 — uname -r 에 맞춰 미리 빌드해 둔 LiME 모듈
+insmod /opt/forensics/lime-$(uname -r).ko "path=$EV/mem.lime format=lime"
+
+sha256sum * > SHA256SUMS
+```
+
+`lsof +L1`은 침해 서버가 아니어도 걸린다. 패키지 업그레이드 뒤 재시작하지 않은 데몬의 옛 바이너리가 `(deleted)`로 나온다. 이 목록에서 경로가 `/tmp`, `/dev/shm`이거나 패키지에 없는 이름만 추린다. `ps`와 `ss` 출력은 루트킷에 속을 수 있으니 `/proc/<PID>`를 직접 열어 대조한다. `LD_PRELOAD` 수준 후킹은 이 대조로 드러나지만 커널 모듈 루트킷은 `/proc` 조회까지 가린다.
+
+수집한 증거로 침입 경로와 공격자 IP를 좁히는 분석은 [공격자 추적과 포렌식](Attacker_Tracing_and_Forensics.md)에서 이어진다.
 
 ---
 
 ## 정리
 
-서버 공격 방어는 하나의 은탄환이 아니라 여러 계층의 방어선을 쌓는 것이다. 각 계층이 완벽하지 않아도, 여러 계층이 겹쳐 있으면 공격자가 뚫기 어려워진다.
+서버 방어는 은탄환 하나가 아니라 여러 방어선을 겹치는 일이다. 한 계층이 뚫려도 다음 계층이 잡도록 네트워크, 애플리케이션, 커널로 나눠서 쌓는다. 화살표는 공격 트래픽이 지나는 순서다.
 
-- **네트워크 계층**: 클라우드 SG/방화벽 → 호스트 iptables → fail2ban
-- **서비스 계층**: 불필요한 서비스 제거 → 서비스별 하드닝 → SSH 2FA
-- **커널 계층**: sysctl 튜닝 → auditd → 최신 패치 유지
-- **탐지 계층**: 취약점 스캐너(예방) → HIDS/NIDS(실시간) → 루트킷 탐지(사후)
-- **대응 계층**: 로그 중앙 집중 → 침해 대응 절차 문서화 → 정기 훈련
+```mermaid
+flowchart TB
+    subgraph NET["네트워크 계층"]
+        N1["보안 그룹 / 클라우드 방화벽"] --> N2["iptables, ufw"] --> N3["fail2ban"]
+        N4["WAF, Suricata IDS/IPS"]
+    end
+    subgraph APP["애플리케이션 계층"]
+        A1["불필요한 서비스 제거"]
+        A2["sshd 하드닝, 2FA"]
+        A3["자동 보안 패치"]
+    end
+    subgraph KRN["커널 계층"]
+        K1["sysctl 튜닝"]
+        K2["auditd 감사"]
+        K3["rkhunter, Wazuh FIM"]
+    end
+    ATK["공격 트래픽"] --> NET
+    NET --> APP
+    APP --> KRN
+    KRN --> LOG["중앙 로그 서버 / Wazuh 매니저"]
+    LOG --> IR["침해 대응 절차"]
+```
 
-완벽한 하드닝을 한 번에 하려고 하면 실패한다. 가장 리스크가 큰 것부터(SSH 브루트포스, 공개된 관리 포트, 오래된 패키지) 하나씩 처리하고, 탐지 체계를 붙이고, 자동화로 확장하는 순서가 현실적이다.
+| 계층 | 예방 | 탐지 |
+|---|---|---|
+| 네트워크 | 보안 그룹, iptables, fail2ban | psad, Suricata |
+| 애플리케이션 | 서비스 제거, SSH 2FA, 패치 | 취약점 스캐너, WAF 로그 |
+| 커널 | sysctl | auditd, rkhunter(사후) |
+
+완벽한 하드닝을 한 번에 하려고 하면 실패한다. 리스크가 큰 것(SSH 브루트포스, 공개된 관리 포트, 오래된 패키지)부터 하나씩 처리하고, 탐지 체계를 붙이고, 자동화로 넓히는 순서가 현실적이다.
