@@ -1,7 +1,7 @@
 ---
 title: VPC Flow Logs
 tags: [aws, vpc, network, observability, security]
-updated: 2026-10-11
+updated: 2026-10-12
 ---
 
 # VPC Flow Logs
@@ -323,7 +323,7 @@ ACCEPT가 찍힌 `dstport`가 실제로 열려 있던 서비스고, REJECT만 �
 | 암호화 세션 안의 행위 | 알 수 없다 | 앱 로그, 종단 로그 |
 | Time Sync(169.254.169.123), DHCP, Windows 라이선스 활성화 | 기록되지 않는다 | 해당 없음 |
 
-SSRF 조사에서 가장 아픈 곳이 메타데이터 호출이다. 임시 자격증명을 빼가도 Flow Logs에는 흔적이 없고, 그 자격증명을 외부 IP에서 쓰는 순간이 CloudTrail의 `sourceIPAddress`에 남는다. 거기서 시작해 Flow Logs로 넘어온다. 전체 절차는 [공격자 추적과 포렌식](../../../Security/Attacker_Tracing_and_Forensics.md)에 있다.
+SSRF 조사에서 가장 아픈 곳이 메타데이터 호출이다. 임시 자격증명을 빼가도 Flow Logs에는 흔적이 없고, 그 자격증명을 외부 IP에서 쓰는 순간이 CloudTrail의 `sourceIPAddress`에 남는다. 거기서 시작해 Flow Logs로 넘어온다.
 
 ## Transit Gateway Flow Logs
 
@@ -363,7 +363,6 @@ Athena에서 `year/month/day` 조건을 빼면 한 쿼리에 수십 GB를 스캔
 
 ## 관련 문서
 
-- [공격자 추적과 포렌식](../../../Security/Attacker_Tracing_and_Forensics.md)
 - [보안 로깅과 감사](../../../Security/Security_Logging_and_Auditing.md)
 - [Security Groups vs NACLs](Security_Groups_vs_NACLs.md)
 - [Elastic Network Interface](Elastic_Network_Interface.md)

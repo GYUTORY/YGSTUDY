@@ -1,7 +1,7 @@
 ---
 title: 서버 취약점 공격 방어
 tags: [security, linux, network]
-updated: 2026-10-11
+updated: 2026-10-12
 ---
 
 # 서버 취약점 공격 방어
@@ -782,7 +782,7 @@ flowchart TD
     U --> T["임시 파일 /tmp, /dev/shm"]
     T --> D["디스크 이미지"]
     D --> L["로그 auditd, auth.log, syslog"]
-    L --> X["상세 분석 Attacker_Tracing_and_Forensics"]
+    L --> X["수집 증거로 침입 경로 분석"]
 ```
 
 출력 위치는 침해 서버의 로컬 디스크가 아니라 외부 볼륨이나 네트워크 마운트로 잡는다. 로컬에 쓰면 증거를 덮어쓰고 공격자가 지울 수도 있다.
@@ -818,8 +818,6 @@ sha256sum * > SHA256SUMS
 ```
 
 `lsof +L1`은 침해 서버가 아니어도 걸린다. 패키지 업그레이드 뒤 재시작하지 않은 데몬의 옛 바이너리가 `(deleted)`로 나온다. 이 목록에서 경로가 `/tmp`, `/dev/shm`이거나 패키지에 없는 이름만 추린다. `ps`와 `ss` 출력은 루트킷에 속을 수 있으니 `/proc/<PID>`를 직접 열어 대조한다. `LD_PRELOAD` 수준 후킹은 이 대조로 드러나지만 커널 모듈 루트킷은 `/proc` 조회까지 가린다.
-
-수집한 증거로 침입 경로와 공격자 IP를 좁히는 분석은 [공격자 추적과 포렌식](Attacker_Tracing_and_Forensics.md)에서 이어진다.
 
 ---
 
