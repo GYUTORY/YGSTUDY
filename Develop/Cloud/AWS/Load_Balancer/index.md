@@ -3,13 +3,14 @@ title: AWS · Load Balancer 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-12
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # AWS · Load Balancer 전체 보기
 
-문서 11개.
+문서 12개.
 
 ## 개요
 
@@ -23,5 +24,6 @@ hide:
 - [AWS Elastic Load Balancer (ELB)](ELB.md)
 - [AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영](LB.md)
 - [Gateway Load Balancer (GWLB) 심화](GWLB.md)
+- [NLB 헤어핀 - 타겟이 자기 NLB로 접속할 때](NLB_Hairpin.md)
 - [NLB(Network Load Balancer) 단독 운영](NLB.md)
 
