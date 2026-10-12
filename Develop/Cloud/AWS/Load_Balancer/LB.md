@@ -1,7 +1,7 @@
 ---
 title: AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
 tags: [aws, load-balancer, cloud]
-updated: 2026-05-20
+updated: 2026-10-12
 ---
 
 # AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
@@ -20,6 +20,26 @@ AWS가 부르는 공식 명칭은 ELB(Elastic Load Balancing)다. 그 아래에 
 | GWLB | Gateway Load Balancer | L3 | IP (방화벽·IDS 어플라이언스 체이닝 전용) |
 
 GWLB는 보안 어플라이언스를 투명하게 끼워 넣는 용도라 일반 서비스 트래픽에는 쓰지 않는다. 이 문서에서는 다루지 않는다.
+
+이어지는 절들의 판단을 한 장으로 줄인 흐름도다. 위에서부터 UDP, 고정 IP, TLS 패스스루, gRPC 순으로 NLB로 빠질 조건을 먼저 걸러내고, 남은 HTTP 계열 트래픽은 ALB로 모인다. CLB는 이 흐름 어디에서도 선택되지 않는다.
+
+```mermaid
+flowchart TD
+    Start["새 서비스의 로드 밸런서 선택"] --> Q1{"UDP를 쓰는가"}
+    Q1 -->|"예"| NLB1["NLB"]
+    Q1 -->|"아니오"| Q2{"클라이언트가 IP를 화이트리스트로 쓰는가"}
+    Q2 -->|"예"| Q2a{"L7 경로 라우팅도 필요한가"}
+    Q2a -->|"예"| Chain["NLB 뒤에 ALB 체이닝"]
+    Q2a -->|"아니오"| NLB2["NLB + Elastic IP"]
+    Q2 -->|"아니오"| Q3{"백엔드까지 TLS를 종료 없이 넘겨야 하는가"}
+    Q3 -->|"예"| NLB3["NLB TCP 리스너 패스스루"]
+    Q3 -->|"아니오"| Q4{"gRPC 또는 경로, 호스트 기반 라우팅이 필요한가"}
+    Q4 -->|"예"| ALB1["ALB"]
+    Q4 -->|"아니오"| Q5{"long-lived TCP 연결이 많은가"}
+    Q5 -->|"예"| NLB4["NLB"]
+    Q5 -->|"아니오"| ALB2["ALB"]
+    Legacy["기존 EC2-Classic 환경"] -.->|"마이그레이션 대상"| ALB2
+```
 
 ## 트래픽 패턴별 실제 선택
 
@@ -68,6 +88,25 @@ NLB 타겟 그룹은 `target_type`을 instance 또는 ip로 만들 수 있다. E
 
 ECS Fargate는 EC2 인스턴스가 없으므로 무조건 ip 타입이다. 그래서 Fargate 뒤에 NLB를 두면 클라이언트 IP가 NLB IP로 바뀌어서 도착한다. 이걸 모르고 Fargate 컨테이너 안에서 `request.remoteAddr`로 클라이언트 IP를 로깅하면 죄다 NLB IP만 찍힌다.
 
+오른쪽 끝 노드가 백엔드가 실제로 받는 값이다. instance 타겟만 원본이 그대로 오고, ip 타겟은 NLB 노드 IP로 바뀐다.
+
+```mermaid
+flowchart LR
+    C["클라이언트 203.0.113.7"] --> N["NLB"]
+    N --> I["instance 타겟"]
+    N --> P["ip 타겟"]
+    N --> PP["ip 타겟 + Proxy Protocol v2"]
+    I --> RI["src IP = 203.0.113.7 (원본 유지)"]
+    P --> RP["src IP = NLB 노드 IP (SNAT)"]
+    PP --> RPP["src IP = NLB 노드 IP, PROXY 헤더에 203.0.113.7 포함"]
+```
+
+Proxy Protocol v2는 패킷의 source를 되돌려주는 게 아니라 연결 첫 부분에 원본 주소를 별도 헤더로 실어 보내는 방식이다. 백엔드 소켓에서 보이는 peer 주소는 여전히 NLB IP이고, 애플리케이션이 헤더를 파싱해야 원본이 나온다.
+
+### 자기 NLB를 호출하는 헤어핀 함정
+
+client IP 보존이 켜진 상태(instance 타입 기본)에서는 한 가지가 더 있다. 타겟으로 등록된 서버가 같은 NLB의 DNS 이름으로 요청을 보내면, NLB가 그 요청을 해시로 타겟 중 하나에 넘긴다. 그 타겟이 요청을 보낸 서버 자신이면 source IP와 destination IP가 같은 패킷이 만들어지고, 이 연결은 응답 없이 멈춘다. 타겟이 여러 대면 일부 호출만 멈추기 때문에 "가끔 3초, 30초씩 걸리는" 증상으로 나타난다. 패킷 단위 원인, 재현, 해결 선택지는 [NLB 헤어핀](./NLB_Hairpin.md)에 따로 정리했다.
+
 ### Proxy Protocol v2로 우회
 
 이 경우 해법은 Proxy Protocol v2를 켜는 것이다. NLB 타겟 그룹 속성에서 `proxy_protocol_v2`를 true로 설정하면, 매 TCP 연결의 첫 패킷에 원본 클라이언트 IP·포트 정보가 박힌 헤더가 붙어서 백엔드로 간다. 백엔드 애플리케이션이 이 헤더를 파싱해야 한다 — nginx면 `proxy_protocol` 디렉티브, HAProxy면 `accept-proxy`, Node.js·Spring은 라이브러리를 따로 붙여야 한다.
@@ -84,29 +123,45 @@ Cross-Zone을 켜면 균등해지지만, AZ 간 데이터 전송 비용이 추�
 
 CLB에서 ALB로 옮길 때 단순히 새 LB를 만들고 Route 53 레코드만 바꿔주면 될 것 같지만, 실제로는 몇 가지가 다르게 동작해서 마이그레이션 직후 장애가 난다.
 
-### 헬스체크가 더 엄격해진다
+| 항목 | CLB | ALB | 마이그레이션 직후 증상 |
+|---|---|---|---|
+| HTTP 헬스체크 성공 기준 | 2xx, 3xx까지 healthy | 기본 200만 healthy | 헬스체크 경로가 302를 뱉던 백엔드가 전부 unhealthy로 떨어진다 |
+| 헬스체크 단위 | 인스턴스 | 타겟 그룹의 포트 | 한 인스턴스에서 두 포트를 띄우면 한쪽이 죽어도 다른 쪽은 계속 트래픽을 받는다 |
+| 스티키 세션 쿠키 | `AWSELB` | `AWSALB`, 추가로 `AWSALBAPP` 계열. 애플리케이션 쿠키 기반 스티키도 지원 | 브라우저에 `AWSELB`만 남아 있어 LB 쿠키에만 의존한 서비스는 로그인이 한 번씩 풀린다 |
+| 연결 정리 설정 이름 | Connection Draining, 기본 300초 | Deregistration Delay, 기본 300초 | 이름만 다르다. ALB는 HTTP 요청 단위, NLB는 TCP 연결 단위로 정리한다 |
+| Idle timeout 기본값 | 60초 | 60초 (NLB는 350초) | NLB에서 ALB로 옮기면 60초 넘게 조용한 연결이 끊긴다 |
 
-CLB의 HTTP 헬스체크는 기본값이 2xx, 3xx까지 healthy로 본다. ALB는 200만 healthy로 본다(기본값). 백엔드가 302 리다이렉트를 헬스체크 경로에서 뱉고 있었다면 CLB에서는 통과하던 게 ALB에서는 전부 unhealthy로 떨어진다. `matcher = "200-399"` 같이 명시적으로 늘려주거나, 백엔드의 헬스체크 핸들러를 200만 뱉도록 고쳐야 한다.
-
-또한 CLB는 인스턴스 단위로 헬스체크하지만 ALB는 타겟 그룹의 포트 단위로 한다. 같은 인스턴스에서 두 포트를 동시에 띄우고 있다면 한쪽이 죽어도 다른 쪽은 그대로 받는다.
-
-### 스티키 세션 쿠키 이름이 다르다
-
-CLB가 발급하는 세션 쿠키 이름은 `AWSELB`다. ALB는 `AWSALB`(또는 `AWSALBAPP`로 시작하는 추가 쿠키). 마이그레이션 직후에 사용자 브라우저에 `AWSELB`만 남아 있어서 세션이 끊긴 것처럼 보이는 일이 자주 있다. JSESSIONID 같은 애플리케이션 쿠키를 따로 쓰고 있었다면 큰 문제는 아니지만, LB 쿠키에만 의존했다면 한 번씩 로그인이 풀린다.
-
-추가로 ALB는 "application-based cookie"라는 모드를 지원한다 — 애플리케이션이 자기 쿠키를 발급하면 ALB가 그걸 보고 스티키를 유지한다. CLB에는 없던 기능이라 마이그레이션 전에 알 필요는 없지만, 이참에 적용하면 LB 종속을 줄일 수 있다.
-
-### Connection Draining → Deregistration Delay
-
-CLB에서는 "Connection Draining"이라고 부르고 ALB·NLB에서는 "Deregistration Delay"라고 부른다. 같은 기능인데 이름만 다르다. 기본값도 둘 다 300초로 동일하다. 단, ALB는 HTTP 요청 단위로 정리하고 NLB는 TCP 연결 단위로 정리해서 동작 시점이 다르다. 긴 polling이나 WebSocket을 쓰는 백엔드라면 ALB 쪽에서도 끊김이 발생한다.
-
-### Idle Timeout
-
-CLB의 idle timeout 기본값은 60초. ALB도 60초. NLB는 350초로 훨씬 길고, 변경할 수 없다(2024년부터 일부 변경 가능). WebSocket 연결이 50초마다 ping을 안 보내고 있다면 ALB나 CLB에서 끊긴다. 마이그레이션 자체와는 무관하지만 NLB→ALB로 옮길 때 갑자기 끊김이 보이기 시작하면 idle timeout부터 의심한다.
+헬스체크는 `matcher = "200-399"`로 범위를 늘리거나 백엔드 핸들러가 200만 뱉도록 고친다. 스티키는 JSESSIONID 같은 애플리케이션 쿠키를 따로 쓰고 있었다면 영향이 작다. 긴 polling이나 WebSocket을 쓰는 백엔드는 draining 중에도 끊김이 생기고, WebSocket은 50초 안쪽 간격으로 ping을 보내야 ALB와 CLB의 60초 idle timeout에 걸리지 않는다.
 
 ## LCU 비용 — 차원별로 누적되는 함정
 
 ALB와 NLB는 시간당 고정 요금과 별도로 LCU(Load Balancer Capacity Unit) 기반 사용량 요금이 붙는다. LCU는 4개 차원 중 가장 큰 값으로 정해진다 — 그래서 한 차원만 튀어도 비용이 같이 튄다.
+
+차원끼리 더하지 않고 최대값 하나만 청구된다는 점이 핵심이다. ALB는 룰 평가 차원이 하나 더 있어서 NLB보다 튈 수 있는 자리가 많다.
+
+```mermaid
+flowchart LR
+    subgraph ALBS["ALB"]
+        A1["신규 연결 LCU"]
+        A2["활성 연결 LCU"]
+        A3["처리 바이트 LCU"]
+        A4["룰 평가 LCU"]
+    end
+    subgraph NLBS["NLB"]
+        N1["신규 연결 LCU"]
+        N2["활성 연결 LCU"]
+        N3["처리 바이트 LCU"]
+    end
+    A1 --> AM["max 값 선택"]
+    A2 --> AM
+    A3 --> AM
+    A4 --> AM
+    N1 --> NM["max 값 선택"]
+    N2 --> NM
+    N3 --> NM
+    AM --> AC["시간당 LCU x 단가 = ALB 사용량 요금"]
+    NM --> NC["시간당 LCU x 단가 = NLB 사용량 요금"]
+```
 
 ### ALB의 4가지 LCU 차원
 
