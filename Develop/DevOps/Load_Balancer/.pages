@@ -4,6 +4,7 @@ nav:
   - HAProxy: HA_Proxy.md
   - Keepalived: Keepalived.md
   - Envoy: Envoy.md
+  - Envoy 필터 체인과 스레드 모델: Envoy_Filter_Chain_and_Threading.md
   - Traefik: Traefik.md
   - Traefik on Kubernetes: Traefik_Kubernetes.md
   - Nginx: Nginx.md
