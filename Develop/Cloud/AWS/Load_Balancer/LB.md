@@ -1,7 +1,7 @@
 ---
 title: AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
 tags: [aws, load-balancer, cloud]
-updated: 2026-10-12
+updated: 2026-10-14
 ---
 
 # AWS 로드 밸런서 — ALB / NLB / CLB 선택과 운영
@@ -42,6 +42,18 @@ flowchart TD
 ```
 
 ## 트래픽 패턴별 실제 선택
+
+먼저 표로 한눈에 보고, 근거가 필요한 항목만 아래 절에서 읽으면 된다.
+
+| 트래픽 패턴 | 선택 | 결정 이유 |
+|---|---|---|
+| HTTP API + 경로·호스트 라우팅 | ALB | 리스너 룰로 서비스별 분기 |
+| gRPC 백엔드 | ALB | gRPC 타겟 그룹과 gRPC 헬스체크 지원 |
+| UDP (게임, TURN, 미디어) | NLB | ALB는 UDP를 받지 않는다 |
+| 24시간 유지 TCP, 신규 연결 폭증 | NLB | 패킷 단위 처리, 활성 연결 LCU 단위가 큼 |
+| 클라이언트가 IP를 화이트리스트로 관리 | NLB (+ 필요하면 ALB 체이닝) | AZ별 Elastic IP |
+| TLS 종단까지 암호화 유지 (mTLS, PCI-DSS) | NLB TCP 리스너 | ALB는 항상 TLS를 종료한다 |
+| 레거시 EC2-Classic | CLB | 새로 만들지 않는다. 마이그레이션 대상 |
 
 ### HTTP API 서버 + 경로 라우팅 → ALB
 
@@ -115,9 +127,18 @@ Proxy Protocol을 켜는 것을 잊고 백엔드에서 일반 TCP로 받으면, 
 
 ### Cross-Zone과 묶이는 함정
 
-NLB는 기본적으로 Cross-Zone Load Balancing이 꺼져 있다. ALB는 기본 켜짐, NLB는 기본 꺼짐 — 이 차이를 자주 까먹는다. Cross-Zone이 꺼진 NLB에서 가용영역 A에는 인스턴스가 1개, B에는 4개가 있다면, A로 들어온 트래픽은 그 1개에 다 몰리고 B로 들어온 건 4개에 균등 분산된다. 클라이언트가 어느 AZ DNS로 붙느냐에 따라 부하가 완전히 비대칭해진다.
+ALB는 Cross-Zone이 기본 켜짐, NLB는 기본 꺼짐이다. 이 차이를 자주 까먹는다. 꺼진 상태에서는 각 AZ의 NLB 노드가 자기 AZ 안의 타겟에만 트래픽을 보낸다.
 
-Cross-Zone을 켜면 균등해지지만, AZ 간 데이터 전송 비용이 추가로 붙는다(GB당 약 $0.01). 트래픽이 큰 서비스에서는 켜고 끄고가 비용에 직결되니까 그래프 그려보고 결정한다.
+AZ A에 인스턴스 1개, AZ B에 4개이고 DNS가 트래픽을 AZ 둘에 50%씩 나눈다고 하면 이렇게 갈린다.
+
+| 구분 | AZ A 인스턴스 (1개) | AZ B 인스턴스 (각각, 4개) |
+|---|---|---|
+| Cross-Zone 꺼짐 | 50% | 12.5% |
+| Cross-Zone 켜짐 | 20% | 20% |
+
+꺼진 상태에서는 A의 인스턴스 하나가 B의 인스턴스보다 4배 많은 부하를 받는다.
+
+켜면 균등해지지만 AZ 간 데이터 전송 비용이 붙는다(GB당 약 $0.01). 트래픽이 큰 서비스에서는 이 비용이 직결되니 트래픽 그래프를 보고 정한다.
 
 ## CLB → ALB 마이그레이션 — 동작 차이
 
@@ -198,11 +219,30 @@ ALB 룰 평가가 비용을 잡아먹는 게 보이면 룰을 줄이고 백엔�
 
 ## 헬스체크 운영 — 자주 데이는 지점
 
-헬스체크 엔드포인트를 만들 때 DB 연결까지 확인하는 코드가 자주 들어간다. "DB가 안 되면 어차피 죽은 거니까"라는 논리인데, 이게 캐스케이드 장애를 만든다. DB가 잠깐 느려지면 모든 인스턴스의 헬스체크가 동시에 실패해서 ALB가 인스턴스를 전부 unhealthy로 처리한다. 그 순간 LB 뒤에 healthy 타겟이 0이 되고 503이 반환된다. DB는 곧 복구되는데 LB가 인스턴스를 다시 healthy로 올리는 데 2~3번의 성공이 필요하니까 그 시간 동안 추가 다운타임이 쌓인다.
+헬스체크 엔드포인트에 DB 연결 확인을 넣는 코드가 자주 보인다. "DB가 안 되면 어차피 죽은 거니까"라는 논리인데, 이게 캐스케이드 장애를 만든다.
 
-헬스체크 엔드포인트는 프로세스 자체가 살아있다는 것만 확인하는 게 안전하다. DB 접속이 깨지면 그건 readiness 프로브로 별도로 처리하거나, 서킷 브레이커로 응답을 5xx 대신 503에 적절한 retry-after를 붙여 돌려준다.
+```mermaid
+flowchart TD
+    A["DB가 잠깐 느려짐"] --> B["모든 인스턴스의 헬스체크가 동시에 실패"]
+    B --> C["LB가 인스턴스를 전부 unhealthy 처리"]
+    C --> D["healthy 타겟 0개, 503 반환"]
+    D --> E["DB는 곧 복구"]
+    E --> F["LB가 다시 healthy로 올리려면 연속 성공 2~3회 필요"]
+    F --> G["그 시간만큼 추가 다운타임"]
+```
 
-`Interval`은 30초, `Timeout`은 5초, `HealthyThreshold`는 2, `UnhealthyThreshold`는 3 정도가 무난한 시작점이다. Interval 10초 같이 짧게 잡으면 헬스체크가 만드는 트래픽 자체가 무시할 수 없는 부하가 된다. ALB 타겟 그룹에 인스턴스 50개가 있고 Interval 10초면 초당 5번 헬스체크가 들어간다.
+헬스체크는 프로세스가 살아 있다는 것만 확인한다. DB 접속 상태는 readiness 프로브로 따로 보거나, 서킷 브레이커로 5xx 대신 `Retry-After`가 붙은 503을 돌려준다.
+
+시작점으로 무난한 값은 아래와 같다.
+
+| 항목 | 값 | 비고 |
+|---|---|---|
+| Interval | 30초 | 10초처럼 짧게 잡으면 헬스체크 트래픽이 무시 못 할 부하가 된다 |
+| Timeout | 5초 | |
+| HealthyThreshold | 2 | |
+| UnhealthyThreshold | 3 | |
+
+타겟 50개에 Interval 10초면 초당 5번 헬스체크가 들어간다.
 
 ## Terraform으로 비교 — ALB와 NLB
 
@@ -375,13 +415,15 @@ resource "aws_lb_target_group_attachment" "alb_chain" {
 
 ## 운영 중에 자주 들여다보는 CloudWatch 지표
 
-ALB는 `HTTPCode_Target_5XX_Count`와 `HTTPCode_ELB_5XX_Count`를 분리해서 본다. 전자는 백엔드가 뱉은 5xx고, 후자는 ALB 자체가 만든 5xx다. 후자가 튀면 백엔드 코드를 봐도 답이 안 나온다 — 타겟 그룹에 healthy 타겟이 없거나, ALB가 백엔드와 연결 자체를 못 맺은 경우다. `TargetConnectionErrorCount`도 같이 본다.
-
-`TargetResponseTime`의 p99가 헬스체크 timeout보다 커지면 정상 응답인데도 LB가 끊을 위험이 생긴다.
-
-NLB는 `TCP_Client_Reset_Count`와 `TCP_Target_Reset_Count`를 본다. 백엔드 쪽에서 RST를 자주 보내면 keepalive 설정이나 idle timeout이 안 맞는다는 신호다.
-
-`UnHealthyHostCount`는 알람에 무조건 박아둔다. 1 이상이 5분 지속되면 즉시 알림이 가야 한다.
+| LB | 지표 | 읽는 법 |
+|---|---|---|
+| ALB | `HTTPCode_Target_5XX_Count` | 백엔드가 뱉은 5xx. 백엔드 코드를 본다 |
+| ALB | `HTTPCode_ELB_5XX_Count` | ALB 자체가 만든 5xx. healthy 타겟이 없거나 백엔드와 연결을 못 맺은 경우라 백엔드 코드를 봐도 답이 없다 |
+| ALB | `TargetConnectionErrorCount` | 위 ELB 5xx 원인을 좁힐 때 같이 본다 |
+| ALB | `TargetResponseTime` p99 | 헬스체크 timeout보다 커지면 정상 응답인데도 unhealthy로 끊길 수 있다 |
+| NLB | `TCP_Client_Reset_Count` | 클라이언트 쪽에서 보낸 RST |
+| NLB | `TCP_Target_Reset_Count` | 백엔드가 RST를 자주 보내면 keepalive나 idle timeout이 안 맞는다는 신호 |
+| 공통 | `UnHealthyHostCount` | 알람 필수. 1 이상이 5분 지속되면 즉시 알림 |
 
 ## 정리
 
