@@ -6,3 +6,4 @@ nav:
   - Connection Limit: Connection_Limit.md
   - 장애 주입 테스트: Chaos_Engineering.md
   - 헤지 요청 (꼬리 지연): Hedged_Requests.md
+  - 헤지 요청 설정 (gRPC · Envoy): Hedged_Requests_g_RPC_Envoy_Config.md
