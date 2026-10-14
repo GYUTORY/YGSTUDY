@@ -145,7 +145,7 @@
     J --&gt; K["프로세스 실행 계속"]
 
     style G fill:#f9d4d4,stroke:#c0392b
-    style L fill:#d4f9d4,stroke:#27ae60</code></pre> <p>스왑 아웃된 페이지에 다시 접근하면 <strong>페이지 폴트(Page Fault)</strong>가 발생하고, 스왑 인이 진행된다.</p> <pre data-search-exclude class=mermaid-diagram><code>flowchart TD
+    style L fill:#d4f9d4,stroke:#27ae60</code></pre> <p>스왑 아웃된 페이지에 다시 접근하면 **페이지 폴트(Page Fault)**가 발생하고, 스왑 인이 진행된다.</p> <pre data-search-exclude class=mermaid-diagram><code>flowchart TD
     L["프로세스가 스왑된\n페이지에 접근"] --&gt; M["페이지 폴트 발생\n(present 비트 = 0)"]
     M --&gt; N["OS가 스왑 공간에서\n해당 페이지 위치 확인"]
     N --&gt; O{"물리 메모리에\n빈 프레임 있는가?"}

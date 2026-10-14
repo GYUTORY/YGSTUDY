@@ -179,7 +179,7 @@
     T1 --&gt; NEW_E["새 e = d + T1"]
 
     style T1 fill:#fff3cd,stroke:#333
-    style T2 fill:#fff3cd,stroke:#333</code></pre> <p>각 라운드에서 8개 작업 변수(a~h)가 시프트되면서 갱신된다. 64라운드가 끝나면 초기값에 결과를 더해 다음 블록의 입력으로 사용한다.</p> <hr> <h2 id=sha-3-keccak-스펀지-구조>SHA-3 (Keccak) 스펀지 구조<a class=headerlink href=#sha-3-keccak-스펀지-구조 title="Permanent link">&para;</a></h2> <p>SHA-3는 SHA-2와 완전히 다른 내부 구조를 쓴다. Merkle-Damgård 구조 대신 <strong>스펀지 구조(Sponge Construction)</strong>를 사용한다.</p> <h3 id=스펀지-구조-동작>스펀지 구조 동작<a class=headerlink href=#스펀지-구조-동작 title="Permanent link">&para;</a></h3> <pre data-search-exclude class=mermaid-diagram><code>flowchart LR
+    style T2 fill:#fff3cd,stroke:#333</code></pre> <p>각 라운드에서 8개 작업 변수(a~h)가 시프트되면서 갱신된다. 64라운드가 끝나면 초기값에 결과를 더해 다음 블록의 입력으로 사용한다.</p> <hr> <h2 id=sha-3-keccak-스펀지-구조>SHA-3 (Keccak) 스펀지 구조<a class=headerlink href=#sha-3-keccak-스펀지-구조 title="Permanent link">&para;</a></h2> <p>SHA-3는 SHA-2와 완전히 다른 내부 구조를 쓴다. Merkle-Damgård 구조 대신 **스펀지 구조(Sponge Construction)**를 사용한다.</p> <h3 id=스펀지-구조-동작>스펀지 구조 동작<a class=headerlink href=#스펀지-구조-동작 title="Permanent link">&para;</a></h3> <pre data-search-exclude class=mermaid-diagram><code>flowchart LR
     subgraph "흡수 단계 (Absorbing)"
         P1["블록 1"] --&gt; XOR1["XOR → f"]
         XOR1 --&gt; P2["블록 2"] 
