@@ -1,20 +1,47 @@
 ---
 title: 고아 레코드
-tags: [database, microservices, devops, backend]
-updated: 2026-07-30
+tags: [database, rdbms, mysql, postgresql, microservices, backend]
+updated: 2026-10-15
 ---
 
 # 고아 레코드
 
 고아 레코드(Orphan Record)는 FK 컬럼이 가리키는 부모 레코드가 더 이상 존재하지 않는 자식 레코드를 말한다. `orders.user_id = 42`인데 `users` 테이블에 id=42가 없는 상태다.
 
-DB 레벨 FK가 걸려 있으면 이런 상태가 원천 차단된다. 문제는 FK가 없는 환경, MSA처럼 DB가 물리적으로 분리된 환경, 마이그레이션 중 제약을 비활성화한 경우다. 이 세 경우가 실무에서 고아 레코드가 쌓이는 주된 경로다.
+DB 레벨 FK가 걸려 있으면 이런 상태가 원천 차단된다. 문제는 FK가 없는 환경, MSA처럼 DB가 물리적으로 분리된 환경, 마이그레이션 중 제약을 비활성화한 경우, 부모만 소프트 딜리트하는 경우다. 이 네 경우가 실무에서 고아 레코드가 쌓이는 주된 경로다.
 
-`Referential_Integrity.md`는 FK 제약 자체를 어떻게 설정하는지를 다루고, `No_FK_Design.md`는 FK를 제거하는 판단과 그 대가를 다룬다. 이 문서는 이미 쌓인 고아 레코드를 어떻게 찾고 처리하는지에 집중한다.
+[참조 무결성](Referential_Integrity.md)은 FK 제약 자체를 어떻게 설정하는지를 다루고, [FK 없는 설계](No_FK_Design.md)는 FK를 제거하는 판단과 그 대가를 다룬다. 이 문서는 이미 쌓인 고아 레코드를 어떻게 찾고 처리하는지에 집중한다.
 
 ---
 
 ## 발생 경로
+
+네 경로는 부모가 사라지는 시점과 그때 자식을 막아 줄 장치가 있었는지에서 갈린다. 도식에서 굵은 테두리 노드가 부모가 사라지는 지점이다.
+
+```mermaid
+flowchart TD
+    subgraph P1["경로 1. FK 미적용"]
+        A1["users 42 존재, orders 에 user_id 42 가 쌓임"] --> A2["DBA 스크립트가 users 42 를 DELETE"]
+        A2 --> A3["DB 는 자식을 검사하지 않음, orders 42 잔존"]
+    end
+    subgraph P2["경로 2. MSA DB 분리"]
+        B1["user-service 가 탈퇴 처리를 커밋"] --> B2["user.withdrawn 이벤트 발행"]
+        B2 --> B3["컨슈머 다운 또는 예외 후 폐기"]
+        B3 --> B4["order-service DB 에 orders 42 잔존"]
+    end
+    subgraph P3["경로 3. 마이그레이션"]
+        C1["foreign_key_checks=0 으로 적재 시작"] --> C2["자식 테이블만 먼저 적재되고 부모 행이 누락"]
+        C2 --> C3["검사를 다시 켜도 기존 행은 재검증되지 않음"]
+    end
+    subgraph P4["경로 4. 소프트 딜리트"]
+        D1["users.deleted_at 기록, 행은 남음"] --> D2["orders 는 deleted_at NULL 로 그대로"]
+        D2 --> D3["조회 API 마다 처리가 갈림"]
+    end
+    classDef gone stroke-width:4px
+    class A2,B1,C2,D1 gone
+```
+
+경로 1과 4는 부모가 있던 DB 안에서 일어나고, 경로 2는 부모 삭제 커밋과 자식 정리 사이에 DB 경계가 있다. 경로 3은 부모가 사라진 것이 아니라 적재 시점에 이미 없었던 경우라, 삭제 이력을 뒤져도 원인이 나오지 않는다.
 
 ### FK 미적용
 
@@ -31,7 +58,7 @@ INSERT INTO orders (user_id, amount) VALUES (99, 5000);
 
 `user-service`와 `order-service`가 각각 별도 DB를 쓰는 구성에서는 cross-DB FK가 불가능하다. 의존 관계는 이벤트로만 관리하므로, 이벤트 처리 실패가 곧 고아 레코드 발생으로 이어진다.
 
-가장 흔한 패턴은 다음과 같다.
+가장 흔한 순서는 이렇다.
 
 1. 사용자가 탈퇴 처리됐다. `user-service`에서 `user.withdrawn` 이벤트를 발행한다.
 2. Kafka 컨슈머가 다운되거나, 메시지를 처리하다 예외가 났다.
@@ -83,26 +110,55 @@ ALTER TABLE orders VALIDATE CONSTRAINT fk_orders_user;
 SELECT o.id, o.user_id, o.created_at
 FROM orders o
 LEFT JOIN users u ON o.user_id = u.id
-WHERE u.id IS NULL
+WHERE o.user_id IS NOT NULL
+  AND u.id IS NULL
   AND o.deleted_at IS NULL;
 ```
 
 `u.id IS NULL`은 LEFT JOIN에서 매칭되는 부모가 없는 경우다. `o.deleted_at IS NULL`은 이미 논리 삭제된 자식은 탐지에서 제외하는 조건이다. 도메인에 따라 이 조건을 조정한다.
 
-규모가 수백만 건 이상이면 `NOT EXISTS`가 더 빠른 경우가 있다. 플랜을 보고 판단한다.
+`o.user_id IS NOT NULL`을 빼먹기 쉽다. FK 컬럼이 NULL인 행은 참조가 없다는 뜻이지 깨진 참조가 아니다. 비회원 주문이 `user_id NULL`로 들어오는 테이블에서 이 조건 없이 탐지하면 비회원 주문이 전부 고아로 잡히고, 같은 조건으로 삭제 배치를 돌리면 지워진다. 뒤에 나오는 배치 스캔, 삭제, 아카이빙 쿼리에도 같은 조건이 들어간다.
+
+### NOT IN, LEFT JOIN, NOT EXISTS 비교
+
+세 가지 모두 고아를 찾는 데 쓰이는데, 결과 건수와 실행 계획이 다르다. docker 컨테이너의 PostgreSQL 16과 MySQL 8.0.46에 같은 데이터를 만들어 `EXPLAIN`으로 확인했다. `users` 20만 건, `orders` 100만 건, `orders.user_id`에 보조 인덱스를 두고 고아 1,000건과 `user_id NULL` 500건을 심었다.
+
+| 쿼리 | PostgreSQL 16 | MySQL 8.0 |
+|---|---|---|
+| LEFT JOIN, `IS NOT NULL` 없음 | 1500 | 1500 |
+| LEFT JOIN, `IS NOT NULL` 있음 | 1000 | 1000 |
+| `NOT EXISTS` | 1500 | 1500 |
+| `NOT IN (SELECT id FROM users)` | 1000 | 1000 |
+
+고아는 1,000건인데 LEFT JOIN과 `NOT EXISTS`는 NULL 행 500건을 더해 1,500건을 돌려준다. `NOT IN`은 `NULL NOT IN (...)`이 UNKNOWN이라 NULL 행이 빠져서 1,000건이 맞게 나온다. 결과만 보면 `NOT IN`이 맞는 것처럼 보이지만, 이 방향은 `users.id`가 PK라서 서브쿼리에 NULL이 없기 때문이다. 방향을 뒤집어 자식이 없는 부모를 찾는 `users.id NOT IN (SELECT user_id FROM orders)`는 서브쿼리에 NULL이 한 건만 있어도 0건이 나온다. 3건짜리 임시 테이블로 PostgreSQL과 MySQL 양쪽에서 확인했다(서브쿼리에 NULL 포함 시 0건, `IS NOT NULL` 필터나 `NOT EXISTS`는 2건).
+
+실행 계획은 DB마다 달랐다.
+
+| | LEFT JOIN + `IS NOT NULL` | `NOT EXISTS` | `NOT IN` |
+|---|---|---|---|
+| PostgreSQL 16 | Parallel Hash Anti Join | 같은 Parallel Hash Anti Join | 병렬 없는 Seq Scan + `hashed SubPlan` |
+| 소요 시간(4회) | 1.39~1.70초 | 1.50~2.02초 | 2.59~3.70초 |
+| MySQL 8.0 | Nested loop antijoin, `users` PK 단건 조회 | Nested loop antijoin, `users`를 임시 테이블로 materialize 후 조회 | `in_optimizer` 필터 + materialize 한 서브쿼리 |
+| 소요 시간(3회) | 2.97~3.13초 | 4.99~5.52초 | 4.40~4.86초 |
+
+MySQL 시간은 컨테이너 안 클라이언트 왕복을 포함한 벽시계 시간이고, PostgreSQL은 `\timing` 값이다. 두 DB의 시간을 서로 비교하는 용도가 아니라 같은 DB 안에서 쿼리 간 순서를 보는 값이다. 데이터가 전부 버퍼에 올라 있는 상태에서 잰 것이라 디스크를 타면 달라진다.
+
+PostgreSQL에서 LEFT JOIN과 `NOT EXISTS`는 플랜이 같고 시간도 겹친다. MySQL에서는 LEFT JOIN이 가장 빨랐고 `NOT EXISTS`가 가장 느렸다. "대용량에서는 `NOT EXISTS`가 낫다"는 말은 이 데이터에서는 어느 쪽에서도 성립하지 않았다. 쿼리를 바꿔 보기 전에 자기 환경에서 `EXPLAIN`부터 확인해야 한다.
+
+`NOT IN`은 느린 것보다 `work_mem`에 걸리는 점이 문제다. 컨테이너 기본 설정에서는 `hashed SubPlan`으로 풀렸지만 `work_mem`을 2MB로 낮추면 해시가 빠지고 `Materialize`를 낀 일반 SubPlan이 남는다. `orders`를 `id <= 500`으로 줄인 슬라이스가 `NOT IN`은 16.2초, `NOT EXISTS`는 1.9ms였다. `id <= 20000` 슬라이스는 `NOT IN`이 `statement_timeout` 30초에 취소됐고 `NOT EXISTS`는 Hash Anti Join(Batches 4, 임시 파일 사용)으로 407ms에 끝났다. 서브쿼리 크기가 `work_mem`을 넘는 순간 시간이 수천 배로 뛰는 쿼리라서 탐지 배치에 넣지 않는다.
 
 ```sql
--- NOT EXISTS 패턴: 대용량에서 LEFT JOIN보다 빠를 수 있다
+-- 기본으로 쓰는 탐지 쿼리
 SELECT o.id, o.user_id, o.created_at
 FROM orders o
-WHERE NOT EXISTS (
-  SELECT 1 FROM users u WHERE u.id = o.user_id
-)
-AND o.deleted_at IS NULL
+LEFT JOIN users u ON u.id = o.user_id
+WHERE o.user_id IS NOT NULL
+  AND u.id IS NULL
+  AND o.deleted_at IS NULL
 LIMIT 1000;
 ```
 
-`LIMIT`을 붙이는 건 전체 스캔 비용을 먼저 확인하기 위해서다. 처음 실행할 때 전체 카운트를 바로 돌리면 수천만 건 테이블에서 수 분이 걸릴 수 있다.
+`LIMIT`은 처음 돌릴 때 결과를 눈으로 확인하려고 붙인다. 전체 카운트부터 돌리면 수천만 건 테이블에서 수 분이 걸릴 수 있다.
 
 ### 소프트 딜리트 부모 탐지
 
@@ -113,7 +169,7 @@ LIMIT 1000;
 SELECT o.id, o.user_id, o.created_at, 'physically_deleted' AS orphan_type
 FROM orders o
 LEFT JOIN users u ON o.user_id = u.id
-WHERE u.id IS NULL AND o.deleted_at IS NULL;
+WHERE o.user_id IS NOT NULL AND u.id IS NULL AND o.deleted_at IS NULL;
 
 -- 2. 논리 삭제된 사용자를 참조하는 주문 (users 테이블에 있지만 deleted_at 있음)
 SELECT o.id, o.user_id, o.created_at, 'soft_deleted' AS orphan_type
@@ -134,12 +190,15 @@ SELECT o.id, o.user_id
 FROM orders o
 LEFT JOIN users u ON o.user_id = u.id
 WHERE o.id BETWEEN 1 AND 100000
+  AND o.user_id IS NOT NULL
   AND u.id IS NULL
   AND o.deleted_at IS NULL;
 
 -- 다음 배치
 -- BETWEEN 100001 AND 200000 ...
 ```
+
+앞의 100만 건 테이블에서 PostgreSQL 계획을 보면, id 범위는 PK Index Scan으로 줄지만 `users` 20만 건은 배치마다 전체를 읽어 해시를 다시 만든다(`Parallel Hash`, 버퍼 1082개). 범위 100,000건짜리 배치 한 번이 788ms였다. 전체를 한 번에 돌린 1.4~1.7초와 비교하면 배치를 잘게 쪼갤수록 부모 테이블 해시 비용이 배치 수만큼 반복된다. 부하를 나누는 대신 총 시간은 늘어난다.
 
 애플리케이션에서 루프를 돌리는 형태로 만들면 처리 속도와 DB 부하를 조절할 수 있다.
 
@@ -161,6 +220,7 @@ async function scanOrphanedOrders(batchSize: number = 100000): Promise<number[]>
       `SELECT o.id FROM orders o
        LEFT JOIN users u ON o.user_id = u.id
        WHERE o.id BETWEEN ? AND ?
+         AND o.user_id IS NOT NULL
          AND u.id IS NULL
          AND o.deleted_at IS NULL`,
       [start, end],
@@ -200,6 +260,23 @@ async function findOrphanedOrdersInMsa(): Promise<Order[]> {
 
 ## 정리 방법
 
+탐지에서 정리까지는 한 방향으로 흐른다. 건수가 예상 범위를 벗어나면 삭제로 넘어가지 않고 탐지 조건부터 되짚는다. 도식의 마지막 두 노드가 재발 방지이고, 이 단계를 건너뛰면 몇 주 뒤에 같은 건수가 다시 쌓인다.
+
+```mermaid
+flowchart TD
+    D["LEFT JOIN 탐지, user_id IS NOT NULL 포함"] --> C{"건수가 예상 범위인가"}
+    C -->|"아니오"| R["탐지 조건과 데이터 원천 점검"]
+    R --> D
+    C -->|"예"| K{"부모를 복원할 수 있는가"}
+    K -->|"예"| RE["부모 복원 또는 보상 이벤트 재발행"]
+    K -->|"아니오"| A["격리 아카이빙, orders_orphan_archive 로 이동"]
+    A --> B["배치 삭제, 500~1000건씩 간격을 두고"]
+    B --> V["남은 고아 0건 재확인"]
+    V --> F["재발 방지, FK 추가 또는 아웃박스"]
+    F --> S["주기 탐지 배치와 알림"]
+    RE --> V
+```
+
 ### 배치 삭제
 
 고아 레코드를 확인하고 정리 대상임을 확정했으면, 한 번에 전부 삭제하지 않는다. 대량 삭제는 InnoDB 언두 로그를 폭발시키고 락 경합을 만든다.
@@ -211,7 +288,7 @@ WHERE id IN (
   SELECT o.id FROM (
     SELECT o.id FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
-    WHERE u.id IS NULL AND o.deleted_at IS NULL
+    WHERE o.user_id IS NOT NULL AND u.id IS NULL AND o.deleted_at IS NULL
     LIMIT 1000
   ) AS sub
 );
@@ -233,7 +310,7 @@ async cleanOrphanedOrders(): Promise<void> {
         SELECT id FROM (
           SELECT o.id FROM orders o
           LEFT JOIN users u ON o.user_id = u.id
-          WHERE u.id IS NULL AND o.deleted_at IS NULL
+          WHERE o.user_id IS NOT NULL AND u.id IS NULL AND o.deleted_at IS NULL
           LIMIT 500
         ) AS sub
       )
@@ -257,7 +334,7 @@ async cleanOrphanedOrders(): Promise<void> {
 -- 삭제 전 카운트 확인
 SELECT COUNT(*) FROM orders o
 LEFT JOIN users u ON o.user_id = u.id
-WHERE u.id IS NULL AND o.deleted_at IS NULL;
+WHERE o.user_id IS NOT NULL AND u.id IS NULL AND o.deleted_at IS NULL;
 ```
 
 ### 아카이빙
@@ -270,7 +347,7 @@ INSERT INTO orders_archive (id, user_id, amount, created_at, archived_at, archiv
 SELECT o.id, o.user_id, o.amount, o.created_at, NOW(), 'orphaned_user'
 FROM orders o
 LEFT JOIN users u ON o.user_id = u.id
-WHERE u.id IS NULL AND o.deleted_at IS NULL;
+WHERE o.user_id IS NOT NULL AND u.id IS NULL AND o.deleted_at IS NULL;
 
 -- 아카이브 후 원본 삭제
 DELETE FROM orders
@@ -280,6 +357,85 @@ WHERE id IN (SELECT id FROM orders_archive WHERE archive_reason = 'orphaned_user
 아카이브 테이블 구조는 원본과 동일하되 `archived_at`, `archive_reason` 컬럼을 추가하는 게 일반적이다. 나중에 왜 아카이빙됐는지 추적할 수 있어야 한다.
 
 아카이빙 후에도 조회가 빈번하다면 아카이브 테이블에도 인덱스를 걸어야 한다. 조회가 거의 없다면 파티셔닝이나 별도 스토리지(S3 + Parquet 등)를 고려한다.
+
+### FK를 나중에 붙이기 전의 정리 순서
+
+같은 DB 안에서 FK 없이 굴러온 테이블에 FK를 붙이려면 고아가 0건이어야 한다. 순서는 아카이브로 옮기고, 지우고, 한 번 더 조회한 뒤, 제약을 거는 것이다. 제약을 거는 방식과 락 영향은 [운영 중인 테이블에 FK 추가](Referential_Integrity.md#운영-중인-테이블에-fk-추가)에 있어서 여기서는 반복하지 않는다. DB별 절차는 [PostgreSQL의 NOT VALID 후 VALIDATE](Referential_Integrity.md#postgresql의-not-valid-후-validate)와 [MySQL Online DDL 제약과 foreign_key_checks=0](Referential_Integrity.md#mysql-online-ddl-제약과-foreign_key_checks0)을 따른다.
+
+```mermaid
+flowchart LR
+    Q["고아 조회"] --> AR["아카이브로 이동"]
+    AR --> DEL["원본에서 삭제"]
+    DEL --> RQ["고아 조회 재실행"]
+    RQ -->|"0건"| DB{"DB"}
+    RQ -->|"남음"| AR
+    DB -->|"PostgreSQL"| NV["ADD CONSTRAINT NOT VALID"]
+    NV --> VA["VALIDATE CONSTRAINT"]
+    DB -->|"MySQL"| FK["foreign_key_checks=0 으로 FK 추가"]
+    FK --> RQ2["추가 직후 고아 조회"]
+```
+
+아카이브와 삭제는 한 문장 또는 한 트랜잭션으로 묶어야 한다. 따로 돌리면 INSERT와 DELETE 사이에 부모가 복원되거나 다른 배치가 같은 행을 건드릴 수 있다. PostgreSQL은 `DELETE ... RETURNING`을 CTE로 받아 아카이브에 넣는다.
+
+```sql
+CREATE TABLE orders_orphan_archive (
+  LIKE orders,
+  archived_at    timestamptz NOT NULL DEFAULT now(),
+  archive_reason text NOT NULL
+);
+
+-- 한 배치. 0건이 나올 때까지 반복한다
+WITH moved AS (
+  DELETE FROM orders
+  WHERE id IN (
+    SELECT o.id FROM orders o
+    LEFT JOIN users u ON u.id = o.user_id
+    WHERE o.user_id IS NOT NULL AND u.id IS NULL
+    ORDER BY o.id
+    LIMIT 400
+  )
+  RETURNING id, user_id, amount, deleted_at
+)
+INSERT INTO orders_orphan_archive (id, user_id, amount, deleted_at, archive_reason)
+SELECT id, user_id, amount, deleted_at, 'orphaned_user' FROM moved;
+
+SET lock_timeout = '3s';
+ALTER TABLE orders ADD CONSTRAINT fk_orders_user
+  FOREIGN KEY (user_id) REFERENCES users (id) NOT VALID;
+RESET lock_timeout;
+
+ALTER TABLE orders VALIDATE CONSTRAINT fk_orders_user;
+```
+
+위 순서를 `orders` 100만 건, 고아 1,000건, NULL 500건인 테이블에서 PostgreSQL 16으로 돌렸다. 배치 3번(400, 400, 200)으로 1,000건이 아카이브로 옮겨졌고 NULL 행 500건은 `orders`에 그대로 남았다. `VALIDATE` 뒤 `pg_constraint.convalidated`가 `t`였다.
+
+MySQL은 `DELETE ... RETURNING`이 없으므로 트랜잭션 안에서 INSERT 후 JOIN DELETE를 쓴다.
+
+```sql
+CREATE TABLE orders_orphan_archive LIKE orders;
+ALTER TABLE orders_orphan_archive DROP INDEX idx_orders_user,
+  ADD COLUMN archived_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN archive_reason VARCHAR(50) NOT NULL DEFAULT 'orphaned_user';
+
+START TRANSACTION;
+INSERT INTO orders_orphan_archive (id, user_id, amount, deleted_at)
+SELECT o.id, o.user_id, o.amount, o.deleted_at
+FROM orders o LEFT JOIN users u ON u.id = o.user_id
+WHERE o.user_id IS NOT NULL AND u.id IS NULL
+ORDER BY o.id LIMIT 1000;
+
+DELETE o FROM orders o
+JOIN orders_orphan_archive a ON a.id = o.id;
+COMMIT;
+
+SET SESSION foreign_key_checks = 0;
+ALTER TABLE orders ADD CONSTRAINT fk_orders_user
+  FOREIGN KEY (user_id) REFERENCES users (id),
+  ALGORITHM = INPLACE, LOCK = NONE;
+SET SESSION foreign_key_checks = 1;
+```
+
+MySQL에서 FK 추가는 기존 행을 검증하지 않는다. 같은 데이터에서 위 절차를 돌린 뒤 FK 추가 직후 고아 조회가 0건이었지만, 이 0건은 ALTER가 확인해 준 것이 아니라 직전에 지워서 0건인 것이다. 아카이빙과 ALTER 사이에 들어온 고아는 ALTER가 막지 못한다. 그래서 ALTER 뒤에 조회를 한 번 더 돌린다. 아카이브 테이블에는 `orders`의 PK만 남기고 보조 인덱스는 뺀다. 인덱스를 그대로 두면 아카이브 INSERT마다 인덱스 갱신 비용이 붙는다.
 
 ### 이벤트 기반 보상 처리
 
@@ -383,6 +539,36 @@ async bulkCreateOrders(dtos: CreateOrderDto[]): Promise<void> {
 MSA 환경에서 이벤트 유실로 인한 고아 레코드를 막는 가장 확실한 방법이다. DB 트랜잭션과 이벤트 발행을 원자적으로 묶어, 이벤트 유실 자체를 없앤다.
 
 핵심은 이벤트를 메시지 브로커로 바로 보내지 않고 같은 DB 트랜잭션 안에서 `outbox` 테이블에 먼저 저장하는 것이다. 별도 프로세스가 outbox를 폴링해서 브로커로 발행한다.
+
+서비스는 브로커를 직접 호출하지 않는다. 커밋 전에 죽으면 탈퇴와 이벤트가 같이 사라지고, 커밋 뒤에 죽으면 둘 다 남아 릴레이가 이어받는다. 도식에서 볼 부분은 릴레이가 브로커 응답을 받은 뒤 `sent` 표시를 하기 전에 죽는 구간이다. 이 구간 때문에 같은 이벤트가 두 번 나가고, 하위 서비스가 멱등 처리를 해야 한다.
+
+```mermaid
+sequenceDiagram
+    participant S as 서비스
+    participant DB as 서비스 DB outbox
+    participant R as 릴레이
+    participant B as 브로커
+    participant C as 하위 서비스
+
+    S->>DB: 트랜잭션 시작
+    S->>DB: users 42 deleted_at 기록
+    S->>DB: outbox 에 user.withdrawn 42 INSERT
+    DB-->>S: COMMIT
+    Note over S,DB: 커밋 전 장애면 둘 다 롤백되고 이벤트도 없다
+
+    loop 5초마다 폴링
+        R->>DB: processed=false 이벤트 조회
+        DB-->>R: user.withdrawn 42
+        R->>B: 발행
+        B-->>R: ack
+        R->>DB: processed=true 갱신
+    end
+    Note over R,DB: ack 후 갱신 전 장애면 재시작 뒤 같은 이벤트를 다시 발행한다
+
+    B->>C: user.withdrawn 42
+    C->>C: orders 42 취소 처리, 이미 처리했으면 건너뜀
+    C-->>B: 오프셋 커밋
+```
 
 ```sql
 -- outbox 테이블 구조
