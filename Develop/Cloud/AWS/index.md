@@ -10,7 +10,7 @@ updated: 2026-10-15
 
 # AWS 전체 보기
 
-문서 191개.
+문서 192개.
 
 ## AI
 
@@ -107,6 +107,7 @@ updated: 2026-10-15
 - [AWS Cost Explorer](Cost/Cost_Explorer.md)
 - [AWS Savings Plans](Cost/Savings_Plans.md)
 - [Database Savings Plans](Cost/Database_Savings_Plans.md)
+- [Savings Plans 약정 포트폴리오 운영](Cost/Savings_Plans_Commitment_Portfolio.md)
 
 ## Database
 

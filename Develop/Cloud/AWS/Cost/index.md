@@ -10,7 +10,7 @@ updated: 2026-10-15
 
 # Cost 전체 보기
 
-문서 5개.
+문서 6개.
 
 ## 개요
 
@@ -19,4 +19,5 @@ updated: 2026-10-15
 - [AWS Cost Explorer](Cost_Explorer.md)
 - [AWS Savings Plans](Savings_Plans.md)
 - [Database Savings Plans](Database_Savings_Plans.md)
+- [Savings Plans 약정 포트폴리오 운영](Savings_Plans_Commitment_Portfolio.md)
 
