@@ -1,7 +1,7 @@
 ---
 title: AWS Budgets
-tags: [aws, cloud]
-updated: 2026-05-08
+tags: [aws, cloud, monitoring]
+updated: 2026-10-15
 ---
 
 # AWS Budgets
@@ -46,6 +46,16 @@ RI/SP Utilization과 Coverage는 헷갈리기 쉬운데 보는 방향이 반대�
 
 Utilization 알림이 떴다 = 산 RI가 놀고 있다 → 인스턴스 타입 맞추거나 RI 판매(컨버터블의 경우 교환).
 Coverage 알림이 떴다 = 온디맨드가 너무 많다 → RI/SP 추가 구매 검토.
+
+```mermaid
+flowchart LR
+    U["Utilization 알림<br/>활용률 ≤ 임계값"] --> U1["산 RI/SP가 놀고 있다"]
+    U1 --> U2["인스턴스 타입 맞추기<br/>RI 판매 또는 컨버터블 교환"]
+    C["Coverage 알림<br/>커버리지 ≤ 임계값"] --> C1["온디맨드가 너무 많다"]
+    C1 --> C2["RI/SP 추가 구매 검토"]
+```
+
+두 알림은 임계값 방향이 같아도 가리키는 문제와 후속 조치가 정반대라는 점을 보면 된다.
 
 ## Cost Budget 만들기
 
@@ -156,6 +166,22 @@ aws budgets create-budget \
 `FORECASTED`는 신규 예산에서는 동작하지 않는다. 5일 이상 데이터가 쌓여야 예측 모델이 동작한다. 새 계정 만들고 첫 주에 forecast 알림이 안 와도 정상이다.
 
 알림 발송에는 약간의 지연이 있다. AWS 문서상 8~12시간 단위로 평가한다고 나와 있고, 실제로도 임계값을 정확히 넘은 시점에서 수 시간 뒤에 메일이 온다. "실시간 보호"를 기대하면 안 된다. 단기 폭증 대응은 CloudWatch 알람과 Cost Anomaly Detection을 병행해야 한다.
+
+```mermaid
+flowchart LR
+    B["월 예산 3,000 USD"] --> N1["ACTUAL 50%"]
+    B --> N2["ACTUAL 85%"]
+    B --> N3["FORECASTED 100%"]
+    B --> N4["ACTUAL 110%"]
+    N1 --> S1["SNS budget-info"]
+    N2 --> E2["Email team"]
+    N2 --> S2["SNS budget-warning"]
+    N3 --> E3["Email cto"]
+    N3 --> S3["SNS budget-critical"]
+    N4 --> S4["SNS budget-emergency"]
+```
+
+위 `notifications.json`의 네 단계가 각각 어떤 수신처로 가는지 한눈에 보는 그림이다. 단계가 올라갈수록 수신 대상이 사람 쪽(Email, 임원)으로 넓어진다.
 
 ## SNS Topic 연동과 알림 분기
 
@@ -322,6 +348,18 @@ aws budgets create-budget-action \
 
 운영 환경에서는 `MANUAL`을 권장한다. 자동 차단은 정상 트래픽에서 발생한 합당한 비용 증가도 막아버린다. 개발 환경이나 샌드박스 계정에서만 `AUTOMATIC`을 쓴다.
 
+```mermaid
+flowchart TD
+    T["임계값 도달"] --> M{"approval-model"}
+    M -->|"AUTOMATIC<br/>dev, sandbox"| A1["즉시 액션 실행"]
+    M -->|"MANUAL<br/>운영 권장"| A2["알림 발송"]
+    A2 --> A3["관리자가 콘솔에서 승인"]
+    A3 --> A1
+    A1 --> R["Reset 시 정책 detach"]
+```
+
+두 모델의 차이는 사람의 승인 단계가 끼느냐 여부이고, 승인 단계가 있으면 정상 비용 증가를 오인해 막는 사고를 거를 수 있다.
+
 차단된 뒤 복구는 같은 사용자가 콘솔의 Budget Actions에서 "Reset" 한 번 누르면 정책이 detach된다. 다음 청구 주기가 시작되거나 비용이 임계값 아래로 떨어지면 자동으로 reset되도록 설정도 가능하다.
 
 ### EC2/RDS 자동 중지
@@ -408,6 +446,18 @@ def lambda_handler(event, context):
 - 환경별 OU 분리(prod, dev, sandbox): OU별로 통합 예산을 만들어 환경별 한도 추적
 - 팀별 계정 분리: 팀 OU 단위 통합 예산 + 마스터 계정에 전체 한도 예산
 
+```mermaid
+flowchart TD
+    M["마스터 계정<br/>org-monthly-total 50,000 USD"] --> P["prod OU 통합 예산"]
+    M --> D["dev OU 통합 예산"]
+    M --> S["sandbox OU 통합 예산"]
+    P --> P1["계정 111111111111"]
+    D --> D1["계정 222222222222"]
+    S --> S1["계정 333333333333"]
+```
+
+마스터 계정의 전체 한도 예산 아래에 OU별 통합 예산이 걸리고, `LinkedAccount` 필터가 각 계정을 묶는 구조다.
+
 마스터 계정에서 멤버 계정 예산을 만들려면 두 가지 설정이 미리 되어 있어야 한다.
 
 1. Organizations에 "All features" 모드 활성화 (Consolidated Billing only로는 부족)
@@ -426,6 +476,23 @@ def lambda_handler(event, context):
 문제는 GB당 비용이 outbound뿐 아니라 NAT를 통과하는 모든 트래픽에 붙는다는 점이다. ECR pull, S3 같은 리전 내 트래픽도 VPC Endpoint를 안 만들었으면 NAT를 거쳐서 GB 요금을 낸다.
 
 한 번은 ML 서비스가 S3에서 모델 파일을 다운로드하는데 VPC Endpoint가 없어서 모든 트래픽이 NAT로 흘렀다. 모델 파일 4GB × 시간당 60회 × 24시간 × NAT 운영 0.045달러 → 하루 250달러가 추가로 나갔다. 한 달 모르고 두면 7,500달러.
+
+```mermaid
+flowchart LR
+    subgraph before["VPC Endpoint 없음"]
+        direction LR
+        E1["ML 서비스<br/>private subnet"] --> N["NAT Gateway<br/>GB당 0.045달러"]
+        N --> I["Internet Gateway"]
+        I --> S1["S3"]
+    end
+    subgraph after["Gateway Endpoint 있음"]
+        direction LR
+        E2["ML 서비스<br/>private subnet"] --> V["S3 Gateway Endpoint<br/>무료"]
+        V --> S2["S3"]
+    end
+```
+
+같은 S3 다운로드가 왼쪽 경로에서는 NAT를 거쳐 GB 요금이 붙고, 오른쪽 경로에서는 NAT를 우회해 추가 요금이 없다.
 
 대응 패턴:
 
@@ -511,6 +578,274 @@ Budget 자체 비용은 다음과 같다.
 - Budget Action 실행 IAM 역할에 `aws:SourceAccount` 조건 필수.
 - CloudWatch Logs, NAT Gateway 데이터 전송, 잊혀진 EIP 같은 항목은 특정 서비스 예산이 아닌 카테고리 단위로 별도 예산을 걸어야 잡힌다.
 - 일일 예산은 단기 폭증을, 월간 예산은 누적 추세를 본다. 둘 다 필요하다.
+
+## Savings Plans 약정을 Budgets로 감시하기
+
+약정을 사는 방법과 층 구성은 [AWS Savings Plans](Savings_Plans.md)와 [Savings Plans 약정 포트폴리오 운영](Savings_Plans_Commitment_Portfolio.md)에 있다. 이 절은 약정을 산 뒤 그 약정이 제대로 쓰이는지 Budgets로 지켜보는 쪽만 다룬다. 위의 타입 표에서 Savings Plans Utilization과 Coverage는 한 줄씩만 나왔는데, 실제로는 이 두 예산이 약정 운영의 경보 장치 전부다.
+
+SP 예산은 Cost 예산과 성격이 다르다. 금액이 아니라 비율을 보고, 임계값을 넘는 방향이 아래쪽이다. 비용은 올라가면 문제이고 사용률은 내려가면 문제다. 그래서 알림 조건이 `GREATER_THAN`이 아니라 `LESS_THAN`이다. Cost 예산 설정을 복사해서 시작하면 이 연산자를 안 바꾸고 넘어가기 쉬운데, 그러면 사용률이 95%를 넘는 정상 상태에서 알림이 울린다.
+
+### 두 지표의 관계
+
+Utilization은 산 약정을 얼마나 채웠는가, Coverage는 전체 사용량 중 약정이 덮은 비율이다. 약정을 늘리면 Coverage는 오르고 Utilization은 내려간다. 사용량이 줄면 Coverage는 그대로인데 Utilization이 먼저 내려간다. 한쪽만 보면 반대쪽에서 생기는 문제를 놓친다.
+
+| 상황 | Utilization | Coverage | 해야 할 일 |
+|---|---|---|---|
+| 약정 추가 구매 직후 | 내려간다 | 오른다 | 며칠 지켜보고 판단 |
+| 서비스 일부 종료, 인스턴스 축소 | 내려간다 | 유지 또는 오른다 | 약정 초과분 확인, 남는 사용처 찾기 |
+| 신규 워크로드 배포 | 유지 | 내려간다 | 기저 사용량이 늘었는지 확인 후 추가 구매 검토 |
+| 약정 만료 | 해당 약정 빠짐 | 급락 | 갱신 여부 결정 (만료 전에 잡아야 한다) |
+
+### 콘솔에서 만들기
+
+Billing and Cost Management → Budgets → Create budget에서 Customize (advanced)를 고르고 Budget types에서 Savings Plans budget을 선택한다. 메뉴 이름은 콘솔 개편 때마다 조금씩 바뀐다. 이어서 Utilization과 Coverage 중 하나를 고른다.
+
+1. Period는 Daily로 둔다. Monthly로 두면 월초부터의 누적 평균으로 계산되기 때문에 며칠 사용률이 빠져도 평균에 묻혀 알림이 늦어진다.
+2. Utilization 예산은 기준을 100%로 두고 알림 조건을 "less than 95% of budgeted amount"로 건다.
+3. Coverage 예산은 기준을 100%로 두고 알림 조건을 목표 Coverage보다 몇 포인트 낮게 건다. 목표가 70%면 65% 정도다.
+4. 약정을 조직 전체가 공유한다면 관리 계정에서 만든다. 멤버 계정에서 만든 예산은 그 계정 몫만 보는 경우가 있어서, 관리 계정에서 만들고 필요하면 연결 계정 필터로 좁히는 편이 숫자가 맞다.
+
+기준을 100으로 두는 이유가 있다. 비율 예산에서 `ThresholdType`을 `PERCENTAGE`로 두면 임계값이 기준값 대비 비율로 해석되고, `ABSOLUTE_VALUE`로 두면 절대값으로 해석된다. 기준을 100으로 맞추면 두 해석이 같은 숫자(95)가 되어서 헷갈릴 일이 없다.
+
+### CLI로 만들기
+
+`BudgetType`에 들어가는 값은 `SAVINGS_PLANS_UTILIZATION`과 `SAVINGS_PLANS_COVERAGE`다. Utilization 예산 본문이다.
+
+```json
+{
+  "BudgetName": "sp-utilization-daily",
+  "BudgetType": "SAVINGS_PLANS_UTILIZATION",
+  "TimeUnit": "DAILY",
+  "BudgetLimit": { "Amount": "100", "Unit": "PERCENTAGE" },
+  "CostTypes": {
+    "IncludeTax": false,
+    "IncludeSubscription": true,
+    "UseBlended": false,
+    "IncludeRefund": false,
+    "IncludeCredit": false,
+    "IncludeUpfront": true,
+    "IncludeRecurring": true,
+    "IncludeOtherSubscription": true,
+    "IncludeSupport": false,
+    "IncludeDiscount": true,
+    "UseAmortized": false
+  }
+}
+```
+
+알림 본문은 사용률이 95% 미만으로 내려갈 때 SNS로 보낸다.
+
+```json
+[
+  {
+    "Notification": {
+      "NotificationType": "ACTUAL",
+      "ComparisonOperator": "LESS_THAN",
+      "Threshold": 95,
+      "ThresholdType": "PERCENTAGE"
+    },
+    "Subscribers": [
+      { "SubscriptionType": "SNS", "Address": "arn:aws:sns:ap-northeast-2:123456789012:budget-commitment" }
+    ]
+  }
+]
+```
+
+```bash
+aws budgets create-budget \
+  --account-id 123456789012 \
+  --budget file://sp-util.json \
+  --notifications-with-subscribers file://sp-util-noti.json
+```
+
+Coverage 예산은 `BudgetName`을 `sp-coverage-daily`로, `BudgetType`을 `SAVINGS_PLANS_COVERAGE`로 바꾸고, 알림의 `Threshold`를 목표에 맞춰 65 같은 값으로 바꾸면 된다. 나머지 필드는 같다.
+
+이 JSON은 문서에 있는 필드 구조를 따라 쓴 것이고 실제 계정에 적용해 보지는 않았다. `CostTypes`에 허용되는 조합이나 SP 유형·연결 계정 필터 문법은 계정 설정에 따라 거부될 수 있으니, 콘솔에서 한 건 만든 뒤 `aws budgets describe-budget`으로 받은 결과와 대조해서 IaC로 옮기는 순서가 안전하다. SP 예산에는 `FORECASTED` 알림을 쓰지 않는다. 사용률과 커버리지는 예측하는 지표가 아니라 지난 값을 보는 지표라서 `ACTUAL`만 건다.
+
+### 임계값을 이렇게 잡는 이유
+
+Utilization은 95% 미만으로 건다. 시간당 약정이 10달러면 한 달 약정액이 10 × 730 = 7,300달러다. 사용률 95%는 5%인 365달러가 쓰이지 못하고 나가는 상태다. 100% 미만으로 걸면 주말처럼 사용량이 조금만 빠져도 매주 알림이 울리고, 알림이 습관적으로 무시되기 시작한다. 반대로 90%까지 기다리면 한 달에 730달러가 나간 뒤에야 안다. 95%는 노이즈와 손실 사이에서 고른 값이고, 약정 규모가 크면 97~98%로 올리는 편이 맞다. 시간당 약정이 100달러이면 5%가 월 3,650달러라서 같은 95%라도 체감이 전혀 다르다.
+
+Coverage는 100%를 목표로 잡지 않는다. 사용량이 출렁이는 변동분은 온디맨드나 스팟으로 두는 게 정상이고, 그 비율을 [포트폴리오 문서](Savings_Plans_Commitment_Portfolio.md)에서 정한 목표값으로 삼는다. 알림은 그 목표 아래로 내려갈 때 건다. 목표를 70%로 정했으면 Coverage 알림이 오는 건 신규 워크로드가 기저 사용량을 밀어 올렸거나 약정이 만료되었다는 뜻이다.
+
+### 알림이 늦게 오는 이유
+
+SP 예산은 하루 단위 집계를 기준으로 평가된다. 오늘 사용량의 최종 사용률은 오늘 안에 나오지 않는다. Budgets 자체도 하루에 최대 세 번 정도 갱신되므로, 사용률이 떨어진 날과 알림이 오는 날 사이에 하루 이상 간격이 생기는 경우가 있다.
+
+```mermaid
+sequenceDiagram
+    participant WL as 워크로드
+    participant CE as 비용 집계
+    participant BG as Budgets
+    participant SNS as SNS Topic
+    participant ENG as 담당자
+
+    WL->>CE: 토요일 사용량 발생 (사용률 하락)
+    Note over CE: 토요일 값은 일 단위로 집계되어 다음 날 이후 확정
+    CE-->>BG: 일요일 갱신 시 토요일 사용률 반영
+    BG->>BG: 95% 미만 판정
+    BG->>SNS: 알림 발행
+    SNS-->>ENG: 일요일 또는 월요일 아침에 수신
+    ENG->>CE: 월요일에 원인 조사 시작
+```
+
+도식은 사용률이 내려간 시점과 담당자가 알림을 받는 시점이 며칠 벌어질 수 있다는 점을 보여준다. 토요일에 인스턴스 그룹을 줄였다면 월요일에야 알게 되고, 그 사이 이틀치 약정이 낭비된다.
+
+Budgets 알림은 방향이 맞는지 알려주는 용도로 쓰고, 당일 상태가 궁금하면 Cost Explorer API를 직접 호출하는 쪽이 낫다. 이것도 당일 값이 확정은 아니지만 Budgets의 갱신 주기를 기다리지 않는다.
+
+```bash
+aws ce get-savings-plans-utilization \
+  --time-period Start=2026-10-12,End=2026-10-15 \
+  --granularity DAILY
+```
+
+`End`는 포함되지 않는 날짜다. 이 호출을 EventBridge 스케줄 Lambda에 넣어 매일 아침 한 번 Slack으로 보내면 Budgets 알림과 별개로 일 단위 확인 루틴이 생긴다. 지연을 없애지는 못하지만 최소한 월요일까지 기다리지 않는다.
+
+## RI 만료와 Reservation 예산
+
+Savings Plans로 넘어가는 중이어도 RI가 남아 있는 계정이 많다. 문제는 Budgets에 RI 만료일을 직접 감시하는 예산 타입이 없다는 점이다. `RI_UTILIZATION`과 `RI_COVERAGE`는 지금 상태를 보는 지표다. RI가 만료되는 순간 사용률은 이상이 없고(없어진 RI는 사용률 계산에서 빠진다), Coverage만 떨어진다. 그래서 만료는 두 겹으로 잡는다.
+
+만료 전에 잡는 쪽은 Cost Explorer의 Reservations 화면 설정에 있는 만료 알림이다. 만료 며칠 전에 메일을 받을 날짜를 고를 수 있고, 이건 Budgets가 아니라 Cost Explorer 쪽 기능이다. 이 메일을 받는 주소를 개인 메일로 두면 담당자가 바뀔 때 끊기므로 팀 메일링 리스트로 둔다.
+
+만료 후에 잡는 쪽이 Reservation 예산이다. 만료를 놓쳤을 때 온디맨드 비용이 올라가기 전에 Coverage 하락으로 알아채는 안전망이다.
+
+```mermaid
+flowchart LR
+    A["만료 며칠 전"] -->|"Cost Explorer Reservations<br/>만료 알림 메일"| B["RI 만료"]
+    B --> C["Utilization 이상 없음<br/>Coverage 급락"]
+    C -->|"RI_COVERAGE 예산<br/>LESS_THAN 알림"| D["온디맨드 비용 상승 전<br/>담당자 인지"]
+```
+
+두 겹 중 앞쪽은 Cost Explorer 기능이고 뒤쪽만 Budgets라는 점, 그리고 만료 뒤에는 Utilization이 아니라 Coverage만 떨어진다는 점이 핵심이다.
+
+```json
+{
+  "BudgetName": "ri-coverage-ec2",
+  "BudgetType": "RI_COVERAGE",
+  "TimeUnit": "MONTHLY",
+  "BudgetLimit": { "Amount": "100", "Unit": "PERCENTAGE" },
+  "CostFilters": {
+    "Service": ["Amazon Elastic Compute Cloud - Compute"]
+  }
+}
+```
+
+RI 예산은 서비스 필터가 있어야 하고, 필터에 들어가는 서비스 이름은 청구서에 찍히는 전체 이름 그대로여야 한다. `EC2`처럼 줄여 쓰면 만들어지지 않거나 아무것도 매칭하지 않는다. RDS, ElastiCache, OpenSearch RI를 같이 쓴다면 서비스마다 예산을 따로 만든다. `TimeUnit`은 만료 후 조치가 느려도 되는 RI라면 `MONTHLY`, 만료 즉시 알아야 하면 `DAILY`로 둔다. 알림은 SP와 같은 방식으로 `LESS_THAN`에 현재 Coverage보다 5~10포인트 낮은 값을 건다.
+
+한 가지 주의할 점이 있다. RI를 SP로 갈아타는 도중에는 RI Coverage가 일부러 내려간다. 이때 알림이 계속 울리니 갈아타기 계획이 잡혀 있다면 해당 기간 동안 RI Coverage 예산의 임계값을 낮추거나 알림 구독을 잠시 꺼 둔다.
+
+## SNS, Lambda, Slack으로 이어지는 알림 흐름
+
+앞에서 SNS에서 Lambda로 분기하는 구조를 간단히 그렸다. 약정 예산이 추가되면 Cost 알림과 약정 알림을 한 채널에 섞지 않는 게 중요하다. 비용 알림은 한도에 가까워지면 즉시 대응하는 알림이고, 약정 알림은 하루나 이틀 안에 확인하면 되는 알림이다. 같은 채널에 섞으면 급한 알림이 약정 알림에 묻힌다.
+
+```mermaid
+flowchart LR
+    CB["Cost Budget<br/>prod-monthly-cost"] --> T1["SNS Topic<br/>budget-warning"]
+    SU["SP Utilization Budget<br/>sp-utilization-daily"] --> T2["SNS Topic<br/>budget-commitment"]
+    SC["SP Coverage Budget<br/>sp-coverage-daily"] --> T2
+    RC["Reservation Budget<br/>ri-coverage-ec2"] --> T2
+    T1 --> L["Lambda<br/>예산 이름으로 채널 선택"]
+    T2 --> L
+    L -->|"sp-, ri- 접두사"| S1["Slack #commit-alert"]
+    L -->|"그 외"| S2["Slack #cost-alert"]
+    L -.->|"실패 시"| D["SQS DLQ"]
+```
+
+도식에서 볼 부분은 Topic이 두 개로 나뉘어 있어도 Lambda는 하나라는 점이다. 라우팅을 예산 이름 접두사로 하기 때문에, 예산 이름 규칙(`sp-`, `ri-`)을 팀이 지켜야 동작한다. 규칙 없이 이름을 짓기 시작하면 약정 알림이 Cost 채널로 들어간다.
+
+```python
+import json
+import os
+import re
+import urllib.request
+
+COMMIT_PREFIXES = ("sp-", "ri-")
+
+
+def pick_webhook(budget_name):
+    if budget_name.startswith(COMMIT_PREFIXES):
+        return os.environ["SLACK_WEBHOOK_COMMIT"]
+    return os.environ["SLACK_WEBHOOK_COST"]
+
+
+def lambda_handler(event, context):
+    for record in event["Records"]:
+        text = record["Sns"]["Message"]
+        found = re.search(r"Budget Name:\s*(.+)", text)
+        name = found.group(1).strip() if found else ""
+
+        body = json.dumps({"text": f"[{name or 'unknown'}]\n{text}"}).encode("utf-8")
+        req = urllib.request.Request(
+            pick_webhook(name),
+            data=body,
+            headers={"Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(req, timeout=5)
+```
+
+접두사 라우팅 부분은 로컬에서 `sp-utilization-daily`, `ri-coverage-ec2`는 약정 채널로, `prod-monthly-cost`는 비용 채널로 가는 것을 확인했다. 본문 파싱은 앞에서 설명한 대로 Budgets 메시지가 텍스트라는 점에 의존한다. SP 예산의 메시지가 Cost 예산과 같은 `Budget Name:` 줄을 갖는지는 첫 알림이 오면 CloudWatch Logs에서 원문을 보고 확인한다. 이름을 못 찾으면 `unknown`으로 비용 채널에 떨어지므로 알림이 사라지지는 않는다.
+
+Slack 호출이 실패하면 `urlopen`이 예외를 던지고, SNS가 Lambda를 비동기로 호출하기 때문에 Lambda가 두 번 더 재시도한다. 그래도 실패하는 경우를 위해 Lambda의 실패 대상(on-failure destination)이나 DLQ를 붙여 둔다. 약정 알림은 하루에 한두 번밖에 안 오는 대신, 한 번 누락되면 다음 알림까지 며칠이 비는 경우가 있다. Webhook URL은 환경변수에 평문으로 두기보다 Secrets Manager나 암호화된 환경변수로 둔다.
+
+## Budget Action이 동작하는 흐름
+
+위의 Budget Actions 절에서 설정 방법은 설명했다. 여기서는 임계값이 넘은 순간부터 정책이 붙을 때까지 누가 무엇을 호출하는지를 본다. 장애가 나면 어느 단계에서 막혔는지 알아야 하기 때문이다.
+
+Budget Action은 Cost 예산과 Usage 예산에 붙이는 기능으로, SP Utilization 예산에는 붙이지 않는다. 사용률이 낮은 상태에서 막을 수 있는 리소스가 없다. 약정이 남는 걸 해결하려면 워크로드를 늘리거나 약정을 정리해야 하는데 그건 사람이 판단할 일이다.
+
+```mermaid
+sequenceDiagram
+    participant BG as Budgets
+    participant SNS as SNS Topic
+    participant ADM as 관리자
+    participant STS as STS
+    participant IAM as IAM
+    participant ORG as Organizations
+
+    BG->>BG: ACTUAL 110% 초과 판정
+    BG->>SNS: 임계값 초과 알림 발행
+    alt approval-model AUTOMATIC
+        BG->>STS: BudgetActionRole AssumeRole
+        STS-->>BG: 임시 자격 증명
+    else approval-model MANUAL
+        BG->>ADM: 승인 요청 알림
+        ADM->>BG: 콘솔에서 승인
+        BG->>STS: BudgetActionRole AssumeRole
+        STS-->>BG: 임시 자격 증명
+    end
+    alt action-type APPLY_IAM_POLICY
+        BG->>IAM: Developers 그룹에 Deny 정책 attach
+        IAM-->>BG: 적용 완료
+    else action-type APPLY_SCP_POLICY
+        BG->>ORG: 대상 OU 또는 계정에 SCP attach
+        ORG-->>BG: 적용 완료
+    end
+    BG->>SNS: 액션 실행 결과 알림
+```
+
+도식에서 `BudgetActionRole`을 assume하는 단계가 `MANUAL`이든 `AUTOMATIC`이든 공통이라는 점을 봐야 한다. 신뢰 정책에 `aws:SourceAccount` 조건이 잘못 들어가 있거나 역할에 `iam:AttachGroupPolicy` 권한이 없으면, 임계값 알림은 정상으로 오는데 정책만 안 붙는다. 알림이 왔으니 문제없다고 판단하기 쉬운 지점이다. 액션 실행 결과 알림(마지막 단계)까지 받는지 확인해야 한다.
+
+SCP 액션은 정책 대상 지정 방식이 IAM과 다르다. IAM 액션은 `IamActionDefinition`에 `PolicyArn`과 `Users`, `Groups`, `Roles`를 넣고, SCP 액션은 `ScpActionDefinition`에 `PolicyId`와 `TargetIds`(계정 ID 또는 OU ID)를 넣는다.
+
+```bash
+aws budgets create-budget-action \
+  --account-id 123456789012 \
+  --budget-name "sandbox-monthly-cost" \
+  --notification-type ACTUAL \
+  --action-type APPLY_SCP_POLICY \
+  --action-threshold ActionThresholdValue=120,ActionThresholdType=PERCENTAGE \
+  --execution-role-arn arn:aws:iam::123456789012:role/BudgetActionRole \
+  --approval-model MANUAL \
+  --definition '{
+    "ScpActionDefinition": {
+      "PolicyId": "p-examplepolicy",
+      "TargetIds": ["ou-exam-12345678"]
+    }
+  }' \
+  --subscribers SubscriptionType=EMAIL,Address=admin@example.com
+```
+
+SCP 액션은 Organizations 관리 계정에서 만든 예산에 붙인다. SCP는 관리 계정 자신에게는 적용되지 않으므로, 관리 계정에서 직접 돌리는 워크로드의 비용은 이 방법으로 못 막는다. 샌드박스 OU 같은 멤버 계정에서만 쓴다. 또 Deny 정책은 새로 만드는 리소스를 막을 뿐이고 이미 떠 있는 인스턴스는 계속 돈다. 비용이 이미 새는 중이라면 앞에서 본 SSM 중지 액션이나 Lambda 자동 중지를 같이 걸어야 한다.
 
 ## 참고
 
