@@ -10,7 +10,7 @@ updated: 2026-10-15
 
 # AWS 전체 보기
 
-문서 190개.
+문서 191개.
 
 ## AI
 
@@ -106,6 +106,7 @@ updated: 2026-10-15
 - [AWS Compute Optimizer](Cost/Compute_Optimizer.md)
 - [AWS Cost Explorer](Cost/Cost_Explorer.md)
 - [AWS Savings Plans](Cost/Savings_Plans.md)
+- [Database Savings Plans](Cost/Database_Savings_Plans.md)
 
 ## Database
 
