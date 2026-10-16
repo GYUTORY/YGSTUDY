@@ -1,7 +1,7 @@
 ---
 title: Schema-Per-Tenant
 tags: [database, postgresql, devops, rdbms]
-updated: 2026-08-04
+updated: 2026-10-16
 ---
 
 # Schema-Per-Tenant
@@ -11,6 +11,21 @@ updated: 2026-08-04
 공유 스키마(shared schema)와 비교하면 테넌트 간 데이터 격리가 DB 레벨에서 보장된다. `WHERE tenant_id = ?` 조건을 빠뜨려도 다른 테넌트 데이터가 노출되지 않는다. 반면 스키마 수가 늘어날수록 관리 비용이 선형으로 증가한다. 스키마 100개에 테이블 50개면 DDL 변경 하나에 5,000개 오브젝트를 건드려야 한다.
 
 공유 스키마 방식(`tenant_id` 컬럼)과의 선택 기준은 Cross_Schema.md의 비교 섹션을 참고한다. 이 문서는 schema-per-tenant를 선택한 이후의 구현 문제를 다룬다.
+
+아래 도식은 하나의 데이터베이스 안에서 공통 스키마와 테넌트 스키마가 어떻게 나뉘는지 보여준다. 테넌트 스키마끼리는 서로 참조하지 않고, 같은 테이블 구조만 반복된다.
+
+```mermaid
+flowchart TD
+    DB["PostgreSQL 데이터베이스"]
+    DB --> SHARED["shared / public 스키마<br/>tenants, 플랜, 설정"]
+    DB --> TPL["template 스키마<br/>데이터 없는 테이블 정의"]
+    DB --> T1["tenant_001<br/>users, orders"]
+    DB --> T2["tenant_002<br/>users, orders"]
+    DB --> TN["tenant_N<br/>users, orders"]
+    TPL -. "LIKE INCLUDING ALL 복사" .-> T1
+    TPL -. "LIKE INCLUDING ALL 복사" .-> T2
+    TPL -. "LIKE INCLUDING ALL 복사" .-> TN
+```
 
 ---
 
@@ -86,6 +101,21 @@ COMMIT;
 실패하면 ROLLBACK으로 반쯤 만들어진 스키마가 남지 않는다. MySQL에서는 DDL이 묵시적 커밋을 유발하므로 이 방식이 동작하지 않는다.
 
 애플리케이션 코드로 구현할 때는 테넌트 레코드 INSERT와 스키마 생성을 하나의 트랜잭션으로 묶어야 한다. 테넌트 레코드만 생기고 스키마 생성이 실패한 채로 남으면, 나중에 어느 테넌트가 완전히 프로비저닝됐는지 알 수 없다.
+
+아래 흐름도는 프로비저닝 단계 중 어느 하나라도 실패하면 전체가 ROLLBACK으로 빠지는 구조를 보여준다. 테넌트 등록 INSERT가 마지막에 있어서, 등록된 테넌트는 항상 스키마가 완성된 상태다.
+
+```mermaid
+flowchart TD
+    A["BEGIN"] --> B["CREATE SCHEMA tenant_003"]
+    B --> C["template 테이블 복사<br/>LIKE INCLUDING ALL"]
+    C --> D["FK 제약조건 추가"]
+    D --> E["public.tenants에 INSERT"]
+    E --> F["COMMIT<br/>완전한 테넌트 하나 생성"]
+    B -- 실패 --> R["ROLLBACK<br/>스키마와 등록 레코드 모두 없음"]
+    C -- 실패 --> R
+    D -- 실패 --> R
+    E -- 실패 --> R
+```
 
 ```python
 def provision_tenant(conn, tenant_id: str) -> None:
@@ -202,6 +232,20 @@ def migrate_all_tenants(schemas: List[str], max_workers: int = 5):
 
 대응 방법은 두 가지다. 하나는 실패한 스키마 목록을 로깅해두고 마이그레이션 완료 후 수동으로 처리하는 것이다. 다른 하나는 expand-contract 패턴을 쓰는 것이다. 새 컬럼이 없어도 동작하게 코드를 먼저 배포하고, 마이그레이션 완료 후 새 컬럼만 쓰는 코드로 전환하면 마이그레이션 실패가 있어도 서비스 중단 없이 처리할 수 있다.
 
+아래 도식은 스키마별 마이그레이션 결과가 갈라지는 지점과, expand-contract 순서로 배포하면 실패한 스키마가 있어도 서비스가 유지되는 경로를 함께 보여준다.
+
+```mermaid
+flowchart TD
+    S["새 컬럼 없이도 동작하는 코드 배포"] --> M["스키마별 마이그레이션 실행"]
+    M --> OK["성공한 스키마"]
+    M --> NG["실패한 스키마<br/>migration_failures.txt 기록"]
+    NG --> FIX["수동 처리 후 재실행"]
+    FIX --> OK
+    OK --> CHK{"모든 스키마<br/>적용 완료?"}
+    CHK -- 아니오 --> FIX
+    CHK -- 예 --> SW["새 컬럼만 쓰는 코드로 전환"]
+```
+
 ---
 
 ## 연결 라우팅
@@ -250,6 +294,28 @@ ERROR: SET not allowed in transaction mode
 ```
 
 **session mode**에서는 하나의 세션이 하나의 클라이언트에 고정된다. `search_path`를 설정하면 세션이 닫힐 때까지 유지된다. 하지만 커넥션 수가 늘어나고 PgBouncer의 멀티플렉싱 이점이 줄어든다.
+
+아래 시퀀스는 transaction mode에서 같은 서버 커넥션을 두 테넌트가 번갈아 쓸 때 `search_path`가 어디서 어긋나는지 보여준다. 세션 설정이 커넥션에 남아 있다가 다른 테넌트의 요청에 그대로 적용된다.
+
+```mermaid
+sequenceDiagram
+    participant A as 테넌트 A 요청
+    participant P as PgBouncer
+    participant S as 서버 커넥션
+    participant B as 테넌트 B 요청
+
+    A->>P: BEGIN
+    P->>S: 커넥션 할당
+    A->>P: SET search_path TO tenant_001
+    P->>S: 세션 설정 전달
+    A->>P: COMMIT
+    P-->>S: 커넥션을 풀에 반환
+    B->>P: BEGIN
+    P->>S: 같은 커넥션 재할당
+    B->>P: SELECT * FROM orders
+    S-->>B: tenant_001.orders 결과 반환
+    Note over B,S: 테넌트 B가 A의 데이터를 읽음
+```
 
 schema-per-tenant를 `search_path`로 구현할 때는 session mode를 쓰거나, 모든 쿼리에 스키마를 명시하는 방식을 택한다.
 
@@ -391,6 +457,18 @@ ALTER SCHEMA tenant_003 RENAME TO tenant_003_offboarded_20260804;
 ```
 
 스키마 이름을 바꿔두면 애플리케이션에서 해당 테넌트 접근이 즉시 실패하므로 격리 효과가 있고, 잘못된 삭제인지 확인할 시간도 생긴다.
+
+아래 상태도는 오프보딩 중 스키마가 거치는 단계를 보여준다. 이름 변경 단계에서는 되돌릴 수 있고, DROP 이후에만 복구가 불가능하다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active
+    Active --> Renamed: ALTER SCHEMA RENAME
+    Renamed --> Active: 잘못된 대상이면 이름 복원
+    Renamed --> BackedUp: pg_dump 최종 백업
+    BackedUp --> Dropped: DROP SCHEMA CASCADE
+    Dropped --> [*]
+```
 
 ---
 
