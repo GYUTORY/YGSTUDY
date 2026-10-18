@@ -1,7 +1,7 @@
 ---
 title: ISO 표준 — 백엔드 개발자가 실제로 마주치는 것들
 tags: [backend, security]
-updated: 2026-08-02
+updated: 2026-10-18
 ---
 
 # ISO 표준 — 백엔드 개발자가 실제로 마주치는 것들
@@ -9,6 +9,22 @@ updated: 2026-08-02
 ISO 표준이라고 하면 문서만 두꺼운 관료적인 규격이라고 생각하기 쉽다. 실제로 대부분의 ISO 표준은 개발자가 직접 읽을 일이 없다. 하지만 몇 가지는 코드를 짜면서, 서비스를 운영하면서, 감사를 받으면서 반복적으로 만나게 된다.
 
 여기서는 백엔드 개발 실무에서 빈도 높게 마주치는 네 가지 ISO 표준을 다룬다.
+
+아래 도식은 표준이 코드의 어느 지점에 닿는지를 보여준다. 코드에 문자열로 직접 나타나는 건 8601 하나뿐이고, 27001은 감사 증거로, 25010은 요구사항 문서로, 12207은 산출물 요구로 나타난다.
+
+```mermaid
+flowchart LR
+    S1["ISO 8601"] --> A1["API 응답 날짜"]
+    S1 --> A2["DB 시각 컬럼"]
+    S1 --> A3["로그 타임스탬프"]
+    S2["ISO 27001"] --> B1["접근 통제"]
+    S2 --> B2["감사 로그"]
+    S2 --> B3["변경 관리"]
+    S3["ISO 25010"] --> C1["결제 트랜잭션 신뢰성 요구"]
+    S3 --> C2["응답 시간 요구"]
+    S4["ISO/IEC 12207"] --> D1["형상관리와 PR 기록"]
+    S4 --> D2["테스트 계획서와 결과서"]
+```
 
 ---
 
@@ -52,6 +68,26 @@ const backToUtc = fromZonedTime(zonedDate, timeZone);
 ```
 
 **DB에는 UTC로 저장한다.** 이건 거의 예외 없는 규칙이다. `TIMESTAMP WITH TIME ZONE` 컬럼을 써도 PostgreSQL은 내부적으로 UTC로 변환해서 저장한다. MySQL의 `DATETIME`은 타임존 정보가 없으므로 애플리케이션 레벨에서 UTC 변환을 해야 한다.
+
+변환이 일어나는 지점은 서버 입구와 출구 두 곳이다. DB 앞뒤에서는 UTC 그대로 오가고, 사용자 타임존은 응답을 만들 때만 붙는다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant S as 서버
+    participant D as DB
+
+    C->>S: 요청 본문 2026-04-06T15:30:00+09:00
+    S->>S: 오프셋을 읽어 UTC로 변환
+    S->>D: INSERT 2026-04-06 06:30:00 UTC
+    D-->>S: 저장 완료
+    S->>D: SELECT 시각 컬럼
+    D-->>S: 2026-04-06 06:30:00 UTC
+    S->>S: 사용자 타임존 Asia/Seoul 적용
+    S-->>C: 응답 본문 2026-04-06T15:30:00+09:00
+```
+
+이 문자열은 [HTTP](<../../Network/7 Layer/Application Layer/Http/HTTP.md>) 요청·응답 본문에 실려 오간다(필독 20선 6번). DB에 UTC로 넣는 시각 컬럼 이름에는 `created_at`처럼 `_at`을 붙이는 게 관례다([컬럼 접미 패턴](../../DataBase/RDBMS/Column_Suffix_Pattern.md), 필독 20선 13번).
 
 ```sql
 -- PostgreSQL: timestamptz는 UTC로 저장, 조회 시 세션 타임존으로 변환
