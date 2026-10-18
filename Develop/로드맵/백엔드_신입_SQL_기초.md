@@ -1,7 +1,7 @@
 ---
 title: 백엔드 신입 SQL 기초
 tags: [database, rdbms, mysql, postgresql, backend, performance]
-updated: 2026-09-22
+updated: 2026-10-18
 ---
 
 # 백엔드 신입 SQL 기초
@@ -51,6 +51,49 @@ GROUP BY u.id;
 ```
 
 EXPLAIN에서 첫 번째 줄이 드리빙 테이블이다. `rows` 컬럼을 보면 몇 건을 스캔했다고 추정하는지 알 수 있다.
+
+### INNER JOIN과 LEFT JOIN은 결과 행이 다르다
+
+신입 때 JOIN 종류를 문법으로만 외우면 집계 쿼리에서 숫자가 틀린다. 아래 데이터로 두 JOIN의 결과를 비교한다. users는 홍·김·박 3명이고, orders는 홍이 2건, 김이 1건, 박은 주문이 없다.
+
+```mermaid
+flowchart LR
+    U["users 3행: 홍, 김, 박"] --> ON{"ON o.user_id = u.id"}
+    O["orders 3행: 홍 2건, 김 1건"] --> ON
+    ON -->|"짝이 있는 행만"| INNER["INNER JOIN 3행: 홍, 홍, 김"]
+    ON -->|"짝이 있는 행 + 왼쪽 나머지"| LEFT["LEFT JOIN 4행: 홍, 홍, 김, 박 + NULL"]
+```
+
+짝이 없는 박이 INNER에서는 사라지고 LEFT에서는 오른쪽 컬럼이 NULL인 채로 남는다는 점만 보면 된다.
+
+| 구분 | INNER JOIN | LEFT JOIN |
+|---|---|---|
+| 짝 없는 왼쪽 행 | 버린다 | 오른쪽을 NULL로 채워 남긴다 |
+| 결과 행 수 | 3 | 4 |
+| `COUNT(*)` 결과 | 박이 아예 없다 | 박이 1로 나온다 |
+| `COUNT(o.id)` 결과 | 박이 아예 없다 | 박이 0으로 나온다 |
+| 주 용도 | 양쪽에 다 있는 것만 필요할 때 | "주문 0건인 회원도 포함해서" 세야 할 때 |
+
+LEFT JOIN에서 실제로 자주 틀리는 것이 두 가지다.
+
+첫째, `COUNT(*)`는 NULL로 채운 행도 한 줄로 센다. 주문 0건인 박이 1건으로 집계된다. 오른쪽 테이블 컬럼을 `COUNT(o.id)`처럼 지정해야 0이 나온다.
+
+둘째, 오른쪽 테이블 조건을 WHERE에 쓰면 LEFT JOIN이 INNER JOIN으로 바뀐다.
+
+```sql
+-- 박이 사라진다. NULL 행은 o.status = 'COMPLETED'를 만족하지 못해 WHERE에서 걸러진다
+SELECT u.name, o.id
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id
+WHERE o.status = 'COMPLETED';
+
+-- 박이 남는다. 조건을 ON으로 옮기면 JOIN 대상만 줄이고 왼쪽 행은 지키지 않는다
+SELECT u.name, o.id
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id AND o.status = 'COMPLETED';
+```
+
+첫 쿼리 결과는 홍, 김 두 줄이고 둘째 쿼리 결과는 홍, 김, 박 세 줄이다. 코드 리뷰에서 "LEFT JOIN 썼는데 왜 주문 없는 회원이 안 나오죠"라는 질문의 원인은 대부분 이 WHERE다.
 
 ### GROUP BY 집계 실수
 
@@ -181,6 +224,45 @@ SELECT * FROM orders WHERE status = 'PENDING';
 
 `(user_id, status, created_at)` 순서가 좋은 이유는 user_id로 행을 많이 걸러내고, 그 안에서 status로 다시 좁히고, 마지막으로 created_at 범위로 자른다. 범위 조건이 중간에 오면 그 뒤 컬럼은 인덱스 탐색에 참여하지 못한다.
 
+### B-Tree 안에서 어떻게 찾아가는가
+
+"왼쪽부터 쓴다"는 규칙은 외우기보다 인덱스 안의 정렬 순서를 보면 이해된다. `(user_id, status)` 복합 인덱스는 user_id로 먼저 정렬하고, user_id가 같은 항목끼리 status로 다시 정렬해 둔 구조다.
+
+```mermaid
+flowchart TD
+    ROOT["루트 노드: user_id 경계값 100, 200"]
+    ROOT --> B1["브랜치: user_id 1~99"]
+    ROOT --> B2["브랜치: user_id 100~199"]
+    ROOT --> B3["브랜치: user_id 200 이상"]
+    B2 --> L1["리프: 123, CANCELED"]
+    B2 --> L2["리프: 123, COMPLETED"]
+    B2 --> L3["리프: 123, PENDING"]
+    B2 --> L4["리프: 150, PENDING"]
+    L3 --> PK["PK 값으로 클러스터 인덱스 조회"]
+
+    classDef path fill:#d9ecf2,stroke:#3D7387,color:#1a1a1a
+    class ROOT,B2,L3,PK path
+```
+
+`WHERE user_id = 123 AND status = 'PENDING'`은 루트에서 user_id 100~199 브랜치를 고르고, 그 안에서 `(123, PENDING)` 리프를 바로 찾는다. 색칠한 노드만 읽으므로 3~4번의 페이지 접근으로 끝난다.
+
+선두 컬럼이 빠지면 이 경로를 쓸 수 없다. `WHERE status = 'PENDING'`만 있으면 PENDING 항목이 user_id 브랜치마다 흩어져 있어서 어느 브랜치로 내려갈지 정할 수 없다. 리프를 전부 훑어야 한다.
+
+```mermaid
+flowchart TD
+    Q["WHERE 절"] --> A{"user_id 조건이 있나"}
+    A -->|"없다"| FULL["인덱스를 못 쓴다: 리프 전체 스캔 또는 풀 스캔"]
+    A -->|"있다"| B{"user_id 조건이 등가인가"}
+    B -->|"범위 조건"| R1["user_id 범위까지만 탐색, status는 걸러내기 용도"]
+    B -->|"= 조건"| C{"status 조건이 있나"}
+    C -->|"없다"| R2["user_id 하나로 좁힌 구간만 읽는다"]
+    C -->|"있다"| R3["user_id, status 둘 다로 리프 위치를 찍는다"]
+```
+
+범위 조건이 선두에 오면 뒤 컬럼이 걸러내기로만 쓰이는 이유가 이것이다. user_id가 100~199 범위면 그 안의 status는 user_id마다 따로 정렬되어 있어서 연속된 구간이 아니다.
+
+실무에서 이 규칙 때문에 인덱스를 새로 만드는 경우가 있다. `WHERE status = ?` 조회가 많은데 인덱스가 `(user_id, status)`뿐이라면, status를 앞에 둔 인덱스를 따로 만들거나 쿼리에 user_id 조건을 추가할 수 있는지 먼저 본다. MySQL 8.0.13부터는 선두 컬럼의 값 종류가 아주 적을 때 옵티마이저가 인덱스 스킵 스캔을 고르는 경우가 있지만, 선두 컬럼이 user_id처럼 값이 많으면 해당되지 않으므로 기대하지 않는다.
+
 ---
 
 ## N+1 쿼리 재현과 잡기
@@ -217,6 +299,35 @@ SELECT * FROM orders WHERE user_id = 3
 ...
 ```
 
+지연 로딩일 때와 fetch join을 쓸 때의 쿼리 수를 한 도식에 놓고 비교한다. 위쪽 분기에서는 `findAll` 뒤에 `getOrders()`가 호출될 때마다 DB 왕복이 생기고, 아래쪽 분기에서는 처음 한 번으로 끝난다.
+
+```mermaid
+sequenceDiagram
+    participant S as Service
+    participant H as Hibernate
+    participant D as DB
+    alt 지연 로딩 (N+1)
+        S->>H: userRepository.findAll()
+        H->>D: SELECT * FROM users (1회)
+        D-->>H: users N건
+        H-->>S: User 목록, orders는 프록시
+        loop users N건 반복
+            S->>H: user.getOrders()
+            H->>D: SELECT * FROM orders WHERE user_id = ?
+            D-->>H: 해당 user의 orders
+        end
+        Note over S,D: 총 쿼리 1 + N회, users 100명이면 101회
+    else fetch join
+        S->>H: findAllWithOrders(status)
+        H->>D: SELECT u.*, o.* FROM users u JOIN orders o ON o.user_id = u.id
+        D-->>H: users와 orders가 합쳐진 행
+        H-->>S: orders가 채워진 User 목록
+        Note over S,D: 총 쿼리 1회, getOrders()는 DB를 다시 부르지 않는다
+    end
+```
+
+N이 커질수록 DB 왕복 횟수가 그대로 응답 시간에 더해진다. 쿼리 하나는 1ms여도 101번이면 왕복 지연만 100ms 단위가 된다. 로컬 DB는 왕복이 거의 0이라 안 보이다가, 앱과 DB가 다른 서브넷에 있는 운영 환경에서 처음 드러나는 경우가 많다.
+
 ### JPA에서 잡는 방법
 
 ```java
@@ -232,12 +343,14 @@ List<User> findByStatus(String status);
 fetch join을 쓰면 쿼리 하나로 해결된다.
 
 ```sql
--- fetch join이 만드는 쿼리
+-- JOIN FETCH가 만드는 쿼리. 주문이 없는 회원은 결과에서 빠진다
 SELECT DISTINCT u.*, o.* 
 FROM users u 
-LEFT JOIN orders o ON o.user_id = u.id 
+JOIN orders o ON o.user_id = u.id 
 WHERE u.status = 'ACTIVE';
 ```
+
+`JOIN FETCH`는 INNER JOIN이다. 주문 0건인 회원까지 가져와야 하면 `LEFT JOIN FETCH u.orders`로 써야 한다. 위 JOIN 절에서 본 INNER와 LEFT의 차이가 여기서도 그대로 적용된다.
 
 주의할 점이 있다. fetch join + pagination을 같이 쓰면 Hibernate가 경고를 낸다.
 
@@ -282,7 +395,36 @@ IN절은 IDs 목록이 1,000개를 넘으면 MySQL이 느려지기 시작한다.
 
 ## 실수별 EXPLAIN 확인 흐름
 
-아래는 위에서 다룬 실수들을 직접 재현하고 EXPLAIN으로 확인하는 순서다.
+위에서 다룬 실수들은 EXPLAIN 출력의 `type`, `key`, `rows`, `Extra` 네 컬럼으로 갈린다. 느린 쿼리를 받았을 때 보는 순서는 아래와 같다.
+
+```mermaid
+flowchart TD
+    START["EXPLAIN 실행"] --> T{"type이 ALL인가"}
+    T -->|"예"| K{"key가 NULL인가"}
+    K -->|"예"| SHAPE{"WHERE 모양 확인"}
+    SHAPE -->|"LIKE %값"| F1["앞 와일드카드: LIKE 값% 로 바꾸거나 검색 엔진 검토"]
+    SHAPE -->|"컬럼 타입과 리터럴 타입이 다르다"| F2["묵시적 형변환: 리터럴을 컬럼 타입에 맞춘다"]
+    SHAPE -->|"컬럼에 DATE, LOWER 같은 함수"| F3["함수 제거: 범위 조건으로 바꾼다"]
+    SHAPE -->|"복합 인덱스 선두 컬럼이 없다"| F4["선두 컬럼 조건 추가 또는 인덱스 새로 설계"]
+    K -->|"아니오"| F5["인덱스는 있는데 풀 스캔: 카디널리티가 낮거나 조회 범위가 테이블 대부분"]
+    T -->|"아니오: ref, range"| R{"rows가 크게 나오나"}
+    R -->|"예"| F6["인덱스가 못 거른다: 컬럼 선택도, 복합 인덱스 순서 재검토"]
+    R -->|"아니오"| E{"Extra 확인"}
+    E -->|"Using temporary, Using filesort"| F7["GROUP BY, ORDER BY 컬럼이 인덱스 순서와 맞는지 확인"]
+    E -->|"Using index"| OK["커버링 성공"]
+    F1 --> AGAIN["수정 후 EXPLAIN 다시 실행"]
+    F2 --> AGAIN
+    F3 --> AGAIN
+    F4 --> AGAIN
+    F5 --> AGAIN
+    F6 --> AGAIN
+    F7 --> AGAIN
+    AGAIN --> START
+```
+
+수정한 뒤에 같은 EXPLAIN을 다시 돌려서 `type`과 `key`가 바뀌었는지 확인하는 것까지가 한 사이클이다. 고쳤다고 생각하고 넘어갔는데 key가 여전히 NULL인 경우가 의외로 많다.
+
+아래는 이 흐름을 직접 재현하는 순서다.
 
 ```sql
 -- 테스트 환경 준비 (MySQL 8.0 기준)
@@ -366,6 +508,12 @@ slow_query_log_file = /var/log/mysql/slow.log
 long_query_time = 1  # 1초 이상 걸리는 쿼리 기록
 log_queries_not_using_indexes = 1  # 인덱스 안 타는 쿼리도 기록
 ```
+
+---
+
+## 이 문서에서 다루지 않는 것
+
+페이지네이션에서 `OFFSET`이 커질수록 느려지는 문제와 트랜잭션 격리 수준은 입문 범위를 넘어서 여기서는 다루지 않는다. 트랜잭션이 어떤 단위로 묶이고 격리 수준에 따라 읽기 결과가 어떻게 달라지는지는 백엔드 신입 트랜잭션 입문 문서로 이어진다. 입문 문서가 나오기 전에 필요하면 [트랜잭션과 락](../DataBase/RDBMS/Transaction_and_Lock.md)을 먼저 본다.
 
 ---
 
