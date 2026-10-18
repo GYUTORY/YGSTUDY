@@ -1,10 +1,22 @@
 ---
 title: 백엔드 레이아웃
 tags: [backend, architecture]
-updated: 2026-05-06
+updated: 2026-10-18
 ---
 
 # 백엔드 레이아웃
+
+## 읽는 순서
+
+신입은 "계층형 아키텍처"와 "패키지 구성" 두 절만 먼저 읽으면 된다. 첫 프로젝트에서 쓰게 되는 구조는 거의 이 둘이다. 나머지는 도메인이 커져서 구조를 바꿔야 할 때 다시 펴 보는 용도다.
+
+| 순서 | 절 | 언제 읽나 |
+|------|----|-----------|
+| 1 | 계층형 아키텍처, 패키지 구성 | 지금 바로 |
+| 2 | 의존성 방향 규칙, common/util 순환 참조 | 코드 리뷰에서 "순환 참조" 소리를 들었을 때 |
+| 3 | 헥사고날, 클린, DDD | 비즈니스 규칙이 복잡해서 테스트가 DB에 묶일 때 |
+| 4 | 모듈러 모놀리스, Gradle 멀티 모듈, MSA | 빌드가 느려지거나 팀이 둘 이상으로 갈라질 때 |
+| 5 | 언어별 트리 예시, 테스트 배치 | 새 프로젝트를 직접 세팅할 때 |
 
 ## 개요
 
@@ -53,7 +65,27 @@ src/main/java/com/example/shop
 
 ### 의존성 방향
 
-계층형의 핵심 규칙은 단방향 의존이다. Controller → Service → Repository 순서로만 흐른다. 거꾸로 가면 안 된다. `Repository`가 `Service`를 import하면 그날 PR은 막아야 한다. Spring에서 `@Service`가 `@Repository`를 호출하는 건 자연스럽지만, 그 반대는 설계 사고다.
+계층형의 핵심 규칙은 호출이 한 방향으로만 흐른다는 것이다. 아래 그림에서 화살표는 호출 방향이고, 상자 이름은 그 영역에서 다루는 객체다. DTO는 Controller 영역에서 끝나고, Entity는 Repository 영역에서 시작한다. Service는 둘 사이에서 변환을 맡는다.
+
+```mermaid
+flowchart LR
+    Client["클라이언트"]
+    subgraph web["웹 영역 (RequestDto, ResponseDto)"]
+        C["Controller"]
+    end
+    subgraph biz["비즈니스 영역 (Command, Result, 도메인 객체)"]
+        S["Service"]
+    end
+    subgraph data["영속 영역 (Entity)"]
+        R["Repository"]
+    end
+    Client --> C
+    C -->|"RequestDto를 Command로 변환"| S
+    S -->|"Entity 조회, 저장"| R
+    R --> DB[("DB")]
+```
+
+반환값은 반대로 흐르지만 호출 방향이 아니라 데이터 방향이다. `Repository`가 `Service`를 import하면 화살표가 거꾸로 생기므로 그날 PR은 막아야 한다. `@Service`가 `@Repository`를 호출하는 건 자연스럽고 그 반대는 설계 사고다.
 
 ```java
 // 정상
@@ -69,7 +101,7 @@ public class OrderRepository {
 }
 ```
 
-DTO와 Domain 객체의 위치도 자주 논쟁거리다. DTO를 Controller 계층에 두면 Service가 DTO를 모르게 만들 수 있다. 대신 변환 코드가 늘어난다. DTO를 Service 계층까지 끌어들이면 코드가 짧아지지만 외부 표현이 비즈니스 로직에 새어들어 간다. 5년차쯤 되면 이 결정 하나로 후회하는 일이 많다는 걸 안다. 일반적으로 외부 노출 DTO는 Controller 계층에 두고, Service는 도메인 객체나 별도의 Command/Result 객체로 받게 만든다.
+DTO를 Service까지 끌어들이면 코드가 짧아지지만 API 응답 형식이 바뀔 때마다 비즈니스 로직 파일을 열게 된다. Entity를 Controller에서 그대로 응답으로 내보내면 컬럼 하나 추가가 곧 API 변경이 된다. 변환 코드는 늘어도 DTO는 Controller 영역, Entity는 Repository 영역에 가두는 쪽이 후회가 적다. Service는 도메인 객체나 별도의 Command/Result 객체로 받는다.
 
 ## 패키지 구성: Layer-by-Type vs Layer-by-Feature
 
@@ -157,24 +189,38 @@ src/main/java/com/example/shop/order
             └── PaymentApiAdapter.java   // 외부 API 어댑터
 ```
 
-핵심은 의존성 방향이다. `domain`은 어떤 외부 라이브러리도 import하지 않는다. JPA 어노테이션도, Spring 어노테이션도 없다. `application`은 `domain`만 안다. `adapter`는 `application`의 포트를 구현한다. 즉 외부에서 내부로만 의존이 흐른다.
+`domain`은 어떤 외부 라이브러리도 import하지 않는다. JPA 어노테이션도, Spring 어노테이션도 없다. `application`은 `domain`만 안다. `adapter`는 `application`의 포트를 구현한다. 아래 그림에서 모든 화살표는 "의존한다"는 뜻이고, 전부 안쪽을 향한다.
+
+```mermaid
+flowchart LR
+    subgraph outer["adapter (가장 바깥)"]
+        Web["Web Adapter"]
+        Jpa["JPA Adapter"]
+        PayAdapter["Payment API Adapter"]
+    end
+    subgraph app["application (중간)"]
+        UC["UseCase 인바운드 포트"]
+        Service["Application Service"]
+        RepoPort["Repository 아웃바운드 포트"]
+        PayPort["PaymentGateway 아웃바운드 포트"]
+    end
+    subgraph core["domain (가장 안쪽)"]
+        Domain["Domain Model"]
+    end
+    Web --> UC
+    Service -.->|"구현"| UC
+    Service --> Domain
+    Service --> RepoPort
+    Service --> PayPort
+    Jpa -.->|"구현"| RepoPort
+    PayAdapter -.->|"구현"| PayPort
+```
+
+`Service`는 `RepoPort`를 호출하지만 `JpaAdapter`는 모른다. 반대로 `Jpa Adapter`가 `RepoPort`를 구현하므로 화살표가 바깥에서 안쪽으로 들어온다. `Domain Model`은 화살표를 받기만 하고 보내지 않는다. 이 그림을 머릿속에 두고 PR을 보면 `domain`이나 `application`에서 `adapter` 패키지를 import한 줄이 바로 눈에 걸린다.
 
 이 구조의 강점은 도메인 로직을 외부와 분리해서 테스트할 수 있다는 점이다. `PlaceOrderService`를 테스트할 때 `OrderRepository`와 `PaymentGateway`를 가짜 구현체로 바꿔치면 DB나 외부 API 없이 비즈니스 로직만 검증한다.
 
 비용도 만만치 않다. 클래스 수가 1.5~2배 늘어난다. JPA Entity와 Domain Model을 분리하면서 매핑 코드가 폭증한다. 작은 도메인에 헥사고날을 적용하면 보일러플레이트가 비즈니스 로직을 압도한다. 보통 도메인 핵심 비즈니스가 복잡한 모듈에만 헥사고날을 적용하고, 단순 CRUD는 일반 3-tier로 두는 절충이 현실적이다.
-
-```mermaid
-flowchart LR
-    Web[Web Adapter] --> UC[UseCase Port]
-    UC --> Service[Application Service]
-    Service --> Domain[Domain Model]
-    Service --> RepoPort[Repository Port]
-    Service --> PayPort[Payment Port]
-    JpaAdapter[JPA Adapter] -.implements.-> RepoPort
-    PayAdapter[Payment Adapter] -.implements.-> PayPort
-```
-
-도메인은 화살표를 받기만 하고 보내지 않는다. 어댑터는 포트를 구현해서 의존성을 역전시킨다. 이 그림을 머릿속에 그려놓고 PR 리뷰하면 의존성 사고를 잡아내기 쉽다.
 
 ## 클린 아키텍처
 
@@ -201,7 +247,7 @@ src/main/java/com/example/shop
     └── config/
 ```
 
-실무에서 클린 아키텍처를 100% 따르는 프로젝트는 드물다. UseCase마다 Input/Output Boundary 인터페이스를 만들고 Presenter를 따로 두면 코드량이 3배 가까이 늘어난다. 대부분은 헥사고날에 가까운 형태로 변형해서 쓴다. 클린 아키텍처의 본질은 "프레임워크와 도메인의 분리"고, 이 원칙만 지키면 형태는 유연하게 바꿔도 된다.
+실무에서 클린 아키텍처를 100% 따르는 프로젝트는 드물다. UseCase마다 Input/Output Boundary 인터페이스를 만들고 Presenter를 따로 두면 코드량이 3배 가까이 늘어난다. 대부분은 헥사고날에 가까운 형태로 변형해서 쓴다. 클린 아키텍처의 본질은 "프레임워크와 도메인의 분리"고, 이 원칙만 지키면 폴더 모양은 팀 사정에 맞게 바꿔도 된다.
 
 ## DDD 기반 도메인 모듈 분리
 
@@ -294,13 +340,30 @@ user/
 └── UserService.java          // common.auth.CurrentUser 사용
 ```
 
-여기서 `common`이 `user`의 정보를 알아야 하면 양방향 의존이 생긴다. 컴파일은 되지만 모듈 분리가 불가능해진다.
+`user`는 `common`의 예외와 페이지 응답을 쓰고, `common.auth.CurrentUser`는 `User`를 필드로 들고 있다. `user`와 `common`이 서로를 가리키는 순환이다. 컴파일은 되지만 둘 중 하나만 떼어내려 하면 다른 쪽이 딸려 온다.
 
-해결 방법은 두 가지다.
+```mermaid
+flowchart LR
+    user1["user"] --> common1["common"]
+    order1["order"] --> common1
+    common1 -->|"CurrentUser가 User를 참조"| user1
+```
 
-첫째, `common`은 도메인을 모르는 것만 둔다. `StringUtil`, `DateUtil`, `JsonUtils` 정도다. 도메인 개념이 들어가는 순간 그건 더 이상 common이 아니다.
+위 그림에서 `common`에서 `user`로 되돌아가는 화살표가 문제다. 해소하는 방법은 두 가지다.
 
-둘째, 공통처럼 보이지만 도메인 로직인 것은 별도 모듈로 빼낸다. `auth` 모듈, `notification` 모듈처럼 독립시키면 의존 방향이 명확해진다.
+- `common`에는 도메인을 모르는 것만 둔다. `StringUtil`, `DateUtil`, `JsonUtils` 정도다. 도메인 개념이 들어가는 순간 그건 더 이상 common이 아니다.
+- 공통처럼 보이지만 도메인 로직인 것은 별도 모듈로 뺀다. `CurrentUser`는 `auth` 모듈로 옮기고, `User` 대신 id와 role만 가진 `AuthPrincipal`을 쓴다.
+
+```mermaid
+flowchart LR
+    user2["user"] --> auth["auth"]
+    order2["order"] --> auth
+    user2 --> common2["common (도메인 없음)"]
+    order2 --> common2
+    auth --> common2
+```
+
+해소한 뒤에는 `common`이 어디도 가리키지 않는다. 화살표가 `user`, `order`에서 `auth`, `common` 쪽으로만 가므로 `user`를 떼어내도 `common`은 영향이 없다.
 
 config도 비슷한 함정이 있다. 모든 `@Configuration` 클래스를 `config/` 한 폴더에 모으면 처음에는 깔끔해 보인다. 하지만 도메인이 늘어나면 `config/RedisConfig`가 어떤 도메인을 위한 것인지, `config/KafkaConfig`가 어떤 컨텍스트의 메시징인지 추적이 어려워진다. 도메인별로 분산하는 게 낫다.
 
@@ -424,7 +487,7 @@ shop-api/
 
 NestJS는 모듈 단위 의존성 주입이 명시적이다. `OrderModule`이 `UserModule`을 import하지 않으면 `UserService`를 사용할 수 없다. 이걸 잘 활용하면 도메인 경계를 코드 수준에서 강제할 수 있다.
 
-순수 Express 기반 프로젝트는 정해진 구조가 없어서 팀마다 천차만별이다. 흔한 패턴은 다음과 같다.
+순수 Express 기반 프로젝트는 정해진 구조가 없어서 팀마다 천차만별이다. 흔한 패턴은 타입별 폴더다.
 
 ```
 src/
@@ -440,7 +503,7 @@ src/
 
 ## Go 디렉토리 트리 예시
 
-Go는 [golang-standards/project-layout](https://github.com/golang-standards/project-layout)이 사실상 표준처럼 쓰이지만, 공식은 아니다. 작은 프로젝트에는 과한 면이 있다. 핵심만 추리면 다음과 같다.
+Go는 [golang-standards/project-layout](https://github.com/golang-standards/project-layout)이 사실상 표준처럼 쓰이지만, 공식은 아니다. 작은 프로젝트에는 과한 면이 있다. 핵심만 추린 모양이다.
 
 ```
 shop/
@@ -490,7 +553,37 @@ Go는 Java보다 import 사이클에 민감하다. 컴파일러가 순환 import
 
 **2단계: 패키지 의존성 정리**
 
-도메인 간 직접 호출을 인터페이스로 추상화한다. `OrderService`가 `UserService`를 직접 호출하던 것을 `UserPort` 인터페이스로 바꾼다.
+도메인 간 직접 호출을 인터페이스로 추상화한다. `OrderService`가 `UserService`를 직접 호출하던 것을 `UserPort` 인터페이스로 바꾼다. 분해 전에는 서비스와 Repository가 모듈 구분 없이 서로 호출하고 한 스키마를 같이 쓴다.
+
+```mermaid
+flowchart TB
+    OS["OrderService"] --> US["UserService"]
+    US --> OS
+    OS --> UR["UserRepository"]
+    PS["PaymentService"] --> OR["OrderRepository"]
+    US --> OR
+    OR --> DB[("단일 스키마")]
+    UR --> DB
+```
+
+`OrderService`와 `UserService`가 서로 부르고, `UserService`는 `OrderRepository`까지 직접 읽는다. 분해 후에는 호출이 모듈 경계의 포트 하나로만 건너가고, 스키마도 모듈마다 갈라진다.
+
+```mermaid
+flowchart TB
+    subgraph orderMod["order 모듈"]
+        OS2["OrderService"] --> UP["UserPort"]
+        OS2 --> OR2["OrderRepository"]
+    end
+    subgraph userMod["user 모듈"]
+        UPI["UserPortImpl"] --> US2["UserService"]
+        US2 --> UR2["UserRepository"]
+    end
+    UPI -.->|"구현"| UP
+    OR2 --> ODB[("order 스키마")]
+    UR2 --> UDB[("user 스키마")]
+```
+
+`order` 모듈은 `UserPort`만 알고 `user` 모듈 안쪽은 모른다. `user`에서 `order`로 향하는 화살표가 사라졌다는 점을 확인하면 된다.
 
 ```java
 // Before
@@ -572,7 +665,7 @@ shop/
     └── src/main/java/...
 ```
 
-`settings.gradle`은 다음과 같다.
+`settings.gradle`에는 모듈을 나열한다.
 
 ```groovy
 rootProject.name = 'shop'
