@@ -10,7 +10,6 @@ updated: 2025-12-21
 - [Buffer란?](#buffer란)
 - [TCP란?](#tcp란)
 - [Buffer와 TCP의 관계](#buffer와-tcp의-관계)
-- [실제 사용 예제](#실제-사용-예제)
 
 ---
 
