@@ -1,7 +1,7 @@
 ---
 title: 백엔드 신입 Docker 입문
 tags: [docker, devops, backend, linux]
-updated: 2026-09-28
+updated: 2026-10-18
 ---
 
 # 백엔드 신입 Docker 입문
@@ -41,6 +41,27 @@ Docker를 처음 접할 때 어디서 시작할지 막막한 경우가 많다. �
 ## 컨테이너가 VM과 다른 이유
 
 VM은 OS를 통째로 올린다. 하이퍼바이저 위에 Guest OS가 올라가고 그 위에 앱이 돈다. 컨테이너는 호스트 OS의 커널을 공유하고, 프로세스 격리(namespace)와 자원 제한(cgroups)으로 환경을 분리한다.
+
+두 스택을 나란히 놓으면 차이는 커널이 몇 개 도는지로 정리된다. 왼쪽은 앱마다 Guest OS(커널 포함)가 하나씩 붙고, 오른쪽은 커널이 호스트에 하나뿐이다.
+
+```mermaid
+flowchart TB
+    subgraph VMSTACK["VM 방식"]
+        VA1["앱 A + 라이브러리"] --> VG1["Guest OS 커널 A"]
+        VA2["앱 B + 라이브러리"] --> VG2["Guest OS 커널 B"]
+        VG1 --> HV["하이퍼바이저"]
+        VG2 --> HV
+        HV --> VH["호스트 하드웨어"]
+    end
+    subgraph CTSTACK["컨테이너 방식"]
+        CA1["앱 A + 라이브러리"] --> RT["컨테이너 런타임"]
+        CA2["앱 B + 라이브러리"] --> RT
+        RT --> HK["호스트 OS 커널 (공유)"]
+        HK --> CH["호스트 하드웨어"]
+    end
+```
+
+커널을 공유하기 때문에 생기는 제약도 있다. Linux 컨테이너는 Linux 커널 위에서만 돈다. Mac이나 Windows의 Docker Desktop은 내부에 작은 Linux VM을 하나 띄우고 그 안에서 컨테이너를 돌린다. Mac에서 `docker run`이 Linux 서버보다 느리고, 바인드 마운트 I/O가 유난히 느린 이유가 이 VM 경계다. 로컬 성능 수치를 서버 성능으로 그대로 가져오면 틀린다.
 
 실무적으로 이 차이가 중요한 이유는 두 가지다.
 
@@ -100,6 +121,52 @@ cd build/dependency && jar -xf ../libs/app.jar
 더 간단하게는 Spring Boot 2.3 이상이면 `bootBuildImage` 태스크가 Buildpacks로 레이어를 자동 분리한 이미지를 만들어준다. 다만 Buildpacks 이미지는 크기가 크고 빌드가 느려서 CI 시간이 아깝다면 직접 분리하는 게 낫다.
 
 실무에서 레이어 캐시 효과는 빌드 시간 기준으로 봤을 때 의존성 레이어가 캐시될 경우 2~3분 → 30초 수준으로 줄었다. CI 빌드 비용이 있는 환경에서 차이가 크다.
+
+### 무엇이 바뀌면 어디서부터 다시 빌드되나
+
+Docker는 Dockerfile 위에서 아래로 명령을 하나씩 보면서 캐시를 확인한다. 한 레이어가 무효화되면 그 아래 레이어는 내용이 같아도 전부 다시 만든다. 위쪽에 자주 안 바뀌는 것(`build.gradle`)을, 아래쪽에 자주 바뀌는 것(`src`)을 두는 이유가 이것이다.
+
+Gradle 프로젝트를 컨테이너 안에서 직접 빌드하는 경우를 기준으로 하면 이런 순서가 된다.
+
+```dockerfile
+FROM gradle:8-jdk17-alpine AS build
+WORKDIR /workspace
+
+COPY build.gradle settings.gradle ./
+RUN gradle dependencies --no-daemon > /dev/null
+
+COPY src src
+RUN gradle bootJar --no-daemon
+```
+
+같은 Dockerfile이라도 무엇이 바뀌었느냐에 따라 다시 빌드되는 범위가 갈린다. 위쪽 흐름은 `src`만 고친 경우, 아래쪽 흐름은 `build.gradle`에 의존성을 추가한 경우다.
+
+```mermaid
+flowchart LR
+    subgraph SRC["소스만 바뀐 경우"]
+        direction LR
+        S1["FROM, WORKDIR 캐시 사용"] --> S2["COPY build.gradle 캐시 사용"]
+        S2 --> S3["RUN gradle dependencies 캐시 사용"]
+        S3 --> S4["COPY src 다시 빌드"]
+        S4 --> S5["RUN gradle bootJar 다시 빌드"]
+    end
+    subgraph GRADLE["build.gradle이 바뀐 경우"]
+        direction LR
+        G1["FROM, WORKDIR 캐시 사용"] --> G2["COPY build.gradle 다시 빌드"]
+        G2 --> G3["RUN gradle dependencies 다시 빌드, 의존성 재다운로드"]
+        G3 --> G4["COPY src 다시 빌드"]
+        G4 --> G5["RUN gradle bootJar 다시 빌드"]
+    end
+```
+
+소스만 바뀐 경우 의존성 다운로드(`gradle dependencies`)가 캐시에서 나오고, `build.gradle`이 바뀌면 그 지점부터 아래가 전부 새로 돈다. 두 번째 경우에 `src`는 한 글자도 안 바뀌었는데도 `COPY src`가 다시 실행된다는 점이 핵심이다. 캐시 판단은 "내 입력이 바뀌었나"와 "위 레이어가 바뀌었나" 두 조건을 모두 본다.
+
+이 구조에서 자주 틀리는 것들이다.
+
+- 이 문서 아래쪽 "이미지 크기가 예상보다 크다"의 multi-stage 예제는 `COPY . .`을 먼저 한다. 소스 한 줄만 바뀌어도 이 레이어가 무효화되고, 뒤의 `gradle bootJar`가 의존성부터 다시 받는다. 크기를 줄이는 예제이지 캐시를 살리는 예제가 아니다.
+- `gradle dependencies`는 루트 프로젝트의 의존성 설정만 해석한다. 테스트 의존성이나 컴파일러 도구는 `bootJar` 단계에서 일부 다시 받는 경우가 있다. 완전히 막고 싶으면 BuildKit의 `RUN --mount=type=cache`로 Gradle 캐시 디렉토리를 레이어 밖에 두는 방법이 있고, 이 경우 `build.gradle`이 바뀌어도 이미 받은 jar는 재사용된다. 설정은 [Docker BuildKit](../DevOps/Kubernetes/Docker/Docker_Build_Kit.md)에 있다.
+- 멀티 모듈 프로젝트는 `settings.gradle`과 모듈별 `build.gradle`을 전부 먼저 COPY해야 한다. 하나라도 빠지면 `gradle dependencies`가 실패하거나 의존성 레이어가 헐거워진다.
+- CI 러너는 매번 깨끗한 환경이라 로컬 캐시가 없다. 로컬에서 30초 걸리던 빌드가 CI에서 3분 걸리는 건 캐시를 따로 저장하지 않아서다. `--cache-from`이나 CI의 레이어 캐시 기능을 켜야 한다.
 
 ### 빌드 컨텍스트 크기
 
@@ -183,10 +250,11 @@ services:
   mysql:
     image: mysql:8.0
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 30s
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: myapp
@@ -196,7 +264,90 @@ services:
 
 `condition: service_healthy`가 핵심이다. healthcheck가 통과해야 app 컨테이너가 시작된다.
 
+`docker compose up`을 실행하면 네트워크, 볼륨, 컨테이너가 생기는 순서와 app이 기다리는 지점은 이렇다. mysql이 healthy가 되는 지점에서 app 시작이 풀리고, 끝내 healthy가 안 되면 app은 아예 시작하지 않는다.
+
+```mermaid
+sequenceDiagram
+    participant U as 개발자
+    participant C as compose
+    participant N as 프로젝트 네트워크
+    participant V as 볼륨 mysql_data
+    participant D as mysql 컨테이너
+    participant A as app 컨테이너
+
+    U->>C: docker compose up
+    C->>N: 네트워크 생성
+    C->>V: 볼륨 생성 (이미 있으면 재사용)
+    C->>D: mysql 컨테이너 시작
+    D->>V: /var/lib/mysql 마운트
+    D->>N: 서비스 이름 mysql 로 DNS 등록
+    Note over C,A: app은 depends_on 조건 때문에 대기
+    loop interval 5초마다, 최대 retries 5회
+        C->>D: healthcheck 실행 (mysqladmin ping)
+        D-->>C: starting 또는 healthy
+    end
+    alt healthy 판정
+        C->>A: app 컨테이너 시작
+        A->>N: mysql 이름 조회
+        N-->>A: mysql 컨테이너 IP
+        A->>D: JDBC 연결 mysql:3306
+        D->>V: 데이터 읽기 쓰기
+    else retries 소진
+        C-->>U: dependency failed to start, mysql is unhealthy
+    end
+```
+
+healthcheck에서 `start_period`를 빼면 처음 `up`을 할 때 자주 실패한다. 볼륨이 비어 있으면 MySQL이 데이터 디렉토리 초기화와 `MYSQL_DATABASE`, 사용자 생성을 하느라 25초(5초 × 5회)보다 오래 걸리는 경우가 있다. 그러면 `retries`가 소진되어 `dependency failed to start: container mysql is unhealthy`로 끝나고 app은 뜨지도 못한다. 두 번째 `up`부터는 볼륨에 데이터가 있어 통과하니, 처음에만 실패하는 형태라 원인을 놓치기 쉽다. `start_period` 동안의 실패는 `retries`에 세지 않으므로 초기화에 걸리는 시간만큼 넉넉히 준다.
+
+`-h`를 `127.0.0.1`로 둔 이유도 있다. mysql 공식 이미지는 초기화 중에 네트워크를 끈 임시 서버를 먼저 띄운다. `-h localhost`는 Unix 소켓으로 붙기 때문에 이 임시 서버에도 `ping`이 성공하고, healthy가 뜬 직후 서버가 재시작되면서 app의 첫 연결이 끊기는 경우가 있다. `127.0.0.1`은 TCP로 붙으므로 임시 서버에서는 실패한다.
+
+### localhost로 DB에 접속이 안 되는 이유
+
 앱에서 DB 호스트는 `localhost`가 아니라 서비스 이름 `mysql`이다. compose 네트워크 안에서 서비스 이름이 DNS로 해석된다.
+
+신입이 가장 많이 겪는 함정이 이 부분이다. IntelliJ에서 앱을 실행할 때는 `jdbc:mysql://localhost:3307/myapp`으로 잘 붙던 설정을 그대로 app 컨테이너에 넣으면 연결이 안 된다. 컨테이너마다 네트워크 네임스페이스가 따로 있어서, 컨테이너 안의 `localhost`는 호스트 PC가 아니라 그 컨테이너 자신이다. app 컨테이너의 3306에는 아무도 listen하지 않으니 연결이 거부된다.
+
+```mermaid
+flowchart LR
+    subgraph HOST["호스트 PC"]
+        IDE["IntelliJ로 실행한 앱"]
+        subgraph NET["compose 네트워크"]
+            APP["app 컨테이너"]
+            LO["app 자신의 localhost 3306, listen하는 프로세스 없음"]
+            DB["mysql 컨테이너 3306"]
+        end
+    end
+    IDE -->|"localhost:3307, ports로 게시된 포트"| DB
+    APP -->|"localhost:3306"| LO
+    APP -->|"mysql:3306, 서비스 이름 DNS"| DB
+```
+
+세 화살표가 서로 다른 주소를 쓴다는 점을 본다. 호스트에서 접근할 때만 `ports`로 게시한 포트를 쓰고, 컨테이너끼리는 서비스 이름과 컨테이너 내부 포트를 쓴다.
+
+| 앱이 실행되는 곳 | 접속 주소 | 이유 |
+|---|---|---|
+| 호스트 PC (IDE, `./gradlew bootRun`) | `localhost:3307` | `ports: "3307:3306"`의 호스트 쪽 포트 |
+| 같은 compose의 app 컨테이너 | `mysql:3306` | 서비스 이름 DNS, 내부 포트 그대로 |
+| 컨테이너에서 호스트 PC의 DB | `host.docker.internal:3306` | Docker Desktop 기본 제공, Linux는 `extra_hosts`로 `host.docker.internal:host-gateway` 추가 |
+
+증상은 JDBC 쪽에서 `Communications link failure`나 `Connection refused`로 보인다. 앱 로그에서 이 에러가 나면 비밀번호를 의심하기 전에 호스트 이름부터 본다. 컨테이너 안에서 직접 확인하는 방법이 가장 빠르다.
+
+```bash
+docker compose exec app sh
+getent hosts mysql        # 172.x.x.x  mysql  -> 이름이 풀리면 네트워크는 정상
+wget -qO- -T1 localhost:3306   # Connection refused -> localhost는 자기 자신
+```
+
+설정은 환경변수로 분리해서 두 환경이 같은 코드로 돌게 한다. `application.yml`은 기본값을 로컬 IDE 기준으로 두고, compose에서는 환경변수로 덮어쓴다.
+
+```yaml
+# application.yml
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/myapp}
+```
+
+app에서 mysql로 가는 경로에는 `ports`가 필요 없다. `ports`는 호스트 PC에서 접근할 때만 쓴다. 운영 서버나 공용 개발 서버에서 `"3306:3306"`을 그대로 두면 DB가 호스트의 모든 인터페이스에 노출되니, 외부에서 접근할 필요가 없으면 `ports`를 빼거나 `"127.0.0.1:3307:3306"`으로 로컬에만 연다.
 
 ---
 
