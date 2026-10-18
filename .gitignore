@@ -21,3 +21,5 @@ _workspace/
 
 # jsdom(브라우저 없는 DOM 테스트용) 설치본
 node_modules/
+*.whl
+*.tar.gz
