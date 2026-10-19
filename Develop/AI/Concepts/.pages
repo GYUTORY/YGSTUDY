@@ -6,6 +6,7 @@ nav:
   - LCEL (LangChain Expression Language): Lang_Chain_LCEL.md
   - LangChain Agent: Lang_Chain_Agents.md
   - LlamaIndex 실무 정리: Llama_Index_Deep_Dive.md
+  - LLM 프레임워크 관측·비용 집계·테스트: LLM_Framework_Observability_And_Testing.md
   - 에이전트:
     - Agent Harness: Agent_Harness.md
     - 멀티 에이전트 시스템: Multi_Agent_Systems.md

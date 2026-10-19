@@ -10,7 +10,7 @@ updated: 2026-10-20
 
 # 개념 전체 보기
 
-문서 47개.
+문서 48개.
 
 ## 에이전트
 
@@ -60,6 +60,7 @@ updated: 2026-10-20
 - [LLM 토크나이저 — BPE 내부 동작과 병리 현상](LLM_Tokenizer.md)
 - [LLM 파인튜닝 실무](LLM_Fine_Tuning.md)
 - [LLM 평가 방법론](LLM_Evaluation.md)
+- [LLM 프레임워크 관측·비용 집계·테스트](LLM_Framework_Observability_And_Testing.md)
 - [LangChain / LlamaIndex vs 순수 SDK](Lang_Chain_vs_SDK.md)
 - [LangChain Agent](Lang_Chain_Agents.md)
 - [LlamaIndex 실무 정리](Llama_Index_Deep_Dive.md)
