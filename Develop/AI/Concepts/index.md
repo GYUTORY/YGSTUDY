@@ -10,7 +10,7 @@ updated: 2026-10-20
 
 # 개념 전체 보기
 
-문서 46개.
+문서 47개.
 
 ## 에이전트
 
@@ -62,6 +62,7 @@ updated: 2026-10-20
 - [LLM 평가 방법론](LLM_Evaluation.md)
 - [LangChain / LlamaIndex vs 순수 SDK](Lang_Chain_vs_SDK.md)
 - [LangChain Agent](Lang_Chain_Agents.md)
+- [LlamaIndex 실무 정리](Llama_Index_Deep_Dive.md)
 - [OpenAI Assistants API vs Claude Agent SDK](Assistants_vs_Agent_SDK.md)
 - [Prompt Caching](Prompt_Caching.md)
 - [RAG 파이프라인 보안](RAG_Security.md)

@@ -5,6 +5,7 @@ nav:
   - LangChain vs 순수 SDK: Lang_Chain_vs_SDK.md
   - LCEL (LangChain Expression Language): Lang_Chain_LCEL.md
   - LangChain Agent: Lang_Chain_Agents.md
+  - LlamaIndex 실무 정리: Llama_Index_Deep_Dive.md
   - 에이전트:
     - Agent Harness: Agent_Harness.md
     - 멀티 에이전트 시스템: Multi_Agent_Systems.md
