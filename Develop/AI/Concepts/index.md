@@ -3,13 +3,14 @@ title: 개념 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-19
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # 개념 전체 보기
 
-문서 44개.
+문서 45개.
 
 ## 에이전트
 
@@ -49,6 +50,7 @@ hide:
 - [LLM 동작 원리와 프로덕션 통합](LLM.md)
 - [LLM 레드팀 테스트](LLM_Red_Teaming.md)
 - [LLM 보안 위협과 대응](LLM_Security.md)
+- [LLM 분산 학습](Distributed_Training.md)
 - [LLM 사전학습 파이프라인](LLM_Pretraining.md)
 - [LLM 스케일링 법칙](LLM_Scaling_Laws.md)
 - [LLM 에이전트 (Claude 관점)](LLM_Agent.md)

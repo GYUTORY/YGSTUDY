@@ -920,6 +920,8 @@ Karpathy가 GPT-2 124M을 재현한 조건을 옮길 때 GPU 종류를 확인해
 
 7B 모델은 GPU 1장에 안 들어간다. 파라미터는 14GB(BF16)인데 optimizer 상태까지 합치면 112GB다. 병렬화는 "무엇을 어느 GPU에 나눠 놓고, 그 대가로 어떤 통신을 감수할 것인가"를 정하는 일이다. 계산은 전부 `/tmp`에서 순수 Python으로 돌려 확인했고, 실제 GPU 클러스터 수치는 공개 논문 값을 따로 표시했다.
 
+이 절은 개요다. FSDP 코드 실행, 파이프라인 bubble 계산, OOM 원인 분류, 샤드 체크포인트의 resharding까지 풀어 쓴 내용은 [LLM 분산 학습](Distributed_Training.md)에 따로 있다.
+
 ### 8.1 메모리 계산
 
 혼합 정밀도 Adam 학습에서 파라미터 하나당 드는 바이트는 BF16 가중치 2, BF16 gradient 2, FP32 master 가중치 4, FP32 moment 두 개 8로 합이 16이다. [ZeRO 논문](https://arxiv.org/abs/1910.02054)이 쓰는 분해와 같다. `torch.autocast`로 FP32 가중치를 들고 가는 구성도 4+4+8로 합이 16이라 결과는 같다.

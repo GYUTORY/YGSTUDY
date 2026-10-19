@@ -37,6 +37,7 @@ nav:
   - LLM:
     - 동작 원리와 프로덕션 통합: LLM.md
     - 사전학습 파이프라인: LLM_Pretraining.md
+    - 분산 학습 병렬화: Distributed_Training.md
     - 토크나이저: LLM_Tokenizer.md
     - 추론 최적화 심화: LLM_Inference_Optimization.md
     - vLLM 프로덕션 운영: v_LLM_Production.md
