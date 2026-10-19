@@ -1,12 +1,54 @@
 ---
 title: RabbitMQ 심화
-tags: [messaging, backend]
-updated: 2026-04-02
+tags: [messaging, backend, aws]
+updated: 2026-10-19
 ---
 
 # RabbitMQ 심화
 
 RabbitMQ는 AMQP 0-9-1 프로토콜 기반의 메시지 브로커다. Kafka와 달리 메시지를 Consumer가 처리하면 큐에서 제거하는 전통적인 메시지 큐 모델이다. 이 문서는 RabbitMQ를 운영 수준에서 다루기 위해 필요한 내용을 정리한다.
+
+---
+
+## 메시지가 큐에 닿는 경로
+
+Producer는 큐에 직접 쓰지 않는다. Exchange에 메시지를 발행하고, Exchange가 바인딩 규칙에 따라 큐를 고른다. Consumer는 큐에서만 읽는다. 이 구조를 놓치면 "publish는 성공했는데 아무도 못 받는" 상황을 설명할 수 없다.
+
+아래 도식은 Exchange 타입 네 가지가 각자 어떤 기준으로 큐를 고르는지 보여준다. Exchange 하나는 타입 하나만 가진다. 같은 메시지를 타입별로 다르게 나누려면 Exchange를 따로 만든다.
+
+```mermaid
+flowchart LR
+    P1["Producer A"] -->|"routing key: order.kr.created"| XD{{"direct Exchange"}}
+    P1 -->|"routing key: order.kr.created"| XT{{"topic Exchange"}}
+    P2["Producer B"] --> XF{{"fanout Exchange"}}
+    P2 -->|"헤더 region=kr, tier=gold"| XH{{"headers Exchange"}}
+
+    XD -->|"Binding: order.kr.created"| Q1[["Queue: payment"]]
+    XT -->|"Binding: order.*.created"| Q2[["Queue: shipping"]]
+    XT -->|"Binding: order.#"| Q3[["Queue: audit"]]
+    XF -->|"Binding: 조건 없음"| Q3
+    XF -->|"Binding: 조건 없음"| Q4[["Queue: mail"]]
+    XH -->|"Binding: x-match=all"| Q5[["Queue: vip"]]
+
+    Q1 --> C1["Consumer"]
+    Q2 --> C2["Consumer"]
+    Q3 --> C3["Consumer"]
+    Q4 --> C4["Consumer"]
+    Q5 --> C5["Consumer"]
+```
+
+타입별 매칭 규칙은 4.0.9 단일 노드에서 직접 발행해 확인했다.
+
+| 타입 | 매칭 기준 | 확인한 결과 |
+|------|-----------|-------------|
+| direct | routing key와 binding key가 정확히 일치 | 일치하지 않으면 큐에 가지 않는다 |
+| topic | `*`는 단어 하나, `#`은 단어 0개 이상 | `order.*.created`에 `order.kr.created`만 매칭, `order.created`와 `order.kr.jp.created`는 불일치. `order.#`에는 세 키가 모두 매칭 |
+| fanout | routing key를 보지 않고 바인딩된 모든 큐로 복사 | 큐마다 사본이 생긴다 |
+| headers | 메시지 헤더와 binding 인자 비교, `x-match`가 `all`이면 전부 일치해야 한다 | `region=kr, tier=gold` 둘 다 있으면 라우팅, `region=kr`만 있으면 `routed: false` |
+
+topic에서 `*`와 `#`을 헷갈리면 큐가 비어 있는 원인을 한참 찾게 된다. `order.*.created`는 점으로 구분한 단어가 정확히 세 개일 때만 맞는다. 단어 수가 가변이면 `#`을 써야 한다.
+
+도식의 `audit` 큐처럼 한 큐에 topic과 fanout이 같이 바인딩돼 있으면, 같은 이벤트를 두 Exchange에 모두 발행하는 순간 사본이 두 개 쌓인다. 바인딩을 추가할 때는 그 큐에 이미 걸린 다른 Exchange를 먼저 본다.
 
 ---
 
@@ -215,6 +257,28 @@ Consumer 받음 → 처리 실패 → nack(requeue=true) → 큐에 재입력 �
 2. amqplib 레벨에서 재시도 카운터를 관리한다 (아래 참조)
 3. `requeue: false`로 설정하고 DLQ에서 별도 처리한다
 
+### ack, nack, requeue가 DLX로 이어지는 경로
+
+메시지는 큐에서 Consumer로 나가는 순간 `unacked`가 되고, 이후 경로는 Consumer가 무엇을 보내느냐로 갈린다. Consumer가 응답하지 않고 채널이나 연결이 끊기면 브로커가 `unacked` 메시지를 `ready`로 되돌린다. TTL 만료와 max-length 초과는 Consumer와 무관하게 큐 쪽에서 바로 DLX로 간다.
+
+```mermaid
+flowchart TD
+    R["Queue: ready"] -->|"deliver"| U["unacked"]
+    U -->|"ack"| DONE["큐에서 제거"]
+    U -->|"채널/연결 종료"| R
+    U -->|"nack/reject, requeue=true"| LIM{"x-delivery-limit 초과<br/>(쿼럼 큐만)"}
+    LIM -->|"아니오"| R
+    LIM -->|"예"| DLXQ{"DLX 설정됨"}
+    U -->|"nack/reject, requeue=false"| DLXQ
+    R -->|"message TTL 만료<br/>x-max-length 초과"| DLXQ
+    DLXQ -->|"예"| DLQ["Dead Letter Exchange<br/>→ DLQ"]
+    DLXQ -->|"아니오"| DROP["메시지 폐기"]
+```
+
+`LIM`에서 `ready`로 돌아가는 화살표가 무한 루프의 원인이다. 쿼럼 큐에서는 `x-delivery-limit`이 그 루프를 끊는다. 이 판정에 기대지 않는 경우에는 앞에서 말한 대로 재시도 횟수를 직접 세야 한다.
+
+4.0.9 쿼럼 큐에서 `x-delivery-limit: 2`, DLX 지정, 매번 `requeue=true`로 reject하는 조건으로 돌려봤다. 전달은 총 3번 일어났다. 최초 전달 1번에 재전달 2번이고, 네 번째 get은 빈 결과였다. DLQ에 들어온 메시지의 `x-death`는 `reason: delivery_limit`이었다. 아래 DLX 절에서 다루는 `rejected`, `expired`, `maxlen`에 이 값이 하나 더 있다.
+
 ### Prefetch Count
 
 ```typescript
@@ -319,16 +383,43 @@ export class ChannelPoolService {
 
 ### Quorum Queue vs Classic Mirrored Queue
 
-RabbitMQ 3.8부터 Quorum Queue가 도입됐고, Classic Mirrored Queue는 3.13부터 deprecated다. 신규 시스템은 Quorum Queue를 써야 한다.
+RabbitMQ 3.8부터 Quorum Queue가 도입됐다. Classic Mirrored Queue는 3.13.7에서 `rabbitmqctl list_deprecated_features`에 `classic_queue_mirroring`이 `permitted_by_default`로 올라 있고, 4.0.9에서는 같은 항목이 `removed`다. 4.0.9에 `ha-mode` 정책을 걸면 `are not recognised policy settings`로 400이 돌아온다. 3.13에서 잘 돌던 정책 스크립트가 4.0 업그레이드 때 그대로 실패한다는 뜻이다. 신규 시스템은 Quorum Queue를 써야 한다.
+
+두 방식은 리더가 죽었을 때 새 리더를 정하는 방식이 다르다. 아래 도식은 3노드 클러스터에서 노드 1이 리더(마스터)일 때를 기준으로 그렸다.
+
+```mermaid
+flowchart LR
+    subgraph CM["Classic Mirrored Queue (3.13 이하)"]
+        direction TB
+        CP["Publisher"] --> CL["노드 1: 마스터"]
+        CL -->|"정책 ha-mode로 복제"| CM2["노드 2: 미러"]
+        CL -->|"정책 ha-mode로 복제"| CM3["노드 3: 미러"]
+        CL -.->|"노드 1 장애"| CPR["동기화된 미러 중 하나가 마스터로 승격"]
+    end
+
+    subgraph QQ["Quorum Queue (Raft)"]
+        direction TB
+        QP["Publisher"] --> QL["노드 1: 리더"]
+        QL -->|"로그 복제"| QF2["노드 2: 팔로워"]
+        QL -->|"로그 복제"| QF3["노드 3: 팔로워"]
+        QL -.->|"노드 1 장애"| QEL["남은 팔로워가 투표해 과반수로 새 리더 선출"]
+    end
+```
+
+왼쪽은 마스터가 죽으면 살아 있는 미러 중에서 승격시킨다. 오른쪽은 투표다. 과반수가 모이지 않으면 리더가 뽑히지 않는다. 3.13.7 3노드 클러스터에 `ha-mode: all`, `ha-sync-mode: automatic` 정책을 걸고 마스터 노드(노드 1)를 내리자 동기화된 미러였던 노드 3이 마스터가 됐고, 노드 2는 그대로 미러로 남았다.
+
+4.0.9 3노드 클러스터에서 쿼럼 큐를 선언하면 `x-quorum-initial-group-size`를 주지 않아도 멤버 3개(리더 1, 팔로워 2)로 만들어졌다. 리더 노드를 내리면 남은 두 노드 중 하나가 새 리더가 됐다. `rabbitmq-queues quorum_status`에서 내려간 노드는 `{nodedown,...}`으로 보이고, 리더 선출을 거치면서 Term이 1에서 4로 올라갔다. 노드를 하나 더 내려 한 대만 남기면 그 노드는 `leader`가 되지 못하고 `pre_vote`에 머물렀다. 과반수(3대 중 2대)를 채우지 못하면 투표가 끝나지 않는다.
 
 | 항목 | Classic Mirrored Queue | Quorum Queue |
 |------|----------------------|--------------|
-| 복제 방식 | 비동기 미러링 (ha-mode) | Raft 합의 알고리즘 |
-| 데이터 안전성 | 미러 lag 중 마스터 장애 시 유실 가능 | 과반수 노드에 기록된 후 ack |
+| 복제 방식 | 마스터 1개와 미러, `ha-mode` 정책으로 지정 | Raft 합의 알고리즘 |
+| 리더 장애 시 | 동기화된 미러가 마스터로 승격 | 팔로워 투표로 새 리더 선출, 과반수 필요 |
 | 설정 | Policy 기반 (`ha-mode`, `ha-params`) | Queue 선언 시 `x-queue-type: quorum` |
-| 비순차 재전달 | 없음 | 있을 수 있음 (at-least-once) |
-| TTL 지원 | 지원 | 메시지 TTL만 지원 (큐 TTL 미지원) |
-| Priority Queue | 지원 | 미지원 |
+| 메시지 TTL(`x-message-ttl`) | 지원 | 선언 성공 (3.13.7, 4.0.9) |
+| 큐 TTL(`x-expires`) | 지원 | 선언 성공 (3.13.7, 4.0.9) |
+| `x-max-priority` | 지원 | 선언 거부 (3.13.7, 4.0.9) |
+| `exclusive`, non-durable | 가능 | 선언 거부 (3.13.7, 4.0.9) |
+| 4.0 이후 | 제거됨 | 복제 큐의 유일한 선택지 |
 
 **Quorum Queue 선언:**
 
@@ -385,7 +476,7 @@ await channel.assertQueue('my.lazy.queue', {
 - Memory Alarm이 자주 발생하는 환경
 - 처리량보다 안정성이 중요한 경우
 
-RabbitMQ 3.12부터 Quorum Queue는 기본적으로 lazy 동작을 한다. Classic Queue에서만 별도 설정이 필요하다.
+쿼럼 큐에는 `x-queue-mode: lazy`를 줄 수 없다. 3.13.7과 4.0.9 모두 `invalid arg 'x-queue-mode' ... of queue type rabbit_quorum_queue`로 선언이 거부된다. 쿼럼 큐를 쓰는 곳에서 기존 클래식 큐 선언 코드를 복사해 오면서 이 인자를 같이 끌고 오면 여기서 걸린다. Classic 큐 선언은 4.0.9에서도 받아들여졌지만, 4.0에서 이 인자가 실제로 동작을 바꾸는지는 확인하지 않았다.
 
 ### Priority Queue
 
@@ -430,6 +521,16 @@ Memory Alarm이 발생하면:
 1. Publisher Connection이 블로킹된다 (write 버퍼가 꽉 찬 것처럼 동작)
 2. 브로커가 메모리를 확보하려고 큐의 메시지를 디스크로 내린다 (paging)
 3. 메모리가 임계값 아래로 내려가면 블로킹이 풀린다
+
+아래 도식은 위 세 단계를 상태 전이로 그린 것이다. 블로킹된 동안에도 Consumer는 계속 동작하므로 메모리가 줄어들 길이 열려 있다는 점을 보면 된다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Normal
+    Normal --> Blocked : 메모리가 high watermark 초과
+    Blocked --> Blocked : paging 으로 큐 메시지를 디스크에 내림
+    Blocked --> Normal : 메모리가 임계값 아래로 내려감
+```
 
 `vm_memory_high_watermark_paging_ratio`(기본 0.5)를 설정하면 임계값의 50%에서 미리 paging을 시작한다.
 
@@ -519,6 +620,23 @@ rabbitmqctl set_policy federate-me "^federated\." \
 - 단순히 한쪽에서 다른 쪽으로 메시지를 옮기는 거면 Shovel
 - 여러 데이터센터의 exchange를 논리적으로 합치고 싶으면 Federation
 - Shovel은 항상 메시지를 전달하고, Federation은 downstream에 Consumer가 있을 때만 전달한다
+
+두 방식의 전달 조건 차이를 나란히 놓으면 아래와 같다. Federation 쪽에서만 downstream의 Consumer 유무가 분기점이 된다.
+
+```mermaid
+flowchart LR
+    subgraph SH["Shovel"]
+        direction LR
+        SQ["source Queue"] -->|"항상 꺼내서 전달"| SD["dest Exchange / Queue"]
+    end
+
+    subgraph FD["Federation"]
+        direction LR
+        UP["upstream Exchange"] --> CHK{"downstream에 Consumer 있음"}
+        CHK -->|"예"| DOWN["downstream Exchange"]
+        CHK -->|"아니오"| HOLD["전달하지 않음"]
+    end
+```
 
 ---
 
@@ -638,6 +756,19 @@ export class RabbitConsumerService {
 ```
 
 주의: 재시도 간격이 길면 해당 Promise가 묶인다. prefetch에 포함된 다른 메시지 처리도 지연된다.
+
+위 `consumeWithRetry`의 분기를 흐름으로 그리면 아래와 같다. 재시도는 requeue 없이 Consumer 프로세스 안에서 돌고, 마지막에만 `nack(requeue=false)`로 DLX에 넘긴다.
+
+```mermaid
+flowchart TD
+    M["메시지 수신"] --> H["handler 실행"]
+    H -->|"성공"| A["ack"]
+    H -->|"실패"| C{"attempt >= maxAttempts"}
+    C -->|"아니오"| W["지수 백오프 대기<br/>delay *= multiplier"]
+    W --> H
+    C -->|"예"| N["nack, requeue=false"]
+    N --> DLX["DLX → DLQ"]
+```
 
 ### MessageRecoverer 패턴
 
@@ -761,6 +892,9 @@ export class MultiConsumerService implements OnModuleInit {
 1. Consumer가 `reject` 또는 `nack`(requeue=false)
 2. 메시지 TTL 만료
 3. 큐의 max-length 초과
+4. 쿼럼 큐에서 `x-delivery-limit` 초과
+
+경로 전체는 앞의 Consumer Acknowledgement 절 도식에 있다.
 
 ```typescript
 import * as amqplib from 'amqplib';
@@ -790,7 +924,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as amqplib from 'amqplib';
 
 interface XDeath {
-  reason: string;  // 'rejected' | 'expired' | 'maxlen'
+  reason: string;  // 'rejected' | 'expired' | 'maxlen' | 'delivery_limit'(쿼럼 큐)
   queue: string;   // 원본 큐 이름
   count: number;   // dead letter된 횟수
 }
@@ -858,6 +992,31 @@ await channel.assertQueue('my.queue', {
   },
 });
 ```
+
+---
+
+## Amazon MQ에서 달라지는 것
+
+Amazon MQ for RabbitMQ는 브로커 소프트웨어가 오픈소스 RabbitMQ 그대로라 AMQP 0-9-1 클라이언트 코드는 대부분 그대로 붙는다. 달라지는 쪽은 노드를 만지는 운영 절차다. 이 문서의 예제 중 셸 명령은 자체 호스팅 기준이다.
+
+| 이 문서의 절차 | 관리형에서 |
+|----------------|-------------|
+| `rabbitmqctl set_policy`, `set_parameter` | 브로커 호스트에 SSH로 들어갈 수 없고 노드 직접 조작이 막혀 있다. 관리 콘솔과 HTTP API만 열려 있다 |
+| `rabbitmq-plugins enable ...` | 임의 플러그인을 켤 수 없다. 커뮤니티 플러그인(`rabbitmq_delayed_message_exchange` 등)에 기대면 옮길 수 없다 |
+| `amqp://` 5672 평문 접속 | TLS가 강제된다. `amqps://`와 5671을 쓴다 |
+| `ha-mode` 미러링 정책 | 엔진 버전이 4.0 이상이면 정책 자체가 없다. 복제가 필요한 큐는 쿼럼 큐로 선언한다 |
+
+Shovel·Federation 절의 `rabbitmq-plugins enable`과 `rabbitmqctl set_parameter` 절차는 위 표 때문에 그대로 쓸 수 없다. 이 두 기능을 관리형에서 쓸 수 있는지는 이 문서에서 확인하지 못했다. 서비스가 제공하는 플러그인 목록과 지원 버전은 브로커를 만들기 전에 AWS 문서에서 확인한다.
+
+자체 호스팅 스크립트가 `rabbitmqctl`로 정책을 걸었다면 HTTP API 호출로 바꾼다. 일반 RabbitMQ 4.0.9에서 확인한 형식은 이렇다.
+
+```bash
+curl -u user:pass -H 'content-type: application/json' -X PUT \
+  https://<broker-endpoint>/api/policies/%2F/max-len \
+  -d '{"pattern":"^work\\.","definition":{"max-length":100000},"apply-to":"queues"}'
+```
+
+이 형식을 Amazon MQ 엔드포인트에 그대로 쓸 수 있는지는 직접 호출해 보지 않았다. 지원 버전, 클러스터 배포에서 쿼럼 큐와 미러링이 롤링 재시작 때 어떻게 달라지는지, 메모리 알람 대응은 [Amazon MQ 운영 노트](../../Cloud/AWS/Application_Integration/Amazon_MQ.md)에 정리돼 있다.
 
 ---
 이 문서는 [메시징과 전달 보장 허브](../../_hub/메시징과_전달_보장.md)의 일부입니다.
