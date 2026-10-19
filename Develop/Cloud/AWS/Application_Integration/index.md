@@ -3,13 +3,14 @@ title: 메시징 연동 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-19
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # 메시징 연동 전체 보기
 
-문서 10개.
+문서 11개.
 
 ## 개요
 
@@ -22,5 +23,6 @@ hide:
 - [AWS SNS/SQS/Lambda 통합 메시지 파이프라인](SNS_SQS_Lambda_통합_메시지_파이프라인.md)
 - [AWS SQS와 SNS 연동](SQS.md)
 - [AWS Step Functions](Step_Functions.md)
+- [Amazon MQ for ActiveMQ 운영 노트](Amazon_MQ_Active_MQ_Operations.md)
 - [Amazon MQ 운영 노트](Amazon_MQ.md)
 
