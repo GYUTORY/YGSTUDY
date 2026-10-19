@@ -12,8 +12,8 @@ Amazon MQ는 RabbitMQ와 ActiveMQ를 관리형으로 돌려주는 서비스다. 
 
 ActiveMQ 쪽 세부 운영과 보안 설정은 별도 문서로 뺐다. 이 문서는 RabbitMQ 중심이고, 두 브로커에 공통인 판단과 사고 사례를 다룬다.
 
-- [Amazon MQ 보안](Amazon_MQ_Security.md)
-- [Amazon MQ ActiveMQ 운영](Amazon_MQ_ActiveMQ.md)
+- [Amazon MQ 보안](Amazon_MQ_Security_And_Maintenance.md)
+- [Amazon MQ ActiveMQ 운영](Amazon_MQ_Active_MQ_Operations.md)
 
 ## SQS/SNS와 Amazon MQ 중 뭘 쓸까
 
@@ -55,13 +55,15 @@ Amazon MQ가 지원하는 RabbitMQ 버전은 제한적이다. 자체 호스팅�
 
 그리고 Amazon MQ의 RabbitMQ는 관리형이라 임의 플러그인을 켤 수 없다. `rabbitmq_delayed_message_exchange` 같은 커뮤니티 플러그인에 의존하고 있었다면 그대로 못 옮긴다. 지연 메시지가 필요하면 애플리케이션 레벨에서 TTL + Dead Letter Exchange 조합으로 다시 구현하거나, 아예 다른 방식을 찾아야 한다.
 
+`rabbitmq_mqtt`도 같은 부류다. AWS 문서의 RabbitMQ 지원 플러그인 목록에 MQTT가 없고, 문서에서 MQTT 8883 예제는 ActiveMQ 엔진 쪽에 있다. 디바이스가 MQTT로 `amq.topic`에 발행하고 AMQP 컨슈머가 받는 구성은 자체 호스팅 RabbitMQ에서 쓰던 방식이고, 동작 실측은 [RabbitMQ MQTT Plugin](../../../Backend/Messaging/RabbitMQ_MQTT.md)에 정리했다.
+
 ### 관리 API 접근 제한
 
 자체 호스팅에서는 `rabbitmqctl`로 노드에 직접 붙어서 큐를 만들고, 정책을 걸고, 유저를 관리했다. Amazon MQ에서는 브로커 호스트에 SSH로 못 들어간다. 관리 UI(RabbitMQ Management Console)와 HTTP API는 열려 있지만, `rabbitmqctl` 같은 노드 직접 조작은 안 된다. 배포 스크립트나 운영 자동화가 `rabbitmqctl`에 의존하고 있었다면 전부 HTTP 관리 API 호출로 다시 짜야 한다.
 
 ### 사용자/권한 관리 방식
 
-자체 호스팅에서 rabbitmq 내부 유저를 CLI로 관리했다면, Amazon MQ에서는 브로커 생성 시 지정한 관리자 계정으로 시작하고, 추가 유저는 관리 콘솔이나 API로 만든다. LDAP 연동도 지원하지만 설정 방식이 다르다. 인증 방식과 네트워크 격리 같은 보안 쪽 내용은 [Amazon MQ 보안](Amazon_MQ_Security.md)에 정리했다.
+자체 호스팅에서 rabbitmq 내부 유저를 CLI로 관리했다면, Amazon MQ에서는 브로커 생성 시 지정한 관리자 계정으로 시작하고, 추가 유저는 관리 콘솔이나 API로 만든다. LDAP 연동도 지원하지만 설정 방식이 다르다. 인증 방식과 네트워크 격리 같은 보안 쪽 내용은 [Amazon MQ 보안](Amazon_MQ_Security_And_Maintenance.md)에 정리했다.
 
 ### 마이그레이션 순서
 
@@ -159,7 +161,7 @@ RabbitMQ는 3개 노드로 구성된 클러스터로 배포한다. 3개 노드�
 
 ActiveMQ는 RabbitMQ와 구조가 다르다. active/standby 방식으로, 두 브로커가 뜨지만 한 번에 하나만 활성 상태다. 액티브 브로커가 죽으면 스탠바이가 승격되면서 페일오버가 일어난다. 이 페일오버에도 수십 초에서 분 단위의 시간이 걸린다. 그동안 커넥션은 끊긴다. ActiveMQ 클라이언트에 페일오버 트랜스포트(`failover:(...)`)를 설정해두면 자동으로 재연결을 시도한다.
 
-두 브로커는 같은 저장소를 본다. active/standby에서는 AZ를 가로질러 공유되는 EFS를 쓰고, EBS는 단일 인스턴스에서 처리량을 우선할 때 고르는 선택지다. 저장소 종류에 따른 차이와 KahaDB 설정은 [Amazon MQ ActiveMQ 운영](Amazon_MQ_ActiveMQ.md)에서 다룬다.
+두 브로커는 같은 저장소를 본다. active/standby에서는 AZ를 가로질러 공유되는 EFS를 쓰고, EBS는 단일 인스턴스에서 처리량을 우선할 때 고르는 선택지다. 저장소 종류에 따른 차이와 KahaDB 설정은 [Amazon MQ ActiveMQ 운영](Amazon_MQ_Active_MQ_Operations.md)에서 다룬다.
 
 ## 브로커 재시작과 커넥션 끊김
 
@@ -603,4 +605,4 @@ Amazon MQ는 표준 프로토콜을 유지해야 할 때 고르는 서비스고,
 
 운영에서 사고가 난 곳은 대체로 정해져 있었다. 알람은 `MessageCount`, `ConsumerCount`, 메모리 비율 세 가지를 먼저 걸고, unacked 임계치는 컨슈머 수와 prefetch를 곱한 값 위에서 잡는다. 실패하는 메시지는 DLX로 빼서 DLQ를 누군가 보게 만든다. 클러스터는 가용성을 얻는 대신 처리량은 얻지 못하고, 복제가 필요한 큐는 버전에 맞춰 쿼럼 큐로 선언한다. 장애 조치 뒤에 옛 IP로 붙는 문제는 JVM의 DNS TTL에서 시작하는 경우가 많다.
 
-보안 설정은 [Amazon MQ 보안](Amazon_MQ_Security.md), ActiveMQ 고유의 페일오버와 저장소는 [Amazon MQ ActiveMQ 운영](Amazon_MQ_ActiveMQ.md)을 본다.
+보안 설정은 [Amazon MQ 보안](Amazon_MQ_Security_And_Maintenance.md), ActiveMQ 고유의 페일오버와 저장소는 [Amazon MQ ActiveMQ 운영](Amazon_MQ_Active_MQ_Operations.md)을 본다.
