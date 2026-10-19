@@ -1,7 +1,7 @@
 ---
 title: NestJS ValidationPipe와 정합성 검증 시점
 tags: [nodejs, backend, devops]
-updated: 2026-07-30
+updated: 2026-10-19
 ---
 
 # NestJS ValidationPipe와 DTO 검증
@@ -68,6 +68,30 @@ ValidationPipe는 두 단계를 순서대로 밟는다. 먼저 `plainToInstance`
 
 `@Transform`과 `@Type`은 `plainToInstance` 단계에서 실행된다. `@IsString()`, `@IsEmail()` 같은 데코레이터는 `validate` 단계에서 실행된다. 변환이 끝난 값을 가지고 검증하는 구조라, `@Transform`이 값을 바꿔놓으면 바뀐 값이 검증을 받는다.
 
+아래 시퀀스에서 볼 곳은 `validate`가 끝난 뒤의 갈림길이다. 에러가 하나라도 있으면 핸들러까지 가지 못하고 `exceptionFactory`가 만든 예외가 400으로 나간다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant V as ValidationPipe
+    participant T as plainToInstance
+    participant D as validate
+    participant F as exceptionFactory
+    participant H as 핸들러
+    C->>V: 요청 본문 plain object
+    V->>T: plain object와 DTO 클래스
+    T-->>V: DTO 인스턴스 (@Type, @Transform 적용 후)
+    V->>D: DTO 인스턴스
+    alt 에러 없음
+        D-->>V: errors 빈 배열
+        V-->>H: transform true면 인스턴스, false면 plain object
+    else 에러 있음
+        D-->>V: ValidationError 배열
+        V->>F: errors
+        F-->>C: 400 BadRequestException
+    end
+```
+
 `transform: false`(기본값)여도 `plainToInstance`는 내부적으로 실행된다. `@Transform` 콜백은 실행되고 검증도 변환된 값 기준으로 돈다. 달라지는 건 핸들러로 반환되는 값이다. `transform: false`면 핸들러엔 원본 plain object가 도착한다. `transform: true`면 변환된 인스턴스가 도착한다.
 
 ```typescript
@@ -80,6 +104,16 @@ ValidationPipe는 두 단계를 순서대로 밟는다. 먼저 `plainToInstance`
 @IsInt()
 page: number; // 런타임에서 typeof page === 'string'
 ```
+
+"원본 plain object가 도착한다"는 말은 옵션을 하나도 안 줬을 때만 맞다. `transform`은 끈 채로 `whitelist: true` 같은 다른 검증 옵션을 하나라도 주면 NestJS가 검증을 마친 인스턴스를 `classToPlain`으로 다시 plain object로 만들어 넘기는데, 이때 `@Transform` 결과가 그대로 담긴다. NestJS 10, 11, 12에서 같은 DTO에 `?page=2`를 넣고 직접 돌려본 결과다.
+
+| ValidationPipe 옵션 | 핸들러가 받는 `page` | 객체 종류 |
+|---|---|---|
+| `{}` | `"2"` 문자열 | plain object |
+| `{ whitelist: true }` | `2` 숫자 | plain object |
+| `{ transform: true }` | `2` 숫자 | DTO 인스턴스 |
+
+`whitelist`를 추가했더니 타입이 갑자기 맞아떨어지는 현상이 이래서 생긴다. 이 상태로 두면 `{}` 설정의 테스트 환경과 `whitelist`가 켜진 운영 환경에서 같은 코드가 다른 타입을 받는다. 두 환경의 ValidationPipe 옵션을 같게 맞추고 `transform: true`로 못박는 편이 안전하다.
 
 검증은 통과했는데 핸들러에서 산술 연산이 이상하게 동작한다면 `transform: true`를 켜지 않은 게 원인일 수 있다. TypeScript 타입 선언과 런타임 값이 어긋나는 현상은 `transform: true`를 켜면 해결된다.
 
@@ -106,6 +140,28 @@ page: number;
 ## ValidationPipe 옵션 — 실제 동작 차이
 
 옵션 이름만 보면 다 비슷해 보이는데, 켰을 때와 껐을 때 응답이 어떻게 달라지는지 직접 확인하지 않으면 감이 안 온다. 주요 옵션들을 실제 입력/출력으로 비교한다.
+
+아래 도식은 같은 DTO(`name: string`, `age: number`)에 세 종류의 입력을 넣었을 때 옵션 조합별로 전달, 제거, 400 중 어디로 가는지 NestJS 10, 11, 12에서 돌려본 결과다. 알 수 없는 필드는 `whitelist`와 `forbidNonWhitelisted` 두 개가 갈라놓고, 타입 불일치는 이 두 옵션과 `transform`이 아무 영향도 못 준다는 점을 보면 된다.
+
+```mermaid
+flowchart TD
+    IN["요청 본문"] --> A{"어떤 입력인가"}
+    A -- "DTO에 없는 필드 role" --> W{"whitelist"}
+    W -- "false" --> P1["role 포함해서 전달"]
+    W -- "true" --> FN{"forbidNonWhitelisted"}
+    FN -- "false" --> S1["role 제거 후 전달"]
+    FN -- "true" --> E1["400 property role should not exist"]
+    A -- "age에 숫자 대신 문자열 3" --> TQ{"@Type 또는 enableImplicitConversion 적용"}
+    TQ -- "있음" --> P2["숫자 3으로 바뀌어 검증 통과"]
+    TQ -- "없음" --> E2["400 age must be an integer number"]
+    A -- "검증 데코레이터가 하나도 없는 DTO" --> FU{"forbidUnknownValues"}
+    FU -- "true" --> E3["400 an unknown value was passed to the validate function"]
+    FU -- "false NestJS 기본값" --> W2{"whitelist"}
+    W2 -- "false" --> P3["검증 없이 그대로 전달"]
+    W2 -- "true" --> S3["모든 필드 제거, 빈 객체 전달"]
+```
+
+`transform`을 켜든 끄든 이 도식의 분기는 바뀌지 않는다. `transform`이 바꾸는 건 통과한 뒤 핸들러가 받는 객체의 종류뿐이다.
 
 ### whitelist
 
@@ -208,6 +264,18 @@ create(@Body() dto: CreateUserDto) {
 
 실무에서는 `transform: true`를 거의 항상 켠다. 켜지 않으면 타입 선언과 실제 런타임 값이 어긋나서 디버깅이 어려워진다.
 
+아래 도식은 검증이 끝난 뒤 `transform` 값에 따라 핸들러가 받는 값이 어떻게 갈리는지 보여준다. 검증은 두 경우 모두 DTO 인스턴스로 바꿔서 돌리지만, 핸들러에 넘기는 값은 `transform`이 정한다.
+
+```mermaid
+flowchart TD
+    IN["요청 본문 plain object"] --> V["DTO 인스턴스로 바꿔 검증"]
+    V --> T{"transform 옵션"}
+    T -- "false" --> PO["핸들러는 원본 plain object를 받는다"]
+    PO --> ERR["dto.getDisplayName is not a function"]
+    T -- "true" --> INST["핸들러는 DTO 클래스 인스턴스를 받는다"]
+    INST --> OK["dto.getDisplayName 호출 가능"]
+```
+
 ### transformOptions
 
 `transformOptions`는 `transform: true`일 때 class-transformer에 그대로 넘어가는 옵션이다. 여기서 가장 말썽인 게 `enableImplicitConversion`인데, 별도 절에서 다룬다. 자주 쓰는 다른 옵션은 `excludeExtraneousValues`다.
@@ -260,7 +328,11 @@ app.useGlobalPipes(new ValidationPipe({
 
 ### forbidUnknownValues 주의
 
-class-validator 0.14 이후 `forbidUnknownValues` 기본값이 true로 바뀌었다. 메타데이터가 없는 객체를 검증하려 하면 자동으로 거부한다. 의도된 보안 강화지만, 동적으로 만든 객체나 메타데이터 등록이 안 된 DTO를 검증하면 "an unknown value was passed to the validate function"으로 막힌다. NestJS 컨트롤러에서 `@Body() dto: CreateUserDto` 식으로 쓰면 메타데이터가 정상으로 붙어서 보통은 문제가 없는데, 동적 클래스나 외부에서 import한 DTO에서 가끔 터진다. 메시지가 모호하니 한 번이라도 본 적이 있어야 빨리 알아챈다.
+class-validator 0.14 이후 `forbidUnknownValues` 기본값은 true다. 검증 메타데이터가 없는 객체를 `validate()`에 넘기면 "an unknown value was passed to the validate function"으로 거부한다.
+
+NestJS의 ValidationPipe는 생성자에서 `{ forbidUnknownValues: false, ...옵션 }`으로 이 기본값을 false로 덮어쓴다. NestJS 10.4, 11.2, 12.1 소스에서 모두 확인했다. 그래서 컨트롤러의 `@Body() dto`에서는 이 에러가 기본으로 나지 않고, 반대로 데코레이터를 하나도 안 붙인 DTO가 검증 없이 통과한다. 도식의 마지막 분기가 그 결과다. `{ name: 'x' }`를 데코레이터 없는 클래스로 보내면 `{}` 옵션은 그대로 통과하고, `whitelist: true`는 `{}`를 넘기고, `forbidUnknownValues: true`는 400이다.
+
+이 에러를 실제로 만나는 경우는 두 가지다. `forbidUnknownValues: true`를 직접 켰을 때, 그리고 파이프 밖에서 class-validator의 `validate()`를 직접 호출했을 때다. 후자는 서비스 안에서 동적으로 만든 객체를 검증할 때 나온다. 데코레이터 누락을 잡아내려는 목적이면 `forbidUnknownValues: true`를 켜는 쪽이 낫다.
 
 ### 운영에서 자주 쓰는 조합
 
@@ -283,6 +355,18 @@ app.useGlobalPipes(new ValidationPipe({
 ```
 
 `enableImplicitConversion`을 켜고 시작했다가 나중에 끄는 건 호환성 문제로 매우 어렵다. 처음부터 끄고 `@Type()`을 명시적으로 붙이는 쪽이 장기적으로 사고가 적다.
+
+아래 도식은 위 옵션들이 파이프 안에서 어느 단계에 작용하는지 보여준다. 변환, 검증, 에러 응답 생성 순서이고, 옵션마다 손대는 단계가 다르다.
+
+```mermaid
+flowchart TD
+    IN["요청 값"] --> TR["변환 단계: transform, transformOptions"]
+    TR --> VAL["검증 단계: whitelist는 모르는 필드 제거, forbidNonWhitelisted는 400, stopAtFirstError는 필드당 첫 실패만"]
+    VAL --> CHK{"에러가 있는가"}
+    CHK -- "없음" --> PASS["핸들러로 전달"]
+    CHK -- "있음" --> EF["응답 생성 단계: exceptionFactory, validationError target과 value, disableErrorMessages"]
+    EF --> RES["400 응답"]
+```
 
 
 ## string→number 변환 함정
@@ -374,6 +458,47 @@ export class FilterDto {
 
 `?active=false`는 `false`로, `?active=true`는 `true`로 들어온다. 이 함정은 테스트를 문자열 `"true"`로만 하면 안 걸리고, `"false"`로 보내봐야 드러난다. 그래서 운영에 나가서야 "필터를 꺼도 안 꺼진다"는 신고로 발견되는 경우가 많다.
 
+### 같은 값이 변환 방식에 따라 갈라지는 경로
+
+숫자와 boolean 모두 어떤 변환이 걸려 있느냐에 따라 같은 입력이 다른 값이 된다. 아래 도식은 `page: number`(`@IsInt`)와 `active: boolean`(`@IsBoolean`)에 쿼리 값을 넣고 NestJS 10, 11, 12에서 `ValidationPipe.transform()`을 직접 호출한 결과다. 눈여겨볼 곳은 두 가지다. 빈 문자열이 `NaN`이 아니라 `0`이나 `false`로 통과하는 경로, 그리고 `Boolean` 계열 변환이 `false` 문자열을 `true`로 만드는 경로다.
+
+```mermaid
+flowchart TD
+    IN["쿼리 문자열 값"] --> M{"걸려 있는 변환"}
+    M -- "없음" --> N0["문자열 그대로, IsInt와 IsBoolean이 모두 400"]
+    M -- "Type Number 또는 implicit 타입이 number" --> NUM{"값"}
+    NUM -- "빈 문자열" --> Z["Number 결과 0, 검증 통과"]
+    NUM -- "abc 또는 true" --> NAN["NaN, IsInt가 400"]
+    NUM -- "5" --> N5["숫자 5, 통과"]
+    M -- "Type Boolean 또는 implicit 타입이 boolean" --> BOOL{"값"}
+    BOOL -- "빈 문자열" --> BF["false, 통과"]
+    BOOL -- "false, abc, 5 등 비어 있지 않은 문자열" --> BT["전부 true, 통과"]
+    M -- "Transform으로 문자열 true만 true로 비교" --> TF{"값"}
+    TF -- "true" --> TT["true, 통과"]
+    TF -- "false, abc, 빈 문자열" --> TFALSE["false, 통과"]
+    M -- "Transform으로 parseInt" --> PI{"값"}
+    PI -- "5" --> P5["숫자 5, 통과"]
+    PI -- "빈 문자열, abc" --> PN["NaN, IsInt가 400"]
+```
+
+가장 위험한 경로는 `@Type` 없이 `enableImplicitConversion`만 켜고 `active: boolean`을 선언한 경우다. 이때 암묵 변환은 `Boolean()`과 같이 동작해서 `?active=false`가 `true`로 들어온다. `@IsBoolean()`은 변환이 끝난 `true`를 보기 때문에 검증도 통과하고, 에러도 로그도 남지 않는다.
+
+```typescript
+export class FilterDto {
+  @IsBoolean()
+  active: boolean; // @Type, @Transform 없음. 전역에 enableImplicitConversion: true
+}
+```
+
+| 입력 `active` | 변환 없음 | implicit만 켬 | `@Transform(value === 'true')` |
+|---|---|---|---|
+| `"true"` | 400 | `true` | `true` |
+| `"false"` | 400 | `true` | `false` |
+| `"abc"` | 400 | `true` | `false` |
+| `""` | 400 | `false` | `false` |
+
+변환을 아예 안 걸었을 때가 오히려 안전하다. 400이 나서 바로 발견되기 때문이다. 숫자도 같은 구조다. `?page=`처럼 값이 비어 있으면 `Number('')`가 `0`이라 `@IsInt()`를 통과하고, 페이지 0번으로 조회가 나간다. `@Min(1)`을 같이 붙여야 이 경로가 막힌다.
+
 ### 단일 파라미터는 전용 파이프를 쓴다
 
 `@Query()`로 DTO 전체를 받지 않고 `@Param('id')` 하나만 받을 때는 NestJS가 제공하는 `ParseIntPipe`가 더 간단하다.
@@ -393,7 +518,7 @@ findOne(@Param('id', ParseIntPipe) id: number) {
 
 `enableImplicitConversion`은 처음엔 편하지만, 변환 규칙이 암묵적이라 예상 못 한 곳에서 값이 바뀐다. 운영에서 실제로 겪은 부작용들이다.
 
-첫째, 숫자처럼 생긴 문자열을 강제로 숫자로 바꾼다. 우편번호나 전화번호처럼 앞자리 0이 의미 있는 값이 망가진다.
+첫째, 앞자리 0이 의미 있는 값은 어떤지 확인했다. 우편번호나 전화번호가 숫자로 망가질 것 같아 걱정하기 쉽다.
 
 ```typescript
 export class AddressDto {
@@ -402,17 +527,32 @@ export class AddressDto {
 }
 ```
 
-`zipCode`를 `string`으로 선언했으니 안 바뀔 것 같지만, `enableImplicitConversion`은 TypeScript 타입을 보고 변환을 시도하다가 의도와 다른 결과를 낳는 경우가 있다. 특히 `@IsNumberString()` 같은 데코레이터를 섞어 쓰면 변환 시점과 검증 시점이 엇갈려서 디버깅이 어렵다.
+`string`으로 선언했으면 `enableImplicitConversion`을 켜도 `"01234"`는 `"01234"` 그대로다. `@IsNumberString()`을 붙여도 마찬가지로 문자열이 유지된다. 이 걱정은 직접 돌려보면 해당하지 않는다. 문제는 반대 방향이다. 필드를 `number`로 선언했는데 클라이언트가 `"01234"`를 보내면 `1234`가 되어 앞자리 0이 사라진다. 우편번호를 `number`로 선언한 DTO가 있으면 이 변환이 조용히 일어난다.
 
-둘째, `number`로 선언했는데 빈 문자열이나 잘못된 값이 오면 `NaN`으로 변환되고, `@IsInt()`가 그제서야 막는다. 변환은 조용히 일어나고 검증 메시지만 떠서 원인을 추적하기 번거롭다.
+둘째, `number`로 선언한 필드에 빈 문자열이 오면 `NaN`이 아니라 `0`이 된다. `Number('')`가 `0`이기 때문이다. `abc` 같은 값은 `NaN`이 되어 `@IsInt()`가 막지만, 빈 값은 그대로 통과한다. 위 도식의 `0` 경로다.
 
 ```typescript
-// ?page= (빈 값) → NaN으로 변환 → "page must be an integer" 에러
+// ?page= (빈 값) → 0으로 변환 → @IsInt 통과
+// ?page=abc    → NaN으로 변환 → "page must be an integer number"
 @IsInt()
 page: number;
 ```
 
-셋째, 가장 까다로운 건 배열이다. 쿼리에서 `?ids=1`처럼 값이 하나만 오면 배열이 아니라 단일 값으로 들어오는데, `enableImplicitConversion`이 이걸 일관성 없게 처리한다. `?ids=1&ids=2`는 배열인데 `?ids=1`은 문자열이라, 같은 코드가 입력 개수에 따라 다르게 동작한다.
+빈 값이 막힐 거라 믿고 `@Min`을 안 붙였다면 `page=0`이 서비스 계층까지 내려간다.
+
+셋째, 가장 까다로운 건 배열이다. 쿼리에서 `?ids=1`처럼 값이 하나만 오면 배열이 아니라 문자열로 들어오고, `?ids=1&ids=2`는 배열로 들어온다. `ids: number[]`에 `enableImplicitConversion`만 켜면 두 경우 모두 요소를 숫자로 바꾸지 않아서 `each value in ids must be an integer number`로 400이 난다. 배열 요소의 타입은 TypeScript 메타데이터에 남지 않기 때문이다. `@Type(() => Number)`를 붙이면 `?ids=1&ids=2`는 `[1, 2]`로 통과하지만 `?ids=1`은 여전히 "ids must be an array"로 막힌다. 한 개만 보내는 경우까지 받으려면 `@Transform`으로 배열로 감싸야 한다.
+
+```typescript
+export class FindByIdsDto {
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @Type(() => Number)
+  @IsArray()
+  @IsInt({ each: true })
+  ids: number[];
+}
+// ?ids=1        → [1]
+// ?ids=1&ids=2  → [1, 2]
+```
 
 결론은 명확하다. 새 프로젝트면 `enableImplicitConversion`을 끄고 `@Type()`을 명시적으로 붙인다. 변환 규칙이 코드에 드러나서 리뷰와 디버깅이 훨씬 쉽다. 이미 켜서 운영 중이면 함부로 끄지 말고, DTO마다 `@Type`을 다 붙인 뒤 충분히 테스트하고 끈다.
 
@@ -456,6 +596,17 @@ export class CreateUserDto {
 ```
 
 `@ValidateNested()`는 "이 프로퍼티 안으로 들어가서 검증하라"는 표시고, `@Type(() => AddressDto)`는 plain object를 `AddressDto` 인스턴스로 바꾸라는 지시다. **둘 다 필요하다.** `@Type`이 없으면 plain object 상태라 데코레이터 메타데이터를 못 읽어서 중첩 검증이 안 돈다. 한쪽만 붙이면 조용히 검증을 건너뛰는데, 에러도 안 나서 한참 뒤에 발견된다.
+
+아래 도식은 `address` 프로퍼티에 붙은 데코레이터 조합별로 내부 검증이 도는지 보여준다. 내부 검증이 도는 길은 마지막 하나뿐이다.
+
+```mermaid
+flowchart TD
+    N["address 프로퍼티 값"] --> Q{"붙어 있는 데코레이터"}
+    Q -- "없음" --> S1["내부 검증 건너뜀"]
+    Q -- "ValidateNested만" --> S2["plain object 상태라 메타데이터를 못 읽어 건너뜀"]
+    Q -- "Type만" --> S3["인스턴스는 되지만 안으로 들어가라는 표시가 없어 건너뜀"]
+    Q -- "ValidateNested와 Type 둘 다" --> OK["AddressDto 인스턴스로 바꿔 city, zipCode 검증"]
+```
 
 ### 객체 배열
 
@@ -601,6 +752,25 @@ async function bootstrap() {
 ```
 
 그리고 제약 클래스를 모듈의 `providers`에 등록해야 한다. 이 단계를 빼먹으면 `Cannot read properties of undefined`로 터지는데, 에러 메시지가 원인을 직접 가리키지 않아서 처음엔 한참 헤맨다. `useContainer` 호출과 `providers` 등록, 둘 다 했는지 먼저 확인한다.
+
+아래 도식은 비동기 검증 한 건이 컨테이너를 거쳐 DB까지 가는 순서다. `useContainer`가 연결해 준 Nest 컨테이너에서 제약 클래스 인스턴스를 받아야 `UserService`가 주입된 상태로 `validate`가 돈다.
+
+```mermaid
+sequenceDiagram
+    participant PIPE as ValidationPipe
+    participant CV as class-validator
+    participant NC as Nest 컨테이너
+    participant CON as IsEmailUniqueConstraint
+    participant US as UserService
+    PIPE->>CV: validate(dto)
+    CV->>NC: 제약 클래스 인스턴스 요청 (useContainer로 연결)
+    NC-->>CV: providers에 등록된 인스턴스, UserService 주입 완료
+    CV->>CON: validate(email)
+    CON->>US: findByEmail(email)
+    US-->>CON: user 또는 null
+    CON-->>CV: !user
+    CV-->>PIPE: 통과 또는 isEmailUnique 에러
+```
 
 비동기 검증을 쓸 때 한 가지 더. DB 조회 검증을 DTO에 너무 많이 박으면 요청 하나에 쿼리가 여러 번 나간다. 검증 단계의 중복 체크는 "빠른 실패"용으로만 쓰고, 실제 정합성은 DB의 unique 제약과 트랜잭션으로 잡는 게 안전하다. 검증을 통과해도 그 사이에 같은 이메일이 등록될 수 있는 경쟁 상태가 남기 때문이다.
 
@@ -755,6 +925,18 @@ tags: string[];
 
 파이프는 글로벌 → 컨트롤러 → 핸들러 → 파라미터 순서로 적용된다. 같은 파라미터에 여러 단계에서 파이프가 붙어 있으면 모두 실행되고, 앞 파이프의 반환값이 다음 파이프의 입력이 된다.
 
+글로벌, 컨트롤러, 핸들러에 각각 로그만 남기는 파이프를 달고 파라미터에 파이프 두 개를 나열해 NestJS 12에서 `GET /x/1`을 호출했더니 `global → controller → handler → param1 → param2` 순서로 찍혔다. 파라미터 하나가 이 다섯 단계를 순서대로 통과한다.
+
+```mermaid
+flowchart LR
+    IN["파라미터 원본 값"] --> G["글로벌 파이프 APP_PIPE 또는 useGlobalPipes"]
+    G --> C["컨트롤러 UsePipes"]
+    C --> H["핸들러 UsePipes"]
+    H --> P1["파라미터 파이프 첫 번째"]
+    P1 --> P2["파라미터 파이프 두 번째"]
+    P2 --> OUT["핸들러 인자"]
+```
+
 파라미터 레벨 파이프를 추가한다고 글로벌 파이프를 대체하지 않는다. `@Body(new ValidationPipe({ groups: ['update'] }))`처럼 쓰면 글로벌 ValidationPipe와 파라미터 레벨 ValidationPipe가 둘 다 실행된다. 같은 DTO를 두 번 검증하는 셈이라 낭비고, 에러 처리 로직이 두 번 돌 수 있어서 예상 밖 동작이 나올 수 있다. 라우트별로 검증 옵션을 다르게 하고 싶으면 글로벌 파이프를 조정하거나, 서비스 레이어에서 조건을 처리하는 편이 낫다.
 
 글로벌 파이프는 두 가지 방식으로 등록한다.
@@ -881,6 +1063,15 @@ app.useGlobalPipes(
 
 중첩 검증이 실패하면 `ValidationError`는 트리 구조다. `address.city`가 실패하면 최상위 에러의 `property`는 `address`이고 `children[0].property`가 `city`다. 위 코드는 최상위만 보니 중첩 정보가 사라진다. 재귀로 펼쳐서 `address.city` 같은 경로 문자열을 만든다.
 
+아래 도식은 `items: [{ quantity: -5 }]`가 실패했을 때 `ValidationError` 트리가 `flattenErrors`를 거쳐 경로 문자열 하나로 펼쳐지는 모양이다. 에러 메시지(`constraints`)는 맨 아래 잎에만 달려 있다는 점을 보면 된다.
+
+```mermaid
+flowchart LR
+    R["ValidationError property items, constraints 없음"] --> I0["children 0, property 0, constraints 없음"]
+    I0 --> Q["children, property quantity, constraints min"]
+    Q --> F["flattenErrors 결과 field items.0.quantity"]
+```
+
 ```typescript
 function flattenErrors(
   errors: ValidationError[],
@@ -955,6 +1146,28 @@ const details = errors.flatMap((err) =>
 파이프가 실행되는 시점은 가드 이후, 핸들러 이전이다. 인증·인가를 담당하는 가드가 통과된 다음에 파이프가 실행되므로, 파이프 안에서는 해당 요청이 인증된 상태라고 가정할 수 있다.
 
 이 시점을 활용하는 패턴이 엔티티 존재 확인 파이프다. 핸들러에 진입하기 전에 파이프에서 엔티티를 조회하고 없으면 404를 던진다. 파이프의 반환값이 파라미터 값을 대체하기 때문에 핸들러는 같은 DB 조회를 반복하지 않는다.
+
+아래 도식은 가드, 파이프, 핸들러가 실행되는 순서와 `ParseUserPipe`가 404로 요청을 끊는 지점이다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant G as 가드
+    participant P as ParseUserPipe
+    participant R as userRepository
+    participant H as 핸들러
+    C->>G: DELETE /users/:id
+    G->>P: 인증 통과
+    P->>R: findById(id)
+    alt 사용자 있음
+        R-->>P: User
+        P->>H: id 대신 User 전달
+        H-->>C: 응답
+    else 사용자 없음
+        R-->>P: null
+        P-->>C: 404 NotFoundException
+    end
+```
 
 ```typescript
 @Injectable()
@@ -1107,6 +1320,23 @@ describe('ValidationPipe + CreateUserDto', () => {
 
 직접 겪으면서 정리한, 검증이 "안 되는 것처럼 보이는" 원인들이다.
 
+아래 도식은 증상에서 시작해 어디부터 확인할지 따라가는 순서다. 앞쪽 공통 조건(등록, class, tsconfig)을 먼저 보고, 그다음 증상별 항목으로 갈라진다.
+
+```mermaid
+flowchart TD
+    S["검증이 안 되는 것처럼 보임"] --> A{"글로벌 ValidationPipe를 등록했나"}
+    A -- "아니오" --> A1["useGlobalPipes 또는 APP_PIPE로 등록"]
+    A -- "예" --> B{"DTO가 class인가"}
+    B -- "interface" --> B1["class로 선언"]
+    B -- "class" --> C{"emitDecoratorMetadata와 experimentalDecorators가 켜져 있나"}
+    C -- "아니오" --> C1["tsconfig에서 켠다"]
+    C -- "예" --> D{"증상"}
+    D -- "쿼리 값 변환 안 됨" --> D1["transform true와 Type Number 확인"]
+    D -- "중첩 객체 건너뜀" --> D2["ValidateNested와 Type, 배열이면 each true"]
+    D -- "비동기 검증 안 돎" --> D3["useContainer 호출과 providers 등록"]
+    D -- "응답에 민감 값 노출" --> D4["validationError target, value를 false로"]
+```
+
 검증 자체가 아예 안 돈다면 ValidationPipe를 글로벌로 등록했는지부터 본다. `app.useGlobalPipes`를 빼먹으면 데코레이터를 아무리 붙여도 조용히 통과한다. 특정 컨트롤러만 안 된다면 그 핸들러에 다른 파이프를 직접 붙여서 글로벌 파이프를 덮어쓰지 않았는지 확인한다.
 
 DTO를 인터페이스로 선언하면 검증이 안 된다. class-validator는 런타임에 클래스 메타데이터를 읽기 때문에, `interface`로 만들면 컴파일 후 타입 정보가 사라져서 검증할 게 없다. 반드시 `class`로 선언한다.
@@ -1117,7 +1347,7 @@ DTO를 인터페이스로 선언하면 검증이 안 된다. class-validator는 
 
 중첩 객체 검증이 건너뛰어지면 `@ValidateNested()`와 `@Type()`이 둘 다 있는지, 배열이면 `{ each: true }`까지 있는지 확인한다.
 
-"an unknown value was passed to the validate function"이라는 알 수 없는 에러가 뜨면 class-validator 0.14 이후의 `forbidUnknownValues` 기본값 변경이 원인일 가능성이 높다. NestJS DTO가 정상적으로 메타데이터를 갖고 있는지(클래스인지, `tsconfig`의 데코레이터 옵션이 켜져 있는지) 먼저 확인한다.
+"an unknown value was passed to the validate function"이라는 알 수 없는 에러가 뜨면 `forbidUnknownValues: true`가 켜져 있거나, ValidationPipe 밖에서 class-validator `validate()`를 직접 불렀을 가능성이 높다. 해당 DTO에 검증 데코레이터가 하나라도 붙어 있는지(클래스인지, `tsconfig`의 데코레이터 옵션이 켜져 있는지) 먼저 확인한다. ValidationPipe 기본 설정은 이 옵션이 false라서 이 에러가 나지 않는다.
 
 비동기 검증(`async: true`)이 안 돌면 `useContainer` 호출과 제약 클래스의 `providers` 등록을 빼먹지 않았는지 본다. 메시지가 원인을 안 가리켜서 가장 헤매기 쉬운 지점이다.
 
