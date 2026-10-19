@@ -10,7 +10,7 @@ updated: 2026-10-19
 
 # 메시징 연동 전체 보기
 
-문서 11개.
+문서 12개.
 
 ## 개요
 
@@ -24,5 +24,6 @@ updated: 2026-10-19
 - [AWS SQS와 SNS 연동](SQS.md)
 - [AWS Step Functions](Step_Functions.md)
 - [Amazon MQ for ActiveMQ 운영 노트](Amazon_MQ_Active_MQ_Operations.md)
+- [Amazon MQ 보안과 유지보수 운영](Amazon_MQ_Security_And_Maintenance.md)
 - [Amazon MQ 운영 노트](Amazon_MQ.md)
 

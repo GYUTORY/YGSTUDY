@@ -10,7 +10,7 @@ updated: 2026-10-19
 
 # AWS 전체 보기
 
-문서 193개.
+문서 194개.
 
 ## AI
 
@@ -244,6 +244,7 @@ updated: 2026-10-19
 - [AWS SQS와 SNS 연동](Application_Integration/SQS.md)
 - [AWS Step Functions](Application_Integration/Step_Functions.md)
 - [Amazon MQ for ActiveMQ 운영 노트](Application_Integration/Amazon_MQ_Active_MQ_Operations.md)
+- [Amazon MQ 보안과 유지보수 운영](Application_Integration/Amazon_MQ_Security_And_Maintenance.md)
 - [Amazon MQ 운영 노트](Application_Integration/Amazon_MQ.md)
 
 ## 개요
