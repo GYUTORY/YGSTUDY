@@ -6,6 +6,7 @@ nav:
   - 인덱스 무력화: 인덱스_무력화.md
   - 인덱스 가능성: 인덱스_가능성.md
   - 소프트 삭제: Soft_Delete.md
+  - 소프트 삭제 purge와 전파: Soft_Delete_Purge_And_Propagation.md
   - 아카이브 테이블: Archive_Table.md
   - 테넌트별 스키마: Schema_Per_Tenant.md
   - Shared Table: Shared_Table.md

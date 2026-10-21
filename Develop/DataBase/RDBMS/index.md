@@ -3,13 +3,14 @@ title: RDBMS 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-21
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # RDBMS 전체 보기
 
-문서 60개.
+문서 61개.
 
 ## 인덱스
 
@@ -87,6 +88,7 @@ hide:
 - [복합 인덱스 선두 컬럼](복합_인덱스_선두.md)
 - [부분 인덱스](부분_인덱스.md)
 - [소프트 삭제](Soft_Delete.md)
+- [소프트 삭제 이후의 purge와 전파](Soft_Delete_Purge_And_Propagation.md)
 - [술어 누락](술어_누락.md)
 - [아카이브 테이블](Archive_Table.md)
 - [유니크 제약 충돌](Unique_Constraint_Conflict.md)
