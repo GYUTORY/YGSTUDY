@@ -1,7 +1,7 @@
 ---
 title: Refresh Token Rotation
 tags: [auth, jwt, security, redis]
-updated: 2026-08-02
+updated: 2026-10-22
 ---
 
 # Refresh Token Rotation
@@ -45,6 +45,162 @@ sequenceDiagram
 
 어느 쪽이 먼저 사용하든 탈취를 감지한다. 단, 감지 전까지 공격자가 활동한 짧은 시간의 피해는 막지 못한다.
 
+<div class="ygd-rtr-flow" id="ygd-rtr-flow">
+<style>
+.ygd-rtr-flow{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-bad:#B3261E;--ygd-ok:#2E7D4F;--ygd-warn:#B4530A;--ygd-life:#8F887F;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em auto;box-sizing:border-box;max-width:760px}
+body[data-md-color-scheme="slate"] .ygd-rtr-flow{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-a:#7DB4F0;--ygd-bad:#FF8A80;--ygd-ok:#6FCB93;--ygd-warn:#F0A867;--ygd-life:#8A837C;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0}
+.ygd-rtr-flow .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-rtr-flow .ygd-tog,.ygd-rtr-flow .ygd-ctrl,.ygd-rtr-flow .ygd-steps,.ygd-rtr-flow .ygd-chain{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-rtr-flow .ygd-btn{flex:1 1 120px;font:inherit;font-size:14px;min-height:40px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer;box-sizing:border-box}
+.ygd-rtr-flow .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px}
+.ygd-rtr-flow .ygd-btn[aria-pressed="true"],.ygd-rtr-flow .ygd-primary,.ygd-rtr-flow .ygd-sb[aria-current="step"]{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-rtr-flow .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:10px auto 6px}
+.ygd-rtr-flow .ygd-actor{fill:var(--ygd-panel);stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-rtr-flow .ygd-an{fill:var(--ygd-text);font-size:12px;font-weight:700;text-anchor:middle}
+.ygd-rtr-flow .ygd-life{stroke:var(--ygd-life);stroke-width:1.5;stroke-dasharray:3 4}
+.ygd-rtr-flow .ygd-k-ok{color:var(--ygd-a)}
+.ygd-rtr-flow .ygd-k-bad{color:var(--ygd-bad)}
+.ygd-rtr-flow .ygd-k-warn{color:var(--ygd-warn)}
+.ygd-rtr-flow .ygd-it.ygd-todo{color:var(--ygd-life);opacity:.55}
+.ygd-rtr-flow .ygd-ln{stroke:currentColor;stroke-width:1.8}
+.ygd-rtr-flow .ygd-on .ygd-ln{stroke-width:3}
+.ygd-rtr-flow .ygd-hd,.ygd-rtr-flow .ygd-dot{fill:currentColor}
+.ygd-rtr-flow .ygd-dot{opacity:0}
+.ygd-rtr-flow .ygd-lb,.ygd-rtr-flow .ygd-nt{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-rtr-flow .ygd-on .ygd-lb,.ygd-rtr-flow .ygd-on .ygd-nt{font-weight:700}
+.ygd-rtr-flow .ygd-nb{fill:var(--ygd-panel);stroke:currentColor;stroke-width:1.8}
+.ygd-rtr-flow .ygd-chain{align-items:center;font-size:14px;margin:6px 0}
+.ygd-rtr-flow .ygd-cl{color:var(--ygd-muted)}
+.ygd-rtr-flow .ygd-chip{border:2px solid var(--ygd-ok);border-radius:999px;padding:2px 10px;background:var(--ygd-panel)}
+.ygd-rtr-flow .ygd-c-used{border-style:dashed;border-color:var(--ygd-life);color:var(--ygd-muted)}
+.ygd-rtr-flow .ygd-c-rev{border-color:var(--ygd-bad);color:var(--ygd-bad);text-decoration:line-through}
+.ygd-rtr-flow .ygd-c-exp{border-style:dashed;border-color:var(--ygd-warn);color:var(--ygd-warn)}
+.ygd-rtr-flow .ygd-sb{flex:1 1 90px;min-height:36px;font-size:14px}
+.ygd-rtr-flow .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-a);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0;box-sizing:border-box}
+.ygd-rtr-flow .ygd-dt{font-size:15px;font-weight:700}
+.ygd-rtr-flow .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-rtr-flow .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-rtr-flow .ygd-it{transition:opacity .3s}
+.ygd-rtr-flow .ygd-on .ygd-dot{animation:ygd-rtr-fly .8s ease-in-out var(--dl,0s) forwards}
+}
+@keyframes ygd-rtr-fly{0%{opacity:1;transform:translateX(0)}85%{opacity:1}100%{opacity:0;transform:translateX(var(--dx))}}
+</style>
+<div class="ygd-title">Refresh Token 회전과 탈취 감지</div>
+<div class="ygd-tog" role="group" aria-label="시나리오 선택">
+<button type="button" class="ygd-btn ygd-sc" data-sc="normal" aria-pressed="true">정상 회전</button>
+<button type="button" class="ygd-btn ygd-sc" data-sc="attack" aria-pressed="false">탈취 감지</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 400 300" role="img" aria-label="Refresh Token 회전 시퀀스 다이어그램"></svg>
+<div class="ygd-chain" aria-label="현재 토큰 상태"></div>
+<div class="ygd-steps" role="group" aria-label="단계 선택"></div>
+<div class="ygd-panel" role="status" aria-live="polite"><div class="ygd-dt"></div><div class="ygd-db"></div></div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-analogy">비유: 교환 창구에 가깝다. 교환권(Refresh Token)을 낼 때마다 새 교환권으로 바꿔 주고 옛 것은 회수한다. 이미 바꾼 옛 교환권이 다시 들어오면 같은 묶음(패밀리)의 교환권을 전부 회수한다. 다만 이미 나간 입장권(Access Token)은 만료 시각까지 유효하다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-rtr-flow');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg'),chain=root.querySelector('.ygd-chain'),stepsEl=root.querySelector('.ygd-steps');
+var dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play');
+var ST={ok:'유효',used:'사용됨',rev:'폐기',exp:'만료'};
+function M(f,t,l,k){return {y:'m',f:f,t:t,l:l,k:k||'ok'};}
+function N(a,w,ls,k){return {y:'n',a:a,w:w,ls:ls,k:k||'warn'};}
+var SC={
+normal:{lanes:{c:70,s:330},names:{c:'클라이언트',s:'서버 · DB'},aria:'정상 회전 시퀀스. 로그인으로 Access와 Refresh를 받고, Access가 만료되면 Refresh로 재발급하며 새 Refresh를 받고 옛 Refresh는 사용됨으로 바뀌는 과정이 반복된다.',steps:[
+{n:'로그인',d:'로그인에 성공하면 서버가 Access Token(A1)과 Refresh Token(v1)을 함께 발급한다. v1은 해시로 DB에 저장되고 패밀리 F1의 첫 토큰이 된다.',it:[M('c','s','로그인 요청'),M('s','c','A1 + v1 발급')],tk:[['v1','ok']],ac:['A1','ok']},
+{n:'Access 만료',d:'A1은 수명이 짧아 곧 만료된다. Refresh Token v1은 수명이 길어(7일~30일) 아직 유효하다. 클라이언트는 v1으로 재발급을 요청하게 된다.',it:[N('c',130,['A1 만료','(수명 짧음)'])],tk:[['v1','ok']],ac:['A1','exp']},
+{n:'재발급 · 회전',d:'서버는 v1이 아직 사용되지 않았음을 확인하고 사용됨으로 표시한다. 같은 패밀리의 새 Refresh v2와 새 Access A2를 발급하며, 이 시점부터 v1은 쓸 수 없다.',it:[M('c','s','refresh (v1)'),M('s','c','A2 + v2 발급')],tk:[['v1','used'],['v2','ok']],ac:['A2','ok']},
+{n:'반복',d:'A2가 만료되면 같은 과정이 반복된다. v2를 내고 v3를 받으며 v2는 사용됨이 된다. 정상 흐름에서는 패밀리 안의 유효한 Refresh가 항상 하나다.',it:[M('c','s','refresh (v2)'),M('s','c','A3 + v3 발급')],tk:[['v1','used'],['v2','used'],['v3','ok']],ac:['A3','ok']}]},
+attack:{lanes:{c:70,s:200,a:330},names:{c:'클라이언트',s:'서버 · DB',a:'공격자'},aria:'탈취 감지 시퀀스. 공격자가 훔친 옛 Refresh를 재사용하면 서버가 이미 사용된 토큰임을 확인하고 같은 패밀리의 토큰을 모두 폐기한다.',steps:[
+{n:'로그인',d:'로그인으로 A1과 Refresh v1(패밀리 F1)이 발급된다. 이 시점에 공격자가 v1을 복사해 갔다고 가정한다.',it:[M('c','s','로그인 요청'),M('s','c','A1 + v1 발급'),N('a',100,['v1 복사','(탈취 가정)'],'bad')],tk:[['v1','ok']],ac:['A1','ok']},
+{n:'정상 갱신',d:'정상 사용자가 v1로 갱신한다. 서버는 v2와 A2를 발급하고 v1을 사용됨으로 표시한다. 공격자는 아직 아무것도 하지 않았다.',it:[M('c','s','refresh (v1)'),M('s','c','A2 + v2 발급')],tk:[['v1','used'],['v2','ok']],ac:['A2','ok']},
+{n:'공격자 재사용',d:'공격자가 훔친 v1로 갱신을 요청한다. 그런데 v1은 이미 정상 사용자가 한 번 쓴 토큰이다.',it:[M('a','s','refresh (v1)','bad')],tk:[['v1','used'],['v2','ok']],ac:['A2','ok']},
+{n:'재사용 감지',d:'서버가 DB에서 v1의 사용됨 상태를 확인해 재사용으로 판단한다. 같은 familyId의 토큰을 전부 폐기하므로 아직 쓰지 않은 v2도 함께 무효가 되고, 공격자는 401을 받는다.',it:[N('s',120,['v1 이미 사용됨','F1 전체 폐기'],'bad'),M('s','a','401 재사용 감지','bad')],tk:[['v1','rev'],['v2','rev']],ac:['A2','ok']},
+{n:'강제 로그아웃',d:'정상 사용자가 v2로 갱신하면 이미 폐기돼 거절되고 재로그인이 필요하다. 탈취 감지의 대가다. 이미 발급된 Access Token A2는 만료 시각까지 유효하다.',it:[M('c','s','refresh (v2)'),M('s','c','401 거절','bad')],tk:[['v1','rev'],['v2','rev']],ac:['A2','ok','만료 시각까지 유효']}]}
+};
+var sc=SC.normal,cur=0,timer=null,els=[];
+function E(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function T(p,x,y,s,c){var t=E('text',{x:x,y:y,'class':c},p);t.textContent=s;return t;}
+function build(){
+svg.textContent='';els=[];
+var L=sc.lanes,y=48,lines=[];
+Object.keys(L).forEach(function(k){
+E('rect',{x:L[k]-48,y:4,width:96,height:28,rx:6,'class':'ygd-actor'},svg);
+T(svg,L[k],22,sc.names[k],'ygd-an');
+lines.push(E('line',{x1:L[k],x2:L[k],y1:32,y2:300,'class':'ygd-life'},svg));
+});
+sc.steps.forEach(function(st,i){st.it.forEach(function(it,j){
+var g=E('g',{'class':'ygd-it'},svg);
+g.style.setProperty('--dl',(j*0.8)+'s');
+if(it.y==='m'){
+var x1=L[it.f],x2=L[it.t],d=x2>x1?1:-1,ly=y+22;
+E('line',{x1:x1,y1:ly,x2:x2-d*8,y2:ly,'class':'ygd-ln'},g);
+E('polygon',{points:x2+','+ly+' '+(x2-d*9)+','+(ly-4.5)+' '+(x2-d*9)+','+(ly+4.5),'class':'ygd-hd'},g);
+T(g,(x1+x2)/2,y+10,it.l,'ygd-lb');
+var dot=E('circle',{cx:x1,cy:ly,r:4,'class':'ygd-dot'},g);
+dot.style.setProperty('--dx',(x2-x1)+'px');
+y+=36;
+}else{
+var h=it.ls.length*15+10,cx=L[it.a];
+E('rect',{x:cx-it.w/2,y:y,width:it.w,height:h,rx:6,'class':'ygd-nb'},g);
+it.ls.forEach(function(s,q){T(g,cx,y+16+q*15,s,'ygd-nt');});
+y+=h+14;
+}
+els.push({g:g,s:i,k:it.k});
+});});
+var H=y;
+svg.setAttribute('viewBox','0 0 400 '+H);
+svg.setAttribute('aria-label',sc.aria);
+lines.forEach(function(l){l.setAttribute('y2',H-4);});
+stepsEl.textContent='';
+sc.steps.forEach(function(st,i){
+var b=document.createElement('button');b.type='button';b.className='ygd-btn ygd-sb';b.textContent=(i+1)+' '+st.n;
+b.addEventListener('click',function(){stop();show(i);});
+stepsEl.appendChild(b);
+});
+}
+function chip(txt,cls){var s=document.createElement('span');s.className='ygd-chip '+cls;s.textContent=txt;chain.appendChild(s);return s;}
+function show(i){
+cur=i;var st=sc.steps[i];
+els.forEach(function(p){p.g.setAttribute('class','ygd-it ygd-k-'+p.k+' '+(p.s===i?'ygd-on':p.s<i?'ygd-done':'ygd-todo'));});
+chain.textContent='';
+var lab=document.createElement('span');lab.className='ygd-cl';lab.textContent='Refresh 패밀리 F1:';chain.appendChild(lab);
+st.tk.forEach(function(t){chip(t[0]+' · '+ST[t[1]],'ygd-c-'+t[1]);});
+var lb2=document.createElement('span');lb2.className='ygd-cl';lb2.textContent='Access:';chain.appendChild(lb2);
+chip(st.ac[0]+' · '+(st.ac[2]||ST[st.ac[1]]),'ygd-c-'+st.ac[1]);
+Array.prototype.forEach.call(stepsEl.children,function(b,q){if(q===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
+dT.textContent=(i+1)+' / '+sc.steps.length+' · '+st.n;
+dB.textContent=st.d;
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}playB.textContent='재생';}
+function play(){
+if(timer){stop();return;}
+if(cur>=sc.steps.length-1)show(0);
+playB.textContent='일시정지';
+timer=setInterval(function(){
+if(cur>=sc.steps.length-1){stop();playB.textContent='다시 재생';return;}
+show(cur+1);
+},2800);
+}
+function setSc(key){
+stop();sc=SC[key];
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-sc'),function(b){b.setAttribute('aria-pressed',b.getAttribute('data-sc')===key?'true':'false');});
+build();show(0);
+}
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-sc'),function(b){b.addEventListener('click',function(){setSc(b.getAttribute('data-sc'));});});
+playB.addEventListener('click',play);
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();show(cur>=sc.steps.length-1?0:cur+1);});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();show(0);});
+build();show(0);
+})();
+</script>
+</div>
+
 ## 탈취 시나리오별 대응
 
 ### Access Token 탈취
@@ -81,6 +237,151 @@ async function getAccessToken() {
 RTR에서는 정상 사용자가 다음 갱신 요청을 보낼 때 자동으로 감지된다. 사용자가 아무것도 몰랐어도, 오래된 토큰으로 갱신을 시도하는 시점에 재사용이 감지된다.
 
 다만, 감지 즉시 `familyId` 전체를 폐기하므로 사용자도 강제 로그아웃된다. 사용자 입장에서는 갑자기 로그인이 풀리는 경험을 하게 된다. 이 상황에서 "보안상 재로그인이 필요합니다" 안내와 함께, 필요하다면 이메일/앱 푸시 알림으로 보안 이벤트를 알려주는 것이 좋다.
+
+<div class="ygd-rtr-life" id="ygd-rtr-life">
+<style>
+.ygd-rtr-life{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-bad:#B3261E;--ygd-ok:#2E7D4F;--ygd-warn:#B4530A;--ygd-life:#8F887F;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em auto;box-sizing:border-box;max-width:760px}
+body[data-md-color-scheme="slate"] .ygd-rtr-life{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-a:#7DB4F0;--ygd-bad:#FF8A80;--ygd-ok:#6FCB93;--ygd-warn:#F0A867;--ygd-life:#8A837C;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0}
+.ygd-rtr-life .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-rtr-life .ygd-tog,.ygd-rtr-life .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-rtr-life .ygd-btn{flex:1 1 120px;font:inherit;font-size:14px;min-height:40px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer;box-sizing:border-box}
+.ygd-rtr-life .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px}
+.ygd-rtr-life .ygd-btn[aria-pressed="true"],.ygd-rtr-life .ygd-primary{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-rtr-life .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:10px auto 4px}
+.ygd-rtr-life .ygd-rl{fill:var(--ygd-text);font-size:12px;font-weight:700}
+.ygd-rtr-life .ygd-axis{stroke:var(--ygd-life);stroke-width:1.5}
+.ygd-rtr-life .ygd-axh{fill:var(--ygd-life)}
+.ygd-rtr-life .ygd-at{fill:var(--ygd-muted);font-size:12px}
+.ygd-rtr-life .ygd-k-ok{color:var(--ygd-ok)}
+.ygd-rtr-life .ygd-k-a{color:var(--ygd-a)}
+.ygd-rtr-life .ygd-k-bad{color:var(--ygd-bad)}
+.ygd-rtr-life .ygd-k-warn{color:var(--ygd-warn)}
+.ygd-rtr-life .ygd-k-mute{color:var(--ygd-life)}
+.ygd-rtr-life .ygd-bar.ygd-todo{opacity:.45}
+.ygd-rtr-life .ygd-bx{fill:var(--ygd-panel);stroke:currentColor;stroke-width:2}
+.ygd-rtr-life .ygd-ring{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:4 3}
+.ygd-rtr-life .ygd-on .ygd-bx{stroke-width:3.5}
+.ygd-rtr-life .ygd-bt{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-rtr-life .ygd-bo{fill:var(--ygd-text);font-size:12px}
+.ygd-rtr-life .ygd-head{stroke:var(--ygd-text);stroke-width:2}
+.ygd-rtr-life .ygd-hd{fill:var(--ygd-text)}
+.ygd-rtr-life .ygd-legend{font-size:14px;color:var(--ygd-muted);margin:2px 0 8px;overflow-wrap:anywhere}
+.ygd-rtr-life .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-a);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0;box-sizing:border-box}
+.ygd-rtr-life .ygd-dt{font-size:15px;font-weight:700}
+.ygd-rtr-life .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-rtr-life .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-rtr-life .ygd-bar{transition:opacity .3s}
+.ygd-rtr-life .ygd-ph{transition:transform .6s ease-in-out}
+}
+</style>
+<div class="ygd-title">Access Token과 Refresh Token의 수명 비교</div>
+<div class="ygd-tog" role="group" aria-label="시나리오 선택">
+<button type="button" class="ygd-btn ygd-sc" data-sc="acc" aria-pressed="true">Access 탈취</button>
+<button type="button" class="ygd-btn ygd-sc" data-sc="simple" aria-pressed="false">Refresh 탈취 · 단순 만료</button>
+<button type="button" class="ygd-btn ygd-sc" data-sc="rot" aria-pressed="false">Refresh 탈취 · 회전</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 400 200" role="img" aria-label="Access Token과 Refresh Token의 수명을 가로 시간축에 막대로 비교한 타임라인"></svg>
+<div class="ygd-legend">Access는 수명이 짧고(15분 이하 권장), Refresh는 수명이 길다(7일~30일). 가로 길이는 실제 비율이 아니다.</div>
+<div class="ygd-panel" role="status" aria-live="polite"><div class="ygd-dt"></div><div class="ygd-db"></div></div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-prev">이전</button>
+<button type="button" class="ygd-btn ygd-next">다음</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-analogy">비유: 당일 입장 팔찌(Access)와 팔찌 교환권(Refresh)에 가깝다. 팔찌는 금방 만료되고 교환권은 오래가지만, 회전 방식에서는 교환권을 한 번 쓰면 새 교환권으로 바뀐다. 이미 나간 팔찌는 회수할 수 없어 만료까지 유효하다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-rtr-life');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg'),dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play');
+var RY={a:34,r:78,x:122};
+function B(r,x1,x2,l,k,s,o){return {r:r,x1:x1,x2:x2,l:l,k:k,s:s,o:o};}
+function G(r,x1,x2,k,s){return {r:r,x1:x1,x2:x2,k:k,s:s,ring:1};}
+var SC={
+acc:{aria:'Access Token 탈취 타임라인. 공격자는 Access Token의 만료 시각까지만 접근할 수 있고 Refresh Token이 없어 재발급은 받지 못한다.',bars:[
+B('a',90,126,'A1','a',0),B('r',90,390,'Refresh Token (긴 수명)','ok',0),B('x',110,126,'',  'bad',1),B('x',126,390,'재발급 불가 (Refresh 없음)','mute',2)],
+steps:[
+{x:90,n:'로그인',d:'로그인하면 짧은 수명의 Access Token A1과 긴 수명의 Refresh Token이 발급된다. 이 수명 차이가 구조의 출발점이다.'},
+{x:110,n:'Access 탈취',d:'공격자가 A1만 훔쳤다. A1은 만료 시각까지 그대로 쓸 수 있고, RTR이 이 구간을 직접 막아 주지는 않는다.'},
+{x:126,n:'만료로 차단',d:'A1이 만료되면 접근이 끊긴다. 공격자는 Refresh Token이 없어 새 Access를 받을 수 없다. 그래서 Access 수명을 짧게 가져가는 것이 방어다.'}]},
+simple:{aria:'단순 만료 방식에서 Refresh Token을 탈취당한 타임라인. 토큰이 만료될 때까지 공격자가 계속 Access Token을 재발급받아도 감지하지 못한다.',bars:[
+B('a',90,120,'A1','a',0),B('r',90,390,'Refresh Token (만료까지 유효)','ok',0),B('x',130,390,'탈취한 Refresh로 계속 재발급','bad',1)],
+steps:[
+{x:90,n:'로그인',d:'단순 만료 방식에서는 Refresh Token 하나를 만료 시각까지 계속 쓴다. 수명은 7일~30일로 길다.'},
+{x:130,n:'Refresh 탈취',d:'공격자가 Refresh Token을 훔쳐 재발급을 요청한다. 서버는 정상 요청과 구분할 수 없어 Access Token을 발급한다.'},
+{x:260,n:'계속 사용',d:'토큰이 1회용이 아니라 재사용을 추적하지 않는다. 정상 사용자와 공격자가 같은 토큰으로 갱신해도 사용자는 아무것도 알 수 없다.'},
+{x:390,n:'만료',d:'Refresh Token이 만료돼야 끝난다. 그 전에 끊으려면 사용자가 직접 다른 기기에서 로그아웃하거나 비밀번호를 변경해야 한다.'}]},
+rot:{aria:'회전 방식에서 Refresh Token을 탈취당한 타임라인. 공격자가 옛 Refresh Token을 재사용하는 순간 패밀리가 폐기되고, 이미 발급된 Access Token은 만료 시각까지 유효하다.',bars:[
+B('a',90,120,'A1','a',0),B('r',90,150,'v1','ok',0),B('x',105,150,'탈취','warn',1),
+B('a',150,180,'A2','a',2),B('r',150,160,'','ok',2),G('a',160,180,'warn',3),
+B('x',156,164,'v1 재사용 → 401','bad',3,1),B('r',160,390,'v2 포함 패밀리 폐기','bad',3)],
+steps:[
+{x:90,n:'로그인',d:'로그인하면 A1과 Refresh v1이 발급된다. v1은 1회용이고 패밀리 F1에 속한다.'},
+{x:105,n:'v1 탈취',d:'공격자가 v1을 복사해 갔다. 정상 사용자는 아직 모른다.'},
+{x:150,n:'정상 회전',d:'정상 사용자가 v1로 갱신한다. 서버는 v1을 사용됨으로 바꾸고 새 Refresh v2와 A2를 발급한다.'},
+{x:160,n:'재사용 감지',d:'공격자가 v1을 내밀면 서버는 이미 사용된 토큰임을 확인하고 패밀리 F1 전체를 폐기한다. v2도 함께 무효가 되고 공격자는 401을 받는다.'},
+{x:180,n:'Access 만료',d:'폐기 시점에도 이미 발급된 A2는 만료 시각까지 유효하다(점선 구간). A2가 만료돼야 접근이 완전히 끊기며, Access 수명이 곧 최대 노출 시간이다.'}]}
+};
+var sc=SC.acc,cur=0,timer=null,els=[],ph=null;
+function E(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function T(p,x,y,s,c){var t=E('text',{x:x,y:y,'class':c},p);t.textContent=s;return t;}
+function build(){
+svg.textContent='';els=[];
+T(svg,6,52,'Access','ygd-rl');T(svg,6,96,'Refresh','ygd-rl');T(svg,6,140,'공격자','ygd-rl');
+E('line',{x1:90,y1:172,x2:384,y2:172,'class':'ygd-axis'},svg);
+E('polygon',{points:'394,172 384,167.5 384,176.5','class':'ygd-axh'},svg);
+T(svg,90,192,'시간 (비례 아님)','ygd-at');
+sc.bars.forEach(function(b){
+var y=RY[b.r],g=E('g',{'class':'ygd-bar'},svg);
+if(b.ring){E('rect',{x:b.x1,y:y-3,width:b.x2-b.x1,height:32,rx:4,'class':'ygd-ring'},g);}
+else{
+E('rect',{x:b.x1,y:y,width:b.x2-b.x1,height:26,rx:4,'class':'ygd-bx'},g);
+if(b.l&&!b.o)T(g,(b.x1+b.x2)/2,y+17,b.l,'ygd-bt');
+if(b.l&&b.o)T(g,b.x2+8,y+17,b.l,'ygd-bo');
+}
+els.push({g:g,b:b});
+});
+ph=E('g',{'class':'ygd-ph'},svg);
+E('line',{x1:0,y1:22,x2:0,y2:162,'class':'ygd-head'},ph);
+E('circle',{cx:0,cy:18,r:4,'class':'ygd-hd'},ph);
+svg.setAttribute('aria-label',sc.aria);
+}
+function show(i){
+cur=i;var st=sc.steps[i];
+els.forEach(function(p){
+var s=p.b.s;
+p.g.setAttribute('class','ygd-bar ygd-k-'+p.b.k+' '+(s===i?'ygd-on':s<i?'ygd-done':'ygd-todo'));
+});
+ph.style.transform='translateX('+st.x+'px)';
+dT.textContent=(i+1)+' / '+sc.steps.length+' · '+st.n;
+dB.textContent=st.d;
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}playB.textContent='재생';}
+function play(){
+if(timer){stop();return;}
+if(cur>=sc.steps.length-1)show(0);
+playB.textContent='일시정지';
+timer=setInterval(function(){
+if(cur>=sc.steps.length-1){stop();playB.textContent='다시 재생';return;}
+show(cur+1);
+},2800);
+}
+function setSc(key){
+stop();sc=SC[key];
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-sc'),function(b){b.setAttribute('aria-pressed',b.getAttribute('data-sc')===key?'true':'false');});
+build();show(0);
+}
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-sc'),function(b){b.addEventListener('click',function(){setSc(b.getAttribute('data-sc'));});});
+playB.addEventListener('click',play);
+root.querySelector('.ygd-prev').addEventListener('click',function(){stop();show(cur>0?cur-1:0);});
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();show(cur>=sc.steps.length-1?0:cur+1);});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();show(0);});
+build();show(0);
+})();
+</script>
+</div>
 
 ## 저장 구조
 
@@ -306,6 +607,161 @@ async function rotateWithLock(rawToken) {
 ```
 
 락 TTL(5초)은 rotate 함수 처리 시간보다 넉넉하게 설정한다. DB 응답이 느린 경우를 고려해야 한다.
+
+<div class="ygd-rtr-race" id="ygd-rtr-race">
+<style>
+.ygd-rtr-race{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-bad:#B3261E;--ygd-ok:#2E7D4F;--ygd-warn:#B4530A;--ygd-life:#8F887F;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em auto;box-sizing:border-box;max-width:760px}
+body[data-md-color-scheme="slate"] .ygd-rtr-race{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-a:#7DB4F0;--ygd-bad:#FF8A80;--ygd-ok:#6FCB93;--ygd-warn:#F0A867;--ygd-life:#8A837C;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0}
+.ygd-rtr-race .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-rtr-race .ygd-tog,.ygd-rtr-race .ygd-ctrl,.ygd-rtr-race .ygd-steps{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-rtr-race .ygd-btn{flex:1 1 110px;font:inherit;font-size:14px;min-height:40px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer;box-sizing:border-box}
+.ygd-rtr-race .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px}
+.ygd-rtr-race .ygd-btn[aria-pressed="true"],.ygd-rtr-race .ygd-primary,.ygd-rtr-race .ygd-sb[aria-current="step"]{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-rtr-race .ygd-sb{flex:1 1 90px;min-height:36px}
+.ygd-rtr-race .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:10px auto 6px}
+.ygd-rtr-race .ygd-actor{fill:var(--ygd-panel);stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-rtr-race .ygd-an{fill:var(--ygd-text);font-size:12px;font-weight:700;text-anchor:middle}
+.ygd-rtr-race .ygd-life{stroke:var(--ygd-life);stroke-width:1.5;stroke-dasharray:3 4}
+.ygd-rtr-race .ygd-k-ok{color:var(--ygd-a)}
+.ygd-rtr-race .ygd-k-good{color:var(--ygd-ok)}
+.ygd-rtr-race .ygd-k-bad{color:var(--ygd-bad)}
+.ygd-rtr-race .ygd-k-warn{color:var(--ygd-warn)}
+.ygd-rtr-race .ygd-it.ygd-todo{color:var(--ygd-life);opacity:.55}
+.ygd-rtr-race .ygd-ln{stroke:currentColor;stroke-width:1.8}
+.ygd-rtr-race .ygd-on .ygd-ln{stroke-width:3}
+.ygd-rtr-race .ygd-hd,.ygd-rtr-race .ygd-dot{fill:currentColor}
+.ygd-rtr-race .ygd-dot{opacity:0}
+.ygd-rtr-race .ygd-lb,.ygd-rtr-race .ygd-nt{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-rtr-race .ygd-on .ygd-lb,.ygd-rtr-race .ygd-on .ygd-nt{font-weight:700}
+.ygd-rtr-race .ygd-nb{fill:var(--ygd-panel);stroke:currentColor;stroke-width:1.8}
+.ygd-rtr-race .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-a);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0;box-sizing:border-box}
+.ygd-rtr-race .ygd-dt{font-size:15px;font-weight:700}
+.ygd-rtr-race .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-rtr-race .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-rtr-race .ygd-it{transition:opacity .3s}
+.ygd-rtr-race .ygd-on .ygd-dot{animation:ygd-race-fly .8s ease-in-out var(--dl,0s) forwards}
+}
+@keyframes ygd-race-fly{0%{opacity:1;transform:translateX(0)}85%{opacity:1}100%{opacity:0;transform:translateX(var(--dx))}}
+</style>
+<div class="ygd-title">같은 Refresh Token으로 동시에 두 요청이 올 때</div>
+<div class="ygd-tog" role="group" aria-label="처리 방식 선택">
+<button type="button" class="ygd-btn ygd-sc" data-sc="none" aria-pressed="true">보호 없음</button>
+<button type="button" class="ygd-btn ygd-sc" data-sc="cond" aria-pressed="false">조건부 UPDATE</button>
+<button type="button" class="ygd-btn ygd-sc" data-sc="grace" aria-pressed="false">grace period</button>
+<button type="button" class="ygd-btn ygd-sc" data-sc="lock" aria-pressed="false">Redis 락</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 400 300" role="img" aria-label="동시 갱신 요청 처리 시퀀스 다이어그램"></svg>
+<div class="ygd-steps" role="group" aria-label="단계 선택"></div>
+<div class="ygd-panel" role="status" aria-live="polite"><div class="ygd-dt"></div><div class="ygd-db"></div></div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-analogy">비유: 창구 하나에 같은 교환권을 든 두 사람이 동시에 선 상황이다. 번호표 없이 받으면 둘 다 새 교환권을 받아 가고, 창구에서 한 명만 통과시키거나(조건부 UPDATE, 락) 늦은 사람을 되돌려 보내는(grace period) 방법이 있다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-rtr-race');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg'),stepsEl=root.querySelector('.ygd-steps');
+var dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play');
+var L={a:60,s:200,b:340},NAMES={a:'A 요청',s:'서버 · DB',b:'B 요청'};
+function M(f,t,l,k){return {y:'m',f:f,t:t,l:l,k:k||'ok'};}
+function N(l,k){return {y:'n',w:130,ls:l,k:k||'warn'};}
+var REQ=[M('a','s','refresh (v1)'),M('b','s','refresh (v1)')];
+var SC={
+none:{aria:'보호 없는 경우. 두 요청이 같은 v1을 미사용으로 읽고 둘 다 새 토큰을 발급받아 한 패밀리에 유효한 토큰이 두 개가 된다.',steps:[
+{n:'동시 요청',sim:1,d:'같은 v1로 두 요청이 거의 동시에 도착한다. 모바일 앱에서 네트워크 타임아웃 뒤 자동 재시도할 때 자주 생긴다.',it:REQ},
+{n:'둘 다 통과',d:'findOne, updateOne, insertOne이 각각 별개의 쿼리라서 두 요청 모두 isUsed가 false인 상태를 읽는다.',it:[N(['A, B 모두','미사용으로 읽음'])]},
+{n:'토큰 2개 발급',d:'둘 다 사용 처리를 하고 새 토큰을 발급한다. 한 패밀리에 유효한 Refresh Token이 두 개가 된다.',it:[M('s','a','A2 + v2 발급'),M('s','b','A2′ + v2′ 발급','warn')]},
+{n:'오탐 위험',d:'이후 둘 중 하나를 쓰는 순간 재사용으로 판단된다. 정상 사용자가 탈취범으로 오인되는 오탐이다.',it:[N(['이후 둘 중 하나','쓰면 오탐'],'bad')]}]},
+cond:{aria:'조건부 UPDATE 방식. isUsed가 false인 행만 갱신하도록 조건을 걸어 먼저 도착한 요청만 성공하고 다른 요청은 갱신된 행이 0건이다.',steps:[
+{n:'동시 요청',sim:1,d:'같은 v1로 두 요청이 동시에 도착한다.',it:REQ},
+{n:'조건부 UPDATE',d:'UPDATE 조건에 isUsed가 false라는 절을 넣는다. 먼저 도착한 요청만 한 행을 갱신하고, 갱신된 행 수가 곧 승자 판정이다.',it:[N(['조건부 UPDATE','isUsed=false'],'ok')]},
+{n:'승자와 패자',d:'갱신 건수가 0인 요청은 다른 요청이 먼저 가져간 것이다. 재사용인지 동시 요청인지는 여기서 판단한다.',it:[M('s','a','A2 + v2 발급'),M('s','b','갱신 0건 (패자)','warn')]},
+{n:'트랜잭션',d:'남은 일은 UPDATE와 INSERT를 한 트랜잭션에 묶는 것이다. 분산 락보다 싸고 Redis도 필요 없다.',it:[N(['UPDATE + INSERT','한 트랜잭션'],'good')]}]},
+grace:{aria:'grace period 방식. 사용된 지 N초 이내의 재요청은 동시 요청으로 보고 패밀리를 폐기하지 않고 실패 응답만 돌려준다.',steps:[
+{n:'동시 요청',sim:1,d:'같은 v1로 두 요청이 도착한다. 먼저 처리된 A는 정상 회전한다.',it:REQ},
+{n:'A 먼저 회전',d:'A의 요청으로 v1이 사용됨 처리되고 v2가 발급된다. B의 요청은 그 직후 v1이 이미 사용된 상태에서 처리된다.',it:[M('s','a','A2 + v2 발급')]},
+{n:'grace 판정',d:'서버는 v1의 사용 시각이 N초(예: 10초) 이내인 것을 보고 탈취가 아닌 동시 요청으로 간주한다.',it:[N(['v1 사용 후 10초','이내 재요청'],'warn')]},
+{n:'실패 응답',d:'DB에는 해시만 있어 새 토큰 원문을 돌려줄 수 없다. 그래서 바뀌는 것은 패밀리를 폐기하지 않는다는 점 하나뿐이고 B는 실패를 받는다. 클라이언트는 재로그인이 아니라 잠시 뒤 재시도해야 한다.',it:[M('s','b','동시 요청 거절','warn')]}]},
+lock:{aria:'Redis 분산 락 방식. 같은 토큰에 대한 요청을 직렬화해 먼저 락을 잡은 요청만 회전을 수행하고 다른 요청은 즉시 거절된다.',steps:[
+{n:'동시 요청',sim:1,d:'같은 v1로 두 요청이 동시에 도착한다.',it:REQ},
+{n:'락 획득',d:'서버는 토큰 해시를 키로 한 락을 NX와 TTL 5초로 잡는다. 먼저 잡은 A만 회전을 시작한다.',it:[N(['SET NX EX 5','A가 락 획득'],'good')]},
+{n:'B 즉시 거절',d:'락을 못 잡은 B는 회전을 시도하지 않고 동시 요청 오류로 바로 거절된다.',it:[M('s','b','429 동시 요청','warn')]},
+{n:'회전 후 해제',d:'A는 회전을 마치고 자신이 잡은 락일 때만 해제한다. 대가는 인증 경로가 Redis에 의존한다는 것이다. 장애 시 락 없이 진행하면 원래 문제로 돌아가고, 거부하면 로그인이 전부 막힌다.',it:[M('s','a','A2 + v2 발급'),N(['내 락일 때만','해제'],'good')]}]}
+};
+var sc=SC.none,cur=0,timer=null,els=[];
+function E(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function T(p,x,y,s,c){var t=E('text',{x:x,y:y,'class':c},p);t.textContent=s;return t;}
+function build(){
+svg.textContent='';els=[];
+var y=48,lines=[];
+Object.keys(L).forEach(function(k){
+E('rect',{x:L[k]-48,y:4,width:96,height:28,rx:6,'class':'ygd-actor'},svg);
+T(svg,L[k],22,NAMES[k],'ygd-an');
+lines.push(E('line',{x1:L[k],x2:L[k],y1:32,y2:300,'class':'ygd-life'},svg));
+});
+sc.steps.forEach(function(st,i){st.it.forEach(function(it,j){
+var g=E('g',{'class':'ygd-it'},svg);
+g.style.setProperty('--dl',(st.sim?0:j*0.8)+'s');
+if(it.y==='m'){
+var x1=L[it.f],x2=L[it.t],d=x2>x1?1:-1,ly=y+22;
+E('line',{x1:x1,y1:ly,x2:x2-d*8,y2:ly,'class':'ygd-ln'},g);
+E('polygon',{points:x2+','+ly+' '+(x2-d*9)+','+(ly-4.5)+' '+(x2-d*9)+','+(ly+4.5),'class':'ygd-hd'},g);
+T(g,(x1+x2)/2,y+10,it.l,'ygd-lb');
+var dot=E('circle',{cx:x1,cy:ly,r:4,'class':'ygd-dot'},g);
+dot.style.setProperty('--dx',(x2-x1)+'px');
+y+=36;
+}else{
+var h=it.ls.length*15+10;
+E('rect',{x:L.s-it.w/2,y:y,width:it.w,height:h,rx:6,'class':'ygd-nb'},g);
+it.ls.forEach(function(s,q){T(g,L.s,y+16+q*15,s,'ygd-nt');});
+y+=h+14;
+}
+els.push({g:g,s:i,k:it.k});
+});});
+svg.setAttribute('viewBox','0 0 400 '+y);
+svg.setAttribute('aria-label',sc.aria);
+lines.forEach(function(l){l.setAttribute('y2',y-4);});
+stepsEl.textContent='';
+sc.steps.forEach(function(st,i){
+var b=document.createElement('button');b.type='button';b.className='ygd-btn ygd-sb';b.textContent=(i+1)+' '+st.n;
+b.addEventListener('click',function(){stop();show(i);});
+stepsEl.appendChild(b);
+});
+}
+function show(i){
+cur=i;var st=sc.steps[i];
+els.forEach(function(p){p.g.setAttribute('class','ygd-it ygd-k-'+p.k+' '+(p.s===i?'ygd-on':p.s<i?'ygd-done':'ygd-todo'));});
+Array.prototype.forEach.call(stepsEl.children,function(b,q){if(q===i)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
+dT.textContent=(i+1)+' / '+sc.steps.length+' · '+st.n;
+dB.textContent=st.d;
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}playB.textContent='재생';}
+function play(){
+if(timer){stop();return;}
+if(cur>=sc.steps.length-1)show(0);
+playB.textContent='일시정지';
+timer=setInterval(function(){
+if(cur>=sc.steps.length-1){stop();playB.textContent='다시 재생';return;}
+show(cur+1);
+},2800);
+}
+function setSc(key){
+stop();sc=SC[key];
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-sc'),function(b){b.setAttribute('aria-pressed',b.getAttribute('data-sc')===key?'true':'false');});
+build();show(0);
+}
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-sc'),function(b){b.addEventListener('click',function(){setSc(b.getAttribute('data-sc'));});});
+playB.addEventListener('click',play);
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();show(cur>=sc.steps.length-1?0:cur+1);});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();show(0);});
+build();show(0);
+})();
+</script>
+</div>
 
 #### 설명과 코드가 다르다
 
