@@ -3,13 +3,14 @@ title: Node.js 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-22
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # Node.js 전체 보기
 
-문서 114개.
+문서 115개.
 
 ## 프레임워크
 
@@ -46,7 +47,8 @@ hide:
 - [Observability 전략](모니터링/Observability_전략.md)
 - [성능 최적화와 프로파일링](Performance/Node.js_성능_최적화_및_프로파일링.md)
 - [부하 테스트 전략](성능/부하_테스트_전략.md)
-- [보안 모범사례](보안/Node.js_보안_모범사례.md)
+- [Node.js 보안 모범 사례](보안/Node.js_보안_모범사례.md)
+- [Node.js vm 모듈과 동적 코드 실행의 한계](보안/Node_VM_And_Dynamic_Code_Execution.md)
 - [JWT 구현과 보안](인증/JWT_구현_및_보안.md)
 - [작업 큐 처리](백그라운드_작업/작업_큐_처리.md)
 - [파일 업로드와 처리](파일_처리/파일_업로드_및_처리.md)
