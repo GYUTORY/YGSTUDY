@@ -360,6 +360,265 @@ spec:
 
 이렇게 하면 payment-service는 order-service의 POST 요청만 받는다. 다른 서비스가 payment-service에 접근하려 하면 403이 반환된다.
 
+<div class="ygd-mesh-path" id="ygd-mesh-path">
+<style>
+.ygd-mesh-path{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-a-bg:#E4EEFA;--ygd-b:#B4530A;--ygd-b-bg:#FBEBDD;--ygd-ok:#2E7D4F;--ygd-bad:#B3261E;--ygd-warn:#B4530A;--ygd-life:#A39C94;--ygd-plain:#6B655F;--ygd-btn-bg:#FFFFFF;--ygd-btn-text:#2B2724;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;--ygd-badge-text:#FFFFFF;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em auto;box-sizing:border-box;max-width:760px}
+body[data-md-color-scheme="slate"] .ygd-mesh-path{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-a:#7DB4F0;--ygd-a-bg:#1F3550;--ygd-b:#F0A867;--ygd-b-bg:#4A3220;--ygd-ok:#6FCB93;--ygd-bad:#F2877F;--ygd-warn:#F0A867;--ygd-life:#7A736C;--ygd-plain:#A8A29B;--ygd-btn-bg:#332F32;--ygd-btn-text:#F0EDE9;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0;--ygd-badge-text:#14202E}
+.ygd-mesh-path .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-mesh-path .ygd-toggle{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-mesh-path .ygd-btn{flex:1 1 140px;font:inherit;font-size:14px;min-height:40px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-btn-text);cursor:pointer;box-sizing:border-box}
+.ygd-mesh-path .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px}
+.ygd-mesh-path .ygd-btn[aria-pressed="true"],.ygd-mesh-path .ygd-primary{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-mesh-path .ygd-btn:disabled{opacity:.45;cursor:default}
+.ygd-mesh-path .ygd-modenote{font-size:14px;color:var(--ygd-muted);margin:8px 0 6px;overflow-wrap:anywhere}
+.ygd-mesh-path .ygd-svg{display:block;width:100%;height:auto;max-width:100%}
+.ygd-mesh-path .ygd-pod{fill:none;stroke:var(--ygd-life);stroke-width:1.5;stroke-dasharray:4 4}
+.ygd-mesh-path .ygd-node-app{fill:var(--ygd-a-bg);stroke:var(--ygd-a);stroke-width:2}
+.ygd-mesh-path .ygd-node-env{fill:var(--ygd-b-bg);stroke:var(--ygd-b);stroke-width:2}
+.ygd-mesh-path .ygd-node-env.ygd-hl{stroke-width:4}
+.ygd-mesh-path.ygd-plain .ygd-envl{opacity:.35;stroke-dasharray:4 3}
+.ygd-mesh-path .ygd-ptitle{fill:var(--ygd-muted);font-size:10.5px;text-anchor:middle}
+.ygd-mesh-path .ygd-ntext{fill:var(--ygd-text);font-size:11.5px;font-weight:700;text-anchor:middle}
+.ygd-mesh-path .ygd-nsub{fill:var(--ygd-muted);font-size:10px;text-anchor:middle}
+.ygd-mesh-path .ygd-seg{opacity:.3}
+.ygd-mesh-path .ygd-seg.ygd-done{opacity:.85}
+.ygd-mesh-path .ygd-seg.ygd-on{opacity:1}
+.ygd-mesh-path .ygd-seg.ygd-none{opacity:.12}
+.ygd-mesh-path.ygd-plain .ygd-seg-s1{display:none}
+.ygd-mesh-path .ygd-line{stroke-width:2.5;fill:none}
+.ygd-mesh-path .ygd-ln-plain{stroke:var(--ygd-plain)}
+.ygd-mesh-path .ygd-ln-mtls{stroke:var(--ygd-ok);stroke-width:3.5}
+.ygd-mesh-path.ygd-plain .ygd-ln-mtls{stroke:var(--ygd-warn);stroke-dasharray:6 4;stroke-width:3}
+.ygd-mesh-path .ygd-fill-plain{fill:var(--ygd-plain)}
+.ygd-mesh-path .ygd-fill-mtls{fill:var(--ygd-ok)}
+.ygd-mesh-path.ygd-plain .ygd-fill-mtls{fill:var(--ygd-warn)}
+.ygd-mesh-path .ygd-lbl{fill:var(--ygd-text);font-size:10.5px}
+.ygd-mesh-path .ygd-lbl-c{text-anchor:middle}
+.ygd-mesh-path .ygd-badge{display:none}
+.ygd-mesh-path .ygd-badge.ygd-bd-ok{display:inline;fill:var(--ygd-ok)}
+.ygd-mesh-path .ygd-badge.ygd-bd-bad{display:inline;fill:var(--ygd-bad)}
+.ygd-mesh-path .ygd-badge.ygd-bd-warn{display:inline;fill:var(--ygd-warn)}
+.ygd-mesh-path .ygd-tick{display:none;fill:var(--ygd-badge-text);font-size:13px;font-weight:700;text-anchor:middle}
+.ygd-mesh-path .ygd-tick.ygd-on{display:inline}
+.ygd-mesh-path .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ygd-mesh-path .ygd-ctrl .ygd-btn{flex:1 1 70px}
+.ygd-mesh-path .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-muted);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin-top:10px;box-sizing:border-box}
+.ygd-mesh-path .ygd-panel[data-who="ok"]{border-left-color:var(--ygd-ok)}
+.ygd-mesh-path .ygd-panel[data-who="bad"]{border-left-color:var(--ygd-bad)}
+.ygd-mesh-path .ygd-panel[data-who="warn"]{border-left-color:var(--ygd-warn)}
+.ygd-mesh-path .ygd-count{font-size:13px;color:var(--ygd-muted)}
+.ygd-mesh-path .ygd-stitle{font-size:15px;font-weight:700;margin-top:4px}
+.ygd-mesh-path .ygd-desc{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-mesh-path .ygd-analogy{font-size:13px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-mesh-path .ygd-seg{transition:opacity .3s}
+.ygd-mesh-path .ygd-seg.ygd-on .ygd-line{animation:ygd-mesh-draw .7s ease forwards}
+}
+@keyframes ygd-mesh-draw{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
+</style>
+<div class="ygd-title">서비스 메시에서 요청이 지나는 경로</div>
+<div class="ygd-toggle" role="group" aria-label="시나리오 선택">
+<button type="button" class="ygd-btn ygd-tab" data-sc="ok" aria-pressed="true">허용된 서비스</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="deny" aria-pressed="false">허용 안 된 서비스</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="strict" aria-pressed="false">평문 요청 · STRICT</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="perm" aria-pressed="false">평문 요청 · PERMISSIVE</button>
+</div>
+<div class="ygd-modenote" data-role="note"></div>
+<svg class="ygd-svg" viewBox="0 0 360 226" role="img" aria-label="서비스 메시 요청 경로 다이어그램. 호출하는 쪽 앱이 평문 HTTP로 자기 Envoy 사이드카에 요청하고, 두 Envoy가 mTLS로 통신하며, 받는 쪽 Envoy가 정책을 판정한 뒤 payment-service 앱에 평문 HTTP로 전달한다.">
+<rect class="ygd-pod" x="8" y="18" width="140" height="196" rx="10"/>
+<rect class="ygd-pod" x="212" y="18" width="140" height="196" rx="10"/>
+<text class="ygd-ptitle" x="78" y="34" data-role="podl">Pod: order-service</text>
+<text class="ygd-ptitle" x="282" y="34">Pod: payment-service</text>
+<rect class="ygd-node-app" x="28" y="48" width="100" height="42" rx="8"/>
+<text class="ygd-ntext" x="78" y="66" data-role="appl">order-service</text>
+<text class="ygd-nsub" x="78" y="81">애플리케이션</text>
+<rect class="ygd-node-env ygd-envl" x="28" y="148" width="100" height="42" rx="8"/>
+<text class="ygd-ntext" x="78" y="166" data-role="envl">Envoy</text>
+<text class="ygd-nsub" x="78" y="181" data-role="envlsub">사이드카 프록시</text>
+<rect class="ygd-node-app" x="232" y="48" width="100" height="42" rx="8"/>
+<text class="ygd-ntext" x="282" y="66">payment-service</text>
+<text class="ygd-nsub" x="282" y="81">애플리케이션</text>
+<rect class="ygd-node-env" data-role="envb" x="232" y="148" width="100" height="42" rx="8"/>
+<text class="ygd-ntext" x="282" y="166">Envoy</text>
+<text class="ygd-nsub" x="282" y="181">사이드카 프록시</text>
+<g class="ygd-seg ygd-seg-s1" data-seg="s1">
+<line class="ygd-line ygd-ln-plain" x1="78" y1="92" x2="78" y2="138" pathLength="1"/>
+<polygon class="ygd-fill-plain" points="78,146 73.5,137 82.5,137"/>
+<text class="ygd-lbl" x="86" y="122">평문 HTTP</text>
+</g>
+<g class="ygd-seg" data-seg="s2">
+<line class="ygd-line ygd-ln-mtls" x1="130" y1="170" x2="222" y2="170" pathLength="1"/>
+<polygon class="ygd-fill-mtls" points="230,170 221,165.5 221,174.5"/>
+<text class="ygd-lbl ygd-lbl-c" x="180" y="162" data-role="lbl2">mTLS</text>
+</g>
+<g class="ygd-seg" data-seg="s4">
+<line class="ygd-line ygd-ln-plain" x1="282" y1="146" x2="282" y2="100" pathLength="1"/>
+<polygon class="ygd-fill-plain" points="282,92 277.5,101 286.5,101"/>
+<text class="ygd-lbl" x="290" y="122">평문 HTTP</text>
+</g>
+<circle class="ygd-badge" data-role="badge" cx="332" cy="148" r="11"/>
+<text class="ygd-tick" data-role="tick" x="332" y="153"></text>
+<text class="ygd-nsub" x="180" y="210">파선 테두리 = Pod 경계</text>
+</svg>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary" data-act="play">재생</button>
+<button type="button" class="ygd-btn" data-act="prev">이전</button>
+<button type="button" class="ygd-btn" data-act="next">다음</button>
+<button type="button" class="ygd-btn" data-act="reset">처음으로</button>
+</div>
+<div class="ygd-panel" data-who="n" role="status" aria-live="polite">
+<div class="ygd-count" data-role="count"></div>
+<div class="ygd-stitle" data-role="title"></div>
+<div class="ygd-desc" data-role="desc"></div>
+</div>
+<div class="ygd-analogy">비유: 건물 로비의 보안 데스크에 가깝다. 사무실 직원(앱)은 평소처럼 일하고, 출입증 확인은 양쪽 로비 데스크(Envoy)가 맡는다. 어디까지나 비유이며, 실제 허용 여부는 인증서에서 얻은 서비스 ID와 AuthorizationPolicy로 판정한다.</div>
+<script>
+(function () {
+  var root = document.getElementById('ygd-mesh-path');
+  if (!root) return;
+  var tabs = root.querySelectorAll('.ygd-tab');
+  var segs = root.querySelectorAll('.ygd-seg');
+  var playBtn = root.querySelector('[data-act="play"]');
+  var prevBtn = root.querySelector('[data-act="prev"]');
+  var nextBtn = root.querySelector('[data-act="next"]');
+  var resetBtn = root.querySelector('[data-act="reset"]');
+  var panel = root.querySelector('.ygd-panel');
+  var elCount = root.querySelector('[data-role="count"]');
+  var elTitle = root.querySelector('[data-role="title"]');
+  var elDesc = root.querySelector('[data-role="desc"]');
+  var elNote = root.querySelector('[data-role="note"]');
+  var elPodL = root.querySelector('[data-role="podl"]');
+  var elAppL = root.querySelector('[data-role="appl"]');
+  var elEnvL = root.querySelector('[data-role="envl"]');
+  var elEnvLSub = root.querySelector('[data-role="envlsub"]');
+  var elLbl2 = root.querySelector('[data-role="lbl2"]');
+  var elEnvB = root.querySelector('[data-role="envb"]');
+  var badge = root.querySelector('[data-role="badge"]');
+  var tick = root.querySelector('[data-role="tick"]');
+  var GLYPH = { ok: '✓', bad: '✕', warn: '!' };
+  var SC = {
+    ok: {
+      note: 'order-service가 payment-service의 POST /api/v1/payments를 호출한다. AuthorizationPolicy의 principals에 order-service가 들어 있는 정상 경로다.',
+      podL: 'Pod: order-service', appL: 'order-service', envL: 'Envoy', envLSub: '사이드카 프록시', plain: false,
+      steps: [
+        { seg: 's1', who: 'ok', title: '① 앱은 평문 HTTP로 요청한다',
+          d: '애플리케이션은 mTLS를 직접 다루지 않고 평문 HTTP로 요청한다. 같은 Pod의 Envoy 사이드카가 이 요청을 받아 간다.' },
+        { seg: 's2', who: 'ok', title: '② Envoy끼리 mTLS로 통신한다',
+          d: '서비스 간 통신은 실제로 Envoy-to-Envoy 통신이다. 양쪽 Envoy가 서로의 인증서를 검증하고, 받는 쪽은 인증서로 호출자의 서비스 ID를 알게 된다.' },
+        { seg: 'eb', badge: 'ok', who: 'ok', title: '③ AuthorizationPolicy를 통과한다',
+          d: '호출자 ID가 cluster.local/ns/production/sa/order-service이고 요청이 POST /api/v1/payments라서 정책의 principals, methods, paths 조건에 맞는다.' },
+        { seg: 's4', who: 'ok', title: '④ payment-service 앱으로 전달된다',
+          d: 'Envoy가 요청을 평문 HTTP로 앱에 넘긴다. 앱 코드는 인증서 처리를 하지 않아도 된다.' }
+      ]
+    },
+    deny: {
+      note: '정책의 principals에 없는 다른 서비스가 payment-service를 호출한다. 문서의 설명대로 403이 반환된다.',
+      podL: 'Pod: 다른 서비스', appL: '다른 서비스', envL: 'Envoy', envLSub: '사이드카 프록시', plain: false,
+      steps: [
+        { seg: 's1', who: 'n', title: '① 앱은 평문 HTTP로 요청한다',
+          d: '호출하는 쪽 앱이 평문 HTTP로 요청하고, 같은 Pod의 Envoy가 이를 받아 간다.' },
+        { seg: 's2', who: 'n', title: '② Envoy끼리 mTLS로 통신한다',
+          d: 'mTLS로 호출자가 어떤 서비스인지는 식별된다. 다만 식별되는 것과 접근이 허용되는 것은 별개다.' },
+        { seg: 'eb', badge: 'bad', who: 'bad', title: '③ 정책에 없는 호출자라 403',
+          d: '호출자 ID가 AuthorizationPolicy의 principals에 없다. 요청은 payment-service 앱에 닿지 못하고 403이 반환된다.' }
+      ]
+    },
+    strict: {
+      note: 'mTLS를 쓰지 않는 클라이언트가 payment-service에 평문 HTTP로 직접 접근한다. 네임스페이스는 mode: STRICT 상태다.',
+      podL: 'mTLS 없는 호출자', appL: '클라이언트', envL: '사이드카 없음', envLSub: '', plain: true,
+      steps: [
+        { seg: 's2', who: 'warn', title: '① 평문 HTTP 요청이 도착한다',
+          d: '호출자는 인증서 없이 평문 HTTP로 payment-service 쪽에 접근한다.' },
+        { seg: 'eb', badge: 'bad', who: 'bad', title: '② STRICT 모드에서 거부된다',
+          d: 'STRICT 모드에서는 해당 네임스페이스의 모든 서비스가 mTLS 없이는 통신할 수 없다. 평문 요청은 앱에 도달하지 못한다.' }
+      ]
+    },
+    perm: {
+      note: '같은 평문 요청이지만 네임스페이스가 mode: PERMISSIVE 상태다. 마이그레이션 과정에서만 쓰는 모드다.',
+      podL: 'mTLS 없는 호출자', appL: '클라이언트', envL: '사이드카 없음', envLSub: '', plain: true,
+      steps: [
+        { seg: 's2', who: 'warn', title: '① 평문 HTTP 요청이 도착한다',
+          d: '호출자는 인증서 없이 평문 HTTP로 payment-service 쪽에 접근한다.' },
+        { seg: 'eb', badge: 'warn', who: 'warn', title: '② PERMISSIVE 모드에서는 수용된다',
+          d: 'PERMISSIVE 모드는 mTLS와 평문 HTTP를 동시에 허용한다. 그래서 평문 요청도 걸러지지 않는다.' },
+        { seg: 's4', who: 'warn', title: '③ 호출자 인증 없이 앱까지 전달된다',
+          d: '평문 요청이라 호출자를 인증서로 확인할 수 없는 채로 앱까지 전달된다. 운영에서는 반드시 STRICT로 전환해야 하는 이유다.' }
+      ]
+    }
+  };
+  var key = 'ok';
+  var cur = 0;
+  var timer = null;
+  function sc() { return SC[key]; }
+  function isLast() { return cur === sc().steps.length; }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  function render() {
+    var s = sc();
+    root.classList.toggle('ygd-plain', s.plain);
+    elNote.textContent = s.note;
+    elPodL.textContent = s.podL;
+    elAppL.textContent = s.appL;
+    elEnvL.textContent = s.envL;
+    elEnvLSub.textContent = s.envLSub;
+    elLbl2.textContent = s.plain ? '평문 HTTP' : 'mTLS';
+    Array.prototype.forEach.call(tabs, function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-sc') === key ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(segs, function (g) {
+      var id = g.getAttribute('data-seg');
+      var at = -1, i;
+      for (i = 0; i < s.steps.length; i++) { if (s.steps[i].seg === id) { at = i + 1; break; } }
+      g.classList.remove('ygd-on', 'ygd-done', 'ygd-none');
+      if (at < 0) g.classList.add('ygd-none');
+      else if (at === cur) g.classList.add('ygd-on');
+      else if (at < cur) g.classList.add('ygd-done');
+    });
+    elEnvB.classList.toggle('ygd-hl', cur > 0 && s.steps[cur - 1].seg === 'eb');
+    var bd = null, j;
+    for (j = 0; j < cur; j++) { if (s.steps[j].badge) bd = s.steps[j].badge; }
+    badge.setAttribute('class', 'ygd-badge' + (bd ? ' ygd-bd-' + bd : ''));
+    tick.setAttribute('class', 'ygd-tick' + (bd ? ' ygd-on' : ''));
+    tick.textContent = bd ? GLYPH[bd] : '';
+    if (cur === 0) {
+      elCount.textContent = '준비';
+      panel.setAttribute('data-who', 'n');
+      elTitle.textContent = '재생을 눌러 시작';
+      elDesc.textContent = '재생을 누르면 요청이 지나가는 경로가 단계별로 진행된다. 위에서 시나리오를 바꿔 결과를 비교할 수 있다.';
+    } else {
+      var d = s.steps[cur - 1];
+      elCount.textContent = '단계 ' + cur + ' / ' + s.steps.length;
+      panel.setAttribute('data-who', d.who);
+      elTitle.textContent = d.title;
+      elDesc.textContent = d.d;
+    }
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = isLast();
+    playBtn.textContent = timer ? '일시정지' : (isLast() ? '다시 재생' : '재생');
+  }
+  function tick2() {
+    if (!document.body.contains(root)) { stop(); return; }
+    if (!isLast()) cur++;
+    if (isLast()) stop();
+    render();
+  }
+  function play() {
+    if (timer) { stop(); render(); return; }
+    if (cur === 0 || isLast()) { cur = 1; }
+    if (!isLast()) timer = setInterval(tick2, 2800);
+    render();
+  }
+  playBtn.addEventListener('click', play);
+  prevBtn.addEventListener('click', function () { stop(); if (cur > 0) cur--; render(); });
+  nextBtn.addEventListener('click', function () { stop(); if (!isLast()) cur++; render(); });
+  resetBtn.addEventListener('click', function () { stop(); cur = 0; render(); });
+  Array.prototype.forEach.call(tabs, function (b) {
+    b.addEventListener('click', function () { stop(); key = b.getAttribute('data-sc'); cur = 0; render(); });
+  });
+  render();
+})();
+</script>
+</div>
+
 ## 인증서 구조와 CA 운영
 
 ### 인증서 체인
@@ -489,6 +748,216 @@ echo "Days until expiry: $days_left"
 ```
 
 Prometheus를 쓴다면 `x509_cert_not_after` 메트릭으로 인증서 만료를 추적하고, 7일 이내면 알림을 보내는 규칙을 설정한다.
+
+<div class="ygd-cert-renew" id="ygd-cert-renew">
+<style>
+.ygd-cert-renew{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-ok:#2E7D4F;--ygd-ok-bg:#DDF0E4;--ygd-warn:#B4530A;--ygd-warn-bg:#FBEBDD;--ygd-bad:#B3261E;--ygd-bad-bg:#F8DEDB;--ygd-mark:#1F5FA8;--ygd-btn-bg:#FFFFFF;--ygd-btn-text:#2B2724;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em auto;box-sizing:border-box;max-width:760px}
+body[data-md-color-scheme="slate"] .ygd-cert-renew{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-ok:#6FCB93;--ygd-ok-bg:#1F3A2B;--ygd-warn:#F0A867;--ygd-warn-bg:#4A3220;--ygd-bad:#F2877F;--ygd-bad-bg:#4F2623;--ygd-mark:#7DB4F0;--ygd-btn-bg:#332F32;--ygd-btn-text:#F0EDE9;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0}
+.ygd-cert-renew .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-cert-renew .ygd-toggle{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-cert-renew .ygd-btn{flex:1 1 140px;font:inherit;font-size:14px;min-height:40px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-btn-text);cursor:pointer;box-sizing:border-box}
+.ygd-cert-renew .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px}
+.ygd-cert-renew .ygd-btn[aria-pressed="true"],.ygd-cert-renew .ygd-primary{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-cert-renew .ygd-btn:disabled{opacity:.45;cursor:default}
+.ygd-cert-renew .ygd-modenote{font-size:14px;color:var(--ygd-muted);margin:8px 0 6px;overflow-wrap:anywhere}
+.ygd-cert-renew .ygd-svg{display:block;width:100%;height:auto;max-width:100%}
+.ygd-cert-renew .ygd-seg-ok{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok);stroke-width:1.5}
+.ygd-cert-renew .ygd-seg-warn{fill:var(--ygd-warn-bg);stroke:var(--ygd-warn);stroke-width:1.5}
+.ygd-cert-renew.ygd-expired .ygd-seg-warn{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad)}
+.ygd-cert-renew .ygd-newbar{display:none;fill:var(--ygd-ok-bg);stroke:var(--ygd-ok);stroke-width:1.5}
+.ygd-cert-renew .ygd-newtxt{display:none}
+.ygd-cert-renew.ygd-has-new .ygd-newbar,.ygd-cert-renew.ygd-has-new .ygd-newtxt{display:inline}
+.ygd-cert-renew .ygd-t{fill:var(--ygd-text);font-size:10.5px}
+.ygd-cert-renew .ygd-t-m{text-anchor:middle}
+.ygd-cert-renew .ygd-t-e{text-anchor:end}
+.ygd-cert-renew .ygd-t-mut{fill:var(--ygd-muted)}
+.ygd-cert-renew .ygd-axis{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-cert-renew .ygd-mark{fill:var(--ygd-mark)}
+.ygd-cert-renew .ygd-markline{stroke:var(--ygd-mark);stroke-width:2;stroke-dasharray:3 3}
+.ygd-cert-renew .ygd-bell{fill:none;stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-cert-renew .ygd-bell.ygd-lit{fill:var(--ygd-bad);stroke:var(--ygd-bad)}
+.ygd-cert-renew .ygd-bells{display:none}
+.ygd-cert-renew.ygd-is-fail .ygd-bells{display:inline}
+.ygd-cert-renew .ygd-xmark{display:none;stroke:var(--ygd-bad);stroke-width:3;stroke-linecap:round}
+.ygd-cert-renew.ygd-expired .ygd-xmark{display:inline}
+.ygd-cert-renew .ygd-down{display:none;fill:var(--ygd-bad);font-size:11px;font-weight:700;text-anchor:middle}
+.ygd-cert-renew.ygd-expired .ygd-down{display:inline}
+.ygd-cert-renew .ygd-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ygd-muted);margin:6px 0 10px}
+.ygd-cert-renew .ygd-sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px;box-sizing:border-box;border:2px solid}
+.ygd-cert-renew .ygd-sw-ok{background:var(--ygd-ok-bg);border-color:var(--ygd-ok)}
+.ygd-cert-renew .ygd-sw-warn{background:var(--ygd-warn-bg);border-color:var(--ygd-warn)}
+.ygd-cert-renew .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-cert-renew .ygd-ctrl .ygd-btn{flex:1 1 70px}
+.ygd-cert-renew .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-muted);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin-top:10px;box-sizing:border-box}
+.ygd-cert-renew .ygd-panel[data-who="ok"]{border-left-color:var(--ygd-ok)}
+.ygd-cert-renew .ygd-panel[data-who="warn"]{border-left-color:var(--ygd-warn)}
+.ygd-cert-renew .ygd-panel[data-who="bad"]{border-left-color:var(--ygd-bad)}
+.ygd-cert-renew .ygd-count{font-size:13px;color:var(--ygd-muted)}
+.ygd-cert-renew .ygd-stitle{font-size:15px;font-weight:700;margin-top:4px}
+.ygd-cert-renew .ygd-desc{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-cert-renew .ygd-analogy{font-size:13px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-cert-renew .ygd-marker{transition:transform .6s ease}
+}
+</style>
+<div class="ygd-title">인증서 수명과 자동 갱신 타임라인</div>
+<div class="ygd-toggle" role="group" aria-label="갱신 결과 선택">
+<button type="button" class="ygd-btn ygd-tab" data-sc="ok" aria-pressed="true">갱신 성공</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="fail" aria-pressed="false">갱신 계속 실패</button>
+</div>
+<div class="ygd-modenote" data-role="note"></div>
+<svg class="ygd-svg" viewBox="0 0 360 190" role="img" aria-label="인증서 수명 타임라인. 0일에 30일짜리 인증서가 발급되고, 23일째부터 만료 7일 전 갱신 구간이 시작된다. 갱신에 성공하면 새 인증서가 이어지고, 계속 실패하면 30일째 만료되어 통신이 중단된다.">
+<rect class="ygd-seg-ok" x="20" y="70" width="245" height="24"/>
+<rect class="ygd-seg-warn" x="265" y="70" width="75" height="24"/>
+<text class="ygd-t ygd-t-m" x="142" y="86">유효 · 정상 사용</text>
+<text class="ygd-t ygd-t-m" x="302" y="86">갱신 구간</text>
+<line class="ygd-axis" x1="20" y1="98" x2="20" y2="104"/>
+<line class="ygd-axis" x1="265" y1="98" x2="265" y2="104"/>
+<line class="ygd-axis" x1="340" y1="98" x2="340" y2="104"/>
+<text class="ygd-t ygd-t-mut" x="20" y="116">0일 발급</text>
+<text class="ygd-t ygd-t-mut ygd-t-m" x="258" y="116">23일</text>
+<text class="ygd-t ygd-t-mut ygd-t-e" x="344" y="116">30일 만료</text>
+<g class="ygd-bells">
+<circle class="ygd-bell" data-k="1" cx="265" cy="52" r="5"/>
+<circle class="ygd-bell" data-k="2" cx="308" cy="52" r="5"/>
+<circle class="ygd-bell" data-k="3" cx="329" cy="52" r="5"/>
+<text class="ygd-t ygd-t-mut" x="20" y="56">알림 ○ 7일 · 3일 · 1일 전</text>
+</g>
+<g class="ygd-marker" data-role="marker" style="transform:translateX(0px)">
+<line class="ygd-markline" x1="20" y1="30" x2="20" y2="70"/>
+<polygon class="ygd-mark" points="20,34 14,22 26,22"/>
+</g>
+<rect class="ygd-newbar" x="265" y="136" width="87" height="24" rx="2"/>
+<text class="ygd-t ygd-t-m ygd-newtxt" x="308" y="152">새 인증서</text>
+<g class="ygd-xmark"><line x1="334" y1="64" x2="346" y2="100"/><line x1="346" y1="64" x2="334" y2="100"/></g>
+<text class="ygd-down" x="180" y="152">서비스 간 통신 중단</text>
+</svg>
+<div class="ygd-legend">
+<span><span class="ygd-sw ygd-sw-ok"></span>인증서 유효 기간</span>
+<span><span class="ygd-sw ygd-sw-warn"></span>renewBefore 7일 구간</span>
+<span>파란 표시: 현재 시점</span>
+</div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary" data-act="play">재생</button>
+<button type="button" class="ygd-btn" data-act="prev">이전</button>
+<button type="button" class="ygd-btn" data-act="next">다음</button>
+<button type="button" class="ygd-btn" data-act="reset">처음으로</button>
+</div>
+<div class="ygd-panel" data-who="n" role="status" aria-live="polite">
+<div class="ygd-count" data-role="count"></div>
+<div class="ygd-stitle" data-role="title"></div>
+<div class="ygd-desc" data-role="desc"></div>
+</div>
+<div class="ygd-analogy">비유: 여권 유효 기간에 가깝다. 만료 직전에 갱신하면 여행 중에 막히고, 여유를 두고 갱신하면 문제가 생겨도 고칠 시간이 남는다. 어디까지나 비유이며, 여기서의 날짜는 문서의 duration 720h, renewBefore 168h 설정을 기준으로 한 예시다.</div>
+<script>
+(function () {
+  var root = document.getElementById('ygd-cert-renew');
+  if (!root) return;
+  var tabs = root.querySelectorAll('.ygd-tab');
+  var bells = root.querySelectorAll('.ygd-bell');
+  var playBtn = root.querySelector('[data-act="play"]');
+  var prevBtn = root.querySelector('[data-act="prev"]');
+  var nextBtn = root.querySelector('[data-act="next"]');
+  var resetBtn = root.querySelector('[data-act="reset"]');
+  var panel = root.querySelector('.ygd-panel');
+  var elCount = root.querySelector('[data-role="count"]');
+  var elTitle = root.querySelector('[data-role="title"]');
+  var elDesc = root.querySelector('[data-role="desc"]');
+  var elNote = root.querySelector('[data-role="note"]');
+  var marker = root.querySelector('[data-role="marker"]');
+  function xOf(day) { return day * 320 / 30; }
+  var START = { day: 0, who: 'n', title: '① 인증서 발급', alerts: 0,
+    d: 'Certificate 리소스의 duration이 720h(30일)이므로 30일짜리 인증서가 발급되어 시크릿에 저장된다.' };
+  var SC = {
+    ok: {
+      note: 'cert-manager가 renewBefore 시점에 갱신에 성공하는 경우다. 서비스가 새 인증서를 쓰기까지의 과정을 본다.',
+      steps: [
+        START,
+        { day: 23, who: 'warn', title: '② 만료 7일 전 — 갱신 시작', alerts: 0,
+          d: 'renewBefore가 168h(7일)이라 만료 7일 전인 23일째부터 cert-manager가 갱신을 시작한다.' },
+        { day: 23, who: 'ok', title: '③ 새 인증서가 시크릿에 저장된다', alerts: 0, nu: true,
+          d: 'cert-manager가 새 인증서를 발급해 order-service-tls 시크릿을 갱신한다. 기존 인증서는 아직 7일이 남아 있어 서두를 필요가 없다.' },
+        { day: 23, who: 'ok', title: '④ 서비스가 새 인증서를 쓰게 한다', alerts: 0, nu: true,
+          d: '문서의 NestJS 예제처럼 시작할 때 파일을 한 번만 읽는 코드라면, 파일이 바뀌어도 반영되지 않는다. 서비스를 재시작하거나 파일을 주기적으로 다시 읽도록 처리해야 한다.' }
+      ]
+    },
+    fail: {
+      note: '갱신이 계속 실패하는 경우다. 자동화를 했어도 모니터링이 필요한 이유를 본다. 알림은 만료 7일 전, 3일 전, 1일 전에 보내도록 한 설정을 가정한다.',
+      steps: [
+        START,
+        { day: 23, who: 'warn', title: '② 갱신이 실패한다 — 7일 전 알림', alerts: 1,
+          d: '갱신을 시작했지만 실패한다. 아직 7일이 남아 있어 갱신에 실패하더라도 대응할 시간이 있다.' },
+        { day: 27, who: 'warn', title: '③ 재시도 중 — 3일 전 알림', alerts: 2,
+          d: '인증서가 만료될 때까지 갱신 재시도는 반복된다. 그래도 원인이 해결되지 않으면 3일 전 알림이 이어진다.' },
+        { day: 29, who: 'bad', title: '④ 만료 1일 전 — 마지막 알림', alerts: 3,
+          d: '마지막 알림이다. 자동화가 실패할 수 있기 때문에 모니터링과 알림은 자동화와 별개로 반드시 필요하다.' },
+        { day: 30, who: 'bad', title: '⑤ 만료 — 서비스 간 통신이 끊긴다', alerts: 3, expired: true,
+          d: '인증서가 만료되면 서비스 간 통신이 전부 끊긴다. 새벽에 만료되면 아침에 출근했을 때 장애 상태인 걸 발견하게 된다.' }
+      ]
+    }
+  };
+  var key = 'ok';
+  var cur = 0;
+  var timer = null;
+  function steps() { return SC[key].steps; }
+  function isLast() { return cur === steps().length; }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  function render() {
+    var s = steps();
+    elNote.textContent = SC[key].note;
+    root.classList.toggle('ygd-is-fail', key === 'fail');
+    Array.prototype.forEach.call(tabs, function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-sc') === key ? 'true' : 'false');
+    });
+    var d = cur > 0 ? s[cur - 1] : null;
+    var day = d ? d.day : 0;
+    var alerts = d ? d.alerts : 0;
+    var hasNew = false, i;
+    for (i = 0; i < cur; i++) { if (s[i].nu) hasNew = true; }
+    marker.style.transform = 'translateX(' + xOf(day) + 'px)';
+    root.classList.toggle('ygd-has-new', hasNew);
+    root.classList.toggle('ygd-expired', !!(d && d.expired));
+    Array.prototype.forEach.call(bells, function (b) {
+      b.classList.toggle('ygd-lit', Number(b.getAttribute('data-k')) <= alerts);
+    });
+    if (!d) {
+      elCount.textContent = '준비';
+      panel.setAttribute('data-who', 'n');
+      elTitle.textContent = '재생을 눌러 시작';
+      elDesc.textContent = '재생을 누르면 시간이 흐르며 인증서 상태가 바뀐다. 위에서 갱신 성공과 실패를 바꿔 비교할 수 있다.';
+    } else {
+      elCount.textContent = '단계 ' + cur + ' / ' + s.length + ' · ' + day + '일째';
+      panel.setAttribute('data-who', d.who);
+      elTitle.textContent = d.title;
+      elDesc.textContent = d.d;
+    }
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = isLast();
+    playBtn.textContent = timer ? '일시정지' : (isLast() ? '다시 재생' : '재생');
+  }
+  function tick() {
+    if (!document.body.contains(root)) { stop(); return; }
+    if (!isLast()) cur++;
+    if (isLast()) stop();
+    render();
+  }
+  function play() {
+    if (timer) { stop(); render(); return; }
+    if (cur === 0 || isLast()) { cur = 1; }
+    if (!isLast()) timer = setInterval(tick, 2800);
+    render();
+  }
+  playBtn.addEventListener('click', play);
+  prevBtn.addEventListener('click', function () { stop(); if (cur > 0) cur--; render(); });
+  nextBtn.addEventListener('click', function () { stop(); if (!isLast()) cur++; render(); });
+  resetBtn.addEventListener('click', function () { stop(); cur = 0; render(); });
+  Array.prototype.forEach.call(tabs, function (b) {
+    b.addEventListener('click', function () { stop(); key = b.getAttribute('data-sc'); cur = 0; render(); });
+  });
+  render();
+})();
+</script>
+</div>
 
 ## Node.js / NestJS mTLS 설정
 
