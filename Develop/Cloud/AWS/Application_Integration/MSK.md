@@ -1,7 +1,7 @@
 ---
 title: AWS MSK (Managed Streaming for Apache Kafka)
 tags: [aws, messaging, iam, encryption]
-updated: 2026-05-26
+updated: 2026-10-22
 ---
 
 # AWS MSK (Managed Streaming for Apache Kafka)
@@ -23,6 +23,19 @@ Kafka는 분산 이벤트 스트리밍 플랫폼이다. LinkedIn이 개발했고
 - **확장성**: 수평 확장 가능
 - **내구성**: 디스크에 영구 저장
 - **순서 보장**: 파티션 내에서 순서 보장
+
+아래 그림은 Producer가 Topic에 쓰고 여러 Consumer Group이 독립적으로 읽는 Kafka의 기본 구조다.
+
+```mermaid
+flowchart LR
+    P1["Producer A"] --> T
+    P2["Producer B"] --> T
+    subgraph K["Kafka 클러스터"]
+        T["Topic orders<br/>Partition 0 / 1 / 2"]
+    end
+    T --> G1["Consumer Group order-processor"]
+    T --> G2["Consumer Group analytics"]
+```
 
 ### 왜 Kafka가 필요한가
 
@@ -83,6 +96,20 @@ Kinesis도 강력하지만 제약이 있다.
 - Kafka Streams로 실시간 처리한다
 - 집계, 조인, 윈도우 연산 등
 - 별도 처리 시스템 불필요
+
+SQS와 Kafka의 읽기 방식 차이는 아래처럼 갈린다. SQS는 한 메시지를 Consumer 하나가 가져가면 사라지고, Kafka는 로그를 남겨 두고 Consumer Group마다 위치를 따로 갖는다.
+
+```mermaid
+flowchart LR
+    subgraph SQS["SQS"]
+        Q["Queue"] --> C1["Consumer 1<br/>가져가면 삭제"]
+        Q --> C2["Consumer 2<br/>다른 메시지를 경쟁해서 가져감"]
+    end
+    subgraph KAFKA["Kafka"]
+        L["Partition 로그<br/>보존 기간 동안 유지"] --> GA["Group A<br/>자기 Offset"]
+        L --> GB["Group B<br/>자기 Offset"]
+    end
+```
 
 ### 왜 직접 운영하지 않고 MSK를 사용하나
 
@@ -198,6 +225,16 @@ await producer.send({
 
 user_123의 모든 이벤트는 같은 Partition으로 간다. 순서가 보장된다.
 
+Key가 Partition으로 정해지는 경로는 아래와 같다. 같은 Key는 항상 같은 쪽으로 가고, 서로 다른 Key는 다른 Partition으로 흩어진다.
+
+```mermaid
+flowchart LR
+    M1["key user_123"] --> H["Key 해시"]
+    M2["key user_456"] --> H
+    H -->|"해시 결과 0"| P0["Partition 0<br/>user_123 이벤트 순서대로"]
+    H -->|"해시 결과 1"| P1["Partition 1<br/>user_456 이벤트 순서대로"]
+```
+
 **Partition 개수 선택:**
 
 **너무 적으면:**
@@ -225,6 +262,19 @@ user_123의 모든 이벤트는 같은 Partition으로 간다. 순서가 보장�
 2. Topic과 Key를 지정한다
 3. Kafka에 전송한다
 4. Kafka가 저장 확인을 보낸다
+
+전송과 확인의 순서는 아래 시퀀스와 같다. 확인을 몇 개 Replica에서 받느냐가 뒤의 `acks` 설정이다.
+
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant L as Leader Broker
+    participant F as Follower Broker
+    P->>L: 메시지 전송 (Topic, Key)
+    L->>F: 복제
+    F-->>L: 복제 완료
+    L-->>P: 저장 확인
+```
 
 **예시 코드:**
 ```javascript
@@ -321,7 +371,23 @@ await consumer.run({
 - Consumer 2: Partition 2, 3
 - Consumer 3: Partition 4, 5
 
-각 Consumer가 2개씩 Partition을 담당한다. 병렬 처리된다.
+각 Consumer가 2개씩 Partition을 담당한다. 병렬 처리된다. Consumer 하나가 죽었을 때 재분배되는 모습까지 보면 아래와 같다.
+
+```mermaid
+flowchart LR
+    subgraph before["정상: Consumer 3개"]
+        direction LR
+        A0["Partition 0, 1"] --> CA["Consumer 1"]
+        A2["Partition 2, 3"] --> CB["Consumer 2"]
+        A4["Partition 4, 5"] --> CC["Consumer 3"]
+    end
+    subgraph after["Consumer 3 장애 후 리밸런스"]
+        direction LR
+        B0["Partition 0, 1, 4"] --> DA["Consumer 1"]
+        B2["Partition 2, 3, 5"] --> DB["Consumer 2"]
+    end
+    before --> after
+```
 
 **Consumer 추가:**
 Consumer를 3개에서 6개로 증가한다.
@@ -391,7 +457,18 @@ await consumer.run({
 });
 ```
 
-처리 완료 후 명시적으로 커밋한다. 안전하다.
+처리 완료 후 명시적으로 커밋한다. 안전하다. 두 방식의 차이는 처리와 커밋의 순서에서 나온다. 아래는 수동 커밋 흐름이다.
+
+```mermaid
+sequenceDiagram
+    participant C as Consumer
+    participant B as Broker
+    C->>B: 폴링
+    B-->>C: 메시지 (Offset 100)
+    C->>C: 메시지 처리
+    C->>B: Offset 101 커밋
+    Note over C,B: 처리 중 죽으면 커밋 전이라 100부터 다시 읽는다
+```
 
 **재처리:**
 Offset을 이전 위치로 되돌린다. 데이터를 다시 읽는다.
@@ -467,6 +544,23 @@ Broker는 Kafka 서버다. 실제 데이터를 저장하고 처리한다.
 3. 몇 초 안에 복구된다
 4. Consumer는 새 Leader에서 읽는다
 
+장애 조치 전후로 Partition의 Leader가 어디로 바뀌는지 아래에서 확인한다.
+
+```mermaid
+flowchart LR
+    subgraph N["정상"]
+        direction TB
+        BA["Broker 1<br/>Leader"] -->|복제| BB["Broker 2<br/>Follower"]
+        BA -->|복제| BC["Broker 3<br/>Follower"]
+    end
+    subgraph F["Broker 1 장애 후"]
+        direction TB
+        FA["Broker 1<br/>다운"]
+        FB["Broker 2<br/>새 Leader"] -->|복제| FC["Broker 3<br/>Follower"]
+    end
+    N --> F
+```
+
 ### Storage (스토리지)
 
 Broker마다 EBS 볼륨이 연결된다.
@@ -508,7 +602,27 @@ MSK 클러스터는 VPC 안에 생성된다.
 - us-west-2b: Broker 2
 - us-west-2c: Broker 3
 
-한 가용 영역에 장애가 나도 서비스가 유지된다.
+한 가용 영역에 장애가 나도 서비스가 유지된다. 배치는 아래와 같다.
+
+```mermaid
+flowchart TB
+    subgraph VPC["VPC"]
+        subgraph AZa["us-west-2a"]
+            B1["Broker 1"]
+        end
+        subgraph AZb["us-west-2b"]
+            B2["Broker 2"]
+        end
+        subgraph AZc["us-west-2c"]
+            B3["Broker 3"]
+        end
+    end
+    CL["Client"] --> B1
+    CL --> B2
+    CL --> B3
+    B1 <--> B2
+    B2 <--> B3
+```
 
 **보안 그룹:**
 - Broker 간 통신: 9092, 9094, 2181 포트
@@ -650,6 +764,17 @@ mTLS는 인증서 갱신이 운영 부담이다. 인증서에 만료일이 있�
 | 갱신 | AWS가 자동 | 수동 회전 | 인증서 재발급 |
 
 AWS 안에서 도는 애플리케이션(EC2, EKS, Lambda)이라면 IAM을 기본으로 쓴다. 비밀번호 회전이나 인증서 갱신을 신경 쓸 필요가 없고, 토픽 단위 권한을 IAM 정책으로 한곳에서 관리한다. MSK Serverless는 IAM만 지원해서 선택지도 없다.
+
+세 방식의 선택을 분기로 그리면 아래와 같다.
+
+```mermaid
+flowchart TD
+    S["클라이언트가 어디서 도는가"]
+    S -->|"AWS 안 (EC2, EKS, Lambda)"| I["IAM 인증 9098"]
+    S -->|"온프레미스 또는 서드파티"| Q["사내 PKI가 이미 있는가"]
+    Q -->|있다| T["mTLS 9094"]
+    Q -->|없다| SC["SASL/SCRAM 9096"]
+```
 
 온프레미스 서버나 AWS 밖의 클라이언트, 또는 IAM을 못 쓰는 서드파티 도구가 붙어야 하면 SASL/SCRAM을 쓴다. Kafka 표준 사용자명/비밀번호 방식이라 호환성이 넓다. 대신 시크릿 회전을 직접 관리해야 한다.
 
@@ -807,6 +932,20 @@ Consumer가 10,000 메시지 이상 뒤처지면 알림을 받는다. Consumer�
 
 Serverless는 용량 산정 자체가 없다. 파티션당 처리량 한도 안에서 쓴 만큼 과금된다. 스토리지도 무제한으로 자동 관리되고 따로 크기를 잡지 않는다.
 
+사용자가 정해야 하는 것이 어디까지인지 나란히 놓으면 아래와 같다.
+
+```mermaid
+flowchart LR
+    subgraph PR["프로비저닝"]
+        direction TB
+        P1["브로커 수"] --> P2["인스턴스 타입"] --> P3["EBS 크기"] --> P4["토픽·파티션"]
+    end
+    subgraph SV["Serverless"]
+        direction TB
+        S1["토픽·파티션"]
+    end
+```
+
 ### 언제 쓰나
 
 트래픽 패턴이 들쭉날쭉하거나 예측이 어려울 때 맞다. 평소엔 한가하다가 특정 시간에만 몰리는 워크로드, 클러스터 사이징을 고민하기 싫은 개발·테스트 환경, 트래픽이 얼마나 들어올지 모르는 신규 서비스 초기에 쓴다.
@@ -833,6 +972,19 @@ Kafka Connect를 관리형으로 돌린다. Kafka Connect는 외부 시스템과
 커넥터 플러그인(JAR을 묶은 zip)을 S3에 올리고, MSK Connect에서 커스텀 플러그인으로 등록한다. 그 다음 커넥터를 만들면서 워커 수와 워커당 용량(MCU), 커넥터 설정(JSON)을 지정한다.
 
 워커는 MSK 클러스터와 같은 VPC에 배치된다. IAM 인증 클러스터에 붙는 커넥터라면 커넥터의 서비스 실행 역할에 앞에서 본 `kafka-cluster:*` 권한을 줘야 한다.
+
+플러그인 등록부터 데이터가 흐르는 경로는 아래와 같다. 아래의 Sink는 토픽에서 외부로, Source는 외부에서 토픽으로 흐른다.
+
+```mermaid
+flowchart LR
+    Z["플러그인 zip"] --> S3P["S3"]
+    S3P --> CP["커스텀 플러그인"]
+    CP --> W["MSK Connect 워커<br/>MCU와 워커 수 지정"]
+    DB["외부 DB<br/>Debezium Source"] --> W
+    W --> TP["MSK 토픽"]
+    TP --> W
+    W --> S3D["S3<br/>S3 Sink"]
+```
 
 ### S3 Sink 예시
 
@@ -891,6 +1043,23 @@ Debezium에는 주의할 게 몇 가지 있다.
 
 메시지 스키마를 코드 밖에서 관리한다. Producer가 Avro 스키마를 레지스트리에 등록하고, 메시지에는 스키마 전체가 아니라 스키마 버전 ID만 실어 보낸다. Consumer는 ID로 스키마를 받아 역직렬화한다. 페이로드에서 필드 이름이 반복되지 않으니 메시지 크기가 줄고, 스키마가 한곳에서 관리된다.
 
+스키마 등록과 조회 순서는 아래 시퀀스와 같다.
+
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant R as Glue Schema Registry
+    participant K as MSK 토픽
+    participant C as Consumer
+    P->>R: Avro 스키마 등록, 호환성 검사
+    R-->>P: 스키마 버전 ID
+    P->>K: 버전 ID + 직렬화된 데이터
+    K-->>C: 메시지
+    C->>R: 버전 ID로 스키마 조회
+    R-->>C: 스키마
+    C->>C: 역직렬화
+```
+
 ### 호환성 관리
 
 스키마가 바뀔 때 기존 Producer/Consumer가 깨지지 않게 하는 게 핵심이다. Glue Schema Registry는 호환성 모드를 둔다.
@@ -916,6 +1085,20 @@ Kafka는 오래 클러스터 메타데이터(브로커 목록, 토픽, 파티션
 
 MSK는 구버전에서 Zookeeper 노드를 자동으로 운영해 왔다. 이 노드는 추가 과금 없이 AWS가 관리해서 사용자가 직접 볼 일이 거의 없었다. 최근 버전(3.7 이상 계열)에서는 새 클러스터를 KRaft 모드로 만들 수 있다.
 
+메타데이터를 어디에 두느냐의 구조 차이는 아래와 같다.
+
+```mermaid
+flowchart LR
+    subgraph ZK["Zookeeper 방식"]
+        direction TB
+        ZB["Kafka 브로커"] --> ZZ["Zookeeper 앙상블<br/>메타데이터 저장"]
+    end
+    subgraph KR["KRaft 방식"]
+        direction TB
+        KB["Kafka 브로커"] --> KC["Kafka 컨트롤러<br/>메타데이터를 로그로 관리"]
+    end
+```
+
 KRaft 모드의 차이는 운영보다 확장성에서 드러난다. Zookeeper 기반은 파티션 수가 아주 많아지면 메타데이터 처리가 병목이 됐다. KRaft는 메타데이터를 컨트롤러가 로그로 관리해서 파티션 수가 많을 때 메타데이터 작업(리더 선출, 브로커 재시작 후 복구)이 빠르다. 파티션을 수만 개 단위로 쓰는 클러스터면 차이가 크다.
 
 ### 마이그레이션 시 주의
@@ -933,6 +1116,16 @@ KRaft 모드의 차이는 운영보다 확장성에서 드러난다. Zookeeper �
 토픽별로 켠다. `local.retention.ms`(또는 바이트 기준)만큼만 로컬에 두고, 그 기간을 넘긴 세그먼트는 자동으로 원격 계층으로 옮긴다. 전체 보존 기간(`retention.ms`)은 길게 잡아도 로컬 디스크는 최근 데이터분만 차지한다. 보존을 한 달, 1년으로 늘려도 EBS 사용량이 그만큼 늘지 않는다.
 
 Consumer가 최근 데이터를 읽으면 로컬에서 바로 나온다. 오래된 오프셋을 읽으면 원격 계층에서 가져온다.
+
+세그먼트가 계층 사이를 오가는 경로는 아래와 같다.
+
+```mermaid
+flowchart LR
+    PR["Producer"] --> LS["로컬 EBS<br/>local.retention.ms 이내"]
+    LS -->|"기간 초과 세그먼트 이동"| RS["원격 계층<br/>retention.ms까지 보관"]
+    LS -->|"최근 데이터 읽기, 빠름"| CR["실시간 Consumer"]
+    RS -->|"오래된 Offset 읽기, 느림"| BF["백필 Consumer"]
+```
 
 ### 제약
 
@@ -952,6 +1145,19 @@ MSK 클러스터는 VPC 안에 생성되고 기본적으로 그 VPC(또는 VPC �
 - 클러스터 쪽: 멀티 VPC 연결을 켜고, 클러스터 정책(리소스 기반 정책)으로 어떤 계정·주체가 붙을 수 있는지 허용한다.
 - 클라이언트 쪽: 관리형 VPC 연결을 만들면 그 VPC 전용 부트스트랩 엔드포인트가 생긴다. 클라이언트는 이 엔드포인트로 붙는다.
 
+연결 구성은 아래와 같다. 클라이언트 VPC에서 관리형 VPC 연결을 거쳐 PrivateLink로 클러스터에 닿는다.
+
+```mermaid
+flowchart LR
+    subgraph CV["클라이언트 VPC 또는 다른 계정"]
+        CLI["Client"] --> EP["관리형 VPC 연결<br/>전용 부트스트랩 엔드포인트"]
+    end
+    EP -->|PrivateLink| BR
+    subgraph MV["클러스터 VPC"]
+        BR["MSK Broker<br/>클러스터 정책으로 허용"]
+    end
+```
+
 VPC 피어링과 달리 IP 대역이 겹쳐도 되고, 클러스터 VPC를 클라이언트에게 노출하지 않는다. 다만 멀티 VPC 연결은 인증을 켠 클러스터에서만 된다. 인증 없는(unauthenticated) 클러스터는 멀티 VPC로 못 연다. IAM, SASL/SCRAM, mTLS 중 하나를 쓴다.
 
 ### 온프레미스와 퍼블릭 접속
@@ -968,7 +1174,18 @@ VPC 피어링과 달리 IP 대역이 겹쳐도 되고, 클러스터 VPC를 클�
 
 Consumer가 Producer 속도를 못 따라가면 Lag(처리 안 된 메시지 수)이 쌓인다. CloudWatch의 `MaxOffsetLag`, `SumOffsetLag`나 `kafka-consumer-groups --describe`로 확인한다.
 
-원인은 보통 이 중 하나다.
+원인은 보통 이 중 하나다. 아래 분기로 어느 쪽인지 좁힌다.
+
+```mermaid
+flowchart TD
+    L["Consumer Lag 증가"] --> Q1["Consumer가 그룹에서 자주 빠졌다 들어오는가"]
+    Q1 -->|예| R1["리밸런스 문제<br/>session.timeout, max.poll.interval.ms 점검"]
+    Q1 -->|아니오| Q2["Consumer 수가 Partition 수보다 적은가"]
+    Q2 -->|예| R2["Consumer 추가"]
+    Q2 -->|아니오| Q3["Consumer 처리 시간이 긴가"]
+    Q3 -->|예| R3["처리 로직 비동기·배치화"]
+    Q3 -->|아니오| R4["Partition 증가 검토"]
+```
 
 - Consumer 처리 로직이 느리다. 메시지마다 외부 API를 동기 호출하거나 무거운 DB 쿼리를 돌리면 처리 속도가 안 나온다.
 - 파티션 수가 부족하다. Consumer를 늘려도 파티션보다 많아질 수 없어서 병렬도가 막힌다.
@@ -999,13 +1216,76 @@ Consumer가 Producer 속도를 못 따라가면 Lag(처리 안 된 메시지 수
 
 이게 모르면 가장 당하기 쉬운 함정이다. MSK에서 브로커를 추가하면 새 브로커는 비어 있는 상태로 들어온다. 기존 토픽의 파티션이 자동으로 새 브로커로 옮겨가지 않는다. 새로 만드는 토픽이나 추가하는 파티션만 새 브로커에 분배된다.
 
+브로커 추가 직후와 재배치 후의 파티션 분포 차이는 아래와 같다.
+
+```mermaid
+flowchart LR
+    subgraph A["브로커 추가 직후"]
+        direction TB
+        A1["Broker 1<br/>파티션 다수"]
+        A2["Broker 2<br/>파티션 다수"]
+        A3["Broker 3 신규<br/>비어 있음"]
+    end
+    subgraph B["재배치 후"]
+        direction TB
+        B1["Broker 1<br/>파티션 균등"]
+        B2["Broker 2<br/>파티션 균등"]
+        B3["Broker 3<br/>파티션 균등"]
+    end
+    A -->|"kafka-reassign-partitions + throttle"| B
+```
+
 그래서 부하 분산을 기대하고 브로커를 늘렸는데, 기존 브로커는 여전히 과부하고 새 브로커는 놀고 있는 상황이 그대로 유지된다. 디스크가 차서 브로커를 늘렸는데 디스크 사용률이 안 떨어지는 것도 같은 이유다.
 
 해결하려면 기존 파티션을 새 브로커로 직접 재배치해야 한다. MSK는 브로커 추가 후 파티션을 자동으로 고르게 재분배하는 기능을 제공한다. 이걸 돌리거나, `kafka-reassign-partitions`로 재배치 계획을 만들어 적용한다. 재배치는 앞에서 말한 대로 복제 트래픽을 만드니 throttle을 걸고 트래픽 적은 시간에 한다. 브로커를 늘렸으면 재배치까지가 한 작업이라고 봐야 한다. 늘리기만 하고 끝내면 효과가 없다.
 
 ## MSK vs Kinesis vs SQS
 
-언제 무엇을 사용할까?
+세 서비스는 "메시지를 넣고 꺼낸다"는 점만 같고 읽는 방식이 다르다. MSK와 Kinesis는 로그를 쌓아 두고 소비자마다 위치를 따로 갖는다. SQS는 소비자가 지우면 끝나는 큐다. 선택이 어긋나면 나중에 소비 방식까지 다시 짜야 해서, 처리량 숫자보다 아래 표의 읽기 모델 차이를 먼저 본다.
+
+### 한눈에 보는 비교
+
+| 항목 | MSK | Kinesis Data Streams | SQS |
+|---|---|---|---|
+| 처리량 상한 | 브로커 수·타입·파티션 수로 정해진다. 늘리려면 브로커 추가와 파티션 재배치가 필요하다 | 샤드당 쓰기 1MB/s·1,000 records/s, 읽기 2MB/s. 샤드 수만큼 선형으로 늘고 On-Demand는 직전 피크의 2배까지 따라온다 | Standard는 사실상 한도가 없다. FIFO는 기본 한도가 낮아 고처리량 모드를 켜야 한다 |
+| 보존기간 | `retention.ms` 설정. Tiered Storage를 쓰면 로컬 디스크와 무관하게 길게 둔다 | 24시간 기본, 최대 365일 | 60초~14일, 기본 4일 |
+| 순서 보장 단위 | 파티션. 메시지 키의 해시로 파티션이 정해진다 | 샤드. 파티션 키의 해시로 샤드가 정해진다 | Standard는 없음. FIFO는 `MessageGroupId` 단위 |
+| 읽기 모델 | Consumer Group이 파티션을 나눠 갖는다. 그룹마다 오프셋이 독립이고, 그룹 안에서 파티션 하나는 Consumer 하나만 읽는다 | 샤드 단위로 읽는다. 일반 소비자는 샤드 읽기 한도를 나눠 쓰고, Enhanced Fan-Out 소비자는 샤드마다 2MB/s를 따로 받는다 | 소비자들이 같은 큐에서 메시지를 경쟁해서 가져간다. 여러 시스템이 읽으려면 SNS 팬아웃이 필요하다 |
+| 재처리 | 오프셋을 옮기면 된다 | 시간·시퀀스 번호로 이터레이터를 만들어 읽는다 | 삭제된 메시지는 없다. DLQ redrive만 된다 |
+| 운영 부담 | 브로커 사이징, 디스크, 파티션 재배치, 버전 업그레이드를 신경 써야 한다. Serverless는 이를 줄이지만 제약이 있다 | 샤드 수와 핫 샤드를 본다. On-Demand면 샤드 관리가 사라진다 | 거의 없다 |
+| 과금 단위 | 브로커 시간 + 스토리지 GB + 데이터 전송. Serverless는 클러스터 시간 + 파티션 시간 + 데이터량 | Provisioned는 샤드 시간 + PUT payload unit, On-Demand는 스트림 시간 + 데이터 GB. Enhanced Fan-Out은 소비자-샤드 시간이 따로 붙는다 | 요청 수 (64KB 단위로 나눠 센다) |
+| 클라이언트 생태계 | Kafka 클라이언트 전부, Kafka Connect, Kafka Streams, Schema Registry | KPL, KCL, Lambda 이벤트 소스 매핑, Firehose, Managed Service for Apache Flink | AWS SDK, Lambda 이벤트 소스 매핑 |
+
+표에서 가장 자주 오해하는 칸은 읽기 모델이다. MSK에서는 Consumer Group을 하나 더 만들면 같은 토픽을 완전히 독립적으로 한 번 더 읽는다. Kinesis에서는 소비자가 늘면 샤드 읽기 한도 2MB/s를 나눠 쓰다가 `ReadProvisionedThroughputExceeded`가 나서, Enhanced Fan-Out으로 넘어가야 한다. 이 차이가 팬아웃 수를 선택 기준에 넣는 이유다.
+
+### 선택 순서
+
+Kinesis에서 MSK로, 혹은 반대로 옮길지 판단할 때 아래 순서로 물었다. 앞쪽 질문일수록 틀리면 되돌리기 어려운 제약이다. 각 노드가 질문이고 화살표 라벨이 답이다.
+
+```mermaid
+flowchart TD
+    A["메시지 크기가 1MB를 넘는가"]
+    A -->|넘는다| B["본문을 S3에 두고 포인터만 보낼 수 있는가"]
+    A -->|넘지 않는다| C["같은 데이터를 독립적으로 읽는 소비자가 20개를 넘는가"]
+    B -->|가능하다| C
+    B -->|불가능하다| M["MSK 선택<br/>message.max.bytes 조정"]
+    C -->|넘는다| M2["MSK 선택<br/>Consumer Group 추가로 해결"]
+    C -->|넘지 않는다| D["보존기간이 365일을 넘거나 무기한 재처리가 필요한가"]
+    D -->|필요하다| M3["MSK 선택<br/>Tiered Storage"]
+    D -->|필요 없다| E["Kafka 클라이언트·Connect·Streams 코드가 이미 있는가"]
+    E -->|있다| M4["MSK 선택<br/>코드 변경 없음"]
+    E -->|없다| K["Kinesis 선택<br/>트래픽이 들쭉날쭉하면 On-Demand"]
+```
+
+세 가지는 숫자 기준을 붙였지만 경계값을 그대로 믿으면 안 된다. 1MB는 Kinesis 레코드의 기본 한도이고 스트림 설정으로 올리는 방법이 있는지는 현재 문서에서 확인해야 한다. 올릴 수 있더라도 샤드 쓰기가 1MB/s라 큰 레코드 몇 개로 샤드가 막힌다. 20개는 스트림당 Enhanced Fan-Out 소비자 기본 한도라 한도 상향 요청으로 달라질 수 있다. 365일은 Kinesis 보존기간 최대값이다. 소비자 수가 6~20개라면 한도에는 안 걸리지만 소비자-샤드 시간 요금이 샤드 수에 곱해져서, 샤드 수가 많은 스트림에서는 MSK 브로커 비용보다 커지는 경우가 있다.
+
+### 마이그레이션에서 걸리는 것
+
+판단이 끝나 옮기기로 했을 때 막히는 지점은 처리량이 아니라 위치 정보다. Kinesis 시퀀스 번호와 Kafka 오프셋은 서로 변환되지 않는다. 그래서 소비자를 새 스트림에서 처음부터 읽게 하거나, 일정 기간 양쪽에 이중 쓰기를 하다가 소비자를 먼저 넘기고 생산자를 나중에 넘긴다. 파티션 키와 메시지 키는 해시 함수가 달라서 같은 키가 새 쪽에서 다른 파티션으로 간다. 키 단위 순서는 유지되지만, 전환 시점에 같은 키의 이전 메시지와 새 메시지가 서로 다른 시스템에 있어 순서가 섞일 수 있다. 샤드 수와 파티션 수를 1:1로 맞추는 건 의미가 없고, 파티션 수는 Consumer 병렬도를 보고 따로 정한다.
+
+반대 방향(MSK에서 Kinesis)은 Kafka Connect 커넥터와 Kafka Streams 앱을 다시 짜야 한다는 비용이 가장 크다. Connect를 대신할 곳은 Firehose나 Lambda이고, Streams 집계는 Managed Service for Apache Flink로 옮긴다.
+
+Kinesis 쪽 상세는 세 문서에 나눠 있다. 샤드 수 계산과 핫 샤드, 리샤딩은 [Kinesis 샤드 용량 설계와 리샤딩](Kinesis_Data_Streams_Capacity_And_Resharding.md), 소비자 구현과 Enhanced Fan-Out, Lambda 연동은 [Kinesis 소비자 KCL과 Lambda](Kinesis_Consumer_KCL_And_Lambda.md), S3·OpenSearch 적재는 [Kinesis Firehose 전달 운영](Kinesis_Firehose_Delivery_Operations.md)이다. 전체 구성은 [Kinesis](Kinesis.md), 큐 쪽은 [SQS](SQS.md)에 있다.
 
 ### MSK를 선택하는 경우
 
