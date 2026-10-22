@@ -10,7 +10,7 @@ updated: 2026-10-22
 
 # 메시징 연동 전체 보기
 
-문서 14개.
+문서 15개.
 
 ## 개요
 
@@ -26,6 +26,7 @@ updated: 2026-10-22
 - [Amazon MQ for ActiveMQ 운영 노트](Amazon_MQ_Active_MQ_Operations.md)
 - [Amazon MQ 보안과 유지보수 운영](Amazon_MQ_Security_And_Maintenance.md)
 - [Amazon MQ 운영 노트](Amazon_MQ.md)
+- [Firehose 전달 운영 (버퍼, Parquet 변환, 동적 파티셔닝, 대상별 재시도)](Kinesis_Firehose_Delivery_Operations.md)
 - [Kinesis Consumer 구현과 장애 대응 (KCL, Lambda, Enhanced Fan-Out)](Kinesis_Consumer_KCL_And_Lambda.md)
 - [Kinesis Data Streams 샤드 용량 설계와 리샤딩 운영](Kinesis_Data_Streams_Capacity_And_Resharding.md)
 
