@@ -307,7 +307,7 @@ flowchart TD
 - **널 바이트**: `page=../../etc/passwd%00`으로 뒤에 붙는 `.php`를 잘라내던 기법이다. PHP 5.3.4에서 파일 함수가 널 바이트를 거부하도록 바뀌어서 그 이전 버전에서만 통한다. 지금 운영 중인 서버에서 재현될 일은 거의 없지만, 오래된 레거시 서버 점검에서는 확인 대상이다
 - **로그 파일 포이즈닝**: 공격자가 `User-Agent` 헤더에 `<?php system($_GET['c']); ?>`를 넣어 요청하면 웹 서버 access 로그에 그 문자열이 그대로 기록된다. 이어서 `page=../../../var/log/nginx/access`처럼 로그 파일을 포함시키면 로그 안의 PHP 코드가 실행된다. PHP 프로세스가 로그를 읽을 권한이 있어야 하는데, Debian 계열 기본 설정에서는 읽기 권한이 있는 경우가 많다
 
-세 방식 모두 원인은 같다. 포함 경로를 만드는 데 사용자 입력이 직접 닿는다. 각 기법의 세부 동작과 PHP 설정(`open_basedir`, `allow_url_include`)은 [PHP_Security_Vulnerabilities](PHP_Security_Vulnerabilities.md)에서 다룬다.
+세 방식 모두 원인은 같다. 포함 경로를 만드는 데 사용자 입력이 직접 닿는다. 각 기법의 세부 동작과 PHP 설정(`open_basedir`, `allow_url_include`)은 PHP 보안 취약점 문서에서 다룬다.
 
 ---
 
