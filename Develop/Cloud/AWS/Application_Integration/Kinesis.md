@@ -1,664 +1,298 @@
 ---
-title: AWS Kinesis
-tags: [aws, messaging, cloud]
-updated: 2026-01-18
+title: Amazon Kinesis 데이터 스트리밍 설계와 운영
+tags: [aws, messaging, event-driven, cloud]
+updated: 2026-10-22
 ---
 
-# AWS Kinesis
+# Amazon Kinesis
 
-## 개요
+Kinesis Data Streams는 레코드를 샤드에 순서대로 쌓아 두고, 소비자마다 자기 위치에서 읽게 하는 스트림 저장소다. 큐와 달리 읽어도 지워지지 않고 보존기간 안이면 되감아 다시 읽는다. 이 성질 때문에 재처리와 다중 소비가 되고, 핫 샤드·소비 지연·조용한 유실도 생긴다.
 
-AWS Kinesis는 실시간 스트리밍 데이터를 수집하고 처리하는 서비스다. 대량의 데이터를 실시간으로 받아서 분석하고, 저장하고, 다른 시스템으로 전달한다. 로그, 클릭스트림, IoT 센서 데이터, 금융 거래 데이터 등을 초 단위로 처리할 수 있다.
+## Kinesis 계열 서비스 구분
 
-### 왜 Kinesis가 필요할까
+| 서비스 | 하는 일 | 직접 코드를 쓰는 곳 |
+|---|---|---|
+| Data Streams | 샤드 단위로 레코드를 저장하고 여러 소비자가 읽는다 | Producer, Consumer 양쪽 |
+| Amazon Data Firehose | 받은 데이터를 버퍼에 모았다가 S3·Redshift·OpenSearch 등으로 전달한다 | 변환 Lambda 정도 |
+| Managed Service for Apache Flink | 스트림을 윈도우 집계·조인·이상 탐지로 처리한다 | Flink 애플리케이션 |
+| Video Streams | 카메라 영상 조각을 수집한다 | 이 문서에서 다루지 않는다 |
 
-과거에는 실시간 데이터 처리가 어려웠다.
+Firehose는 Amazon Data Firehose로, Kinesis Data Analytics는 Managed Service for Apache Flink로 이름이 바뀌었다. 옛 이름도 같이 검색한다.
 
-**전통적인 방식의 문제:**
+## 전체 데이터 흐름
 
-**배치 처리의 한계:**
-로그 데이터를 분석한다고 하자. 전통적인 방식은 이렇다:
-1. 서버가 로그 파일에 데이터를 쓴다
-2. 매일 자정에 로그 파일을 수집한다
-3. S3에 업로드한다
-4. 다음날 아침에 분석 작업을 시작한다
-5. 분석 결과는 오후에 나온다
+Producer가 쓴 레코드는 파티션 키로 샤드가 정해지고, 소비자는 같은 스트림을 각자 읽는다. Firehose와 Flink도 Lambda·KCL과 같은 소비자 자리에 있다.
 
-문제가 생겼을 때는 이미 늦다. 어제 일어난 일을 오늘 오후에 안다. 24시간 이상 지연된다.
-
-**SQS의 한계:**
-SQS도 메시지를 처리한다. 하지만 실시간 스트리밍에는 부족하다.
-
-**SQS의 제약:**
-- 메시지 순서 보장이 어렵다 (Standard Queue)
-- FIFO Queue는 초당 300개로 제한된다
-- 여러 Consumer가 같은 메시지를 받을 수 없다
-- 시간 기반 처리가 어렵다 (최근 1시간 데이터만 분석)
-
-**예시:**
-e커머스 사이트의 실시간 추천 시스템을 만든다. 사용자가 상품을 클릭하면 즉시 추천을 업데이트해야 한다.
-
-SQS로는 어렵다:
-- 클릭 이벤트가 초당 10,000개 발생한다
-- 순서가 중요하다. 최신 클릭이 가장 중요하다
-- 여러 시스템이 같은 데이터를 사용한다 (추천, 분석, 저장)
-- 최근 5분 데이터만 필요하다
-
-**Kinesis의 해결:**
-
-**실시간 처리:**
-데이터가 들어오는 즉시 처리한다. 지연 시간이 1초 미만이다. 문제가 생기면 즉시 감지하고 대응한다.
-
-**순서 보장:**
-데이터가 들어온 순서대로 처리된다. Partition Key를 사용해 관련 데이터를 묶어서 순서를 보장한다.
-
-**높은 처리량:**
-초당 수백만 개의 레코드를 처리한다. 샤드를 추가해 처리량을 늘린다.
-
-**여러 Consumer:**
-같은 데이터를 여러 애플리케이션이 동시에 읽을 수 있다. 추천 시스템, 분석 시스템, 저장 시스템이 모두 같은 스트림을 읽는다.
-
-**시간 기반 처리:**
-최근 24시간 데이터를 언제든 다시 읽을 수 있다. 실수로 잘못 처리했으면 처음부터 다시 읽어서 처리한다.
-
-### 실제 사용 사례
-
-**실시간 대시보드:**
-웹사이트의 실시간 트래픽을 모니터링한다. 페이지뷰, 클릭, 에러가 발생하면 즉시 대시보드에 표시된다. 트래픽이 급증하면 즉시 알림을 보낸다.
-
-**이상 탐지:**
-금융 거래를 실시간으로 분석한다. 비정상적인 패턴을 감지하면 즉시 차단한다. 사기 거래를 몇 초 안에 막는다.
-
-**IoT 데이터 처리:**
-수천 개의 센서가 데이터를 보낸다. 온도, 습도, 압력 데이터를 실시간으로 수집하고 분석한다. 이상 값이 감지되면 즉시 경고를 보낸다.
-
-**로그 분석:**
-모든 서버의 로그를 실시간으로 수집한다. 에러 로그가 급증하면 즉시 감지한다. 원인을 빠르게 파악하고 대응한다.
-
-## Kinesis 서비스 종류
-
-Kinesis는 4가지 서비스로 구성된다. 각각 다른 용도로 사용한다.
-
-### Kinesis Data Streams
-
-가장 기본이 되는 서비스다. 실시간 데이터 스트림을 수집하고 처리한다.
-
-**동작 방식:**
-
-**Producer → Stream → Consumer**
-
-**1. Producer가 데이터를 전송:**
-- 웹 서버, 모바일 앱, IoT 디바이스가 데이터를 보낸다
-- Kinesis API를 사용한다: PutRecord, PutRecords
-- 데이터는 JSON, 바이너리, 텍스트 등 어떤 형식이든 가능하다
-
-**2. Stream이 데이터를 저장:**
-- 데이터는 Stream에 저장된다
-- 기본 24시간 보관된다 (최대 365일)
-- 샤드(Shard)에 분산 저장된다
-
-**3. Consumer가 데이터를 읽음:**
-- Lambda, EC2, Kinesis Data Analytics, Kinesis Data Firehose 등
-- 여러 Consumer가 동시에 읽을 수 있다
-- 각 Consumer는 독립적으로 데이터를 처리한다
-
-**주요 특징:**
-
-**순서 보장:**
-Partition Key를 사용한다. 같은 Partition Key를 가진 레코드는 같은 샤드로 간다. 같은 샤드 내에서는 순서가 보장된다.
-
-**예시:**
-사용자 클릭 이벤트를 처리한다. Partition Key를 user_id로 설정한다.
-- user_123의 모든 클릭은 같은 샤드로 간다
-- user_123의 클릭 순서가 보장된다
-- user_456의 클릭은 다른 샤드로 갈 수 있다
-
-**데이터 보관:**
-데이터가 Stream에 보관된다. Consumer가 읽어도 삭제되지 않는다. 다른 Consumer가 다시 읽을 수 있다. 기간이 지나면 자동으로 삭제된다.
-
-**재처리 가능:**
-실수로 잘못 처리했으면 처음부터 다시 읽는다. 24시간 전 데이터부터 다시 처리할 수 있다.
-
-### Kinesis Data Firehose
-
-데이터를 자동으로 목적지에 전달하는 서비스다. 가장 간단하고 많이 사용한다.
-
-**동작 방식:**
-
-Producer → Firehose → 목적지 (S3, Redshift, Elasticsearch 등)
-
-**자동 전달:**
-- 데이터를 받으면 자동으로 목적지에 저장한다
-- 배치로 묶어서 전송한다 (예: 5분마다 또는 5MB마다)
-- 압축을 자동으로 수행한다 (GZIP, Snappy, Zip)
-- 포맷 변환을 수행한다 (JSON을 Parquet으로)
-
-**목적지:**
-- **S3**: 데이터 레이크, 장기 보관
-- **Redshift**: 데이터 웨어하우스, SQL 분석
-- **Elasticsearch**: 로그 검색, 시각화
-- **Splunk**: 로그 분석
-- **HTTP Endpoint**: 커스텀 API
-
-**변환 (Transform):**
-Lambda 함수로 데이터를 변환할 수 있다.
-
-**예시:**
-원본 로그에서 민감한 정보를 제거한다:
-1. Firehose가 로그를 받는다
-2. Lambda 함수를 호출한다
-3. Lambda가 이메일, 전화번호를 마스킹한다
-4. 변환된 데이터를 S3에 저장한다
-
-**실무 팁:**
-가장 간단하다. 서버를 관리할 필요가 없다. 단순히 데이터를 S3에 저장하려면 Firehose를 사용한다.
-
-### Kinesis Data Analytics
-
-SQL이나 Apache Flink로 실시간 데이터를 분석하는 서비스다.
-
-**동작 방식:**
-
-Stream → Analytics → 결과 출력
-
-**SQL 분석:**
-표준 SQL로 스트리밍 데이터를 분석한다.
-
-**예시:**
-실시간으로 페이지뷰를 집계한다:
-
-```sql
-SELECT STREAM 
-  page_url,
-  COUNT(*) as view_count,
-  STEP(event_time BY INTERVAL '1' MINUTE) as minute_window
-FROM input_stream
-GROUP BY 
-  page_url,
-  STEP(event_time BY INTERVAL '1' MINUTE)
+```mermaid
+flowchart LR
+    subgraph Producer
+        KPL["KPL"]
+        SDK["SDK PutRecords"]
+        Agent["Kinesis Agent"]
+    end
+    subgraph Stream["Data Streams"]
+        S0["Shard 0"]
+        S1["Shard 1"]
+        S2["Shard 2"]
+    end
+    Producer --> Stream
+    Stream --> Lambda["Lambda"]
+    Stream --> KCL["KCL 앱 (ECS/EC2)"]
+    Stream --> FH["Firehose"]
+    Stream --> Flink["Managed Service for Apache Flink"]
+    FH --> S3[("S3 / OpenSearch")]
+    Flink --> Out[("결과 스트림 / S3")]
 ```
 
-매 1분마다 각 페이지의 뷰 수를 계산한다. 결과는 실시간으로 출력된다.
+## 샤드 한도와 용량 계산
 
-**Apache Flink:**
-더 복잡한 처리가 필요하면 Flink를 사용한다. Java나 Scala로 코드를 작성한다.
+쓰기는 바이트와 레코드 수 중 먼저 닿는 쪽에서 막힌다.
 
-**사용 사례:**
-- 실시간 집계: 매출, 주문 수, 활성 사용자 수
-- 이상 탐지: 비정상 패턴 감지
-- 시계열 분석: 트렌드 분석, 예측
+| 방향 | 한도 |
+|---|---|
+| 쓰기 | 1MB/s, 1,000 records/s |
+| 읽기 (Standard) | 2MB/s, GetRecords 5회/s. 소비자 전체가 나눠 쓴다 |
+| 읽기 (Enhanced Fan-Out) | 등록한 소비자마다 2MB/s |
 
-### Kinesis Video Streams
+필요한 샤드 수는 세 값 중 가장 큰 값이다.
 
-비디오 스트림을 실시간으로 수집하고 처리하는 서비스다. 일반적인 데이터 스트리밍과는 다르다.
-
-**사용 사례:**
-- 보안 카메라 영상 실시간 전송
-- 영상 분석 (얼굴 인식, 객체 탐지)
-- 원격 모니터링
-
-대부분의 경우 Kinesis Data Streams나 Firehose를 사용한다. Video Streams는 특수한 경우에만 사용한다.
-
-## Kinesis Data Streams 상세
-
-가장 많이 사용하고 이해가 필요한 서비스다.
-
-### Shard (샤드)
-
-Shard는 Stream의 기본 단위다. 처리량을 결정한다.
-
-**하나의 Shard 용량:**
-- **쓰기**: 초당 1MB 또는 1,000개 레코드
-- **읽기**: 초당 2MB (전체 Consumer 합산)
-
-**예시 계산:**
-
-**상황 1: 로그 수집**
-- 로그 하나 크기: 1KB
-- 초당 로그 발생: 5,000개
-- 필요한 Shard: 5,000 ÷ 1,000 = 5개
-
-**상황 2: 센서 데이터**
-- 데이터 하나 크기: 500 bytes
-- 초당 데이터 발생: 10,000개
-- 데이터량: 10,000 × 500 bytes = 5MB
-- 필요한 Shard: 5MB ÷ 1MB = 5개
-
-**Shard 추가:**
-처리량이 증가하면 Shard를 추가한다.
-
-**작업 과정:**
-1. CloudWatch 메트릭을 확인한다
-2. WriteProvisionedThroughputExceeded 에러가 발생한다
-3. Shard를 추가한다 (Reshard)
-4. 5개 → 10개로 증가
-5. 처리량이 2배가 된다
-
-**Shard 제거:**
-처리량이 감소하면 Shard를 제거한다. 비용을 절감한다.
-
-**비용:**
-Shard당 시간당 $0.015다. Shard 10개를 24시간 실행하면:
-- 10 × $0.015 × 24 = $3.6/일
-- 월 약 $108
-
-Shard 개수를 최적화하는 것이 중요하다.
-
-### Partition Key
-
-데이터를 Shard에 분산하는 기준이다.
-
-**동작 원리:**
-
-**1. Producer가 Partition Key를 지정:**
-```javascript
-const params = {
-  StreamName: 'my-stream',
-  PartitionKey: 'user_12345',  // 이 값으로 Shard가 결정됨
-  Data: JSON.stringify({
-    event: 'click',
-    timestamp: Date.now()
-  })
-};
-
-kinesis.putRecord(params);
+```
+쓰기 바이트  = ceil(MB/s ÷ 1)
+쓰기 건수    = ceil(records/s ÷ 1000)
+읽기 (Standard) = ceil(소비자 수 × MB/s ÷ 2)
 ```
 
-**2. Kinesis가 Shard를 선택:**
-- Partition Key를 해시한다
-- 해시 값으로 Shard를 결정한다
-- 같은 Partition Key는 항상 같은 Shard로 간다
+| 상황 | 계산 | 필요 샤드 |
+|---|---|---|
+| 1KB 로그 5,000건/s (5MB/s) | 바이트 5, 건수 5 | 5 |
+| 200B 센서 12,000건/s (2.4MB/s) | 바이트 3, 건수 12 | 12 |
+| 1.5MB/s 쓰기, 소비자 4개 | 쓰기 2, 읽기 ceil(4 × 1.5 ÷ 2) = 3 | 3 |
 
-**3. 순서 보장:**
-- 같은 Shard 내에서는 순서가 보장된다
-- user_12345의 모든 이벤트는 순서대로 처리된다
+두 번째는 대역폭이 남는데 건수 한도 때문에 12개가 필요하다. KPL 집계로 레코드를 묶으면 건수가 줄어든다. 세 번째는 소비자 4개가 모두 읽어서 읽기 쪽이 샤드 수를 정한다. Enhanced Fan-Out으로 가면 이 항이 사라진다.
 
-**Partition Key 선택:**
+샤드는 `UpdateShardCount`(균등 분할, 한 번에 2배·절반까지)나 `SplitShard`/`MergeShards`(특정 샤드)로 조정한다. 분할하면 부모 샤드는 보존기간이 끝날 때까지 남고, 소비자는 부모를 다 읽은 뒤 자식을 읽어야 순서가 유지된다. KCL과 Lambda는 이를 처리하지만 직접 만든 GetRecords 루프는 모른다.
 
-**좋은 예:**
-- **user_id**: 사용자별로 분산된다. 고르게 분포한다
-- **device_id**: IoT 디바이스별로 분산된다
-- **order_id**: 주문별로 분산된다
+## Partition Key와 핫 샤드
 
-**나쁜 예:**
-- **날짜**: 같은 날의 모든 데이터가 하나의 Shard로 간다. Hot Shard 발생
-- **상수값**: 모든 데이터가 하나의 Shard로 간다. 나머지 Shard는 사용되지 않음
+파티션 키는 MD5로 128비트 해시가 되고, 그 값이 속한 HashKeyRange의 샤드로 간다. 같은 키는 항상 같은 샤드로 가므로 순서가 보장되고, 같은 이유로 한 키가 트래픽을 독점하면 그 샤드만 막힌다. 아래쪽 두 경로가 핫 샤드가 생기는 길이다.
 
-**실무 팁:**
-Partition Key를 잘 선택해야 한다. 데이터가 고르게 분산되어야 한다. 한 Shard에 집중되면 병목이 발생한다.
-
-### Producer (데이터 전송)
-
-데이터를 Stream에 전송하는 방법이다.
-
-**1. Kinesis SDK:**
-
-직접 API를 호출한다.
-
-**Node.js 예시:**
-```javascript
-const AWS = require('aws-sdk');
-const kinesis = new AWS.Kinesis();
-
-async function sendEvent(userId, event) {
-  const params = {
-    StreamName: 'user-events',
-    PartitionKey: userId,
-    Data: JSON.stringify({
-      userId,
-      event,
-      timestamp: new Date().toISOString()
-    })
-  };
-  
-  await kinesis.putRecord(params).promise();
-}
-
-// 사용
-await sendEvent('user_123', {
-  type: 'page_view',
-  page: '/products'
-});
+```mermaid
+flowchart TD
+    K["PartitionKey 문자열"] --> M["MD5 해시 128bit"]
+    M --> V["0 ~ 2의 128제곱 - 1 사이 정수"]
+    V --> R{"HashKeyRange 조회"}
+    R -->|"첫 구간"| S0["Shard 0"]
+    R -->|"둘째 구간"| S1["Shard 1"]
+    R -->|"셋째 구간"| S2["Shard 2"]
+    B1["상수 키, 날짜 키"] --> H["항상 같은 해시 값"]
+    B2["대형 고객 한 명의 user_id"] --> H
+    H --> S1
+    S1 --> T["Shard 1만 1MB/s 초과"]
+    T --> E["WriteProvisionedThroughputExceeded"]
+    T --> N["샤드를 분할해도 한 키는 한 샤드에 남는다"]
 ```
 
-**배치 전송:**
-여러 레코드를 한 번에 전송한다. 처리량이 높아진다.
+핫 샤드는 스트림 단위 지표에 잘 안 보인다. 전체 IncomingBytes는 총 용량 아래인데 한 샤드만 스로틀되는 일이 흔하다. 샤드 수준 지표(`EnableEnhancedMonitoring`, 추가 과금)를 켜고 ShardId별로 본다. 키 하나가 원인이면 `user_id` 뒤에 0~9 접미사를 붙여 열 개 키로 쪼개되, 접미사가 다른 키 사이의 순서는 포기한다. 순서가 필요 없으면 `ExplicitHashKey`로 샤드를 직접 고른다.
+
+## Producer
+
+`PutRecords`는 일부 레코드만 실패해도 HTTP 200을 돌려준다. `FailedRecordCount`를 안 보면 스로틀된 레코드를 그대로 잃는다. `Records[i].ErrorCode`가 있는 것만 골라 다시 보낸다. 재전송분은 성공분보다 뒤에 쌓이므로 엄격한 순서가 필요하면 `PutRecord`의 `SequenceNumberForOrdering`을 쓴다.
 
 ```javascript
-const records = users.map(user => ({
-  Data: JSON.stringify(user),
-  PartitionKey: user.id
-}));
+import { KinesisClient, PutRecordsCommand } from '@aws-sdk/client-kinesis';
 
-await kinesis.putRecords({
-  StreamName: 'user-events',
-  Records: records  // 최대 500개
-}).promise();
-```
+const client = new KinesisClient({});
 
-**2. Kinesis Producer Library (KPL):**
+async function putAll(streamName, events, maxAttempts = 3) {
+  let pending = events.map(e => ({
+    Data: Buffer.from(JSON.stringify(e)),
+    PartitionKey: e.userId,
+  }));
 
-고성능 Producer 라이브러리다. 자동으로 배치, 압축, 재시도를 처리한다.
+  for (let attempt = 1; pending.length > 0; attempt++) {
+    const res = await client.send(
+      new PutRecordsCommand({ StreamName: streamName, Records: pending }) // 최대 500건, 5MB
+    );
+    if (!res.FailedRecordCount) return;
 
-**특징:**
-- 자동 배치: 여러 레코드를 모아서 전송한다
-- 자동 재시도: 실패하면 자동으로 재시도한다
-- 압축: 데이터를 압축해서 전송한다
-- 높은 처리량: 초당 수만 개 레코드 전송 가능
-
-**사용 시기:**
-처리량이 매우 높은 경우 (초당 수천 개 이상) KPL을 사용한다.
-
-**3. Kinesis Agent:**
-
-서버의 로그 파일을 자동으로 Kinesis로 전송한다.
-
-**설정 예시:**
-```json
-{
-  "flows": [
-    {
-      "filePattern": "/var/log/app/*.log",
-      "kinesisStream": "app-logs",
-      "partitionKeyOption": "RANDOM"
+    pending = pending.filter((_, i) => res.Records[i].ErrorCode);
+    if (attempt >= maxAttempts) {
+      throw new Error(`${pending.length}건 전송 실패: ${res.Records.find(r => r.ErrorCode).ErrorCode}`);
     }
-  ]
+    await new Promise(r => setTimeout(r, 100 * 2 ** attempt));
+  }
 }
 ```
 
-Agent가 로그 파일을 모니터링한다. 새 로그가 생기면 자동으로 Kinesis로 전송한다.
+KPL은 집계와 재시도를 해 주지만, 집계된 레코드를 Lambda나 SDK로 읽으면 여러 이벤트가 붙은 바이너리가 나온다. 소비 쪽에 deaggregation 라이브러리(KCL은 내장)가 필요하다. Kinesis Agent의 `RANDOM` 파티션 키는 분산은 되지만 순서를 포기한 설정이다.
 
-### Consumer (데이터 읽기)
+## Consumer와 Enhanced Fan-Out
 
-Stream에서 데이터를 읽는 방법이다.
+Standard 소비자는 `GetRecords`로 직접 가져온다. 샤드당 5회/s와 2MB/s를 소비자끼리 나누므로 소비자가 5개면 소비자당 평균 1초에 1번 호출하고, 지연이 1초 아래로 내려가지 않는다. Firehose와 Lambda도 Standard 소비자라 한도를 같이 쓴다.
 
-**1. Lambda:**
+```mermaid
+sequenceDiagram
+    participant A as Consumer A
+    participant B as Consumer B
+    participant S as Shard
+    A->>S: GetRecords
+    S-->>A: 레코드
+    B->>S: GetRecords
+    S-->>B: 레코드
+    A->>S: GetRecords
+    S-->>A: ProvisionedThroughputExceededException
+    Note over A,S: 호출 5회/s와 읽기 2MB/s를 A와 B가 공유한다
+```
 
-가장 간단하다. 새 레코드가 들어오면 자동으로 Lambda가 실행된다.
+Enhanced Fan-Out은 소비자를 등록하고 `SubscribeToShard`로 구독한다. 서버가 HTTP/2로 레코드를 밀어 주고 소비자마다 샤드당 2MB/s가 따로 잡힌다. 구독은 5분마다 끊기는데 KCL과 Lambda가 재구독한다. 소비자-샤드-시간과 GB 단위로 과금되고, 스트림당 등록 소비자는 기본 20개까지다.
 
-**설정:**
+```mermaid
+sequenceDiagram
+    participant A as Consumer A
+    participant B as Consumer B
+    participant S as Shard
+    A->>S: SubscribeToShard
+    B->>S: SubscribeToShard
+    S-->>A: SubscribeToShardEvent 푸시, A 전용 2MB/s
+    S-->>B: SubscribeToShardEvent 푸시, B 전용 2MB/s
+    Note over A,S: 구독이 5분 뒤 끊기면 소비자가 다시 호출한다
+    A->>S: SubscribeToShard
+```
+
+Lambda의 함정은 poison pill이다. 레코드 하나가 계속 예외를 내면 이벤트 소스 매핑이 기본값(재시도 무제한)으로 그 샤드를 멈춰 세운다. 에러 없이 `IteratorAgeMilliseconds`만 오르다가 보존기간에 닿으면 처리 못 한 데이터가 삭제된다. 재시도 횟수, 배치 분할, 실패 목적지를 반드시 건다.
+
+```bash
+aws lambda create-event-source-mapping \
+  --function-name event-processor \
+  --event-source-arn arn:aws:kinesis:ap-northeast-2:111122223333:stream/user-events \
+  --starting-position LATEST \
+  --batch-size 100 --maximum-batching-window-in-seconds 5 \
+  --parallelization-factor 2 \
+  --bisect-batch-on-function-error \
+  --maximum-retry-attempts 5 --maximum-record-age-in-seconds 3600 \
+  --function-response-types ReportBatchItemFailures \
+  --destination-config '{"OnFailure":{"Destination":"arn:aws:sqs:ap-northeast-2:111122223333:kinesis-dlq"}}'
+```
+
 ```javascript
 exports.handler = async (event) => {
   for (const record of event.Records) {
-    // Base64 디코딩
-    const data = Buffer.from(record.kinesis.data, 'base64').toString();
-    const json = JSON.parse(data);
-    
-    console.log('처리:', json);
-    
-    // 데이터 처리
-    await processEvent(json);
+    try {
+      const json = JSON.parse(Buffer.from(record.kinesis.data, 'base64').toString());
+      await processEvent(json);
+    } catch (err) {
+      // 첫 실패 지점부터 다시 시작한다. 이후 레코드도 함께 재시도된다
+      return { batchItemFailures: [{ itemIdentifier: record.kinesis.sequenceNumber }] };
+    }
   }
+  return { batchItemFailures: [] };
 };
 ```
 
-**배치 크기:**
-한 번에 몇 개의 레코드를 처리할지 설정한다.
-- 배치 크기: 100 → Lambda가 최대 100개 레코드를 받는다
-- 배치 윈도우: 5초 → 5초마다 또는 100개가 모이면 Lambda 실행
+KCL은 샤드별 lease를 DynamoDB 테이블에 기록하고 워커가 나눠 가진다. 샤드 하나는 한 워커만 읽으므로 워커를 샤드 수보다 늘리면 놀기만 한다. lease 테이블 쓰기 용량이 모자라면 lease를 잃어 중복 처리가 생긴다. `GetShardIterator` 루프를 직접 짜면 체크포인트와 리샤딩이 빠지니 운영에 쓰지 않는다.
 
-**2. EC2/ECS (Kinesis Client Library):**
+## 용량 모드와 보존기간
 
-장시간 실행되는 애플리케이션에서 사용한다.
+| 항목 | Provisioned | On-Demand |
+|---|---|---|
+| 용량 | 샤드 수를 직접 정한다 | 자동 확장. 직전 30일 최대 처리량의 2배까지 |
+| 과금 | 샤드 시간 + PUT 페이로드 단위(25KB) | 스트림 시간 + 쓰기 GB + 읽기 GB |
+| 막히는 경우 | 샤드 한도 초과 | 직전 최대치의 2배를 넘는 급증 |
 
-**동작 방식:**
-```javascript
-const AWS = require('aws-sdk');
-const kinesis = new AWS.Kinesis();
+온디맨드는 새 스트림에서 4MB/s로 시작하고 모드 전환 횟수에 제한이 있다. 손익 분기는 평균 대비 피크 비율이 정한다. 프로비저닝은 피크에 맞춰 샤드를 잡고 온디맨드는 쓴 GB만 낸다. 표는 us-east-1 공개 요금([요금 페이지](https://aws.amazon.com/kinesis/data-streams/pricing/)), 1KB 레코드, 한 달 720시간, 소비자 1개 기준이다. 리전별 요금으로 다시 계산해야 한다.
 
-async function processRecords() {
-  // Shard Iterator 획득
-  const iterator = await kinesis.getShardIterator({
-    StreamName: 'my-stream',
-    ShardId: 'shardId-000000000000',
-    ShardIteratorType: 'LATEST'  // 최신 데이터부터
-  }).promise();
-  
-  let currentIterator = iterator.ShardIterator;
-  
-  while (true) {
-    // 레코드 읽기
-    const result = await kinesis.getRecords({
-      ShardIterator: currentIterator,
-      Limit: 100
-    }).promise();
-    
-    // 레코드 처리
-    for (const record of result.Records) {
-      const data = Buffer.from(record.Data, 'base64').toString();
-      await processEvent(JSON.parse(data));
-    }
-    
-    // 다음 Iterator
-    currentIterator = result.NextShardIterator;
-    
-    // 잠시 대기 (속도 제한 방지)
-    await sleep(1000);
-  }
-}
-```
+| 피크 / 평균 MB/s | 비율 | Provisioned (월) | On-Demand (월) |
+|---|---|---|---|
+| 5 / 5 | 1배 | 약 $240 | 약 $1,548 |
+| 10 / 0.5 | 20배 | 약 $127 | 약 $181 |
+| 20 / 0.5 | 40배 | 약 $235 | 약 $181 |
+| 40 / 1 | 40배 | 약 $469 | 약 $333 |
 
-**3. Kinesis Data Firehose:**
+사용량이 일정하면 프로비저닝이 훨씬 싸고, 피크가 평균의 수십 배로 튀는 스트림에서 온디맨드가 이긴다. PUT 단위는 건당 25KB 올림이라 레코드가 작을수록 프로비저닝의 GB당 요금이 오르지만, 1KB에서도 온디맨드 쓰기 요금보다 낮다. 소비자가 늘면 온디맨드는 읽기 GB가 늘어 격차가 벌어진다.
 
-가장 간단하다. 자동으로 S3, Redshift 등에 저장한다.
+보존기간은 24시간이 기본이고 `IncreaseStreamRetentionPeriod`로 최대 365일까지 늘린다. 24시간을 넘으면 샤드 시간 단위 추가 요금이, 7일을 넘는 구간은 저장 GB와 조회 GB 요금이 붙는다. 줄이면 새 기간보다 오래된 데이터를 바로 읽을 수 없으니 `IteratorAge`부터 확인한다.
 
-**설정만 하면 됨:**
-- Source: Kinesis Data Stream
-- Destination: S3 버킷
-- 끝
+## Firehose
 
-코드를 작성할 필요가 없다.
+Firehose는 코드 없이 S3에 쌓을 때 쓴다. 버퍼가 크기(1~128MB)나 시간(0~900초) 중 먼저 닿는 쪽에서 비워지므로 버퍼를 작게 잡으면 작은 파일이 쌓여 Athena가 느려진다. Parquet 변환에는 Glue 스키마가 필요하다. Direct PUT 레코드는 5KB 단위로 올림 과금된다([요금 페이지](https://aws.amazon.com/firehose/pricing/)).
 
-### Enhanced Fan-Out
+순서나 재처리가 필요하면 Firehose만 쓰지 않는다. 원본은 Data Streams에 두고 Firehose를 그 스트림의 소비자 하나로 붙인다. S3 전달이 계속 실패하면 재시도 한도(문서상 24시간) 뒤에 데이터가 버려지므로, 버킷 삭제나 KMS 권한 회수는 `DeliveryToS3.Success` 알람으로 잡는다.
 
-여러 Consumer가 독립적으로 데이터를 읽을 수 있게 한다.
-
-**문제 상황:**
-
-**일반 Consumer:**
-- 하나의 Shard는 초당 2MB 읽기를 제공한다
-- 3개의 Consumer가 있으면 각각 0.67MB씩 나눠 가진다
-- Consumer가 많아지면 각자의 처리량이 줄어든다
-
-**Enhanced Fan-Out:**
-- 각 Consumer가 독립적으로 초당 2MB를 받는다
-- Consumer가 3개면 총 6MB 읽기 가능
-- Consumer끼리 영향을 주지 않는다
-
-**언제 사용하나:**
-- Consumer가 2개 이상인 경우
-- 각 Consumer가 높은 처리량을 필요로 하는 경우
-- 지연 시간을 최소화하고 싶은 경우 (70ms 이하)
-
-**비용:**
-추가 비용이 발생한다. Consumer당 시간당 $0.015, 데이터 전송 GB당 $0.013. 필요한 경우에만 사용한다.
-
-## Kinesis Data Firehose 상세
-
-가장 많이 사용하는 서비스다. 간단하고 관리가 쉽다.
-
-### S3로 자동 저장
-
-가장 일반적인 사용 사례다.
-
-**설정:**
-
-**1. Delivery Stream 생성:**
-- Source: Direct PUT (또는 Kinesis Data Stream)
-- Destination: S3
-- S3 버킷 선택
-- Prefix 설정 (폴더 구조)
-
-**2. 버퍼 설정:**
-```json
-{
-  "SizeInMBs": 5,      // 5MB가 모이면 전송
-  "IntervalInSeconds": 300  // 또는 5분마다 전송
-}
-```
-
-둘 중 하나가 먼저 도달하면 S3에 저장한다.
-
-**3. 압축:**
-```json
-{
-  "CompressionFormat": "GZIP"  // 또는 Snappy, Zip
-}
-```
-
-데이터를 압축해서 저장한다. 스토리지 비용이 줄어든다.
-
-**4. 포맷 변환:**
-JSON을 Parquet 또는 ORC로 변환한다. Athena에서 쿼리할 때 빠르고 저렴하다.
-
-**결과:**
-
-데이터가 S3에 이렇게 저장된다:
-```
-s3://my-bucket/logs/2026/01/18/10/my-stream-1-2026-01-18-10-00-00-abc123
-s3://my-bucket/logs/2026/01/18/10/my-stream-1-2026-01-18-10-05-00-def456
-s3://my-bucket/logs/2026/01/18/10/my-stream-1-2026-01-18-10-10-00-ghi789
-```
-
-5분마다 파일이 생성된다. 압축되어 있다. Athena로 쉽게 쿼리할 수 있다.
-
-### Lambda 변환
-
-데이터를 저장하기 전에 변환한다.
-
-**사용 사례:**
-
-**1. 민감 정보 제거:**
 ```javascript
 exports.handler = async (event) => {
   const records = event.records.map(record => {
-    // Base64 디코딩
-    const data = Buffer.from(record.data, 'base64').toString();
-    const json = JSON.parse(data);
-    
-    // 이메일 마스킹
-    if (json.email) {
-      json.email = json.email.replace(/(.{3}).*(@.*)/, '$1***$2');
+    try {
+      const json = JSON.parse(Buffer.from(record.data, 'base64').toString());
+      if (json.email) json.email = json.email.replace(/(.{3}).*(@.*)/, '$1***$2');
+      delete json.phone;
+      return {
+        recordId: record.recordId,
+        result: 'Ok',
+        data: Buffer.from(JSON.stringify(json) + '\n').toString('base64'),
+      };
+    } catch (e) {
+      return { recordId: record.recordId, result: 'ProcessingFailed', data: record.data };
     }
-    
-    // 전화번호 제거
-    delete json.phone;
-    
-    // 다시 인코딩
-    const transformed = Buffer.from(JSON.stringify(json)).toString('base64');
-    
-    return {
-      recordId: record.recordId,
-      result: 'Ok',
-      data: transformed
-    };
   });
-  
   return { records };
 };
 ```
 
-**2. 데이터 정제:**
-- 불필요한 필드 제거
-- 필드명 변경
-- 데이터 타입 변환
-- 검증 및 필터링
+끝에 `\n`이 없으면 JSON이 한 줄로 이어 붙어 Athena가 못 읽는다. `ProcessingFailed` 레코드는 S3 대상의 `ErrorOutputPrefix` 경로로 가니 이 접두어를 지정해 둔다.
 
-**3. enrichment (데이터 보강):**
-- IP 주소로 지역 정보 추가
-- 사용자 ID로 사용자 정보 추가
-- 타임스탬프를 여러 포맷으로 추가
+## Managed Service for Apache Flink
 
-### 실패 처리
+Flink는 샤드마다 워터마크가 따로 진행된다. 데이터가 안 들어오는 샤드 하나가 전체 워터마크를 붙잡으면 윈도우가 닫히지 않고, 에러 없이 집계만 멈춘다. `table.exec.source.idle-timeout`으로 idle 소스를 뺀다.
 
-데이터 전달이 실패할 수 있다.
+예전 Kinesis Data Analytics for SQL 애플리케이션은 지원 종료가 공지된 서비스라 새로 만들지 않는다. 같은 1분 집계는 Flink SQL로 쓴다.
 
-**실패 원인:**
-- S3 버킷이 존재하지 않음
-- 권한 부족
-- Lambda 변환 실패
-- 네트워크 오류
+```sql
+CREATE TABLE page_views (
+  page_url STRING,
+  event_time TIMESTAMP(3),
+  WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND
+) WITH (
+  'connector' = 'kinesis',
+  'stream' = 'user-events',
+  'aws.region' = 'ap-northeast-2',
+  'scan.stream.initpos' = 'LATEST',
+  'format' = 'json',
+  'json.timestamp-format.standard' = 'ISO-8601'
+);
 
-**재시도:**
-Firehose가 자동으로 재시도한다. 최대 24시간 동안 재시도한다.
-
-**실패한 데이터:**
-재시도가 모두 실패하면 별도의 S3 버킷에 저장한다.
-
-**설정:**
-```json
-{
-  "ErrorOutputPrefix": "errors/",
-  "S3BackupMode": "FailedDataOnly"
-}
+SELECT page_url, COUNT(*) AS view_count,
+       TUMBLE_START(event_time, INTERVAL '1' MINUTE) AS window_start
+FROM page_views
+GROUP BY page_url, TUMBLE(event_time, INTERVAL '1' MINUTE);
 ```
 
-실패한 데이터는 `s3://my-bucket/errors/`에 저장된다. 나중에 수동으로 재처리할 수 있다.
+## 서비스 선택 기준
 
-## 실무 운영
+같은 이벤트를 여러 시스템이 읽고 되감을 일이 있으면 Data Streams나 MSK, 한 번 처리하고 끝나는 작업 큐면 SQS가 맞다.
 
-### 모니터링
+| 서비스 | 보존기간 | 순서 보장 | 재처리 | 비용 단위 |
+|---|---|---|---|---|
+| Data Streams | 24시간~365일 | 샤드 안, 파티션 키 단위 | 가능. 보존기간 안에서 시간·시퀀스 지정 | 샤드 시간 또는 GB, PUT 단위 |
+| Firehose | 저장 안 함. 버퍼 후 전달 | 보장 없음 | 불가. S3 백업본에서 다시 | GB (Direct PUT은 5KB 올림) |
+| Managed Service for Apache Flink | 소스 보존기간에 의존, 상태는 스냅샷 | 소스 파티션 단위, 이벤트 시간은 워터마크 | 스냅샷 복원 후 소스에서 재읽기 | KPU 시간 |
+| MSK | 설정값, tiered storage로 사실상 무제한 | 파티션 단위 | 가능. 오프셋 지정 | 브로커 시간 + 스토리지 GB |
+| SQS | 60초~14일 (기본 4일) | Standard 보장 없음, FIFO는 MessageGroupId 단위 | 불가. 삭제되면 끝, DLQ redrive만 | 요청 수 |
 
-**CloudWatch 메트릭:**
+SQS는 소비자가 지우면 끝이라 여러 시스템이 읽으려면 SNS 팬아웃이 필요하다. 구성은 [SQS](SQS.md)와 [SNS_SQS_Lambda_통합_메시지_파이프라인](SNS_SQS_Lambda_통합_메시지_파이프라인.md)에 있다. Kafka 생태계가 필요하면 [MSK](MSK.md)로 간다. 샤드 조정이 부담이고 트래픽이 들쭉날쭉하면 Data Streams 온디맨드가 낫다.
 
-**Kinesis Data Streams:**
-- **IncomingBytes**: 초당 들어오는 데이터량
-- **IncomingRecords**: 초당 들어오는 레코드 수
-- **WriteProvisionedThroughputExceeded**: Shard 용량 초과
-- **ReadProvisionedThroughputExceeded**: 읽기 용량 초과
-- **GetRecords.IteratorAgeMilliseconds**: Consumer 지연 시간
+## 모니터링
 
-**알람 설정:**
+| 지표 | 보는 이유 |
+|---|---|
+| `GetRecords.IteratorAgeMilliseconds` | 소비 지연. 보존기간에 닿으면 데이터가 삭제된다 |
+| `WriteProvisionedThroughputExceeded` | 샤드 쓰기 한도 초과. 스트림 단위로는 핫 샤드가 가려진다 |
+| `ReadProvisionedThroughputExceeded` | 소비자가 읽기 한도를 나눠 쓰다 막힘. Enhanced Fan-Out 전환 신호 |
+| 샤드 수준 `IncomingBytes` | 핫 샤드 식별. 추가 과금되는 enhanced monitoring 필요 |
 
-**처리량 초과:**
-```json
-{
-  "MetricName": "WriteProvisionedThroughputExceeded",
-  "Threshold": 0,
-  "ComparisonOperator": "GreaterThanThreshold"
-}
-```
-
-Shard 용량을 초과하면 알림을 보낸다. Shard를 추가해야 한다.
-
-**Consumer 지연:**
-```json
-{
-  "MetricName": "GetRecords.IteratorAgeMilliseconds",
-  "Threshold": 60000,  // 1분
-  "ComparisonOperator": "GreaterThanThreshold"
-}
-```
-
-Consumer가 1분 이상 뒤처지면 알림을 보낸다. Consumer를 확장하거나 최적화해야 한다.
-
-### 비용 최적화
-
-**Shard 개수 조정:**
-필요한 만큼만 Shard를 사용한다.
-
-**주간 패턴:**
-- 평일 낮: Shard 10개
-- 평일 밤: Shard 3개
-- 주말: Shard 2개
-
-Application Auto Scaling으로 자동화한다.
-
-**Firehose 버퍼 크기:**
-버퍼를 크게 설정하면 파일 개수가 줄어든다. S3 PUT 요청 비용이 절감된다.
-- 작은 버퍼: 1MB, 60초 → 파일 많음
-- 큰 버퍼: 128MB, 900초 → 파일 적음
-
-**압축:**
-반드시 압축을 활성화한다. 스토리지 비용이 70-90% 절감된다.
-
-**포맷 변환:**
-JSON을 Parquet으로 변환한다. Athena 쿼리 비용이 80-90% 절감된다.
+`IteratorAgeMilliseconds` 알람 임계값은 보존기간의 절반 아래로 잡는다. 1분 같은 값은 배포 때마다 울려 무뎌지고, 보존기간 근처에서 울리면 복구할 시간이 없다.
 
 ## 참고
 
-- AWS Kinesis 개발자 가이드: https://docs.aws.amazon.com/kinesis/
-- Kinesis Data Streams: https://docs.aws.amazon.com/streams/latest/dev/
-- Kinesis Data Firehose: https://docs.aws.amazon.com/firehose/latest/dev/
-- Kinesis 요금: https://aws.amazon.com/kinesis/pricing/
-
+- [Kinesis Data Streams 개발자 문서](https://docs.aws.amazon.com/streams/latest/dev/)
+- [Amazon Data Firehose 개발자 문서](https://docs.aws.amazon.com/firehose/latest/dev/)
+- [Kinesis Data Streams 요금](https://aws.amazon.com/kinesis/data-streams/pricing/)

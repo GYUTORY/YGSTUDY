@@ -3,7 +3,7 @@ title: AWS 전체 보기
 tags: []
 hide:
   - toc
-updated: 2026-10-21
+updated: 2026-10-22
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
@@ -236,13 +236,13 @@ updated: 2026-10-21
 
 - [AWS AppSync (관리형 GraphQL API)](Application_Integration/App_Sync.md)
 - [AWS EventBridge](Application_Integration/EventBridge.md)
-- [AWS Kinesis](Application_Integration/Kinesis.md)
 - [AWS MSK (Managed Streaming for Apache Kafka)](Application_Integration/MSK.md)
 - [AWS SES (Simple Email Service)](Application_Integration/SES.md)
 - [AWS SNS (Simple Notification Service)](Application_Integration/SNS.md)
 - [AWS SNS/SQS/Lambda 통합 메시지 파이프라인](Application_Integration/SNS_SQS_Lambda_통합_메시지_파이프라인.md)
 - [AWS SQS와 SNS 연동](Application_Integration/SQS.md)
 - [AWS Step Functions](Application_Integration/Step_Functions.md)
+- [Amazon Kinesis 데이터 스트리밍 설계와 운영](Application_Integration/Kinesis.md)
 - [Amazon MQ for ActiveMQ 운영 노트](Application_Integration/Amazon_MQ_Active_MQ_Operations.md)
 - [Amazon MQ 보안과 유지보수 운영](Application_Integration/Amazon_MQ_Security_And_Maintenance.md)
 - [Amazon MQ 운영 노트](Application_Integration/Amazon_MQ.md)
