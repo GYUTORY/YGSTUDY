@@ -10,7 +10,7 @@ updated: 2026-10-22
 
 # 메시징 연동 전체 보기
 
-문서 12개.
+문서 13개.
 
 ## 개요
 
@@ -26,4 +26,5 @@ updated: 2026-10-22
 - [Amazon MQ for ActiveMQ 운영 노트](Amazon_MQ_Active_MQ_Operations.md)
 - [Amazon MQ 보안과 유지보수 운영](Amazon_MQ_Security_And_Maintenance.md)
 - [Amazon MQ 운영 노트](Amazon_MQ.md)
+- [Kinesis Data Streams 샤드 용량 설계와 리샤딩 운영](Kinesis_Data_Streams_Capacity_And_Resharding.md)
 
