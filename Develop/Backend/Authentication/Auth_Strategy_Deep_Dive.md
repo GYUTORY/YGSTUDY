@@ -1,7 +1,7 @@
 ---
 title: 인증 전략 심화 (Session vs JWT vs OAuth2 vs OIDC)
 tags: [backend, auth, security, jwt]
-updated: 2026-04-17
+updated: 2026-10-23
 ---
 
 # 인증 전략 심화 - 보안 트레이드오프 관점
@@ -45,6 +45,156 @@ OAuth2는 인가 프로토콜이다. 즉 "이 Access Token을 가진 자에게 /
 이게 바로 Confused Deputy Problem이다. Access Token은 "누가 발급받았고 누구를 대상으로 하는지"를 검증할 수단이 약하다. 그래서 OIDC가 나왔다.
 
 OIDC는 ID Token이라는 JWT를 추가한다. ID Token에는 `iss`(발급자), `sub`(사용자 ID), `aud`(토큰을 받을 대상 클라이언트), `nonce`(재생 공격 방지) 같은 클레임이 들어있고, 클라이언트는 이걸 검증해서 "이 토큰은 진짜로 우리 앱을 위해 발급된 것"임을 확인한다.
+
+<div class="ygd-oidc-confused-deputy" id="ygd-oidc-confused-deputy">
+<style>
+.ygd-oidc-confused-deputy{--ygd-halo:#FDFBFA;--ygd-fg:#2b2b2b;--ygd-muted:#6a6560;--ygd-line:#8a847d;--ygd-accent:#2f6f86;--ygd-onaccent:#ffffff;--ygd-bad:#b3362b;--ygd-ok:#2f7a4a;--ygd-panel:#f4f1ee;--ygd-border:#c9c2ba;max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;font-size:14px;line-height:1.6;color:var(--ygd-fg);box-sizing:border-box}
+body[data-md-color-scheme="slate"] .ygd-oidc-confused-deputy{--ygd-halo:#1F1C1E;--ygd-fg:#f0ede9;--ygd-muted:#b0aaa2;--ygd-line:#8d877f;--ygd-accent:#7fc0d6;--ygd-onaccent:#14232a;--ygd-bad:#ff8a7d;--ygd-ok:#7fd19a;--ygd-panel:#2a2628;--ygd-border:#5a5459}
+.ygd-oidc-confused-deputy *{box-sizing:border-box}
+.ygd-oidc-confused-deputy .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.ygd-oidc-confused-deputy .ygd-btn{font:inherit;font-size:14px;min-height:40px;padding:6px 14px;border:1px solid var(--ygd-border);background:var(--ygd-panel);color:var(--ygd-fg);border-radius:6px;cursor:pointer}
+.ygd-oidc-confused-deputy .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-oidc-confused-deputy .ygd-btn[aria-pressed="true"]{background:var(--ygd-accent);color:var(--ygd-onaccent);border-color:var(--ygd-accent)}
+.ygd-oidc-confused-deputy .ygd-btn[disabled]{opacity:.5;cursor:default}
+.ygd-oidc-confused-deputy .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+.ygd-oidc-confused-deputy .ygd-lifeline{stroke:var(--ygd-border);stroke-width:1;stroke-dasharray:4 4}
+.ygd-oidc-confused-deputy .ygd-actor{fill:var(--ygd-panel);stroke:var(--ygd-line);stroke-width:1}
+.ygd-oidc-confused-deputy .ygd-svg text{fill:var(--ygd-fg);font-size:12px;font-family:inherit}
+.ygd-oidc-confused-deputy .ygd-lb{paint-order:stroke;stroke:var(--ygd-halo);stroke-width:4px;stroke-linejoin:round}
+.ygd-oidc-confused-deputy .ygd-cur .ygd-lb{font-weight:700}
+.ygd-oidc-confused-deputy .ygd-st{transition:opacity .3s}
+.ygd-oidc-confused-deputy .ygd-off{opacity:.45}
+.ygd-oidc-confused-deputy .ygd-ln{fill:none;stroke-width:1.6;stroke:var(--ygd-line)}
+.ygd-oidc-confused-deputy .ygd-dot{stroke:none;fill:var(--ygd-line)}
+.ygd-oidc-confused-deputy .ygd-c-a .ygd-ln{stroke:var(--ygd-accent)}
+.ygd-oidc-confused-deputy .ygd-c-a .ygd-dot{fill:var(--ygd-accent)}
+.ygd-oidc-confused-deputy .ygd-c-b .ygd-ln{stroke:var(--ygd-bad)}
+.ygd-oidc-confused-deputy .ygd-c-b .ygd-dot{fill:var(--ygd-bad)}
+.ygd-oidc-confused-deputy .ygd-c-o .ygd-ln{stroke:var(--ygd-ok)}
+.ygd-oidc-confused-deputy .ygd-c-o .ygd-dot{fill:var(--ygd-ok)}
+.ygd-oidc-confused-deputy .ygd-mk-n{fill:var(--ygd-line)}
+.ygd-oidc-confused-deputy .ygd-mk-a{fill:var(--ygd-accent)}
+.ygd-oidc-confused-deputy .ygd-mk-b{fill:var(--ygd-bad)}
+.ygd-oidc-confused-deputy .ygd-mk-o{fill:var(--ygd-ok)}
+.ygd-oidc-confused-deputy .ygd-panel{border:1px solid var(--ygd-border);border-left:4px solid var(--ygd-accent);background:var(--ygd-panel);padding:10px 14px;border-radius:6px;margin-top:8px}
+.ygd-oidc-confused-deputy .ygd-stepno{font-weight:700;color:var(--ygd-accent);margin-bottom:2px}
+.ygd-oidc-confused-deputy .ygd-text{margin:0}
+.ygd-oidc-confused-deputy .ygd-note{margin-top:8px;color:var(--ygd-muted)}
+@media (prefers-reduced-motion:reduce){.ygd-oidc-confused-deputy .ygd-st{transition:none}}
+</style>
+<div class="ygd-bar" role="group" aria-label="시나리오 선택">
+<button type="button" class="ygd-btn ygd-tab" data-mode="oauth" aria-pressed="true">OAuth2 Access Token만 사용</button>
+<button type="button" class="ygd-btn ygd-tab" data-mode="oidc" aria-pressed="false">OIDC ID Token 검증</button>
+</div>
+<svg class="ygd-svg" role="img" aria-label="공격자 앱 A, 정상 앱 B, Google 사이에서 토큰이 오가는 순서를 보여주는 시퀀스 다이어그램" viewBox="0 0 360 220" preserveAspectRatio="xMidYMid meet"></svg>
+<div class="ygd-bar" style="margin-top:8px">
+<button type="button" class="ygd-btn ygd-play" aria-pressed="false">재생</button>
+<button type="button" class="ygd-btn ygd-prev">이전 단계</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+</div>
+<div class="ygd-panel" aria-live="polite">
+<div class="ygd-stepno"></div>
+<p class="ygd-text"></p>
+</div>
+<div class="ygd-note">비유: Access Token은 택배 수령 위임장과 같다. 물건을 받을 권한은 증명하지만 내미는 사람이 누구인지는 증명하지 않는다. ID Token은 누구에게 발급된 것인지(aud)까지 적힌 신분 확인용 문서에 가깝다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-oidc-confused-deputy');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var stepNo=root.querySelector('.ygd-stepno');
+var text=root.querySelector('.ygd-text');
+var playBtn=root.querySelector('.ygd-play');
+var prevBtn=root.querySelector('.ygd-prev');
+var nextBtn=root.querySelector('.ygd-next');
+var tabs=root.querySelectorAll('.ygd-tab');
+var reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+if(reduce)playBtn.hidden=true;
+var X={a:55,b:180,g:305};
+var ACT=[{k:'a',t:'공격자 앱 A'},{k:'b',t:'정상 앱 B'},{k:'g',t:'Google'}];
+var MODES={
+oauth:[
+{f:'g',t:'a',l:'Access Token 발급',c:'n',d:'사용자 X가 공격자 앱 A에서 Google OAuth로 로그인하면, 앱 A가 X의 Access Token을 받는다. 이 토큰은 리소스 접근 권한이지 X가 누구인지 증명하는 문서가 아니다.'},
+{f:'a',t:'b',l:'토큰 제출 (나는 X)',c:'n',d:'공격자 앱 A가 정상 앱 B에 내가 사용자 X라고 주장하며 이 Access Token을 제출한다.'},
+{f:'b',t:'g',l:'userinfo 질의',c:'n',d:'앱 B는 받은 Access Token으로 Google userinfo API에 질의한다.'},
+{f:'g',t:'b',l:'X의 토큰이라 응답',c:'n',d:'Google은 이 토큰은 사용자 X의 것이라고 답한다. Access Token은 누구를 대상으로 발급됐는지 검증할 수단이 약하다.'},
+{f:'b',t:'b',l:'A를 X로 로그인 처리',c:'b',d:'앱 B는 공격자 앱 A를 사용자 X라고 믿고 로그인 처리한다. 이것이 Confused Deputy Problem이다.'}
+],
+oidc:[
+{f:'g',t:'a',l:'ID Token 발급',c:'n',d:'OIDC에서는 Google이 ID Token(JWT)을 함께 발급한다. iss(발급자), sub(사용자 ID), aud(토큰을 받을 클라이언트), nonce(재생 공격 방지) 클레임이 들어 있고, 이 토큰의 aud는 앱 A다.'},
+{f:'a',t:'b',l:'ID Token 제출',c:'n',d:'공격자 앱 A가 같은 수법으로 이 ID Token을 앱 B에 내민다.'},
+{f:'b',t:'b',l:'iss, aud, nonce 검증',c:'a',d:'앱 B는 ID Token을 검증해, 이 토큰이 진짜로 우리 앱을 위해 발급된 것인지 확인한다.'},
+{f:'b',t:'b',l:'aud가 B가 아니라 거부',c:'o',d:'aud가 앱 A여서 앱 B를 위해 발급된 토큰이 아니다. 앱 B는 로그인을 거부한다.'}
+]};
+var mode='oauth',idx=0,timer=null,items=[];
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function build(){
+var S=MODES[mode],n=S.length,H=62+(n-1)*36+18;
+svg.setAttribute('viewBox','0 0 360 '+H);
+while(svg.firstChild)svg.removeChild(svg.firstChild);
+var defs=el('defs',{},svg);
+['n','a','b','o'].forEach(function(c){
+var m=el('marker',{id:'ygd-oidc-confused-deputy-m-'+c,viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto'},defs);
+el('path',{d:'M0,0 L10,5 L0,10 z','class':'ygd-mk-'+c},m);
+});
+ACT.forEach(function(a){
+el('line',{x1:X[a.k],y1:34,x2:X[a.k],y2:H-4,'class':'ygd-lifeline'},svg);
+el('rect',{x:X[a.k]-50,y:8,width:100,height:26,rx:5,'class':'ygd-actor'},svg);
+var t=el('text',{x:X[a.k],y:25,'text-anchor':'middle'},svg);t.textContent=a.t;
+});
+items=S.map(function(s,i){
+var y=62+i*36,g=el('g',{'class':'ygd-st ygd-off'},svg),x1=X[s.f],x2=X[s.t],t;
+if(s.f===s.t){
+el('circle',{cx:x1,cy:y,r:5,'class':'ygd-dot'},g);
+t=el('text',{x:x1+14,y:y+4,'text-anchor':'start','class':'ygd-lb'},g);
+}else{
+var d=x2>x1?1:-1;
+el('line',{x1:x1,y1:y,x2:x2-d*2,y2:y,'class':'ygd-ln'},g);
+t=el('text',{x:(x1+x2)/2,y:y-6,'text-anchor':'middle','class':'ygd-lb'},g);
+}
+t.textContent=s.l;
+return g;
+});
+}
+function paint(){
+var S=MODES[mode],n=S.length;
+items.forEach(function(g,i){
+var s=S[i],cls='ygd-st';
+if(i>idx)cls+=' ygd-off';else{cls+=' ygd-c-'+(i===idx&&s.c==='n'?'a':s.c);if(i===idx)cls+=' ygd-cur'}
+g.setAttribute('class',cls);
+var ln=g.querySelector('.ygd-ln');
+if(ln)ln.setAttribute('marker-end','url(#ygd-oidc-confused-deputy-m-'+(i>idx?'n':(i===idx&&s.c==='n'?'a':s.c))+')');
+});
+stepNo.textContent='단계 '+(idx+1)+' / '+n;
+text.textContent=S[idx].d;
+prevBtn.disabled=idx===0;
+nextBtn.disabled=idx===n-1;
+}
+function stop(){clearTimeout(timer);timer=null;playBtn.textContent='재생';playBtn.setAttribute('aria-pressed','false')}
+function tick(){
+if(idx<MODES[mode].length-1){idx++;paint();timer=setTimeout(tick,2200)}else stop();
+}
+function play(){
+if(timer){stop();return}
+if(idx>=MODES[mode].length-1){idx=0;paint()}
+playBtn.textContent='일시정지';playBtn.setAttribute('aria-pressed','true');
+timer=setTimeout(tick,2200);
+}
+playBtn.addEventListener('click',play);
+prevBtn.addEventListener('click',function(){stop();if(idx>0){idx--;paint()}});
+nextBtn.addEventListener('click',function(){stop();if(idx<MODES[mode].length-1){idx++;paint()}});
+Array.prototype.forEach.call(tabs,function(b){
+b.addEventListener('click',function(){
+stop();mode=b.getAttribute('data-mode');idx=0;
+Array.prototype.forEach.call(tabs,function(o){o.setAttribute('aria-pressed',o===b?'true':'false')});
+build();paint();
+});
+});
+build();paint();
+})();
+</script>
+</div>
 
 ### 용도 분리가 핵심이다
 
@@ -237,6 +387,175 @@ export class RefreshTokenService {
 ```
 
 토큰 자체는 DB에 저장하지 말고 해시(SHA-256)만 저장해야 한다. DB가 털려도 토큰은 복원 불가여야 한다.
+
+<div class="ygd-refresh-reuse-detection" id="ygd-refresh-reuse-detection">
+<style>
+.ygd-refresh-reuse-detection{--ygd-halo:#FDFBFA;--ygd-fg:#2b2b2b;--ygd-muted:#6a6560;--ygd-line:#8a847d;--ygd-accent:#2f6f86;--ygd-onaccent:#ffffff;--ygd-bad:#b3362b;--ygd-ok:#2f7a4a;--ygd-panel:#f4f1ee;--ygd-border:#c9c2ba;max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;font-size:14px;line-height:1.6;color:var(--ygd-fg);box-sizing:border-box}
+body[data-md-color-scheme="slate"] .ygd-refresh-reuse-detection{--ygd-halo:#1F1C1E;--ygd-fg:#f0ede9;--ygd-muted:#b0aaa2;--ygd-line:#8d877f;--ygd-accent:#7fc0d6;--ygd-onaccent:#14232a;--ygd-bad:#ff8a7d;--ygd-ok:#7fd19a;--ygd-panel:#2a2628;--ygd-border:#5a5459}
+.ygd-refresh-reuse-detection *{box-sizing:border-box}
+.ygd-refresh-reuse-detection .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.ygd-refresh-reuse-detection .ygd-btn{font:inherit;font-size:14px;min-height:40px;padding:6px 14px;border:1px solid var(--ygd-border);background:var(--ygd-panel);color:var(--ygd-fg);border-radius:6px;cursor:pointer}
+.ygd-refresh-reuse-detection .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-refresh-reuse-detection .ygd-btn[aria-pressed="true"]{background:var(--ygd-accent);color:var(--ygd-onaccent);border-color:var(--ygd-accent)}
+.ygd-refresh-reuse-detection .ygd-btn[disabled]{opacity:.5;cursor:default}
+.ygd-refresh-reuse-detection .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+.ygd-refresh-reuse-detection .ygd-lifeline{stroke:var(--ygd-border);stroke-width:1;stroke-dasharray:4 4}
+.ygd-refresh-reuse-detection .ygd-actor{fill:var(--ygd-panel);stroke:var(--ygd-line);stroke-width:1}
+.ygd-refresh-reuse-detection .ygd-svg text{fill:var(--ygd-fg);font-size:12px;font-family:inherit}
+.ygd-refresh-reuse-detection .ygd-svg .ygd-sub{fill:var(--ygd-muted)}
+.ygd-refresh-reuse-detection .ygd-lb{paint-order:stroke;stroke:var(--ygd-halo);stroke-width:4px;stroke-linejoin:round}
+.ygd-refresh-reuse-detection .ygd-cur .ygd-lb{font-weight:700}
+.ygd-refresh-reuse-detection .ygd-st{transition:opacity .3s}
+.ygd-refresh-reuse-detection .ygd-off{opacity:.45}
+.ygd-refresh-reuse-detection .ygd-ln{fill:none;stroke-width:1.6;stroke:var(--ygd-line)}
+.ygd-refresh-reuse-detection .ygd-dot{stroke:none;fill:var(--ygd-line)}
+.ygd-refresh-reuse-detection .ygd-c-a .ygd-ln{stroke:var(--ygd-accent)}
+.ygd-refresh-reuse-detection .ygd-c-a .ygd-dot{fill:var(--ygd-accent)}
+.ygd-refresh-reuse-detection .ygd-c-b .ygd-ln{stroke:var(--ygd-bad)}
+.ygd-refresh-reuse-detection .ygd-c-b .ygd-dot{fill:var(--ygd-bad)}
+.ygd-refresh-reuse-detection .ygd-c-o .ygd-ln{stroke:var(--ygd-ok)}
+.ygd-refresh-reuse-detection .ygd-c-o .ygd-dot{fill:var(--ygd-ok)}
+.ygd-refresh-reuse-detection .ygd-mk-n{fill:var(--ygd-line)}
+.ygd-refresh-reuse-detection .ygd-mk-a{fill:var(--ygd-accent)}
+.ygd-refresh-reuse-detection .ygd-mk-b{fill:var(--ygd-bad)}
+.ygd-refresh-reuse-detection .ygd-mk-o{fill:var(--ygd-ok)}
+.ygd-refresh-reuse-detection .ygd-chip{fill:none;stroke-width:2;transition:stroke .3s}
+.ygd-refresh-reuse-detection .ygd-chip-none{stroke:var(--ygd-border);stroke-dasharray:4 3}
+.ygd-refresh-reuse-detection .ygd-chip-active{stroke:var(--ygd-ok)}
+.ygd-refresh-reuse-detection .ygd-chip-used{stroke:var(--ygd-line)}
+.ygd-refresh-reuse-detection .ygd-chip-revoked{stroke:var(--ygd-bad)}
+.ygd-refresh-reuse-detection .ygd-panel{border:1px solid var(--ygd-border);border-left:4px solid var(--ygd-accent);background:var(--ygd-panel);padding:10px 14px;border-radius:6px;margin-top:8px}
+.ygd-refresh-reuse-detection .ygd-stepno{font-weight:700;color:var(--ygd-accent);margin-bottom:2px}
+.ygd-refresh-reuse-detection .ygd-text{margin:0}
+.ygd-refresh-reuse-detection .ygd-note{margin-top:8px;color:var(--ygd-muted)}
+@media (prefers-reduced-motion:reduce){.ygd-refresh-reuse-detection .ygd-st,.ygd-refresh-reuse-detection .ygd-chip{transition:none}}
+</style>
+<div class="ygd-bar" role="group" aria-label="시나리오 선택">
+<button type="button" class="ygd-btn ygd-tab" data-mode="norot" aria-pressed="false">Rotation만 적용</button>
+<button type="button" class="ygd-btn ygd-tab" data-mode="reuse" aria-pressed="true">Rotation + 재사용 감지</button>
+</div>
+<svg class="ygd-svg" role="img" aria-label="정상 클라이언트, 공격자, Auth Server 사이에서 Refresh Token이 오가는 순서와 토큰 패밀리 상태를 보여주는 다이어그램" viewBox="0 0 360 260" preserveAspectRatio="xMidYMid meet"></svg>
+<div class="ygd-bar" style="margin-top:8px">
+<button type="button" class="ygd-btn ygd-play" aria-pressed="false">재생</button>
+<button type="button" class="ygd-btn ygd-prev">이전 단계</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+</div>
+<div class="ygd-panel" aria-live="polite">
+<div class="ygd-stepno"></div>
+<p class="ygd-text"></p>
+</div>
+<div class="ygd-note">비유: 한 번만 찍히는 일회용 출입증과 같다. 이미 쓴 출입증이 다시 찍히면 누군가 복사했다는 뜻이므로, 같은 묶음으로 발급된 출입증 전체를 무효로 돌린다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-refresh-reuse-detection');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var stepNo=root.querySelector('.ygd-stepno');
+var text=root.querySelector('.ygd-text');
+var playBtn=root.querySelector('.ygd-play');
+var prevBtn=root.querySelector('.ygd-prev');
+var nextBtn=root.querySelector('.ygd-next');
+var tabs=root.querySelectorAll('.ygd-tab');
+var reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+if(reduce)playBtn.hidden=true;
+var X={c:55,a:180,s:305};
+var ACT=[{k:'c',t:'정상 클라이언트'},{k:'a',t:'공격자'},{k:'s',t:'Auth Server'}];
+var LABEL={none:'미발급',active:'ACTIVE',used:'USED',revoked:'REVOKED'};
+var MODES={
+norot:[
+{f:'c',t:'a',l:'RT1 탈취',c:'b',s:['active','none'],d:'공격자가 정상 클라이언트의 RT1을 훔친다. 아직 아무도 쓰지 않았으므로 RT1은 ACTIVE다.'},
+{f:'a',t:'s',l:'RT1 제출 (먼저)',c:'b',s:['used','active'],d:'공격자가 정상 클라이언트보다 먼저 RT1을 제출한다. 서버는 RT1을 무효화하고 RT2를 발급하므로 RT2는 공격자 손에 있다.'},
+{f:'c',t:'s',l:'RT1 제출 (실패)',c:'n',s:['used','active'],d:'정상 클라이언트가 RT1을 쓰려 하면 이미 사용된 토큰이라 실패한다. 정상 사용자는 로그아웃된다.'},
+{f:'a',t:'s',l:'RT2로 계속 갱신',c:'b',s:['used','active'],d:'재사용을 감지하는 규칙이 없으니 서버는 RT2를 정상 토큰으로 본다. 공격자는 RT2로 계속 살아남는다.'}
+],
+reuse:[
+{f:'c',t:'a',l:'RT1 탈취',c:'b',s:['active','none'],d:'공격자가 정상 클라이언트의 RT1을 훔친다. 아직 아무도 쓰지 않았으므로 RT1은 ACTIVE다.'},
+{f:'a',t:'s',l:'RT1 제출 (먼저)',c:'b',s:['used','active'],d:'공격자가 정상 클라이언트보다 먼저 RT1을 제출한다. 서버는 RT1을 USED로 기록하고 RT2를 발급한다.'},
+{f:'c',t:'s',l:'RT1 제출',c:'a',s:['used','active'],d:'정상 클라이언트가 뒤늦게 RT1을 제출한다. 이미 USED인 토큰이 다시 들어왔으므로 서버는 재사용으로 감지한다.'},
+{f:'s',t:'s',l:'패밀리 전체 폐기',c:'o',s:['revoked','revoked'],d:'서버가 이 세션의 토큰 패밀리 전체를 폐기한다. 공격자가 가진 RT2도 함께 무효가 되고, 정상 사용자는 다시 로그인한다.'}
+]};
+var mode='reuse',idx=0,timer=null,items=[],chips=[];
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function build(){
+var S=MODES[mode],n=S.length,last=62+(n-1)*36,H=last+14+22+10+30+12;
+svg.setAttribute('viewBox','0 0 360 '+H);
+while(svg.firstChild)svg.removeChild(svg.firstChild);
+var defs=el('defs',{},svg);
+['n','a','b','o'].forEach(function(c){
+var m=el('marker',{id:'ygd-refresh-reuse-detection-m-'+c,viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto'},defs);
+el('path',{d:'M0,0 L10,5 L0,10 z','class':'ygd-mk-'+c},m);
+});
+ACT.forEach(function(a){
+el('line',{x1:X[a.k],y1:34,x2:X[a.k],y2:last+14,'class':'ygd-lifeline'},svg);
+el('rect',{x:X[a.k]-50,y:8,width:100,height:26,rx:5,'class':'ygd-actor'},svg);
+var t=el('text',{x:X[a.k],y:25,'text-anchor':'middle'},svg);t.textContent=a.t;
+});
+items=S.map(function(s,i){
+var y=62+i*36,g=el('g',{'class':'ygd-st ygd-off'},svg),x1=X[s.f],x2=X[s.t],t;
+if(s.f===s.t){
+el('circle',{cx:x1,cy:y,r:5,'class':'ygd-dot'},g);
+t=el('text',{x:x1-14,y:y+4,'text-anchor':'end','class':'ygd-lb'},g);
+}else{
+var d=x2>x1?1:-1;
+el('line',{x1:x1,y1:y,x2:x2-d*2,y2:y,'class':'ygd-ln'},g);
+t=el('text',{x:(x1+x2)/2,y:y-6,'text-anchor':'middle','class':'ygd-lb'},g);
+}
+t.textContent=s.l;
+return g;
+});
+var ty=last+14+22,cy=ty+10;
+var title=el('text',{x:20,y:ty,'class':'ygd-sub'},svg);title.textContent='토큰 패밀리 상태';
+chips=[0,1].map(function(i){
+var x=20+i*170;
+var r=el('rect',{x:x,y:cy,width:150,height:30,rx:6,'class':'ygd-chip ygd-chip-none'},svg);
+var t=el('text',{x:x+75,y:cy+19,'text-anchor':'middle'},svg);
+return {r:r,t:t,n:'RT'+(i+1)};
+});
+}
+function paint(){
+var S=MODES[mode],n=S.length;
+items.forEach(function(g,i){
+var s=S[i],cls='ygd-st',cc=(i===idx&&s.c==='n')?'a':s.c;
+if(i>idx)cls+=' ygd-off';else{cls+=' ygd-c-'+cc;if(i===idx)cls+=' ygd-cur'}
+g.setAttribute('class',cls);
+var ln=g.querySelector('.ygd-ln');
+if(ln)ln.setAttribute('marker-end','url(#ygd-refresh-reuse-detection-m-'+(i>idx?'n':cc)+')');
+});
+chips.forEach(function(c,i){
+var st=S[idx].s[i];
+c.r.setAttribute('class','ygd-chip ygd-chip-'+st);
+c.t.textContent=c.n+' · '+LABEL[st];
+});
+stepNo.textContent='단계 '+(idx+1)+' / '+n;
+text.textContent=S[idx].d;
+prevBtn.disabled=idx===0;
+nextBtn.disabled=idx===n-1;
+}
+function stop(){clearTimeout(timer);timer=null;playBtn.textContent='재생';playBtn.setAttribute('aria-pressed','false')}
+function tick(){
+if(idx<MODES[mode].length-1){idx++;paint();timer=setTimeout(tick,2200)}else stop();
+}
+function play(){
+if(timer){stop();return}
+if(idx>=MODES[mode].length-1){idx=0;paint()}
+playBtn.textContent='일시정지';playBtn.setAttribute('aria-pressed','true');
+timer=setTimeout(tick,2200);
+}
+playBtn.addEventListener('click',play);
+prevBtn.addEventListener('click',function(){stop();if(idx>0){idx--;paint()}});
+nextBtn.addEventListener('click',function(){stop();if(idx<MODES[mode].length-1){idx++;paint()}});
+Array.prototype.forEach.call(tabs,function(b){
+b.addEventListener('click',function(){
+stop();mode=b.getAttribute('data-mode');idx=0;
+Array.prototype.forEach.call(tabs,function(o){o.setAttribute('aria-pressed',o===b?'true':'false')});
+build();paint();
+});
+});
+build();paint();
+})();
+</script>
+</div>
 
 ### Grace Period 문제
 
