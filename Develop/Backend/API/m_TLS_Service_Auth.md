@@ -24,7 +24,7 @@ TLS는 클라이언트가 서버의 인증서를 검증하는 단방향 인증�
 
 <div class="ygd-mtls-auth" id="ygd-mtls-auth">
 <style>
-.ygd-mtls-auth{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-a-bg:#E4EEFA;--ygd-b:#B4530A;--ygd-b-bg:#FBEBDD;--ygd-ok:#2E7D4F;--ygd-life:#A39C94;--ygd-btn-bg:#FFFFFF;--ygd-btn-text:#2B2724;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;--ygd-badge-text:#FFFFFF;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em 0;box-sizing:border-box;max-width:100%}
+.ygd-mtls-auth{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-a-bg:#E4EEFA;--ygd-b:#B4530A;--ygd-b-bg:#FBEBDD;--ygd-ok:#2E7D4F;--ygd-life:#A39C94;--ygd-btn-bg:#FFFFFF;--ygd-btn-text:#2B2724;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;--ygd-badge-text:#FFFFFF;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em auto;box-sizing:border-box;max-width:760px}
 body[data-md-color-scheme="slate"] .ygd-mtls-auth{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-a:#7DB4F0;--ygd-a-bg:#1F3550;--ygd-b:#F0A867;--ygd-b-bg:#4A3220;--ygd-ok:#6FCB93;--ygd-life:#7A736C;--ygd-btn-bg:#332F32;--ygd-btn-text:#F0EDE9;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0;--ygd-badge-text:#14202E}
 .ygd-mtls-auth .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
 .ygd-mtls-auth .ygd-toggle{display:flex;flex-wrap:wrap;gap:8px}
@@ -458,7 +458,7 @@ body[data-md-color-scheme="slate"] .ygd-mesh-path{--ygd-bg:#262326;--ygd-panel:#
 </g>
 <circle class="ygd-badge" data-role="badge" cx="332" cy="148" r="11"/>
 <text class="ygd-tick" data-role="tick" x="332" y="153"></text>
-<text class="ygd-nsub" x="180" y="210">파선 테두리 = Pod 경계</text>
+<text class="ygd-nsub" x="180" y="223">파선 테두리 = Pod 경계</text>
 </svg>
 <div class="ygd-ctrl">
 <button type="button" class="ygd-btn ygd-primary" data-act="play">재생</button>
