@@ -1,7 +1,7 @@
 ---
 title: "서비스 간 API 인증 — mTLS"
 tags: [api, encryption, security, kubernetes]
-updated: 2026-04-07
+updated: 2026-10-22
 ---
 
 # 서비스 간 API 인증 — mTLS
@@ -21,6 +21,271 @@ TLS는 클라이언트가 서버의 인증서를 검증하는 단방향 인증�
 5. 클라이언트가 자신의 인증서를 서버에 전달
 6. 서버가 클라이언트 인증서를 CA로 검증
 7. 양쪽 모두 검증 완료 후 암호화 통신 시작
+
+<div class="ygd-mtls-auth" id="ygd-mtls-auth">
+<style>
+.ygd-mtls-auth{--ygd-bg:#FAF8F6;--ygd-panel:#FFFFFF;--ygd-border:#D9D3CC;--ygd-text:#2B2724;--ygd-muted:#6B655F;--ygd-a:#1F5FA8;--ygd-a-bg:#E4EEFA;--ygd-b:#B4530A;--ygd-b-bg:#FBEBDD;--ygd-ok:#2E7D4F;--ygd-life:#A39C94;--ygd-btn-bg:#FFFFFF;--ygd-btn-text:#2B2724;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FAF8F6;--ygd-focus:#1F5FA8;--ygd-badge-text:#FFFFFF;font-family:inherit;font-size:15px;line-height:1.5;color:var(--ygd-text);background:var(--ygd-bg);border:1px solid var(--ygd-border);border-radius:12px;padding:14px;margin:1.2em 0;box-sizing:border-box;max-width:100%}
+body[data-md-color-scheme="slate"] .ygd-mtls-auth{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#A8A29B;--ygd-a:#7DB4F0;--ygd-a-bg:#1F3550;--ygd-b:#F0A867;--ygd-b-bg:#4A3220;--ygd-ok:#6FCB93;--ygd-life:#7A736C;--ygd-btn-bg:#332F32;--ygd-btn-text:#F0EDE9;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326;--ygd-focus:#7DB4F0;--ygd-badge-text:#14202E}
+.ygd-mtls-auth .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-mtls-auth .ygd-toggle{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-mtls-auth .ygd-btn{flex:1 1 140px;font:inherit;font-size:14px;min-height:40px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-btn-text);cursor:pointer;box-sizing:border-box}
+.ygd-mtls-auth .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px}
+.ygd-mtls-auth .ygd-btn[aria-pressed="true"],.ygd-mtls-auth .ygd-primary{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-mtls-auth .ygd-btn:disabled{opacity:.45;cursor:default}
+.ygd-mtls-auth .ygd-modenote{font-size:14px;color:var(--ygd-muted);margin:8px 0 6px}
+.ygd-mtls-auth .ygd-svg{display:block;width:100%;height:auto;max-width:100%}
+.ygd-mtls-auth .ygd-actor{stroke-width:2}
+.ygd-mtls-auth .ygd-actor-a{fill:var(--ygd-a-bg);stroke:var(--ygd-a)}
+.ygd-mtls-auth .ygd-actor-b{fill:var(--ygd-b-bg);stroke:var(--ygd-b)}
+.ygd-mtls-auth[data-ygd-verify="a"] .ygd-actor-a,.ygd-mtls-auth[data-ygd-verify="b"] .ygd-actor-b{stroke-width:4}
+.ygd-mtls-auth[data-ygd-verify="a"] .ygd-actor-b,.ygd-mtls-auth[data-ygd-verify="b"] .ygd-actor-a{stroke-dasharray:5 3}
+.ygd-mtls-auth .ygd-atext{fill:var(--ygd-text);font-size:12px;font-weight:700;text-anchor:middle}
+.ygd-mtls-auth .ygd-asub{fill:var(--ygd-muted);font-size:10.5px;text-anchor:middle}
+.ygd-mtls-auth .ygd-life{stroke:var(--ygd-life);stroke-width:1.5;stroke-dasharray:3 4}
+.ygd-mtls-auth .ygd-step{opacity:.35}
+.ygd-mtls-auth .ygd-step.ygd-done{opacity:.8}
+.ygd-mtls-auth .ygd-step.ygd-on{opacity:1}
+.ygd-mtls-auth .ygd-step.ygd-skip{opacity:.3}
+.ygd-mtls-auth .ygd-line{stroke-width:2.5;fill:none}
+.ygd-mtls-auth .ygd-dash{stroke-dasharray:6 4;stroke-width:3}
+.ygd-mtls-auth .ygd-ln-a{stroke:var(--ygd-a)}
+.ygd-mtls-auth .ygd-ln-b{stroke:var(--ygd-b)}
+.ygd-mtls-auth .ygd-ln-ok{stroke:var(--ygd-ok);stroke-width:3.5}
+.ygd-mtls-auth .ygd-fill-a{fill:var(--ygd-a)}
+.ygd-mtls-auth .ygd-fill-b{fill:var(--ygd-b)}
+.ygd-mtls-auth .ygd-fill-ok{fill:var(--ygd-ok)}
+.ygd-mtls-auth .ygd-tick{fill:var(--ygd-badge-text);font-size:13px;font-weight:700;text-anchor:middle}
+.ygd-mtls-auth .ygd-lbl{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-mtls-auth .ygd-sub{fill:var(--ygd-muted);font-size:10.5px;text-anchor:middle}
+.ygd-mtls-auth .ygd-skip-note{fill:var(--ygd-muted);font-size:10.5px;text-anchor:middle;display:none}
+.ygd-mtls-auth .ygd-only-tls{display:none}
+.ygd-mtls-auth.ygd-is-tls .ygd-only-tls{display:inline}
+.ygd-mtls-auth.ygd-is-tls .ygd-only-mtls{display:none}
+.ygd-mtls-auth.ygd-is-tls .ygd-skip-note{display:inline}
+.ygd-mtls-auth.ygd-is-tls .ygd-hide-tls{display:none}
+.ygd-mtls-auth .ygd-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ygd-muted);margin:6px 0 10px}
+.ygd-mtls-auth .ygd-sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:3px solid var(--ygd-life);box-sizing:border-box}
+.ygd-mtls-auth .ygd-sw-a{border-color:var(--ygd-a);background:var(--ygd-a-bg)}
+.ygd-mtls-auth .ygd-sw-b{border-color:var(--ygd-b);background:var(--ygd-b-bg)}
+.ygd-mtls-auth .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-mtls-auth .ygd-ctrl .ygd-btn{flex:1 1 70px}
+.ygd-mtls-auth .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-muted);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin-top:10px;box-sizing:border-box}
+.ygd-mtls-auth .ygd-panel[data-who="a"]{border-left-color:var(--ygd-a)}
+.ygd-mtls-auth .ygd-panel[data-who="b"]{border-left-color:var(--ygd-b)}
+.ygd-mtls-auth .ygd-panel[data-who="ok"]{border-left-color:var(--ygd-ok)}
+.ygd-mtls-auth .ygd-count{font-size:13px;color:var(--ygd-muted)}
+.ygd-mtls-auth .ygd-who{font-size:14px;font-weight:700;margin-top:2px}
+.ygd-mtls-auth .ygd-stitle{font-size:15px;font-weight:700;margin-top:6px}
+.ygd-mtls-auth .ygd-desc{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-mtls-auth .ygd-analogy{font-size:13px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-mtls-auth .ygd-step{transition:opacity .3s}
+.ygd-mtls-auth .ygd-step.ygd-on .ygd-draw{animation:ygd-draw .7s ease forwards}
+.ygd-mtls-auth .ygd-step.ygd-on .ygd-head,.ygd-mtls-auth .ygd-step.ygd-on .ygd-lbl{animation:ygd-fade .3s .55s both}
+.ygd-mtls-auth .ygd-step.ygd-on .ygd-dash,.ygd-mtls-auth .ygd-step.ygd-on .ygd-badge{animation:ygd-fade .5s both}
+}
+@keyframes ygd-draw{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
+@keyframes ygd-fade{from{opacity:0}to{opacity:1}}
+</style>
+<div class="ygd-title">일반 TLS와 mTLS 핸드셰이크 비교</div>
+<div class="ygd-toggle" role="group" aria-label="인증 방식 선택">
+<button type="button" class="ygd-btn ygd-mode" data-mode="mtls" aria-pressed="true">mTLS (양쪽 모두 인증)</button>
+<button type="button" class="ygd-btn ygd-mode" data-mode="tls" aria-pressed="false">일반 TLS (서버만 인증)</button>
+</div>
+<div class="ygd-modenote" data-role="modenote"></div>
+<svg class="ygd-svg" viewBox="0 0 360 380" role="img" aria-label="서비스 A와 서비스 B가 인증서를 주고받으며 서로를 검증하는 mTLS 핸드셰이크 시퀀스 다이어그램. 접속 시도, 서버 인증서 제시, 서버 인증서 검증, 클라이언트 인증서 요구, 클라이언트 인증서 제시, 클라이언트 인증서 검증, 암호화 통신 시작의 일곱 단계로 이루어진다.">
+<line class="ygd-life" x1="60" y1="46" x2="60" y2="372"/>
+<line class="ygd-life" x1="300" y1="46" x2="300" y2="372"/>
+<rect class="ygd-actor ygd-actor-a" x="8" y="6" width="104" height="40" rx="8"/>
+<text class="ygd-atext" x="60" y="23">서비스 A</text>
+<text class="ygd-asub" x="60" y="38">클라이언트</text>
+<rect class="ygd-actor ygd-actor-b" x="248" y="6" width="104" height="40" rx="8"/>
+<text class="ygd-atext" x="300" y="23">서비스 B</text>
+<text class="ygd-asub" x="300" y="38">서버</text>
+<g class="ygd-step" data-i="1">
+<line class="ygd-line ygd-ln-a ygd-draw" x1="66" y1="76" x2="288" y2="76" pathLength="1"/>
+<polygon class="ygd-head ygd-fill-a" points="296,76 287,71.5 287,80.5"/>
+<text class="ygd-lbl" x="180" y="66">① 접속 시도 (A → B)</text>
+</g>
+<g class="ygd-step" data-i="2">
+<line class="ygd-line ygd-ln-b ygd-draw" x1="294" y1="122" x2="72" y2="122" pathLength="1"/>
+<polygon class="ygd-head ygd-fill-b" points="64,122 73,117.5 73,126.5"/>
+<text class="ygd-lbl" x="180" y="112">② B가 서버 인증서 제시</text>
+</g>
+<g class="ygd-step" data-i="3">
+<circle class="ygd-badge ygd-fill-a" cx="60" cy="168" r="10"/>
+<text class="ygd-tick" x="60" y="172.5">✓</text>
+<line class="ygd-line ygd-ln-a ygd-dash" x1="74" y1="168" x2="288" y2="168"/>
+<circle class="ygd-head ygd-fill-a" cx="296" cy="168" r="5"/>
+<text class="ygd-lbl" x="180" y="158">③ A가 B 인증서 검증</text>
+<text class="ygd-sub" x="180" y="184">CA로 서버 인증서 확인</text>
+</g>
+<g class="ygd-step" data-i="4">
+<line class="ygd-line ygd-ln-b ygd-draw" x1="294" y1="214" x2="72" y2="214" pathLength="1"/>
+<polygon class="ygd-head ygd-fill-b" points="64,214 73,209.5 73,218.5"/>
+<text class="ygd-lbl" x="180" y="204">④ B가 클라이언트 인증서 요구</text>
+<text class="ygd-skip-note" x="180" y="230">일반 TLS에는 없는 단계</text>
+</g>
+<g class="ygd-step" data-i="5">
+<line class="ygd-line ygd-ln-a ygd-draw" x1="66" y1="260" x2="288" y2="260" pathLength="1"/>
+<polygon class="ygd-head ygd-fill-a" points="296,260 287,255.5 287,264.5"/>
+<text class="ygd-lbl" x="180" y="250">⑤ A가 클라이언트 인증서 제시</text>
+<text class="ygd-skip-note" x="180" y="276">일반 TLS에는 없는 단계</text>
+</g>
+<g class="ygd-step" data-i="6">
+<circle class="ygd-badge ygd-fill-b" cx="300" cy="306" r="10"/>
+<text class="ygd-tick" x="300" y="310.5">✓</text>
+<line class="ygd-line ygd-ln-b ygd-dash" x1="286" y1="306" x2="72" y2="306"/>
+<circle class="ygd-head ygd-fill-b" cx="64" cy="306" r="5"/>
+<text class="ygd-lbl" x="180" y="296">⑥ B가 A 인증서 검증</text>
+<text class="ygd-sub ygd-hide-tls" x="180" y="322">CA로 클라이언트 인증서 확인</text>
+<text class="ygd-skip-note" x="180" y="322">일반 TLS에는 없는 단계</text>
+</g>
+<g class="ygd-step" data-i="7">
+<line class="ygd-line ygd-ln-ok" x1="78" y1="352" x2="282" y2="352"/>
+<polygon class="ygd-head ygd-fill-ok" points="66,352 78,346 78,358"/>
+<polygon class="ygd-head ygd-fill-ok" points="294,352 282,346 282,358"/>
+<text class="ygd-lbl" x="180" y="342"><tspan class="ygd-only-mtls">⑦ 양방향 신뢰 · 암호화 통신 시작</tspan><tspan class="ygd-only-tls">⑦ 서버만 인증 · 암호화 통신 시작</tspan></text>
+</g>
+</svg>
+<div class="ygd-legend">
+<span><span class="ygd-sw ygd-sw-a"></span>파랑: 서비스 A의 동작</span>
+<span><span class="ygd-sw ygd-sw-b"></span>주황: 서비스 B의 동작</span>
+<span>실선 화살표: 메시지 전송</span>
+<span>점선 + 원 끝 + 체크: 검증 (원이 가리키는 쪽이 검증 대상)</span>
+</div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary" data-act="play">재생</button>
+<button type="button" class="ygd-btn" data-act="prev">이전</button>
+<button type="button" class="ygd-btn" data-act="next">다음</button>
+<button type="button" class="ygd-btn" data-act="reset">처음으로</button>
+</div>
+<div class="ygd-panel" data-who="n" role="status" aria-live="polite">
+<div class="ygd-count" data-role="count"></div>
+<div class="ygd-who" data-role="who"></div>
+<div class="ygd-stitle" data-role="title"></div>
+<div class="ygd-desc" data-role="desc"></div>
+</div>
+<div class="ygd-analogy">비유: 사무실 건물 출입에 가깝다. 일반 TLS는 방문자가 건물의 신원만 확인하고 들어가는 것이고, mTLS는 건물 쪽도 방문자의 출입증을 확인해야 문이 열리는 것이다. 어디까지나 비유이며, 실제 검증은 CA가 서명한 인증서를 기준으로 이루어진다.</div>
+<script>
+(function () {
+  var root = document.getElementById('ygd-mtls-auth');
+  if (!root) return;
+  var groups = root.querySelectorAll('.ygd-step');
+  var modeBtns = root.querySelectorAll('.ygd-mode');
+  var playBtn = root.querySelector('[data-act="play"]');
+  var prevBtn = root.querySelector('[data-act="prev"]');
+  var nextBtn = root.querySelector('[data-act="next"]');
+  var resetBtn = root.querySelector('[data-act="reset"]');
+  var panel = root.querySelector('.ygd-panel');
+  var elCount = root.querySelector('[data-role="count"]');
+  var elWho = root.querySelector('[data-role="who"]');
+  var elTitle = root.querySelector('[data-role="title"]');
+  var elDesc = root.querySelector('[data-role="desc"]');
+  var elNote = root.querySelector('[data-role="modenote"]');
+  var NOTES = {
+    mtls: 'mTLS: 클라이언트가 서버 인증서를 검증하고, 서버도 클라이언트 인증서를 검증한다. 양쪽 모두 인증서를 제시한다.',
+    tls: '일반 TLS: 클라이언트가 서버 인증서만 검증한다. 서버는 클라이언트가 누구인지 모른다.'
+  };
+  var T = [
+    null,
+    { c: 'a', title: '① A → B 접속 시도', who: '전송: A → B · 아직 어느 쪽도 검증하지 않은 상태',
+      d: '서비스 A(클라이언트)가 서비스 B(서버)에 연결을 요청한다. 이 시점에는 어느 쪽도 상대를 검증하지 않았다.' },
+    { c: 'b', title: '② B가 서버 인증서 제시', who: '전송: B → A · B의 서버 인증서',
+      d: 'B가 자신의 서버 인증서를 A에게 전달한다. 여기까지는 일반 TLS와 mTLS가 같다.' },
+    { c: 'a', title: '③ A가 B 인증서 검증', who: '검증 주체: A → 검증 대상: B의 서버 인증서', v: 'a',
+      d: 'A가 B의 인증서를 CA로 검증한다. 클라이언트가 서버를 확인하는 단방향 인증이 바로 이 단계다.',
+      dTls: 'A가 B의 인증서를 CA로 검증한다. 클라이언트가 서버를 확인하는 단방향 인증이 바로 이 단계이고, 일반 TLS는 여기서 인증을 마친다.' },
+    { c: 'b', title: '④ B가 클라이언트 인증서 요구', who: '요청: B → A · 클라이언트 인증서를 내놓으라는 요구',
+      d: 'B가 A에게 클라이언트 인증서를 요구한다. 일반 TLS와 달라지는 지점이다. Node.js의 requestCert: true, Nginx의 ssl_verify_client on 설정이 이 요구에 해당한다.' },
+    { c: 'a', title: '⑤ A가 클라이언트 인증서 제시', who: '전송: A → B · A의 클라이언트 인증서',
+      d: 'A가 자신의 클라이언트 인증서를 B에게 전달한다. 유효한 인증서를 제시하지 못하면 연결 자체가 성립되지 않는다.' },
+    { c: 'b', title: '⑥ B가 A 인증서 검증', who: '검증 주체: B → 검증 대상: A의 클라이언트 인증서', v: 'b',
+      d: 'B가 A의 인증서를 CA로 검증한다. 서버가 클라이언트를 확인하는 이 단계가 mTLS에서 추가되는 부분이다. Node.js에서는 rejectUnauthorized: true일 때 유효하지 않은 인증서를 거부한다.' },
+    { c: 'ok', title: '⑦ 양방향 신뢰 성립 → 암호화 통신 시작', who: 'A ↔ B · 서로 검증 완료',
+      d: '양쪽 모두 상대를 검증했다. 이제 암호화 통신이 시작되고, B는 A의 인증서로 요청을 보낸 서비스를 식별할 수 있다.',
+      tTls: '⑦ 서버 인증만으로 암호화 통신 시작', wTls: 'A만 B를 검증함 · B는 A를 검증하지 않음',
+      dTls: '클라이언트가 서버만 확인한 상태로 암호화 통신이 시작된다. B는 A가 누구인지 알지 못하므로, 서비스 아이덴티티가 필요하면 JWT 같은 별도 수단이 있어야 한다.' }
+  ];
+  var mode = 'mtls';
+  var cur = 0;
+  var timer = null;
+  function seq() { return mode === 'tls' ? [1, 2, 3, 7] : [1, 2, 3, 4, 5, 6, 7]; }
+  function isLast() { var s = seq(); return cur === s[s.length - 1]; }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  function step(dir) {
+    var s = seq();
+    var idx = s.indexOf(cur);
+    if (dir > 0) {
+      if (cur === 0) cur = s[0];
+      else if (idx < s.length - 1) cur = s[idx + 1];
+    } else {
+      if (idx > 0) cur = s[idx - 1];
+      else cur = 0;
+    }
+  }
+  function render() {
+    var tls = mode === 'tls';
+    root.classList.toggle('ygd-is-tls', tls);
+    elNote.textContent = NOTES[mode];
+    Array.prototype.forEach.call(modeBtns, function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-mode') === mode ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(groups, function (g) {
+      var i = Number(g.getAttribute('data-i'));
+      g.classList.remove('ygd-on', 'ygd-done', 'ygd-skip');
+      if (tls && i >= 4 && i <= 6) g.classList.add('ygd-skip');
+      else if (i === cur) g.classList.add('ygd-on');
+      else if (i < cur) g.classList.add('ygd-done');
+    });
+    var s = seq();
+    var d = T[cur];
+    root.setAttribute('data-ygd-verify', d && d.v ? d.v : '');
+    if (!d) {
+      elCount.textContent = (tls ? '일반 TLS 흐름' : 'mTLS 흐름') + ' · 준비';
+      panel.setAttribute('data-who', 'n');
+      elWho.textContent = '파랑은 서비스 A, 주황은 서비스 B의 동작이다.';
+      elTitle.textContent = '재생을 눌러 시작';
+      elDesc.textContent = '재생을 누르면 핸드셰이크가 단계별로 진행된다. 이전, 다음 버튼으로 한 단계씩 넘겨 볼 수도 있다.';
+    } else {
+      elCount.textContent = (tls ? '일반 TLS 흐름' : 'mTLS 흐름') + ' · 단계 ' + (s.indexOf(cur) + 1) + ' / ' + s.length;
+      panel.setAttribute('data-who', d.c);
+      elWho.textContent = tls && d.wTls ? d.wTls : d.who;
+      elTitle.textContent = tls && d.tTls ? d.tTls : d.title;
+      elDesc.textContent = tls && d.dTls ? d.dTls : d.d;
+    }
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = isLast();
+    playBtn.textContent = timer ? '일시정지' : (isLast() ? '다시 재생' : '재생');
+  }
+  function tick() {
+    if (!document.body.contains(root)) { stop(); return; }
+    step(1);
+    if (isLast()) stop();
+    render();
+  }
+  function play() {
+    if (timer) { stop(); render(); return; }
+    if (cur === 0 || isLast()) { cur = 0; step(1); }
+    if (!isLast()) timer = setInterval(tick, 2800);
+    render();
+  }
+  playBtn.addEventListener('click', play);
+  prevBtn.addEventListener('click', function () { stop(); step(-1); render(); });
+  nextBtn.addEventListener('click', function () { stop(); step(1); render(); });
+  resetBtn.addEventListener('click', function () { stop(); cur = 0; render(); });
+  Array.prototype.forEach.call(modeBtns, function (b) {
+    b.addEventListener('click', function () {
+      stop();
+      mode = b.getAttribute('data-mode');
+      cur = 0;
+      render();
+    });
+  });
+  render();
+})();
+</script>
+</div>
 
 ## 내부 API에 JWT 대신 mTLS를 쓰는 경우
 
