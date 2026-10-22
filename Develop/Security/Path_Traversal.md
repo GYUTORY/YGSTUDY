@@ -1,7 +1,7 @@
 ---
 title: Path Traversal
-tags: [security, nodejs]
-updated: 2026-06-15
+tags: [security, nodejs, backend]
+updated: 2026-10-22
 ---
 
 # Path Traversal
@@ -27,7 +27,7 @@ updated: 2026-06-15
 실무에서 마주치는 패턴은 거의 정해져 있다.
 
 - **파일 다운로드**: `?file=`, `?name=`, `?path=` 쿼리로 파일명을 받아 `res.download()` 하는 엔드포인트
-- **파일 포함(LFI)**: PHP의 `include($_GET['page'])` 같은 코드. 읽기를 넘어 코드 실행까지 이어질 수 있다
+- **파일 포함(LFI)**: PHP의 `include($_GET['page'])` 같은 코드. 읽기를 넘어 코드 실행까지 이어질 수 있다. 아래 "PHP 파일 포함(LFI)" 절에서 따로 다룬다
 - **압축 해제**: zip 안의 엔트리 이름에 `../`가 들어있으면 압축을 풀 때 바깥 디렉토리에 파일을 덮어쓴다(Zip Slip). 쓰기 쪽 순회라 더 위험하다
 - **템플릿/언어 파일 로더**: `lang=ko` 파라미터로 `./locales/ko.json`을 읽는데 `lang=../../config/secret` 같은 입력을 거르지 않는 경우
 - **이미지 프록시/썸네일**: 원본 경로를 받아 변환하는 서비스
@@ -72,6 +72,21 @@ const safe = input.replace(/\.\.\//g, '');
 %252e%252e%252f  →(1차 디코딩)→  %2e%2e%2f  →(2차 디코딩)→  ../
 ```
 
+아래 시퀀스에서 WAF가 보는 문자열과 앱이 최종적으로 쓰는 문자열이 다르다는 점을 확인하면 된다. WAF는 `../`가 없다고 판단해 통과시키지만, 앱은 한 번 더 디코딩해서 `../`를 얻는다.
+
+```mermaid
+sequenceDiagram
+    participant C as 공격자
+    participant W as WAF / 프록시
+    participant A as 앱 서버
+    C->>W: file=%252e%252e%252fetc%252fpasswd
+    W->>W: 1차 디코딩 → %2e%2e%2fetc%2fpasswd
+    W->>W: ../ 패턴 없음, 통과
+    W->>A: 디코딩된 요청 전달
+    A->>A: 2차 디코딩 → ../etc/passwd
+    A->>A: ROOT 와 결합 → 루트 밖 경로
+```
+
 직접 짠 코드뿐 아니라 리버스 프록시 + WAF + 앱 서버처럼 디코딩 주체가 여러 개일 때 발생한다. 어디서 몇 번 디코딩되는지 전부 추적하기보다, 최종 경로를 정규화한 뒤 검증하는 쪽이 안전하다.
 
 ### 4. 널 바이트 (%00)
@@ -107,6 +122,25 @@ fs.readFile('secret.txt\0.webp', () => {});
 ## 제대로 된 방어 — 정규화 후 루트 고정
 
 블랙리스트(`../` 차단)는 위 우회들 때문에 늘 진다. 방향을 바꿔야 한다. **경로를 절대 경로로 정규화한 다음, 그 경로가 허용된 루트 디렉토리 안에 있는지 확인한다.** 입력이 무엇이든, 최종적으로 만들어진 실제 경로가 루트 밖을 가리키면 거부한다.
+
+검증 순서가 중요하다. 디코딩이 정규화보다 먼저여야 하고, 접두사 비교는 정규화가 끝난 문자열에만 해야 한다. 순서가 뒤집히면 비교 대상 문자열에 `../`가 남아 있거나, 비교 뒤에 다시 디코딩되어 검사가 무의미해진다.
+
+```mermaid
+flowchart TD
+    A["입력: file=..%2f..%2fetc%2fpasswd"] --> B["1. 디코딩: 앱이 실제로 쓰는 최종 문자열로 되돌림"]
+    B --> C{"널 바이트 포함?"}
+    C -- 예 --> X["거부"]
+    C -- 아니오 --> D["2. 정규화: ROOT 와 결합하고 ../ 를 접음"]
+    D --> E["/var/app/files/../../etc/passwd → /etc/passwd"]
+    E --> F{"3. ROOT + 구분자로 시작하는가"}
+    F -- 아니오 --> X
+    F -- 예 --> G["realpath 로 심볼릭 링크 해소"]
+    G --> H{"해소된 경로도 ROOT 안인가"}
+    H -- 아니오 --> X
+    H -- 예 --> I["파일 열기"]
+```
+
+도식의 E 단계가 핵심이다. 정규화를 거치면 `../`가 문자열에서 사라지고 `/etc/passwd`라는 최종 위치만 남기 때문에, F 단계의 접두사 비교가 입력 모양과 무관하게 동작한다.
 
 핵심 함수는 두 가지다.
 
@@ -244,6 +278,140 @@ DB로 파일을 관리한다면 파일명 대신 행 ID(`file_id`)를 받고, �
 res.download(path.join(ROOT, entry), '사용자_가이드.pdf');
 // 디스크 접근 경로(entry)와 표시 이름은 완전히 분리한다.
 ```
+
+---
+
+## PHP 파일 포함(LFI)
+
+PHP에서는 순회가 파일 읽기에서 끝나지 않는다. `include`와 `require`는 파일 내용을 출력하는 게 아니라 PHP 코드로 실행한다. 사용자 입력이 경로에 들어가면 읽기 취약점이 아니라 코드 실행 취약점이 된다.
+
+```php
+<?php
+// 취약한 코드
+include('pages/' . $_GET['page'] . '.php');
+```
+
+`page=../../uploads/avatar_123`처럼 확장자가 `.php`로 붙어도 다른 디렉토리의 `.php` 파일을 포함시킬 수 있고, 아래 세 가지 방식으로 읽기와 실행까지 확장된다.
+
+```mermaid
+flowchart TD
+    I["include 에 사용자 입력이 들어감"] --> P1["php://filter 래퍼"]
+    I --> P2["널 바이트 %00"]
+    I --> P3["로그 파일 포이즈닝"]
+    P1 --> R1["PHP 소스를 base64 로 읽음 (DB 비밀번호 유출)"]
+    P2 --> R2["뒤에 붙는 .php 확장자 잘림 (PHP 5.3.4 이전만)"]
+    P3 --> R3["로그에 심은 PHP 코드가 실행됨 (RCE)"]
+```
+
+- **php://filter**: `include`에 입력 전체를 넘기는 코드라면 `page=php://filter/convert.base64-encode/resource=config`처럼 소스를 base64로 읽어낼 수 있다. 일반 포함은 PHP 코드를 실행해 버려서 소스가 안 보이는데, base64로 바꾸면 실행되지 않고 텍스트로 나온다. `allow_url_include`가 꺼져 있어도 동작한다. 앞에 `'pages/'` 같은 접두사가 붙는 코드에서는 스킴이 깨져서 쓸 수 없다
+- **널 바이트**: `page=../../etc/passwd%00`으로 뒤에 붙는 `.php`를 잘라내던 기법이다. PHP 5.3.4에서 파일 함수가 널 바이트를 거부하도록 바뀌어서 그 이전 버전에서만 통한다. 지금 운영 중인 서버에서 재현될 일은 거의 없지만, 오래된 레거시 서버 점검에서는 확인 대상이다
+- **로그 파일 포이즈닝**: 공격자가 `User-Agent` 헤더에 `<?php system($_GET['c']); ?>`를 넣어 요청하면 웹 서버 access 로그에 그 문자열이 그대로 기록된다. 이어서 `page=../../../var/log/nginx/access`처럼 로그 파일을 포함시키면 로그 안의 PHP 코드가 실행된다. PHP 프로세스가 로그를 읽을 권한이 있어야 하는데, Debian 계열 기본 설정에서는 읽기 권한이 있는 경우가 많다
+
+세 방식 모두 원인은 같다. 포함 경로를 만드는 데 사용자 입력이 직접 닿는다. 각 기법의 세부 동작과 PHP 설정(`open_basedir`, `allow_url_include`)은 [PHP_Security_Vulnerabilities](PHP_Security_Vulnerabilities.md)에서 다룬다.
+
+---
+
+## PHP에서 realpath()로 막기
+
+Node의 `resolve` + `startsWith` 조합과 같은 구조다. 허용 루트와 요청 경로를 둘 다 `realpath()`로 해소한 뒤 접두사를 비교한다.
+
+```php
+<?php
+const UPLOAD_ROOT = '/var/www/uploads';
+
+function resolve_upload_path(string $userInput): string
+{
+    // PHP 8 이상. 7.x 이하는 strpos($userInput, "\0") !== false
+    if (str_contains($userInput, "\0")) {
+        throw new InvalidArgumentException('INVALID_PATH');
+    }
+
+    $root = realpath(UPLOAD_ROOT);
+    if ($root === false) {
+        throw new RuntimeException('ROOT_NOT_FOUND');
+    }
+
+    $real = realpath($root . DIRECTORY_SEPARATOR . $userInput);
+    if ($real === false) {
+        throw new RuntimeException('NOT_FOUND');
+    }
+
+    // 구분자까지 붙여서 비교한다
+    if (!str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+        throw new RuntimeException('PATH_TRAVERSAL');
+    }
+
+    return $real;
+}
+
+// 사용
+$path = resolve_upload_path($_GET['file'] ?? '');
+if (!is_file($path)) {
+    http_response_code(404);
+    exit;
+}
+readfile($path);
+```
+
+여기서 두 군데에서 실수가 많이 난다.
+
+### realpath()는 없는 파일에 false를 돌려준다
+
+`realpath()`는 경로 문자열만 정리하는 함수가 아니라 디스크를 실제로 조회한다. 파일이 없으면 `false`를 반환하고, 경로 중간 디렉토리에 실행(탐색) 권한이 없을 때도 `false`가 나온다. 반환값을 문자열로 가정하고 다음 줄로 넘기면 두 가지로 깨진다.
+
+- `declare(strict_types=1)` 파일에서 `str_starts_with(false, ...)`는 TypeError를 던진다. 존재하지 않는 파일을 요청할 때마다 500이 나가고, 에러 로그에 경로가 찍힌다
+- `false`가 나오면 원본 경로로 대체하는 코드를 쓰는 경우가 있다. 이건 보안 구멍이다
+
+```php
+// 잘못된 폴백: 없는 파일이면 정규화되지 않은 문자열이 그대로 비교 대상이 된다
+$real = realpath($candidate) ?: $candidate;
+// $candidate = /var/www/uploads/../../../etc/shadow 는 접두사 비교를 통과한다
+```
+
+위 예제처럼 `=== false`를 먼저 걸러 404로 처리하고, 정규화되지 않은 문자열은 비교에 쓰지 않는다.
+
+읽기에서는 `false`를 그냥 404로 처리하면 끝이다. 파일을 새로 만드는 업로드 저장 경로에서는 문제가 된다. 아직 없는 파일이라 `realpath()`가 항상 `false`이기 때문이다. 이때는 대상 파일이 아니라 **부모 디렉토리**를 `realpath()`로 해소하고 파일명은 따로 검증한다.
+
+```php
+function resolve_new_file_path(string $name): string
+{
+    $root = realpath(UPLOAD_ROOT);
+    if ($root === false) {
+        throw new RuntimeException('ROOT_NOT_FOUND');
+    }
+
+    // 파일명에 경로 구분자가 들어오는 것 자체를 막는다
+    if ($name !== basename($name) || $name === '' || str_contains($name, "\0")) {
+        throw new InvalidArgumentException('INVALID_NAME');
+    }
+
+    return $root . DIRECTORY_SEPARATOR . $name;
+}
+```
+
+하위 디렉토리까지 허용해야 한다면 `dirname($root . '/' . $name)`을 `realpath()`로 해소해서 같은 접두사 비교를 거친 뒤 `basename`을 붙인다.
+
+### 접두사 비교에서 구분자를 빼먹으면 형제 디렉토리가 통과한다
+
+가장 흔한 실수다. 루트가 `/var/www/uploads`일 때 접두사만 비교하면 이름이 비슷한 형제 디렉토리가 매치된다.
+
+```php
+// 잘못된 비교
+if (strpos($real, '/var/www/uploads') !== 0) {
+    throw new RuntimeException('PATH_TRAVERSAL');
+}
+```
+
+| 해소된 경로 | 접두사만 비교 | 루트 + `/` 로 비교 |
+|---|---|---|
+| `/var/www/uploads/a.png` | 통과 | 통과 |
+| `/var/www/uploads_evil/a.png` | **통과** | 차단 |
+| `/var/www/uploads-backup/db.sql` | **통과** | 차단 |
+| `/var/www/uploads` (루트 자체) | 통과 | 차단 |
+
+`uploads_evil`이나 `uploads-backup` 같은 디렉토리가 같은 부모 아래에 있으면 `../uploads_evil/a.png` 한 줄로 넘어간다. 백업 디렉토리를 `uploads.bak`처럼 옆에 두는 운영 습관 때문에 실제로 자주 만나는 구조다. `$root . DIRECTORY_SEPARATOR`로 끝에 구분자를 붙여 비교해야 한다. 마지막 행의 루트 자체는 디렉토리라 파일로 열 일이 없으므로 차단되어도 문제없다. 루트 자체를 허용해야 하는 코드라면 `$real === $root ||` 조건을 따로 추가한다.
+
+`realpath()`가 반환하는 경로에는 끝 슬래시가 없다. `UPLOAD_ROOT`를 `/var/www/uploads/`처럼 슬래시를 붙여 정의하고 `realpath()`를 거치지 않은 채 `. DIRECTORY_SEPARATOR`를 더하면 `//`가 되어 모든 요청이 차단된다. 루트도 반드시 `realpath()`를 거쳐 같은 형태로 맞춘다.
 
 ---
 
