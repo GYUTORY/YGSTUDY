@@ -1,7 +1,7 @@
 ---
 title: NAT 트래버설 — STUN, TURN, ICE
 tags: [network]
-updated: 2026-06-24
+updated: 2026-10-22
 ---
 
 # NAT 트래버설 — STUN, TURN, ICE
@@ -108,6 +108,128 @@ sequenceDiagram
 한쪽이라도 Symmetric NAT이면 곤란해진다. 상대 피어로 나가는 매핑 포트를 STUN으로는 미리 알 수가 없기 때문이다. 실무에서 Symmetric NAT을 만나는 대표적인 경우가 통신사 CGNAT(Carrier-Grade NAT), 기업 방화벽, 일부 LTE/5G 모바일 망이다. 모바일 핫스팟으로 화상통화하면 릴레이 타는 비율이 확 올라가는 게 이 때문이다.
 
 양쪽 다 Symmetric이면 홀펀칭은 사실상 불가능하다. 한쪽만 Symmetric이고 다른 쪽이 Full Cone이면 가끔 뚫리는데(포트 예측을 시도하는 구현도 있다), 신뢰할 수 없다. 결국 TURN으로 폴백한다.
+
+<div class="ygd-punch" id="ygd-punch">
+<style>
+.ygd-punch{--ygd-bg:rgb(255,255,255);--ygd-fg:rgb(34,34,34);--ygd-mut:rgb(90,90,90);--ygd-ln:rgb(150,150,150);--ygd-box:rgb(238,243,246);--ygd-acc:rgb(31,95,125);--ygd-ok:rgb(24,115,62);--ygd-bad:rgb(179,38,30);--ygd-pn:rgb(246,248,250);--ygd-bd:rgb(210,216,220);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;padding:12px;box-sizing:border-box;color:var(--ygd-fg);background:var(--ygd-bg);border:1px solid var(--ygd-bd);border-radius:8px}
+body[data-md-color-scheme="slate"] .ygd-punch{--ygd-bg:rgb(30,28,30);--ygd-fg:rgb(240,237,233);--ygd-mut:rgb(176,170,162);--ygd-ln:rgb(130,126,124);--ygd-box:rgb(46,52,58);--ygd-acc:rgb(125,196,224);--ygd-ok:rgb(95,208,138);--ygd-bad:rgb(255,138,128);--ygd-pn:rgb(40,38,40);--ygd-bd:rgb(70,66,68)}
+.ygd-punch .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ygd-punch .ygd-btn{font:inherit;font-size:14px;line-height:1.3;padding:8px 14px;min-height:36px;border:1px solid var(--ygd-acc);border-radius:6px;background:var(--ygd-bg);color:var(--ygd-acc);cursor:pointer}
+.ygd-punch .ygd-btn[aria-pressed="true"]{background:var(--ygd-acc);color:var(--ygd-bg)}
+.ygd-punch .ygd-btn:focus-visible{outline:3px solid var(--ygd-fg);outline-offset:2px}
+.ygd-punch .ygd-svg{display:block;width:100%;height:auto}
+.ygd-punch .ygd-svg text{font-family:inherit}
+.ygd-punch .ygd-panel{margin-top:10px;padding:10px 12px;background:var(--ygd-pn);border-radius:6px;font-size:15px;line-height:1.6}
+.ygd-punch .ygd-step{font-size:14px;color:var(--ygd-mut);margin-bottom:4px}
+.ygd-punch .ygd-note{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ygd-mut)}
+.ygd-punch .ygd-new{animation:ygd-punch-in .5s}
+@keyframes ygd-punch-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ygd-punch .ygd-new{animation:none}}
+</style>
+<div class="ygd-bar" role="group" aria-label="NAT 조합 선택">
+<button type="button" class="ygd-btn ygd-tab" data-mode="cone" aria-pressed="true">양쪽 Cone NAT</button>
+<button type="button" class="ygd-btn ygd-tab" data-mode="sym" aria-pressed="false">한쪽 Symmetric NAT</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 222" role="img" aria-label="Peer A와 Peer B가 각자의 NAT을 사이에 두고 서로에게 패킷을 쏘는 홀펀칭 과정. 양쪽이 Cone이면 구멍이 뚫려 통신되고, 한쪽이 Symmetric이면 막혀 TURN으로 폴백한다.">
+<g style="stroke:var(--ygd-ln);stroke-width:1.5;stroke-dasharray:4 4">
+<line x1="45" y1="48" x2="45" y2="218"/>
+<line x1="135" y1="48" x2="135" y2="218"/>
+<line x1="225" y1="48" x2="225" y2="218"/>
+<line x1="315" y1="48" x2="315" y2="218"/>
+</g>
+<g style="fill:var(--ygd-box);stroke:var(--ygd-ln);stroke-width:1.5">
+<rect x="8" y="4" width="74" height="44" rx="6"/>
+<rect x="98" y="4" width="74" height="44" rx="6"/>
+<rect x="188" y="4" width="74" height="44" rx="6"/>
+<rect x="278" y="4" width="74" height="44" rx="6"/>
+</g>
+<g style="fill:var(--ygd-fg);font-size:13px;font-weight:600;text-anchor:middle">
+<text x="45" y="31">Peer A</text>
+<text x="135" y="23">A의 NAT</text>
+<text x="225" y="23">B의 NAT</text>
+<text x="315" y="31">Peer B</text>
+</g>
+<g style="fill:var(--ygd-mut);font-size:12px;text-anchor:middle">
+<text class="ygd-sub-a" x="135" y="39">Cone</text>
+<text class="ygd-sub-b" x="225" y="39">Cone</text>
+</g>
+<g class="ygd-layer"></g>
+</svg>
+<div class="ygd-bar" style="margin-top:10px;margin-bottom:0">
+<button type="button" class="ygd-btn ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-panel" aria-live="polite">
+<div class="ygd-step"></div>
+<div class="ygd-text"></div>
+</div>
+<div class="ygd-note">비유: 양쪽 모두 자기 쪽 문을 먼저 살짝 열어두어야 상대가 들어올 수 있다. 먼저 나간 패킷이 그 문 역할을 한다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-punch');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var layer=root.querySelector('.ygd-layer');
+var textEl=root.querySelector('.ygd-text');
+var stepEl=root.querySelector('.ygd-step');
+var subA=root.querySelector('.ygd-sub-a');
+var subB=root.querySelector('.ygd-sub-b');
+var tabs=root.querySelectorAll('.ygd-tab');
+var X={a:45,na:135,nb:225,b:315};
+var timer=null,cur=-1,mode='cone';
+function mk(tag,at,par){var e=document.createElementNS(NS,tag);for(var k in at){e.setAttribute(k,at[k]);}if(par){par.appendChild(e);}return e;}
+function col(kind){return 'var(--ygd-'+kind+')';}
+function label(g,x,y,s,anchor,kind){var t=mk('text',{x:x,y:y,'text-anchor':anchor,style:'font-size:13px;font-weight:600;fill:'+col(kind||'fg')+';paint-order:stroke;stroke:var(--ygd-bg);stroke-width:4px;stroke-linejoin:round'},g);t.textContent=s;}
+function arrow(g,x1,x2,y,kind,stop){
+var d=x2>x1?-1:1;
+mk('line',{x1:x1,y1:y,x2:x2,y2:y,style:'stroke:'+col(kind)+';stroke-width:2.5'},g);
+if(stop){
+mk('line',{x1:x2-6,y1:y-6,x2:x2+6,y2:y+6,style:'stroke:'+col(kind)+';stroke-width:3'},g);
+mk('line',{x1:x2-6,y1:y+6,x2:x2+6,y2:y-6,style:'stroke:'+col(kind)+';stroke-width:3'},g);
+}else{
+mk('polygon',{points:x2+','+y+' '+(x2+d*9)+','+(y-5)+' '+(x2+d*9)+','+(y+5),style:'fill:'+col(kind)},g);
+}
+}
+function hole(g,x,y,kind){mk('circle',{cx:x,cy:y,r:6,style:'fill:var(--ygd-bg);stroke:'+col(kind)+';stroke-width:2.5'},g);}
+var M={
+cone:{a:'Cone',b:'Cone',intro:'양쪽이 Cone 계열 NAT일 때의 홀펀칭이다. 재생을 누르면 패킷이 오가는 순서를 단계별로 보여준다.',steps:[
+{t:'A가 시그널링으로 받은 B의 공인 주소로 먼저 쏜다. B의 NAT에는 A에 대한 매핑이 없어 이 패킷은 버려진다. 하지만 A의 NAT에는 B로 가는 구멍이 뚫린다.',draw:function(g){arrow(g,X.a,X.nb,92,'bad',true);hole(g,X.na,92,'ok');label(g,53,84,'① A가 B로 발사','start');}},
+{t:'이어서 B가 A의 공인 주소로 쏜다. A의 NAT에는 이미 B와 주고받은 흔적이 있으니 패킷이 통과해 A에 도착한다.',draw:function(g){arrow(g,X.b,X.a,150,'ok',false);hole(g,X.nb,150,'ok');hole(g,X.na,150,'ok');label(g,307,142,'② B가 A로 발사','end');}},
+{t:'양쪽 NAT에 구멍이 생겼으니 이후 양방향 통신이 성립한다. 이 타이밍을 맞추는 일이 ICE의 연결성 점검이다.',draw:function(g){arrow(g,X.a+10,X.b-10,206,'ok',false);arrow(g,X.b-10,X.a+10,206,'ok',false);label(g,180,196,'③ 직접 통신 성립','middle','ok');}}
+]},
+sym:{a:'Symmetric',b:'Cone',intro:'A 쪽 NAT이 Symmetric일 때다. 재생을 누르면 STUN으로 알아낸 주소가 왜 상대에게 소용없는지 보여준다.',steps:[
+{t:'Symmetric NAT은 목적지마다 다른 포트를 할당한다. STUN 서버용 매핑이 40000이어도 B로 나가는 매핑은 40002라서 B는 그 포트를 알 수 없다. 패킷은 B의 NAT에서 버려진다.',draw:function(g){arrow(g,X.a,X.nb,92,'bad',true);hole(g,X.na,92,'ok');label(g,53,84,'① A→B (포트 40002)','start');}},
+{t:'B는 시그널링으로 받은 40000으로 쏜다. 그 매핑은 STUN 서버 전용이라 A의 NAT 필터링에 막힌다.',draw:function(g){arrow(g,X.b,X.na,150,'bad',true);label(g,307,142,'② B→A (포트 40000)','end');}},
+{t:'서로 상대가 쓰는 포트를 모르니 직접 연결은 신뢰할 수 없다. 이 경우 TURN 릴레이로 폴백한다.',draw:function(g){label(g,180,210,'직접 연결 실패 → TURN 폴백','middle','bad');}}
+]}
+};
+function render(){
+while(layer.firstChild){layer.removeChild(layer.firstChild);}
+var m=M[mode];subA.textContent=m.a;subB.textContent=m.b;
+for(var i=0;i<=cur;i++){
+var g=mk('g',{opacity:i===cur?1:0.6},layer);
+if(i===cur){g.setAttribute('class','ygd-new');}
+m.steps[i].draw(g);
+}
+if(cur<0){stepEl.textContent='준비';textEl.textContent=m.intro;}
+else{stepEl.textContent='단계 '+(cur+1)+' / '+m.steps.length;textEl.textContent=m.steps[cur].t;}
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function next(){if(cur<M[mode].steps.length-1){cur++;render();return true;}return false;}
+function loop(){if(next()){timer=setTimeout(loop,3200);}else{timer=null;}}
+function reset(){stop();cur=-1;render();}
+root.querySelector('.ygd-play').addEventListener('click',function(){reset();loop();});
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();next();});
+root.querySelector('.ygd-reset').addEventListener('click',reset);
+for(var i=0;i<tabs.length;i++){tabs[i].addEventListener('click',function(){
+mode=this.getAttribute('data-mode');
+for(var j=0;j<tabs.length;j++){tabs[j].setAttribute('aria-pressed',tabs[j]===this?'true':'false');}
+reset();
+});}
+render();
+})();
+</script>
+</div>
 
 ---
 
@@ -258,9 +380,196 @@ flowchart TD
     I -->|직접 전부 실패| K[relay pair 사용]
 ```
 
+<div class="ygd-ice-select" id="ygd-ice-select">
+<style>
+.ygd-ice-select{--ygd-bg:rgb(255,255,255);--ygd-fg:rgb(34,34,34);--ygd-mut:rgb(90,90,90);--ygd-ln:rgb(150,150,150);--ygd-box:rgb(238,243,246);--ygd-acc:rgb(31,95,125);--ygd-ok:rgb(24,115,62);--ygd-bad:rgb(179,38,30);--ygd-pn:rgb(246,248,250);--ygd-bd:rgb(210,216,220);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;padding:12px;box-sizing:border-box;color:var(--ygd-fg);background:var(--ygd-bg);border:1px solid var(--ygd-bd);border-radius:8px}
+body[data-md-color-scheme="slate"] .ygd-ice-select{--ygd-bg:rgb(30,28,30);--ygd-fg:rgb(240,237,233);--ygd-mut:rgb(176,170,162);--ygd-ln:rgb(130,126,124);--ygd-box:rgb(46,52,58);--ygd-acc:rgb(125,196,224);--ygd-ok:rgb(95,208,138);--ygd-bad:rgb(255,138,128);--ygd-pn:rgb(40,38,40);--ygd-bd:rgb(70,66,68)}
+.ygd-ice-select .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ygd-ice-select .ygd-btn{font:inherit;font-size:14px;line-height:1.3;padding:8px 14px;min-height:36px;border:1px solid var(--ygd-acc);border-radius:6px;background:var(--ygd-bg);color:var(--ygd-acc);cursor:pointer}
+.ygd-ice-select .ygd-btn[aria-pressed="true"]{background:var(--ygd-acc);color:var(--ygd-bg)}
+.ygd-ice-select .ygd-btn:focus-visible{outline:3px solid var(--ygd-fg);outline-offset:2px}
+.ygd-ice-select .ygd-svg{display:block;width:100%;height:auto}
+.ygd-ice-select .ygd-svg text{font-family:inherit}
+.ygd-ice-select .ygd-panel{margin-top:10px;padding:10px 12px;background:var(--ygd-pn);border-radius:6px;font-size:15px;line-height:1.6}
+.ygd-ice-select .ygd-step{font-size:14px;color:var(--ygd-mut);margin-bottom:4px}
+.ygd-ice-select .ygd-note{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ygd-mut)}
+.ygd-ice-select .ygd-new{animation:ygd-ice-in .5s}
+@keyframes ygd-ice-in{from{opacity:0.3}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ygd-ice-select .ygd-new{animation:none}}
+</style>
+<div class="ygd-bar" role="group" aria-label="네트워크 환경 선택">
+<button type="button" class="ygd-btn ygd-tab" data-sc="lan" aria-pressed="true">같은 LAN</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="cone" aria-pressed="false">NAT 너머 (Cone)</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="sym" aria-pressed="false">Symmetric 포함</button>
+<button type="button" class="ygd-btn ygd-tab" data-sc="udp" aria-pressed="false">UDP 차단</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 232" role="img" aria-label="ICE가 후보 pair를 host, srflx, relay UDP, relay TCP, relay TLS 순서로 점검하고 뚫린 것 중 우선순위가 가장 높은 것을 선택하는 과정">
+<g class="ygd-rows"></g>
+</svg>
+<div class="ygd-bar" style="margin-top:10px;margin-bottom:0">
+<button type="button" class="ygd-btn ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-panel" aria-live="polite">
+<div class="ygd-step"></div>
+<div class="ygd-text"></div>
+</div>
+<div class="ygd-note">비유: 같은 건물이면 걸어서, 막히면 우회로로, 그것도 막히면 중계 창구를 거쳐 가는 식이다. 가까운 길부터 시도하고 막힐 때만 내려간다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-ice-select');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var rowsG=root.querySelector('.ygd-rows');
+var textEl=root.querySelector('.ygd-text');
+var stepEl=root.querySelector('.ygd-step');
+var tabs=root.querySelectorAll('.ygd-tab');
+var R=[['host','로컬 IP/포트'],['srflx','STUN으로 알아낸 공인 주소'],['relay · UDP','TURN 중계'],['relay · TCP 3478','TURN 중계'],['relay · TLS 443','TURN 중계, HTTPS처럼 보임']];
+var S={
+lan:{intro:'두 단말이 같은 LAN에 있는 경우다. 재생을 누르면 후보 pair를 우선순위 순서로 점검한다.',res:[1],notes:['host 후보로 점검한다. 같은 LAN이라 로컬 IP로 바로 닿아 성공한다.'],fin:'우선순위가 가장 높은 host pair가 선택된다. 나머지 후보는 쓰지 않는다.'},
+cone:{intro:'양쪽이 서로 다른 망의 Cone NAT 뒤에 있는 경우다. 재생을 누르면 후보 pair를 순서대로 점검한다.',res:[0,1],notes:['host 후보는 다른 망의 사설 주소라 닿지 않아 실패한다.','srflx 후보로 홀펀칭을 시도한다. 양쪽 NAT에 서로 구멍이 뚫려 성공한다.'],fin:'srflx pair가 선택되어 서버를 거치지 않고 직접 연결한다.'},
+sym:{intro:'한쪽 이상이 Symmetric NAT인 경우다(모바일 망, CGNAT 등). 재생을 누르면 점검 결과가 순서대로 나타난다.',res:[0,0,1],notes:['host 후보는 실패한다.','srflx 후보도 실패한다. 상대로 나가는 매핑 포트가 STUN이 알려준 것과 달라서다.','TURN UDP 릴레이로 점검하면 성공한다. 양쪽 모두 TURN 서버로는 outbound 연결이 되기 때문이다.'],fin:'relay pair가 선택된다. 모든 트래픽이 TURN 서버를 거치므로 대역폭 비용이 서버 부담이고 지연도 한 단계 늘어난다.'},
+udp:{intro:'방화벽이 UDP outbound를 막는 경우다. 재생을 누르면 후보가 하나씩 막히다가 어디서 살아나는지 보여준다.',res:[0,0,0,0,1],notes:['host 후보는 실패한다.','srflx 후보도 실패한다. UDP 3478이 막혀 STUN 자체가 안 된다.','TURN UDP 릴레이도 같은 이유로 실패한다.','TURN TCP 3478은 DPI가 TURN 시그니처를 잡아 떨구는 환경이라 실패한다.','TURN TLS 443은 평범한 HTTPS와 구분이 안 되어 통과한다.'],fin:'TLS 릴레이가 선택된다. 지연과 오버헤드가 가장 크지만 연결은 살아난다.'}
+};
+var sc='lan',cur=-1,timer=null;
+function mk(tag,at,par){var e=document.createElementNS(NS,tag);for(var k in at){e.setAttribute(k,at[k]);}if(par){par.appendChild(e);}return e;}
+function render(){
+while(rowsG.firstChild){rowsG.removeChild(rowsG.firstChild);}
+var s=S[sc],n=s.res.length,fin=cur===n;
+for(var i=0;i<R.length;i++){
+var y=4+i*46,st='wait';
+if(i<n&&i<=cur){st=s.res[i]?'ok':'bad';}
+if(fin){if(i>=n){st='skip';}else if(s.res[i]){st='sel';}}
+var g=mk('g',{opacity:(st==='wait'||st==='skip')?0.6:1},rowsG);
+if(i===cur&&!fin){g.setAttribute('class','ygd-new');}
+var stroke=st==='ok'||st==='sel'?'var(--ygd-ok)':(st==='bad'?'var(--ygd-bad)':'var(--ygd-bd)');
+mk('rect',{x:4,y:y,width:352,height:40,rx:6,style:'fill:var(--ygd-box);stroke:'+stroke+';stroke-width:'+(st==='sel'?3.5:2)},g);
+var t1=mk('text',{x:14,y:y+17,style:'font-size:13px;font-weight:700;fill:var(--ygd-fg)'},g);t1.textContent=R[i][0];
+var t2=mk('text',{x:14,y:y+33,style:'font-size:12px;fill:var(--ygd-mut)'},g);t2.textContent=R[i][1];
+var lab={wait:'대기',skip:'사용 안 함',ok:'✓ 성공',bad:'✕ 실패',sel:'✓ 선택됨'}[st];
+var c=st==='ok'||st==='sel'?'var(--ygd-ok)':(st==='bad'?'var(--ygd-bad)':'var(--ygd-mut)');
+var t3=mk('text',{x:346,y:y+25,'text-anchor':'end',style:'font-size:14px;font-weight:700;fill:'+c},g);t3.textContent=lab;
+}
+if(cur<0){stepEl.textContent='준비';textEl.textContent=s.intro;}
+else if(fin){stepEl.textContent='결과';textEl.textContent=s.fin;}
+else{stepEl.textContent='점검 '+(cur+1)+' / '+n;textEl.textContent=s.notes[cur];}
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function next(){if(cur<S[sc].res.length){cur++;render();return true;}return false;}
+function loop(){if(next()&&cur<S[sc].res.length){timer=setTimeout(loop,2800);}else{timer=null;}}
+function reset(){stop();cur=-1;render();}
+root.querySelector('.ygd-play').addEventListener('click',function(){reset();loop();});
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();next();});
+root.querySelector('.ygd-reset').addEventListener('click',reset);
+for(var i=0;i<tabs.length;i++){tabs[i].addEventListener('click',function(){
+sc=this.getAttribute('data-sc');
+for(var j=0;j<tabs.length;j++){tabs[j].setAttribute('aria-pressed',tabs[j]===this?'true':'false');}
+reset();
+});}
+render();
+})();
+</script>
+</div>
+
 ### Trickle ICE — 후보를 모으는 족족 보낸다
 
 원래 ICE는 후보를 전부 모은 다음 한꺼번에 교환했다. 문제는 relay 후보 수집(TURN allocate)이 느려서, 다 모일 때까지 기다리면 연결 시작이 지연된다. 그래서 **Trickle ICE**가 나왔다. 후보가 하나 생길 때마다 즉시 상대에게 흘려보내고, 받는 쪽은 받는 족족 점검을 시작한다. host 후보로 LAN 연결이 바로 되면 느린 relay 후보는 기다릴 필요도 없다. WebRTC는 기본이 Trickle ICE다.
+
+<div class="ygd-trickle" id="ygd-trickle">
+<style>
+.ygd-trickle{--ygd-bg:rgb(255,255,255);--ygd-fg:rgb(34,34,34);--ygd-mut:rgb(90,90,90);--ygd-ln:rgb(150,150,150);--ygd-box:rgb(238,243,246);--ygd-acc:rgb(31,95,125);--ygd-ok:rgb(24,115,62);--ygd-bad:rgb(179,38,30);--ygd-pn:rgb(246,248,250);--ygd-bd:rgb(210,216,220);--ygd-wait:rgb(196,202,207);--ygd-grow:rgb(150,160,168);--ygd-hit:rgb(150,200,225);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;padding:12px;box-sizing:border-box;color:var(--ygd-fg);background:var(--ygd-bg);border:1px solid var(--ygd-bd);border-radius:8px}
+body[data-md-color-scheme="slate"] .ygd-trickle{--ygd-bg:rgb(30,28,30);--ygd-fg:rgb(240,237,233);--ygd-mut:rgb(176,170,162);--ygd-ln:rgb(130,126,124);--ygd-box:rgb(46,52,58);--ygd-acc:rgb(125,196,224);--ygd-ok:rgb(95,208,138);--ygd-bad:rgb(255,138,128);--ygd-pn:rgb(40,38,40);--ygd-bd:rgb(70,66,68);--ygd-wait:rgb(84,86,92);--ygd-grow:rgb(96,100,108);--ygd-hit:rgb(50,110,140)}
+.ygd-trickle .ygd-bar{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-trickle .ygd-btn{font:inherit;font-size:14px;line-height:1.3;padding:8px 14px;min-height:36px;border:1px solid var(--ygd-acc);border-radius:6px;background:var(--ygd-bg);color:var(--ygd-acc);cursor:pointer}
+.ygd-trickle .ygd-btn:focus-visible{outline:3px solid var(--ygd-fg);outline-offset:2px}
+.ygd-trickle .ygd-svg{display:block;width:100%;height:auto;margin-bottom:10px}
+.ygd-trickle .ygd-svg text{font-family:inherit}
+.ygd-trickle .ygd-panel{margin-top:10px;padding:10px 12px;background:var(--ygd-pn);border-radius:6px;font-size:15px;line-height:1.6}
+.ygd-trickle .ygd-step{font-size:14px;color:var(--ygd-mut);margin-bottom:4px}
+.ygd-trickle .ygd-note{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ygd-mut)}
+</style>
+<svg class="ygd-svg" viewBox="0 0 360 206" role="img" aria-label="시간 순서로 host, srflx, relay 후보가 생길 때 기존 ICE는 모두 모일 때까지 기다린 뒤 점검을 시작하고, Trickle ICE는 후보가 생기는 즉시 전송하며 점검을 시작하는 비교">
+<text x="8" y="16" style="font-size:13px;font-weight:700;fill:var(--ygd-fg)">기존 ICE: 다 모은 뒤 한꺼번에 교환</text>
+<rect x="8" y="24" width="344" height="26" rx="4" style="fill:var(--ygd-wait)"/>
+<rect class="ygd-c1" x="8" y="24" width="0" height="26" rx="4" style="fill:var(--ygd-grow)"/>
+<rect class="ygd-c2" x="270" y="24" width="0" height="26" rx="4" style="fill:var(--ygd-hit)"/>
+<text x="14" y="42" style="font-size:12px;font-weight:600;fill:var(--ygd-fg)" class="ygd-l1">후보 수집 중, 아직 전송 못 함</text>
+<text x="311" y="42" text-anchor="middle" style="font-size:12px;font-weight:600;fill:var(--ygd-fg)" class="ygd-l2">교환·점검</text>
+<g class="ygd-d1"></g>
+<text x="8" y="122" style="font-size:13px;font-weight:700;fill:var(--ygd-fg)">Trickle ICE: 생기는 즉시 전송</text>
+<g class="ygd-d2"></g>
+<rect x="60" y="170" width="292" height="26" rx="4" style="fill:var(--ygd-wait)"/>
+<rect class="ygd-c3" x="60" y="170" width="0" height="26" rx="4" style="fill:var(--ygd-hit)"/>
+<text x="68" y="187" style="font-size:12px;font-weight:600;fill:var(--ygd-fg)">도착한 후보부터 점검</text>
+<line class="ygd-cursor" x1="8" y1="20" x2="8" y2="202" style="stroke:var(--ygd-bad);stroke-width:2;stroke-dasharray:4 3"/>
+</svg>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-panel" aria-live="polite">
+<div class="ygd-step"></div>
+<div class="ygd-text"></div>
+</div>
+<div class="ygd-note">비유: 짐을 전부 싸서 한 번에 보내느냐, 준비된 것부터 먼저 부치느냐의 차이다. 가장 늦게 준비되는 짐이 전체 출발을 붙잡지 않는다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-trickle');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var q=function(c){return root.querySelector(c);};
+var c1=q('.ygd-c1'),c2=q('.ygd-c2'),c3=q('.ygd-c3'),cursor=q('.ygd-cursor');
+var textEl=q('.ygd-text'),stepEl=q('.ygd-step');
+var C=[['host',60],['srflx',130],['relay',270]];
+var POS=[60,130,270,350];
+var T=['host 후보가 가장 먼저 생긴다. 기존 방식은 아직 모으는 중이라 상대에게 보내지 못한다. Trickle ICE는 이 후보를 바로 상대에게 보내 점검을 시작한다.','srflx 후보가 STUN 응답으로 생긴다. Trickle ICE는 이것도 즉시 흘려보낸다. 같은 LAN이라면 host 후보만으로 이미 연결되었을 수 있다.','느린 relay 후보(TURN allocate)가 마침내 모인다. 기존 방식은 이제서야 후보를 교환하고 점검을 시작한다.','기존 방식은 연결 시작이 relay 수집이 끝날 때까지 밀렸다. Trickle ICE는 relay 후보를 기다리지 않고 먼저 도착한 후보로 진행했다.'];
+var dots=[];
+function mk(tag,at,par){var e=document.createElementNS(NS,tag);for(var k in at){e.setAttribute(k,at[k]);}par.appendChild(e);return e;}
+function build(g,y){
+for(var i=0;i<C.length;i++){
+var c=mk('circle',{cx:C[i][1],cy:y,r:6,style:'stroke:var(--ygd-acc);stroke-width:2.5;fill:var(--ygd-bg)'},g);
+var t=mk('text',{x:C[i][1],y:y+22,'text-anchor':'middle',style:'font-size:12px;fill:var(--ygd-mut)'},g);t.textContent=C[i][0];
+dots.push({el:c,x:C[i][1]});
+}
+}
+build(q('.ygd-d1'),66);
+build(q('.ygd-d2'),138);
+var cur=-1,pos=8,timer=null,raf=null;
+function draw(p){
+cursor.setAttribute('x1',p);cursor.setAttribute('x2',p);
+c1.setAttribute('width',Math.max(0,Math.min(p,270)-8));
+c2.setAttribute('width',Math.max(0,Math.min(p,352)-270));
+c3.setAttribute('width',Math.max(0,Math.min(p,352)-60));
+for(var i=0;i<dots.length;i++){dots[i].el.style.fill=p>=dots[i].x?'var(--ygd-acc)':'var(--ygd-bg)';}
+}
+function go(to){
+if(raf){cancelAnimationFrame(raf);raf=null;}
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){pos=to;draw(pos);return;}
+var from=pos,t0=null;
+function f(ts){
+if(t0===null){t0=ts;}
+var k=Math.min(1,(ts-t0)/700);
+pos=from+(to-from)*k;draw(pos);
+if(k<1){raf=requestAnimationFrame(f);}else{raf=null;}
+}
+raf=requestAnimationFrame(f);
+}
+function show(){
+if(cur<0){stepEl.textContent='준비';textEl.textContent='재생을 누르면 시간이 흐르며 두 방식의 차이가 나타난다. 위는 기존 방식, 아래는 Trickle ICE다.';go(8);}
+else{stepEl.textContent='단계 '+(cur+1)+' / '+POS.length;textEl.textContent=T[cur];go(POS[cur]);}
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function next(){if(cur<POS.length-1){cur++;show();return true;}return false;}
+function loop(){if(next()){timer=setTimeout(loop,3200);}else{timer=null;}}
+function reset(){stop();cur=-1;show();}
+q('.ygd-play').addEventListener('click',function(){stop();cur=-1;pos=8;draw(8);loop();});
+q('.ygd-next').addEventListener('click',function(){stop();next();});
+q('.ygd-reset').addEventListener('click',reset);
+draw(8);show();
+})();
+</script>
+</div>
 
 ---
 
