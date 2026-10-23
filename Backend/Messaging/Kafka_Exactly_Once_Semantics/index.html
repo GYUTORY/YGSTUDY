@@ -289,7 +289,72 @@
 </span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>-&gt; KafkaException : Unexpected error in InitProducerIdResponse; The transaction timeout is larger than the maximum value allowed by the broker (as configured by transaction.max.timeout.ms).
 </span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>transaction.timeout.ms=900000
 </span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a>-&gt; init ok
-</span></code></pre></div> <p>Kafka Streams는 <code>commit.interval.ms</code>(EOS에서는 기본 100ms)마다 트랜잭션을 닫기 때문에 이 한도에 걸릴 일이 거의 없다. 직접 만든 배치 프로듀서가 트랜잭션 하나에 오래 걸리는 작업을 넣을 때 걸린다.</p> <h2 id=read_committed와-lso>read_committed와 LSO<a class=headerlink href=#read_committed와-lso title="Permanent link">&para;</a></h2> <p>트랜잭션 레코드는 커밋 전에도 이미 파티션 로그에 append되어 있다. <code>read_committed</code>는 로그에서 레코드를 지우는 게 아니라, 컨슈머가 읽는 <strong>상한과 필터</strong>를 바꾸는 방식이다. 읽는 상한이 High Watermark(HW)에서 Last Stable Offset(LSO)으로 내려가고, abort된 트랜잭션의 레코드는 걸러진다.</p> <h3 id=파티션-로그에-섞인-트랜잭션>파티션 로그에 섞인 트랜잭션<a class=headerlink href=#파티션-로그에-섞인-트랜잭션 title="Permanent link">&para;</a></h3> <p>파티션 하나에 일반 메시지, 커밋된 트랜잭션 A, abort된 트랜잭션 B, 진행 중인 트랜잭션 C를 섞어 넣고 덤프한 구조다. 오프셋 3과 7은 마커(control batch)가 하나씩 차지했다. LSO는 진행 중인 C의 첫 레코드(offset 8)에서 멈춘다.</p> <pre data-search-exclude class=mermaid-diagram><code>flowchart LR
+</span></code></pre></div> <p>Kafka Streams는 <code>commit.interval.ms</code>(EOS에서는 기본 100ms)마다 트랜잭션을 닫기 때문에 이 한도에 걸릴 일이 거의 없다. 직접 만든 배치 프로듀서가 트랜잭션 하나에 오래 걸리는 작업을 넣을 때 걸린다.</p> <div class=ygd-kafka-txn-timeout id=ygd-kafka-txn-timeout> <style>
+.ygd-kafka-txn-timeout{--ygd-bg:#FDFBFA;--ygd-panel:#F4F1EE;--ygd-border:#CFC8C0;--ygd-text:#2B2724;--ygd-muted:#5E5852;--ygd-accent:#2F6478;--ygd-ok:#2F7D4A;--ygd-ok-bg:#E3F1E6;--ygd-warn:#A85F00;--ygd-warn-bg:#FFF1D6;--ygd-bad:#B3342B;--ygd-bad-bg:#FBE3E1;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FDFBFA;max-width:760px;margin-left:auto;margin-right:auto;margin-top:18px;margin-bottom:18px;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;padding:14px;background:var(--ygd-bg);color:var(--ygd-text);font-size:14px;line-height:1.5}
+body[data-md-color-scheme="slate"] .ygd-kafka-txn-timeout{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-accent:#7FB6CB;--ygd-ok:#6CC48B;--ygd-ok-bg:#1F3A2A;--ygd-warn:#E0A33C;--ygd-warn-bg:#4A3510;--ygd-bad:#F08A82;--ygd-bad-bg:#4A2220;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326}
+.ygd-kafka-txn-timeout *{box-sizing:border-box}
+.ygd-kafka-txn-timeout .ygd-title{font-weight:700;font-size:16px;margin-bottom:4px}
+.ygd-kafka-txn-timeout .ygd-cap{font-size:14px;color:var(--ygd-muted);margin-bottom:6px}
+.ygd-kafka-txn-timeout .ygd-steps,.ygd-kafka-txn-timeout .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-kafka-txn-timeout .ygd-btn{flex:1 1 100px;font:inherit;font-size:14px;min-height:40px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer}
+.ygd-kafka-txn-timeout .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-kafka-txn-timeout .ygd-primary,.ygd-kafka-txn-timeout .ygd-sb[aria-current="step"]{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-kafka-txn-timeout .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:10px auto 8px}
+.ygd-kafka-txn-timeout .ygd-it{opacity:.5}
+.ygd-kafka-txn-timeout .ygd-it.ygd-on{opacity:1}
+.ygd-kafka-txn-timeout .ygd-seg-a{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-seg-b{fill:var(--ygd-warn-bg);stroke:var(--ygd-warn);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-seg-c{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-st{fill:var(--ygd-text);font-size:11px;font-weight:700;text-anchor:middle}
+.ygd-kafka-txn-timeout .ygd-cir{fill:var(--ygd-bg);stroke:var(--ygd-muted);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-cn{fill:var(--ygd-text);font-size:12px;font-weight:700;text-anchor:middle}
+.ygd-kafka-txn-timeout .ygd-cur .ygd-cir{fill:var(--ygd-accent);stroke:var(--ygd-accent)}
+.ygd-kafka-txn-timeout .ygd-cur .ygd-cn{fill:var(--ygd-bg)}
+.ygd-kafka-txn-timeout .ygd-stem{stroke:var(--ygd-muted);stroke-width:1.5;stroke-dasharray:3 3}
+.ygd-kafka-txn-timeout .ygd-ax{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-kafka-txn-timeout .ygd-tl{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-kafka-txn-timeout .ygd-brk{fill:var(--ygd-bg)}
+.ygd-kafka-txn-timeout .ygd-brl{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-kafka-txn-timeout .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-accent);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0}
+.ygd-kafka-txn-timeout .ygd-dt{font-size:15px;font-weight:700}
+.ygd-kafka-txn-timeout .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-kafka-txn-timeout .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-kafka-txn-timeout .ygd-it{transition:opacity .4s}
+}
+</style> <div class=ygd-title>transaction.timeout.ms 5초인데 abort 는 약 10.5초에</div> <div class=ygd-cap>문서의 로컬 실험(Kafka 3.7.1)을 시간축에 옮긴 것이다. 가운데 구간은 축을 생략했다.</div> <svg class=ygd-svg viewbox="0 0 360 130" role=img aria-label="시간축 그림. 0초에 레코드를 보내고, 5초에 타임아웃이 지나도 Ongoing 이 유지되며, 약 10.5초에 브로커의 만료 스캔이 abort 마커를 기록하고, 35초에 commit 을 호출하면 ProducerFencedException 이 나온다."> <g class="ygd-it ygd-seg1"><rect class=ygd-seg-a x=20 y=50 width=80 height=40 /><text class=ygd-st x=60 y=74>Ongoing</text></g> <g class="ygd-it ygd-seg2"><rect class=ygd-seg-b x=100 y=50 width=88 height=40 /><text class=ygd-st x=144 y=67>Ongoing</text><text class=ygd-st x=144 y=83>기한 경과</text></g> <g class="ygd-it ygd-seg3"><rect class=ygd-seg-c x=188 y=50 width=142 height=40 /><text class=ygd-st x=282 y=67>CompleteAbort</text><text class=ygd-st x=282 y=83>ABORT 마커</text></g> <rect class=ygd-brk x=214 y=44 width=16 height=52 /> <line class=ygd-brl x1=212 y1=94 x2=220 y2=46 /> <line class=ygd-brl x1=224 y1=94 x2=232 y2=46 /> <line class=ygd-ax x1=20 y1=102 x2=330 y2=102 /> <line class=ygd-ax x1=20 y1=102 x2=20 y2=108 /> <line class=ygd-ax x1=100 y1=102 x2=100 y2=108 /> <line class=ygd-ax x1=188 y1=102 x2=188 y2=108 /> <line class=ygd-ax x1=330 y1=102 x2=330 y2=108 /> <text class=ygd-tl x=20 y=124>0초</text> <text class=ygd-tl x=100 y=124>5초</text> <text class=ygd-tl x=188 y=124>약 10.5초</text> <text class=ygd-tl x=330 y=124>35초</text> <g class="ygd-it ygd-c0"><line class=ygd-stem x1=20 y1=35 x2=20 y2=50 /><circle class=ygd-cir cx=20 cy=24 r=11 /><text class=ygd-cn x=20 y=28>1</text></g> <g class="ygd-it ygd-c1"><line class=ygd-stem x1=100 y1=35 x2=100 y2=50 /><circle class=ygd-cir cx=100 cy=24 r=11 /><text class=ygd-cn x=100 y=28>2</text></g> <g class="ygd-it ygd-c2"><line class=ygd-stem x1=188 y1=35 x2=188 y2=50 /><circle class=ygd-cir cx=188 cy=24 r=11 /><text class=ygd-cn x=188 y=28>3</text></g> <g class="ygd-it ygd-c3"><line class=ygd-stem x1=330 y1=35 x2=330 y2=50 /><circle class=ygd-cir cx=330 cy=24 r=11 /><text class=ygd-cn x=330 y=28>4</text></g> </svg> <div class=ygd-steps role=group aria-label="단계 선택"> <button type=button class="ygd-btn ygd-sb" data-i=0>1 전송</button> <button type=button class="ygd-btn ygd-sb" data-i=1>2 기한 경과</button> <button type=button class="ygd-btn ygd-sb" data-i=2>3 스캔과 abort</button> <button type=button class="ygd-btn ygd-sb" data-i=3>4 commit 호출</button> </div> <div class=ygd-panel role=status aria-live=polite><div class=ygd-dt></div><div class=ygd-db></div></div> <div class=ygd-ctrl> <button type=button class="ygd-btn ygd-primary ygd-play">재생</button> <button type=button class="ygd-btn ygd-next">다음</button> <button type=button class="ygd-btn ygd-reset">처음으로</button> </div> <div class=ygd-analogy>비유: 마감이 지난 접수 서류를 정시에 바로 치우지 않고, 직원이 정해진 주기로 순찰하면서 걷어 가는 사무실에 가깝다. 서류가 치워지는 시각은 마감 시각이 아니라 순찰 시각이 정한다.</div> <script>
+(function(){
+var root=document.getElementById('ygd-kafka-txn-timeout');if(!root)return;
+var dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play'),nextB=root.querySelector('.ygd-next');
+var sbs=root.querySelectorAll('.ygd-sb');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){playB.hidden=true;}
+var S=[
+['t = 0초 · 레코드 전송','transaction.timeout.ms 를 5000 으로 두고 레코드 T-1 을 한 건 보낸 뒤 아무것도 하지 않는다. 트랜잭션은 Ongoing 상태다.'],
+['t = 5초 · 기한이 지났지만 그대로','타임아웃이 지나도 abort 는 일어나지 않는다. 브로커는 transaction.abort.timed.out.transaction.cleanup.interval.ms(기본 10초) 주기로 만료된 트랜잭션을 훑기 때문이다.'],
+['약 10.5초 · 스캔이 abort 마커를 기록','스캔에 걸려 offset 1 에 ABORT 마커가 찍힌다. 첫 레코드에서 약 10.5초 뒤이므로 늦어진 원인은 타임아웃 값이 아니라 스캔 주기다. abort 하면서 epoch 도 오른다.'],
+['35초 · commitTransaction() 호출','방치했던 프로듀서가 commit 을 부르면 ProducerFencedException 이 나온다. abort 로 epoch 가 올라갔기 때문이다. read_committed 컨슈머가 읽은 레코드는 0건이다.']
+];
+var step=0,timer=null;
+function render(){
+var segs=['.ygd-seg1','.ygd-seg2','.ygd-seg3'];
+segs.forEach(function(s,i){root.querySelector(s).setAttribute('class','ygd-it '+s.slice(1)+(step>=i?' ygd-on':''));});
+[0,1,2,3].forEach(function(i){root.querySelector('.ygd-c'+i).setAttribute('class','ygd-it ygd-c'+i+(step>=i?' ygd-on':'')+(step===i?' ygd-cur':''));});
+sbs.forEach(function(b){var i=Number(b.getAttribute('data-i'));if(i===step){b.setAttribute('aria-current','step');}else{b.removeAttribute('aria-current');}});
+dT.textContent=S[step][0];dB.textContent=S[step][1];
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function tick(){
+if(step>=3){timer=null;return;}
+step+=1;render();timer=setTimeout(tick,2600);
+}
+playB.addEventListener('click',function(){stop();step=0;render();timer=setTimeout(tick,2600);});
+nextB.addEventListener('click',function(){stop();step=step>=3?0:step+1;render();});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();step=0;render();});
+sbs.forEach(function(b){b.addEventListener('click',function(){stop();step=Number(b.getAttribute('data-i'));render();});});
+render();
+})();
+</script> </div> <h2 id=read_committed와-lso>read_committed와 LSO<a class=headerlink href=#read_committed와-lso title="Permanent link">&para;</a></h2> <p>트랜잭션 레코드는 커밋 전에도 이미 파티션 로그에 append되어 있다. <code>read_committed</code>는 로그에서 레코드를 지우는 게 아니라, 컨슈머가 읽는 <strong>상한과 필터</strong>를 바꾸는 방식이다. 읽는 상한이 High Watermark(HW)에서 Last Stable Offset(LSO)으로 내려가고, abort된 트랜잭션의 레코드는 걸러진다.</p> <h3 id=파티션-로그에-섞인-트랜잭션>파티션 로그에 섞인 트랜잭션<a class=headerlink href=#파티션-로그에-섞인-트랜잭션 title="Permanent link">&para;</a></h3> <p>파티션 하나에 일반 메시지, 커밋된 트랜잭션 A, abort된 트랜잭션 B, 진행 중인 트랜잭션 C를 섞어 넣고 덤프한 구조다. 오프셋 3과 7은 마커(control batch)가 하나씩 차지했다. LSO는 진행 중인 C의 첫 레코드(offset 8)에서 멈춘다.</p> <pre data-search-exclude class=mermaid-diagram><code>flowchart LR
     subgraph LOG["파티션 로그 offset 순서"]
         direction LR
         o0["0&lt;br/&gt;plain-1"] --&gt; o1["1&lt;br/&gt;A-1"] --&gt; o2["2&lt;br/&gt;A-2"] --&gt; o3["3&lt;br/&gt;COMMIT 마커 A"]
@@ -320,7 +385,132 @@
     L--&gt;&gt;G: 10~12 (C가 commit이면 8,9 도 함께)</code></pre> <p>이 현상은 컨슈머 코드에는 문제가 없고 CPU도 놀고 있는데 lag만 늘어나서 원인을 찾기 어렵다. 처음 겪으면 파티션 리더나 네트워크부터 의심하게 된다. 실제로 재현한 수치는 이렇다. 트랜잭션 C를 열어 둔 채 일반 메시지 3개를 뒤에 넣고 두 그룹을 읽혔다.</p> <div class="language-text highlight"><pre data-search-exclude><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a>GROUP   TOPIC    PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
 </span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>g-rc    eos-lso  0          8               13              5      (read_committed)
 </span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a>g-ru    eos-lso  0          13              13              0      (read_uncommitted)
-</span></code></pre></div> <p><code>g-rc</code>는 offset 8에서 멈췄다. 뒤에 쌓인 plain-3~5는 <code>g-ru</code>가 읽은 것과 같은 커밋 상태의 일반 메시지인데도 읽지 못했다. 원인은 <code>kafka-transactions.sh</code>로 확인한다. <code>list</code>에서 <code>Ongoing</code>이 남아 있거나 <code>find-hanging</code>이 결과를 내면 그 트랜잭션이 원인이다. 이번 실험에서는 프로세스가 <code>close()</code>를 부르며 종료하는 순간 미완료 트랜잭션을 프로듀서가 스스로 abort했고, 그 시점에 LSO가 풀렸다. 프로세스가 <code>kill -9</code>로 죽거나 네트워크가 끊겨 <code>close()</code>가 안 불리면 <code>transaction.timeout.ms</code>(최대 15분)와 스캔 주기가 지날 때까지 막힌다. 이 경우는 직접 재현하지 않았고, 아무 활동 없이 방치된 트랜잭션이 타임아웃 스캔에 abort되는 것까지만 위 타임아웃 실험으로 확인했다.</p> <h3 id=control-batch와-offset의-빈-자리>control batch와 offset의 빈 자리<a class=headerlink href=#control-batch와-offset의-빈-자리 title="Permanent link">&para;</a></h3> <p>commit·abort 마커는 일반 레코드처럼 로그에 append되고 offset 하나를 쓴다. 컨슈머에게는 전달되지 않기 때문에 애플리케이션에서 보면 offset이 건너뛴 것처럼 보인다. 위 실험에서 <code>read_committed</code>가 받은 offset은 <code>0,1,2,4</code>이고 3이 없다. 실제로 3번은 <code>endTxnMarker: COMMIT</code>이다.</p> <p>이 때문에 깨지는 가정이 있다. offset이 연속이라고 보고 "누락 검사"를 하는 코드, <code>endOffset - beginOffset</code>을 레코드 수로 쓰는 계산이 그렇다. 트랜잭션을 쓰는 토픽에서는 트랜잭션 하나마다 최소 1개(파티션마다) 빈 자리가 생기므로, 초당 수백 트랜잭션이면 offset 소모가 눈에 띈다. Streams처럼 100ms마다 커밋하는 애플리케이션은 파티션당 초당 10개의 offset이 마커로 나간다.</p> <h3 id=abort된-레코드를-걸러내는-방식>abort된 레코드를 걸러내는 방식<a class=headerlink href=#abort된-레코드를-걸러내는-방식 title="Permanent link">&para;</a></h3> <p>브로커는 파티션 디렉터리에 <code>.txnindex</code> 파일을 두고 abort된 트랜잭션의 (PID, 시작 offset, 마지막 offset)을 기록한다. 이번 실험의 <code>eos-log-0</code> 디렉터리에도 이 파일이 생겼다.</p> <pre data-search-exclude class=mermaid-diagram><code>flowchart TD
+</span></code></pre></div> <p><code>g-rc</code>는 offset 8에서 멈췄다. 뒤에 쌓인 plain-3~5는 <code>g-ru</code>가 읽은 것과 같은 커밋 상태의 일반 메시지인데도 읽지 못했다. 원인은 <code>kafka-transactions.sh</code>로 확인한다. <code>list</code>에서 <code>Ongoing</code>이 남아 있거나 <code>find-hanging</code>이 결과를 내면 그 트랜잭션이 원인이다. 이번 실험에서는 프로세스가 <code>close()</code>를 부르며 종료하는 순간 미완료 트랜잭션을 프로듀서가 스스로 abort했고, 그 시점에 LSO가 풀렸다. 프로세스가 <code>kill -9</code>로 죽거나 네트워크가 끊겨 <code>close()</code>가 안 불리면 <code>transaction.timeout.ms</code>(최대 15분)와 스캔 주기가 지날 때까지 막힌다. 이 경우는 직접 재현하지 않았고, 아무 활동 없이 방치된 트랜잭션이 타임아웃 스캔에 abort되는 것까지만 위 타임아웃 실험으로 확인했다.</p> <div class=ygd-kafka-lso-toggle id=ygd-kafka-lso-toggle> <style>
+.ygd-kafka-lso-toggle{--ygd-bg:#FDFBFA;--ygd-panel:#F4F1EE;--ygd-border:#CFC8C0;--ygd-text:#2B2724;--ygd-muted:#5E5852;--ygd-accent:#2F6478;--ygd-ok:#2F7D4A;--ygd-ok-bg:#E3F1E6;--ygd-warn:#A85F00;--ygd-warn-bg:#FFF1D6;--ygd-bad:#B3342B;--ygd-bad-bg:#FBE3E1;--ygd-ctl:#6A55A8;--ygd-ctl-bg:#ECE8F5;--ygd-skip:#8C857D;--ygd-skip-bg:#ECEAE7;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FDFBFA;max-width:760px;margin-left:auto;margin-right:auto;margin-top:18px;margin-bottom:18px;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;padding:14px;background:var(--ygd-bg);color:var(--ygd-text);font-size:14px;line-height:1.5}
+body[data-md-color-scheme="slate"] .ygd-kafka-lso-toggle{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-accent:#7FB6CB;--ygd-ok:#6CC48B;--ygd-ok-bg:#1F3A2A;--ygd-warn:#E0A33C;--ygd-warn-bg:#4A3510;--ygd-bad:#F08A82;--ygd-bad-bg:#4A2220;--ygd-ctl:#A996E6;--ygd-ctl-bg:#302A4A;--ygd-skip:#8C857D;--ygd-skip-bg:#2E2B2D;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326}
+.ygd-kafka-lso-toggle *{box-sizing:border-box}
+.ygd-kafka-lso-toggle .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-kafka-lso-toggle .ygd-gl{font-size:14px;color:var(--ygd-muted);margin:8px 0 4px}
+.ygd-kafka-lso-toggle .ygd-tog,.ygd-kafka-lso-toggle .ygd-ctrl,.ygd-kafka-lso-toggle .ygd-legend{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-kafka-lso-toggle .ygd-btn{flex:1 1 110px;font:inherit;font-size:14px;min-height:40px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer}
+.ygd-kafka-lso-toggle .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-kafka-lso-toggle .ygd-btn[aria-pressed="true"],.ygd-kafka-lso-toggle .ygd-primary{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-kafka-lso-toggle .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:12px auto 6px}
+.ygd-kafka-lso-toggle .ygd-no{fill:var(--ygd-muted);font-size:11px;text-anchor:middle}
+.ygd-kafka-lso-toggle .ygd-nm{fill:var(--ygd-text);font-size:11px;font-weight:700;text-anchor:middle}
+.ygd-kafka-lso-toggle .ygd-stt{fill:var(--ygd-text);font-size:11px;text-anchor:middle}
+.ygd-kafka-lso-toggle .ygd-cr{stroke-width:1.8}
+.ygd-kafka-lso-toggle .ygd-k-read .ygd-cr{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok)}
+.ygd-kafka-lso-toggle .ygd-k-warn .ygd-cr{fill:var(--ygd-warn-bg);stroke:var(--ygd-warn);stroke-dasharray:4 3}
+.ygd-kafka-lso-toggle .ygd-k-skip .ygd-cr{fill:var(--ygd-skip-bg);stroke:var(--ygd-skip)}
+.ygd-kafka-lso-toggle .ygd-k-skip .ygd-nm{text-decoration:line-through}
+.ygd-kafka-lso-toggle .ygd-k-block .ygd-cr{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad);stroke-width:2.6}
+.ygd-kafka-lso-toggle .ygd-k-ctl .ygd-cr{fill:var(--ygd-ctl-bg);stroke:var(--ygd-ctl);stroke-dasharray:2 3}
+.ygd-kafka-lso-toggle .ygd-k-empty .ygd-cr{fill:none;stroke:var(--ygd-skip);stroke-dasharray:2 4}
+.ygd-kafka-lso-toggle .ygd-k-empty .ygd-nm,.ygd-kafka-lso-toggle .ygd-k-empty .ygd-stt{fill:var(--ygd-muted)}
+.ygd-kafka-lso-toggle .ygd-tk{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-kafka-lso-toggle .ygd-pt{fill:var(--ygd-muted);font-size:12px}
+.ygd-kafka-lso-toggle .ygd-pt-on{fill:var(--ygd-accent);font-weight:700}
+.ygd-kafka-lso-toggle .ygd-tk-on{stroke:var(--ygd-accent);stroke-width:2.4}
+.ygd-kafka-lso-toggle .ygd-lg{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.ygd-kafka-lso-toggle .ygd-sw{display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid var(--ygd-skip);flex:0 0 auto}
+.ygd-kafka-lso-toggle .ygd-sw-read{background:var(--ygd-ok-bg);border-color:var(--ygd-ok)}
+.ygd-kafka-lso-toggle .ygd-sw-warn{background:var(--ygd-warn-bg);border-color:var(--ygd-warn);border-style:dashed}
+.ygd-kafka-lso-toggle .ygd-sw-skip{background:var(--ygd-skip-bg);border-color:var(--ygd-skip)}
+.ygd-kafka-lso-toggle .ygd-sw-block{background:var(--ygd-bad-bg);border-color:var(--ygd-bad)}
+.ygd-kafka-lso-toggle .ygd-sw-ctl{background:var(--ygd-ctl-bg);border-color:var(--ygd-ctl);border-style:dotted}
+.ygd-kafka-lso-toggle .ygd-got{margin-top:10px;font-size:14px;overflow-wrap:anywhere}
+.ygd-kafka-lso-toggle .ygd-got1{font-weight:700}
+.ygd-kafka-lso-toggle .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-accent);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0}
+.ygd-kafka-lso-toggle .ygd-dt{font-size:15px;font-weight:700}
+.ygd-kafka-lso-toggle .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-kafka-lso-toggle .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-kafka-lso-toggle .ygd-cr{transition:fill .35s,stroke .35s}
+}
+</style> <div class=ygd-title>read_committed 가 읽는 범위: LSO 와 HW</div> <div class=ygd-gl>컨슈머 격리 수준</div> <div class=ygd-tog role=group aria-label="컨슈머 격리 수준 선택"> <button type=button class="ygd-btn ygd-mode" data-mode=rc aria-pressed=true>read_committed</button> <button type=button class="ygd-btn ygd-mode" data-mode=ru aria-pressed=false>read_uncommitted</button> </div> <div class=ygd-gl>트랜잭션 C 의 상태</div> <div class=ygd-tog role=group aria-label="트랜잭션 C 상태 선택"> <button type=button class="ygd-btn ygd-cst" data-c=open aria-pressed=true>진행 중</button> <button type=button class="ygd-btn ygd-cst" data-c=commit aria-pressed=false>commit 됨</button> <button type=button class="ygd-btn ygd-cst" data-c=abort aria-pressed=false>abort 됨</button> </div> <svg class=ygd-svg viewbox="0 0 360 186" role=img aria-label="파티션 로그 offset 0부터 13까지를 두 줄로 나열한 그림. 선택한 격리 수준과 트랜잭션 C 상태에 따라 각 offset 이 읽힘, 건너뜀, 막힘, 숨김 중 무엇이 되는지와 LSO, HW 위치를 보여 준다."></svg> <div class=ygd-legend aria-label=범례> <span class=ygd-lg><span class="ygd-sw ygd-sw-read"></span>읽음</span> <span class=ygd-lg><span class="ygd-sw ygd-sw-warn"></span>읽음! (commit 전이거나 abort 된 레코드)</span> <span class=ygd-lg><span class="ygd-sw ygd-sw-skip"></span>건너뜀 (abort)</span> <span class=ygd-lg><span class="ygd-sw ygd-sw-block"></span>막힘 (LSO 뒤)</span> <span class=ygd-lg><span class="ygd-sw ygd-sw-ctl"></span>숨김 (마커)</span> </div> <div class=ygd-got><div class=ygd-got1></div><div class=ygd-got2></div></div> <div class=ygd-panel role=status aria-live=polite><div class=ygd-dt></div><div class=ygd-db></div></div> <div class=ygd-ctrl> <button type=button class="ygd-btn ygd-primary ygd-play">재생: C 가 끝나는 순간</button> </div> <div class=ygd-analogy>비유: 번호표 순서대로만 내주는 우편 창구에 가깝다. 앞 번호의 서류 한 건이 아직 접수 중이면, 그 뒤 번호의 이미 끝난 서류도 내주지 못한다. 실제로 막는 기준은 창구가 아니라 LSO 라는 offset 이다.</div> <script>
+(function(){
+var root=document.getElementById('ygd-kafka-lso-toggle');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg'),dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db');
+var g1=root.querySelector('.ygd-got1'),g2=root.querySelector('.ygd-got2'),playB=root.querySelector('.ygd-play');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){playB.hidden=true;}
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+var DATA=[['plain-1','p'],['A-1','A'],['A-2','A'],['COMMIT','m'],['plain-2','p'],['B-1','B'],['B-2','B'],['ABORT','m'],['C-1','C'],['C-2','C'],['plain-3','p'],['plain-4','p'],['plain-5','p'],['마커','e']];
+var STT={read:'읽음',warn:'읽음!',skip:'건너뜀',block:'막힘',ctl:'숨김',empty:'예정'};
+var cells=DATA.map(function(d,i){
+var col=i%7,row=(i-col)/7,x=col*52,y=row?106:22,ny=row?96:12;
+var g=el('g',{},svg);
+el('rect',{x:x,y:y,width:48,height:48,rx:6,'class':'ygd-cr'},g);
+var no=el('text',{x:x+24,y:ny,'class':'ygd-no'},g);no.textContent=String(i);
+var nm=el('text',{x:x+24,y:y+20,'class':'ygd-nm'},g);nm.textContent=d[0];
+var st=el('text',{x:x+24,y:y+38,'class':'ygd-stt'},g);
+return {g:g,nm:nm,st:st,t:d[1],o:i};
+});
+var tkL=el('line',{y1:156,y2:164,'class':'ygd-tk'},svg),tkH=el('line',{y1:156,y2:164,'class':'ygd-tk'},svg);
+var ptL=el('text',{y:180,'class':'ygd-pt'},svg),ptH=el('text',{y:180,'class':'ygd-pt'},svg);
+var T={
+'rc-open':['read_committed · C 진행 중','LSO 가 열린 트랜잭션 C 의 첫 레코드(offset 8)에 멈춘다. 뒤에 쌓인 일반 메시지 10~12 는 이미 커밋된 것인데도 읽지 못해서, 컨슈머가 멀쩡해도 lag 만 커진다.'],
+'rc-commit':['read_committed · C commit','C 가 commit 되면 offset 13 에 COMMIT 마커가 찍히고 LSO 가 14 로 점프한다. C 의 8, 9 가 함께 전달되고 막혀 있던 10~12 도 풀린다. abort 된 B 의 5, 6 은 계속 건너뛴다.'],
+'rc-abort':['read_committed · C abort','C 가 abort 되면 offset 13 에 ABORT 마커가 찍히고 LSO 가 14 로 점프한다. C 의 8, 9 는 걸러지지만 막혀 있던 10~12 는 풀려서 전달된다.'],
+'ru-open':['read_uncommitted · C 진행 중','read_uncommitted 는 HW(13)까지 읽는다. abort 된 B 의 5, 6 은 물론 아직 결론이 나지 않은 C 의 8, 9 도 받는다. 나중에 C 가 abort 되어도 이미 처리한 뒤다.'],
+'ru-commit':['read_uncommitted · C commit','read_uncommitted 는 마커와 상관없이 HW 까지 읽는다. C 가 commit 되든 말든 받는 offset 이 같고, abort 된 B 의 5, 6 도 여전히 받는다.'],
+'ru-abort':['read_uncommitted · C abort','C 가 abort 됐지만 read_uncommitted 는 8, 9 를 이미 받았고 받게 된다. 애플리케이션에 올라오지 않는 것은 마커(3, 7, 13)뿐이다.']
+};
+var mode='rc',cs='open',timer=null;
+function kind(c){
+var ended=cs!=='open';
+if(c.o===13&&!ended){return 'empty';}
+if(c.t==='m'||c.o===13){return 'ctl';}
+var bad=c.t==='B'||(c.t==='C'&&cs==='abort'),opn=c.t==='C'&&cs==='open';
+if(mode==='ru'){return (bad||opn)?'warn':'read';}
+var lso=ended?14:8;
+if(c.o>=lso){return 'block';}
+return bad?'skip':'read';
+}
+function render(){
+var ended=cs!=='open',got=[];
+cells.forEach(function(c){
+var k=kind(c);
+c.g.setAttribute('class','ygd-cell ygd-k-'+k);
+c.st.textContent=STT[k];
+if(c.o===13){c.nm.textContent=ended?(cs==='commit'?'COMMIT':'ABORT'):'마커';}
+if(k==='read'||k==='warn'){got.push(c.o);}
+});
+tkL.setAttribute('class','ygd-tk'+(mode==='rc'?' ygd-tk-on':''));
+tkH.setAttribute('class','ygd-tk'+(mode==='ru'?' ygd-tk-on':''));
+ptL.setAttribute('class','ygd-pt'+(mode==='rc'?' ygd-pt-on':''));
+ptH.setAttribute('class','ygd-pt'+(mode==='ru'?' ygd-pt-on':''));
+if(ended){
+tkL.setAttribute('x1',358);tkL.setAttribute('x2',358);
+ptL.setAttribute('x',360);ptL.style.textAnchor='end';ptL.textContent='LSO = HW = 14';
+tkH.style.display='none';ptH.style.display='none';
+}else{
+tkL.setAttribute('x1',76);tkL.setAttribute('x2',76);ptL.setAttribute('x',76);ptL.style.textAnchor='middle';ptL.textContent='LSO 8';
+tkH.setAttribute('x1',336);tkH.setAttribute('x2',336);ptH.setAttribute('x',336);ptH.style.textAnchor='middle';ptH.textContent='HW 13';
+tkH.style.display='';ptH.style.display='';
+}
+var key=mode+'-'+cs;
+dT.textContent=T[key][0];dB.textContent=T[key][1];
+g1.textContent='받는 offset: '+got.join(', ');
+var s2='';
+if(!ended){s2=mode==='rc'?'g-rc 기준 CURRENT-OFFSET 8, LOG-END-OFFSET 13, LAG 5':'g-ru 기준 CURRENT-OFFSET 13, LOG-END-OFFSET 13, LAG 0';}
+else{s2=mode==='rc'?'LSO 가 14 로 점프해서 막혔던 구간이 풀렸다.':'HW 까지 읽으므로 C 가 끝나도 받는 offset 은 그대로다.';}
+g2.textContent=s2;
+root.querySelectorAll('.ygd-mode').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-mode')===mode));});
+root.querySelectorAll('.ygd-cst').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-c')===cs));});
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+root.querySelectorAll('.ygd-mode').forEach(function(b){b.addEventListener('click',function(){stop();mode=b.getAttribute('data-mode');render();});});
+root.querySelectorAll('.ygd-cst').forEach(function(b){b.addEventListener('click',function(){stop();cs=b.getAttribute('data-c');render();});});
+playB.addEventListener('click',function(){
+stop();mode='rc';cs='open';render();
+timer=setTimeout(function(){cs='commit';render();timer=null;},2800);
+});
+render();
+})();
+</script> </div> <h3 id=control-batch와-offset의-빈-자리>control batch와 offset의 빈 자리<a class=headerlink href=#control-batch와-offset의-빈-자리 title="Permanent link">&para;</a></h3> <p>commit·abort 마커는 일반 레코드처럼 로그에 append되고 offset 하나를 쓴다. 컨슈머에게는 전달되지 않기 때문에 애플리케이션에서 보면 offset이 건너뛴 것처럼 보인다. 위 실험에서 <code>read_committed</code>가 받은 offset은 <code>0,1,2,4</code>이고 3이 없다. 실제로 3번은 <code>endTxnMarker: COMMIT</code>이다.</p> <p>이 때문에 깨지는 가정이 있다. offset이 연속이라고 보고 "누락 검사"를 하는 코드, <code>endOffset - beginOffset</code>을 레코드 수로 쓰는 계산이 그렇다. 트랜잭션을 쓰는 토픽에서는 트랜잭션 하나마다 최소 1개(파티션마다) 빈 자리가 생기므로, 초당 수백 트랜잭션이면 offset 소모가 눈에 띈다. Streams처럼 100ms마다 커밋하는 애플리케이션은 파티션당 초당 10개의 offset이 마커로 나간다.</p> <h3 id=abort된-레코드를-걸러내는-방식>abort된 레코드를 걸러내는 방식<a class=headerlink href=#abort된-레코드를-걸러내는-방식 title="Permanent link">&para;</a></h3> <p>브로커는 파티션 디렉터리에 <code>.txnindex</code> 파일을 두고 abort된 트랜잭션의 (PID, 시작 offset, 마지막 offset)을 기록한다. 이번 실험의 <code>eos-log-0</code> 디렉터리에도 이 파일이 생겼다.</p> <pre data-search-exclude class=mermaid-diagram><code>flowchart TD
     F["컨슈머 Fetch 요청&lt;br/&gt;isolation.level=read_committed"] --&gt; R["브로커: fetch offset ~ LSO 범위 응답"]
     R --&gt; A["응답에 aborted_transactions 목록 포함&lt;br/&gt;PID 와 first offset"]
     A --&gt; P["컨슈머: 배치 순서대로 파싱"]
@@ -396,7 +586,109 @@
 </span><span id=__span-13-2><a id=__codelineno-13-2 name=__codelineno-13-2 href=#__codelineno-13-2></a>-&gt; TimeoutException : Timeout expired after 20000ms while awaiting InitProducerId (22011ms)
 </span><span id=__span-13-3><a id=__codelineno-13-3 name=__codelineno-13-3 href=#__codelineno-13-3></a>   (브로커 로그: "Sent auto-creation request for Set(__transaction_state) to the active controller" 반복)
 </span><span id=__span-13-4><a id=__codelineno-13-4 name=__codelineno-13-4 href=#__codelineno-13-4></a>   kafka-topics.sh --list 결과에 __transaction_state 없음
-</span></code></pre></div> <p><code>max.block.ms</code>를 줄이지 않으면 기본 60초를 기다린 뒤에야 실패한다. 오류 메시지에 복제 계수 얘기가 나오지 않아서, 처음에는 코디네이터를 못 찾는 네트워크 문제로 오인하기 쉽다. 로컬 단일 브로커는 <code>transaction.state.log.replication.factor=1</code>, <code>transaction.state.log.min.isr=1</code>, <code>offsets.topic.replication.factor=1</code>을 함께 내려야 한다. 운영에서는 반대로 이 값을 1로 두면 브로커 한 대의 장애가 트랜잭션 상태 유실로 이어지므로 3/2를 유지한다.</p> <h2 id=eos를-써야-하는-경우>EOS를 써야 하는 경우<a class=headerlink href=#eos를-써야-하는-경우 title="Permanent link">&para;</a></h2> <p>파이프라인이 <code>Kafka → 처리 → Kafka</code> 형태이고, 처리 결과가 다시 Kafka 토픽으로 가는 경우에 EOS가 의미 있다. 이벤트 집계, 스트림 조인, 토픽 간 데이터 변환이 여기에 해당한다.</p> <p><code>Kafka → DB</code>, <code>Kafka → 외부 API</code> 형태라면 EOS를 켜도 외부 시스템 쪽에서 중복이 발생한다. 이 경우에는 at-least-once로 두고 DB 멱등 처리 또는 API 멱등 키를 쓰는 게 현실적이다.</p> <p>EOS를 켜면 처리량이 떨어진다. 트랜잭션 코디네이터와 추가 통신이 발생하고, <code>read_committed</code> 컨슈머는 트랜잭션이 닫힐 때까지 메시지를 읽지 않아서 지연이 생긴다. 지연 시간 요구사항이 엄격한 파이프라인에서는 트레이드오프를 검토해야 한다.</p> <h2 id=로컬-실험-기록>로컬 실험 기록<a class=headerlink href=#로컬-실험-기록 title="Permanent link">&para;</a></h2> <p>위 절에서 확인 표시를 한 동작은 로컬 Kafka에서 직접 돌려 본 결과다. 환경은 Kafka 3.7.1 KRaft 단일 노드(broker와 controller 겸용), Java 클라이언트 3.7.1, OpenJDK 17이다. 트랜잭션 상태 토픽 복제 계수는 1로 낮췄다.</p> <h3 id=로그에-섞인-트랜잭션과-마커>로그에 섞인 트랜잭션과 마커<a class=headerlink href=#로그에-섞인-트랜잭션과-마커 title="Permanent link">&para;</a></h3> <p>일반 메시지 → 트랜잭션 A 커밋 → 일반 메시지 → 트랜잭션 B abort → 트랜잭션 C 진행 중 순서로 한 파티션에 넣은 뒤 <code>kafka-dump-log.sh --print-data-log</code>로 세그먼트를 읽었다. 출력에서 필요한 필드만 남겼다.</p> <div class="language-text highlight"><pre data-search-exclude><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>baseOffset: 0  PID: 0 isTransactional: false isControl: false   | payload: plain-1
+</span></code></pre></div> <p><code>max.block.ms</code>를 줄이지 않으면 기본 60초를 기다린 뒤에야 실패한다. 오류 메시지에 복제 계수 얘기가 나오지 않아서, 처음에는 코디네이터를 못 찾는 네트워크 문제로 오인하기 쉽다. 로컬 단일 브로커는 <code>transaction.state.log.replication.factor=1</code>, <code>transaction.state.log.min.isr=1</code>, <code>offsets.topic.replication.factor=1</code>을 함께 내려야 한다. 운영에서는 반대로 이 값을 1로 두면 브로커 한 대의 장애가 트랜잭션 상태 유실로 이어지므로 3/2를 유지한다.</p> <div class=ygd-kafka-isr-ack id=ygd-kafka-isr-ack> <style>
+.ygd-kafka-isr-ack{--ygd-bg:#FDFBFA;--ygd-panel:#F4F1EE;--ygd-border:#CFC8C0;--ygd-text:#2B2724;--ygd-muted:#5E5852;--ygd-accent:#2F6478;--ygd-ok:#2F7D4A;--ygd-ok-bg:#E3F1E6;--ygd-bad:#B3342B;--ygd-bad-bg:#FBE3E1;--ygd-skip:#8C857D;--ygd-skip-bg:#ECEAE7;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FDFBFA;max-width:760px;margin-left:auto;margin-right:auto;margin-top:18px;margin-bottom:18px;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;padding:14px;background:var(--ygd-bg);color:var(--ygd-text);font-size:14px;line-height:1.5}
+body[data-md-color-scheme="slate"] .ygd-kafka-isr-ack{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-accent:#7FB6CB;--ygd-ok:#6CC48B;--ygd-ok-bg:#1F3A2A;--ygd-bad:#F08A82;--ygd-bad-bg:#4A2220;--ygd-skip:#8C857D;--ygd-skip-bg:#2E2B2D;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326}
+.ygd-kafka-isr-ack *{box-sizing:border-box}
+.ygd-kafka-isr-ack .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-kafka-isr-ack .ygd-tog,.ygd-kafka-isr-ack .ygd-steps,.ygd-kafka-isr-ack .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-kafka-isr-ack .ygd-steps{margin-top:10px}
+.ygd-kafka-isr-ack .ygd-btn{flex:1 1 100px;font:inherit;font-size:14px;min-height:40px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer}
+.ygd-kafka-isr-ack .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-kafka-isr-ack .ygd-btn[aria-pressed="true"],.ygd-kafka-isr-ack .ygd-primary,.ygd-kafka-isr-ack .ygd-sb[aria-current="step"]{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-kafka-isr-ack .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:12px auto 4px}
+.ygd-kafka-isr-ack .ygd-bx{stroke-width:2;fill:var(--ygd-ok-bg);stroke:var(--ygd-ok)}
+.ygd-kafka-isr-ack .ygd-b-out .ygd-bx{fill:var(--ygd-skip-bg);stroke:var(--ygd-skip);stroke-dasharray:5 4}
+.ygd-kafka-isr-ack .ygd-b-dead .ygd-bx{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad)}
+.ygd-kafka-isr-ack .ygd-b-lead .ygd-bx{stroke:var(--ygd-accent);stroke-width:3.4}
+.ygd-kafka-isr-ack .ygd-pbx{fill:var(--ygd-panel);stroke:var(--ygd-muted);stroke-width:2}
+.ygd-kafka-isr-ack .ygd-p-ok .ygd-pbx{stroke:var(--ygd-ok)}
+.ygd-kafka-isr-ack .ygd-p-bad .ygd-pbx{stroke:var(--ygd-bad);fill:var(--ygd-bad-bg)}
+.ygd-kafka-isr-ack .ygd-n1{fill:var(--ygd-text);font-size:13px;font-weight:700;text-anchor:middle}
+.ygd-kafka-isr-ack .ygd-n2,.ygd-kafka-isr-ack .ygd-n3{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-kafka-isr-ack .ygd-al{fill:var(--ygd-muted);font-size:12px}
+.ygd-kafka-isr-ack .ygd-ar{color:var(--ygd-muted)}
+.ygd-kafka-isr-ack .ygd-ar path{fill:none;stroke:currentColor;stroke-width:2}
+.ygd-kafka-isr-ack .ygd-ar polygon{fill:currentColor}
+.ygd-kafka-isr-ack .ygd-ar-ok{color:var(--ygd-ok)}
+.ygd-kafka-isr-ack .ygd-ar-cut path{stroke-dasharray:4 4}
+.ygd-kafka-isr-ack .ygd-ar-cut{color:var(--ygd-skip);opacity:.7}
+.ygd-kafka-isr-ack .ygd-ar-act{color:var(--ygd-accent)}
+.ygd-kafka-isr-ack .ygd-ar-act path{stroke-width:3}
+.ygd-kafka-isr-ack .ygd-ar-rej{color:var(--ygd-bad)}
+.ygd-kafka-isr-ack .ygd-ar-rej path{stroke-dasharray:4 4;stroke-width:3}
+.ygd-kafka-isr-ack .ygd-cap{font-size:14px;color:var(--ygd-muted);margin-bottom:4px}
+.ygd-kafka-isr-ack .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-accent);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0}
+.ygd-kafka-isr-ack .ygd-dt{font-size:15px;font-weight:700}
+.ygd-kafka-isr-ack .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-kafka-isr-ack .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-kafka-isr-ack .ygd-bx,.ygd-kafka-isr-ack .ygd-pbx{transition:fill .35s,stroke .35s}
+}
+</style> <div class=ygd-title>acks=all 이어도 min.insync.replicas 에 따라 결과가 갈린다</div> <div class=ygd-tog role=group aria-label="min.insync.replicas 값 선택"> <button type=button class="ygd-btn ygd-mn" data-m=1 aria-pressed=true>min.insync.replicas = 1</button> <button type=button class="ygd-btn ygd-mn" data-m=2 aria-pressed=false>min.insync.replicas = 2</button> </div> <svg class=ygd-svg viewbox="0 0 360 212" role=img aria-label="복제 계수 3인 파티션 그림. 프로듀서가 리더에 쓰고 리더가 팔로워 둘에 복제한다. 단계가 진행되면 팔로워가 ISR 에서 빠지고, 쓰기가 허용되거나 거절되며, 리더가 죽었을 때 레코드가 유실되는지 여부가 설정에 따라 달라진다."> <g class=ygd-pr><rect class=ygd-pbx x=130 y=8 width=100 height=48 rx=8 /><text class=ygd-n1 x=180 y=28>프로듀서</text><text class="ygd-n2 ygd-pt" x=180 y=46></text></g> <g class="ygd-ar ygd-a-prod"><path d="M180 56 V76 H55 V92"/><polygon points="50,92 60,92 55,100"/></g> <text class=ygd-al x=190 y=74>acks=all</text> <g class="ygd-bxg ygd-bL"><rect class=ygd-bx x=5 y=100 width=100 height=66 rx=8 /><text class=ygd-n1 x=55 y=120>리더</text><text class="ygd-n2 ygd-s2" x=55 y=138></text><text class="ygd-n3 ygd-s3" x=55 y=156></text></g> <g class="ygd-bxg ygd-b1"><rect class=ygd-bx x=130 y=100 width=100 height=66 rx=8 /><text class=ygd-n1 x=180 y=120>팔로워 1</text><text class="ygd-n2 ygd-s2" x=180 y=138></text><text class="ygd-n3 ygd-s3" x=180 y=156></text></g> <g class="ygd-bxg ygd-b2"><rect class=ygd-bx x=255 y=100 width=100 height=66 rx=8 /><text class=ygd-n1 x=305 y=120>팔로워 2</text><text class="ygd-n2 ygd-s2" x=305 y=138></text><text class="ygd-n3 ygd-s3" x=305 y=156></text></g> <g class="ygd-ar ygd-a-r1"><path d="M75 166 V186 H180 V174"/><polygon points="175,174 185,174 180,166"/></g> <g class="ygd-ar ygd-a-r2"><path d="M55 166 V204 H305 V174"/><polygon points="300,174 310,174 305,166"/></g> </svg> <div class=ygd-cap>아래쪽 화살표는 리더에서 팔로워로 가는 복제다. 점선이면 끊긴 복제(ISR 이탈)다.</div> <div class=ygd-steps role=group aria-label="단계 선택"> <button type=button class="ygd-btn ygd-sb" data-i=0>1 정상</button> <button type=button class="ygd-btn ygd-sb" data-i=1>2 ISR 축소</button> <button type=button class="ygd-btn ygd-sb" data-i=2>3 쓰기 시도</button> <button type=button class="ygd-btn ygd-sb" data-i=3>4 리더 장애</button> </div> <div class=ygd-panel role=status aria-live=polite><div class=ygd-dt></div><div class=ygd-db></div></div> <div class=ygd-ctrl> <button type=button class="ygd-btn ygd-primary ygd-play">재생</button> <button type=button class="ygd-btn ygd-next">다음</button> <button type=button class="ygd-btn ygd-reset">처음으로</button> </div> <div class=ygd-analogy>비유: 중요 서류의 사본을 여러 지점에 두는 보관 제도에 가깝다. 사본이 최소 몇 곳에 있어야 접수 확인증을 줄지가 min.insync.replicas 다. 기준이 1이면 본점에만 있어도 확인증이 나가고, 본점이 사라지면 확인증을 받은 서류도 함께 사라진다.</div> <script>
+(function(){
+var root=document.getElementById('ygd-kafka-isr-ack');if(!root)return;
+var dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play');
+var sbs=root.querySelectorAll('.ygd-sb'),mns=root.querySelectorAll('.ygd-mn');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){playB.hidden=true;}
+var BX={L:root.querySelector('.ygd-bL'),F1:root.querySelector('.ygd-b1'),F2:root.querySelector('.ygd-b2')};
+var PR=root.querySelector('.ygd-pr'),PT=root.querySelector('.ygd-pt');
+var AP=root.querySelector('.ygd-a-prod'),AR1=root.querySelector('.ygd-a-r1'),AR2=root.querySelector('.ygd-a-r2');
+var TXT={
+'1-0':['1단계 · 정상','복제 계수 3 이고 ISR 은 리더와 팔로워 둘이다. acks=all 은 ISR 전원의 ack 를 기다리므로, 이 상태에서는 설정 값 차이가 드러나지 않는다.'],
+'2-0':['1단계 · 정상','복제 계수 3 이고 ISR 은 리더와 팔로워 둘이다. acks=all 은 ISR 전원의 ack 를 기다리므로, 이 상태에서는 설정 값 차이가 드러나지 않는다.'],
+'1-1':['2단계 · ISR 이 리더 하나로 축소','팔로워 둘이 ISR 에서 빠졌다. 이제 acks=all 이 기다리는 ISR 전원은 리더 혼자라는 뜻이다.'],
+'2-1':['2단계 · ISR 이 리더 하나로 축소','팔로워 둘이 ISR 에서 빠졌다. 이제 acks=all 이 기다리는 ISR 전원은 리더 혼자라는 뜻이다.'],
+'1-2':['3단계 · 리더 혼자 저장하고 ack','min.insync.replicas=1 이면 이 상태가 허용된다. 리더 혼자 레코드를 저장하면 ack 가 나가고, 프로듀서는 성공했다고 믿는다.'],
+'2-2':['3단계 · NotEnoughReplicasException 으로 거절','min.insync.replicas=2 이면 ISR 이 2 아래라 쓰기가 거절된다. 프로듀서는 실패를 알고, 유실 대신 가용성을 내놓는다.'],
+'1-3':['4단계 · ack 받은 레코드와 commit marker 가 사라진다','리더가 죽고 팔로워가 승격되면 ack 까지 받았던 레코드와 commit marker 가 새 리더에 없다. 프로듀서와 EOS 가 믿던 기록이 사라진 것이다.'],
+'2-3':['4단계 · ack 받은 레코드가 사라지지 않는다','리더가 죽어도 ack 를 준 적 없는 쓰기는 거절됐을 뿐이라 ack 받은 레코드가 사라지는 일이 없다. 대가는 ISR 이 모자란 동안 쓰기가 거절되는 것이다.']
+};
+var m=1,step=0,timer=null;
+function box(g,cls,s2,s3){
+g.setAttribute('class','ygd-bxg '+cls);
+g.querySelector('.ygd-s2').textContent=s2;
+g.querySelector('.ygd-s3').textContent=s3;
+}
+function arrow(g,cls){g.setAttribute('class','ygd-ar '+cls);}
+function render(){
+var n3=(m===1&&step===2)?'새 기록 있음':(step>=2?'새 기록 없음':'');
+var lead=n3,fn=step>=2?'새 기록 없음':'';
+if(step===3&&m===1){lead='유실';}
+var pc='',pt='';
+if(step===2){if(m===1){pc='ygd-p-ok';pt='ack 수신';}else{pc='ygd-p-bad';pt='쓰기 거절';}}
+if(step===3){if(m===1){pc='ygd-p-ok';pt='ack 받았음';}else{pc='ygd-p-bad';pt='쓰기 거절';}}
+PR.setAttribute('class','ygd-pr '+pc);PT.textContent=pt;
+if(step===0){box(BX.L,'','ISR','');box(BX.F1,'','ISR','');box(BX.F2,'','ISR','');}
+else{
+if(step===3){
+box(BX.L,'ygd-b-dead','장애',lead);
+box(BX.F1,'ygd-b-lead','새 리더',fn);
+box(BX.F2,'ygd-b-out','ISR 이탈',fn);
+}else{
+box(BX.L,'','ISR',lead);
+box(BX.F1,'ygd-b-out','ISR 이탈',fn);
+box(BX.F2,'ygd-b-out','ISR 이탈',fn);
+}
+}
+arrow(AR1,step===0?'ygd-a-r1 ygd-ar-ok':'ygd-a-r1 ygd-ar-cut');
+arrow(AR2,step===0?'ygd-a-r2 ygd-ar-ok':'ygd-a-r2 ygd-ar-cut');
+arrow(AP,step===2?(m===1?'ygd-a-prod ygd-ar-act':'ygd-a-prod ygd-ar-rej'):'ygd-a-prod');
+var tx=TXT[m+'-'+step];dT.textContent=tx[0];dB.textContent=tx[1];
+sbs.forEach(function(b){if(Number(b.getAttribute('data-i'))===step){b.setAttribute('aria-current','step');}else{b.removeAttribute('aria-current');}});
+mns.forEach(function(b){b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-m'))===m));});
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function tick(){if(step>=3){timer=null;return;}step+=1;render();timer=setTimeout(tick,2600);}
+playB.addEventListener('click',function(){stop();step=0;render();timer=setTimeout(tick,2600);});
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();step=step>=3?0:step+1;render();});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();step=0;render();});
+sbs.forEach(function(b){b.addEventListener('click',function(){stop();step=Number(b.getAttribute('data-i'));render();});});
+mns.forEach(function(b){b.addEventListener('click',function(){stop();m=Number(b.getAttribute('data-m'));render();});});
+render();
+})();
+</script> </div> <h2 id=eos를-써야-하는-경우>EOS를 써야 하는 경우<a class=headerlink href=#eos를-써야-하는-경우 title="Permanent link">&para;</a></h2> <p>파이프라인이 <code>Kafka → 처리 → Kafka</code> 형태이고, 처리 결과가 다시 Kafka 토픽으로 가는 경우에 EOS가 의미 있다. 이벤트 집계, 스트림 조인, 토픽 간 데이터 변환이 여기에 해당한다.</p> <p><code>Kafka → DB</code>, <code>Kafka → 외부 API</code> 형태라면 EOS를 켜도 외부 시스템 쪽에서 중복이 발생한다. 이 경우에는 at-least-once로 두고 DB 멱등 처리 또는 API 멱등 키를 쓰는 게 현실적이다.</p> <p>EOS를 켜면 처리량이 떨어진다. 트랜잭션 코디네이터와 추가 통신이 발생하고, <code>read_committed</code> 컨슈머는 트랜잭션이 닫힐 때까지 메시지를 읽지 않아서 지연이 생긴다. 지연 시간 요구사항이 엄격한 파이프라인에서는 트레이드오프를 검토해야 한다.</p> <h2 id=로컬-실험-기록>로컬 실험 기록<a class=headerlink href=#로컬-실험-기록 title="Permanent link">&para;</a></h2> <p>위 절에서 확인 표시를 한 동작은 로컬 Kafka에서 직접 돌려 본 결과다. 환경은 Kafka 3.7.1 KRaft 단일 노드(broker와 controller 겸용), Java 클라이언트 3.7.1, OpenJDK 17이다. 트랜잭션 상태 토픽 복제 계수는 1로 낮췄다.</p> <h3 id=로그에-섞인-트랜잭션과-마커>로그에 섞인 트랜잭션과 마커<a class=headerlink href=#로그에-섞인-트랜잭션과-마커 title="Permanent link">&para;</a></h3> <p>일반 메시지 → 트랜잭션 A 커밋 → 일반 메시지 → 트랜잭션 B abort → 트랜잭션 C 진행 중 순서로 한 파티션에 넣은 뒤 <code>kafka-dump-log.sh --print-data-log</code>로 세그먼트를 읽었다. 출력에서 필요한 필드만 남겼다.</p> <div class="language-text highlight"><pre data-search-exclude><span></span><code><span id=__span-14-1><a id=__codelineno-14-1 name=__codelineno-14-1 href=#__codelineno-14-1></a>baseOffset: 0  PID: 0 isTransactional: false isControl: false   | payload: plain-1
 </span><span id=__span-14-2><a id=__codelineno-14-2 name=__codelineno-14-2 href=#__codelineno-14-2></a>baseOffset: 1  PID: 1 isTransactional: true  isControl: false   | payload: A-1     (baseSequence: 0)
 </span><span id=__span-14-3><a id=__codelineno-14-3 name=__codelineno-14-3 href=#__codelineno-14-3></a>baseOffset: 2  PID: 1 isTransactional: true  isControl: false   | payload: A-2     (baseSequence: 1)
 </span><span id=__span-14-4><a id=__codelineno-14-4 name=__codelineno-14-4 href=#__codelineno-14-4></a>baseOffset: 3  PID: 1 isTransactional: true  isControl: true    | endTxnMarker: COMMIT coordinatorEpoch: 0
@@ -429,4 +721,4 @@
 </span><span id=__span-18-3><a id=__codelineno-18-3 name=__codelineno-18-3 href=#__codelineno-18-3></a>commit: ProducerFencedException : There is a newer producer with the same transactionalId which fences the current one.
 </span><span id=__span-18-4><a id=__codelineno-18-4 name=__codelineno-18-4 href=#__codelineno-18-4></a>describe: TransactionState CompleteAbort, TransactionTimeoutMs 5000
 </span><span id=__span-18-5><a id=__codelineno-18-5 name=__codelineno-18-5 href=#__codelineno-18-5></a>read_committed 컨슈머: 0건
-</span></code></pre></div> <p>타임아웃 5초인데 abort는 10.5초에 일어났다. 브로커의 만료 스캔 주기(<code>transaction.abort.timed.out.transaction.cleanup.interval.ms</code>, 기본 10000ms)에 걸린 결과다. 로그에서 확인한 브로커 설정은 <code>transaction.max.timeout.ms = 900000</code>이다.</p> <hr> <p>이 문서는 <a href=../../../_hub/%EB%A9%94%EC%8B%9C%EC%A7%95%EA%B3%BC_%EC%A0%84%EB%8B%AC_%EB%B3%B4%EC%9E%A5/ >메시징과 전달 보장 허브</a>의 일부입니다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../Kafka_Consumer_Group_Rebalancing/ >Kafka Consumer Group Rebalancing</a></li> <li><a href=../Event_Schema_Contract_Testing/ >Kafka 이벤트 스키마 호환성 검증</a></li> <li><a href=../../../Framework/Node/Kafka_%EC%97%B0%EB%8F%99/ >NestJS Kafka 연동과 Consumer Group 운영</a></li> <li><a href=../../../_hub/%EB%A9%94%EC%8B%9C%EC%A7%95%EA%B3%BC_%EC%A0%84%EB%8B%AC_%EB%B3%B4%EC%9E%A5/ >메시징과 전달 보장 허브</a></li> <li><a href=../../../%EB%A1%9C%EB%93%9C%EB%A7%B5/%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%A9%B4%EC%A0%91_%EC%A4%80%EB%B9%84_10%EC%84%A0/ >시스템 설계 면접 준비 10선</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 9월 30일 08:13:38 UTC">2026년 9월 30일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 2일 13:19:10 UTC">2026년 8월 2일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> <button type=button class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg> 맨위로 </button> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Kafka_Consumer_Group_Rebalancing/ class="md-footer__link md-footer__link--prev" aria-label="이전: Consumer Group 재조정"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Consumer Group 재조정 </div> </div> </a> <a href=../Rabbit_MQ/ class="md-footer__link md-footer__link--next" aria-label="다음: RabbitMQ 심화"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> RabbitMQ 심화 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
+</span></code></pre></div> <p>타임아웃 5초인데 abort는 10.5초에 일어났다. 브로커의 만료 스캔 주기(<code>transaction.abort.timed.out.transaction.cleanup.interval.ms</code>, 기본 10000ms)에 걸린 결과다. 로그에서 확인한 브로커 설정은 <code>transaction.max.timeout.ms = 900000</code>이다.</p> <hr> <p>이 문서는 <a href=../../../_hub/%EB%A9%94%EC%8B%9C%EC%A7%95%EA%B3%BC_%EC%A0%84%EB%8B%AC_%EB%B3%B4%EC%9E%A5/ >메시징과 전달 보장 허브</a>의 일부입니다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../Kafka_Consumer_Group_Rebalancing/ >Kafka Consumer Group Rebalancing</a></li> <li><a href=../Event_Schema_Contract_Testing/ >Kafka 이벤트 스키마 호환성 검증</a></li> <li><a href=../../../Framework/Node/Kafka_%EC%97%B0%EB%8F%99/ >NestJS Kafka 연동과 Consumer Group 운영</a></li> <li><a href=../../../_hub/%EB%A9%94%EC%8B%9C%EC%A7%95%EA%B3%BC_%EC%A0%84%EB%8B%AC_%EB%B3%B4%EC%9E%A5/ >메시징과 전달 보장 허브</a></li> <li><a href=../../../%EB%A1%9C%EB%93%9C%EB%A7%B5/%EC%8B%9C%EC%8A%A4%ED%85%9C_%EC%84%A4%EA%B3%84_%EB%A9%B4%EC%A0%91_%EC%A4%80%EB%B9%84_10%EC%84%A0/ >시스템 설계 면접 준비 10선</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 10월 23일 02:52:50 UTC">2026년 10월 23일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 2일 13:19:10 UTC">2026년 8월 2일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> <button type=button class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg> 맨위로 </button> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../Kafka_Consumer_Group_Rebalancing/ class="md-footer__link md-footer__link--prev" aria-label="이전: Consumer Group 재조정"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> Consumer Group 재조정 </div> </div> </a> <a href=../Rabbit_MQ/ class="md-footer__link md-footer__link--next" aria-label="다음: RabbitMQ 심화"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> RabbitMQ 심화 </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.d7400e89.min.js></script> <script src=../../../javascripts/extra.js></script> <script src=../../../javascripts/mermaid-init.js></script> </body> </html>
