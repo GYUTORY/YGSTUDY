@@ -1,7 +1,7 @@
 ---
 title: Kafka Consumer Group Rebalancing
 tags: [backend, messaging, event-driven, architecture]
-updated: 2026-09-30
+updated: 2026-10-23
 ---
 
 # Kafka Consumer Group Rebalancing
@@ -167,6 +167,166 @@ props.put(
 // 배포가 완료되고 모든 인스턴스가 Cooperative를 쓰게 되면 RangeAssignor를 제거
 ```
 
+<div class="ygd-eager-coop" id="ygd-eager-coop">
+<style>
+.ygd-eager-coop{--ygd-bg:#F6F4F1;--ygd-fg:#2B2926;--ygd-muted:#5F5A54;--ygd-border:#CFC9C1;--ygd-run:#DDEFE3;--ygd-run-fg:#1E5B35;--ygd-stop:#F6DADA;--ygd-stop-fg:#8A2323;--ygd-new:#D9E7F5;--ygd-new-fg:#1F4E7A;--ygd-accent:#3D7387;--ygd-btn:#FFFFFF;max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;padding:14px;box-sizing:border-box;background:var(--ygd-bg);color:var(--ygd-fg);border:1px solid var(--ygd-border);border-radius:8px;font-size:14px;line-height:1.55}
+body[data-md-color-scheme="slate"] .ygd-eager-coop{--ygd-bg:#2A2729;--ygd-fg:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-border:#5A5558;--ygd-run:#1F3A2A;--ygd-run-fg:#A8E0BC;--ygd-stop:#4A2626;--ygd-stop-fg:#F2B5B5;--ygd-new:#1F3550;--ygd-new-fg:#A9CBF0;--ygd-accent:#7FB4C9;--ygd-btn:#363234}
+.ygd-eager-coop .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ygd-eager-coop .ygd-btn{font:inherit;font-size:14px;line-height:1.3;padding:7px 12px;min-height:36px;border:1px solid var(--ygd-border);border-radius:6px;background:var(--ygd-btn);color:var(--ygd-fg);cursor:pointer}
+.ygd-eager-coop .ygd-btn:hover{border-color:var(--ygd-accent)}
+.ygd-eager-coop .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-eager-coop .ygd-btn[aria-pressed="true"]{border-color:var(--ygd-accent);box-shadow:inset 0 0 0 1px var(--ygd-accent);font-weight:700}
+.ygd-eager-coop .ygd-svg{display:block;width:100%;height:auto}
+.ygd-eager-coop .ygd-cell{stroke-width:1.5;transition:opacity .3s}
+.ygd-eager-coop .ygd-cell-run{fill:var(--ygd-run);stroke:var(--ygd-run-fg)}
+.ygd-eager-coop .ygd-cell-stop{fill:var(--ygd-stop);stroke:var(--ygd-stop-fg);stroke-dasharray:4 3}
+.ygd-eager-coop .ygd-cell-new{fill:var(--ygd-new);stroke:var(--ygd-new-fg)}
+.ygd-eager-coop .ygd-tx{fill:var(--ygd-fg);font-size:12px;text-anchor:middle}
+.ygd-eager-coop .ygd-tx-run{fill:var(--ygd-run-fg)}
+.ygd-eager-coop .ygd-tx-stop{fill:var(--ygd-stop-fg)}
+.ygd-eager-coop .ygd-tx-new{fill:var(--ygd-new-fg)}
+.ygd-eager-coop .ygd-tx-b{font-weight:700;font-size:13px}
+.ygd-eager-coop .ygd-tx-s{font-size:11px}
+.ygd-eager-coop .ygd-hd{fill:none;stroke:var(--ygd-border);stroke-width:1.5}
+.ygd-eager-coop .ygd-hd-on{fill:var(--ygd-accent);stroke:var(--ygd-accent)}
+.ygd-eager-coop .ygd-hn{fill:var(--ygd-fg);font-size:12px;font-weight:700;text-anchor:middle}
+.ygd-eager-coop .ygd-hn-on{fill:var(--ygd-bg)}
+.ygd-eager-coop .ygd-col{transition:opacity .3s}
+.ygd-eager-coop .ygd-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0;color:var(--ygd-muted)}
+.ygd-eager-coop .ygd-sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1.5px solid;vertical-align:-1px;margin-right:5px}
+.ygd-eager-coop .ygd-sw-run{background:var(--ygd-run);border-color:var(--ygd-run-fg)}
+.ygd-eager-coop .ygd-sw-stop{background:var(--ygd-stop);border-color:var(--ygd-stop-fg);border-style:dashed}
+.ygd-eager-coop .ygd-sw-new{background:var(--ygd-new);border-color:var(--ygd-new-fg)}
+.ygd-eager-coop .ygd-panel{padding:10px 12px;border-left:4px solid var(--ygd-accent);background:var(--ygd-btn);border-radius:4px}
+.ygd-eager-coop .ygd-ttl{font-weight:700;margin-bottom:2px}
+.ygd-eager-coop .ygd-note{margin-top:10px;color:var(--ygd-muted)}
+@media (prefers-reduced-motion:reduce){.ygd-eager-coop .ygd-cell,.ygd-eager-coop .ygd-col{transition:none}}
+</style>
+<div class="ygd-bar" role="group" aria-label="리밸런스 방식 선택">
+<button type="button" class="ygd-btn ygd-m-eager" aria-pressed="true">Eager</button>
+<button type="button" class="ygd-btn ygd-m-coop" aria-pressed="false">Incremental Cooperative</button>
+</div>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 356 228" role="img" aria-label="파티션 4개를 컨슈머 2개가 나눠 갖는 그룹에 컨슈머 3이 합류할 때, 5단계 동안 파티션별로 처리 중인지 멈췄는지를 보여주는 표. 행은 P0부터 P3, 열은 단계 1부터 5"></svg>
+<div class="ygd-legend"><span><i class="ygd-sw ygd-sw-run"></i>처리 중</span><span><i class="ygd-sw ygd-sw-stop"></i>정지(아무도 읽지 않음)</span><span><i class="ygd-sw ygd-sw-new"></i>새 소유자가 읽기 시작</span></div>
+<div class="ygd-panel" aria-live="polite"><div class="ygd-ttl"></div><div class="ygd-desc"></div></div>
+<div class="ygd-note">비유하면 교실 좌석 재배치와 같다. Eager는 반 전체가 일단 자리를 비우고 새 배치를 받아 다시 앉고, Cooperative는 자리를 옮기는 학생만 일어난다. 단 옮겨지는 자리는 두 방식 모두 비어 있는 시간이 있다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-eager-coop');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var ttl=root.querySelector('.ygd-ttl');
+var desc=root.querySelector('.ygd-desc');
+var bPlay=root.querySelector('.ygd-play');
+var bNext=root.querySelector('.ygd-next');
+var bReset=root.querySelector('.ygd-reset');
+var bE=root.querySelector('.ygd-m-eager');
+var bC=root.querySelector('.ygd-m-coop');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function R(o){return {t:'run',o:o};}
+function S(s){return {t:'stop',s:s};}
+function N(o){return {t:'new',o:o};}
+var start=[R('C1'),R('C1'),R('C2'),R('C2')];
+var fin=[R('C1'),R('C1'),R('C2'),N('C3')];
+var DATA={
+eager:{
+cols:[start,[S('반납'),S('반납'),S('반납'),S('반납')],[S('대기'),S('대기'),S('대기'),S('대기')],[S('대기'),S('대기'),S('대기'),S('대기')],fin],
+titles:['배정 전','모든 파티션 반납','JoinGroup과 재배분 계산','SyncGroup으로 배정 전파','fetch 재개'],
+descs:[
+'컨슈머 1이 P0, P1을, 컨슈머 2가 P2, P3을 처리 중이다. 여기에 컨슈머 3이 JoinGroup을 보내면 리밸런스가 시작된다.',
+'Coordinator가 리밸런스 시작을 알리면 모든 컨슈머가 onPartitionsRevoked로 보유 파티션을 전부 반납한다. 이동과 상관없는 P0, P1, P2도 멈춘다.',
+'모든 컨슈머가 JoinGroup을 보내고 그룹 리더가 파티션 재배분을 계산한다. 이 구간에는 어떤 파티션도 읽히지 않는다.',
+'리더가 계산한 배정안이 SyncGroup으로 전파된다. 배정을 받기 전에는 fetch를 재개하지 못한다.',
+'컨슈머 1은 P0, P1을, 컨슈머 2는 P2를, 컨슈머 3은 P3을 받아 fetch를 재개한다. 실제로 옮겨진 것은 P3뿐인데 멈춘 범위는 그룹 전체였다.']
+},
+coop:{
+cols:[start,start,[R('C1'),R('C1'),R('C2'),S('반납')],[R('C1'),R('C1'),R('C2'),S('대기')],fin],
+titles:['배정 전','1라운드: 보유 파티션과 함께 JoinGroup','P3만 반납','2라운드: JoinGroup 재전송','P3 이동 완료'],
+descs:[
+'컨슈머 1이 P0, P1을, 컨슈머 2가 P2, P3을 처리 중이다. 여기에 컨슈머 3이 JoinGroup을 보내면 리밸런스가 시작된다.',
+'컨슈머 1과 2는 보유 파티션 목록을 담아 JoinGroup을 보낸다. 이 라운드에서는 아무것도 반납하지 않으므로 처리가 계속된다. 컨슈머 3은 아직 배정이 없다.',
+'리더가 이동 대상을 P3으로 정하고, 컨슈머 2만 P3을 반납한다. P0, P1, P2는 처리를 멈추지 않는다.',
+'반납을 마친 컨슈머들이 JoinGroup을 다시 보낸다(2라운드). 이 시점의 P3은 아무도 읽지 않는 상태다.',
+'P3이 컨슈머 3에 배정되고 컨슈머 3이 fetch를 시작한다. 정지가 없어지는 것은 아니고, 이동하는 P3에만 남는다.']
+}
+};
+var LW=34,CW=64,RH=44,RP=50,TOP=34;
+var mode='eager',step=0,timer=null;
+var cols=[],cells=[];
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+var hdr=[];
+for(var c=0;c<5;c++){
+var g=el('g',{'class':'ygd-col'},svg);
+cols.push(g);
+var cx=LW+c*CW+CW/2;
+var hc=el('circle',{'class':'ygd-hd',cx:cx,cy:14,r:11},g);
+var ht=el('text',{'class':'ygd-hn',x:cx,y:18.5},g);
+ht.textContent=String(c+1);
+hdr.push([hc,ht]);
+cells.push([]);
+for(var r=0;r<4;r++){
+var x=LW+c*CW+2,y=TOP+r*RP;
+var rect=el('rect',{'class':'ygd-cell',x:x,y:y,width:CW-4,height:RH,rx:5},g);
+var t1=el('text',{'class':'ygd-tx ygd-tx-b',x:x+(CW-4)/2,y:y+19},g);
+var t2=el('text',{'class':'ygd-tx ygd-tx-s',x:x+(CW-4)/2,y:y+35},g);
+cells[c].push([rect,t1,t2]);
+}
+}
+for(var r2=0;r2<4;r2++){
+var lt=el('text',{'class':'ygd-tx ygd-tx-b',x:LW/2,y:TOP+r2*RP+RH/2+5},svg);
+lt.textContent='P'+r2;
+}
+function render(){
+var d=DATA[mode];
+for(var c=0;c<5;c++){
+cols[c].style.opacity=c<=step?'1':'0.45';
+hdr[c][0].setAttribute('class',c===step?'ygd-hd ygd-hd-on':'ygd-hd');
+hdr[c][1].setAttribute('class',c===step?'ygd-hn ygd-hn-on':'ygd-hn');
+for(var r=0;r<4;r++){
+var s=d.cols[c][r],k=cells[c][r];
+k[0].setAttribute('class','ygd-cell ygd-cell-'+s.t);
+var tc='ygd-tx-'+s.t;
+k[1].setAttribute('class','ygd-tx ygd-tx-b '+tc);
+k[2].setAttribute('class','ygd-tx ygd-tx-s '+tc);
+if(s.t==='stop'){k[1].textContent='정지';k[2].textContent=s.s;}
+else{k[1].textContent=s.o;k[2].textContent=s.t==='new'?'fetch 시작':'처리 중';}
+}
+}
+ttl.textContent='단계 '+(step+1)+' / 5 · '+d.titles[step];
+desc.textContent=d.descs[step];
+bE.setAttribute('aria-pressed',mode==='eager'?'true':'false');
+bC.setAttribute('aria-pressed',mode==='coop'?'true':'false');
+bPlay.textContent=timer?'일시정지':'재생';
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}}
+function advance(){
+if(step<4){step++;}
+if(step>=4)stop();
+render();
+}
+function setMode(m){stop();mode=m;step=0;render();}
+bE.addEventListener('click',function(){setMode('eager');});
+bC.addEventListener('click',function(){setMode('coop');});
+bNext.addEventListener('click',function(){stop();if(step<4){step++;}render();});
+bReset.addEventListener('click',function(){stop();step=0;render();});
+bPlay.addEventListener('click',function(){
+if(timer){stop();render();return;}
+if(reduce){if(step<4){step++;}render();return;}
+if(step>=4)step=0;
+timer=setInterval(advance,1800);
+render();
+});
+render();
+})();
+</script>
+</div>
+
 ## Static Group Membership
 
 기본적으로 컨슈머는 재시작할 때마다 새 member ID를 받는다. Group Coordinator는 이전 멤버가 떠나고 새 멤버가 들어온 것으로 인식해서 리밸런스를 두 번 트리거한다 — 종료 시 한 번, 재합류 시 한 번.
@@ -185,6 +345,166 @@ props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "60000");
 kafkajs는 `group.instance.id`를 공식 지원하지 않는다. Static Membership이 필요하다면 Java 클라이언트나 librdkafka 기반 클라이언트(node-rdkafka)를 검토해야 한다.
 
 인스턴스 ID 관리 시 주의할 점: 같은 `group.instance.id`를 가진 인스턴스가 동시에 두 개 실행되면 Group Coordinator가 혼란을 겪는다. 쿠버네티스에서 StatefulSet 파드 이름을 그대로 쓰면 안전하지만, Deployment에서 파드가 교체될 때 이름이 바뀌는 경우가 있으므로 확인이 필요하다.
+
+<div class="ygd-static-member" id="ygd-static-member">
+<style>
+.ygd-static-member{--ygd-bg:#F6F4F1;--ygd-fg:#2B2926;--ygd-muted:#5F5A54;--ygd-border:#CFC9C1;--ygd-run:#DDEFE3;--ygd-run-fg:#1E5B35;--ygd-stop:#F6DADA;--ygd-stop-fg:#8A2323;--ygd-new:#D9E7F5;--ygd-new-fg:#1F4E7A;--ygd-accent:#3D7387;--ygd-btn:#FFFFFF;max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;padding:14px;box-sizing:border-box;background:var(--ygd-bg);color:var(--ygd-fg);border:1px solid var(--ygd-border);border-radius:8px;font-size:14px;line-height:1.55}
+body[data-md-color-scheme="slate"] .ygd-static-member{--ygd-bg:#2A2729;--ygd-fg:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-border:#5A5558;--ygd-run:#1F3A2A;--ygd-run-fg:#A8E0BC;--ygd-stop:#4A2626;--ygd-stop-fg:#F2B5B5;--ygd-new:#1F3550;--ygd-new-fg:#A9CBF0;--ygd-accent:#7FB4C9;--ygd-btn:#363234}
+.ygd-static-member .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ygd-static-member .ygd-btn{font:inherit;font-size:14px;line-height:1.3;padding:7px 12px;min-height:36px;border:1px solid var(--ygd-border);border-radius:6px;background:var(--ygd-btn);color:var(--ygd-fg);cursor:pointer}
+.ygd-static-member .ygd-btn:hover{border-color:var(--ygd-accent)}
+.ygd-static-member .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-static-member .ygd-btn[aria-pressed="true"]{border-color:var(--ygd-accent);box-shadow:inset 0 0 0 1px var(--ygd-accent);font-weight:700}
+.ygd-static-member .ygd-svg{display:block;width:100%;height:auto}
+.ygd-static-member .ygd-g{transition:opacity .3s}
+.ygd-static-member .ygd-s-run{fill:var(--ygd-run);stroke:var(--ygd-run-fg);stroke-width:1.5}
+.ygd-static-member .ygd-s-stop{fill:var(--ygd-stop);stroke:var(--ygd-stop-fg);stroke-width:1.5;stroke-dasharray:4 3}
+.ygd-static-member .ygd-s-new{fill:var(--ygd-new);stroke:var(--ygd-new-fg);stroke-width:1.5}
+.ygd-static-member .ygd-s-mute{fill:none;stroke:var(--ygd-border);stroke-width:1.5;stroke-dasharray:4 3}
+.ygd-static-member .ygd-x{fill:var(--ygd-fg);font-size:10.5px;text-anchor:middle}
+.ygd-static-member .ygd-x-run{fill:var(--ygd-run-fg)}
+.ygd-static-member .ygd-x-stop{fill:var(--ygd-stop-fg)}
+.ygd-static-member .ygd-x-new{fill:var(--ygd-new-fg)}
+.ygd-static-member .ygd-x-mute{fill:var(--ygd-muted)}
+.ygd-static-member .ygd-lb{fill:var(--ygd-muted);font-size:11px;font-weight:700}
+.ygd-static-member .ygd-now{stroke:var(--ygd-accent);stroke-width:2}
+.ygd-static-member .ygd-panel{margin-top:8px;padding:10px 12px;border-left:4px solid var(--ygd-accent);background:var(--ygd-btn);border-radius:4px}
+.ygd-static-member .ygd-ttl{font-weight:700;margin-bottom:2px}
+.ygd-static-member .ygd-note{margin-top:10px;color:var(--ygd-muted)}
+@media (prefers-reduced-motion:reduce){.ygd-static-member .ygd-g{transition:none}}
+</style>
+<div class="ygd-bar" role="group" aria-label="시나리오 선택">
+<button type="button" class="ygd-btn" data-mode="def" aria-pressed="true">group.instance.id 없음</button>
+<button type="button" class="ygd-btn" data-mode="ok" aria-pressed="false">Static, 제때 복귀</button>
+<button type="button" class="ygd-btn" data-mode="late" aria-pressed="false">Static, 복귀 지연</button>
+</div>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 214" role="img" aria-label="컨슈머 인스턴스 하나를 재시작할 때 시간 순서로 프로세스 상태, 파티션 소유자, 복귀 허용 시간, 리밸런스 발생 시점을 보여주는 타임라인. group.instance.id가 없을 때, 있고 제때 복귀할 때, 있지만 복귀가 늦을 때를 비교한다"></svg>
+<div class="ygd-panel" aria-live="polite"><div class="ygd-ttl"></div><div class="ygd-desc"></div></div>
+<div class="ygd-note">비유하면 외출 표시를 걸어 둔 좌석이다. 표시가 없으면 자리를 비우는 순간 다른 사람에게 넘어가고, 표시가 있으면 정해진 시간 동안은 그 자리를 비워 둔다. 대신 그 시간 동안 해당 파티션은 아무도 읽지 않는다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-static-member');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var ttl=root.querySelector('.ygd-ttl');
+var desc=root.querySelector('.ygd-desc');
+var bPlay=root.querySelector('.ygd-play');
+var bNext=root.querySelector('.ygd-next');
+var bReset=root.querySelector('.ygd-reset');
+var tabs=root.querySelectorAll('[data-mode]');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var LANE_Y=[18,80,142],LANE_H=[34,34,16];
+var LABELS=[['프로세스',12],['이 인스턴스의 파티션',74],['복귀 허용 시간',136],['리밸런스 시작',180]];
+var DATA={
+def:{
+segs:[
+{l:0,x:4,w:120,t:'run',a:'실행 중',b:'기존 member ID',i:0},
+{l:0,x:124,w:110,t:'stop',a:'종료,',b:'재기동 중',i:1},
+{l:0,x:234,w:122,t:'run',a:'재합류',b:'새 member ID',i:2},
+{l:1,x:4,w:120,t:'run',a:'이 인스턴스가',b:'소유',i:0},
+{l:1,x:124,w:110,t:'new',a:'다른 컨슈머가',b:'대신 소유',i:1},
+{l:1,x:234,w:122,t:'new',a:'리밸런스 후',b:'다시 배정',i:3},
+{l:2,x:4,w:352,t:'mute',a:'group.instance.id 미설정: 해당 없음',i:0}
+],
+pills:[{x:124,t:'stop',a:'리밸런스 1',i:1},{x:234,t:'stop',a:'리밸런스 2',i:2}],
+titles:['정상 운영','종료: 리밸런스 1','재합류: 리밸런스 2','새 배정으로 재개'],
+descs:[
+'이 인스턴스가 자기 파티션을 처리하고 있다. 롤링 배포로 이 인스턴스를 재시작하려 한다.',
+'재시작할 때마다 새 member ID를 받으므로 Coordinator는 기존 멤버가 떠난 것으로 본다. 리밸런스가 시작되고 이 인스턴스의 파티션은 다른 컨슈머로 넘어간다.',
+'재기동한 인스턴스가 새 멤버로 합류하면서 두 번째 리밸런스가 일어난다. 종료 때 한 번, 재합류 때 한 번이다.',
+'리밸런스가 끝나면 새 배정으로 fetch를 재개한다. 인스턴스 하나를 재시작했을 뿐인데 그룹은 리밸런스를 두 번 겪었다.']
+},
+ok:{
+segs:[
+{l:0,x:4,w:120,t:'run',a:'실행 중',b:'instance.id 보유',i:0},
+{l:0,x:124,w:110,t:'stop',a:'종료,',b:'재기동 중',i:1},
+{l:0,x:234,w:122,t:'run',a:'같은 instance.id',b:'로 재합류',i:2},
+{l:1,x:4,w:120,t:'run',a:'이 인스턴스가',b:'소유',i:0},
+{l:1,x:124,w:110,t:'stop',a:'소유 유지,',b:'읽는 주체 없음',i:1},
+{l:1,x:234,w:122,t:'run',a:'같은 파티션',b:'fetch 재개',i:3},
+{l:2,x:124,w:146,t:'new',a:'session.timeout.ms',i:1}
+],
+pills:[{x:180,t:'mute',a:'리밸런스 없음',i:3,w:96}],
+titles:['정상 운영','종료: 소유권 유지','제때 재합류','리밸런스 없이 재개'],
+descs:[
+'이 인스턴스가 group.instance.id를 설정하고 파티션을 처리하고 있다. 롤링 배포로 재시작하려 한다.',
+'인스턴스가 내려가도 파티션 소유는 session.timeout.ms 동안 유지된다. 이 시간 동안 해당 파티션은 읽는 주체가 없다.',
+'session.timeout.ms 안에 같은 group.instance.id로 돌아왔다. 새 멤버가 아니라 같은 멤버의 복귀로 처리된다.',
+'리밸런스 없이 이전 파티션으로 바로 fetch를 재개한다. 재시작이 이 시간 안에 끝나는 환경에서 효과가 크다.']
+},
+late:{
+segs:[
+{l:0,x:4,w:120,t:'run',a:'실행 중',b:'instance.id 보유',i:0},
+{l:0,x:124,w:232,t:'stop',a:'재기동이 오래 걸림',b:'session.timeout.ms 초과',i:1},
+{l:1,x:4,w:120,t:'run',a:'이 인스턴스가',b:'소유',i:0},
+{l:1,x:124,w:146,t:'stop',a:'소유 유지,',b:'읽는 주체 없음',i:1},
+{l:1,x:270,w:86,t:'new',a:'다른 컨슈머가',b:'소유',i:3},
+{l:2,x:124,w:146,t:'stop',a:'session.timeout.ms',i:1}
+],
+pills:[{x:270,t:'stop',a:'리밸런스',i:2}],
+titles:['정상 운영','종료: 소유권 유지','시간 초과: 리밸런스','파티션 이동'],
+descs:[
+'이 인스턴스가 group.instance.id를 설정하고 파티션을 처리하고 있다. 이번에는 재기동이 오래 걸린다.',
+'인스턴스가 내려가도 파티션 소유는 session.timeout.ms 동안 유지된다. 그동안 돌아오지 못하면 해당 파티션은 계속 읽히지 않는다.',
+'session.timeout.ms가 지나도 재합류하지 않아 Coordinator가 이 멤버를 제외하고 리밸런스를 시작한다.',
+'파티션이 다른 컨슈머로 넘어간다. 설정이 있어도 복귀가 제한 시간을 넘기면 리밸런스를 피하지 못한다.']
+}
+};
+var mode='def',step=0,timer=null;
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function draw(){
+var d=DATA[mode];
+while(svg.firstChild)svg.removeChild(svg.firstChild);
+LABELS.forEach(function(L){var t=el('text',{'class':'ygd-lb',x:4,y:L[1]},svg);t.textContent=L[0];});
+d.segs.forEach(function(s){
+var g=el('g',{'class':'ygd-g'},svg);
+g.style.opacity=s.i<=step?'1':'0.45';
+var y=LANE_Y[s.l],h=LANE_H[s.l];
+el('rect',{'class':'ygd-s-'+s.t,x:s.x,y:y,width:s.w,height:h,rx:5},g);
+var cx=s.x+s.w/2;
+if(s.b){
+var t1=el('text',{'class':'ygd-x ygd-x-'+s.t,x:cx,y:y+14},g);t1.textContent=s.a;
+var t2=el('text',{'class':'ygd-x ygd-x-'+s.t,x:cx,y:y+28},g);t2.textContent=s.b;
+}else{
+var t3=el('text',{'class':'ygd-x ygd-x-'+s.t,x:cx,y:y+h/2+4},g);t3.textContent=s.a;
+}
+});
+d.pills.forEach(function(p){
+var g=el('g',{'class':'ygd-g'},svg);
+g.style.opacity=p.i<=step?'1':'0.45';
+var w=p.w||72;
+el('rect',{'class':'ygd-s-'+p.t,x:p.x-w/2,y:186,width:w,height:24,rx:12},g);
+var t=el('text',{'class':'ygd-x ygd-x-'+p.t,x:p.x,y:202},g);t.textContent=p.a;
+});
+ttl.textContent='단계 '+(step+1)+' / 4 · '+d.titles[step];
+desc.textContent=d.descs[step];
+for(var i=0;i<tabs.length;i++)tabs[i].setAttribute('aria-pressed',tabs[i].getAttribute('data-mode')===mode?'true':'false');
+bPlay.textContent=timer?'일시정지':'재생';
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}}
+function advance(){if(step<3)step++;if(step>=3)stop();draw();}
+for(var i=0;i<tabs.length;i++){
+tabs[i].addEventListener('click',function(){stop();mode=this.getAttribute('data-mode');step=0;draw();});
+}
+bNext.addEventListener('click',function(){stop();if(step<3)step++;draw();});
+bReset.addEventListener('click',function(){stop();step=0;draw();});
+bPlay.addEventListener('click',function(){
+if(timer){stop();draw();return;}
+if(reduce){if(step<3)step++;draw();return;}
+if(step>=3)step=0;
+timer=setInterval(advance,2000);
+draw();
+});
+draw();
+})();
+</script>
+</div>
 
 ## 리밸런스 중 처리 중단 최소화
 
@@ -422,6 +742,111 @@ flowchart TD
 | `max.poll.interval.ms` 확대 | 초과 조건을 늦춤 | 죽은 컨슈머의 감지도 그만큼 늦어짐 |
 
 DLQ 재처리를 돌릴 때도 같은 함정이 있다. 재주입 속도를 여유 처리량보다 높게 잡으면 재처리 컨슈머가 poll 간격을 넘겨 그룹에서 밀려난다. 이 경우 DLQ 메시지가 재전달되면서 재처리 이력에 같은 메시지가 여러 번 남는다. 재주입 속도를 정하는 방식은 [DLQ 재처리 자동화](DLQ_Reprocessing_Strategy.md)의 재주입 배압 절을 본다.
+
+<div class="ygd-poll-gap" id="ygd-poll-gap">
+<style>
+.ygd-poll-gap{--ygd-bg:#F6F4F1;--ygd-fg:#2B2926;--ygd-muted:#5F5A54;--ygd-border:#CFC9C1;--ygd-run:#DDEFE3;--ygd-run-fg:#1E5B35;--ygd-stop:#F6DADA;--ygd-stop-fg:#8A2323;--ygd-accent:#3D7387;--ygd-btn:#FFFFFF;max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.2em;margin-bottom:1.2em;padding:14px;box-sizing:border-box;background:var(--ygd-bg);color:var(--ygd-fg);border:1px solid var(--ygd-border);border-radius:8px;font-size:14px;line-height:1.55}
+body[data-md-color-scheme="slate"] .ygd-poll-gap{--ygd-bg:#2A2729;--ygd-fg:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-border:#5A5558;--ygd-run:#1F3A2A;--ygd-run-fg:#A8E0BC;--ygd-stop:#4A2626;--ygd-stop-fg:#F2B5B5;--ygd-accent:#7FB4C9;--ygd-btn:#363234}
+.ygd-poll-gap .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ygd-poll-gap .ygd-btn{font:inherit;font-size:14px;line-height:1.3;padding:7px 12px;min-height:36px;border:1px solid var(--ygd-border);border-radius:6px;background:var(--ygd-btn);color:var(--ygd-fg);cursor:pointer}
+.ygd-poll-gap .ygd-btn:hover{border-color:var(--ygd-accent)}
+.ygd-poll-gap .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-poll-gap .ygd-rng{display:block;margin:6px 0 12px}
+.ygd-poll-gap .ygd-rng input{display:block;width:100%;margin-top:6px;accent-color:var(--ygd-accent)}
+.ygd-poll-gap .ygd-rng input:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-poll-gap .ygd-svg{display:block;width:100%;height:auto}
+.ygd-poll-gap .ygd-axis{stroke:var(--ygd-border);stroke-width:1.5}
+.ygd-poll-gap .ygd-lim{stroke:var(--ygd-accent);stroke-width:2;stroke-dasharray:5 3}
+.ygd-poll-gap .ygd-barfill{stroke-width:1.5;transition:width .15s,fill .2s}
+.ygd-poll-gap .ygd-ok{fill:var(--ygd-run);stroke:var(--ygd-run-fg)}
+.ygd-poll-gap .ygd-over{fill:var(--ygd-stop);stroke:var(--ygd-stop-fg)}
+.ygd-poll-gap .ygd-x{fill:var(--ygd-muted);font-size:11px}
+.ygd-poll-gap .ygd-xl{fill:var(--ygd-accent);font-size:11px;font-weight:700;text-anchor:middle}
+.ygd-poll-gap .ygd-xv{fill:var(--ygd-fg);font-size:13px;font-weight:700}
+.ygd-poll-gap .ygd-panel{padding:10px 12px;border-left:4px solid var(--ygd-accent);background:var(--ygd-btn);border-radius:4px}
+.ygd-poll-gap .ygd-ttl{font-weight:700;margin-bottom:2px}
+.ygd-poll-gap .ygd-note{margin-top:10px;color:var(--ygd-muted)}
+@media (prefers-reduced-motion:reduce){.ygd-poll-gap .ygd-barfill{transition:none}}
+</style>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-normal">평소 50ms</button>
+<button type="button" class="ygd-btn ygd-slow">지연 700ms</button>
+</div>
+<label class="ygd-rng"><span class="ygd-rl"></span><input type="range" class="ygd-in" min="10" max="1000" step="10" value="50" aria-label="메시지 하나당 처리 시간, 밀리초"></label>
+<svg class="ygd-svg" viewBox="0 0 360 124" role="img" aria-label="poll 한 번에 받은 500건의 처리 시간이 막대로 그려지고, 300초 위치의 max.poll.interval.ms 한도선과 비교하는 그림. 한도 이내면 초록, 넘으면 빨강"></svg>
+<div class="ygd-panel" aria-live="polite"><div class="ygd-ttl"></div><div class="ygd-desc"></div></div>
+<div class="ygd-note">비유하면 출입 카드는 제때 찍는데 정해진 시간 안에 업무 보고를 올리지 못해 자리에서 빠지는 상황이다. 출근 체크(heartbeat)는 정상이고 보고 간격(poll)만 어긋난다. 여기서 max.poll.records는 500, max.poll.interval.ms는 기본값 300초로 고정했다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-poll-gap');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var inp=root.querySelector('.ygd-in');
+var rl=root.querySelector('.ygd-rl');
+var ttl=root.querySelector('.ygd-ttl');
+var desc=root.querySelector('.ygd-desc');
+var bPlay=root.querySelector('.ygd-play');
+var bNormal=root.querySelector('.ygd-normal');
+var bSlow=root.querySelector('.ygd-slow');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var RECORDS=500,LIMIT=300,MAXS=500,X0=4,W=352;
+var timer=null;
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function sx(s){return X0+W*s/MAXS;}
+var lim=sx(LIMIT);
+var lt=el('text',{'class':'ygd-xl',x:lim,y:14},svg);
+lt.textContent='max.poll.interval.ms 기본 300초';
+el('line',{'class':'ygd-lim',x1:lim,y1:22,x2:lim,y2:70},svg);
+var bar=el('rect',{'class':'ygd-barfill ygd-ok',x:X0,y:30,width:1,height:30,rx:4},svg);
+el('line',{'class':'ygd-axis',x1:X0,y1:68,x2:X0+W,y2:68},svg);
+[0,100,200,300,400,500].forEach(function(v){
+var x=sx(v);
+el('line',{'class':'ygd-axis',x1:x,y1:68,x2:x,y2:73},svg);
+var t=el('text',{'class':'ygd-x',x:x,y:88,'text-anchor':v===0?'start':(v===500?'end':'middle')},svg);
+t.textContent=v===500?'500초':String(v);
+});
+var val=el('text',{'class':'ygd-xv',x:X0,y:114},svg);
+function render(){
+var ms=parseInt(inp.value,10);
+var secs=RECORDS*ms/1000;
+var over=secs>LIMIT;
+var w=Math.max(2,Math.min(W,W*secs/MAXS));
+bar.setAttribute('width',w);
+bar.setAttribute('class','ygd-barfill '+(over?'ygd-over':'ygd-ok'));
+var sTxt=(Math.round(secs*10)/10)+'초';
+val.textContent=RECORDS+'건 × '+ms+'ms = '+sTxt+(over?' (한도 초과)':' (한도 이내)');
+rl.textContent='메시지 하나당 처리 시간: '+ms+'ms';
+if(over){
+ttl.textContent='poll 간격 '+sTxt+': 한도 초과';
+desc.textContent='컨슈머는 죽지 않았고 heartbeat도 정상이지만, poll 간격이 한도를 넘어 heartbeat 스레드가 스스로 LeaveGroup을 보낸다. 처리하던 배치의 커밋은 CommitFailedException으로 실패하고, 파티션을 넘겨받은 컨슈머도 같은 다운스트림을 호출하니 같은 지연을 겪는다.';
+}else{
+ttl.textContent='poll 간격 '+sTxt+': 한도 이내';
+desc.textContent='poll 간격이 한도 안에 있어 멤버십이 유지된다. 처리가 느려진 영향은 리밸런스가 아니라 lag 증가로만 나타난다.';
+}
+bPlay.textContent=timer?'일시정지':'재생';
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}}
+inp.addEventListener('input',function(){stop();render();});
+bNormal.addEventListener('click',function(){stop();inp.value='50';render();});
+bSlow.addEventListener('click',function(){stop();inp.value='700';render();});
+bPlay.addEventListener('click',function(){
+if(timer){stop();render();return;}
+if(reduce){inp.value='700';render();return;}
+inp.value='50';
+timer=setInterval(function(){
+var v=parseInt(inp.value,10)+10;
+if(v>=700){v=700;stop();}
+inp.value=String(v);
+render();
+},60);
+render();
+});
+render();
+})();
+</script>
+</div>
 
 ## 갑자기 리밸런스가 늘어날 때 진단
 
