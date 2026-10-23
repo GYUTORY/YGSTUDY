@@ -1,7 +1,7 @@
 ---
 title: Kafka Exactly-Once Semantics (EOS)
 tags: [messaging, backend, event-driven, architecture]
-updated: 2026-09-30
+updated: 2026-10-23
 ---
 
 # Kafka Exactly-Once Semantics (EOS)
@@ -293,6 +293,112 @@ transaction.timeout.ms=900000
 
 Kafka Streams는 `commit.interval.ms`(EOS에서는 기본 100ms)마다 트랜잭션을 닫기 때문에 이 한도에 걸릴 일이 거의 없다. 직접 만든 배치 프로듀서가 트랜잭션 하나에 오래 걸리는 작업을 넣을 때 걸린다.
 
+<div class="ygd-kafka-txn-timeout" id="ygd-kafka-txn-timeout">
+<style>
+.ygd-kafka-txn-timeout{--ygd-bg:#FDFBFA;--ygd-panel:#F4F1EE;--ygd-border:#CFC8C0;--ygd-text:#2B2724;--ygd-muted:#5E5852;--ygd-accent:#2F6478;--ygd-ok:#2F7D4A;--ygd-ok-bg:#E3F1E6;--ygd-warn:#A85F00;--ygd-warn-bg:#FFF1D6;--ygd-bad:#B3342B;--ygd-bad-bg:#FBE3E1;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FDFBFA;max-width:760px;margin-left:auto;margin-right:auto;margin-top:18px;margin-bottom:18px;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;padding:14px;background:var(--ygd-bg);color:var(--ygd-text);font-size:14px;line-height:1.5}
+body[data-md-color-scheme="slate"] .ygd-kafka-txn-timeout{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-accent:#7FB6CB;--ygd-ok:#6CC48B;--ygd-ok-bg:#1F3A2A;--ygd-warn:#E0A33C;--ygd-warn-bg:#4A3510;--ygd-bad:#F08A82;--ygd-bad-bg:#4A2220;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326}
+.ygd-kafka-txn-timeout *{box-sizing:border-box}
+.ygd-kafka-txn-timeout .ygd-title{font-weight:700;font-size:16px;margin-bottom:4px}
+.ygd-kafka-txn-timeout .ygd-cap{font-size:14px;color:var(--ygd-muted);margin-bottom:6px}
+.ygd-kafka-txn-timeout .ygd-steps,.ygd-kafka-txn-timeout .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-kafka-txn-timeout .ygd-btn{flex:1 1 100px;font:inherit;font-size:14px;min-height:40px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer}
+.ygd-kafka-txn-timeout .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-kafka-txn-timeout .ygd-primary,.ygd-kafka-txn-timeout .ygd-sb[aria-current="step"]{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-kafka-txn-timeout .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:10px auto 8px}
+.ygd-kafka-txn-timeout .ygd-it{opacity:.5}
+.ygd-kafka-txn-timeout .ygd-it.ygd-on{opacity:1}
+.ygd-kafka-txn-timeout .ygd-seg-a{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-seg-b{fill:var(--ygd-warn-bg);stroke:var(--ygd-warn);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-seg-c{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-st{fill:var(--ygd-text);font-size:11px;font-weight:700;text-anchor:middle}
+.ygd-kafka-txn-timeout .ygd-cir{fill:var(--ygd-bg);stroke:var(--ygd-muted);stroke-width:1.8}
+.ygd-kafka-txn-timeout .ygd-cn{fill:var(--ygd-text);font-size:12px;font-weight:700;text-anchor:middle}
+.ygd-kafka-txn-timeout .ygd-cur .ygd-cir{fill:var(--ygd-accent);stroke:var(--ygd-accent)}
+.ygd-kafka-txn-timeout .ygd-cur .ygd-cn{fill:var(--ygd-bg)}
+.ygd-kafka-txn-timeout .ygd-stem{stroke:var(--ygd-muted);stroke-width:1.5;stroke-dasharray:3 3}
+.ygd-kafka-txn-timeout .ygd-ax{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-kafka-txn-timeout .ygd-tl{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-kafka-txn-timeout .ygd-brk{fill:var(--ygd-bg)}
+.ygd-kafka-txn-timeout .ygd-brl{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-kafka-txn-timeout .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-accent);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0}
+.ygd-kafka-txn-timeout .ygd-dt{font-size:15px;font-weight:700}
+.ygd-kafka-txn-timeout .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-kafka-txn-timeout .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-kafka-txn-timeout .ygd-it{transition:opacity .4s}
+}
+</style>
+<div class="ygd-title">transaction.timeout.ms 5초인데 abort 는 약 10.5초에</div>
+<div class="ygd-cap">문서의 로컬 실험(Kafka 3.7.1)을 시간축에 옮긴 것이다. 가운데 구간은 축을 생략했다.</div>
+<svg class="ygd-svg" viewBox="0 0 360 130" role="img" aria-label="시간축 그림. 0초에 레코드를 보내고, 5초에 타임아웃이 지나도 Ongoing 이 유지되며, 약 10.5초에 브로커의 만료 스캔이 abort 마커를 기록하고, 35초에 commit 을 호출하면 ProducerFencedException 이 나온다.">
+<g class="ygd-it ygd-seg1"><rect class="ygd-seg-a" x="20" y="50" width="80" height="40"/><text class="ygd-st" x="60" y="74">Ongoing</text></g>
+<g class="ygd-it ygd-seg2"><rect class="ygd-seg-b" x="100" y="50" width="88" height="40"/><text class="ygd-st" x="144" y="67">Ongoing</text><text class="ygd-st" x="144" y="83">기한 경과</text></g>
+<g class="ygd-it ygd-seg3"><rect class="ygd-seg-c" x="188" y="50" width="142" height="40"/><text class="ygd-st" x="282" y="67">CompleteAbort</text><text class="ygd-st" x="282" y="83">ABORT 마커</text></g>
+<rect class="ygd-brk" x="214" y="44" width="16" height="52"/>
+<line class="ygd-brl" x1="212" y1="94" x2="220" y2="46"/>
+<line class="ygd-brl" x1="224" y1="94" x2="232" y2="46"/>
+<line class="ygd-ax" x1="20" y1="102" x2="330" y2="102"/>
+<line class="ygd-ax" x1="20" y1="102" x2="20" y2="108"/>
+<line class="ygd-ax" x1="100" y1="102" x2="100" y2="108"/>
+<line class="ygd-ax" x1="188" y1="102" x2="188" y2="108"/>
+<line class="ygd-ax" x1="330" y1="102" x2="330" y2="108"/>
+<text class="ygd-tl" x="20" y="124">0초</text>
+<text class="ygd-tl" x="100" y="124">5초</text>
+<text class="ygd-tl" x="188" y="124">약 10.5초</text>
+<text class="ygd-tl" x="330" y="124">35초</text>
+<g class="ygd-it ygd-c0"><line class="ygd-stem" x1="20" y1="35" x2="20" y2="50"/><circle class="ygd-cir" cx="20" cy="24" r="11"/><text class="ygd-cn" x="20" y="28">1</text></g>
+<g class="ygd-it ygd-c1"><line class="ygd-stem" x1="100" y1="35" x2="100" y2="50"/><circle class="ygd-cir" cx="100" cy="24" r="11"/><text class="ygd-cn" x="100" y="28">2</text></g>
+<g class="ygd-it ygd-c2"><line class="ygd-stem" x1="188" y1="35" x2="188" y2="50"/><circle class="ygd-cir" cx="188" cy="24" r="11"/><text class="ygd-cn" x="188" y="28">3</text></g>
+<g class="ygd-it ygd-c3"><line class="ygd-stem" x1="330" y1="35" x2="330" y2="50"/><circle class="ygd-cir" cx="330" cy="24" r="11"/><text class="ygd-cn" x="330" y="28">4</text></g>
+</svg>
+<div class="ygd-steps" role="group" aria-label="단계 선택">
+<button type="button" class="ygd-btn ygd-sb" data-i="0">1 전송</button>
+<button type="button" class="ygd-btn ygd-sb" data-i="1">2 기한 경과</button>
+<button type="button" class="ygd-btn ygd-sb" data-i="2">3 스캔과 abort</button>
+<button type="button" class="ygd-btn ygd-sb" data-i="3">4 commit 호출</button>
+</div>
+<div class="ygd-panel" role="status" aria-live="polite"><div class="ygd-dt"></div><div class="ygd-db"></div></div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-analogy">비유: 마감이 지난 접수 서류를 정시에 바로 치우지 않고, 직원이 정해진 주기로 순찰하면서 걷어 가는 사무실에 가깝다. 서류가 치워지는 시각은 마감 시각이 아니라 순찰 시각이 정한다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-kafka-txn-timeout');if(!root)return;
+var dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play'),nextB=root.querySelector('.ygd-next');
+var sbs=root.querySelectorAll('.ygd-sb');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){playB.hidden=true;}
+var S=[
+['t = 0초 · 레코드 전송','transaction.timeout.ms 를 5000 으로 두고 레코드 T-1 을 한 건 보낸 뒤 아무것도 하지 않는다. 트랜잭션은 Ongoing 상태다.'],
+['t = 5초 · 기한이 지났지만 그대로','타임아웃이 지나도 abort 는 일어나지 않는다. 브로커는 transaction.abort.timed.out.transaction.cleanup.interval.ms(기본 10초) 주기로 만료된 트랜잭션을 훑기 때문이다.'],
+['약 10.5초 · 스캔이 abort 마커를 기록','스캔에 걸려 offset 1 에 ABORT 마커가 찍힌다. 첫 레코드에서 약 10.5초 뒤이므로 늦어진 원인은 타임아웃 값이 아니라 스캔 주기다. abort 하면서 epoch 도 오른다.'],
+['35초 · commitTransaction() 호출','방치했던 프로듀서가 commit 을 부르면 ProducerFencedException 이 나온다. abort 로 epoch 가 올라갔기 때문이다. read_committed 컨슈머가 읽은 레코드는 0건이다.']
+];
+var step=0,timer=null;
+function render(){
+var segs=['.ygd-seg1','.ygd-seg2','.ygd-seg3'];
+segs.forEach(function(s,i){root.querySelector(s).setAttribute('class','ygd-it '+s.slice(1)+(step>=i?' ygd-on':''));});
+[0,1,2,3].forEach(function(i){root.querySelector('.ygd-c'+i).setAttribute('class','ygd-it ygd-c'+i+(step>=i?' ygd-on':'')+(step===i?' ygd-cur':''));});
+sbs.forEach(function(b){var i=Number(b.getAttribute('data-i'));if(i===step){b.setAttribute('aria-current','step');}else{b.removeAttribute('aria-current');}});
+dT.textContent=S[step][0];dB.textContent=S[step][1];
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function tick(){
+if(step>=3){timer=null;return;}
+step+=1;render();timer=setTimeout(tick,2600);
+}
+playB.addEventListener('click',function(){stop();step=0;render();timer=setTimeout(tick,2600);});
+nextB.addEventListener('click',function(){stop();step=step>=3?0:step+1;render();});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();step=0;render();});
+sbs.forEach(function(b){b.addEventListener('click',function(){stop();step=Number(b.getAttribute('data-i'));render();});});
+render();
+})();
+</script>
+</div>
+
 ## read_committed와 LSO
 
 트랜잭션 레코드는 커밋 전에도 이미 파티션 로그에 append되어 있다. `read_committed`는 로그에서 레코드를 지우는 게 아니라, 컨슈머가 읽는 **상한과 필터**를 바꾸는 방식이다. 읽는 상한이 High Watermark(HW)에서 Last Stable Offset(LSO)으로 내려가고, abort된 트랜잭션의 레코드는 걸러진다.
@@ -359,6 +465,162 @@ g-ru    eos-lso  0          13              13              0      (read_uncommi
 ```
 
 `g-rc`는 offset 8에서 멈췄다. 뒤에 쌓인 plain-3~5는 `g-ru`가 읽은 것과 같은 커밋 상태의 일반 메시지인데도 읽지 못했다. 원인은 `kafka-transactions.sh`로 확인한다. `list`에서 `Ongoing`이 남아 있거나 `find-hanging`이 결과를 내면 그 트랜잭션이 원인이다. 이번 실험에서는 프로세스가 `close()`를 부르며 종료하는 순간 미완료 트랜잭션을 프로듀서가 스스로 abort했고, 그 시점에 LSO가 풀렸다. 프로세스가 `kill -9`로 죽거나 네트워크가 끊겨 `close()`가 안 불리면 `transaction.timeout.ms`(최대 15분)와 스캔 주기가 지날 때까지 막힌다. 이 경우는 직접 재현하지 않았고, 아무 활동 없이 방치된 트랜잭션이 타임아웃 스캔에 abort되는 것까지만 위 타임아웃 실험으로 확인했다.
+
+<div class="ygd-kafka-lso-toggle" id="ygd-kafka-lso-toggle">
+<style>
+.ygd-kafka-lso-toggle{--ygd-bg:#FDFBFA;--ygd-panel:#F4F1EE;--ygd-border:#CFC8C0;--ygd-text:#2B2724;--ygd-muted:#5E5852;--ygd-accent:#2F6478;--ygd-ok:#2F7D4A;--ygd-ok-bg:#E3F1E6;--ygd-warn:#A85F00;--ygd-warn-bg:#FFF1D6;--ygd-bad:#B3342B;--ygd-bad-bg:#FBE3E1;--ygd-ctl:#6A55A8;--ygd-ctl-bg:#ECE8F5;--ygd-skip:#8C857D;--ygd-skip-bg:#ECEAE7;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FDFBFA;max-width:760px;margin-left:auto;margin-right:auto;margin-top:18px;margin-bottom:18px;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;padding:14px;background:var(--ygd-bg);color:var(--ygd-text);font-size:14px;line-height:1.5}
+body[data-md-color-scheme="slate"] .ygd-kafka-lso-toggle{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-accent:#7FB6CB;--ygd-ok:#6CC48B;--ygd-ok-bg:#1F3A2A;--ygd-warn:#E0A33C;--ygd-warn-bg:#4A3510;--ygd-bad:#F08A82;--ygd-bad-bg:#4A2220;--ygd-ctl:#A996E6;--ygd-ctl-bg:#302A4A;--ygd-skip:#8C857D;--ygd-skip-bg:#2E2B2D;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326}
+.ygd-kafka-lso-toggle *{box-sizing:border-box}
+.ygd-kafka-lso-toggle .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-kafka-lso-toggle .ygd-gl{font-size:14px;color:var(--ygd-muted);margin:8px 0 4px}
+.ygd-kafka-lso-toggle .ygd-tog,.ygd-kafka-lso-toggle .ygd-ctrl,.ygd-kafka-lso-toggle .ygd-legend{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-kafka-lso-toggle .ygd-btn{flex:1 1 110px;font:inherit;font-size:14px;min-height:40px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer}
+.ygd-kafka-lso-toggle .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-kafka-lso-toggle .ygd-btn[aria-pressed="true"],.ygd-kafka-lso-toggle .ygd-primary{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-kafka-lso-toggle .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:12px auto 6px}
+.ygd-kafka-lso-toggle .ygd-no{fill:var(--ygd-muted);font-size:11px;text-anchor:middle}
+.ygd-kafka-lso-toggle .ygd-nm{fill:var(--ygd-text);font-size:11px;font-weight:700;text-anchor:middle}
+.ygd-kafka-lso-toggle .ygd-stt{fill:var(--ygd-text);font-size:11px;text-anchor:middle}
+.ygd-kafka-lso-toggle .ygd-cr{stroke-width:1.8}
+.ygd-kafka-lso-toggle .ygd-k-read .ygd-cr{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok)}
+.ygd-kafka-lso-toggle .ygd-k-warn .ygd-cr{fill:var(--ygd-warn-bg);stroke:var(--ygd-warn);stroke-dasharray:4 3}
+.ygd-kafka-lso-toggle .ygd-k-skip .ygd-cr{fill:var(--ygd-skip-bg);stroke:var(--ygd-skip)}
+.ygd-kafka-lso-toggle .ygd-k-skip .ygd-nm{text-decoration:line-through}
+.ygd-kafka-lso-toggle .ygd-k-block .ygd-cr{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad);stroke-width:2.6}
+.ygd-kafka-lso-toggle .ygd-k-ctl .ygd-cr{fill:var(--ygd-ctl-bg);stroke:var(--ygd-ctl);stroke-dasharray:2 3}
+.ygd-kafka-lso-toggle .ygd-k-empty .ygd-cr{fill:none;stroke:var(--ygd-skip);stroke-dasharray:2 4}
+.ygd-kafka-lso-toggle .ygd-k-empty .ygd-nm,.ygd-kafka-lso-toggle .ygd-k-empty .ygd-stt{fill:var(--ygd-muted)}
+.ygd-kafka-lso-toggle .ygd-tk{stroke:var(--ygd-muted);stroke-width:1.5}
+.ygd-kafka-lso-toggle .ygd-pt{fill:var(--ygd-muted);font-size:12px}
+.ygd-kafka-lso-toggle .ygd-pt-on{fill:var(--ygd-accent);font-weight:700}
+.ygd-kafka-lso-toggle .ygd-tk-on{stroke:var(--ygd-accent);stroke-width:2.4}
+.ygd-kafka-lso-toggle .ygd-lg{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.ygd-kafka-lso-toggle .ygd-sw{display:inline-block;width:16px;height:16px;border-radius:4px;border:2px solid var(--ygd-skip);flex:0 0 auto}
+.ygd-kafka-lso-toggle .ygd-sw-read{background:var(--ygd-ok-bg);border-color:var(--ygd-ok)}
+.ygd-kafka-lso-toggle .ygd-sw-warn{background:var(--ygd-warn-bg);border-color:var(--ygd-warn);border-style:dashed}
+.ygd-kafka-lso-toggle .ygd-sw-skip{background:var(--ygd-skip-bg);border-color:var(--ygd-skip)}
+.ygd-kafka-lso-toggle .ygd-sw-block{background:var(--ygd-bad-bg);border-color:var(--ygd-bad)}
+.ygd-kafka-lso-toggle .ygd-sw-ctl{background:var(--ygd-ctl-bg);border-color:var(--ygd-ctl);border-style:dotted}
+.ygd-kafka-lso-toggle .ygd-got{margin-top:10px;font-size:14px;overflow-wrap:anywhere}
+.ygd-kafka-lso-toggle .ygd-got1{font-weight:700}
+.ygd-kafka-lso-toggle .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-accent);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0}
+.ygd-kafka-lso-toggle .ygd-dt{font-size:15px;font-weight:700}
+.ygd-kafka-lso-toggle .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-kafka-lso-toggle .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-kafka-lso-toggle .ygd-cr{transition:fill .35s,stroke .35s}
+}
+</style>
+<div class="ygd-title">read_committed 가 읽는 범위: LSO 와 HW</div>
+<div class="ygd-gl">컨슈머 격리 수준</div>
+<div class="ygd-tog" role="group" aria-label="컨슈머 격리 수준 선택">
+<button type="button" class="ygd-btn ygd-mode" data-mode="rc" aria-pressed="true">read_committed</button>
+<button type="button" class="ygd-btn ygd-mode" data-mode="ru" aria-pressed="false">read_uncommitted</button>
+</div>
+<div class="ygd-gl">트랜잭션 C 의 상태</div>
+<div class="ygd-tog" role="group" aria-label="트랜잭션 C 상태 선택">
+<button type="button" class="ygd-btn ygd-cst" data-c="open" aria-pressed="true">진행 중</button>
+<button type="button" class="ygd-btn ygd-cst" data-c="commit" aria-pressed="false">commit 됨</button>
+<button type="button" class="ygd-btn ygd-cst" data-c="abort" aria-pressed="false">abort 됨</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 186" role="img" aria-label="파티션 로그 offset 0부터 13까지를 두 줄로 나열한 그림. 선택한 격리 수준과 트랜잭션 C 상태에 따라 각 offset 이 읽힘, 건너뜀, 막힘, 숨김 중 무엇이 되는지와 LSO, HW 위치를 보여 준다."></svg>
+<div class="ygd-legend" aria-label="범례">
+<span class="ygd-lg"><span class="ygd-sw ygd-sw-read"></span>읽음</span>
+<span class="ygd-lg"><span class="ygd-sw ygd-sw-warn"></span>읽음! (commit 전이거나 abort 된 레코드)</span>
+<span class="ygd-lg"><span class="ygd-sw ygd-sw-skip"></span>건너뜀 (abort)</span>
+<span class="ygd-lg"><span class="ygd-sw ygd-sw-block"></span>막힘 (LSO 뒤)</span>
+<span class="ygd-lg"><span class="ygd-sw ygd-sw-ctl"></span>숨김 (마커)</span>
+</div>
+<div class="ygd-got"><div class="ygd-got1"></div><div class="ygd-got2"></div></div>
+<div class="ygd-panel" role="status" aria-live="polite"><div class="ygd-dt"></div><div class="ygd-db"></div></div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary ygd-play">재생: C 가 끝나는 순간</button>
+</div>
+<div class="ygd-analogy">비유: 번호표 순서대로만 내주는 우편 창구에 가깝다. 앞 번호의 서류 한 건이 아직 접수 중이면, 그 뒤 번호의 이미 끝난 서류도 내주지 못한다. 실제로 막는 기준은 창구가 아니라 LSO 라는 offset 이다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-kafka-lso-toggle');if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg'),dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db');
+var g1=root.querySelector('.ygd-got1'),g2=root.querySelector('.ygd-got2'),playB=root.querySelector('.ygd-play');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){playB.hidden=true;}
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+var DATA=[['plain-1','p'],['A-1','A'],['A-2','A'],['COMMIT','m'],['plain-2','p'],['B-1','B'],['B-2','B'],['ABORT','m'],['C-1','C'],['C-2','C'],['plain-3','p'],['plain-4','p'],['plain-5','p'],['마커','e']];
+var STT={read:'읽음',warn:'읽음!',skip:'건너뜀',block:'막힘',ctl:'숨김',empty:'예정'};
+var cells=DATA.map(function(d,i){
+var col=i%7,row=(i-col)/7,x=col*52,y=row?106:22,ny=row?96:12;
+var g=el('g',{},svg);
+el('rect',{x:x,y:y,width:48,height:48,rx:6,'class':'ygd-cr'},g);
+var no=el('text',{x:x+24,y:ny,'class':'ygd-no'},g);no.textContent=String(i);
+var nm=el('text',{x:x+24,y:y+20,'class':'ygd-nm'},g);nm.textContent=d[0];
+var st=el('text',{x:x+24,y:y+38,'class':'ygd-stt'},g);
+return {g:g,nm:nm,st:st,t:d[1],o:i};
+});
+var tkL=el('line',{y1:156,y2:164,'class':'ygd-tk'},svg),tkH=el('line',{y1:156,y2:164,'class':'ygd-tk'},svg);
+var ptL=el('text',{y:180,'class':'ygd-pt'},svg),ptH=el('text',{y:180,'class':'ygd-pt'},svg);
+var T={
+'rc-open':['read_committed · C 진행 중','LSO 가 열린 트랜잭션 C 의 첫 레코드(offset 8)에 멈춘다. 뒤에 쌓인 일반 메시지 10~12 는 이미 커밋된 것인데도 읽지 못해서, 컨슈머가 멀쩡해도 lag 만 커진다.'],
+'rc-commit':['read_committed · C commit','C 가 commit 되면 offset 13 에 COMMIT 마커가 찍히고 LSO 가 14 로 점프한다. C 의 8, 9 가 함께 전달되고 막혀 있던 10~12 도 풀린다. abort 된 B 의 5, 6 은 계속 건너뛴다.'],
+'rc-abort':['read_committed · C abort','C 가 abort 되면 offset 13 에 ABORT 마커가 찍히고 LSO 가 14 로 점프한다. C 의 8, 9 는 걸러지지만 막혀 있던 10~12 는 풀려서 전달된다.'],
+'ru-open':['read_uncommitted · C 진행 중','read_uncommitted 는 HW(13)까지 읽는다. abort 된 B 의 5, 6 은 물론 아직 결론이 나지 않은 C 의 8, 9 도 받는다. 나중에 C 가 abort 되어도 이미 처리한 뒤다.'],
+'ru-commit':['read_uncommitted · C commit','read_uncommitted 는 마커와 상관없이 HW 까지 읽는다. C 가 commit 되든 말든 받는 offset 이 같고, abort 된 B 의 5, 6 도 여전히 받는다.'],
+'ru-abort':['read_uncommitted · C abort','C 가 abort 됐지만 read_uncommitted 는 8, 9 를 이미 받았고 받게 된다. 애플리케이션에 올라오지 않는 것은 마커(3, 7, 13)뿐이다.']
+};
+var mode='rc',cs='open',timer=null;
+function kind(c){
+var ended=cs!=='open';
+if(c.o===13&&!ended){return 'empty';}
+if(c.t==='m'||c.o===13){return 'ctl';}
+var bad=c.t==='B'||(c.t==='C'&&cs==='abort'),opn=c.t==='C'&&cs==='open';
+if(mode==='ru'){return (bad||opn)?'warn':'read';}
+var lso=ended?14:8;
+if(c.o>=lso){return 'block';}
+return bad?'skip':'read';
+}
+function render(){
+var ended=cs!=='open',got=[];
+cells.forEach(function(c){
+var k=kind(c);
+c.g.setAttribute('class','ygd-cell ygd-k-'+k);
+c.st.textContent=STT[k];
+if(c.o===13){c.nm.textContent=ended?(cs==='commit'?'COMMIT':'ABORT'):'마커';}
+if(k==='read'||k==='warn'){got.push(c.o);}
+});
+tkL.setAttribute('class','ygd-tk'+(mode==='rc'?' ygd-tk-on':''));
+tkH.setAttribute('class','ygd-tk'+(mode==='ru'?' ygd-tk-on':''));
+ptL.setAttribute('class','ygd-pt'+(mode==='rc'?' ygd-pt-on':''));
+ptH.setAttribute('class','ygd-pt'+(mode==='ru'?' ygd-pt-on':''));
+if(ended){
+tkL.setAttribute('x1',358);tkL.setAttribute('x2',358);
+ptL.setAttribute('x',360);ptL.style.textAnchor='end';ptL.textContent='LSO = HW = 14';
+tkH.style.display='none';ptH.style.display='none';
+}else{
+tkL.setAttribute('x1',76);tkL.setAttribute('x2',76);ptL.setAttribute('x',76);ptL.style.textAnchor='middle';ptL.textContent='LSO 8';
+tkH.setAttribute('x1',336);tkH.setAttribute('x2',336);ptH.setAttribute('x',336);ptH.style.textAnchor='middle';ptH.textContent='HW 13';
+tkH.style.display='';ptH.style.display='';
+}
+var key=mode+'-'+cs;
+dT.textContent=T[key][0];dB.textContent=T[key][1];
+g1.textContent='받는 offset: '+got.join(', ');
+var s2='';
+if(!ended){s2=mode==='rc'?'g-rc 기준 CURRENT-OFFSET 8, LOG-END-OFFSET 13, LAG 5':'g-ru 기준 CURRENT-OFFSET 13, LOG-END-OFFSET 13, LAG 0';}
+else{s2=mode==='rc'?'LSO 가 14 로 점프해서 막혔던 구간이 풀렸다.':'HW 까지 읽으므로 C 가 끝나도 받는 offset 은 그대로다.';}
+g2.textContent=s2;
+root.querySelectorAll('.ygd-mode').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-mode')===mode));});
+root.querySelectorAll('.ygd-cst').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-c')===cs));});
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+root.querySelectorAll('.ygd-mode').forEach(function(b){b.addEventListener('click',function(){stop();mode=b.getAttribute('data-mode');render();});});
+root.querySelectorAll('.ygd-cst').forEach(function(b){b.addEventListener('click',function(){stop();cs=b.getAttribute('data-c');render();});});
+playB.addEventListener('click',function(){
+stop();mode='rc';cs='open';render();
+timer=setTimeout(function(){cs='commit';render();timer=null;},2800);
+});
+render();
+})();
+</script>
+</div>
 
 ### control batch와 offset의 빈 자리
 
@@ -554,6 +816,142 @@ epoch는 브로커에서 증가만 하고 줄지 않는다. `initTransactions()`
 ```
 
 `max.block.ms`를 줄이지 않으면 기본 60초를 기다린 뒤에야 실패한다. 오류 메시지에 복제 계수 얘기가 나오지 않아서, 처음에는 코디네이터를 못 찾는 네트워크 문제로 오인하기 쉽다. 로컬 단일 브로커는 `transaction.state.log.replication.factor=1`, `transaction.state.log.min.isr=1`, `offsets.topic.replication.factor=1`을 함께 내려야 한다. 운영에서는 반대로 이 값을 1로 두면 브로커 한 대의 장애가 트랜잭션 상태 유실로 이어지므로 3/2를 유지한다.
+
+<div class="ygd-kafka-isr-ack" id="ygd-kafka-isr-ack">
+<style>
+.ygd-kafka-isr-ack{--ygd-bg:#FDFBFA;--ygd-panel:#F4F1EE;--ygd-border:#CFC8C0;--ygd-text:#2B2724;--ygd-muted:#5E5852;--ygd-accent:#2F6478;--ygd-ok:#2F7D4A;--ygd-ok-bg:#E3F1E6;--ygd-bad:#B3342B;--ygd-bad-bg:#FBE3E1;--ygd-skip:#8C857D;--ygd-skip-bg:#ECEAE7;--ygd-btn-bg:#FFFFFF;--ygd-btn-on-bg:#2B2724;--ygd-btn-on-text:#FDFBFA;max-width:760px;margin-left:auto;margin-right:auto;margin-top:18px;margin-bottom:18px;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;padding:14px;background:var(--ygd-bg);color:var(--ygd-text);font-size:14px;line-height:1.5}
+body[data-md-color-scheme="slate"] .ygd-kafka-isr-ack{--ygd-bg:#262326;--ygd-panel:#2F2B2E;--ygd-border:#4A4448;--ygd-text:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-accent:#7FB6CB;--ygd-ok:#6CC48B;--ygd-ok-bg:#1F3A2A;--ygd-bad:#F08A82;--ygd-bad-bg:#4A2220;--ygd-skip:#8C857D;--ygd-skip-bg:#2E2B2D;--ygd-btn-bg:#332F32;--ygd-btn-on-bg:#F0EDE9;--ygd-btn-on-text:#262326}
+.ygd-kafka-isr-ack *{box-sizing:border-box}
+.ygd-kafka-isr-ack .ygd-title{font-weight:700;font-size:16px;margin-bottom:8px}
+.ygd-kafka-isr-ack .ygd-tog,.ygd-kafka-isr-ack .ygd-steps,.ygd-kafka-isr-ack .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px}
+.ygd-kafka-isr-ack .ygd-steps{margin-top:10px}
+.ygd-kafka-isr-ack .ygd-btn{flex:1 1 100px;font:inherit;font-size:14px;min-height:40px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--ygd-border);background:var(--ygd-btn-bg);color:var(--ygd-text);cursor:pointer}
+.ygd-kafka-isr-ack .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-kafka-isr-ack .ygd-btn[aria-pressed="true"],.ygd-kafka-isr-ack .ygd-primary,.ygd-kafka-isr-ack .ygd-sb[aria-current="step"]{background:var(--ygd-btn-on-bg);color:var(--ygd-btn-on-text);border-color:var(--ygd-btn-on-bg)}
+.ygd-kafka-isr-ack .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:12px auto 4px}
+.ygd-kafka-isr-ack .ygd-bx{stroke-width:2;fill:var(--ygd-ok-bg);stroke:var(--ygd-ok)}
+.ygd-kafka-isr-ack .ygd-b-out .ygd-bx{fill:var(--ygd-skip-bg);stroke:var(--ygd-skip);stroke-dasharray:5 4}
+.ygd-kafka-isr-ack .ygd-b-dead .ygd-bx{fill:var(--ygd-bad-bg);stroke:var(--ygd-bad)}
+.ygd-kafka-isr-ack .ygd-b-lead .ygd-bx{stroke:var(--ygd-accent);stroke-width:3.4}
+.ygd-kafka-isr-ack .ygd-pbx{fill:var(--ygd-panel);stroke:var(--ygd-muted);stroke-width:2}
+.ygd-kafka-isr-ack .ygd-p-ok .ygd-pbx{stroke:var(--ygd-ok)}
+.ygd-kafka-isr-ack .ygd-p-bad .ygd-pbx{stroke:var(--ygd-bad);fill:var(--ygd-bad-bg)}
+.ygd-kafka-isr-ack .ygd-n1{fill:var(--ygd-text);font-size:13px;font-weight:700;text-anchor:middle}
+.ygd-kafka-isr-ack .ygd-n2,.ygd-kafka-isr-ack .ygd-n3{fill:var(--ygd-text);font-size:12px;text-anchor:middle}
+.ygd-kafka-isr-ack .ygd-al{fill:var(--ygd-muted);font-size:12px}
+.ygd-kafka-isr-ack .ygd-ar{color:var(--ygd-muted)}
+.ygd-kafka-isr-ack .ygd-ar path{fill:none;stroke:currentColor;stroke-width:2}
+.ygd-kafka-isr-ack .ygd-ar polygon{fill:currentColor}
+.ygd-kafka-isr-ack .ygd-ar-ok{color:var(--ygd-ok)}
+.ygd-kafka-isr-ack .ygd-ar-cut path{stroke-dasharray:4 4}
+.ygd-kafka-isr-ack .ygd-ar-cut{color:var(--ygd-skip);opacity:.7}
+.ygd-kafka-isr-ack .ygd-ar-act{color:var(--ygd-accent)}
+.ygd-kafka-isr-ack .ygd-ar-act path{stroke-width:3}
+.ygd-kafka-isr-ack .ygd-ar-rej{color:var(--ygd-bad)}
+.ygd-kafka-isr-ack .ygd-ar-rej path{stroke-dasharray:4 4;stroke-width:3}
+.ygd-kafka-isr-ack .ygd-cap{font-size:14px;color:var(--ygd-muted);margin-bottom:4px}
+.ygd-kafka-isr-ack .ygd-panel{border:1px solid var(--ygd-border);border-left:6px solid var(--ygd-accent);background:var(--ygd-panel);border-radius:8px;padding:10px 12px;margin:10px 0}
+.ygd-kafka-isr-ack .ygd-dt{font-size:15px;font-weight:700}
+.ygd-kafka-isr-ack .ygd-db{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.ygd-kafka-isr-ack .ygd-analogy{font-size:14px;color:var(--ygd-muted);margin-top:10px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){
+.ygd-kafka-isr-ack .ygd-bx,.ygd-kafka-isr-ack .ygd-pbx{transition:fill .35s,stroke .35s}
+}
+</style>
+<div class="ygd-title">acks=all 이어도 min.insync.replicas 에 따라 결과가 갈린다</div>
+<div class="ygd-tog" role="group" aria-label="min.insync.replicas 값 선택">
+<button type="button" class="ygd-btn ygd-mn" data-m="1" aria-pressed="true">min.insync.replicas = 1</button>
+<button type="button" class="ygd-btn ygd-mn" data-m="2" aria-pressed="false">min.insync.replicas = 2</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 212" role="img" aria-label="복제 계수 3인 파티션 그림. 프로듀서가 리더에 쓰고 리더가 팔로워 둘에 복제한다. 단계가 진행되면 팔로워가 ISR 에서 빠지고, 쓰기가 허용되거나 거절되며, 리더가 죽었을 때 레코드가 유실되는지 여부가 설정에 따라 달라진다.">
+<g class="ygd-pr"><rect class="ygd-pbx" x="130" y="8" width="100" height="48" rx="8"/><text class="ygd-n1" x="180" y="28">프로듀서</text><text class="ygd-n2 ygd-pt" x="180" y="46"></text></g>
+<g class="ygd-ar ygd-a-prod"><path d="M180 56 V76 H55 V92"/><polygon points="50,92 60,92 55,100"/></g>
+<text class="ygd-al" x="190" y="74">acks=all</text>
+<g class="ygd-bxg ygd-bL"><rect class="ygd-bx" x="5" y="100" width="100" height="66" rx="8"/><text class="ygd-n1" x="55" y="120">리더</text><text class="ygd-n2 ygd-s2" x="55" y="138"></text><text class="ygd-n3 ygd-s3" x="55" y="156"></text></g>
+<g class="ygd-bxg ygd-b1"><rect class="ygd-bx" x="130" y="100" width="100" height="66" rx="8"/><text class="ygd-n1" x="180" y="120">팔로워 1</text><text class="ygd-n2 ygd-s2" x="180" y="138"></text><text class="ygd-n3 ygd-s3" x="180" y="156"></text></g>
+<g class="ygd-bxg ygd-b2"><rect class="ygd-bx" x="255" y="100" width="100" height="66" rx="8"/><text class="ygd-n1" x="305" y="120">팔로워 2</text><text class="ygd-n2 ygd-s2" x="305" y="138"></text><text class="ygd-n3 ygd-s3" x="305" y="156"></text></g>
+<g class="ygd-ar ygd-a-r1"><path d="M75 166 V186 H180 V174"/><polygon points="175,174 185,174 180,166"/></g>
+<g class="ygd-ar ygd-a-r2"><path d="M55 166 V204 H305 V174"/><polygon points="300,174 310,174 305,166"/></g>
+</svg>
+<div class="ygd-cap">아래쪽 화살표는 리더에서 팔로워로 가는 복제다. 점선이면 끊긴 복제(ISR 이탈)다.</div>
+<div class="ygd-steps" role="group" aria-label="단계 선택">
+<button type="button" class="ygd-btn ygd-sb" data-i="0">1 정상</button>
+<button type="button" class="ygd-btn ygd-sb" data-i="1">2 ISR 축소</button>
+<button type="button" class="ygd-btn ygd-sb" data-i="2">3 쓰기 시도</button>
+<button type="button" class="ygd-btn ygd-sb" data-i="3">4 리더 장애</button>
+</div>
+<div class="ygd-panel" role="status" aria-live="polite"><div class="ygd-dt"></div><div class="ygd-db"></div></div>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn ygd-primary ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<div class="ygd-analogy">비유: 중요 서류의 사본을 여러 지점에 두는 보관 제도에 가깝다. 사본이 최소 몇 곳에 있어야 접수 확인증을 줄지가 min.insync.replicas 다. 기준이 1이면 본점에만 있어도 확인증이 나가고, 본점이 사라지면 확인증을 받은 서류도 함께 사라진다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-kafka-isr-ack');if(!root)return;
+var dT=root.querySelector('.ygd-dt'),dB=root.querySelector('.ygd-db'),playB=root.querySelector('.ygd-play');
+var sbs=root.querySelectorAll('.ygd-sb'),mns=root.querySelectorAll('.ygd-mn');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){playB.hidden=true;}
+var BX={L:root.querySelector('.ygd-bL'),F1:root.querySelector('.ygd-b1'),F2:root.querySelector('.ygd-b2')};
+var PR=root.querySelector('.ygd-pr'),PT=root.querySelector('.ygd-pt');
+var AP=root.querySelector('.ygd-a-prod'),AR1=root.querySelector('.ygd-a-r1'),AR2=root.querySelector('.ygd-a-r2');
+var TXT={
+'1-0':['1단계 · 정상','복제 계수 3 이고 ISR 은 리더와 팔로워 둘이다. acks=all 은 ISR 전원의 ack 를 기다리므로, 이 상태에서는 설정 값 차이가 드러나지 않는다.'],
+'2-0':['1단계 · 정상','복제 계수 3 이고 ISR 은 리더와 팔로워 둘이다. acks=all 은 ISR 전원의 ack 를 기다리므로, 이 상태에서는 설정 값 차이가 드러나지 않는다.'],
+'1-1':['2단계 · ISR 이 리더 하나로 축소','팔로워 둘이 ISR 에서 빠졌다. 이제 acks=all 이 기다리는 ISR 전원은 리더 혼자라는 뜻이다.'],
+'2-1':['2단계 · ISR 이 리더 하나로 축소','팔로워 둘이 ISR 에서 빠졌다. 이제 acks=all 이 기다리는 ISR 전원은 리더 혼자라는 뜻이다.'],
+'1-2':['3단계 · 리더 혼자 저장하고 ack','min.insync.replicas=1 이면 이 상태가 허용된다. 리더 혼자 레코드를 저장하면 ack 가 나가고, 프로듀서는 성공했다고 믿는다.'],
+'2-2':['3단계 · NotEnoughReplicasException 으로 거절','min.insync.replicas=2 이면 ISR 이 2 아래라 쓰기가 거절된다. 프로듀서는 실패를 알고, 유실 대신 가용성을 내놓는다.'],
+'1-3':['4단계 · ack 받은 레코드와 commit marker 가 사라진다','리더가 죽고 팔로워가 승격되면 ack 까지 받았던 레코드와 commit marker 가 새 리더에 없다. 프로듀서와 EOS 가 믿던 기록이 사라진 것이다.'],
+'2-3':['4단계 · ack 받은 레코드가 사라지지 않는다','리더가 죽어도 ack 를 준 적 없는 쓰기는 거절됐을 뿐이라 ack 받은 레코드가 사라지는 일이 없다. 대가는 ISR 이 모자란 동안 쓰기가 거절되는 것이다.']
+};
+var m=1,step=0,timer=null;
+function box(g,cls,s2,s3){
+g.setAttribute('class','ygd-bxg '+cls);
+g.querySelector('.ygd-s2').textContent=s2;
+g.querySelector('.ygd-s3').textContent=s3;
+}
+function arrow(g,cls){g.setAttribute('class','ygd-ar '+cls);}
+function render(){
+var n3=(m===1&&step===2)?'새 기록 있음':(step>=2?'새 기록 없음':'');
+var lead=n3,fn=step>=2?'새 기록 없음':'';
+if(step===3&&m===1){lead='유실';}
+var pc='',pt='';
+if(step===2){if(m===1){pc='ygd-p-ok';pt='ack 수신';}else{pc='ygd-p-bad';pt='쓰기 거절';}}
+if(step===3){if(m===1){pc='ygd-p-ok';pt='ack 받았음';}else{pc='ygd-p-bad';pt='쓰기 거절';}}
+PR.setAttribute('class','ygd-pr '+pc);PT.textContent=pt;
+if(step===0){box(BX.L,'','ISR','');box(BX.F1,'','ISR','');box(BX.F2,'','ISR','');}
+else{
+if(step===3){
+box(BX.L,'ygd-b-dead','장애',lead);
+box(BX.F1,'ygd-b-lead','새 리더',fn);
+box(BX.F2,'ygd-b-out','ISR 이탈',fn);
+}else{
+box(BX.L,'','ISR',lead);
+box(BX.F1,'ygd-b-out','ISR 이탈',fn);
+box(BX.F2,'ygd-b-out','ISR 이탈',fn);
+}
+}
+arrow(AR1,step===0?'ygd-a-r1 ygd-ar-ok':'ygd-a-r1 ygd-ar-cut');
+arrow(AR2,step===0?'ygd-a-r2 ygd-ar-ok':'ygd-a-r2 ygd-ar-cut');
+arrow(AP,step===2?(m===1?'ygd-a-prod ygd-ar-act':'ygd-a-prod ygd-ar-rej'):'ygd-a-prod');
+var tx=TXT[m+'-'+step];dT.textContent=tx[0];dB.textContent=tx[1];
+sbs.forEach(function(b){if(Number(b.getAttribute('data-i'))===step){b.setAttribute('aria-current','step');}else{b.removeAttribute('aria-current');}});
+mns.forEach(function(b){b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-m'))===m));});
+}
+function stop(){if(timer){clearTimeout(timer);timer=null;}}
+function tick(){if(step>=3){timer=null;return;}step+=1;render();timer=setTimeout(tick,2600);}
+playB.addEventListener('click',function(){stop();step=0;render();timer=setTimeout(tick,2600);});
+root.querySelector('.ygd-next').addEventListener('click',function(){stop();step=step>=3?0:step+1;render();});
+root.querySelector('.ygd-reset').addEventListener('click',function(){stop();step=0;render();});
+sbs.forEach(function(b){b.addEventListener('click',function(){stop();step=Number(b.getAttribute('data-i'));render();});});
+mns.forEach(function(b){b.addEventListener('click',function(){stop();m=Number(b.getAttribute('data-m'));render();});});
+render();
+})();
+</script>
+</div>
 
 ## EOS를 써야 하는 경우
 
