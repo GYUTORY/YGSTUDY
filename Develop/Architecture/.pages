@@ -6,6 +6,7 @@ nav:
   - MVVM: MVVM.md
   - 시스템 설계 및 아키텍처 패턴: 시스템_설계_및_아키텍처_패턴.md
   - 읽기 경로: 읽기_경로.md
+  - 쓰기 직후 읽기 일관성: Read_Your_Writes_Consistency.md
   - 백엔드 레이아웃: Backend_Layout.md
   - CQRS 패턴: CQRS_Pattern.md
   - 이벤트 기반 아키텍처: Event_Driven_Architecture.md
