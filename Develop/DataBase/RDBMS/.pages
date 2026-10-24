@@ -63,6 +63,7 @@ nav:
     - TypeORM 엔티티 관계 매핑 심화: Type_ORM_Entity_Relations.md
   - 확장과 운영:
     - 데이터베이스 성능 튜닝: 데이터베이스_성능_튜닝.md
+    - Buffer Pool과 읽기 I/O: Buffer_Pool_and_Read_IO.md
     - 데이터베이스 샤딩: 데이터베이스_샤딩.md
     - 읽기 전용 복제본: 읽기_전용_복제본.md
     - CDC 파이프라인: CDC_Pipeline.md

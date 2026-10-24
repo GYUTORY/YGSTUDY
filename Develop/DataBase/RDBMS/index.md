@@ -10,7 +10,7 @@ updated: 2026-10-25
 
 # RDBMS 전체 보기
 
-문서 61개.
+문서 62개.
 
 ## 인덱스
 
@@ -73,6 +73,7 @@ updated: 2026-10-25
 
 ## 개요
 
+- [Buffer Pool과 읽기 I/O](Buffer_Pool_and_Read_IO.md)
 - [EAV 패턴](EAV.md)
 - [JSON 컬럼 JPA 매핑](JSON_Column_JPA.md)
 - [MVCC (Multi-Version Concurrency Control)](MVCC.md)
