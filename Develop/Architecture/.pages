@@ -15,6 +15,7 @@ nav:
   - 멀티테넌시: Multi_Tenancy.md
   - 테넌트별 설정과 기능 플래그: Tenant_Configuration_and_Feature_Flags.md
   - 테넌트 네트워크 격리: Tenant_Network_Isolation.md
+  - 테넌트별 사용량 계량과 쿼터: Tenant_Usage_Metering_and_Quota.md
   - Noisy Neighbor: Noisy_Neighbor.md
   - Design Pattern
   - MSA
