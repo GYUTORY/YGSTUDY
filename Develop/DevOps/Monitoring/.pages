@@ -10,6 +10,7 @@ nav:
     - + Prometheus 대시보드: Grafana_Prometheus_대시보드.md
     - Tempo: Grafana_Tempo.md
   - OpenTelemetry: OpenTelemetry.md
+  - Jaeger: Jaeger.md
   - Loki:
     - 수집 구성과 운영: Loki_Log_Aggregation.md
     - 레이블 설계와 카디널리티: Loki_레이블_설계와_카디널리티.md

@@ -3,13 +3,14 @@ title: DevOps · Monitoring 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-24
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # DevOps · Monitoring 전체 보기
 
-문서 14개.
+문서 15개.
 
 ## Loki
 
@@ -26,6 +27,7 @@ hide:
 - [Grafana](Grafana.md)
 - [Grafana + Prometheus 대시보드](Grafana_Prometheus_대시보드.md)
 - [Grafana Tempo](Grafana_Tempo.md)
+- [Jaeger 구성과 저장소 운영](Jaeger.md)
 - [OpenTelemetry](OpenTelemetry.md)
 - [Prometheus](Prometheus.md)
 - [Prometheus + Grafana 모니터링 스택](Prometheus_Grafana.md)
