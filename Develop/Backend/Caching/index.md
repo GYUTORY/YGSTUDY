@@ -3,18 +3,20 @@ title: Caching 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-25
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # Caching 전체 보기
 
-문서 10개.
+문서 11개.
 
 ## 개요
 
 - [Cache Stampede 방어 패턴](Cache_Stampede_Pattern.md)
 - [Cache Warming](Cache_Warming.md)
+- [Hot Key 대응](Hot_Key_Handling.md)
 - [Redis 운영 — Persistence, Replication, Sentinel, Cluster](Redis_운영.md)
 - [Redis 캐시 운영 패턴](Redis_운영_패턴.md)
 - [Spring Cache 어노테이션 동작 원리](Spring_Cache.md)
