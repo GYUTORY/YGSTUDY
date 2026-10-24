@@ -6,6 +6,7 @@ nav:
     - 메트릭 수집: Prometheus_메트릭_수집.md
     - + Grafana 모니터링 스택: Prometheus_Grafana.md
     - 장기 저장소 Thanos와 Mimir: Prometheus_Long_Term_Storage.md
+    - Operator와 kube-prometheus-stack: Prometheus_Operator_Kubernetes.md
   - Grafana:
     - Grafana: Grafana.md
     - + Prometheus 대시보드: Grafana_Prometheus_대시보드.md

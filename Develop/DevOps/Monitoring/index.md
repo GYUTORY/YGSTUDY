@@ -10,7 +10,7 @@ updated: 2026-10-24
 
 # DevOps · Monitoring 전체 보기
 
-문서 18개.
+문서 19개.
 
 ## Loki
 
@@ -35,6 +35,7 @@ updated: 2026-10-24
 - [Prometheus 장기 저장소 Thanos와 Mimir](Prometheus_Long_Term_Storage.md)
 - [SLO와 에러 버짓 구현](SLO_Error_Budget_Implementation.md)
 - [Span Metrics와 Service Graph](Span_Metrics_And_Service_Graph.md)
+- [kube-prometheus-stack과 Prometheus Operator 운영](Prometheus_Operator_Kubernetes.md)
 - [분산 추적 컨텍스트 전파](Distributed_Trace_Context_Propagation.md)
 - [알림 설계 심화](Alert_Design.md)
 - [지속적 프로파일링](Continuous_Profiling.md)
