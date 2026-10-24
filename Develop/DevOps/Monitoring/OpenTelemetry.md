@@ -1,7 +1,7 @@
 ---
 title: OpenTelemetry
 tags: [devops, monitoring, observability, kubernetes]
-updated: 2026-03-26
+updated: 2026-10-24
 ---
 
 # OpenTelemetry
@@ -10,18 +10,13 @@ updated: 2026-03-26
 
 OpenTelemetry(OTel)는 **로그·메트릭·트레이스** 세 가지 관찰 데이터를 수집하고 내보내는 **벤더 중립적 오픈소스 표준**이다. 특정 모니터링 벤더에 종속되지 않고, 데이터를 Jaeger·Tempo·Prometheus·Datadog 등 원하는 백엔드로 보낼 수 있다.
 
-```text
-수집 대상:
-  Traces  — 요청이 여러 서비스를 거치는 전체 경로 추적
-  Metrics — 수치 기반 상태 측정 (RPS, 오류율, 응답 시간)
-  Logs    — 이벤트 기록 (OTel Logs는 기존 로거와 연동)
+| 신호 | 보는 것 | 주로 보내는 곳 |
+|---|---|---|
+| Traces | 요청이 여러 서비스를 거치는 전체 경로 | Jaeger, Tempo |
+| Metrics | RPS, 오류율, 응답 시간 같은 수치 | Prometheus, Mimir |
+| Logs | 이벤트 기록. 기존 로거와 연동한다 | Loki |
 
-내보낼 수 있는 백엔드:
-  Jaeger / Tempo  — 분산 트레이싱
-  Prometheus      — 메트릭
-  Loki            — 로그
-  Datadog / Dynatrace / New Relic — 상용 APM
-```
+Datadog, Dynatrace, New Relic 같은 상용 APM도 같은 데이터를 받는다.
 
 ---
 
@@ -118,15 +113,15 @@ import {
 
 Trace는 하나의 요청이 시스템을 통과하는 전체 경로를 나타낸다. Trace 자체는 독립적인 데이터 객체가 아니라, **같은 trace ID를 공유하는 Span들의 집합**이다. Span은 하나의 작업 단위를 나타내고, Span들이 부모-자식 관계로 연결되어 트리 구조를 형성한다.
 
-```text
-Trace (trace_id: abc123)
-│
-├── Span A: "POST /api/orders" (parent_span_id: 없음 = root span)
-│   ├── Span B: "OrderService.create" (parent_span_id: A)
-│   │   ├── Span C: "DB INSERT orders" (parent_span_id: B)
-│   │   └── Span D: "Redis SET order_cache" (parent_span_id: B)
-│   └── Span E: "PaymentService.charge" (parent_span_id: A)
-│       └── Span F: "HTTP POST stripe.com/charge" (parent_span_id: E)
+trace_id가 같은 span 여섯 개가 `parent_span_id`를 따라 이어진 모양이다. 화살표는 부모에서 자식 방향이다.
+
+```mermaid
+flowchart TD
+    A["Span A: POST /api/orders<br/>root span"] --> B["Span B: OrderService.create"]
+    A --> E["Span E: PaymentService.charge"]
+    B --> C["Span C: DB INSERT orders"]
+    B --> D["Span D: Redis SET order_cache"]
+    E --> F["Span F: HTTP POST stripe.com/charge"]
 ```
 
 Jaeger UI에서 보는 워터폴 차트가 이 구조를 시간축 위에 펼친 것이다.
@@ -209,13 +204,16 @@ tracer.startActiveSpan('order.retry', { links: [link] }, (span) => {
 
 비동기 메시징이나 배치 처리가 섞이면 Link 때문에 관계가 **DAG(Directed Acyclic Graph)**로 확장된다. 부모-자식 관계는 여전히 트리지만, Link를 포함하면 하나의 span이 여러 trace의 span들과 연결될 수 있다.
 
-```text
-Trace 1: [Producer A] ──publish──▶ [message queue]
-Trace 2: [Producer B] ──publish──▶ [message queue]
-                                        │
-Trace 3: [Consumer] ◀──consume──────────┘
-          links: [Producer A의 span, Producer B의 span]
+```mermaid
+flowchart LR
+    PA["Trace 1: Producer A"] -->|publish| Q[("message queue")]
+    PB["Trace 2: Producer B"] -->|publish| Q
+    Q -->|consume| C["Trace 3: Consumer"]
+    PA -. link .-> C
+    PB -. link .-> C
 ```
+
+실선은 부모-자식 호출이고 점선이 Link다. Consumer span은 부모가 하나지만 Link로 두 trace에 걸린다.
 
 Jaeger에서 Link가 있는 span을 클릭하면 연결된 trace로 점프할 수 있다. 다만 모든 트레이싱 백엔드가 Link를 잘 시각화하지는 않는다. Tempo는 지원하고, Jaeger는 버전에 따라 다르다.
 
@@ -227,13 +225,11 @@ Context는 현재 실행 중인 코드의 **부가 정보를 담는 불변 객�
 
 함수 A가 span을 시작하고 함수 B를 호출하면, 함수 B는 어떻게 "내 부모 span이 A다"라는 걸 아는가? 매번 span을 파라미터로 넘길 수는 없으니까, OTel은 Context라는 **암묵적 저장소**에 현재 span을 넣어두고, 하위 코드에서 `context.active()`로 꺼내 쓴다.
 
-```text
-함수 호출 흐름:
-
-handleRequest()                    context = { activeSpan: spanA }
-  └── processOrder()               context = { activeSpan: spanA }  ← 자동 전파
-        └── chargePayment()         context = { activeSpan: spanB }  ← spanB의 parent = spanA
-              └── callStripe()      context = { activeSpan: spanC }  ← spanC의 parent = spanB
+```mermaid
+flowchart TD
+    H["handleRequest()<br/>activeSpan = spanA"] --> P["processOrder()<br/>activeSpan = spanA, 자동 전파"]
+    P --> CP["chargePayment()<br/>activeSpan = spanB, parent = spanA"]
+    CP --> S["callStripe()<br/>activeSpan = spanC, parent = spanB"]
 ```
 
 `startActiveSpan()`을 호출하면 새 span을 만들고, 그 span을 담은 새 Context를 현재 실행 범위에 설정한다. 콜백이 끝나면 이전 Context로 복원된다.
@@ -273,20 +269,29 @@ Java에서는 `ThreadLocal`이 같은 역할을 하는데, 스레드 풀에서 �
 
 서비스 A에서 서비스 B를 HTTP로 호출할 때, Context를 HTTP 헤더에 실어 보내야 한다. 이게 Context Propagation이다.
 
-과정은 세 단계다:
+과정은 세 단계다. 서비스 A가 현재 Context에서 trace_id, span_id를 꺼내 요청 헤더에 넣고(inject), 요청이 네트워크로 넘어가면, 서비스 B가 헤더에서 값을 꺼내 새 Context를 만들고 이후 span의 부모로 삼는다(extract). 아래 시퀀스는 이 과정에 span이 만들어지고 끝나서 Collector로 나가기까지를 함께 놓은 것이다.
 
-```text
-1. Inject (주입)  — 서비스 A가 현재 Context에서 trace_id, span_id를 꺼내
-                    HTTP 요청 헤더에 넣는다
-                    propagation.inject(context.active(), headers)
+```mermaid
+sequenceDiagram
+    participant A as 서비스 A
+    participant SA as A의 SDK
+    participant B as 서비스 B
+    participant SB as B의 SDK
+    participant C as Collector
 
-2. Transfer (전송) — HTTP 요청이 네트워크를 통해 서비스 B로 전달된다
-                    traceparent: 00-abc123-def456-01 (W3C 포맷)
-
-3. Extract (추출) — 서비스 B가 수신한 헤더에서 trace_id, span_id를 꺼내
-                    새 Context를 만들고, 이후 생성되는 span의 부모로 설정한다
-                    propagation.extract(context.active(), headers)
+    A->>SA: startActiveSpan("call B")
+    Note over SA: Sampler 판단, Context에 spanA 저장
+    A->>B: HTTP 요청 + traceparent (inject)
+    B->>SB: extract, parent = spanA
+    Note over SB: spanB 생성, Context에 spanB 저장
+    B-->>A: 응답
+    Note over SB: spanB.end(), SpanProcessor 큐에 적재
+    Note over SA: spanA.end(), SpanProcessor 큐에 적재
+    SA->>C: 배치 export (OTLP)
+    SB->>C: 배치 export (OTLP)
 ```
+
+span은 `end()`가 불리는 순간 기록이 확정되고, 전송은 그 뒤 배치 주기에 따로 일어난다. 응답이 돌아간 시점과 Collector에 도착하는 시점 사이에 수 초 간격이 있는 게 정상이다.
 
 자동 계측(`@opentelemetry/instrumentation-http` 등)이 이 inject/extract를 알아서 처리한다. HTTP client 라이브러리(axios, fetch)로 요청을 보내면 자동으로 `traceparent` 헤더가 추가되고, Express/Fastify 서버에서 요청을 받으면 자동으로 헤더를 읽어 부모 span을 설정한다.
 
@@ -294,7 +299,7 @@ Java에서는 `ThreadLocal`이 같은 역할을 하는데, 스레드 풀에서 �
 
 #### Propagator 종류와 선택
 
-Propagation에서 "어떤 포맷으로 직렬화하느냐"를 결정하는 게 Propagator다. 아래 Propagator 섹션에서 W3C TraceContext, B3 등 구체적인 포맷을 다룬다.
+Propagator는 Context를 헤더로 직렬화하는 포맷을 정한다. W3C TraceContext가 기본이고 B3, X-Ray 포맷도 있다. 포맷이 섞일 때 끊기는 지점, 게이트웨이와 비동기 경로에서 헤더가 빠지는 위치, Kafka의 span link 기준은 [분산 추적 컨텍스트 전파](Distributed_Trace_Context_Propagation.md)에 따로 정리했다. 이 문서에서는 SDK 설정 방법만 [Propagator 섹션](#propagator-컨텍스트-전파-포맷)에서 다룬다.
 
 ### SDK 내부 파이프라인
 
@@ -302,27 +307,21 @@ NodeSDK 래퍼를 쓰면 초기화 코드가 간단하지만, 내부에서 어�
 
 #### TracerProvider → Tracer → Span
 
-```text
-TracerProvider (SDK 초기화 시 1개 생성)
-  │
-  ├── Resource 설정 (service.name, environment 등)
-  ├── SpanProcessor 등록 (Simple 또는 Batch)
-  ├── Sampler 설정
-  │
-  └── getTracer('module-name', 'version')
-        │
-        └── Tracer (모듈/라이브러리별로 1개씩)
-              │
-              └── startActiveSpan('operation-name')
-                    │
-                    └── Span 생성
-                          │
-                          ├── Sampler에게 "이 span 수집할까?" 물어봄
-                          │   └── YES → 정상 span, 속성/이벤트 기록
-                          │   └── NO  → NoOp span, 아무것도 안 함
-                          │
-                          └── span.end() 호출 시 → SpanProcessor로 전달
+```mermaid
+flowchart TD
+    TP["TracerProvider<br/>SDK 초기화 시 1개"] --> R["Resource<br/>service.name, environment"]
+    TP --> SM["Sampler"]
+    TP --> SP["SpanProcessor<br/>Simple 또는 Batch"]
+    TP --> T1["Tracer 'payment-module'"]
+    TP --> T2["Tracer 'notification-module'"]
+    T1 --> SS["startActiveSpan"]
+    SS --> D{"Sampler 판단"}
+    D -->|수집| REC["정상 span<br/>속성과 이벤트 기록"]
+    D -->|미수집| NOOP["NoOp span<br/>아무것도 기록하지 않음"]
+    REC -->|"span.end()"| SP
 ```
+
+Tracer가 여러 개여도 Sampler, SpanProcessor, Resource는 TracerProvider 하나의 것을 공유한다.
 
 `TracerProvider`는 프로세스당 하나다. `trace.getTracer()`로 Tracer를 여러 개 만들 수 있지만, 이건 Instrumentation Scope를 구분하기 위한 것이지 별도의 설정을 가지는 건 아니다. 모든 Tracer가 같은 TracerProvider의 Sampler, Processor, Exporter를 공유한다.
 
@@ -332,25 +331,16 @@ TracerProvider (SDK 초기화 시 1개 생성)
 
 Span이 `end()`되면 SpanProcessor에게 전달된다. Processor가 Exporter를 호출해서 실제로 데이터를 보낸다.
 
-```text
-Span.end()
-  │
-  ▼
-SpanProcessor.onEnd(span)
-  │
-  ├── SimpleSpanProcessor
-  │     └── 즉시 Exporter.export([span]) 호출
-  │         span이 끝날 때마다 바로 전송
-  │         개발 환경에서 디버깅할 때 쓴다
-  │         프로덕션에서 쓰면 요청마다 네트워크 호출이 발생해서 성능이 나빠진다
-  │
-  └── BatchSpanProcessor
-        └── 내부 큐에 span을 쌓아둔다
-            일정 시간(scheduledDelayMillis, 기본 5초) 또는
-            일정 개수(maxExportBatchSize, 기본 512개)가 되면
-            한 번에 Exporter.export(spans[]) 호출
-            프로덕션에서는 이걸 써야 한다
+```mermaid
+flowchart TD
+    E["Span.end()"] --> P["SpanProcessor.onEnd(span)"]
+    P --> S["SimpleSpanProcessor<br/>즉시 Exporter.export 호출"]
+    P --> B["BatchSpanProcessor<br/>내부 큐에 적재"]
+    B -->|"5초 경과 또는 512개 도달"| X["Exporter.export(spans)"]
+    S --> X
 ```
+
+SimpleSpanProcessor는 span이 끝날 때마다 바로 전송한다. 요청마다 네트워크 호출이 생기므로 개발 환경 디버깅에서만 쓴다. 프로덕션은 BatchSpanProcessor다. 기본값은 `scheduledDelayMillis` 5초, `maxExportBatchSize` 512개다.
 
 ```typescript
 import { BatchSpanProcessor, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
@@ -374,6 +364,23 @@ const simpleProcessor = new SimpleSpanProcessor(exporter);
 
 `maxQueueSize`에 도달하면 새 span이 버려진다. 트래픽이 많은 서비스에서 이 값이 작으면 span 유실이 생기는데, Collector 메트릭의 `otelcol_exporter_send_failed_spans`가 아니라 SDK 쪽에서 조용히 drop되는 거라 모르고 지나가는 경우가 있다.
 
+큐에 들어간 span이 어떤 경로로 사라지는지는 아래 상태로 보면 된다. Dropped는 로그에도 잘 남지 않아서, 트래픽이 큰 서비스에서 span 수가 기대보다 적으면 먼저 의심할 자리다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Sampling: startSpan
+    Sampling --> NonRecording: 샘플링 안 함
+    Sampling --> Recording: 샘플링 함
+    Recording --> Ended: span.end()
+    Ended --> Queued: SpanProcessor.onEnd
+    Queued --> Exported: 배치 전송 성공
+    Queued --> Dropped: 큐 가득 참
+    NonRecording --> [*]
+    Exported --> [*]
+    Dropped --> [*]
+```
+
+
 #### Exporter — 데이터를 어디로 보내나
 
 SpanProcessor가 Exporter를 호출하면, Exporter가 실제 네트워크 전송을 담당한다.
@@ -390,28 +397,31 @@ Exporter는 바꿔 끼울 수 있다. Collector로 보내다가 Jaeger로 직접
 
 #### 전체 흐름 정리
 
-```text
-[애플리케이션 코드]
-     │
-     │ tracer.startActiveSpan('op')
-     ▼
-[Sampler] ─── 수집 여부 결정
-     │
-     │ span.setAttribute(), span.addEvent()
-     │ span.end()
-     ▼
-[SpanProcessor]
-     │ Simple: 즉시 전송
-     │ Batch: 큐에 모아서 전송
-     ▼
-[Exporter]
-     │ OTLP HTTP/gRPC
-     ▼
-[Collector] ─── receivers → processors → exporters
-     │
-     ▼
-[Backend] ─── Jaeger, Tempo, Datadog 등
+```mermaid
+flowchart LR
+    subgraph APP["애플리케이션 프로세스"]
+        CODE["계측 코드<br/>tracer.startActiveSpan"] --> SAM["Sampler"]
+        SAM --> SPR["SpanProcessor<br/>Simple 또는 Batch"]
+        SPR --> EXP["Exporter<br/>OTLP HTTP 또는 gRPC"]
+    end
+    subgraph COL["Collector"]
+        RCV["receivers<br/>otlp"] --> PRC["processors<br/>memory_limiter, batch, tail_sampling"]
+        PRC --> XP["exporters<br/>otlp, prometheus, loki"]
+    end
+    subgraph BE["백엔드"]
+        JT["Jaeger, Tempo"]
+        PM["Prometheus, Mimir"]
+        LK["Loki"]
+        APM["Datadog 등 상용 APM"]
+    end
+    EXP -->|OTLP| RCV
+    XP --> JT
+    XP --> PM
+    XP --> LK
+    XP --> APM
 ```
+
+왼쪽부터 계측 코드, SDK 내부 파이프라인, Collector의 receiver, processor, exporter, 백엔드 순서다. SDK와 Collector는 각각 배치와 샘플링을 할 수 있어서, 같은 처리를 양쪽에 중복해서 걸지 않도록 어디서 처리할지 정해 두어야 한다.
 
 ### Sampler 종류와 동작 원리
 
@@ -576,22 +586,17 @@ getNodeAutoInstrumentations({
 
 OTel은 Prometheus, Jaeger, Datadog 같은 도구를 **대체하는 게 아니다.** OTel의 역할은 데이터를 수집하고 전송하는 **계층**이고, 저장·쿼리·시각화는 기존 도구가 담당한다.
 
-```text
-┌─────────────────────────────────────────────────────┐
-│                    OTel의 영역                       │
-│  계측 (SDK) → 수집/처리 (Collector) → 전송 (OTLP)   │
-└──────────────────────────┬──────────────────────────┘
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-    ┌──────────┐    ┌───────────┐    ┌──────────┐
-    │ Jaeger   │    │Prometheus │    │ Datadog  │
-    │ Tempo    │    │ Mimir     │    │ New Relic│
-    │ Zipkin   │    │ Thanos    │    │ Dynatrace│
-    └──────────┘    └───────────┘    └──────────┘
-      트레이싱         메트릭          상용 APM
-      저장/조회        저장/조회       저장/조회/알림
+```mermaid
+flowchart TB
+    subgraph OTEL["OTel 영역: 계측, 수집과 처리, 전송"]
+        SDK["SDK"] -->|OTLP| COL["Collector"]
+    end
+    COL --> T["트레이싱: Jaeger, Tempo, Zipkin"]
+    COL --> M["메트릭: Prometheus, Mimir, Thanos"]
+    COL --> A["상용 APM: Datadog, New Relic, Dynatrace"]
 ```
+
+OTel 영역 아래 세 갈래는 저장, 조회, 알림을 맡는 쪽이다.
 
 각 도구와의 관계를 정리하면:
 
@@ -609,16 +614,20 @@ OTel은 Prometheus, Jaeger, Datadog 같은 도구를 **대체하는 게 아니�
 
 ## 아키텍처
 
-```text
-┌────────────┐   OTLP   ┌─────────────────────┐   ┌──────────┐
-│  서비스 A   │ ────────▶│  OTel Collector      │──▶│  Jaeger  │
-│ (Node.js)  │          │  - 수신 (OTLP)       │   └──────────┘
-└────────────┘          │  - 처리 (필터/샘플링) │   ┌──────────┐
-┌────────────┐   OTLP   │  - 내보내기           │──▶│Prometheus│
-│  서비스 B   │ ────────▶│                      │   └──────────┘
-│ (Java)     │          └─────────────────────┘   ┌──────────┐
-└────────────┘                                     │   Loki   │
-                                                   └──────────┘
+receiver 하나가 세 signal을 모두 받고, pipeline이 signal별로 갈라진다. 설정 파일의 `service.pipelines`가 이 구조를 그대로 옮긴 것이다.
+
+```mermaid
+flowchart LR
+    SA["서비스 A<br/>Node.js"] -->|OTLP| R["receivers: otlp"]
+    SB["서비스 B<br/>Java"] -->|OTLP| R
+    subgraph COL["OTel Collector"]
+        R --> PT["traces pipeline<br/>memory_limiter, batch, sampler"]
+        R --> PM["metrics pipeline<br/>memory_limiter, batch"]
+        R --> PL["logs pipeline<br/>memory_limiter, batch"]
+    end
+    PT --> JG["Jaeger"]
+    PM --> PRO["Prometheus"]
+    PL --> LO["Loki"]
 ```
 
 ---
@@ -751,19 +760,32 @@ service:
 
 Collector를 어떤 모드로 배포하느냐에 따라 운영 방식이 완전히 달라진다.
 
+두 모드의 차이는 아래 도식에서 데이터가 모이는 지점으로 보면 된다. Agent는 노드마다 흩어져 있고 서비스와 localhost로 붙는다. Gateway는 로드밸런서 뒤에서 모든 서비스의 데이터가 한 클러스터로 모인다.
+
+```mermaid
+flowchart LR
+    subgraph AG["Agent 모드: 노드마다 Collector"]
+        A1["서비스 A"] -->|localhost| AC1["Agent Collector<br/>Node 1"]
+        A2["서비스 B"] -->|localhost| AC2["Agent Collector<br/>Node 2"]
+        AC1 --> BE1["백엔드"]
+        AC2 --> BE1
+    end
+    subgraph GW["Gateway 모드: 중앙 Collector 클러스터"]
+        S1["서비스 A"] --> LB["로드밸런서"]
+        S2["서비스 B"] --> LB
+        S3["서비스 C"] --> LB
+        LB --> G1["Gateway 1"]
+        LB --> G2["Gateway 2"]
+        G1 --> BE2["백엔드"]
+        G2 --> BE2
+    end
+```
+
+
 ### Agent 모드
 
 각 서비스(또는 노드)마다 Collector를 하나씩 붙인다. 서비스와 같은 호스트에서 돌아가므로 네트워크 지연이 없다.
 
-```text
-┌──────────────────────────────┐
-│ Node 1                       │
-│  ┌─────────┐  ┌───────────┐  │
-│  │ 서비스 A │──│ Collector │──│──▶ 백엔드
-│  └─────────┘  │ (Agent)   │  │
-│               └───────────┘  │
-└──────────────────────────────┘
-```
 
 - 서비스가 localhost로 데이터를 보내면 되니까 설정이 단순하다
 - 노드별로 Collector가 있어서 한 노드의 Collector가 죽어도 다른 노드에 영향 없음
@@ -773,17 +795,6 @@ Collector를 어떤 모드로 배포하느냐에 따라 운영 방식이 완전�
 
 중앙에 Collector 클러스터를 두고, 모든 서비스가 여기로 데이터를 보낸다.
 
-```text
-┌─────────┐
-│ 서비스 A │──┐
-└─────────┘  │   ┌───────────────┐
-┌─────────┐  ├──▶│ Collector     │──▶ 백엔드
-│ 서비스 B │──┤   │ (Gateway)     │
-└─────────┘  │   │ - LB 뒤에 배포│
-┌─────────┐  │   └───────────────┘
-│ 서비스 C │──┘
-└─────────┘
-```
 
 - 라우팅, 필터링, 샘플링 같은 처리를 한 곳에서 관리할 수 있다
 - tail-based 샘플링은 같은 trace의 span이 한 곳에 모여야 하므로 Gateway에서 하는 게 맞다
@@ -793,9 +804,13 @@ Collector를 어떤 모드로 배포하느냐에 따라 운영 방식이 완전�
 
 프로덕션에서는 Agent + Gateway 2단 구조를 많이 쓴다.
 
-```text
-서비스 → Agent Collector (로컬) → Gateway Collector (중앙) → 백엔드
+```mermaid
+flowchart LR
+    SVC["서비스"] --> AGT["Agent Collector<br/>노드 로컬, 배치와 기본 필터"]
+    AGT --> GWC["Gateway Collector<br/>tail 샘플링, 라우팅"]
+    GWC --> BK["백엔드"]
 ```
+
 
 Agent에서 배치 처리와 기본 필터링을 하고, Gateway에서 tail 샘플링과 라우팅을 담당한다. Agent에서 `otlp` exporter로 Gateway 주소를 잡아주면 된다.
 
@@ -817,7 +832,34 @@ service:
 
 ### 스케일링 시 주의점
 
-**Gateway 스케일링**에서 가장 많이 실수하는 부분은 tail-based 샘플링이다. 같은 trace의 span이 여러 Gateway 인스턴스에 흩어지면 일부 span만 보고 샘플링 결정을 내린다. 이를 방지하려면 `load_balancing` exporter를 Agent에 설정해서 같은 trace ID의 span이 같은 Gateway로 가게 해야 한다.
+**Gateway 스케일링**에서 가장 많이 실수하는 부분은 tail-based 샘플링이다. 같은 trace의 span이 여러 Gateway 인스턴스에 흩어지면 일부 span만 보고 샘플링 결정을 내린다. 이를 방지하려면 Agent에 `loadbalancing` exporter를 설정해서 같은 trace ID의 span이 같은 Gateway로 가게 해야 한다.
+
+구성은 2계층이다. 1계층 Agent는 span을 처리하지 않고 trace ID 해시로 목적지만 정한다. 2계층 Gateway가 trace 전체를 받아 `tail_sampling`을 실행한다. Agent가 몇 개든 같은 trace ID는 같은 Gateway에 도착한다.
+
+```mermaid
+flowchart LR
+    DNS["headless Service<br/>Gateway Pod IP 목록"]
+    subgraph T1["1계층: Agent Collector"]
+        AG1["Agent 1<br/>loadbalancing exporter"]
+        AG2["Agent 2<br/>loadbalancing exporter"]
+    end
+    subgraph T2["2계층: Gateway Collector"]
+        GW1["Gateway 1<br/>tail_sampling"]
+        GW2["Gateway 2<br/>tail_sampling"]
+        GW3["Gateway 3<br/>tail_sampling"]
+    end
+    DNS -.->|"DNS resolver 조회"| AG1
+    DNS -.->|"DNS resolver 조회"| AG2
+    AG1 -->|"trace 해시 A"| GW1
+    AG1 -->|"trace 해시 B"| GW2
+    AG2 -->|"trace 해시 A"| GW1
+    AG2 -->|"trace 해시 C"| GW3
+    GW1 --> BK["백엔드"]
+    GW2 --> BK
+    GW3 --> BK
+```
+
+Agent 1과 Agent 2가 각각 받은 해시 A의 span이 둘 다 Gateway 1로 간다. 일반 ClusterIP Service를 지정하면 DNS가 Pod 하나가 아니라 가상 IP만 돌려주므로 Gateway 사이 분배가 되지 않는다. headless Service가 필요한 이유다. Gateway Pod가 늘거나 줄어드는 순간에는 해시 배치가 바뀌어서, 그때 진행 중이던 trace 일부가 둘로 쪼개져 판정되는 경우가 있다.
 
 ```yaml
 # Agent Collector — trace ID 기반 로드밸런싱
@@ -1060,18 +1102,7 @@ W3C 표준이라 대부분의 APM 도구와 클라우드 서비스가 지원한�
 
 **B3 (Zipkin 호환)**
 
-Zipkin에서 시작된 포맷이다. 기존에 Zipkin 기반 트레이싱을 쓰고 있는 환경에서 마이그레이션할 때 필요하다.
-
-```text
-# B3 Multi-header (각각 별도 헤더)
-X-B3-TraceId: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
-X-B3-SpanId: 1a2b3c4d5e6f7a8b
-X-B3-ParentSpanId: 0000000000000000
-X-B3-Sampled: 1
-
-# B3 Single-header (한 줄)
-b3: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4-1a2b3c4d5e6f7a8b-1
-```
+Zipkin 계열이 쓰던 포맷이다. `X-B3-TraceId` 같은 multi-header와 `b3` single-header 두 가지가 있다. W3C와 섞이는 마이그레이션 구간에서 trace가 끊기는 사례는 헤더 예시와 함께 [분산 추적 컨텍스트 전파](Distributed_Trace_Context_Propagation.md)에 정리했다.
 
 **Propagator 설정**
 
@@ -1122,6 +1153,20 @@ OTel의 Logs는 Traces, Metrics와 접근 방식이 다르다. Traces와 Metrics
 OTel 방식:
   winston → Log Bridge → OTLP → Collector → Loki
             (OTel SDK)
+```
+
+아래 도식은 위 두 경로를 나란히 놓은 것이다. 기존 로거는 그대로 두고, 브릿지가 LogRecord로 변환하는 구간만 새로 생긴다.
+
+```mermaid
+flowchart LR
+    subgraph OLD["기존 방식"]
+        direction LR
+        W1["winston"] --> F1["console 또는 file"] --> FD["Fluentd"] --> L1["Loki"]
+    end
+    subgraph NEW["OTel 방식"]
+        direction LR
+        W2["winston"] --> LB["Log Bridge (OTel SDK)"] --> OT["OTLP"] --> CO["Collector"] --> L2["Loki"]
+    end
 ```
 
 ### LogRecord 구조
@@ -1464,6 +1509,24 @@ prom-client에서는 `/metrics` 엔드포인트를 서비스에서 직접 노출
 
 Baggage는 서비스 간 호출에서 임의의 키-값 쌍을 전달하는 메커니즘이다. trace context와 함께 전파되지만, trace에 기록되는 건 아니다. "이 요청은 어떤 사용자의 것" 같은 정보를 downstream 서비스에 알려줄 때 쓴다.
 
+아래 시퀀스에서 `baggage` 헤더가 서비스를 거칠 때마다 이어지고, 외부 API 호출에도 그대로 실리는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant GW as API Gateway
+    participant A as Order Service
+    participant B as Payment Service
+    participant X as 외부 API
+
+    GW->>GW: Baggage 설정 (user.id, tenant.id)
+    GW->>A: traceparent + baggage 헤더
+    A->>A: Baggage 읽기
+    A->>B: traceparent + baggage 헤더
+    B->>B: Baggage 읽기, 필요하면 Span 속성으로 복사
+    B->>X: baggage 헤더도 함께 전송
+    Note over B,X: 민감 정보를 넣으면 외부로 새어 나간다
+```
+
 ### 사용법
 
 ```typescript
@@ -1795,41 +1858,56 @@ spec:
 
 ### 패턴 선택 기준
 
-```text
-DaemonSet:
-  - 노드당 리소스 고정 → 예측 가능한 비용
-  - 노드 수가 많으면 낭비 (트래픽 없는 노드에도 Collector가 뜸)
-  - hostPort 사용 → 서비스가 노드 IP로 접근
+| | DaemonSet (Agent) | Sidecar |
+|---|---|---|
+| 단위 | 노드당 1개 | Pod당 1개 |
+| 리소스 | 노드당 고정이라 비용이 예측된다. 트래픽 없는 노드에도 뜬다 | Pod 수에 비례해 늘어난다. 서비스가 많으면 오버헤드가 크다 |
+| 접근 | hostPort로 노드 IP 사용 | localhost |
+| 설정 | 노드 전체가 같은 설정 | 서비스별로 다르게 둘 수 있다 |
 
-Sidecar:
-  - 서비스별 독립 설정 가능
-  - Pod 수에 비례해 리소스 증가 → 서비스가 많으면 오버헤드
-  - localhost 접근 → 네트워크 설정 단순
+실무에서 많이 쓰는 조합은 DaemonSet(Agent)과 Deployment(Gateway)다. Agent가 노드에서 수집하고 Gateway가 중앙에서 처리와 라우팅을 맡는다.
 
-실무에서 많이 쓰는 조합:
-  DaemonSet (Agent) + Deployment (Gateway)
-  → Agent가 노드에서 수집, Gateway가 중앙에서 처리/라우팅
+아래 도식에서 세 패턴이 서비스 Pod와 어떤 거리에 놓이는지 보면 된다. Sidecar는 Pod 안, DaemonSet은 노드 단위, Gateway는 클러스터 중앙이다.
+
+```mermaid
+flowchart LR
+    subgraph N1["Node 1"]
+        subgraph P1["Pod: Sidecar 패턴"]
+            S1["서비스 컨테이너"] -->|"localhost:4317"| C1["Sidecar Collector"]
+        end
+        S2["서비스 Pod"] -->|"NODE_IP:4317"| D1["DaemonSet Collector (Agent)"]
+    end
+    subgraph N2["Node 2"]
+        S3["서비스 Pod"] -->|"NODE_IP:4317"| D2["DaemonSet Collector (Agent)"]
+    end
+    C1 --> G["Gateway Deployment"]
+    D1 --> G
+    D2 --> G
+    G --> B["백엔드 (Jaeger, Tempo, Prometheus)"]
 ```
 
 ---
 
 ## 샘플링
 
-```text
-트레이스 전체 수집 시 문제:
-  - 초당 1,000 RPS → 하루 86,400,000 트레이스 → 스토리지 비용 폭증
-  - 99%는 정상 요청 → 분석 가치 낮음
+초당 1,000 요청이면 하루 8,640만 trace가 쌓인다. 대부분은 정상 요청이라 분석 가치가 낮다. 두 방식의 결정 시점은 아래처럼 다르다.
 
-Head-based (앞단 결정):
-  - 요청 시작 시 수집 여부 결정
-  - 구현 단순, 오류 요청도 미수집될 수 있음
-  - 예: 10% 무작위 수집
-
-Tail-based (뒷단 결정, 권장):
-  - 요청 완료 후 오류·느린 요청 기준으로 결정
-  - OTel Collector의 tail_sampling processor 사용
-  - 오류(5xx)는 100%, 정상은 1~5% 수집
+```mermaid
+flowchart LR
+    subgraph H["Head-based: SDK에서 결정"]
+        H1["root span 생성"] --> H2{"ratio 판단"}
+        H2 -->|수집| H3["trace 전체 export"]
+        H2 -->|미수집| H4["NoOp, 오류 요청도 버려진다"]
+    end
+    subgraph TL["Tail-based: Collector에서 결정"]
+        T1["span 도착"] --> T2["decision_wait 동안 버퍼링"]
+        T2 --> T3{"정책 평가"}
+        T3 -->|"ERROR 또는 1초 초과"| T4["저장"]
+        T3 -->|"그 외"| T5["5% 확률로 저장"]
+    end
 ```
+
+Head-based는 구현이 단순하지만 오류 요청도 확률로 버려진다. Tail-based는 `tail_sampling` processor를 쓰고, 오류(5xx)는 전부 남기고 정상은 1~5%만 남기는 식으로 정책을 건다.
 
 ```yaml
 # Tail-based 샘플링 예시 (otel-collector.yaml)
@@ -1847,6 +1925,9 @@ processors:
         type: probabilistic
         probabilistic: {sampling_percentage: 5}
 ```
+
+tail_sampling은 trace 전체를 메모리에 들고 `decision_wait` 동안 기다리므로 Gateway 메모리를 가장 많이 쓰는 processor다. 인스턴스를 여러 개 두는 구성은 [Gateway 스케일링](#스케일링-시-주의점)의 loadbalancing 2계층 도식을 따른다. 샘플링 뒤에 `spanmetrics` 커넥터를 두면 RED 메트릭이 남은 trace만 세어 실제와 달라진다. 파이프라인 순서와 해결 방법은 [Span Metrics와 Service Graph](Span_Metrics_And_Service_Graph.md)에 있다.
+
 
 ---
 
