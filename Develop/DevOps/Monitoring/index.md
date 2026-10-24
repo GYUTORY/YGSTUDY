@@ -10,7 +10,7 @@ updated: 2026-10-24
 
 # DevOps · Monitoring 전체 보기
 
-문서 17개.
+문서 18개.
 
 ## Loki
 
@@ -32,6 +32,7 @@ updated: 2026-10-24
 - [Prometheus](Prometheus.md)
 - [Prometheus + Grafana 모니터링 스택](Prometheus_Grafana.md)
 - [Prometheus 메트릭 수집](Prometheus_메트릭_수집.md)
+- [Prometheus 장기 저장소 Thanos와 Mimir](Prometheus_Long_Term_Storage.md)
 - [SLO와 에러 버짓 구현](SLO_Error_Budget_Implementation.md)
 - [Span Metrics와 Service Graph](Span_Metrics_And_Service_Graph.md)
 - [분산 추적 컨텍스트 전파](Distributed_Trace_Context_Propagation.md)
