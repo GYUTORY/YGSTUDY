@@ -10,6 +10,7 @@ nav:
     - + Prometheus 대시보드: Grafana_Prometheus_대시보드.md
     - Tempo: Grafana_Tempo.md
   - OpenTelemetry: OpenTelemetry.md
+  - 트레이스 컨텍스트 전파: Distributed_Trace_Context_Propagation.md
   - Jaeger: Jaeger.md
   - Loki:
     - 수집 구성과 운영: Loki_Log_Aggregation.md
