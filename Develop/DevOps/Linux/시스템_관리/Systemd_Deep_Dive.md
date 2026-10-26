@@ -1,7 +1,7 @@
 ---
 title: Linux 시스템 서비스 관리 (systemd) 심화
 tags: [linux, devops]
-updated: 2026-04-25
+updated: 2026-10-26
 ---
 
 # Linux 시스템 서비스 관리 (systemd) 심화
@@ -27,6 +27,26 @@ unit 파일의 `Type=` 옵션은 systemd가 "프로세스가 시작됐다"라고
 ### simple의 함정
 
 `Type=simple`은 fork만 되면 ready로 본다. 즉 앱이 포트 바인딩에 1초가 걸리는데 의존 서비스가 곧바로 그 포트로 접속하면 connection refused가 난다. 가장 흔한 사고 패턴이다.
+
+아래 시퀀스는 같은 앱을 `simple`과 `notify`로 띄웠을 때 의존 서비스가 시작되는 시점이 어떻게 달라지는지 보여준다.
+
+```mermaid
+sequenceDiagram
+    participant S as systemd
+    participant A as 앱
+    participant D as 의존 서비스
+    Note over S,D: Type=simple
+    S->>A: fork 후 exec
+    S->>D: 곧바로 기동 (ready로 판단)
+    D->>A: 포트 접속
+    A-->>D: connection refused (아직 바인딩 전)
+    Note over S,D: Type=notify
+    S->>A: fork 후 exec
+    A->>S: READY=1 (포트 바인딩 이후)
+    S->>D: 이제 기동
+    D->>A: 포트 접속
+    A-->>D: 정상 응답
+```
 
 ```ini
 # 의존성이 있다면 Type=notify를 쓰는 게 맞다
@@ -99,6 +119,19 @@ ExecStartPre  → ExecStart  → (running)  → ExecStop  → ExecStopPost
                        ExecStartPost (병렬)
 ```
 
+실패 경로까지 넣으면 아래와 같다. `ExecStartPre`가 실패해도 `ExecStopPost`는 실행되므로 cleanup이 빠지지 않는다.
+
+```mermaid
+flowchart LR
+    A[ExecStartPre] -->|성공| B[ExecStart]
+    B --> C[running]
+    B -. 병렬 .-> P[ExecStartPost]
+    C --> D[ExecStop]
+    D --> E[ExecStopPost]
+    A -->|실패| E
+    B -->|비정상 종료| E
+```
+
 ```ini
 [Service]
 Type=simple
@@ -147,6 +180,18 @@ StartLimitIntervalSec=60s
 ```
 
 `StartLimitIntervalSec=60s` 동안 `StartLimitBurst=5`번 재시작 시도가 실패하면 systemd는 더 이상 재시작하지 않고 unit을 `failed` 상태로 둔다. 알림 시스템이 이걸 잡으면 진짜 사람이 봐야 할 상황을 놓치지 않는다.
+
+상태 전이로 보면 아래와 같다. `autorestart` 상태에서 `RestartSec`을 기다렸다가 다시 뜨는 고리가 정상 경로이고, 제한을 넘기면 그 고리가 끊기고 `failed`에서 멈춘다.
+
+```mermaid
+stateDiagram-v2
+    state "activating (auto-restart)" as autorestart
+    [*] --> active
+    active --> autorestart : 비정상 종료
+    autorestart --> active : RestartSec 후 기동 성공
+    autorestart --> failed : StartLimitIntervalSec 안에 StartLimitBurst 초과
+    failed --> [*]
+```
 
 함정 하나: 옛날 systemd 버전(<v230)에서는 `StartLimitBurst`가 `[Service]` 섹션에 있었지만, 최신 버전은 `[Unit]` 섹션에 있다. 호환성을 위해 두 곳에 다 적어두는 unit 파일을 종종 본다.
 
@@ -291,6 +336,18 @@ TasksMax=4096                 # fork bomb 방지
 
 `MemoryMax`는 절대 한계다. 넘기 직전까지 reclaim하다 안 되면 OOM이다. `MemoryHigh`는 부드러운 한계로, 넘으면 process가 throttle 상태로 들어가고 reclaim이 일어난다. 둘 다 거는 게 맞다.
 
+메모리 사용량이 늘어날 때 두 한계가 순서대로 어떻게 개입하는지는 아래 흐름과 같다.
+
+```mermaid
+flowchart LR
+    U[메모리 사용량 증가] --> H{MemoryHigh 초과}
+    H -->|아니오| OK[정상 동작]
+    H -->|예| T[throttle + reclaim]
+    T --> M{MemoryMax 도달}
+    M -->|reclaim으로 회수됨| OK
+    M -->|회수 실패| K[OOM kill]
+```
+
 JVM처럼 자체적으로 메모리를 관리하는 앱은 `MemoryHigh`만 두고 `MemoryMax`는 넉넉히 잡는 편이 안전하다. JVM이 GC 중에 일시적으로 메모리를 많이 쓰는 패턴이 있어서다.
 
 ### 모니터링
@@ -372,6 +429,22 @@ StandardInput=socket
 
 `Accept=yes`는 연결마다 새 인스턴스를 만든다 (`myapp@1.service`, `myapp@2.service`...). 옛날 inetd 스타일이고, 연결당 fork 비용 때문에 거의 안 쓴다.
 
+`Accept=no` 기준으로 첫 연결이 들어와 서비스가 뜨기까지의 순서는 아래와 같다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant K as myapp.socket
+    participant S as myapp.service
+    Note over K: 부팅 시 8080 listen 시작
+    C->>K: 연결 요청
+    Note over K: 서비스는 아직 없음, 연결은 커널 큐에 대기
+    K->>S: 서비스 시작 + listen 소켓 전달
+    S->>K: accept 루프 시작
+    S-->>C: 응답
+    Note over K,S: 서비스 재시작 중에도 소켓은 유지되어 connection refused가 안 난다
+```
+
 장점은 부팅 시간 단축과 zero-downtime 재시작이다. 서비스 재시작 중에도 소켓은 계속 listen하고 있어서 connection refused가 안 난다 (커널 큐에 쌓인다).
 
 ## Path unit
@@ -439,6 +512,13 @@ sudo systemctl start worker@push.service
 
 ## Watchdog
 
+![워치독 타이머가 kick 윈도우 안에서 리셋되는 타임라인](../../../assets/images/auto/워치독/3faafbfc.png)
+
+![자동 시작 방식 워치독 타이머의 상태 다이어그램](../../../assets/images/auto/워치독/bbd27b6e.svg)
+
+![enable 입력이 있는 워치독 타이머의 상태 다이어그램](../../../assets/images/auto/워치독/8bbfac44.svg)
+
+
 앱이 hang 상태로 빠질 때 systemd가 강제로 재시작하게 만든다.
 
 ```ini
@@ -450,23 +530,65 @@ NotifyAccess=main
 ExecStart=/usr/bin/myapp
 ```
 
-앱은 30초마다 `WATCHDOG=1`을 보내야 한다. 못 보내면 systemd가 SIGTERM으로 죽이고 재시작한다.
+앱은 30초 안에 `WATCHDOG=1`을 한 번은 보내야 한다. 못 보내면 systemd가 서비스를 실패 처리하고 프로세스에 `WatchdogSignal=`로 지정한 시그널을 보낸다. 기본값은 SIGABRT라서 코어 덤프가 남는다. 그래도 안 죽으면 `TimeoutStopSec` 뒤에 SIGKILL이 나가고, `Restart=on-watchdog` 때문에 그 뒤에 새 프로세스가 뜬다. 트러블슈팅 절에 나오는 SIGTERM은 일반 `systemctl stop` 경로이고, watchdog 타임아웃은 시그널이 다르다.
+
+아래 시퀀스에서 정상 구간은 주기마다 신호가 오가는 부분이고, `alt` 안쪽이 신호가 끊긴 경우다.
+
+```mermaid
+sequenceDiagram
+    participant S as systemd
+    participant A as 앱 메인 루프
+    S->>A: 기동 (WATCHDOG_USEC=30000000 전달)
+    A->>S: READY=1
+    loop 15초마다 (WatchdogSec의 절반)
+        A->>S: WATCHDOG=1
+        Note over S: 타이머 30초로 리셋
+    end
+    Note over A: 데드락 발생, 메인 루프 정지
+    Note over S: WATCHDOG=1 누락, 30초 경과
+    S->>A: SIGABRT (WatchdogSignal 기본값)
+    alt 종료됨
+        A-->>S: 프로세스 종료, 코어 덤프 생성
+    else TimeoutStopSec 안에 종료 안 함
+        S->>A: SIGKILL
+    end
+    Note over S: result=watchdog, Restart=on-watchdog 적용
+    S->>A: 새 프로세스 기동
+    A->>S: READY=1
+```
+
+예제는 메인 루프가 처리를 끝낼 때마다 올리는 진행 카운터를 보고, 직전 확인 이후 값이 바뀐 경우에만 신호를 보낸다.
 
 ```python
 import os, time, threading
 
+progress = 0  # 메인 루프가 한 번 돌 때마다 증가
+
 def watchdog_loop():
-    interval = int(os.environ.get("WATCHDOG_USEC", "30000000")) // 2 // 1_000_000
+    interval = int(os.environ.get("WATCHDOG_USEC", "30000000")) / 2 / 1_000_000
+    last_seen = -1
     while True:
-        sd_notify("WATCHDOG=1")
+        current = progress
+        if current != last_seen:
+            sd_notify("WATCHDOG=1")
+            last_seen = current
         time.sleep(interval)
 
 threading.Thread(target=watchdog_loop, daemon=True).start()
+
+def main_loop():
+    global progress
+    while True:
+        job = queue.get()   # 처리할 일이 없으면 여기서 오래 블로킹될 수 있다
+        handle(job)
+        progress += 1
 ```
 
-`WATCHDOG_USEC` 환경변수에 마이크로초 단위로 타임아웃이 들어온다. 보통 그 절반 주기로 ping을 보내는 게 안전하다.
+`WATCHDOG_USEC` 환경변수에 마이크로초 단위로 타임아웃이 들어온다. 보통 그 절반 주기로 확인하는 게 안전하다.
 
-watchdog의 핵심은 단순 ping이 아니라 "앱이 진짜 일하고 있는지" 확인하는 거다. 메인 이벤트 루프 안에서 ping을 보내면, 데드락이나 무한루프에 빠졌을 때 자연스럽게 ping이 멈춘다. 별도 스레드에서 ping을 돌리면 메인이 죽어도 ping이 가는 의미 없는 패턴이 된다.
+이 예제에서 스레드는 타이머 역할만 하고, 신호를 보낼지는 메인 루프가 진행했는지로 정한다. 스레드가 무조건 `WATCHDOG=1`을 보내면 메인이 데드락에 빠져도 신호가 계속 가서 watchdog이 아무것도 못 잡는다. 메인 이벤트 루프 안에서 직접 보내는 방식도 같은 이유로 동작하지만, 요청이 없어 한가한 서비스는 루프가 오래 블로킹되어 오탐으로 재시작될 수 있다. 위 예제도 `queue.get()`에서 30초 넘게 기다리면 카운터가 안 올라 재시작된다. 유휴 상태가 정상인 서비스는 `queue.get(timeout=...)`으로 깨어나 카운터를 올리거나, 유휴 하트비트를 별도로 정의해야 한다.
+
+진행 판정 기준, 오탐 방지, 다른 환경(Kubernetes liveness 등)과의 비교는 [워치독](../../../Backend/Resilience/Watchdog.md)에 따로 정리했다.
 
 ## systemd-run으로 임시 unit 실행
 
@@ -691,6 +813,18 @@ SendSIGHUP=no                # SIGTERM 후 SIGHUP도 보낼지
 
 `control-group`이 기본이고 보통 맞다. nginx 같이 master가 worker를 직접 graceful shutdown 시키는 앱은 `mixed`나 `process`를 써야 master가 깔끔하게 처리할 시간을 준다.
 
+`systemctl stop`부터 프로세스가 사라지기까지의 절차를 한 번에 보면 `TimeoutStopSec`이 어느 지점에서 끼어드는지 보인다.
+
+```mermaid
+flowchart TD
+    A[systemctl stop] --> B[ExecStop 실행]
+    B --> C[KillSignal SIGTERM 전송, 대상은 KillMode가 결정]
+    C --> D{TimeoutStopSec 안에 종료}
+    D -->|예| E[ExecStopPost 실행 후 inactive]
+    D -->|아니오| G[SIGKILL 전송, SendSIGKILL 기본값 yes]
+    G --> H[ExecStopPost 실행, result=timeout]
+```
+
 ### graceful shutdown 패턴
 
 ```python
@@ -730,6 +864,22 @@ Wants=postgresql.service          # 함께 시작 시도, 실패해도 진행
 ```
 
 `Requires`만 있고 `After`가 없으면 둘이 동시에 시작돼서 race가 난다. 보통은 둘 다 적어야 한다.
+
+두 경우의 기동 순서 차이를 나란히 놓으면 아래와 같다.
+
+```mermaid
+flowchart LR
+    subgraph R[Requires만 있는 경우]
+        direction TB
+        R0[systemctl start myapp] --> R1[postgresql 기동]
+        R0 --> R2[myapp 기동, postgresql과 동시]
+    end
+    subgraph RA[Requires + After]
+        direction TB
+        A0[systemctl start myapp] --> A1[postgresql 기동 완료]
+        A1 --> A2[myapp 기동]
+    end
+```
 
 | 옵션 | 시작 순서 | 의존 unit이 실패하면 |
 |------|----------|--------------------|
@@ -915,3 +1065,4 @@ spring:
 systemd는 단순한 init 시스템이 아니다. cgroup, namespace, capability, seccomp 같은 커널 기능을 unit 파일 한 줄씩으로 노출하는 격리 도구이자 리소스 관리 도구다. 운영 환경에서 만나는 거의 모든 안정성 문제는 unit 파일을 충분히 빡빡하게 안 짠 데서 온다.
 
 처음 unit 파일을 만들 때 `Type=simple`, `Restart=always`만 적고 끝내지 말고, 위에 정리한 템플릿을 출발점으로 삼아서 보안 옵션과 리소스 한계, watchdog까지 같이 설정하는 습관을 들이면 새벽에 깨는 일이 확연히 줄어든다.
+

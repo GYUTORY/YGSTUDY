@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="11cm" height="20cm" viewBox="578 154 213 391" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g>
+    <ellipse style="fill: #ffffff" cx="710.444" cy="236.983" rx="43.49" ry="43.49"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2.4; stroke: #000000" cx="710.444" cy="236.983" rx="43.49" ry="43.49"/>
+    <text font-size="11.2" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="710.444" y="226.383">
+      <tspan x="710.444" y="226.383">INIT</tspan>
+      <tspan x="710.444" y="240.383">Start Timer</tspan>
+      <tspan x="710.444" y="254.383">Timeout = 0</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="710.57" cy="372.79" rx="42.5424" ry="42.5424"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2.4; stroke: #000000" cx="710.57" cy="372.79" rx="42.5424" ry="42.5424"/>
+    <text font-size="11.2" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="710.57" y="369.19">
+      <tspan x="710.57" y="369.19">TIMING</tspan>
+      <tspan x="710.57" y="383.19">Run Timer</tspan>
+    </text>
+  </g>
+  <g>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="710.792" y1="169.189" x2="710.601" y2="182.494"/>
+    <polygon style="fill: #000000" points="705.602,182.422 710.458,192.493 715.601,182.566 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="705.602,182.422 710.458,192.493 715.601,182.566 "/>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="710.538" cy="501.074" rx="42.9158" ry="42.9158"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2.4; stroke: #000000" cx="710.538" cy="501.074" rx="42.9158" ry="42.9158"/>
+    <text font-size="11.2" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="710.538" y="490.474">
+      <tspan x="710.538" y="490.474">TIMEOUT</tspan>
+      <tspan x="710.538" y="504.474">Stop Timer</tspan>
+      <tspan x="710.538" y="518.474">Timeout = 1</tspan>
+    </text>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="695.894" y="166.148">
+    <tspan x="695.894" y="166.148">Boot</tspan>
+  </text>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 671.266 389.071 C 631.22,405.031 620.178,351.008 660.33,355.332"/>
+    <polygon style="fill: #000000" points="659.794,360.304 670.272,356.403 660.865,350.361 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="659.794,360.304 670.272,356.403 660.865,350.361 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 694.29 333.486 C 685.638,319.462 686.426,297.378 690.032,287.496"/>
+    <polygon style="fill: #000000" points="694.729,289.209 693.459,278.101 685.335,285.782 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="694.729,289.209 693.459,278.101 685.335,285.782 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 727.086 277.162 C 734.534,290.676 734.535,315.912 731.257,323.408"/>
+    <polygon style="fill: #000000" points="726.676,321.405 727.251,332.57 735.839,325.411 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="726.676,321.405 727.251,332.57 735.839,325.411 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 710.57 415.333 C 710.762,430.949 710.212,443.35 710.296,447.161"/>
+    <polygon style="fill: #000000" points="705.297,447.271 710.516,457.158 715.295,447.051 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="705.297,447.271 710.516,457.158 715.295,447.051 "/>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="719.55" y="437.858">
+    <tspan x="719.55" y="437.858">Elapsed</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="578.44" y="388.97">
+    <tspan x="578.44" y="388.97">!Restart</tspan>
+    <tspan x="578.44" y="404.97">&amp; !Elapsed</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="610.226" y="300.858">
+    <tspan x="610.226" y="300.858">Restart</tspan>
+    <tspan x="610.226" y="316.858">&amp; !Elapsed</tspan>
+  </text>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 670.264 253.626 C 628.854,269.776 625.304,208.26 659.641,217.486"/>
+    <polygon style="fill: #000000" points="658.343,222.314 669.298,220.081 660.938,212.657 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="658.343,222.314 669.298,220.081 660.938,212.657 "/>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="585.084" y="239.412">
+    <tspan x="585.084" y="239.412">Restart</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="739.266" y="309.208">
+    <tspan x="739.266" y="309.208">!Restart</tspan>
+  </text>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 670.89 517.498 C 630.844,533.458 619.802,479.15 659.953,483.474"/>
+    <polygon style="fill: #000000" points="659.418,488.445 669.896,484.545 660.489,478.503 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="659.418,488.445 669.896,484.545 660.489,478.503 "/>
+  </g>
+</svg>

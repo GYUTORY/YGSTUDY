@@ -2,9 +2,9 @@ title: Resilience
 nav:
   - index.md
   - 장애 대응 패턴: Fault_Tolerance.md
+  - 워치독 (진행 신호 감시): Watchdog.md
   - Rate Limiting · Bulkhead: Rate_Limiting_and_Bulkhead.md
   - Connection Limit: Connection_Limit.md
   - 장애 주입 테스트: Chaos_Engineering.md
   - 헤지 요청 (꼬리 지연): Hedged_Requests.md
   - 헤지 요청 설정 (gRPC · Envoy): Hedged_Requests_g_RPC_Envoy_Config.md
-  - 워치독 (진행 신호와 강제 재시작): Watchdog.md
