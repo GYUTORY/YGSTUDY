@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="27cm" height="15cm" viewBox="480 140 529 281" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g>
+    <ellipse style="fill: #ffffff" cx="708.954" cy="235.493" rx="42" ry="42"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2.4; stroke: #000000" cx="708.954" cy="235.493" rx="42" ry="42"/>
+    <text font-size="11.2" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="708.954" y="224.893">
+      <tspan x="708.954" y="224.893">INIT</tspan>
+      <tspan x="708.954" y="238.893">Start Timer</tspan>
+      <tspan x="708.954" y="252.893">Timeout = 0</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="708.17" cy="377.23" rx="42.5424" ry="42.5424"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2.4; stroke: #000000" cx="708.17" cy="377.23" rx="42.5424" ry="42.5424"/>
+    <text font-size="11.2" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="708.17" y="373.63">
+      <tspan x="708.17" y="373.63">TIMING</tspan>
+      <tspan x="708.17" y="387.63">Run Timer</tspan>
+    </text>
+  </g>
+  <g>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="709.044" y1="157.764" x2="708.982" y2="182.493"/>
+    <polygon style="fill: #000000" points="703.982,182.48 708.957,192.493 713.982,182.505 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="703.982,182.48 708.957,192.493 713.982,182.505 "/>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="905.565" cy="297.235" rx="44.1405" ry="44.1405"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2.4; stroke: #000000" cx="905.565" cy="297.235" rx="44.1405" ry="44.1405"/>
+    <text font-size="11.2" style="fill: #000000;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="905.565" y="286.635">
+      <tspan x="905.565" y="286.635">TIMEOUT</tspan>
+      <tspan x="905.565" y="300.635">Stop Timer</tspan>
+      <tspan x="905.565" y="314.635">Timeout = 1</tspan>
+    </text>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="696.028" y="152.071">
+    <tspan x="696.028" y="152.071">Boot</tspan>
+  </text>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 668.866 393.51 C 623.382,412.476 615.422,357.896 657.884,360.322"/>
+    <polygon style="fill: #000000" points="657.599,365.314 667.868,360.893 658.169,355.331 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="657.599,365.314 667.868,360.893 658.169,355.331 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 691.89 337.926 C 682.866,322.846 685.188,297.054 689.359,284.717"/>
+    <polygon style="fill: #000000" points="694.096,286.318 692.562,275.243 684.622,283.115 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="694.096,286.318 692.562,275.243 684.622,283.115 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 725.026 274.296 C 733.682,291.564 731.94,315.214 727.896,327.479"/>
+    <polygon style="fill: #000000" points="723.148,325.914 724.765,336.976 732.645,329.045 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="723.148,325.914 724.765,336.976 732.645,329.045 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 946.344 314.128 C 1000.34,334.426 998.044,271.152 957.174,278.418"/>
+    <polygon style="fill: #000000" points="956.299,273.496 947.329,280.169 958.049,283.341 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="956.299,273.496 947.329,280.169 958.049,283.341 "/>
+  </g>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 750.714 377.23 C 807.046,379.552 865.394,372.724 882.545,347.152"/>
+    <polygon style="fill: #000000" points="886.697,349.937 888.115,338.847 878.392,344.367 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="886.697,349.937 888.115,338.847 878.392,344.367 "/>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="756.555" y="393.988">
+    <tspan x="756.555" y="393.988">Enable &amp; Elapsed</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:end;font-family:sans-serif;font-style:normal;font-weight:normal" x="667.42" y="411.647">
+    <tspan x="667.42" y="411.647">Enable &amp; !Restart &amp; !Elapsed</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:end;font-family:sans-serif;font-style:normal;font-weight:normal" x="682.556" y="312.422">
+    <tspan x="682.556" y="312.422">!Enable | (Restart &amp; !Elapsed)</tspan>
+  </text>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 670.152 251.566 C 620.004,276.016 609.218,206.716 659.384,217.175"/>
+    <polygon style="fill: #000000" points="658.363,222.07 669.173,219.216 660.404,212.28 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="658.363,222.07 669.173,219.216 660.404,212.28 "/>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="965.032" y="271.152">
+    <tspan x="965.032" y="271.152">Enable</tspan>
+  </text>
+  <g>
+    <path style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" d="M 874.352 266.024 C 852.854,242.954 791.374,235.44 761.954,235.478"/>
+    <polygon style="fill: #000000" points="761.948,230.478 751.954,235.491 761.96,240.478 "/>
+    <polygon style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="761.948,230.478 751.954,235.491 761.96,240.478 "/>
+  </g>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="786.748" y="230.918">
+    <tspan x="786.748" y="230.918">!Enable</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:end;font-family:sans-serif;font-style:normal;font-weight:normal" x="621.591" y="239.684">
+    <tspan x="621.591" y="239.684">!Enable | Restart</tspan>
+  </text>
+  <text font-size="12.8" style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="736.336" y="309.758">
+    <tspan x="736.336" y="309.758">Enable &amp; !Restart</tspan>
+  </text>
+</svg>
