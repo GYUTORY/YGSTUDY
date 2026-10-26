@@ -128,6 +128,160 @@ def main():
 
 카운터 방식에도 구멍이 있다. 작업이 여러 스레드로 나뉘어 있으면 스레드 하나만 살아서 카운터를 올려도 나머지가 전부 죽은 것을 놓친다. 워커 풀이면 워커별 카운터를 따로 두고 전부 올랐는지 보거나, 가장 오래 정체한 워커의 시간을 기준으로 삼는다. 큐가 비어서 할 일이 없는 경우도 정체와 구분해야 한다. 할 일이 없는 워커가 카운터를 안 올려서 재시작이 반복되는 사고가 흔하다. 유휴 상태에서는 "큐를 한 번 확인했다"를 진행으로 센다.
 
+<div class="ygd-wd-signal" id="ygd-wd-signal">
+<style>
+.ygd-wd-signal{--ygd-fg:rgb(43,39,36);--ygd-muted:rgb(95,90,84);--ygd-line:rgb(184,177,168);--ygd-ok:rgb(27,127,75);--ygd-warn:rgb(180,83,9);--ygd-bad:rgb(192,57,43);--ygd-accent:rgb(61,115,135);--ygd-bg:rgb(253,251,250);--ygd-panel:rgb(243,239,234);--ygd-btnfg:rgb(255,255,255);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.5em;margin-bottom:1.5em;color:var(--ygd-fg);box-sizing:border-box}
+body[data-md-color-scheme="slate"] .ygd-wd-signal{--ygd-fg:rgb(240,237,233);--ygd-muted:rgb(181,174,165);--ygd-line:rgb(107,101,94);--ygd-ok:rgb(95,211,141);--ygd-warn:rgb(240,176,74);--ygd-bad:rgb(255,138,128);--ygd-accent:rgb(127,185,207);--ygd-bg:rgb(31,28,30);--ygd-panel:rgb(43,39,41);--ygd-btnfg:rgb(31,28,30)}
+.ygd-wd-signal *{box-sizing:border-box}
+.ygd-wd-signal .ygd-wrap{background:var(--ygd-bg);border:1px solid var(--ygd-line);border-radius:8px;padding:12px}
+.ygd-wd-signal .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px 0}
+.ygd-wd-signal .ygd-btn{font:inherit;font-size:14px;line-height:1.2;min-height:40px;padding:8px 14px;border-radius:6px;border:1px solid var(--ygd-accent);background:transparent;color:var(--ygd-fg);cursor:pointer}
+.ygd-wd-signal .ygd-btn[aria-selected="true"],.ygd-wd-signal .ygd-main{background:var(--ygd-accent);color:var(--ygd-btnfg)}
+.ygd-wd-signal .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-wd-signal .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+.ygd-wd-signal .ygd-tx{fill:var(--ygd-fg);font-size:11px}
+.ygd-wd-signal .ygd-tm{fill:var(--ygd-muted);font-size:11px}
+.ygd-wd-signal .ygd-grid{stroke:var(--ygd-line);stroke-width:1;stroke-dasharray:3 3}
+.ygd-wd-signal .ygd-dot{fill:var(--ygd-ok);stroke:var(--ygd-ok);stroke-width:2}
+.ygd-wd-signal .ygd-hol{fill:none;stroke:var(--ygd-muted);stroke-width:2;stroke-dasharray:3 2}
+.ygd-wd-signal .ygd-fok{fill:var(--ygd-ok)}
+.ygd-wd-signal .ygd-fwarn{fill:var(--ygd-warn)}
+.ygd-wd-signal .ygd-fbad{fill:var(--ygd-bad)}
+.ygd-wd-signal .ygd-panel{background:var(--ygd-panel);border-radius:6px;padding:10px 12px;margin-top:10px;min-height:5.6em}
+.ygd-wd-signal .ygd-ptitle{font-size:14px;font-weight:700;margin:0 0 4px 0;line-height:1.5}
+.ygd-wd-signal .ygd-ptext{font-size:14px;line-height:1.6;margin:0}
+.ygd-wd-signal .ygd-note{font-size:14px;line-height:1.6;color:var(--ygd-muted);margin:10px 0 0 0}
+.ygd-wd-signal .ygd-sh{fill:var(--ygd-ok);transition:width .3s}
+@media (prefers-reduced-motion: reduce){.ygd-wd-signal *{transition:none!important;animation:none!important}}
+</style>
+<div class="ygd-wrap">
+<div class="ygd-bar" role="tablist" aria-label="신호 방식 선택">
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="always" aria-selected="false">무조건 신호 (daemon 스레드)</button>
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="counter" aria-selected="true">진행 카운터 기반 신호</button>
+</div>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-main ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 222" role="img" aria-label="워치독 신호 타임라인. 작업 스레드, 신호 스레드, systemd 세 줄을 0초부터 7초까지 비교한다. 3초에 작업 스레드가 멈추면 무조건 신호 방식은 계속 정상으로 보이고, 진행 카운터 방식은 6초에 마감 초과로 판정된다."></svg>
+<div class="ygd-panel" aria-live="polite">
+<p class="ygd-ptitle"></p>
+<p class="ygd-ptext"></p>
+</div>
+<p class="ygd-note">비유: 무조건 신호는 근무자가 자는 동안에도 자동으로 눌리는 출석 버튼이고, 진행 카운터 방식은 완성품 계수기가 올라가야만 눌리는 버튼이다. 조건은 본문 실험과 같다: 마감 3초, 신호 주기 1초, 3초 시점에 작업 스레드 정지.</p>
+</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-wd-signal');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var playBtn=root.querySelector('.ygd-play');
+var nextBtn=root.querySelector('.ygd-next');
+var resetBtn=root.querySelector('.ygd-reset');
+var tabs=root.querySelectorAll('.ygd-tab');
+var ttl=root.querySelector('.ygd-ptitle');
+var txt=root.querySelector('.ygd-ptext');
+var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var mode='counter',cur=0,timer=null,N=7;
+if(reduce){playBtn.hidden=true;}
+var TXT={
+always:[
+'앱이 시작되고 작업 스레드가 일을 처리한다. 신호 스레드는 1초마다 깨어나 진행 여부와 상관없이 WATCHDOG=1을 보낸다.',
+'신호가 도착한다. 마감은 3초이고 신호 주기는 마감의 1/3인 1초다. 감시 타이머가 초기화된다.',
+'정상이다. 신호가 계속 도착하고 감시 타이머는 매번 초기화된다.',
+'작업 스레드가 같은 락을 두 번 잡아 멈춘다. 그런데 신호 스레드는 락과 무관하게 sleep과 sd_notify만 반복하므로 이 순간에도 신호가 나간다.',
+'작업은 멈춰 있지만 신호가 도착해 systemd는 정상으로 본다.',
+'여전히 신호가 도착한다. 마지막 정상 진행이 3초였다는 사실을 감시자는 알 수 없다.',
+'카운터 방식이었다면 여기서 마감 초과인데, 이 방식은 신호가 계속 나가므로 판정이 일어나지 않는다.',
+'작업은 멈춘 채 영원히 정상으로 보인다. 이 신호는 프로세스가 살아 있다는 뜻일 뿐 일이 진행된다는 뜻이 아니다.'],
+counter:[
+'작업 스레드가 일 하나를 끝낼 때마다 카운터를 올린다. 신호 스레드는 1초마다 카운터가 지난번과 다른지 확인한다.',
+'카운터가 올랐으므로 WATCHDOG=1을 보낸다. 감시 타이머가 초기화된다.',
+'카운터가 또 올랐다. 신호가 도착하고 타이머가 초기화된다.',
+'이 시점에 작업 스레드가 락에서 멈춘다. 마지막 신호가 3초에 도착한 것으로 기록된다.',
+'카운터가 그대로라 신호를 생략한다. 감시자 쪽에서는 마지막 신호 이후 1초가 지났다.',
+'여전히 카운터가 그대로여서 신호가 없다. 마지막 신호 이후 2초가 지났다.',
+'마지막 신호(3초)로부터 3초가 지나 마감 초과로 판정된다. 감지는 hang 시작 후 3초 뒤에 일어났다.',
+'systemd가 서비스를 실패로 판정하고 기본적으로 SIGABRT로 종료시킨다. 이후 Restart= 설정에 따라 재시작된다.']
+};
+function el(n,a,p,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!==undefined)e.textContent=t;if(p)p.appendChild(e);return e;}
+function X(t){return 90+t*36;}
+function sent(s){return mode==='always'?true:3>=s;}
+function draw(){
+svg.textContent='';
+var i,L1=56,L2=104,L3=152;
+for(i=0;i!==8;i++){
+el('text',{x:X(i),y:16,'text-anchor':'middle','class':'ygd-tm'},svg,i+'초');
+el('line',{x1:X(i),y1:28,x2:X(i),y2:172,'class':'ygd-grid'},svg);
+}
+el('text',{x:6,y:L1+4,'class':'ygd-tx'},svg,'작업 스레드');
+el('text',{x:6,y:L2+4,'class':'ygd-tx'},svg,'신호 스레드');
+el('text',{x:6,y:L3+4,'class':'ygd-tx'},svg,'systemd');
+var okEnd=Math.min(cur,3);
+if(okEnd>0)el('rect',{x:X(0),y:L1-7,width:X(okEnd)-X(0),height:14,rx:3,'class':'ygd-fok'},svg);
+if(cur>3)el('rect',{x:X(3),y:L1-7,width:X(cur)-X(3),height:14,rx:3,'class':'ygd-fbad'},svg);
+var last=0;
+for(i=1;i!==cur+1;i++){
+if(sent(i)){last=i;el('circle',{cx:X(i),cy:L2,r:7,'class':'ygd-dot'},svg);}
+else el('circle',{cx:X(i),cy:L2,r:7,'class':'ygd-hol'},svg);
+}
+if(cur>last){
+var end=Math.min(cur,last+3);
+el('rect',{x:X(last),y:L3-7,width:X(end)-X(last),height:14,rx:3,'class':(cur-last>2)?'ygd-fbad':'ygd-fwarn'},svg);
+}else if(cur>0){
+el('circle',{cx:X(cur),cy:L3,r:5,'class':'ygd-fok'},svg);
+}
+el('circle',{cx:16,cy:192,r:5,'class':'ygd-dot'},svg);
+el('text',{x:28,y:196,'class':'ygd-tm'},svg,'신호 도착');
+el('circle',{cx:140,cy:192,r:5,'class':'ygd-hol'},svg);
+el('text',{x:152,y:196,'class':'ygd-tm'},svg,'신호 없음');
+el('rect',{x:10,y:207,width:14,height:10,rx:2,'class':'ygd-fok'},svg);
+el('text',{x:30,y:216,'class':'ygd-tm'},svg,'정상');
+el('rect',{x:100,y:207,width:14,height:10,rx:2,'class':'ygd-fwarn'},svg);
+el('text',{x:120,y:216,'class':'ygd-tm'},svg,'마감 대기');
+el('rect',{x:230,y:207,width:14,height:10,rx:2,'class':'ygd-fbad'},svg);
+el('text',{x:250,y:216,'class':'ygd-tm'},svg,'멈춤·마감 초과');
+}
+function show(i){
+cur=i;
+draw();
+ttl.textContent='t='+i+'초';
+txt.textContent=TXT[mode][i];
+}
+function stop(){
+if(timer){clearInterval(timer);timer=null;}
+playBtn.textContent=(cur===N)?'다시 재생':'재생';
+}
+playBtn.addEventListener('click',function(){
+if(timer){stop();return;}
+if(cur===N)show(0);
+playBtn.textContent='정지';
+timer=setInterval(function(){
+if(cur===N){stop();return;}
+show(cur+1);
+if(cur===N)stop();
+},1300);
+});
+nextBtn.addEventListener('click',function(){
+stop();
+show(cur===N?0:cur+1);
+});
+resetBtn.addEventListener('click',function(){stop();show(0);});
+Array.prototype.forEach.call(tabs,function(b){
+b.addEventListener('click',function(){
+mode=b.getAttribute('data-mode');
+Array.prototype.forEach.call(tabs,function(o){o.setAttribute('aria-selected',o===b?'true':'false');});
+stop();
+show(0);
+});
+});
+show(0);
+})();
+</script>
+</div>
+
 ## 마감과 신호 주기
 
 주기는 마감의 1/2에서 1/3로 잡는다. 1/2이면 신호 한 번이 유실되거나 늦어도 다음 신호가 마감 안에 들어오지만 두 번 연속 늦으면 걸린다. 1/3이면 두 번까지 버틴다. 위 코드는 `WATCHDOG_USEC`의 1/3을 쓴다. systemd 문서가 `WATCHDOG_USEC` 값을 환경변수로 넘기는 이유가 이것이다. 앱이 마감을 하드코딩하지 않고 받은 값에서 주기를 계산해야 unit 파일만 고쳐도 둘이 어긋나지 않는다.
@@ -182,6 +336,160 @@ WantedBy=multi-user.target
 `Type=notify`와 관련해서는 흔한 오해가 있다. `Type=notify`가 아니어도 `WatchdogSec`을 쓰면 `NotifyAccess`가 암묵적으로 `main`이 되어 워치독은 동작한다(man 페이지에 있는 내용이다). 차이는 시작 완료 시점이다. 워치독은 "시작이 끝난 시점"부터 활성화되는데, `Type=notify`면 앱이 `READY=1`을 보낸 시점이고 `Type=simple`이면 exec 직후다. 시작에 40초 걸리는 서비스를 `Type=simple` + `WatchdogSec=30s`로 두면 시작 도중에 마감이 지나 죽는다. 시작이 느릴수록 `Type=notify`가 필요하고, `TimeoutStartSec`이 시작 구간을 맡는다.
 
 프로세스를 wrapper 셸 스크립트로 띄우고 그 아래에서 자식이 신호를 보내면 `NotifyAccess=main`에서는 메시지가 거부된다. 셸에서 `exec`로 교체하거나 `NotifyAccess=all`로 바꿔야 한다. Systemd_Deep_Dive 문서의 [Watchdog 절](../../DevOps/Linux/시스템_관리/Systemd_Deep_Dive.md)에서 기본 설정과 `sd_notify` 소켓 사용법을 볼 수 있다.
+
+<div class="ygd-wd-startup" id="ygd-wd-startup">
+<style>
+.ygd-wd-startup{--ygd-fg:rgb(43,39,36);--ygd-muted:rgb(95,90,84);--ygd-line:rgb(184,177,168);--ygd-ok:rgb(27,127,75);--ygd-warn:rgb(180,83,9);--ygd-bad:rgb(192,57,43);--ygd-accent:rgb(61,115,135);--ygd-bg:rgb(253,251,250);--ygd-panel:rgb(243,239,234);--ygd-btnfg:rgb(255,255,255);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.5em;margin-bottom:1.5em;color:var(--ygd-fg);box-sizing:border-box}
+body[data-md-color-scheme="slate"] .ygd-wd-startup{--ygd-fg:rgb(240,237,233);--ygd-muted:rgb(181,174,165);--ygd-line:rgb(107,101,94);--ygd-ok:rgb(95,211,141);--ygd-warn:rgb(240,176,74);--ygd-bad:rgb(255,138,128);--ygd-accent:rgb(127,185,207);--ygd-bg:rgb(31,28,30);--ygd-panel:rgb(43,39,41);--ygd-btnfg:rgb(31,28,30)}
+.ygd-wd-startup *{box-sizing:border-box}
+.ygd-wd-startup .ygd-wrap{background:var(--ygd-bg);border:1px solid var(--ygd-line);border-radius:8px;padding:12px}
+.ygd-wd-startup .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px 0}
+.ygd-wd-startup .ygd-btn{font:inherit;font-size:14px;line-height:1.2;min-height:40px;padding:8px 14px;border-radius:6px;border:1px solid var(--ygd-accent);background:transparent;color:var(--ygd-fg);cursor:pointer}
+.ygd-wd-startup .ygd-btn[aria-selected="true"],.ygd-wd-startup .ygd-main{background:var(--ygd-accent);color:var(--ygd-btnfg)}
+.ygd-wd-startup .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-wd-startup .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+.ygd-wd-startup .ygd-tx{fill:var(--ygd-fg);font-size:11px}
+.ygd-wd-startup .ygd-tm{fill:var(--ygd-muted);font-size:11px}
+.ygd-wd-startup .ygd-grid{stroke:var(--ygd-line);stroke-width:1;stroke-dasharray:3 3}
+.ygd-wd-startup .ygd-fok{fill:var(--ygd-ok)}
+.ygd-wd-startup .ygd-fwarn{fill:var(--ygd-warn)}
+.ygd-wd-startup .ygd-fbad{fill:var(--ygd-bad)}
+.ygd-wd-startup .ygd-facc{fill:var(--ygd-accent)}
+.ygd-wd-startup .ygd-holr{fill:none;stroke:var(--ygd-muted);stroke-width:2;stroke-dasharray:4 3}
+.ygd-wd-startup .ygd-panel{background:var(--ygd-panel);border-radius:6px;padding:10px 12px;margin-top:10px;min-height:6.4em}
+.ygd-wd-startup .ygd-ptitle{font-size:14px;font-weight:700;margin:0 0 4px 0;line-height:1.5}
+.ygd-wd-startup .ygd-ptext{font-size:14px;line-height:1.6;margin:0}
+.ygd-wd-startup .ygd-note{font-size:14px;line-height:1.6;color:var(--ygd-muted);margin:10px 0 0 0}
+@media (prefers-reduced-motion: reduce){.ygd-wd-startup *{transition:none!important;animation:none!important}}
+</style>
+<div class="ygd-wrap">
+<div class="ygd-bar" role="tablist" aria-label="서비스 Type 선택">
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="simple" aria-selected="true">Type=simple</button>
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="notify" aria-selected="false">Type=notify</button>
+</div>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-main ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 224" role="img" aria-label="시작에 40초가 걸리는 서비스에서 WatchdogSec 30초를 쓸 때의 타임라인. Type=simple은 exec 직후부터 워치독이 켜져 30초에 죽고, Type=notify는 READY=1을 보내는 40초 시점부터 워치독이 켜진다."></svg>
+<div class="ygd-panel" aria-live="polite">
+<p class="ygd-ptitle"></p>
+<p class="ygd-ptext"></p>
+</div>
+<p class="ygd-note">비유: simple은 출근 즉시 근태를 확인하는 방식이고, notify는 교육을 마친 직원이 투입 선언을 한 뒤부터 근태를 확인하는 방식이다. 조건은 본문 예시와 같다: 시작에 40초, WatchdogSec=30s.</p>
+</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-wd-startup');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var playBtn=root.querySelector('.ygd-play');
+var nextBtn=root.querySelector('.ygd-next');
+var resetBtn=root.querySelector('.ygd-reset');
+var tabs=root.querySelectorAll('.ygd-tab');
+var ttl=root.querySelector('.ygd-ptitle');
+var txt=root.querySelector('.ygd-ptext');
+var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var mode='simple',cur=0,timer=null,N=5;
+if(reduce){playBtn.hidden=true;}
+var TXT={
+simple:[
+'Type=simple이면 exec 직후부터 워치독이 활성화된다. WatchdogSec=30s이므로 30초 안에 첫 신호가 와야 한다. 앱은 40초가 걸리는 초기화를 시작한다.',
+'초기화가 진행 중이라 신호가 없다. 감시 타이머는 10초째 흐르고 있다.',
+'아직 초기화 중이다. 마감까지 10초 남았다.',
+'30초 마감 초과. systemd는 서비스를 실패로 판정하고 종료시킨다. 앱의 시작이 끝나기 전에 죽는다.',
+'앱이 초기화를 끝냈을 시점이지만 이미 종료된 뒤다. 재시작되더라도 같은 40초 초기화를 거치므로 같은 방식으로 반복해서 죽을 수 있다.',
+'해법은 Type=notify다. 시작이 끝나는 시점(READY=1)부터 워치독이 활성화되고, 시작 구간은 TimeoutStartSec이 맡는다.'],
+notify:[
+'Type=notify에서는 앱이 READY=1을 보내는 시점부터 워치독이 활성화된다. 그 전에는 마감을 세지 않는다. 앱은 40초 초기화를 시작한다.',
+'시작 중이라 워치독 타이머는 아직 꺼져 있다. 시작 구간은 TimeoutStartSec이 맡는다.',
+'여전히 시작 중이다. 신호가 없어도 워치독 때문에 죽지 않는다.',
+'WatchdogSec=30s가 지났지만 워치독이 아직 활성화 전이라 마감 초과가 아니다.',
+'초기화를 마친 앱이 READY=1을 보낸다. 이 시점부터 워치독이 활성화된다.',
+'활성화된 뒤에는 앱이 10초마다 WATCHDOG=1을 보낸다. 두 신호 사이가 30초를 넘으면 그때부터 실패로 판정한다.']
+};
+function el(n,a,p,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!==undefined)e.textContent=t;if(p)p.appendChild(e);return e;}
+function X(t){return 90+t*5.2;}
+function draw(){
+svg.textContent='';
+var i,tt=cur*10,L1=56,L2=104,L3=152;
+for(i=0;i!==6;i++){
+el('text',{x:X(i*10),y:16,'text-anchor':'middle','class':'ygd-tm'},svg,(i*10)+'초');
+el('line',{x1:X(i*10),y1:28,x2:X(i*10),y2:172,'class':'ygd-grid'},svg);
+}
+el('text',{x:6,y:L1+4,'class':'ygd-tx'},svg,'앱 프로세스');
+el('text',{x:6,y:L2+4,'class':'ygd-tx'},svg,'신호');
+el('text',{x:6,y:L3+4,'class':'ygd-tx'},svg,'워치독 상태');
+if(mode==='simple'){
+var ae=Math.min(tt,30);
+if(ae>0)el('rect',{x:X(0),y:L1-7,width:X(ae)-X(0),height:14,rx:3,'class':'ygd-fwarn'},svg);
+if(tt>30)el('rect',{x:X(30),y:L1-2,width:X(tt)-X(30),height:4,rx:2,'class':'ygd-fbad'},svg);
+if(tt>0)el('rect',{x:X(0),y:L3-7,width:X(ae)-X(0),height:14,rx:3,'class':(tt>29?'ygd-fbad':'ygd-fwarn')},svg);
+}else{
+var se=Math.min(tt,40);
+if(se>0){
+el('rect',{x:X(0),y:L1-7,width:X(se)-X(0),height:14,rx:3,'class':'ygd-fwarn'},svg);
+el('rect',{x:X(0)+1,y:L3-7,width:X(se)-X(0)-2,height:14,rx:3,'class':'ygd-holr'},svg);
+}
+if(tt>40){
+el('rect',{x:X(40),y:L1-7,width:X(tt)-X(40),height:14,rx:3,'class':'ygd-fok'},svg);
+el('rect',{x:X(40),y:L3-7,width:X(tt)-X(40),height:14,rx:3,'class':'ygd-fok'},svg);
+}
+if(tt>39)el('circle',{cx:X(40),cy:L2,r:7,'class':'ygd-facc'},svg);
+if(tt>49)el('circle',{cx:X(50),cy:L2,r:7,'class':'ygd-fok'},svg);
+}
+el('rect',{x:10,y:186,width:14,height:10,rx:2,'class':'ygd-fwarn'},svg);
+el('text',{x:30,y:195,'class':'ygd-tm'},svg,'시작 중');
+el('rect',{x:100,y:186,width:14,height:10,rx:2,'class':'ygd-fok'},svg);
+el('text',{x:120,y:195,'class':'ygd-tm'},svg,'정상 동작');
+el('rect',{x:210,y:186,width:14,height:10,rx:2,'class':'ygd-fbad'},svg);
+el('text',{x:230,y:195,'class':'ygd-tm'},svg,'종료·마감 초과');
+el('rect',{x:11,y:206,width:14,height:10,rx:2,'class':'ygd-holr'},svg);
+el('text',{x:31,y:215,'class':'ygd-tm'},svg,'워치독 비활성');
+el('circle',{cx:145,cy:211,r:5,'class':'ygd-facc'},svg);
+el('text',{x:156,y:215,'class':'ygd-tm'},svg,'READY=1');
+el('circle',{cx:255,cy:211,r:5,'class':'ygd-fok'},svg);
+el('text',{x:266,y:215,'class':'ygd-tm'},svg,'WATCHDOG=1');
+}
+function show(i){
+cur=i;
+draw();
+ttl.textContent='t='+(i*10)+'초';
+txt.textContent=TXT[mode][i];
+}
+function stop(){
+if(timer){clearInterval(timer);timer=null;}
+playBtn.textContent=(cur===N)?'다시 재생':'재생';
+}
+playBtn.addEventListener('click',function(){
+if(timer){stop();return;}
+if(cur===N)show(0);
+playBtn.textContent='정지';
+timer=setInterval(function(){
+if(cur===N){stop();return;}
+show(cur+1);
+if(cur===N)stop();
+},1600);
+});
+nextBtn.addEventListener('click',function(){
+stop();
+show(cur===N?0:cur+1);
+});
+resetBtn.addEventListener('click',function(){stop();show(0);});
+Array.prototype.forEach.call(tabs,function(b){
+b.addEventListener('click',function(){
+mode=b.getAttribute('data-mode');
+Array.prototype.forEach.call(tabs,function(o){o.setAttribute('aria-selected',o===b?'true':'false');});
+stop();
+show(0);
+});
+});
+show(0);
+})();
+</script>
+</div>
 
 ## 하드웨어와 커널 워치독
 
@@ -327,6 +635,175 @@ WHERE id = :id AND fence < :token;
 
 `rowcount`가 0이면 오래된 토큰이다. 토큰 33으로 시작한 쓰기가 34 이후에 도착해도 거부된다(sqlite로 33, 34, 33 순서로 쓰면 `1 1 0`이 나오고 최종 값은 토큰 34의 것이다). 토큰은 DB 같은 하나의 저장소에서만 판단할 수 있으므로, 락으로 보호하는 대상이 여러 저장소에 걸쳐 있으면 적용하기 어렵다.
 
+<div class="ygd-wd-lock" id="ygd-wd-lock">
+<style>
+.ygd-wd-lock{--ygd-fg:rgb(43,39,36);--ygd-muted:rgb(95,90,84);--ygd-line:rgb(184,177,168);--ygd-ok:rgb(27,127,75);--ygd-warn:rgb(180,83,9);--ygd-bad:rgb(192,57,43);--ygd-accent:rgb(61,115,135);--ygd-bg:rgb(253,251,250);--ygd-panel:rgb(243,239,234);--ygd-btnfg:rgb(255,255,255);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.5em;margin-bottom:1.5em;color:var(--ygd-fg);box-sizing:border-box}
+body[data-md-color-scheme="slate"] .ygd-wd-lock{--ygd-fg:rgb(240,237,233);--ygd-muted:rgb(181,174,165);--ygd-line:rgb(107,101,94);--ygd-ok:rgb(95,211,141);--ygd-warn:rgb(240,176,74);--ygd-bad:rgb(255,138,128);--ygd-accent:rgb(127,185,207);--ygd-bg:rgb(31,28,30);--ygd-panel:rgb(43,39,41);--ygd-btnfg:rgb(31,28,30)}
+.ygd-wd-lock *{box-sizing:border-box}
+.ygd-wd-lock .ygd-wrap{background:var(--ygd-bg);border:1px solid var(--ygd-line);border-radius:8px;padding:12px}
+.ygd-wd-lock .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px 0}
+.ygd-wd-lock .ygd-btn{font:inherit;font-size:14px;line-height:1.2;min-height:40px;padding:8px 14px;border-radius:6px;border:1px solid var(--ygd-accent);background:transparent;color:var(--ygd-fg);cursor:pointer}
+.ygd-wd-lock .ygd-btn[aria-selected="true"],.ygd-wd-lock .ygd-main{background:var(--ygd-accent);color:var(--ygd-btnfg)}
+.ygd-wd-lock .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-wd-lock .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+.ygd-wd-lock .ygd-tx{fill:var(--ygd-fg);font-size:11px}
+.ygd-wd-lock .ygd-tm{fill:var(--ygd-muted);font-size:11px}
+.ygd-wd-lock .ygd-grid{stroke:var(--ygd-line);stroke-width:1;stroke-dasharray:3 3}
+.ygd-wd-lock .ygd-dot{fill:var(--ygd-ok);stroke:var(--ygd-ok);stroke-width:2}
+.ygd-wd-lock .ygd-hol{fill:none;stroke:var(--ygd-muted);stroke-width:2;stroke-dasharray:3 2}
+.ygd-wd-lock .ygd-fok{fill:var(--ygd-ok)}
+.ygd-wd-lock .ygd-fbad{fill:var(--ygd-bad)}
+.ygd-wd-lock .ygd-facc{fill:var(--ygd-accent)}
+.ygd-wd-lock .ygd-holr{fill:none;stroke:var(--ygd-muted);stroke-width:2;stroke-dasharray:4 3}
+.ygd-wd-lock .ygd-panel{background:var(--ygd-panel);border-radius:6px;padding:10px 12px;margin-top:10px;min-height:7.6em}
+.ygd-wd-lock .ygd-ptitle{font-size:14px;font-weight:700;margin:0 0 4px 0;line-height:1.5}
+.ygd-wd-lock .ygd-ptext{font-size:14px;line-height:1.6;margin:0}
+.ygd-wd-lock .ygd-note{font-size:14px;line-height:1.6;color:var(--ygd-muted);margin:10px 0 0 0}
+@media (prefers-reduced-motion: reduce){.ygd-wd-lock *{transition:none!important;animation:none!important}}
+</style>
+<div class="ygd-wrap">
+<div class="ygd-bar" role="tablist" aria-label="장애 시나리오 선택">
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="crash" aria-selected="true">JVM 종료</button>
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="hang" aria-selected="false">작업 스레드 무한 대기</button>
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="gc" aria-selected="false">GC stop-the-world</button>
+</div>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-main ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 224" role="img" aria-label="Redisson 락 갱신 워치독의 세 가지 장애 시나리오 타임라인. JVM이 죽으면 TTL이 만료되어 락이 풀리고, 작업 스레드가 무한 대기에 빠지면 갱신이 계속되어 락이 풀리지 않으며, GC로 JVM 전체가 멈추면 TTL이 만료되어 다른 서버가 락을 잡는다."></svg>
+<div class="ygd-panel" aria-live="polite">
+<p class="ygd-ptitle"></p>
+<p class="ygd-ptext"></p>
+</div>
+<p class="ygd-note">비유: 차가 주차장에 있는 한 요금 시간을 자동으로 연장해 주는 정산기와 같다. 차가 있는지만 보고, 운전자가 일을 하고 있는지는 모른다. 수치는 본문 기준이다: lockWatchdogTimeout 30초, 갱신 주기 10초.</p>
+</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-wd-lock');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var playBtn=root.querySelector('.ygd-play');
+var nextBtn=root.querySelector('.ygd-next');
+var resetBtn=root.querySelector('.ygd-reset');
+var tabs=root.querySelectorAll('.ygd-tab');
+var ttl=root.querySelector('.ygd-ptitle');
+var txt=root.querySelector('.ygd-ptext');
+var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var mode='crash',cur=0,timer=null,N=6;
+if(reduce){playBtn.hidden=true;}
+var T0='서버 A가 TTL을 지정하지 않고 락을 잡는다(token=33). Redisson 워치독이 동작해 락 키의 TTL이 lockWatchdogTimeout(기본 30초)이 되고, 갱신 타이머가 시작된다.';
+var T1='TTL의 1/3인 10초마다 갱신 타이머가 TTL을 다시 30초로 늘린다. 이 갱신으로 락은 40초까지 유지된다.';
+var TXT={
+crash:[T0,T1,
+'JVM이 죽는다. 갱신 타이머도 함께 사라지므로 이 시점부터 갱신이 일어나지 않는다.',
+'갱신이 없어 TTL이 줄어든다. 마지막 갱신 후 20초가 지났고 10초가 남았다.',
+'마지막 갱신(10초) 뒤 30초가 지나 TTL이 만료되고 락이 풀린다. 영원히 잠기는 일은 없다.',
+'다른 서버가 락을 잡을 수 있다. 이 시나리오에서는 워치독이 의도한 대로 동작했다.',
+'락 해제가 이미 끝났으므로 다른 서버가 이어서 작업한다. 이 장애는 TTL 만료가 감시자 역할을 한 경우다.'],
+hang:[T0,T1,
+'작업 스레드가 락을 쥔 채 무한 대기에 빠진다. 그런데 갱신 스레드는 JVM이 살아 있다는 것만 알 뿐 임계 구역 안의 진행 여부는 모른다.',
+'갱신은 계속된다. 락의 TTL은 다시 30초로 늘어난다.',
+'갱신이 이어져 락이 풀리지 않는다. 다른 서버는 락을 얻지 못하고 기다린다.',
+'여전히 락이 유지된다. 작업은 진행되지 않는다.',
+'신호가 작업 진행이 아니라 JVM 생존에 묶여 있어서 락이 영원히 풀리지 않는다. 앞 절에서 본 안티패턴과 같은 구조다.'],
+gc:[T0,T1,
+'GC stop-the-world로 JVM 전체가 멈춘다. 갱신 스레드도 같이 멈춰서 갱신이 일어나지 않는다.',
+'갱신이 없어 TTL이 줄어든다. 서버 A는 멈춰 있어서 이 사실을 알 수 없다.',
+'마지막 갱신(10초) 뒤 30초가 지나 TTL이 만료되고 락이 풀린다.',
+'서버 B가 락을 잡고(token=34) 쓰기에 성공한다. 이 시점에도 서버 A는 아직 멈춰 있다.',
+'서버 A가 깨어나 락이 아직 있다고 믿고 쓰기를 시도한다(token=33). fencing token이 없으면 두 프로세스가 동시에 임계 구역에 들어간다. 있으면 저장소가 33이 34보다 작다고 거부한다.']
+};
+function el(n,a,p,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!==undefined)e.textContent=t;if(p)p.appendChild(e);return e;}
+function X(t){return 90+t*4.3;}
+function bar(a,b,y,cls,h){if(b>a)el('rect',{x:X(a),y:y-(h||14)/2,width:X(b)-X(a),height:h||14,rx:3,'class':cls},svg);}
+function renewed(s){return mode==='hang'?true:s===10;}
+function draw(){
+svg.textContent='';
+var i,tt=cur*10,L1=56,L2=104,L3=152;
+for(i=0;i!==7;i++){
+el('text',{x:X(i*10),y:16,'text-anchor':'middle','class':'ygd-tm'},svg,(i*10)+'초');
+el('line',{x1:X(i*10),y1:28,x2:X(i*10),y2:172,'class':'ygd-grid'},svg);
+}
+el('text',{x:6,y:L1+4,'class':'ygd-tx'},svg,'갱신 타이머');
+el('text',{x:6,y:L2+4,'class':'ygd-tx'},svg,'Redis 락 키');
+el('text',{x:6,y:L3+4,'class':'ygd-tx'},svg,'서버 A 작업');
+if(tt===0){
+el('circle',{cx:X(0),cy:L2,r:5,'class':'ygd-fok'},svg);
+el('circle',{cx:X(0),cy:L3,r:5,'class':'ygd-fok'},svg);
+}
+for(i=1;i!==cur+1;i++){
+el('circle',{cx:X(i*10),cy:L1,r:7,'class':renewed(i*10)?'ygd-dot':'ygd-hol'},svg);
+}
+var w=Math.min(tt,20);
+bar(0,w,L3,'ygd-fok');
+if(mode==='crash'){
+bar(20,tt,L3,'ygd-fbad',4);
+bar(0,Math.min(tt,40),L2,'ygd-fok');
+if(tt>40)el('rect',{x:X(40)+1,y:L2-7,width:X(tt)-X(40)-2,height:14,rx:3,'class':'ygd-holr'},svg);
+}else if(mode==='hang'){
+bar(20,tt,L3,'ygd-fbad');
+bar(0,Math.min(tt,20),L2,'ygd-fok');
+bar(20,tt,L2,'ygd-fbad');
+}else{
+bar(20,tt,L3,'ygd-fbad');
+bar(0,Math.min(tt,40),L2,'ygd-fok');
+if(tt>40)el('rect',{x:X(40)+1,y:L2-7,width:X(Math.min(tt,50))-X(40)-2,height:14,rx:3,'class':'ygd-holr'},svg);
+bar(50,tt,L2,'ygd-facc');
+}
+el('circle',{cx:16,cy:192,r:5,'class':'ygd-dot'},svg);
+el('text',{x:28,y:196,'class':'ygd-tm'},svg,'갱신 성공');
+el('circle',{cx:130,cy:192,r:5,'class':'ygd-hol'},svg);
+el('text',{x:142,y:196,'class':'ygd-tm'},svg,'갱신 없음');
+el('rect',{x:240,y:187,width:14,height:10,rx:2,'class':'ygd-fok'},svg);
+el('text',{x:260,y:196,'class':'ygd-tm'},svg,'정상 점유');
+el('rect',{x:11,y:207,width:14,height:10,rx:2,'class':'ygd-holr'},svg);
+el('text',{x:31,y:216,'class':'ygd-tm'},svg,'락 해제');
+el('rect',{x:110,y:207,width:14,height:10,rx:2,'class':'ygd-fbad'},svg);
+el('text',{x:130,y:216,'class':'ygd-tm'},svg,'멈춤·무한 점유');
+el('rect',{x:260,y:207,width:14,height:10,rx:2,'class':'ygd-facc'},svg);
+el('text',{x:280,y:216,'class':'ygd-tm'},svg,'서버 B 점유');
+}
+function show(i){
+cur=i;
+draw();
+ttl.textContent='t='+(i*10)+'초';
+txt.textContent=TXT[mode][i];
+}
+function stop(){
+if(timer){clearInterval(timer);timer=null;}
+playBtn.textContent=(cur===N)?'다시 재생':'재생';
+}
+playBtn.addEventListener('click',function(){
+if(timer){stop();return;}
+if(cur===N)show(0);
+playBtn.textContent='정지';
+timer=setInterval(function(){
+if(cur===N){stop();return;}
+show(cur+1);
+if(cur===N)stop();
+},1800);
+});
+nextBtn.addEventListener('click',function(){
+stop();
+show(cur===N?0:cur+1);
+});
+resetBtn.addEventListener('click',function(){stop();show(0);});
+Array.prototype.forEach.call(tabs,function(b){
+b.addEventListener('click',function(){
+mode=b.getAttribute('data-mode');
+Array.prototype.forEach.call(tabs,function(o){o.setAttribute('aria-selected',o===b?'true':'false');});
+stop();
+show(0);
+});
+});
+show(0);
+})();
+</script>
+</div>
+
 ### Kubernetes probe
 
 liveness probe는 kubelet이 컨테이너를 재시작하는 워치독처럼 쓰인다. 형태는 헬스체크다. kubelet이 `periodSeconds`마다 묻고 `failureThreshold`번 연속 실패하면 재시작한다. 워치독으로 만들려면 응답 내용을 "진행했다"에 묶는다. 별도 스레드가 항상 200을 주는 `/healthz`는 의미가 없고, 메인 루프가 마지막으로 진행한 시각을 확인해야 한다.
@@ -396,3 +873,155 @@ SSE의 재연결 타이머도 같은 모양이다. 서버가 주기적으로 코
 Node와 Java 예제도 같은 원칙이다. 종료하기 전에 `process.report.writeReport()`나 `ThreadMXBean`으로 상태를 남긴다. 단, 덤프를 쓰는 동작 자체가 막힐 수 있다. 디스크가 가득 찼거나 NFS가 hang인 상태에서 덤프를 쓰다 멈추면 워치독이 종료도 못 한다. 덤프 쓰기에도 별도 타임아웃을 두고 그 뒤에는 무조건 종료한다.
 
 마지막으로 재시작 횟수를 지표로 남긴다. 워치독 재시작이 주 1회라면 증상이고, 하루 수십 번이면 마감이 현실과 어긋난 것이다. 앞서 본 flapping 사례도 재시작 횟수 그래프에서 처음 드러났다. 개입하는 장치는 개입한 사실을 반드시 남겨야 한다.
+
+<div class="ygd-wd-evidence" id="ygd-wd-evidence">
+<style>
+.ygd-wd-evidence{--ygd-fg:rgb(43,39,36);--ygd-muted:rgb(95,90,84);--ygd-line:rgb(184,177,168);--ygd-ok:rgb(27,127,75);--ygd-warn:rgb(180,83,9);--ygd-bad:rgb(192,57,43);--ygd-accent:rgb(61,115,135);--ygd-bg:rgb(253,251,250);--ygd-panel:rgb(243,239,234);--ygd-btnfg:rgb(255,255,255);max-width:760px;margin-left:auto;margin-right:auto;margin-top:1.5em;margin-bottom:1.5em;color:var(--ygd-fg);box-sizing:border-box}
+body[data-md-color-scheme="slate"] .ygd-wd-evidence{--ygd-fg:rgb(240,237,233);--ygd-muted:rgb(181,174,165);--ygd-line:rgb(107,101,94);--ygd-ok:rgb(95,211,141);--ygd-warn:rgb(240,176,74);--ygd-bad:rgb(255,138,128);--ygd-accent:rgb(127,185,207);--ygd-bg:rgb(31,28,30);--ygd-panel:rgb(43,39,41);--ygd-btnfg:rgb(31,28,30)}
+.ygd-wd-evidence *{box-sizing:border-box}
+.ygd-wd-evidence .ygd-wrap{background:var(--ygd-bg);border:1px solid var(--ygd-line);border-radius:8px;padding:12px}
+.ygd-wd-evidence .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px 0}
+.ygd-wd-evidence .ygd-btn{font:inherit;font-size:14px;line-height:1.2;min-height:40px;padding:8px 14px;border-radius:6px;border:1px solid var(--ygd-accent);background:transparent;color:var(--ygd-fg);cursor:pointer}
+.ygd-wd-evidence .ygd-btn[aria-selected="true"],.ygd-wd-evidence .ygd-main{background:var(--ygd-accent);color:var(--ygd-btnfg)}
+.ygd-wd-evidence .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-wd-evidence .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+.ygd-wd-evidence .ygd-tx{fill:var(--ygd-fg);font-size:11px}
+.ygd-wd-evidence .ygd-tm{fill:var(--ygd-muted);font-size:11px}
+.ygd-wd-evidence .ygd-grid{stroke:var(--ygd-line);stroke-width:1;stroke-dasharray:3 3}
+.ygd-wd-evidence .ygd-fwarn{fill:var(--ygd-warn)}
+.ygd-wd-evidence .ygd-fbad{fill:var(--ygd-bad)}
+.ygd-wd-evidence .ygd-facc{fill:var(--ygd-accent)}
+.ygd-wd-evidence .ygd-holr{fill:none;stroke:var(--ygd-muted);stroke-width:2;stroke-dasharray:4 3}
+.ygd-wd-evidence .ygd-panel{background:var(--ygd-panel);border-radius:6px;padding:10px 12px;margin-top:10px;min-height:7.2em}
+.ygd-wd-evidence .ygd-ptitle{font-size:14px;font-weight:700;margin:0 0 4px 0;line-height:1.5}
+.ygd-wd-evidence .ygd-ptext{font-size:14px;line-height:1.6;margin:0}
+.ygd-wd-evidence .ygd-note{font-size:14px;line-height:1.6;color:var(--ygd-muted);margin:10px 0 0 0}
+@media (prefers-reduced-motion: reduce){.ygd-wd-evidence *{transition:none!important;animation:none!important}}
+</style>
+<div class="ygd-wrap">
+<div class="ygd-bar" role="tablist" aria-label="마감 구성 선택">
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="single" aria-selected="true">systemd 마감만</button>
+<button type="button" class="ygd-btn ygd-tab" role="tab" data-mode="two" aria-selected="false">두 단계 마감</button>
+</div>
+<div class="ygd-bar">
+<button type="button" class="ygd-btn ygd-main ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-next">다음 단계</button>
+<button type="button" class="ygd-btn ygd-reset">처음으로</button>
+</div>
+<svg class="ygd-svg" viewBox="0 0 360 224" role="img" aria-label="hang 발생 후 증거가 남는지 비교하는 타임라인. systemd 마감 60초만 두면 종료 시점까지 아무 증거도 남지 않고, 앱 내부 임계값 20초를 함께 두면 20초에 스레드 덤프가 남은 뒤 60초에 systemd가 종료시킨다."></svg>
+<div class="ygd-panel" aria-live="polite">
+<p class="ygd-ptitle"></p>
+<p class="ygd-ptext"></p>
+</div>
+<p class="ygd-note">비유: 현장을 정리하기 전에 사진부터 찍어 두는 것과 같다. 시간 기준은 본문 예시다: 앱 내부 임계값 20초 정체, WatchdogSec=60s, 마지막 신호는 0초.</p>
+</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-wd-evidence');
+if(!root)return;
+var NS='http://www.w3.org/2000/svg';
+var svg=root.querySelector('.ygd-svg');
+var playBtn=root.querySelector('.ygd-play');
+var nextBtn=root.querySelector('.ygd-next');
+var resetBtn=root.querySelector('.ygd-reset');
+var tabs=root.querySelectorAll('.ygd-tab');
+var ttl=root.querySelector('.ygd-ptitle');
+var txt=root.querySelector('.ygd-ptext');
+var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var mode='single',cur=0,timer=null,N=6;
+if(reduce){playBtn.hidden=true;}
+var TXT={
+single:[
+'작업이 멈춘 직후다. 마지막 신호가 0초에 도착했고 systemd 마감은 WatchdogSec=60s다. 앱 안에는 정체를 기록하는 장치가 없다.',
+'신호가 없고 systemd는 마감을 기다린다. 이 동안 어떤 증거도 남지 않는다.',
+'20초째 정체다. 스레드 덤프를 남기는 주체가 없다.',
+'정체가 이어진다. 외부에서 덤프를 요청할 수는 있지만 사람이 개입해야 하고 자동으로는 일어나지 않는다.',
+'마감까지 20초 남았다. 여전히 남은 증거가 없다.',
+'마감까지 10초 남았다.',
+'마감 초과. systemd가 기본으로 SIGABRT를 보내 종료시킨다. 코어 덤프는 LimitCORE가 0이면 남지 않고, 그러면 아침에 볼 수 있는 것은 재시작됐다는 로그 한 줄뿐이다.'],
+two:[
+'작업이 멈춘 직후다. 앱 내부 임계값은 20초, systemd 마감은 WatchdogSec=60s인 두 단계 구성이다. 마지막 신호는 0초다.',
+'정체 10초째다. 앱 내부 임계값에는 아직 못 미친다.',
+'내부 임계값 20초에 도달했다. 앱이 모든 스레드의 스택을 기록하고 신호 전송을 중단한다. 정체 중에는 주기마다 덤프가 반복되므로 첫 정체에서 한 번만 남기도록 플래그를 둔다.',
+'스레드 덤프는 이미 남아 있다. systemd는 아직 마감 전이라 프로세스를 죽이지 않는다.',
+'덤프를 확보한 채 마감을 기다린다. 락 대기 줄에 멈춘 워커 같은 원인이 이 덤프에서 보인다.',
+'마감까지 10초 남았다.',
+'마감 초과. systemd가 SIGABRT로 종료시키고 재시작한다. 프로세스는 사라졌지만 20초에 남긴 덤프가 증거로 남는다.']
+};
+function el(n,a,p,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!==undefined)e.textContent=t;if(p)p.appendChild(e);return e;}
+function X(t){return 90+t*4.3;}
+function draw(){
+svg.textContent='';
+var i,tt=cur*10,L1=56,L2=104,L3=152;
+for(i=0;i!==7;i++){
+el('text',{x:X(i*10),y:16,'text-anchor':'middle','class':'ygd-tm'},svg,(i*10)+'초');
+el('line',{x1:X(i*10),y1:28,x2:X(i*10),y2:172,'class':'ygd-grid'},svg);
+}
+el('text',{x:6,y:L1+4,'class':'ygd-tx'},svg,'앱 내부 감시');
+el('text',{x:6,y:L2+4,'class':'ygd-tx'},svg,'systemd 마감');
+el('text',{x:6,y:L3+4,'class':'ygd-tx'},svg,'남은 증거');
+if(tt===0){
+el('circle',{cx:X(0),cy:L2,r:5,'class':'ygd-fwarn'},svg);
+}else{
+el('rect',{x:X(0),y:L2-7,width:X(tt)-X(0),height:14,rx:3,'class':(tt>59?'ygd-fbad':'ygd-fwarn')},svg);
+}
+if(mode==='single'){
+if(tt>0){
+el('rect',{x:X(0)+1,y:L1-7,width:X(tt)-X(0)-2,height:14,rx:3,'class':'ygd-holr'},svg);
+el('rect',{x:X(0)+1,y:L3-7,width:X(tt)-X(0)-2,height:14,rx:3,'class':'ygd-holr'},svg);
+}
+}else{
+if(tt>19){
+el('circle',{cx:X(20),cy:L1,r:7,'class':'ygd-facc'},svg);
+el('circle',{cx:X(20),cy:L3,r:7,'class':'ygd-facc'},svg);
+}
+if(tt>20)el('rect',{x:X(20),y:L3-7,width:X(tt)-X(20),height:14,rx:3,'class':'ygd-facc'},svg);
+}
+el('rect',{x:10,y:187,width:14,height:10,rx:2,'class':'ygd-fwarn'},svg);
+el('text',{x:30,y:196,'class':'ygd-tm'},svg,'마감 대기');
+el('rect',{x:110,y:187,width:14,height:10,rx:2,'class':'ygd-fbad'},svg);
+el('text',{x:130,y:196,'class':'ygd-tm'},svg,'마감 초과·종료');
+el('rect',{x:241,y:187,width:14,height:10,rx:2,'class':'ygd-holr'},svg);
+el('text',{x:261,y:196,'class':'ygd-tm'},svg,'없음');
+el('circle',{cx:16,cy:212,r:5,'class':'ygd-facc'},svg);
+el('text',{x:28,y:216,'class':'ygd-tm'},svg,'덤프 기록');
+el('rect',{x:130,y:207,width:14,height:10,rx:2,'class':'ygd-facc'},svg);
+el('text',{x:150,y:216,'class':'ygd-tm'},svg,'확보된 증거');
+}
+function show(i){
+cur=i;
+draw();
+ttl.textContent='t='+(i*10)+'초';
+txt.textContent=TXT[mode][i];
+}
+function stop(){
+if(timer){clearInterval(timer);timer=null;}
+playBtn.textContent=(cur===N)?'다시 재생':'재생';
+}
+playBtn.addEventListener('click',function(){
+if(timer){stop();return;}
+if(cur===N)show(0);
+playBtn.textContent='정지';
+timer=setInterval(function(){
+if(cur===N){stop();return;}
+show(cur+1);
+if(cur===N)stop();
+},1700);
+});
+nextBtn.addEventListener('click',function(){
+stop();
+show(cur===N?0:cur+1);
+});
+resetBtn.addEventListener('click',function(){stop();show(0);});
+Array.prototype.forEach.call(tabs,function(b){
+b.addEventListener('click',function(){
+mode=b.getAttribute('data-mode');
+Array.prototype.forEach.call(tabs,function(o){o.setAttribute('aria-selected',o===b?'true':'false');});
+stop();
+show(0);
+});
+});
+show(0);
+})();
+</script>
+</div>
