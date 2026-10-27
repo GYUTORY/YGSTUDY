@@ -15,6 +15,7 @@ nav:
     - Webhook Security: Webhook_Security.md
   - 암호화:
     - AES: AES.md
+    - AES-GCM 내부 구조와 운영 함정: AES_GCM.md
     - RSA: RSA.md
     - SHA 해시 함수: SHA.md
     - HMAC: HMAC.md
