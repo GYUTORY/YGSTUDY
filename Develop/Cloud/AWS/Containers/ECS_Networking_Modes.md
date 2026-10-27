@@ -1,7 +1,7 @@
 ---
 title: ECS Networking Modes — awsvpc / bridge / host / none 모드 상세
 tags: [aws, network, cloud]
-updated: 2026-04-20
+updated: 2026-10-27
 ---
 
 # ECS Networking Modes
@@ -73,6 +73,206 @@ instance 타입은 EC2 인스턴스의 프라이머리 ENI로 트래픽을 보�
 awsvpc는 Task마다 IP를 하나씩 쓴다. `/24` 서브넷이 약 250개 IP인데, 배포 중에는 구버전 + 신버전 Task가 동시에 떠서 평소보다 2배의 IP를 쓴다. `minimumHealthyPercent=100, maximumPercent=200`으로 배포하면 순간적으로 Task 수가 두 배가 되는데, 여기에 EC2 인스턴스 자체 IP와 다른 리소스(RDS, ElastiCache, NAT 등)까지 합치면 생각보다 금방 바닥난다.
 
 IP 고갈이 나면 Task가 `PENDING` 상태에서 안 넘어가고, `RESOURCE:ENI` 에러가 CloudTrail에 찍힌다. 처음부터 `/22`(약 1,000개 IP) 이상으로 서브넷을 잡거나, awsvpc용 서브넷을 따로 분리해서 구성하는 게 안전하다.
+
+<div class="ygd-awsvpc-subnet-ip-exhaustion" id="ygd-awsvpc-subnet-ip-exhaustion">
+<style>
+.ygd-awsvpc-subnet-ip-exhaustion{--ygd-bg:rgb(250,248,246);--ygd-border:rgb(214,208,201);--ygd-text:rgb(38,35,32);--ygd-muted:rgb(95,90,85);--ygd-other:rgb(138,143,152);--ygd-old:rgb(74,127,176);--ygd-new:rgb(47,143,91);--ygd-pend:rgb(192,57,43);--ygd-hl:rgba(61,115,135,0.12);--ygd-accent:rgb(61,115,135);--ygd-accent-text:rgb(255,255,255);--ygd-btn-bg:rgb(255,255,255);--ygd-focus:rgb(26,84,200);max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box;padding:16px;border:1px solid var(--ygd-border);border-radius:10px;background:var(--ygd-bg);color:var(--ygd-text);font-size:15px;line-height:1.6;overflow:hidden}
+body[data-md-color-scheme="slate"] .ygd-awsvpc-subnet-ip-exhaustion{--ygd-bg:rgb(38,35,40);--ygd-border:rgb(78,73,80);--ygd-text:rgb(236,232,227);--ygd-muted:rgb(181,175,168);--ygd-other:rgb(122,128,138);--ygd-old:rgb(106,163,214);--ygd-new:rgb(79,191,134);--ygd-pend:rgb(255,122,107);--ygd-hl:rgba(140,190,210,0.16);--ygd-accent:rgb(120,180,200);--ygd-accent-text:rgb(24,22,26);--ygd-btn-bg:rgb(52,48,54);--ygd-focus:rgb(130,177,255)}
+.ygd-awsvpc-subnet-ip-exhaustion *{box-sizing:border-box}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-title{margin:0 0 4px;font-size:17px;font-weight:700;line-height:1.4;color:var(--ygd-text)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-note{margin:0 0 12px;font-size:14px;color:var(--ygd-muted)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-group{display:flex;gap:0;border:1px solid var(--ygd-border);border-radius:8px;overflow:hidden}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-btn{min-height:40px;padding:6px 14px;border:0;margin:0;background:var(--ygd-btn-bg);color:var(--ygd-text);font:inherit;font-size:15px;line-height:1.3;cursor:pointer}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-ctl{border:1px solid var(--ygd-border);border-radius:8px}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-btn[aria-pressed="true"]{background:var(--ygd-accent);color:var(--ygd-accent-text);font-weight:700}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-play{background:var(--ygd-accent);color:var(--ygd-accent-text);font-weight:700}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-btn:disabled{opacity:0.45;cursor:default}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px;position:relative;z-index:1}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-svgwrap{width:100%;max-width:560px;margin:0 auto}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-svg{display:block;width:100%;height:auto;max-width:100%}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-svg text{font-size:13px;font-family:inherit;fill:var(--ygd-text)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-svg .ygd-mut{fill:var(--ygd-muted)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-svg .ygd-err{fill:var(--ygd-pend);font-weight:700}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-axis{stroke:var(--ygd-muted);stroke-width:1}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-cap{stroke:var(--ygd-pend);stroke-width:1.5;stroke-dasharray:5 4}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-hlr{fill:var(--ygd-hl)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-seg-o{fill:var(--ygd-other);stroke:var(--ygd-bg);stroke-width:1}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-seg-old{fill:var(--ygd-old);stroke:var(--ygd-bg);stroke-width:1}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-seg-new{fill:var(--ygd-new);stroke:var(--ygd-bg);stroke-width:1}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-seg-p{fill:url(#ygd-sub-hatch);stroke:var(--ygd-pend);stroke-width:1.5;stroke-dasharray:4 3}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-hatch-bg{fill:var(--ygd-bg)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-hatch-ln{stroke:var(--ygd-pend);stroke-width:2}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-colg{opacity:0.5;transition:opacity 0.3s;transform-box:fill-box;transform-origin:50% 100%}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-colg.ygd-past{opacity:0.8}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-colg.ygd-now{opacity:1}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-colg.ygd-grow{animation:ygd-sub-grow 0.6s ease-out}
+@keyframes ygd-sub-grow{from{transform:scaleY(0.3);opacity:0.4}to{transform:scaleY(1);opacity:1}}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0;padding:0;font-size:14px;color:var(--ygd-muted)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-li{display:flex;align-items:center;gap:6px}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-sw{display:inline-block;width:14px;height:14px;border-radius:3px;flex:none}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-sw-o{background:var(--ygd-other)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-sw-old{background:var(--ygd-old)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-sw-new{background:var(--ygd-new)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-sw-p{border:2px dashed var(--ygd-pend);background:transparent}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-sw-cap{height:0;border-top:2px dashed var(--ygd-pend);border-radius:0}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-readout{margin:8px 0;font-size:14px;font-weight:700;color:var(--ygd-text);overflow-wrap:anywhere}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-panel{margin:0;padding:10px 12px;border-left:4px solid var(--ygd-accent);border-radius:4px;background:var(--ygd-hl);font-size:15px;line-height:1.6;color:var(--ygd-text)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-panel.ygd-bad{border-left-color:var(--ygd-pend)}
+.ygd-awsvpc-subnet-ip-exhaustion .ygd-foot{margin:10px 0 0;font-size:14px;color:var(--ygd-muted)}
+@media (prefers-reduced-motion:reduce){.ygd-awsvpc-subnet-ip-exhaustion .ygd-colg{transition:none}.ygd-awsvpc-subnet-ip-exhaustion .ygd-colg.ygd-grow{animation:none}}
+</style>
+<p class="ygd-title">롤링 배포 중 서브넷 IP 사용량 타임라인</p>
+<p class="ygd-note">awsvpc는 Task마다 IP를 하나씩 쓴다. 비유하면 서브넷 IP 풀은 주차장이고 Task 한 개가 한 칸을 차지한다. 롤링 배포는 구버전이 빠지기 전에 신버전이 먼저 들어오는 방식이라 잠시 두 배의 칸이 필요하다. 다만 칸이 모자라면 줄을 서는 대신 Task가 PENDING에 남는다.</p>
+<div class="ygd-bar">
+<div class="ygd-group" role="group" aria-label="서브넷 크기 선택">
+<button type="button" class="ygd-btn ygd-m24" aria-pressed="true">/24 서브넷</button>
+<button type="button" class="ygd-btn ygd-m22" aria-pressed="false">/22 서브넷</button>
+</div>
+<button type="button" class="ygd-btn ygd-ctl ygd-play">재생</button>
+<button type="button" class="ygd-btn ygd-ctl ygd-prev">이전 단계</button>
+<button type="button" class="ygd-btn ygd-ctl ygd-next">다음 단계</button>
+</div>
+<div class="ygd-svgwrap">
+<svg class="ygd-svg" viewBox="0 0 420 248" role="img" aria-label="롤링 배포 중 서브넷 IP 사용량 막대 그래프">
+<defs><pattern id="ygd-sub-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" class="ygd-hatch-bg"></rect><line x1="0" y1="0" x2="0" y2="6" class="ygd-hatch-ln"></line></pattern></defs>
+<g class="ygd-hlg"></g>
+<g class="ygd-bars"></g>
+<line class="ygd-axis" x1="52" y1="220" x2="414" y2="220"></line>
+<line class="ygd-cap" x1="52" y1="87" x2="414" y2="87"></line>
+<text class="ygd-capt ygd-mut" x="46" y="91" text-anchor="end">250</text>
+<g class="ygd-xl"></g>
+</svg>
+</div>
+<div class="ygd-legend">
+<span class="ygd-li"><span class="ygd-sw ygd-sw-o"></span>기타 리소스 IP (인스턴스, RDS, ElastiCache, NAT 등)</span>
+<span class="ygd-li"><span class="ygd-sw ygd-sw-old"></span>구버전 Task</span>
+<span class="ygd-li"><span class="ygd-sw ygd-sw-new"></span>신버전 Task</span>
+<span class="ygd-li"><span class="ygd-sw ygd-sw-p"></span>IP가 없어 PENDING인 신버전 Task</span>
+<span class="ygd-li"><span class="ygd-sw ygd-sw-cap"></span>서브넷 IP 풀 한도</span>
+</div>
+<p class="ygd-readout" aria-hidden="true"></p>
+<p class="ygd-panel" aria-live="polite"></p>
+<p class="ygd-foot">수치는 설명용 가정이다: 평상시 Task 110개, 기타 리소스 IP 50개, minimumHealthyPercent=100, maximumPercent=200. 풀 크기는 /24가 약 250개, /22가 약 1,000개다.</p>
+<script>
+(function(){
+var root=document.getElementById('ygd-awsvpc-subnet-ip-exhaustion');
+if(!root||root.getAttribute('data-ygd-init')==='1'){return;}
+root.setAttribute('data-ygd-init','1');
+var NS='http://www.w3.org/2000/svg';
+function q(s){return root.querySelector(s);}
+var svg=q('.ygd-svg'),barsG=q('.ygd-bars'),hlG=q('.ygd-hlg'),xlG=q('.ygd-xl');
+var capLine=q('.ygd-cap'),capT=q('.ygd-capt');
+var readout=q('.ygd-readout'),panel=q('.ygd-panel');
+var bPlay=q('.ygd-play'),bPrev=q('.ygd-prev'),bNext=q('.ygd-next');
+var b24=q('.ygd-m24'),b22=q('.ygd-m22');
+var BASE=220,H=170,X0=52,CW=90,BW=54;
+var MODES={
+m24:{name:'/24',pool:250,axis:320,capLabel:'250',poolText:'약 250개',
+xl:['평상시','배포 시작','풀 소진','PENDING'],
+steps:[
+{o:50,old:110,nw:0,p:0,t:'구버전 Task 110개가 IP를 하나씩 쓰고, 인스턴스, RDS, ElastiCache, NAT 등 기타 리소스가 50개를 쓴다. 합계 160개라 250개 풀에 90개가 남아 있다.'},
+{o:50,old:110,nw:40,p:0,t:'minimumHealthyPercent=100이라 구버전은 그대로 두고, maximumPercent=200 한도까지 신버전 Task를 추가로 띄운다. 신버전 40개가 올라오면 사용량은 200개가 된다.'},
+{o:50,old:110,nw:90,p:0,t:'신버전이 90개째 뜨면 160 + 90 = 250개로 풀이 가득 찬다. 그런데 신버전은 20개를 더 띄워야 한다.'},
+{o:50,old:110,nw:90,p:20,bad:true,t:'91번째 신버전 Task는 ENI에 줄 IP가 없다. Task가 PENDING에서 넘어가지 못하고 RESOURCE:ENI 에러가 CloudTrail에 찍힌다. 남은 신버전 20개가 대기 중이다.'}
+]},
+m22:{name:'/22',pool:1000,axis:1200,capLabel:'1,000',poolText:'약 1,000개',
+xl:['평상시','배포 시작','신버전 90','피크'],
+steps:[
+{o:50,old:110,nw:0,p:0,t:'구버전 Task 110개와 기타 리소스 50개를 합쳐 160개를 쓴다. 약 1,000개 풀에 840개가 남아 있다.'},
+{o:50,old:110,nw:40,p:0,t:'구버전을 유지한 채 maximumPercent=200 한도까지 신버전 Task를 추가한다. 신버전 40개가 올라와도 사용량은 200개로, 풀의 20%다.'},
+{o:50,old:110,nw:90,p:0,t:'신버전이 90개 떠도 합계 250개로 풀의 4분의 1이다. 같은 시점에 /24 서브넷은 풀이 가득 찼다.'},
+{o:50,old:110,nw:110,p:0,t:'신버전 110개가 모두 떠서 순간 최대 270개를 쓴다. 약 1,000개 풀 안에서 끝나므로 PENDING이나 RESOURCE:ENI 에러 없이 배포가 진행된다.'}
+]}
+};
+var mode='m24',step=0,timer=null,prevStep=-1;
+function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}if(parent){parent.appendChild(e);}return e;}
+function clear(n){while(n.firstChild){n.removeChild(n.firstChild);}}
+function build(){
+var M=MODES[mode];
+clear(barsG);clear(hlG);clear(xlG);
+var capY=BASE-M.pool/M.axis*H;
+capLine.setAttribute('y1',capY);capLine.setAttribute('y2',capY);
+capT.setAttribute('y',capY+4);capT.textContent=M.capLabel;
+for(var i=0;i!==M.steps.length;i++){
+var s=M.steps[i];
+var cx=X0+CW*i+CW/2;
+var hl=el('rect',{'class':'ygd-hlr',x:X0+CW*i+2,y:6,width:CW-4,height:BASE-6+30,rx:6,'data-i':i,visibility:'hidden'},hlG);
+var g=el('g',{'class':'ygd-colg','data-i':i},barsG);
+var y=BASE;
+var segs=[['ygd-seg-o',s.o],['ygd-seg-old',s.old],['ygd-seg-new',s.nw],['ygd-seg-p',s.p]];
+for(var j=0;j!==segs.length;j++){
+var v=segs[j][1];
+if(v===0){continue;}
+var h=v/M.axis*H;
+y-=h;
+el('rect',{'class':segs[j][0],x:cx-BW/2,y:y,width:BW,height:h},g);
+}
+if(s.p>0){
+var t1=el('text',{'class':'ygd-err',x:414,y:y-10,'text-anchor':'end'},g);
+t1.textContent='RESOURCE:ENI';
+}else{
+var t2=el('text',{x:cx,y:y-10,'text-anchor':'middle'},g);
+t2.textContent=String(s.o+s.old+s.nw);
+}
+var xl=el('text',{'class':'ygd-mut',x:cx,y:240,'text-anchor':'middle'},xlG);
+xl.textContent=M.xl[i];
+}
+}
+function paint(animate){
+var M=MODES[mode],s=M.steps[step];
+var cols=barsG.childNodes,hls=hlG.childNodes;
+for(var i=0;i!==cols.length;i++){
+var c=cols[i];
+c.setAttribute('class','ygd-colg'+(i===step?' ygd-now':(i<step?' ygd-past':'')));
+hls[i].setAttribute('visibility',i===step?'visible':'hidden');
+}
+if(animate&&step!==prevStep){
+var cur=cols[step];
+void cur.getBoundingClientRect();
+cur.setAttribute('class','ygd-colg ygd-now ygd-grow');
+}
+var tot=s.o+s.old+s.nw;
+var txt=M.name+' 서브넷 · '+(step+1)+'/4단계 · 구버전 '+s.old+' + 신버전 '+s.nw+' + 기타 '+s.o+' = '+tot+' / 풀 '+M.poolText;
+if(s.p>0){txt+=' · 대기 '+s.p;}
+readout.textContent=txt;
+panel.textContent=M.xl[step]+': '+s.t;
+panel.className='ygd-panel'+(s.bad?' ygd-bad':'');
+svg.setAttribute('aria-label',M.name+' 서브넷 롤링 배포 IP 사용량 막대 그래프. '+(step+1)+'단계, '+txt);
+bPrev.disabled=step===0;
+bNext.disabled=step===M.steps.length-1;
+prevStep=step;
+}
+function stop(){
+if(timer!==null){clearInterval(timer);timer=null;}
+bPlay.textContent=step===MODES[mode].steps.length-1?'다시 재생':'재생';
+}
+function tick(){
+if(step>=MODES[mode].steps.length-1){stop();return;}
+step++;paint(true);
+if(step>=MODES[mode].steps.length-1){stop();}
+}
+function play(){
+if(step>=MODES[mode].steps.length-1){step=0;prevStep=-1;paint(true);}
+bPlay.textContent='일시정지';
+timer=setInterval(tick,2600);
+}
+function setMode(m){
+mode=m;
+b24.setAttribute('aria-pressed',m==='m24'?'true':'false');
+b22.setAttribute('aria-pressed',m==='m22'?'true':'false');
+build();prevStep=-1;paint(true);
+if(timer===null){stop();}
+}
+bPlay.addEventListener('click',function(){if(timer!==null){stop();}else{play();}});
+bPrev.addEventListener('click',function(){stop();if(step>0){step--;paint(true);}stop();});
+bNext.addEventListener('click',function(){stop();if(step<MODES[mode].steps.length-1){step++;paint(true);}stop();});
+b24.addEventListener('click',function(){setMode('m24');});
+b22.addEventListener('click',function(){setMode('m22');});
+build();paint(false);stop();
+})();
+</script>
+</div>
 
 ## bridge 모드 — 동적 포트 매핑과 ALB 연동
 
@@ -257,6 +457,248 @@ Cloud Map과 비교했을 때 Service Connect의 장점은 세 가지다.
 - **Graceful 연결 종료**: Task 종료 시 Envoy가 in-flight 요청을 끝까지 처리하고 나간다.
 
 단점은 Envoy 사이드카의 **리소스 오버헤드**다. Task당 CPU ~128, Memory ~64MB 정도 추가로 쓴다. 수백 개 Task를 돌리면 꽤 쌓인다.
+
+<div class="ygd-cloudmap-dns-vs-service-connect" id="ygd-cloudmap-dns-vs-service-connect">
+<style>
+.ygd-cloudmap-dns-vs-service-connect{--ygd-bg:#fdfbfa;--ygd-fg:#2b2927;--ygd-muted:#5f5a54;--ygd-surface:#f4f1ed;--ygd-line:#8a847c;--ygd-border:#d9d4cd;--ygd-accent:#2f6b80;--ygd-onaccent:#ffffff;--ygd-ok:#1f7a45;--ygd-fail:#c0332b;--ygd-warn:#8f5b00;max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box;padding:14px;border:1px solid var(--ygd-border);border-radius:12px;background:var(--ygd-bg);color:var(--ygd-fg);font-size:15px;line-height:1.6}
+body[data-md-color-scheme="slate"] .ygd-cloudmap-dns-vs-service-connect{--ygd-bg:#1f1c1e;--ygd-fg:#ece8e3;--ygd-muted:#b3ada5;--ygd-surface:#2a2729;--ygd-line:#8f8982;--ygd-border:#4a4548;--ygd-accent:#7fc0d6;--ygd-onaccent:#11262e;--ygd-ok:#5fcf8a;--ygd-fail:#ff8a80;--ygd-warn:#f0b957}
+.ygd-cloudmap-dns-vs-service-connect .ygd-modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.ygd-cloudmap-dns-vs-service-connect .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.ygd-cloudmap-dns-vs-service-connect .ygd-steps{display:flex;gap:6px;align-items:center;margin-left:auto}
+.ygd-cloudmap-dns-vs-service-connect .ygd-btn{font:inherit;font-size:14px;line-height:1.3;min-height:36px;padding:4px 12px;border:1px solid var(--ygd-border);border-radius:8px;background:var(--ygd-surface);color:var(--ygd-fg);cursor:pointer}
+.ygd-cloudmap-dns-vs-service-connect .ygd-btn:hover{border-color:var(--ygd-accent)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-cloudmap-dns-vs-service-connect .ygd-btn:disabled{opacity:.5;cursor:default}
+.ygd-cloudmap-dns-vs-service-connect .ygd-mode{flex:1 1 140px}
+.ygd-cloudmap-dns-vs-service-connect .ygd-btn[aria-pressed="true"]{background:var(--ygd-accent);border-color:var(--ygd-accent);color:var(--ygd-onaccent);font-weight:700}
+.ygd-cloudmap-dns-vs-service-connect .ygd-sdot{width:34px;min-height:34px;padding:0;border-radius:50%}
+.ygd-cloudmap-dns-vs-service-connect .ygd-svg{display:block;width:100%;max-width:560px;height:auto;margin:0 auto;font-family:inherit}
+.ygd-cloudmap-dns-vs-service-connect .ygd-t{fill:var(--ygd-fg);font-size:12px;font-family:inherit}
+.ygd-cloudmap-dns-vs-service-connect .ygd-tb{font-weight:700}
+.ygd-cloudmap-dns-vs-service-connect .ygd-tm{fill:var(--ygd-muted)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-tacc{fill:var(--ygd-accent)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-l-ok{fill:var(--ygd-ok)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-l-fail{fill:var(--ygd-fail)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-box{fill:var(--ygd-surface);stroke:var(--ygd-line);stroke-width:1.2;transition:stroke .3s}
+.ygd-cloudmap-dns-vs-service-connect .ygd-zone{fill:none;stroke:var(--ygd-border);stroke-width:1.2}
+.ygd-cloudmap-dns-vs-service-connect .ygd-stale{stroke:var(--ygd-warn);stroke-width:2}
+.ygd-cloudmap-dns-vs-service-connect .ygd-task{transition:opacity .3s}
+.ygd-cloudmap-dns-vs-service-connect .ygd-s-alive .ygd-box{stroke:var(--ygd-ok);stroke-width:2}
+.ygd-cloudmap-dns-vs-service-connect .ygd-s-drain .ygd-box{stroke:var(--ygd-warn);stroke-width:2}
+.ygd-cloudmap-dns-vs-service-connect .ygd-s-dead{opacity:.55}
+.ygd-cloudmap-dns-vs-service-connect .ygd-s-dead .ygd-box{stroke:var(--ygd-fail);stroke-dasharray:5 4}
+.ygd-cloudmap-dns-vs-service-connect .ygd-s-off{opacity:.5}
+.ygd-cloudmap-dns-vs-service-connect .ygd-s-off .ygd-box{stroke-dasharray:3 4}
+.ygd-cloudmap-dns-vs-service-connect .ygd-arrow{fill:none;transition:stroke .3s}
+.ygd-cloudmap-dns-vs-service-connect .ygd-a-ok{stroke:var(--ygd-ok);stroke-width:2.4;marker-end:url(#ygd-cmsc-ah-ok)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-a-fail{stroke:var(--ygd-fail);stroke-width:2.4;stroke-dasharray:6 4;marker-end:url(#ygd-cmsc-ah-fail)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-a-idle{stroke:var(--ygd-line);stroke-width:1.5;stroke-dasharray:2 5;opacity:.5;marker-end:url(#ygd-cmsc-ah-idle)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-mk-ok{fill:var(--ygd-ok)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-mk-fail{fill:var(--ygd-fail)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-mk-idle{fill:var(--ygd-line)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-link{fill:none;transition:stroke .3s}
+.ygd-cloudmap-dns-vs-service-connect .ygd-link-on{stroke:var(--ygd-accent);stroke-width:2.2}
+.ygd-cloudmap-dns-vs-service-connect .ygd-link-off{stroke:var(--ygd-line);stroke-width:1.5;stroke-dasharray:2 5;opacity:.55}
+.ygd-cloudmap-dns-vs-service-connect .ygd-dot{stroke:var(--ygd-bg);stroke-width:1.5}
+.ygd-cloudmap-dns-vs-service-connect .ygd-d-ok{fill:var(--ygd-ok)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-d-fail{fill:var(--ygd-fail)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-panel{margin-top:10px;padding:10px 12px;border:1px solid var(--ygd-border);border-left:4px solid var(--ygd-accent);border-radius:8px;background:var(--ygd-surface);font-size:15px}
+.ygd-cloudmap-dns-vs-service-connect .ygd-ptitle{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:4px;font-weight:700}
+.ygd-cloudmap-dns-vs-service-connect .ygd-badge{padding:0 10px;border:1px solid currentColor;border-radius:999px;font-size:14px;font-weight:700}
+.ygd-cloudmap-dns-vs-service-connect .ygd-b-ok{color:var(--ygd-ok)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-b-fail{color:var(--ygd-fail)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-b-warn{color:var(--ygd-warn)}
+.ygd-cloudmap-dns-vs-service-connect .ygd-ptext{margin:0}
+.ygd-cloudmap-dns-vs-service-connect .ygd-note{margin-top:10px;font-size:14px;line-height:1.6;color:var(--ygd-muted)}
+@media (prefers-reduced-motion: reduce){.ygd-cloudmap-dns-vs-service-connect *{transition:none !important;animation:none !important}}
+</style>
+<div class="ygd-modes" role="group" aria-label="서비스 디스커버리 방식 선택">
+<button type="button" class="ygd-btn ygd-mode" data-ygd-mode="dns" aria-pressed="true">Cloud Map DNS</button>
+<button type="button" class="ygd-btn ygd-mode" data-ygd-mode="sc" aria-pressed="false">Service Connect</button>
+</div>
+<svg class="ygd-svg" data-ygd="svg" viewBox="0 0 400 352" role="img" aria-label="Task 교체 시나리오 다이어그램">
+<defs>
+<marker id="ygd-cmsc-ah-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ygd-mk-ok" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="ygd-cmsc-ah-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ygd-mk-fail" d="M0 0 L10 5 L0 10 z"/></marker>
+<marker id="ygd-cmsc-ah-idle" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ygd-mk-idle" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="ygd-box" x="100" y="8" width="200" height="40" rx="8"/>
+<text class="ygd-t ygd-tb" x="200" y="23" text-anchor="middle">Cloud Map 레지스트리</text>
+<text class="ygd-t ygd-tm" data-ygd="reg" x="200" y="40" text-anchor="middle"></text>
+<path class="ygd-link ygd-link-off" data-ygd="link" d="M200 48 L200 84"/>
+<text class="ygd-t ygd-tm" data-ygd="linklbl" x="212" y="70"></text>
+<rect class="ygd-zone" x="10" y="84" width="380" height="96" rx="10"/>
+<text class="ygd-t ygd-tm ygd-tb" x="22" y="102">클라이언트 Task</text>
+<rect class="ygd-box" x="22" y="112" width="128" height="54" rx="8"/>
+<text class="ygd-t ygd-tb" x="34" y="132">App</text>
+<text class="ygd-t ygd-tm" data-ygd="app2" x="34" y="150"></text>
+<path class="ygd-arrow ygd-a-idle" d="M150 139 L170 139" style="opacity:1;stroke-dasharray:none;stroke:var(--ygd-line)"/>
+<rect class="ygd-box" data-ygd="slotbox" x="172" y="112" width="206" height="54" rx="8"/>
+<text class="ygd-t ygd-tb" data-ygd="slot1" x="184" y="132"></text>
+<text class="ygd-t ygd-tm" data-ygd="slot2" x="184" y="150"></text>
+<path class="ygd-arrow ygd-a-idle" data-ygd="a1" d="M268 166 L102 246"/>
+<path class="ygd-arrow ygd-a-idle" data-ygd="a2" d="M268 166 L298 246"/>
+<text class="ygd-t ygd-tb" data-ygd="l1" x="156" y="210" text-anchor="end"></text>
+<text class="ygd-t ygd-tb" data-ygd="l2" x="300" y="210"></text>
+<circle class="ygd-dot ygd-d-ok" data-ygd="d1" r="5" cx="268" cy="166" opacity="0"/>
+<circle class="ygd-dot ygd-d-ok" data-ygd="d2" r="5" cx="268" cy="166" opacity="0"/>
+<g class="ygd-task ygd-s-alive" data-ygd="t1">
+<rect class="ygd-box" x="10" y="250" width="180" height="96" rx="10"/>
+<text class="ygd-t ygd-tb" x="22" y="272">Task B-1 (기존)</text>
+<text class="ygd-t ygd-tm" x="22" y="291">10.0.1.5</text>
+<text class="ygd-t ygd-tb" data-ygd="t1s1" x="22" y="314"></text>
+<text class="ygd-t ygd-tm" data-ygd="t1s2" x="22" y="332"></text>
+</g>
+<g class="ygd-task ygd-s-off" data-ygd="t2">
+<rect class="ygd-box" x="210" y="250" width="180" height="96" rx="10"/>
+<text class="ygd-t ygd-tb" x="222" y="272">Task B-2 (신규)</text>
+<text class="ygd-t ygd-tm" x="222" y="291">10.0.1.9</text>
+<text class="ygd-t ygd-tb" data-ygd="t2s1" x="222" y="314"></text>
+<text class="ygd-t ygd-tm" data-ygd="t2s2" x="222" y="332"></text>
+</g>
+</svg>
+<div class="ygd-ctrl">
+<button type="button" class="ygd-btn" data-ygd="play">재생</button>
+<button type="button" class="ygd-btn" data-ygd="next">다음 단계</button>
+<button type="button" class="ygd-btn" data-ygd="reset">처음으로</button>
+<div class="ygd-steps" data-ygd="steps" role="group" aria-label="단계 선택"></div>
+</div>
+<div class="ygd-panel" aria-live="polite">
+<div class="ygd-ptitle"><span data-ygd="ptitle"></span><span class="ygd-badge" data-ygd="badge"></span></div>
+<div class="ygd-ptext" data-ygd="ptext"></div>
+</div>
+<div class="ygd-note">비유: DNS 캐시는 전화번호를 적어 둔 수첩과 같아서, 번호가 바뀌어도 TTL이 지나야 다시 확인한다. Service Connect의 Envoy는 최신 명단을 보고 연결해 주는 안내 데스크에 가깝다. 비유일 뿐 실제 Envoy는 L7 프록시이며, 화면의 IP는 설명용 예시다.</div>
+<script>
+(function(){
+var root=document.getElementById('ygd-cloudmap-dns-vs-service-connect');
+if(!root)return;
+function q(n){return root.querySelector('[data-ygd="'+n+'"]');}
+var NAMES={dns:'Cloud Map DNS',sc:'Service Connect'};
+var D={
+dns:[
+{t:'평상시',k:'ok',kb:'정상',x:'클라이언트가 api.internal 을 조회해 A 레코드의 IP(10.0.1.5)를 받고 DNS 캐시에 저장한다. 요청은 Task B-1로 정상 전달된다.',reg:'api.internal → 10.0.1.5',link:[1,'최초 조회 → 캐시 저장'],slot1:'DNS 캐시 (TTL 60초)',slot2:'api.internal → 10.0.1.5',stale:0,t1:['alive','실행 중','요청 처리 가능'],t2:['off','아직 없음',''],a1:['ok','성공 ✓'],a2:[0,'']},
+{t:'B-1 종료, 캐시는 옛 IP',k:'fail',kb:'여기서 실패',x:'Task B-1이 종료되어 레코드가 사라진다. 그래도 클라이언트는 TTL(기본 60초)이 지나기 전이라 재조회하지 않고 옛 IP로 요청을 보내고, 그 요청은 실패한다.',reg:'등록된 레코드 없음',link:[0,'조회 없음 · 캐시 사용'],slot1:'DNS 캐시 · 옛 IP 보관 중',slot2:'api.internal → 10.0.1.5',stale:1,t1:['dead','종료됨','A 레코드 제거'],t2:['off','아직 없음',''],a1:['fail','실패 ✕'],a2:[0,'']},
+{t:'B-2 시작, 그래도 옛 IP',k:'fail',kb:'실패 지속',x:'새 Task B-2가 떠서 새 IP(10.0.1.9)로 등록된다. 하지만 클라이언트 캐시는 아직 만료 전이라 옛 IP를 계속 쓰고, TTL이 지날 때까지 실패가 이어진다.',reg:'api.internal → 10.0.1.9',link:[0,'조회 없음 · 캐시 사용'],slot1:'DNS 캐시 · 옛 IP 보관 중',slot2:'api.internal → 10.0.1.5',stale:1,t1:['dead','종료됨','A 레코드 제거'],t2:['alive','시작됨','A 레코드 등록'],a1:['fail','실패 ✕'],a2:[0,'']},
+{t:'TTL 만료, 재조회',k:'ok',kb:'복구',x:'TTL이 만료되면 클라이언트가 다시 조회해 새 IP를 받고, 요청이 B-2로 성공한다. 이 공백을 줄이려면 클라이언트의 DNS 캐시 TTL을 줄이거나 애플리케이션에서 재시도를 넣어야 한다.',reg:'api.internal → 10.0.1.9',link:[1,'TTL 만료 → 재조회'],slot1:'DNS 캐시 (재조회됨)',slot2:'api.internal → 10.0.1.9',stale:0,t1:['dead','종료됨','A 레코드 제거'],t2:['alive','실행 중','요청 처리 가능'],a1:[0,''],a2:['ok','성공 ✓']}
+],
+sc:[
+{t:'평상시',k:'ok',kb:'정상',x:'앱은 http://api:8080 처럼 이름만 호출한다. 같은 Task 안의 Envoy가 대상 Task로 요청을 분산한다.',reg:'등록: 10.0.1.5',link:[1,'대상 목록 수신'],slot1:'Envoy 사이드카',slot2:'대상: 10.0.1.5',stale:0,t1:['alive','실행 중','요청 처리 가능'],t2:['off','아직 없음',''],a1:['ok','성공 ✓'],a2:[0,'']},
+{t:'B-2 등록, 목록 갱신',k:'ok',kb:'정상',x:'새 Task B-2가 등록되면 같은 Task 안의 Envoy가 대상 목록을 갱신한다. DNS 캐시 TTL을 기다리지 않으므로 B-2도 곧바로 분산 대상이 된다.',reg:'등록: 10.0.1.5, 10.0.1.9',link:[1,'대상 목록 갱신'],slot1:'Envoy 사이드카',slot2:'대상: 10.0.1.5, 10.0.1.9',stale:0,t1:['alive','실행 중','요청 처리 가능'],t2:['alive','시작됨','등록 완료'],a1:['ok','성공 ✓'],a2:['ok','성공 ✓']},
+{t:'B-1 종료 시작, 요청 마무리',k:'warn',kb:'안전하게 전환',x:'B-1이 종료되기 시작하면 대상 목록에서 빠진다. Envoy는 in-flight 요청을 끝까지 처리하고, 새 요청은 B-2로 보낸다.',reg:'등록: 10.0.1.9',link:[1,'목록에서 B-1 제외'],slot1:'Envoy 사이드카',slot2:'대상: 10.0.1.9',stale:0,t1:['drain','종료 중','in-flight 마무리 중'],t2:['alive','실행 중','요청 처리 가능'],a1:['ok','in-flight 마무리'],a2:['ok','신규 요청 ✓']},
+{t:'전환 완료',k:'ok',kb:'실패 없음',x:'B-1이 완전히 종료되어도 목록에는 B-2만 남아 있어 요청이 계속 성공한다. 이 시나리오에서는 클라이언트가 실패 요청을 받는 구간이 없다.',reg:'등록: 10.0.1.9',link:[0,'목록 변화 없음'],slot1:'Envoy 사이드카',slot2:'대상: 10.0.1.9',stale:0,t1:['dead','종료됨','목록에서 이미 제외'],t2:['alive','실행 중','요청 처리 가능'],a1:[0,''],a2:['ok','성공 ✓']}
+]
+};
+var mode='dns',step=0,timer=null,raf=0,vis=true;
+var LAST=3;
+var mq=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
+function reduced(){return !!(mq&&mq.matches);}
+var svg=q('svg'),reg=q('reg'),link=q('link'),linklbl=q('linklbl'),app2=q('app2');
+var slot1=q('slot1'),slot2=q('slot2'),slotbox=q('slotbox');
+var tg=[q('t1'),q('t2')];
+var ts1=[q('t1s1'),q('t2s1')],ts2=[q('t1s2'),q('t2s2')];
+var arrows=[q('a1'),q('a2')],lbls=[q('l1'),q('l2')],dots=[q('d1'),q('d2')];
+var ptitle=q('ptitle'),badge=q('badge'),ptext=q('ptext');
+var playBtn=q('play'),nextBtn=q('next'),resetBtn=q('reset'),stepsBox=q('steps');
+var P=[{x0:268,y0:166,x1:102,y1:246},{x0:268,y0:166,x1:298,y1:246}];
+var cur=[null,null];
+var stepBtns=[];
+for(var i=0;i<=LAST;i++){
+var b=document.createElement('button');
+b.type='button';
+b.className='ygd-btn ygd-sdot';
+b.textContent=String(i+1);
+b.setAttribute('aria-label',(i+1)+'단계로 이동');
+(function(n){b.addEventListener('click',function(){stop();step=n;render();});})(i);
+stepsBox.appendChild(b);
+stepBtns.push(b);
+}
+function render(){
+var s=D[mode][step];
+reg.textContent=s.reg;
+app2.textContent=mode==='dns'?'api.internal:8080':'api:8080';
+link.setAttribute('class','ygd-link '+(s.link[0]?'ygd-link-on':'ygd-link-off'));
+linklbl.textContent=s.link[1];
+linklbl.setAttribute('class','ygd-t '+(s.link[0]?'ygd-tb ygd-tacc':'ygd-tm'));
+slot1.textContent=s.slot1;
+slot2.textContent=s.slot2;
+slotbox.setAttribute('class','ygd-box'+(s.stale?' ygd-stale':''));
+var ts=[s.t1,s.t2];
+for(var i=0;i<2;i++){
+tg[i].setAttribute('class','ygd-task ygd-s-'+ts[i][0]);
+ts1[i].textContent=ts[i][1];
+ts2[i].textContent=ts[i][2];
+var a=i===0?s.a1:s.a2;
+cur[i]=a[0]||null;
+arrows[i].setAttribute('class','ygd-arrow '+(a[0]==='ok'?'ygd-a-ok':a[0]==='fail'?'ygd-a-fail':'ygd-a-idle'));
+lbls[i].textContent=a[1];
+lbls[i].setAttribute('class','ygd-t ygd-tb '+(a[0]==='fail'?'ygd-l-fail':'ygd-l-ok'));
+dots[i].setAttribute('class','ygd-dot '+(a[0]==='fail'?'ygd-d-fail':'ygd-d-ok'));
+if(reduced()||!a[0]){dots[i].setAttribute('opacity','0');}
+}
+ptitle.textContent=NAMES[mode]+' · 단계 '+(step+1)+'/'+(LAST+1)+' · '+s.t;
+badge.textContent=s.kb;
+badge.setAttribute('class','ygd-badge ygd-b-'+s.k);
+ptext.textContent=s.x;
+svg.setAttribute('aria-label','Task 교체 시나리오, '+NAMES[mode]+' 방식. 단계 '+(step+1)+': '+s.t+'. '+s.x);
+for(var j=0;j<stepBtns.length;j++){
+stepBtns[j].setAttribute('aria-pressed',j===step?'true':'false');
+if(j===step){stepBtns[j].setAttribute('aria-current','step');}else{stepBtns[j].removeAttribute('aria-current');}
+}
+nextBtn.disabled=step>=LAST;
+loop();
+}
+function tick(now){
+raf=0;
+if(!vis||document.hidden||reduced()){return;}
+var p=(now%1600)/1600;
+for(var i=0;i<2;i++){
+if(cur[i]){
+dots[i].setAttribute('cx',String(P[i].x0+(P[i].x1-P[i].x0)*p));
+dots[i].setAttribute('cy',String(P[i].y0+(P[i].y1-P[i].y0)*p));
+dots[i].setAttribute('opacity','1');
+}
+}
+raf=requestAnimationFrame(tick);
+}
+function loop(){
+if(raf||reduced()||!vis||document.hidden){return;}
+if(cur[0]||cur[1]){raf=requestAnimationFrame(tick);}
+}
+function stop(){
+if(timer){clearInterval(timer);timer=null;}
+playBtn.textContent='재생';
+}
+function play(){
+if(step>=LAST){step=0;render();}
+playBtn.textContent='일시정지';
+timer=setInterval(function(){
+if(step<LAST){step++;render();}
+if(step>=LAST){stop();}
+},3400);
+}
+playBtn.addEventListener('click',function(){if(timer){stop();}else{play();}});
+nextBtn.addEventListener('click',function(){stop();if(step<LAST){step++;render();}});
+resetBtn.addEventListener('click',function(){stop();step=0;render();});
+var mbs=root.querySelectorAll('[data-ygd-mode]');
+for(var m=0;m<mbs.length;m++){
+mbs[m].addEventListener('click',function(){
+mode=this.getAttribute('data-ygd-mode');
+for(var k=0;k<mbs.length;k++){
+mbs[k].setAttribute('aria-pressed',mbs[k]===this?'true':'false');
+}
+stop();
+step=0;
+render();
+});
+}
+if('IntersectionObserver' in window){
+new IntersectionObserver(function(es){vis=es[0].isIntersecting;if(vis){loop();}}).observe(root);
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden){loop();}});
+render();
+})();
+</script>
+</div>
 
 ## Fargate가 awsvpc만 지원하는 이유
 
