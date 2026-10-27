@@ -1,7 +1,7 @@
 ---
 title: Node.js crypto 모듈 심화
 tags: [nodejs, security]
-updated: 2026-06-03
+updated: 2026-10-27
 ---
 
 # Node.js crypto 모듈 심화
@@ -40,6 +40,33 @@ crypto.createHash('sha256').update('deadbeef', 'hex').digest('hex');
 const buf = Buffer.from('deadbeef', 'hex');
 crypto.createHash('sha256').update(buf).digest('hex');
 ```
+
+같은 문자열 `deadbeef`가 인코딩 인자 하나로 해시 입력 바이트를 갈라놓는 모습이다. 아래 흐름도에서 두 갈래가 서로 다른 바이트열을 해시에 넣기 때문에 비교 단계에서 항상 불일치가 난다.
+
+```mermaid
+flowchart TD
+    S["문자열 deadbeef"] --> E1{"update 인코딩 인자"}
+    E1 -->|"생략 또는 utf8"| B1["ASCII 8바이트<br/>64 65 61 64 62 65 65 66"]
+    E1 -->|"hex"| B2["4바이트<br/>de ad be ef"]
+    B1 --> H1["SHA-256 결과 A"]
+    B2 --> H2["SHA-256 결과 B"]
+    H1 --> D1{"digest 인코딩"}
+    H2 --> D1
+    D1 -->|"hex"| O1["64자 소문자 문자열"]
+    D1 -->|"base64"| O2["44자, + / = 포함"]
+    D1 -->|"base64url"| O3["43자, = 없고 - _ 사용"]
+    O1 --> C{"상대 시스템 값과 비교"}
+    O2 --> C
+    O3 --> C
+```
+
+해시 불일치를 디버깅할 때는 해시 함수보다 앞쪽 두 분기를 먼저 본다. 입력 바이트 길이를 양쪽에서 찍어 보면 8과 4처럼 바로 갈린다. 출력 쪽은 같은 해시라도 문자열 표현이 달라서 비교가 깨지는 경우다.
+
+| 불일치 위치 | 확인 방법 | 증상 |
+|---|---|---|
+| update 입력 | `Buffer.byteLength` 비교 | 해시가 완전히 다르다 |
+| digest 출력 | 양쪽 모두 Buffer로 바꿔 `timingSafeEqual` | 앞부분은 같아 보이는데 길이나 끝 문자가 다르다 |
+| base64 계열 | `=`, `+`, `/`, `-`, `_` 존재 여부 | URL 파라미터에서만 깨진다 |
 
 ### digest의 인코딩
 
@@ -185,9 +212,66 @@ function decrypt(blob, key) {
 
 여기서 중요한 포인트가 몇 개 있다.
 
+### 호출 순서와 final()의 의미
+
+GCM은 CTR 모드로 데이터를 흘려보내고 태그는 마지막에 계산한다. 그래서 Node의 호출 순서가 곧 검증 시점이다. 복호화에서 `update()`는 태그와 상관없이 평문을 바로 돌려주고, 변조 여부는 `final()`에서만 드러난다.
+
+```mermaid
+sequenceDiagram
+    participant App as 호출 코드
+    participant Enc as Cipher
+    participant Dec as Decipher
+
+    App->>Enc: createCipheriv(aes-256-gcm, key, iv)
+    App->>Enc: setAAD(aad)
+    App->>Enc: update(plaintext)
+    Enc-->>App: ciphertext 조각
+    App->>Enc: final()
+    Enc-->>App: 남은 조각 (GCM은 빈 Buffer)
+    App->>Enc: getAuthTag()
+    Enc-->>App: tag 16바이트
+
+    Note over App,Dec: 저장 또는 전송 (iv, tag, ciphertext, aad)
+
+    App->>Dec: createDecipheriv(aes-256-gcm, key, iv)
+    App->>Dec: setAuthTag(tag)
+    App->>Dec: setAAD(aad)
+    App->>Dec: update(ciphertext)
+    Dec-->>App: 평문 조각 (아직 검증 전, 사용 금지)
+    App->>Dec: final()
+    alt 태그 일치
+        Dec-->>App: 검증 통과, 이제 평문 사용 가능
+    else 변조 또는 AAD 불일치
+        Dec-->>App: Unsupported state or unable to authenticate data
+    end
+```
+
+도식에서 볼 부분은 복호화 쪽 `update()` 응답이다. 암호문 첫 바이트를 뒤집고 태그는 그대로 둔 채 직접 돌려 보면, `update()`는 `"uransfer 100 to bob"`처럼 한 글자만 깨진 평문을 정상 반환하고 `final()`에서 비로소 예외를 던진다. 스트림으로 큰 파일을 복호화하면서 `update()` 결과를 바로 파일에 쓰거나 응답으로 흘려보내는 코드는 검증 실패 전에 변조된 평문을 이미 내보낸 셈이 된다. `final()`이 성공할 때까지 결과를 버퍼나 임시 파일에 두고, 성공하면 확정하고 실패하면 폐기한다.
+
+`setAAD`는 암호화 쪽에서 `update()` 앞, 복호화 쪽에서도 `update()` 앞에 불러야 한다. GHASH 계산 구조와 AAD를 어떻게 설계할지는 [AES-GCM 내부 구조와 운영에서 조용히 깨지는 지점](../../Security/AES_GCM.md)에서 다룬다.
+
 ### nonce 재사용은 끝장이다
 
 같은 키로 같은 nonce를 두 번 쓰면 GCM의 보안성이 무너진다. 두 평문의 XOR이 그대로 노출되고, 인증 키가 복원되어 위조 메시지를 만들 수 있다. 이론적 위협이 아니라 실제 사고가 자주 난다.
+
+키스트림이 같아서 암호문끼리 XOR하면 키스트림이 상쇄된다. 같은 키와 같은 iv로 `transfer 100 to bob`, `transfer 999 to eve`를 암호화해 두 암호문의 XOR과 두 평문의 XOR을 비교하면 바이트 단위로 일치한다.
+
+```mermaid
+flowchart LR
+    K["같은 key + 같은 iv"] --> KS["키스트림 KS"]
+    P1["평문 P1"] --> X1(("XOR"))
+    KS --> X1
+    X1 --> C1["암호문 C1 = P1 xor KS"]
+    P2["평문 P2"] --> X2(("XOR"))
+    KS --> X2
+    X2 --> C2["암호문 C2 = P2 xor KS"]
+    C1 --> X3(("XOR"))
+    C2 --> X3
+    X3 --> R["C1 xor C2 = P1 xor P2<br/>키 없이 얻는 값"]
+    R --> G["한쪽 평문을 추측하면<br/>다른 쪽 평문이 복원됨"]
+```
+
+공격자는 키를 몰라도 C1과 C2만 있으면 P1 xor P2를 얻는다. JSON처럼 구조가 알려진 평문이면 한쪽을 추측하는 것만으로 다른 쪽이 풀린다. 인증 키 복원 쪽은 위 Security 문서에서 이어진다.
 
 대표적인 패턴이 카운터 기반 nonce를 메모리에만 두는 경우다. 프로세스 재시작 후 카운터가 0으로 돌아가면 이전에 쓴 nonce를 다시 쓴다. Lambda나 컨테이너 환경에서 인스턴스가 죽었다 살았다 하면 자주 발생한다.
 
@@ -233,6 +317,24 @@ if (req.headers['x-api-key'] === process.env.API_KEY) { ... }
 ```
 
 문자열 비교는 첫 바이트부터 비교해서 다른 바이트가 나오면 즉시 false를 반환한다. 즉, 일치하는 prefix가 길수록 비교 시간이 길어진다. 공격자가 API 키를 한 글자씩 바꿔가며 평균 응답 시간을 측정하면 키를 한 글자씩 복원할 수 있다. 네트워크 노이즈 때문에 어렵다고 생각하지만, 충분히 많이 측정하면 통계적으로 추출이 가능하다.
+
+`===`는 처음 다른 바이트에서 멈추고, `timingSafeEqual`은 끝까지 훑은 뒤 결과를 낸다. 응답 시간에 일치한 길이가 새는지가 차이다.
+
+```mermaid
+flowchart LR
+    subgraph U["=== 비교"]
+        direction TB
+        U1["첫 바이트 비교"] -->|"다름"| U2["즉시 false<br/>가장 빠름"]
+        U1 -->|"같음"| U3["다음 바이트 비교"]
+        U3 -->|"다름"| U4["false<br/>조금 느림"]
+        U3 -->|"전부 같음"| U5["true<br/>가장 느림"]
+    end
+    subgraph T["timingSafeEqual"]
+        direction TB
+        T1["모든 바이트를 XOR 누적"] --> T2["끝까지 수행"]
+        T2 --> T3["결과 반환<br/>일치 길이와 무관한 시간"]
+    end
+```
 
 `crypto.timingSafeEqual`은 길이가 같은 두 Buffer를 항상 같은 시간에 비교한다.
 
@@ -424,7 +526,12 @@ const ciphertext = await subtle.encrypt(
 
 ### 알고리즘 이름이 다르다
 
-`crypto`는 `'aes-256-gcm'`, `'sha256'` 같은 OpenSSL 이름을 쓰고, WebCrypto는 `'AES-GCM'`, `'SHA-256'` 같은 W3C 이름을 쓴다. 헷갈리는 부분이다. 한 코드에 둘이 섞이면 가독성이 떨어지니 가능하면 한 쪽으로 통일한다.
+한 코드에 둘이 섞이면 읽기 어려우니 한쪽으로 통일한다.
+
+| 대상 | crypto (OpenSSL 이름) | WebCrypto (W3C 이름) |
+|---|---|---|
+| AES-GCM | `aes-256-gcm` | `AES-GCM` + length 256 |
+| 해시 | `sha256` | `SHA-256` |
 
 ---
 
