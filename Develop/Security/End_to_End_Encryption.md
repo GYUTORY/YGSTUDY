@@ -1,7 +1,7 @@
 ---
 title: E2EE 종단간 암호화
 tags: [security, encryption, nodejs]
-updated: 2026-04-29
+updated: 2026-10-27
 ---
 
 # E2EE (End-to-End Encryption, 종단간 암호화)
@@ -114,6 +114,28 @@ Signal이 도입한 X3DH는 이 두 문제를 동시에 풀었다. 핵심은 사
     │                                            │ 같은 SK 도출 가능
 ```
 
+위 그림에 없는 부분이 두 가지 있다. 서버가 OPK를 하나 꺼내 줄 때마다 서버 쪽 목록에서 지운다는 것, 그리고 Bob이 접속한 뒤 사용된 OPK의 비밀키를 지운다는 것이다. 아래 시퀀스에서 Alice가 SPK 서명을 검증하는 단계와 양쪽의 OPK 삭제 지점을 따라가 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant A as Alice
+    participant S as 서버
+    participant B as Bob
+    B->>S: IK_B, 서명된 SPK_B, OPK_B 여러 개 업로드
+    Note over B: Bob은 오프라인으로 전환
+    A->>S: Bob의 prekey 번들 요청
+    S-->>A: IK_B, SPK_B, SPK 서명, OPK_B 하나
+    Note over S: 내려준 OPK_B는 서버 목록에서 삭제
+    Note over A: SPK 서명을 IK_B로 검증, 실패하면 중단
+    Note over A: 임시 키 EK_A 생성
+    Note over A: DH1~DH4 수행, SK = KDF(DH1, DH2, DH3, DH4)
+    A->>S: IK_A, EK_A, 사용한 OPK id, SK로 암호화한 첫 메시지
+    Note over B: Bob이 다시 온라인
+    S-->>B: 첫 메시지 전달
+    Note over B: IK_B, SPK_B, OPK_B 비밀키로 같은 DH 4회 수행
+    Note over B: 같은 SK 도출 후 OPK_B 비밀키 삭제
+```
+
 DH를 4번 섞는 이유가 있다. IK ↔ IK 조합으로 신원 인증, EK ↔ IK로 송신자 임시성, EK ↔ SPK로 비동기성, EK ↔ OPK로 추가 엔트로피를 얻는다. OPK는 1회만 쓰고 서버에서 삭제하는데, 이게 나중에 다룰 **Forward Secrecy** 의 첫 단추다.
 
 OPK가 다 떨어지면 SPK만으로도 진행되도록 설계되어 있다. Alice가 Bob에게 처음 보내는 메시지는 그 자체로 암호화되어 있고, Bob이 온라인이 되면 받아서 동일한 SK를 도출한다.
@@ -172,6 +194,24 @@ Alice                                          Bob
   │                                              │  메시지 2 회신 (DH_B1 포함)
   │  Alice: DH(DH_B1, a)로                       │
   │  RK_2 도출, CK_recv 갱신                       │
+```
+
+두 래칫이 어떻게 맞물리는지는 글로 따라가기 어렵다. 아래 그림에서 CK 사이의 KDF 화살표가 메시지마다 도는 체인 키 갱신이고, RK 사이의 화살표가 대화 방향이 바뀔 때 도는 루트 키 갱신이다. 루트 키가 바뀌면 그 밑의 체인은 통째로 새로 시작된다.
+
+```mermaid
+flowchart TB
+    SK["X3DH 결과 SK"] --> RK0["루트 키 RK_0"]
+    RK0 -->|"DH 래칫: 내 새 키쌍 x 상대 공개키, KDF"| RK1["루트 키 RK_1"]
+    RK1 --> CKS0["송신 체인 키 CK_s0"]
+    CKS0 -->|KDF| MK0["메시지 키 MK_0, 사용 후 폐기"]
+    CKS0 -->|KDF| CKS1["송신 체인 키 CK_s1"]
+    CKS1 -->|KDF| MK1["메시지 키 MK_1, 사용 후 폐기"]
+    CKS1 -->|KDF| CKS2["송신 체인 키 CK_s2"]
+    RK1 -->|"상대 답장 도착: 새 DH 래칫"| RK2["루트 키 RK_2"]
+    RK2 --> CKR0["수신 체인 키 CK_r0"]
+    CKR0 -->|KDF| MKR0["수신 메시지 키, 복호화 후 폐기"]
+    RK2 -->|"내가 다시 보낼 때: 새 DH 래칫"| RK3["루트 키 RK_3"]
+    RK3 --> CKS3["새 송신 체인 키"]
 ```
 
 Symmetric Ratchet과 DH Ratchet 두 개가 동시에 돌면서, 같은 방향 연속 메시지는 빠르게(대칭 KDF), 방향이 바뀔 때는 비싼 DH 연산으로 키를 새로 섞는다. 결과적으로 거의 모든 메시지가 다른 키로 암호화된다.
@@ -278,6 +318,22 @@ const recvKey = Buffer.from(hkdf(aliceShared, rootSalt, 'recv-key'));
 
 ### AES-256-GCM으로 메시지 암호화
 
+앞의 두 절이 만든 값이 어떻게 암호문까지 이어지는지 먼저 본다. IV와 AAD는 키와 별개로 GCM에 들어가고, 출력에는 태그가 항상 붙는다.
+
+```mermaid
+flowchart LR
+    PRIV["내 X25519 비밀키"] --> ECDH["crypto.diffieHellman"]
+    PUB["상대 공개키"] --> ECDH
+    ECDH --> SS["ECDH 공유 비밀 raw"]
+    SS --> HKDF["HKDF-SHA256, salt와 info 지정"]
+    HKDF --> MK["32바이트 메시지 키"]
+    MK --> GCM["AES-256-GCM"]
+    IV["IV 12바이트, 키마다 유일"] --> GCM
+    AAD["AAD: 송신자 ID, 메시지 번호"] --> GCM
+    PT["평문"] --> GCM
+    GCM --> OUT["암호문 + 인증 태그 16바이트"]
+```
+
 ```javascript
 function encrypt(key, plaintext, associatedData = Buffer.alloc(0)) {
   const iv = crypto.randomBytes(12); // GCM 표준 IV 길이
@@ -309,7 +365,7 @@ const msg = encrypt(sendKey, '안녕 Bob, 비밀 메시지야');
 const recovered = decrypt(sendKey, msg);
 ```
 
-GCM에서 중요한 점이 있다. **같은 키로 같은 IV를 두 번 쓰면 보안이 즉시 깨진다.** 단순히 노출되는 게 아니라 인증까지 우회된다. 그래서 Double Ratchet처럼 메시지마다 키를 바꾸거나, 적어도 카운터 기반 IV를 단조 증가시켜야 한다. 멀티 디바이스에서 같은 키를 공유하면서 IV 카운터를 동기화하지 않은 구현이 자주 사고를 친다.
+GCM에서 중요한 점이 있다. **같은 키로 같은 IV를 두 번 쓰면 보안이 즉시 깨진다.** 단순히 노출되는 게 아니라 인증까지 우회된다. 그래서 Double Ratchet처럼 메시지마다 키를 바꾸거나, 적어도 카운터 기반 IV를 단조 증가시켜야 한다. 멀티 디바이스에서 같은 키를 공유하면서 IV 카운터를 동기화하지 않은 구현이 자주 사고를 친다. 위 예제처럼 `randomBytes(12)`를 쓰면 카운터 동기화 문제는 없지만 같은 키로 보내는 메시지 수가 늘수록 충돌 확률이 올라간다. 방식별 한계는 [AES-GCM의 nonce를 만드는 세 가지 방식](AES_GCM.md#nonce를-만드는-세-가지-방식)에서 따로 다뤘다.
 
 `associatedData`(AAD)는 암호화하지는 않지만 인증에 포함되는 데이터다. 송신자 ID, 메시지 번호, 헤더 등을 넣어서 변조를 막는다. 라우팅 정보가 바뀌면 복호화가 실패해서 공격자가 헤더만 조작하는 시나리오를 차단한다.
 
@@ -510,6 +566,23 @@ A → D (1:1 E2EE로 SC_A 전달)
   서버에 한 번 업로드 → B, C, D에게 fan-out
 ```
 
+키 배포는 1:1 채널로 N-1번 일어나지만, 이후 메시지는 한 번만 암호화되어 서버가 fan-out한다.
+
+```mermaid
+flowchart LR
+    subgraph G1["키 배포 1회"]
+        A1["A: Sender Key SC_A 생성"] -->|"1:1 E2EE"| B1["B"]
+        A1 -->|"1:1 E2EE"| C1["C"]
+        A1 -->|"1:1 E2EE"| D1["D"]
+    end
+    subgraph G2["메시지마다"]
+        A2["A: MK 도출, AES-GCM 1회 암호화"] --> S["서버"]
+        S --> B2["B 복호화"]
+        S --> C2["C 복호화"]
+        S --> D2["D 복호화"]
+    end
+```
+
 Sender Keys 방식의 약점은 **멤버 변경 시** 다. 누가 나가면 SC를 새로 만들어 남은 멤버들에게 다시 1:1 배포해야 한다. 그룹이 클수록 비싸진다. 또 새 멤버가 들어왔을 때, 그가 과거 메시지를 못 보게 하려면 키 갱신을 강제해야 한다.
 
 ### MLS (Messaging Layer Security)
@@ -555,6 +628,18 @@ Alice는 메시지를 3번 암호화한다:
 서버는 (Bob_phone, msg₁), (Bob_pc, msg₂), (Bob_tablet, msg₃)을 각각 라우팅
 ```
 
+```mermaid
+flowchart LR
+    P["Alice 폰에서 평문 작성"] --> E1["Bob 폰 세션 키로 암호화"]
+    P --> E2["Bob PC 세션 키로 암호화"]
+    P --> E3["Bob 태블릿 세션 키로 암호화"]
+    P --> E4["Alice PC 세션 키로 암호화, 동기화용"]
+    E1 --> S["서버, 디바이스별로 라우팅"]
+    E2 --> S
+    E3 --> S
+    E4 --> S
+```
+
 Alice 본인 디바이스끼리도 메시지를 동기화하려면, Alice의 다른 디바이스들에게도 암호화해서 보낸다. 결국 보낸 사람 디바이스 수와 받은 사람 디바이스 수의 곱만큼 암호화가 일어난다.
 
 ### Sesame 프로토콜
@@ -588,6 +673,16 @@ WhatsApp은 사용자가 64자리 키 또는 비밀번호 중 선택해서 백�
 ### 옵션 4: 다른 디바이스에서 복원
 
 기존에 로그인된 다른 디바이스가 있으면, 그 디바이스에서 새 디바이스로 키를 직접 전송한다. QR 코드 스캔이나 Bluetooth Pairing 같은 방식. 가장 안전하지만 다른 디바이스가 살아있어야 한다.
+
+방식별로 나란히 놓고 비교한다.
+
+| 방식 | 키를 쥔 쪽 | 분실 시 | 서버 brute force | 사용자 부담 |
+|------|-----------|---------|------------------|-------------|
+| 백업 안 함 | 단말만 | 메시지 전부 소실 | 해당 없음 | 없음 |
+| 비밀번호 기반 | 사용자 기억 | 비밀번호 잊으면 복원 불가 | 약한 비밀번호면 가능 | 비밀번호 관리 |
+| PIN + SGX/HSM (SVR) | 사용자 기억 + 하드웨어 | PIN 잊으면 복원 불가 | 시도 횟수를 하드웨어가 제한 | 짧은 PIN 하나 |
+| 클라우드 E2E 백업 | 사용자 보관 키 또는 비밀번호 | 키 잃으면 복원 불가 | 키 길이에 따름 | 64자리 키 보관 |
+| 다른 디바이스에서 복원 | 살아 있는 기존 단말 | 기존 단말도 없으면 불가 | 해당 없음 | 기존 단말 필요 |
 
 ### 백업 정책의 본질적 충돌
 
