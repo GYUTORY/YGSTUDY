@@ -79,6 +79,7 @@ nav:
     - SAST / DAST / IAST: Security_Testing_SAST_DAST_IAST.md
     - 보안 로깅과 감사: Security_Logging_and_Auditing.md
     - UEBA 행위 기반 이상 탐지: UEBA.md
+    - FDS 이상거래탐지 시스템 구조: FDS_Architecture.md
     - 보안 사고 대응 절차: Incident_Response.md
     - 최근 보안사고 사례 2021~2025: Recent_Security_Incidents.md
     - SaaS 자격증명과 토큰 탈취 사고: Saa_S_Token_Theft_Incidents.md
