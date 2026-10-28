@@ -84,6 +84,7 @@ nav:
     - FDS 속도 카운터와 피처 저장소: FDS_Velocity_Counters_and_Feature_Store.md
     - FDS ML 모델 운영: FDS_ML_Model_Operations.md
     - FDS 운영과 보류 거래 심사: FDS_Operations_and_Case_Management.md
+    - 결제 사기 유형별 신호와 탐지 한계: Payment_Fraud_Patterns.md
     - 보안 사고 대응 절차: Incident_Response.md
     - 최근 보안사고 사례 2021~2025: Recent_Security_Incidents.md
     - SaaS 자격증명과 토큰 탈취 사고: Saa_S_Token_Theft_Incidents.md
