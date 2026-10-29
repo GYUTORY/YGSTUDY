@@ -1,7 +1,7 @@
 ---
 title: AWS GuardDuty
 tags: [aws, security, cloud]
-updated: 2026-05-06
+updated: 2026-10-29
 description: "AWS GuardDuty 위협 탐지 서비스의 데이터 소스, Finding 처리, 운영 설정 가이드"
 ---
 
@@ -12,6 +12,23 @@ description: "AWS GuardDuty 위협 탐지 서비스의 데이터 소스, Finding
 GuardDuty는 AWS 환경의 위협을 탐지하는 관리형 서비스다. VPC Flow Logs, CloudTrail, DNS 로그 같은 기존 로그 소스를 GuardDuty가 직접 가져가서 머신러닝과 위협 인텔리전스로 분석한다. 사용자가 로그를 별도로 수집하거나 S3에 적재할 필요가 없다.
 
 처음 운영하면 헷갈리는 게, GuardDuty는 "탐지" 서비스지 "차단" 서비스가 아니다. 이상 행위를 발견하면 Finding을 만들어주지만, 자동으로 막아주지는 않는다. 차단하려면 EventBridge로 Finding을 받아서 Lambda나 Security Hub로 흘려야 한다.
+
+아래 도식은 GuardDuty가 로그를 직접 가져가 Finding을 만들고, 차단은 그 뒤 EventBridge 이후 구간이 맡는다는 경계를 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph SRC["데이터 소스"]
+        S1["VPC Flow Logs"]
+        S2["CloudTrail"]
+        S3["DNS Logs"]
+        S4["EKS Audit Logs"]
+    end
+    SRC --> GD["GuardDuty 분석 (머신러닝, 위협 인텔리전스)"]
+    GD --> F["Finding 생성 (탐지까지)"]
+    F --> EB["EventBridge"]
+    EB --> LM["Lambda 격리"]
+    EB --> SH["Security Hub"]
+```
 
 ## 데이터 소스
 
@@ -26,7 +43,7 @@ EC2 인스턴스의 네트워크 트래픽을 본다. GuardDuty가 자체적으�
 - 알려진 악성 IP와 통신하는 인스턴스
 - 비정상적인 포트 스캔
 - 갑자기 대량의 데이터를 외부로 전송 (데이터 유출 의심)
-- Tor 네트워크 통신
+- Tor Guard·Authority 노드 접속, Tor 릴레이로 동작 (`TorClient`, `TorRelay`. 아래 "Tor 관련 Finding" 참조)
 - 비트코인 채굴 풀과의 통신
 
 운영하다 보면 `Backdoor:EC2/C&CActivity.B!DNS` 같은 Finding이 자주 뜬다. 대부분 오래된 라이브러리가 정상 도메인을 호출하는데, 그 도메인 IP가 위협 인텔리전스 목록에 들어가 있는 경우다. 진짜 침해인지 확인하려면 인스턴스에 들어가서 프로세스를 봐야 한다.
@@ -40,7 +57,7 @@ API 호출 이력을 본다. 기본 데이터 소스라 켜자마자 분석된�
 - 루트 계정 사용
 - 새로운 리전에서 처음 보는 API 호출
 - IAM 사용자가 갑자기 권한을 대량으로 추가
-- 콘솔 로그인이 토르 IP에서 발생
+- API 호출이 Tor exit node IP에서 발생 (`TorIPCaller` 계열. 아래 "Tor 관련 Finding" 참조)
 - 자격증명 도용 의심 (서로 다른 위치에서 동시 사용)
 
 `UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration` Finding은 EC2 인스턴스 역할의 임시 자격증명이 EC2 외부에서 사용된 경우 뜬다. 인스턴스 메타데이터를 통해 자격증명이 빠져나갔다는 강한 신호다. 거의 무조건 진짜 침해라고 봐도 된다.
@@ -123,9 +140,134 @@ High Finding은 거의 다 봐야 한다. 특히 다음 패턴은 무조건 확�
 - `Backdoor:EC2/C&CActivity.B` — C&C 서버 통신
 - `Trojan:EC2/DropPoint` — 멀웨어 다운로드 서버 접근
 
+## Tor 관련 Finding
+
+Tor 관련 Finding은 방향이 둘로 갈린다. 내 인스턴스가 Tor 네트워크로 나가는 경우는 VPC Flow Logs에서 잡히고, 외부 사람이 Tor를 거쳐 내 계정의 API를 부르는 경우는 CloudTrail에서 잡힌다. 어느 쪽인지에 따라 의심 대상이 인스턴스이거나 자격증명이다.
+
+아래 도식에서 왼쪽 묶음은 인스턴스가 주체인 Finding이고, 오른쪽은 API 호출자가 Tor exit node IP인 Finding이다.
+
+```mermaid
+flowchart LR
+    subgraph OUT["VPC 안에서 바깥으로 (데이터 소스: VPC Flow Logs)"]
+        I1["EC2 인스턴스"] -->|"TorClient: Guard, Authority 노드 접속"| TOR["Tor 네트워크"]
+        I2["EC2 인스턴스"] -->|"TorRelay: 릴레이로 동작"| TOR
+    end
+    subgraph IN["바깥에서 AWS API로 (데이터 소스: CloudTrail)"]
+        EXIT["Tor exit node IP"] -->|"TorIPCaller: API 호출"| API["AWS API 엔드포인트"]
+    end
+```
+
+### 존재 여부와 의미
+
+AWS 문서(EC2, IAM, S3 Finding 타입 페이지)에서 확인한 내용이다.
+
+| Finding 타입 | 기본 심각도 | 데이터 소스 | 의미 |
+|---|---|---|---|
+| `UnauthorizedAccess:EC2/TorClient` | High | VPC Flow Logs | 인스턴스가 Tor Guard 또는 Authority 노드에 접속한다. 인스턴스가 Tor 클라이언트로 동작 중이라는 뜻이다 |
+| `UnauthorizedAccess:EC2/TorRelay` | High | VPC Flow Logs | 인스턴스가 Tor 릴레이로 동작하는 패턴으로 Tor 네트워크와 통신한다. 남의 트래픽을 중계하고 있을 가능성이 있다 |
+| `UnauthorizedAccess:IAMUser/TorIPCaller` | Medium | CloudTrail management events | EC2 실행, IAM 사용자 생성, 권한 변경 같은 API가 Tor exit node IP에서 호출됐다 |
+| `Recon:IAMUser/TorIPCaller` | Medium | CloudTrail management events | 같은 조건에서 호출된 API가 list, describe 계열일 때 뜬다. 정찰 단계로 본다 |
+| `UnauthorizedAccess:S3/TorIPCaller` | High | CloudTrail data events for S3 | `PutObject`, `PutObjectAcl` 같은 쓰기 계열 S3 API가 Tor exit node에서 왔다. S3 Protection이 켜져 있어야 한다 |
+| `Discovery:S3/TorIPCaller` | Medium | CloudTrail data events for S3 | `GetObjectAcl`, `ListObjects` 같은 탐색 계열 S3 API가 Tor exit node에서 왔다 |
+
+작업 지시에 같이 들어 있던 두 타입은 따로 짚어야 한다.
+
+- `Behavior:EC2/NetworkPortUnusual`은 실제로 있는 Finding이지만 Tor와 무관하다. 인스턴스가 지금까지 쓴 적 없는 원격 포트로 통신하면 뜨는 이상 행위 탐지이고 기본 심각도는 Medium이다. 포트가 389나 1389면 심각도가 High로 올라가고 `service.additionalInfo.context`에 `Possible log4j callback`이 찍힌다. Tor 트래픽이 비표준 포트로 나가면 이게 같이 뜨는 경우는 있겠지만, Tor를 판정하는 Finding은 아니다.
+- `UnauthorizedAccess:EC2/TorIPCaller`는 현재 EC2 Finding 타입 목록에 없다. EventBridge 패턴이나 Suppression Rule에 이 이름을 써도 매칭되는 Finding이 없으니 쓰지 않는다. 외부에서 Tor로 들어오는 방향은 EC2가 아니라 IAM·S3 쪽 `TorIPCaller`가 맡는다.
+
+`TorIPCaller`의 대상은 "API 호출"이다. 콘솔 로그인도 CloudTrail에 `ConsoleLogin` 이벤트로 남지만, 문서는 이 Finding이 콘솔 로그인을 따로 다룬다고 적지 않았다. 콘솔 로그인 이상은 `UnauthorizedAccess:IAMUser/ConsoleLoginSuccess.B`(여러 지역에서 동시에 성공한 로그인) 쪽이 맡는다고 보는 편이 맞다.
+
+TorClient와 TorRelay는 둘 다 High라서 `severity >= 7` 조건을 거는 자동 격리 Lambda가 그대로 받는다. IAM 계열 TorIPCaller는 Medium이고 `instanceDetails`도 없다. 위 Lambda 예시는 `severity < 7`이면 건너뛰고, 통과해도 `instance_id`가 없어서 건너뛴다. 키 도용은 인스턴스 격리로 막을 수 없으니 액세스 키 비활성화는 별도 경로로 만들어야 한다.
+
+### Finding이 뜬 뒤 흐름
+
+도식은 Finding 타입에 따라 조사 대상이 갈리고, 의도된 사용이면 Suppression으로, 아니면 격리와 키 비활성화로 가는 분기를 보여준다.
+
+```mermaid
+flowchart TD
+    A["Tor 관련 Finding 발생"] --> B{"Finding 타입"}
+    B -->|"EC2 TorClient, TorRelay"| C{"인스턴스에서 Tor를 쓰는 것이 의도된 일인가"}
+    B -->|"IAMUser, S3 TorIPCaller"| D{"호출한 주체가 Tor 사용을 아는 사람인가"}
+    C -->|"아니오"| E["격리 보안 그룹으로 교체"]
+    E --> F["EBS 스냅샷, 메모리 덤프 확보"]
+    F --> G["프로세스, cron, 외부 연결 조사"]
+    C -->|"예"| H["인스턴스 ID 기준 Suppression Rule 작성"]
+    D -->|"아니오"| I["액세스 키 비활성화"]
+    I --> J["CloudTrail에서 해당 키의 호출 이력 조회"]
+    J --> K["생성된 IAM 사용자, 키, 인스턴스 정리"]
+    D -->|"예"| L["사용자 단위 Suppression Rule 또는 archive"]
+```
+
+인스턴스 쪽 조사는 접속 가능한 경로가 SSM뿐이라는 전제로 한다. Tor 프로세스가 떠 있는지, 어디서 시작됐는지부터 본다.
+
+```bash
+# SSM Session Manager로 접속한 뒤
+ps aux | grep -i '[t]or'
+sudo ss -tnp | grep -i tor
+systemctl list-units --type=service | grep -i tor
+crontab -l; sudo ls /etc/cron.d /var/spool/cron
+```
+
+TorRelay는 관례적으로 ORPort 9001, DirPort 9030을 많이 쓴다. 이 포트가 인바운드로 열려 있거나 Flow Logs에 해당 포트 트래픽이 크게 보이면 릴레이 가능성이 높다. 다만 포트는 설정으로 바뀌므로 이 숫자만으로 판단하지 않는다.
+
+IAM 쪽은 Finding에 찍힌 액세스 키를 먼저 끄고, 그 키로 무슨 짓을 했는지 CloudTrail로 확인한다.
+
+```bash
+aws iam update-access-key \
+  --user-name <user> --access-key-id <AKIA...> --status Inactive
+
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=AccessKeyId,AttributeValue=<AKIA...> \
+  --max-results 50
+```
+
+`lookup-events`는 management event를 90일치만 보여준다. 키 도용이 오래됐다면 S3에 쌓아둔 CloudTrail 로그를 Athena로 봐야 한다. 임시 자격증명(역할 세션)이 Tor에서 쓰인 경우에는 키 비활성화가 안 먹고, 역할의 기존 세션을 무효화하는 정책(`aws:TokenIssueTime` 조건)을 걸어야 한다.
+
+### 오탐으로 판명되는 경우
+
+Tor는 합법적으로 쓰는 사람도 있어서 High라고 해서 곧바로 침해는 아니다. 지금까지 정상으로 확인되는 경우는 이런 것들이다.
+
+- 보안팀이나 개발자가 Tor Browser로 콘솔이나 CLI에 접근할 때. `TorIPCaller`는 호출자가 사람인지 공격자인지 구분하지 못한다. 사용자 이름이 Finding에 찍히니, 본인에게 확인하면 바로 끝난다.
+- 크롤러나 수집 배치가 IP 차단을 피하려고 Tor 프록시(로컬 SOCKS 포트)를 거쳐 외부 사이트를 부르는 인스턴스. `TorClient`로 뜬다. 코드에 Tor 의존성이 들어 있는지 보면 나온다.
+- 연구나 프라이버시 목적으로 Tor 릴레이를 일부러 운영하는 인스턴스. `TorRelay`로 뜬다. 운영 주체가 명확하고 승인된 인스턴스라면 정상이지만, 릴레이 트래픽은 과금되는 아웃바운드 전송량으로 잡히고 abuse 신고가 들어올 수도 있으니 의도된 것이 맞는지 조직 안에서 먼저 확인해야 한다.
+- 위 중 어느 것도 아닌데 `NetworkPortUnusual`만 뜬 경우. 새로 배포한 서비스가 처음 쓰는 포트로 나가거나, 정기 백업이 처음 도는 날 뜬다. 앞의 Suppression Rule 절에서 다룬 패턴과 같다.
+
+의도된 사용이 확인되면 Finding 타입과 대상을 같이 묶어 Suppression Rule을 만든다. 타입만 걸면 다른 인스턴스의 진짜 Tor 접속까지 가려진다.
+
+```bash
+aws guardduty create-filter \
+  --detector-id <detector-id> \
+  --name SuppressCrawlerTorClient \
+  --description "크롤러 인스턴스는 Tor 프록시를 의도적으로 사용. 담당 확인 완료" \
+  --action ARCHIVE \
+  --finding-criteria '{
+    "Criterion": {
+      "type": {"Eq": ["UnauthorizedAccess:EC2/TorClient"]},
+      "resource.instanceDetails.instanceId": {"Eq": ["i-0123456789abcdef0"]}
+    }
+  }'
+```
+
+`TorIPCaller`를 가릴 때는 `resource.accessKeyDetails.userName`을 조건으로 쓴다. 사용자 이름이 아니라 IP 대역으로 가리려 해도 Tor exit node IP는 계속 바뀌어서 목록이 의미가 없다.
+
+반대로 정상으로 보이는 사용자의 `TorIPCaller`도 한 번은 의심해야 하는 경우가 있다. Tor exit node IP는 여러 사람이 공유하는 주소라서, 본인이 Tor를 쓴 적이 없다고 답하면 키가 유출된 것이다.
+
 ## EventBridge로 자동 대응
 
 GuardDuty는 Finding이 만들어지면 EventBridge에 이벤트를 보낸다. 이걸 Lambda나 Step Functions, Security Hub로 라우팅해서 자동 대응을 만든다.
+
+도식은 severity 조건에 걸린 Finding만 Lambda로 가서 격리되고, 전체 Finding은 장기 보관 경로로 따로 흐른다는 점을 보여준다.
+
+```mermaid
+flowchart TD
+    GD["GuardDuty Finding"] --> EB["EventBridge 규칙"]
+    EB -->|"severity 7 이상"| LM["격리 Lambda"]
+    LM --> SG["격리 보안 그룹으로 교체"]
+    SG --> HUMAN["스냅샷 확보 후 사람이 종료 판단"]
+    EB -->|"전체 Finding"| FH["Kinesis Firehose"]
+    FH --> S3["S3 장기 보관"]
+    GD --> SH["Security Hub (ASFF)"]
+```
 
 이벤트 패턴 예시:
 
@@ -200,6 +342,19 @@ GuardDuty + Inspector + Macie + IAM Access Analyzer를 모두 쓰면 Finding이 
 
 계정이 여러 개면 계정마다 GuardDuty를 켜는 건 비현실적이다. Organizations와 통합하면 위임된 관리자 계정에서 모든 멤버 계정의 GuardDuty를 한 번에 관리한다.
 
+도식은 관리 계정이 위임 관리자를 지정하고, 위임 관리자가 멤버 계정을 자동 활성화하며 Finding이 다시 위임 관리자로 모이는 방향을 보여준다.
+
+```mermaid
+flowchart TD
+    ORG["Organizations 관리 계정"] -->|"register-delegated-administrator"| ADM["위임 관리자 계정 (보안 계정)"]
+    ADM -->|"auto-enable-organization-members"| M1["멤버 계정 A"]
+    ADM -->|"auto-enable-organization-members"| M2["멤버 계정 B"]
+    ADM -->|"auto-enable-organization-members"| M3["신규 계정"]
+    M1 -->|"Finding"| ADM
+    M2 -->|"Finding"| ADM
+    M3 -->|"Finding"| ADM
+```
+
 위임 관리자 지정:
 
 ```bash
@@ -228,6 +383,16 @@ aws guardduty update-organization-configuration \
 ## 신뢰 IP / 위협 IP 리스트
 
 GuardDuty가 자체 위협 인텔리전스를 가지고 있지만, 사용자가 추가로 IP 리스트를 등록할 수 있다.
+
+두 리스트는 정반대로 동작한다. 도식에서 Trusted IP List는 분석 전에 걸러내고, Threat IP List는 무조건 Finding으로 보낸다.
+
+```mermaid
+flowchart LR
+    T["트래픽 출발지 IP"] --> Q{"등록된 리스트"}
+    Q -->|"Trusted IP List"| X["분석 제외, Finding 없음"]
+    Q -->|"Threat IP List"| Y["항상 Finding 생성"]
+    Q -->|"어느 쪽도 아님"| Z["기본 탐지 로직으로 분석"]
+```
 
 ### Trusted IP List
 
