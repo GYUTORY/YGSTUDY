@@ -1,3 +1,4 @@
 nav:
   - index.md
   - Supabase_Overview.md
+  - Supabase_Auth_And_RLS.md

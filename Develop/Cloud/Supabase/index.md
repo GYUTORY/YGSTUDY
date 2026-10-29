@@ -10,9 +10,10 @@ updated: 2026-10-29
 
 # Supabase 전체 보기
 
-문서 1개.
+문서 2개.
 
 ## 개요
 
+- [Supabase Auth와 RLS 결합](Supabase_Auth_And_RLS.md)
 - [Supabase 구조와 도입 판단](Supabase_Overview.md)
 
