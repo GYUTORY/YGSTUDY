@@ -9,3 +9,4 @@ nav:
   - Zero Trust 네트워크: Zero_Trust_Network.md
   - CI/CD Zero Trust: Zero_Trust_CICD_Pipeline.md
   - 망분리와 세그멘테이션: Network_Segmentation.md
+  - Tor 동작 원리: Tor_Onion_Routing.md
