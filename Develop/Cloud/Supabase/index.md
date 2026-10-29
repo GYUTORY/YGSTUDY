@@ -10,10 +10,11 @@ updated: 2026-10-29
 
 # Supabase 전체 보기
 
-문서 2개.
+문서 3개.
 
 ## 개요
 
 - [Supabase Auth와 RLS 결합](Supabase_Auth_And_RLS.md)
+- [Supabase Realtime과 Storage 운영](Supabase_Realtime_And_Storage.md)
 - [Supabase 구조와 도입 판단](Supabase_Overview.md)
 
