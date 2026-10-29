@@ -65,6 +65,21 @@ MONGOUSER       = mongo
 
 Redis는 `REDIS_URL`이 핵심 변수다. `redis://default:<password>@redis.railway.internal:6379` 형태다.
 
+아래 도식은 변수가 만들어져 다른 서비스로 들어가는 흐름이다. 참조 문법은 Railway 안에서만 실제 값으로 치환된다.
+
+```mermaid
+flowchart LR
+    DB["Postgresql 서비스"]
+    Vars["PGHOST, PGPORT, PGPASSWORD<br/>DATABASE_URL"]
+    Ref["API 서비스 변수<br/>DATABASE_URL = Postgresql.DATABASE_URL 참조"]
+    Run["실행 시 실제 값으로 치환"]
+    Env[".env 로컬 파일"]
+    NoSub["참조 문자열 그대로, 연결 실패"]
+
+    DB --> Vars --> Ref --> Run
+    Env -.-> NoSub
+```
+
 자동 주입 구조의 주의점이 있다. 참조 문법 `${{서비스명.변수명}}`은 Railway 대시보드에서만 동작한다. 로컬 `.env` 파일에 저 문자열을 그대로 쓰면 연결이 안 된다. 로컬에서 Railway DB에 붙어야 할 때는 퍼블릭 접속 URL을 따로 복사해서 써야 한다.
 
 ## 프라이빗 네트워크와 퍼블릭 접속
@@ -84,6 +99,21 @@ postgresql://postgres:<password>@roundhouse.proxy.rlwy.net:<port>/railway
 퍼블릭 접속을 열면 포트 번호가 5432가 아니라 Railway가 임의로 배정한 번호가 된다. 예를 들면 `roundhouse.proxy.rlwy.net:12345` 같은 식이다. 이 포트는 변경될 수 있으므로 외부 서비스나 CI에서 퍼블릭 URL을 박아두면 어느 시점에 연결이 끊기는 경우가 생긴다. 퍼블릭 URL은 로컬 개발과 DB 클라이언트 접속 용도로만 쓰는 것이 낫다.
 
 퍼블릭 접속을 열어두면 보안 면에서 주의가 필요하다. Railway는 자동 생성된 강한 패스워드를 쓰지만, DB 포트가 인터넷에 노출된다. 운영 환경에서는 퍼블릭 접속을 꺼두고 내부 네트워크만 쓰는 편이 낫다. 로컬에서 테스트할 일이 생기면 그때만 켜고 끄는 방식이 현실적이다.
+
+아래 도식은 두 접속 경로의 차이다. 앱은 내부 주소로 바로 닿고, 로컬 도구는 Public Network를 켠 뒤 프록시를 거친다.
+
+```mermaid
+flowchart LR
+    subgraph Project["Railway 프로젝트"]
+        API["API 서비스"]
+        DB[("PostgreSQL")]
+    end
+    Proxy["roundhouse.proxy.rlwy.net<br/>임의 배정 포트"]
+    Local["로컬 개발, DB 클라이언트"]
+
+    API -->|"postgres.railway.internal:5432"| DB
+    Local -->|"퍼블릭 URL"| Proxy --> DB
+```
 
 내부 네트워크 지연은 외부 접속보다 눈에 띄게 낮다. 같은 Railway 리전 안에서 `.railway.internal`로 연결하면 왕복 1ms 이내인 경우가 대부분이다. 같은 프로젝트 안에서 DB에 연결할 때는 항상 내부 주소를 써야 한다.
 
@@ -109,6 +139,21 @@ startCommand = "npx prisma migrate deploy && node dist/main.js"
 `prisma migrate deploy`는 `prisma migrate dev`와 다르다. `deploy`는 이미 생성된 마이그레이션 파일만 실행하고 새 마이그레이션을 만들지 않는다. 프로덕션 배포에서는 `deploy`를 써야 한다.
 
 주의할 점은 Prisma가 마이그레이션 실행 전에 `_prisma_migrations` 테이블의 상태를 확인한다는 것이다. 마이그레이션 파일을 수동으로 편집했거나 DB와 마이그레이션 히스토리가 어긋나 있으면 `migrate deploy`가 에러와 함께 종료된다. 이 경우 앱 서버도 뜨지 않아서 배포 자체가 실패 처리된다. 잘못된 마이그레이션이 적용되는 것보다 배포가 실패하는 편이 낫다.
+
+아래 도식은 `startCommand`가 `&&`로 이은 두 단계의 흐름이다. 마이그레이션이 실패하면 앱 서버 단계로 넘어가지 않는다.
+
+```mermaid
+flowchart TD
+    Deploy["Railway 배포"]
+    Mig["prisma migrate deploy"]
+    Ok{"마이그레이션 성공"}
+    App["node dist/main.js 시작"]
+    Fail["프로세스 종료, 배포 실패 처리"]
+
+    Deploy --> Mig --> Ok
+    Ok -->|"예"| App
+    Ok -->|"아니오"| Fail
+```
 
 connection_limit는 마이그레이션 실행 시에도 적용된다. `DATABASE_URL`에 `?connection_limit=1`을 붙이거나 별도로 `MIGRATE_DATABASE_URL`을 만들어 쓰는 방식이 있다.
 
@@ -162,6 +207,24 @@ Railway PostgreSQL의 `max_connections` 기본값은 100이다. 이 값을 직�
 
 Node.js 앱 인스턴스 하나가 pg 라이브러리를 쓰면 기본 풀 크기가 10이다. Prisma는 `connection_limit` 기본값이 `num_physical_cpus * 2 + 1`인데 Railway 컨테이너에서 CPU를 여러 개로 잡으면 기본값이 의외로 크게 잡힌다. 인스턴스가 5개면 이미 50개 이상을 쓰게 된다. 여기에 마이그레이션 실행, 관리 도구 접속, 모니터링 익스포터가 붙으면 100을 넘는다.
 
+아래 도식은 연결이 어디서 소진되는지를 보여준다. 앱 풀만이 아니라 마이그레이션·관리 도구·모니터링도 같은 100개를 나눠 쓴다.
+
+```mermaid
+flowchart LR
+    Apps["앱 인스턴스 × 풀 크기"]
+    Mig["마이그레이션 실행"]
+    Admin["관리 도구 접속"]
+    Mon["모니터링 익스포터"]
+    PG[("PostgreSQL<br/>max_connections 100")]
+    Err["sorry, too many clients already"]
+
+    Apps --> PG
+    Mig --> PG
+    Admin --> PG
+    Mon --> PG
+    PG -.->|"100 초과"| Err
+```
+
 연결을 100개 넘으면 PostgreSQL이 `sorry, too many clients already` 에러를 돌려준다. 앱 로그에서 이 문자열이 보이면 풀링 설정을 먼저 확인한다.
 
 ### DATABASE_URL에 connection_limit 파라미터로 앱 측 제한
@@ -214,6 +277,22 @@ PGBOUNCER_DEFAULT_POOL_SIZE=20
 
 `transaction` 모드는 트랜잭션이 끝나면 연결을 풀로 반납한다. PostgreSQL에 실제로 맺어지는 연결은 `DEFAULT_POOL_SIZE`로 제한되고, 앱 측에서는 500개까지 PgBouncer에 연결할 수 있다.
 
+아래 도식은 앱 인스턴스가 PgBouncer를 거쳐 PostgreSQL에 닿는 구조다. 앞단은 500개까지 받고, 뒷단 실제 연결은 20개로 묶인다.
+
+```mermaid
+flowchart LR
+    A1["앱 인스턴스 1"]
+    A2["앱 인스턴스 2"]
+    A3["앱 인스턴스 N"]
+    PB["PgBouncer<br/>transaction 모드<br/>MAX_CLIENT_CONN 500"]
+    PG[("PostgreSQL<br/>max_connections 100")]
+
+    A1 --> PB
+    A2 --> PB
+    A3 --> PB
+    PB -->|"DEFAULT_POOL_SIZE 20"| PG
+```
+
 앱의 `DATABASE_URL`을 PostgreSQL 직접 접속 대신 PgBouncer 서비스 주소로 바꾼다.
 
 ```bash
@@ -251,6 +330,24 @@ pg_dump "postgresql://postgres:<pw>@roundhouse.proxy.rlwy.net:<port>/railway" \
 ```
 
 백업 후 대시보드 Volumes 탭에서 볼륨 크기를 늘린다. 2GB, 5GB 등으로 조정한다. 적용 즉시 PostgreSQL이 쓰기를 다시 받는다. 재시작 없이 확장이 된다.
+
+아래 도식은 위 절차를 순서대로 그린 것이다. 볼륨 확장은 백업 뒤에 오고, 공간 정리는 확장 뒤에 한다.
+
+```mermaid
+flowchart TD
+    Err["no space left on device<br/>INSERT, UPDATE 거부"]
+    Dump["pg_dump 백업"]
+    Grow["Volumes 탭에서 볼륨 확장"]
+    Write["쓰기 재개, 재시작 불필요"]
+    Clean["테이블 크기 확인, 오래된 데이터 삭제, VACUUM"]
+    Shrink{"볼륨을 줄여야 하나"}
+    NewDb["새 PostgreSQL 서비스 생성 후 덤프 복원"]
+    Done["유지"]
+
+    Err --> Dump --> Grow --> Write --> Clean --> Shrink
+    Shrink -->|"예, 축소는 미지원"| NewDb
+    Shrink -->|"아니오"| Done
+```
 
 **쓰기 가능 상태로 복구 후 공간 확보**
 
@@ -357,6 +454,24 @@ mongodump --uri="mongodb://mongo:<password>@<퍼블릭호스트>:<포트>/railwa
 
 정기 백업이 필요하면 GitHub Actions를 써서 크론으로 돌리거나, Railway 안에 별도 워커 서비스를 만들어 스케줄로 실행하는 방식을 쓴다. Railway 자체의 크론 지원은 서비스 설정의 `Cron Schedule` 필드로 처리한다.
 
+아래 도식은 어떤 작업이 볼륨까지 지우는지를 가른 것이다. 점선 쪽 세 가지만 데이터가 사라진다.
+
+```mermaid
+flowchart LR
+    Svc["DB 서비스 + 볼륨"]
+    Redeploy["재시작 / 재배포 / 설정 변경"]
+    DelSvc["서비스 삭제"]
+    DelEnv["환경 삭제"]
+    DelPrj["프로젝트 삭제"]
+    Kept["데이터 유지"]
+    Lost["볼륨 삭제, 복구 불가"]
+
+    Redeploy --> Svc --> Kept
+    DelSvc -.-> Lost
+    DelEnv -.-> Lost
+    DelPrj -.-> Lost
+```
+
 볼륨 삭제 없이 DB 서비스를 재배포하거나 설정을 바꾸는 작업은 데이터에 영향을 주지 않는다. 서비스 재시작이나 재배포 자체는 볼륨을 건드리지 않는다. 데이터가 날아가는 경우는 서비스 삭제, 환경 삭제, 프로젝트 삭제 세 가지다.
 
 ## Railway 내장 DB vs 외부 관리형 DB
@@ -379,28 +494,66 @@ Railway 내장 DB에는 없는 것들이 있다. 자동 스냅샷·PITR(특정 �
 
 Railway 앱에서 RDS에 연결할 때 주의점이 있다. RDS는 VPC 안에 있어서 기본적으로 퍼블릭 접속이 막혀 있다. Railway 앱이 외부 네트워크에서 RDS에 붙으려면 RDS에 퍼블릭 서브넷 + 보안 그룹 오픈이 필요하다. 이 구성은 보안 면에서 좋지 않다. Railway Static IP 기능을 써서 아웃바운드 IP를 고정하고, RDS 보안 그룹에서 그 IP만 허용하는 방식이 현실적이다.
 
-**Supabase**는 PostgreSQL 기반이고 PgBouncer를 기본 제공한다. 무료 티어에서 500MB 스토리지, 연결 풀링 포함이라 Railway 내장 DB보다 연결 문제가 덜하다. 대시보드에서 쿼리 성능 분석, Table Editor, Auth, Storage를 같이 쓸 수 있다.
+**Supabase**는 PostgreSQL 기반이고 공유 커넥션 풀러로 Supavisor를 제공한다. 예전 자료에는 PgBouncer라고 나오지만 지금 `pooler.supabase.com` 주소 뒤에 있는 건 Supavisor다. 무료 티어에서 500MB 스토리지를 쓸 수 있고, 대시보드에서 쿼리 성능 분석, Table Editor, Auth, Storage를 같이 쓴다.
 
-단점은 무료 프로젝트가 1주일 비활성 시 일시정지된다는 것이다. 사이드 프로젝트에서 방문이 뜸하면 DB가 잠들어버린다. Pro 플랜($25/월)은 이 제한이 없다.
+단점은 무료 프로젝트가 7일 비활성이면 일시 중지된다는 것이다. 사이드 프로젝트에서 방문이 뜸하면 DB가 잠들어버린다. Pro 플랜($25/월)은 이 제한이 없다. 무료 플랜에는 백업도 없어서, 일시 중지보다 `DELETE`를 where 없이 날렸을 때가 더 위험하다.
 
 Supabase 자체의 구조, 키 관리, 무료 티어 제약은 [Supabase 구조와 도입 판단](../Supabase/Supabase_Overview.md)에 따로 정리했다.
 
-Railway 앱에서 Supabase에 연결할 때는 Supabase의 connection string을 `DATABASE_URL`로 주입하면 된다. PgBouncer 경유 URL(`Session mode` 또는 `Transaction mode`)을 쓰는 것이 연결 수 절약에 낫다.
+### Railway 앱에서 Supabase로 붙는 길
+
+Supabase 연결 주소는 세 가지다.
+
+| 방식 | 주소 | 포트 | 특징 |
+|---|---|---|---|
+| Direct | `db.<ref>.supabase.co` | 5432 | IPv6 전용. 연결 수 절약 없음 |
+| Session mode | `<region>.pooler.supabase.com` | 5432 | IPv4 가능. 클라이언트 연결 1개가 서버 연결 1개를 계속 점유 |
+| Transaction mode | `<region>.pooler.supabase.com` | 6543 | IPv4 가능. 트랜잭션 동안만 서버 연결 점유. prepared statement 주의 |
+
+Railway에서 Direct 주소로 붙으면 DNS 조회는 되는데 접속이 타임아웃으로 끝나는 경우가 있다. Railway 환경에서 외부 IPv6 송신이 안 되기 때문이다. 포트나 비밀번호를 의심하기 전에 이걸 먼저 본다. 풀러 주소는 IPv4로도 열려 있어서 Railway에서는 풀러 URL을 쓰는 게 기본이다. 연결 수를 줄여 주는 건 Transaction mode뿐이고, Session mode는 Direct의 IPv4 대체재에 가깝다.
+
+아래 도식은 Railway 앱이 Supabase Postgres에 닿는 경로다. Direct는 IPv6 송신이 막히면 중간에 끊기고, 풀러를 거치는 두 경로는 IPv4로 통과한다.
+
+```mermaid
+flowchart LR
+    App["Railway 앱<br/>(IPv4 아웃바운드)"]
+    Direct["Direct 5432<br/>db.ref.supabase.co"]
+    Session["Session mode 5432<br/>Supavisor"]
+    Trans["Transaction mode 6543<br/>Supavisor"]
+    PG[("Supabase Postgres")]
+
+    App -.->|"IPv6 필요, 타임아웃"| Direct
+    Direct -.-> PG
+    App -->|"1:1 점유"| Session --> PG
+    App -->|"N:M 공유"| Trans --> PG
+```
+
+앱 런타임은 Transaction mode, 마이그레이션은 Session mode 주소를 쓰는 조합이 흔하다. Prisma는 `directUrl`에 5432 주소를 따로 넣는다.
 
 ```bash
-# Supabase PgBouncer Transaction mode URL
-DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+# 앱 런타임: Transaction mode (Supavisor)
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+
+# 마이그레이션: Session mode (Supavisor)
+DIRECT_URL=postgresql://postgres.<project-ref>:<password>@<region>.pooler.supabase.com:5432/postgres
 ```
+
+`<region>` 자리에는 대시보드 Connect 화면에 나오는 풀러 호스트가 들어간다. `?pgbouncer=true`는 PgBouncer를 쓴다는 표시가 아니라 Prisma가 prepared statement를 끄게 하는 옵션이고, 풀러가 Supavisor여도 똑같이 필요하다. Transaction mode에서 깨지는 기능(세션 advisory lock, `LISTEN/NOTIFY` 등), 풀 크기 산정, 드라이버별 설정은 [Supabase Edge Functions와 DB 연결](../Supabase/Supabase_Edge_Functions_And_Connection.md)에서 다룬다.
 
 ### 선택 기준 요약
 
 | 항목 | Railway 내장 DB | Supabase | RDS |
 |---|---|---|---|
 | 설정 복잡도 | 낮음 | 중간 | 높음 |
-| 자동 백업 | 없음 | 일별 (Pro) | 일별, PITR |
-| 연결 풀링 | 직접 구성 | 기본 제공 | 직접 구성 |
-| max_connections | 100 (고정) | 설정 가능 | 설정 가능 |
+| 자동 백업 | 없음 | 무료 없음, Pro 일별(7일 보관), PITR은 유료 애드온 | 일별, PITR |
+| 연결 풀링 | 직접 구성 | Supavisor 기본 제공 | 직접 구성(RDS Proxy 별도) |
+| max_connections | 100 (고정) | 컴퓨트 크기에 따라 결정, 소형은 60 안팎. 이 중 일부는 PostgREST·Auth 등이 사용 | 파라미터 그룹으로 설정 |
+| 서버리스·다수 인스턴스 대응 | 풀러를 직접 세워야 함 | Transaction mode 6543 | RDS Proxy 또는 앱 풀 |
+| 외부 접속 | 퍼블릭 프록시 URL | 풀러 IPv4, Direct는 IPv6 | 보안 그룹과 고정 IP 필요 |
+| 일시 중지 | 없음 | 무료는 7일 비활성 시 중지 | 인스턴스를 중지해도 7일 후 자동 재시작 |
 | 무료 범위 | $5 크레딧 안 | 500MB | 없음 |
 | HA / failover | 없음 | 없음 | Multi-AZ |
+
+연결 수 항목은 숫자만 보면 안 된다. Supabase는 `max_connections`가 작아도 Transaction mode로 많은 클라이언트를 받을 수 있고, Railway 내장 DB는 100개가 그대로 상한이다. 일시 중지 항목은 반대로 Supabase 무료에서만 문제가 된다. 방문이 뜸한 프로젝트라면 첫 요청이 깨어나는 동안 실패하는 걸 감안해야 한다.
 
 데이터가 날아가면 안 되면 RDS. 연결 풀링이 필요하고 비용을 줄이고 싶으면 Supabase. 설정 없이 빠르게 붙이고 데이터 손실이 허용되면 Railway 내장 DB다.
