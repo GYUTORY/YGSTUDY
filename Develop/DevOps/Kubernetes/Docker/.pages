@@ -3,4 +3,4 @@ nav:
   - index.md
   - 이미지 레지스트리: Docker_Image_Registry.md
   - 환경변수 설정: Docker_Env_Config.md
-  - Autoheal 자동 복구: Docker_Autoheal.md
+  - "컨테이너 자동 복구 (autoheal)": Docker_Autoheal.md

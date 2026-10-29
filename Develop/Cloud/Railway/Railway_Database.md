@@ -1,7 +1,7 @@
 ---
 title: Railway 데이터베이스 서비스
 tags: [cloud, database, rdbms, postgresql, mysql, redis, nosql, mongodb, backend]
-updated: 2026-09-14
+updated: 2026-10-29
 ---
 
 # Railway 데이터베이스 서비스
@@ -382,6 +382,8 @@ Railway 앱에서 RDS에 연결할 때 주의점이 있다. RDS는 VPC 안에 �
 **Supabase**는 PostgreSQL 기반이고 PgBouncer를 기본 제공한다. 무료 티어에서 500MB 스토리지, 연결 풀링 포함이라 Railway 내장 DB보다 연결 문제가 덜하다. 대시보드에서 쿼리 성능 분석, Table Editor, Auth, Storage를 같이 쓸 수 있다.
 
 단점은 무료 프로젝트가 1주일 비활성 시 일시정지된다는 것이다. 사이드 프로젝트에서 방문이 뜸하면 DB가 잠들어버린다. Pro 플랜($25/월)은 이 제한이 없다.
+
+Supabase 자체의 구조, 키 관리, 무료 티어 제약은 [Supabase 구조와 도입 판단](../Supabase/Supabase_Overview.md)에 따로 정리했다.
 
 Railway 앱에서 Supabase에 연결할 때는 Supabase의 connection string을 `DATABASE_URL`로 주입하면 된다. PgBouncer 경유 URL(`Session mode` 또는 `Transaction mode`)을 쓰는 것이 연결 수 절약에 낫다.
 
