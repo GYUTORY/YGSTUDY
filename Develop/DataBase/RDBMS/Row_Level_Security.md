@@ -1,7 +1,7 @@
 ---
 title: Row Level Security
 tags: [postgresql, security, database, rdbms]
-updated: 2026-08-04
+updated: 2026-10-29
 ---
 
 # Row Level Security
@@ -18,6 +18,19 @@ ALTER TABLE orders FORCE ROW LEVEL SECURITY;
 `ENABLE ROW LEVEL SECURITY`만 걸면 테이블 소유자(owner)는 RLS를 적용받지 않는다. 애플리케이션 계정이 테이블 소유자인 경우 RLS가 걸려도 아무 의미가 없다.
 
 `FORCE ROW LEVEL SECURITY`를 추가해야 소유자에게도 정책이 적용된다. 실무에서는 두 명령을 항상 같이 실행한다. `superuser`는 `FORCE`를 걸어도 RLS를 건너뛴다. superuser로 직접 쿼리를 날리는 배치가 있다면 그 배치는 모든 테넌트 데이터를 볼 수 있다.
+
+아래 도식은 접속한 롤이 정책 평가까지 도달하는지를 가르는 분기다.
+
+```mermaid
+flowchart TD
+    Q["쿼리 실행"] --> S{"superuser 또는 BYPASSRLS?"}
+    S -->|"예"| B["RLS 건너뜀"]
+    S -->|"아니오"| O{"테이블 소유자?"}
+    O -->|"아니오"| P["정책 적용"]
+    O -->|"예"| F{"FORCE ROW LEVEL SECURITY?"}
+    F -->|"예"| P
+    F -->|"아니오"| B
+```
 
 ## USING vs WITH CHECK
 
@@ -38,6 +51,15 @@ CREATE POLICY tenant_isolation ON orders
 중요한 점은 UPDATE다. UPDATE는 `USING`으로 수정 대상 행을 걸러내고, `WITH CHECK`로 변경 후 상태를 검증한다. 테넌트 A가 자기 행의 `tenant_id`를 B로 바꾸려 하면 `WITH CHECK`에서 걸린다. `USING`만 있으면 이걸 막지 못한다.
 
 `WITH CHECK`를 생략하면 `USING` 조건이 `WITH CHECK`로도 사용된다. 명시적으로 써주는 게 낫다.
+
+명령별로 어느 조건절이 작동하는지는 아래 표로 정리된다.
+
+| 명령 | `USING` | `WITH CHECK` |
+|---|---|---|
+| SELECT | 적용 | 해당 없음 |
+| INSERT | 해당 없음 | 적용 |
+| UPDATE | 적용 (대상 행 선별) | 적용 (변경 후 상태 검증) |
+| DELETE | 적용 | 해당 없음 |
 
 ## 세션 변수와 SET LOCAL
 
@@ -88,6 +110,24 @@ PgBouncer를 transaction mode로 운영하면 커넥션이 트랜잭션 단위�
 server_reset_query = RESET ALL;
 ```
 
+아래 도식은 두 트랜잭션이 같은 서버 커넥션을 이어서 쓸 때 `server_reset_query`가 끼어드는 위치를 보여준다.
+
+```mermaid
+sequenceDiagram
+    participant A as 애플리케이션
+    participant B as PgBouncer
+    participant P as PostgreSQL 커넥션
+
+    A->>B: 트랜잭션 1 (테넌트 42)
+    B->>P: BEGIN, SET LOCAL app.tenant_id = 42
+    P-->>B: 쿼리 결과
+    B->>P: COMMIT
+    B->>P: server_reset_query 실행 (RESET ALL)
+    Note over B,P: 커넥션이 풀로 반환됨
+    A->>B: 트랜잭션 2 (테넌트 7)
+    B->>P: 같은 커넥션으로 BEGIN, SET LOCAL app.tenant_id = 7
+```
+
 `RESET ALL`은 커넥션이 풀로 반환될 때 실행되어 세션 변수를 모두 초기화한다. 다만 prepared statement를 사용하는 경우 `RESET ALL`이 이를 날려버리므로 주의가 필요하다.
 
 session mode를 쓰면 이 문제 자체가 없다. 커넥션이 세션 단위로 고정되기 때문이다. 커넥션 수가 많은 환경에서는 session mode가 스케일이 안 되므로 transaction mode를 쓸 수밖에 없고, 그러면 세션 변수 오염 문제를 명시적으로 관리해야 한다.
@@ -108,6 +148,19 @@ $$;
 ```
 
 이 함수는 일반 계정이 호출해도 orders 테이블의 모든 행을 반환한다. 관리용 리포트 함수를 이 패턴으로 만들었다가 일반 사용자에게 EXECUTE 권한이 열려 있으면 데이터 유출이 발생한다.
+
+호출자와 함수 소유자 중 어느 쪽 권한으로 RLS가 평가되는지가 핵심이다. 아래 도식에서 `SECURITY DEFINER` 쪽 경로가 호출자의 정책을 거치지 않는다는 점을 보면 된다.
+
+```mermaid
+flowchart LR
+    C["일반 계정 호출"] --> F{"함수 종류"}
+    F -->|"SECURITY INVOKER"| I["호출자 권한으로 실행"]
+    I --> IR["RLS 적용: 자기 테넌트 행만"]
+    F -->|"SECURITY DEFINER"| D["소유자 권한으로 실행"]
+    D --> DO{"소유자가 superuser / BYPASSRLS?"}
+    DO -->|"예"| DB["RLS 건너뜀: 전체 테넌트 행"]
+    DO -->|"아니오"| DR["RLS 적용"]
+```
 
 의도적으로 RLS를 우회해야 하는 경우(예: 관리자 통계 집계)라면 함수 안에서 명시적으로 `SET LOCAL row_security = off`를 쓰고, 해당 함수의 EXECUTE 권한을 엄격하게 관리한다.
 
@@ -145,6 +198,18 @@ GRANT EXECUTE ON FUNCTION admin_count_orders() TO admin_role;
 
 두 단계로 처리된다. `USING`으로 수정할 수 있는 행을 선별하고, 변경 후 결과가 `WITH CHECK`를 통과하는지 검증한다. `WITH CHECK` 실패 시 오류가 발생한다.
 
+아래 도식에서 UPDATE가 두 번 검사를 받는 위치와, 각 단계에서 실패했을 때 결과가 다른 점을 보면 된다.
+
+```mermaid
+flowchart TD
+    U["UPDATE orders SET ..."] --> A{"USING: 수정 대상 행인가?"}
+    A -->|"아니오"| B["대상에서 제외 (오류 없음, 0 rows)"]
+    A -->|"예"| C["새 값으로 변경 시도"]
+    C --> D{"WITH CHECK: 변경 후 상태가 정책 통과?"}
+    D -->|"아니오"| E["ERROR: new row violates row-level security policy"]
+    D -->|"예"| F["변경 확정"]
+```
+
 ### DELETE
 
 `USING`만 적용된다. 조건에 맞지 않는 행은 삭제 대상에서 제외되며 오류 없이 0 rows affected로 처리된다.
@@ -158,6 +223,17 @@ GRANT EXECUTE ON FUNCTION admin_count_orders() TO admin_role;
 - `PERMISSIVE` 정책끼리는 OR로 합산된다
 - `RESTRICTIVE` 정책은 AND로 적용된다
 - PERMISSIVE OR 결과와 RESTRICTIVE AND 결과가 모두 통과해야 최종적으로 허용된다
+
+아래 도식은 이 합산 순서를 보여준다. PERMISSIVE 묶음이 하나라도 참이어야 다음 단계로 가고, 거기서 모든 RESTRICTIVE 정책을 다시 통과해야 한다.
+
+```mermaid
+flowchart TD
+    R["행 접근 시도"] --> P{"PERMISSIVE 정책 중 하나라도 참? (OR)"}
+    P -->|"아니오"| D1["거부"]
+    P -->|"예"| S{"모든 RESTRICTIVE 정책이 참? (AND)"}
+    S -->|"아니오"| D2["거부"]
+    S -->|"예"| OK["허용"]
+```
 
 ```sql
 -- 테넌트 격리 (PERMISSIVE)
@@ -223,6 +299,21 @@ MyBatis 환경에서는 인터셉터로 SQL을 조작하거나 쿼리마다 직�
 
 문제는 강제성이 없다는 점이다. `@Filter`를 활성화하는 코드를 빠뜨리거나, 네이티브 쿼리를 쓸 때 조건을 누락하면 전체 테넌트 데이터가 노출된다. PostgreSQL RLS는 DB가 강제하기 때문에 쿼리에서 빠뜨려도 정책이 자동으로 적용된다. MySQL을 쓰면서 멀티테넌트를 구현한다면 네이티브 쿼리 사용을 최소화하고 코드 리뷰에서 tenant_id 누락을 필수 확인 항목으로 다뤄야 한다.
 
+격리를 누가 강제하는지가 두 DB의 차이다. 아래 도식에서 쿼리가 `tenant_id` 조건을 얻는 경로를 비교해 보면, MySQL은 조건을 붙이는 주체가 애플리케이션이라 경로마다 누락 가능성이 생긴다.
+
+```mermaid
+flowchart LR
+    subgraph PG["PostgreSQL RLS"]
+        A1["애플리케이션 쿼리"] --> A2["정책 평가 (DB)"]
+        A2 --> A3["tenant_id 조건 자동 추가"]
+    end
+    subgraph MY["MySQL 애플리케이션 레이어"]
+        B1["애플리케이션 쿼리"] --> B2{"@Filter 활성화 / 조건 직접 작성?"}
+        B2 -->|"예"| B3["tenant_id 조건 포함"]
+        B2 -->|"누락"| B4["전체 테넌트 데이터 노출"]
+    end
+```
+
 또 다른 접근은 뷰(View)를 통해 격리하는 방법이다.
 
 ```sql
@@ -234,3 +325,63 @@ CREATE VIEW tenant_orders AS
 MySQL 세션 변수(`@tenant_id`)를 매 요청마다 설정하고 뷰를 통해서만 접근하게 하면 애플리케이션 쿼리에서 조건을 빠뜨릴 여지가 줄어든다. 다만 뷰를 통한 UPDATE/DELETE의 제약이 있고, 세션 변수 오염 문제는 PgBouncer와 동일하게 발생한다.
 
 MySQL 환경에서 RLS가 필요하다면 PostgreSQL로의 전환을 고려하거나, Vitess처럼 프록시 레이어에서 쿼리를 재작성하는 방식을 써야 한다.
+
+## Supabase에서 이 원리가 쓰이는 방식
+
+Supabase는 위에서 다룬 세션 변수 방식을 그대로 쓴다. 앞에서는 `app.tenant_id`를 직접 `SET LOCAL`했는데, Supabase에서는 PostgREST가 요청마다 JWT를 검증하고 `request.jwt.claims`라는 설정값에 클레임 전체를 JSON으로 넣는다. 정책에 쓰는 `auth.uid()`와 `auth.jwt()`는 이 설정값을 읽는 SQL 함수다.
+
+```sql
+-- auth.uid()가 하는 일을 풀어 쓰면 이 정도다
+select nullif(
+  current_setting('request.jwt.claims', true)::jsonb ->> 'sub',
+  ''
+)::uuid;
+```
+
+`current_setting`의 두 번째 인수가 `true`라서 클레임이 없는 요청(`anon`)에서는 오류 없이 null이 나온다. 앞 절의 `current_setting('app.tenant_id', true)`와 같은 동작이고, 정책이 `user_id = null`이 되어 행이 하나도 안 보이는 것도 같다.
+
+한 요청이 처리되는 순서는 이렇다. 롤을 먼저 바꾸고, 클레임을 넣고, 그다음에 쿼리가 나간다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant R as PostgREST
+    participant P as PostgreSQL
+
+    C->>R: GET /orders (Authorization Bearer JWT)
+    R->>R: JWT 서명 검증, role 클레임 읽기
+    R->>P: BEGIN
+    R->>P: SET LOCAL role authenticated
+    R->>P: set_config('request.jwt.claims', 클레임 JSON, true)
+    R->>P: SELECT * FROM orders
+    P->>P: 정책 평가 (auth.uid()가 sub 클레임을 읽음)
+    P->>P: 통과한 행만 남김
+    P-->>R: 필터링된 행
+    R->>P: COMMIT
+    R-->>C: 200 JSON
+```
+
+`SET LOCAL`과 `set_config(..., true)`가 둘 다 트랜잭션 범위라서 커밋 후 값이 남지 않는다. 앞에서 PgBouncer 오염을 걱정했던 부분을 Supabase는 이 구조로 피한다. 직접 만든 연결(`postgres` 계정으로 붙는 ORM 등)에서 `auth.uid()`를 쓰는 정책을 돌리면 클레임이 비어 있으니 null이 나온다는 점은 알고 있어야 한다.
+
+JWT의 `role` 클레임이 어떤 롤로 붙을지를 정한다. 같은 쿼리가 롤에 따라 전혀 다른 결과를 낸다.
+
+| 롤 | 접속 경로 | RLS 적용 | 비고 |
+|---|---|---|---|
+| `anon` | 로그인 없이 쓰는 공개 키 | 적용됨 | `auth.uid()`가 null, 정책에 `to anon`이 없으면 대부분 빈 결과 |
+| `authenticated` | 로그인한 사용자 JWT | 적용됨 | `sub`가 `auth.uid()`로 나옴 |
+| `service_role` | 서버 전용 키 | 우회 | `BYPASSRLS` 속성. `FORCE`를 걸어도 소용없다 |
+| `postgres` | SQL Editor, 마이그레이션 | 우회 | 테이블 소유자이고 `BYPASSRLS`도 가짐 |
+
+`FORCE`와 `ENABLE`을 조합했을 때 누가 우회하는지도 정리해 둔다.
+
+| 설정 | 일반 롤 (`anon`, `authenticated`) | 테이블 소유자 | `BYPASSRLS` 롤, superuser |
+|---|---|---|---|
+| RLS 비활성 | 전체 접근 | 전체 접근 | 전체 접근 |
+| `ENABLE`만 | 정책 적용 | 우회 | 우회 |
+| `ENABLE` + `FORCE` | 정책 적용 | 정책 적용 | 우회 |
+
+`FORCE`는 소유자까지만 끌어내린다. Supabase의 `postgres`와 `service_role`은 `BYPASSRLS`를 갖고 있어서 `FORCE`를 걸어도 정책을 건너뛴다. SQL Editor에서 쿼리가 잘 나오는데 앱에서는 빈 결과가 오는 이유가 이것이다. 에디터는 `postgres`로 도는 반면 앱은 `anon`이나 `authenticated`로 돈다. 재현하려면 `SET LOCAL role authenticated`와 `set_config('request.jwt.claims', ...)`를 직접 넣고 돌려야 한다.
+
+`SECURITY DEFINER` 함수도 같은 문제를 가진다. 소유자가 `postgres`면 함수 안에서 RLS가 꺼지므로, `public` 스키마에 만들면 PostgREST가 RPC로 노출한다. 롤별 EXECUTE 권한을 확인해야 한다.
+
+정책 작성법, `(select auth.uid())`로 감싸 InitPlan으로 빼는 성능 처리, `service_role` 키 관리는 [Supabase Auth와 RLS](../../Cloud/Supabase/Supabase_Auth_And_RLS.md)에서 다룬다.
