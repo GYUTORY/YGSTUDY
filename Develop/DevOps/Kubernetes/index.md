@@ -3,16 +3,18 @@ title: Kubernetes 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-10-29
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # Kubernetes 전체 보기
 
-문서 20개.
+문서 21개.
 
 ## Docker
 
+- [Docker Autoheal](Docker/Docker_Autoheal.md)
 - [Docker BuildKit과 buildx](Docker/Docker_Build_Kit.md)
 - [Docker Compose](Docker/Docker_Compose.md)
 - [Docker Compose Port Forwarding](Docker/Docker_Compose_Port_Forwarding.md)

@@ -59,6 +59,7 @@ nav:
     - 웹 애플리케이션 방화벽: Web_Application_Firewall.md
     - 서버 취약점 공격 방어: Server_Attack_Defense.md
     - DNS Security: DNS_Security.md
+    - Tor 유입 트래픽 대응: Tor_Traffic_Defense.md
     - 공급망 공격 방어: Supply_Chain_Security.md
     - CI/CD 파이프라인 공격: CI_CD_Pipeline_Attacks.md
     - GitHub Actions 워크플로 인젝션: GitHub_Actions_Workflow_Injection.md
@@ -85,7 +86,6 @@ nav:
     - FDS ML 모델 운영: FDS_ML_Model_Operations.md
     - FDS 운영과 보류 거래 심사: FDS_Operations_and_Case_Management.md
     - 결제 사기 유형별 신호와 탐지 한계: Payment_Fraud_Patterns.md
-    - Tor 유입 트래픽 대응: Tor_Traffic_Defense.md
     - 보안 사고 대응 절차: Incident_Response.md
     - 최근 보안사고 사례 2021~2025: Recent_Security_Incidents.md
     - SaaS 자격증명과 토큰 탈취 사고: Saa_S_Token_Theft_Incidents.md
