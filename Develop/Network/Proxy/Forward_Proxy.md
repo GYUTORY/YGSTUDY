@@ -1,7 +1,7 @@
 ---
 title: 포워드 프록시 (Forward Proxy)
-tags: [network, proxy]
-updated: 2026-07-19
+tags: [network, proxy, security]
+updated: 2026-10-29
 ---
 
 # 포워드 프록시 (Forward Proxy)
@@ -59,6 +59,21 @@ http_access deny all
 
 `http_access deny social work_hours` 줄에서 두 ACL을 나란히 적으면 AND다. 둘 다 참일 때만 매칭된다. 그러니 "근무 시간이면서 목적지가 SNS"일 때만 막고, 점심시간이나 퇴근 후에는 통과시킨다. OR로 묶고 싶으면 한 acl 줄에 값을 여러 개 적거나 acl 이름을 여러 개 만들어 각각 deny 줄을 둔다.
 
+위 설정에서 요청 하나가 `http_access` 줄을 따라 내려가는 순서는 이렇다. 어느 판정 노드에서든 매칭되면 그 자리에서 끝나고 아래 줄은 보지 않는다는 점을 본다.
+
+```mermaid
+flowchart TD
+    R["요청 도착"] --> A1{"CONNECT 이면서 SSL_ports 아님?"}
+    A1 -- 예 --> X1["deny"]
+    A1 -- 아니오 --> A2{"Safe_ports 아님?"}
+    A2 -- 예 --> X2["deny"]
+    A2 -- 아니오 --> A3{"social 이면서 work_hours?"}
+    A3 -- 예 --> X3["deny"]
+    A3 -- 아니오 --> A4{"출발지가 localnet?"}
+    A4 -- 예 --> OK["allow"]
+    A4 -- 아니오 --> X4["deny all"]
+```
+
 가장 자주 하는 실수가 `http_access deny all`을 위로 올려두는 것이다. 그러면 그 아래 allow는 영원히 평가되지 않아서 사내망 요청까지 전부 403이 된다. 막히면 추측하지 말고 access.log를 본다.
 
 ```bash
@@ -103,6 +118,25 @@ export http_proxy=http://alice:secret@192.168.0.10:3128
 
 비밀번호에 `@`나 `:`, `/`가 들어가면 URL 인코딩해야 한다. `@`는 `%40`, `:`은 `%3A`다. 비밀번호에 특수문자가 있는데 인코딩을 안 하면 프록시 호스트를 엉뚱하게 파싱해서 "프록시에 못 붙는다"는 증상으로 나타난다. 인증 실패는 프록시가 `407 Proxy Authentication Required`로 답하니, curl `-v`에서 407이 보이면 인증 문제다. 503이나 연결 거부면 인증 이전의 네트워크 문제다.
 
+407이 왜 한 번 먼저 나오는지는 아래 순서로 보면 풀린다. 클라이언트는 처음에 인증 헤더 없이 보내고, 407을 받은 뒤에야 `Proxy-Authorization`을 붙여 다시 보낸다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant P as Squid
+    participant H as basic_ncsa_auth 헬퍼
+    participant S as 외부 서버
+
+    C->>P: GET http://example.com (인증 헤더 없음)
+    P-->>C: 407 Proxy Authentication Required
+    C->>P: GET 재요청 + Proxy-Authorization Basic
+    P->>H: 사용자와 비밀번호 검증 요청
+    H-->>P: OK 또는 ERR
+    P->>S: OK 이면 요청 전달
+    S-->>P: 응답
+    P-->>C: 응답
+```
+
 ## http_proxy / https_proxy / no_proxy 환경변수
 
 프록시 뒤에서 일하는 쪽으로 넘어온다. 리눅스/맥에서 명령행 도구 대부분은 이 세 환경변수를 본다.
@@ -123,6 +157,17 @@ export no_proxy=localhost,127.0.0.1,.internal.corp,10.0.0.0/8
 - `localhost`와 `127.0.0.1`은 명시적으로 넣어야 한다. 자동으로 빠지지 않는 도구가 있다.
 - CIDR(`10.0.0.0/8`)은 지원이 들쭉날쭉하다. curl은 비교적 최근 버전부터 CIDR을 받지만, 많은 라이브러리는 CIDR을 못 읽고 정확한 IP 문자열만 매칭한다. 그래서 "no_proxy에 대역을 넣었는데 내부 IP 호출이 여전히 프록시로 샌다"는 일이 생긴다.
 - 와일드카드 `*`는 표준이 아니다. `*.internal.corp`처럼 적으면 안 먹는 도구가 더 많다. 점 prefix로 적는 게 호환성이 높다.
+
+세 변수가 요청 하나에 어떻게 적용되는지는 아래 분기로 정리된다. `no_proxy` 판정이 스킴 판정보다 먼저라서, 여기서 빠지면 `http_proxy`와 `https_proxy`가 있어도 소용이 없다.
+
+```mermaid
+flowchart TD
+    R["요청 URL"] --> N{"호스트가 no_proxy 에 매칭?"}
+    N -- 예 --> D["프록시 없이 직접 연결"]
+    N -- 아니오 --> S{"스킴"}
+    S -- "http" --> HP["http_proxy 의 프록시로 요청 전달"]
+    S -- "https" --> HS["https_proxy 의 프록시로 CONNECT 터널"]
+```
 
 ## 애플리케이션별 프록시 적용 차이
 
@@ -198,6 +243,22 @@ java -Dhttp.proxyHost=192.168.0.10 -Dhttp.proxyPort=3128 \
 
 평문 HTTP는 프록시가 요청 라인을 읽고 목적지로 전달한다. HTTPS는 프록시가 내용을 못 읽으니 `CONNECT`로 TCP 통로만 연다. 클라이언트가 `CONNECT example.com:443`을 보내면 프록시가 그 목적지에 TCP를 연결하고 `200 Connection Established`로 답한 뒤, 그때부터 양쪽 바이트를 그대로 중계만 한다. TLS 핸드셰이크와 암호문은 프록시를 통과만 하고 프록시는 안을 못 본다. 동작 흐름과 Squid에서 CONNECT 포트를 443으로 제한하는 이유는 [개요 문서의 CONNECT 절](Proxy.md#https는-프록시를-어떻게-통과하는가-http-connect)에 자세히 있다.
 
+아래 순서에서 프록시가 관여하는 구간은 `200 Connection Established`까지이고, 그 뒤의 TLS는 프록시를 통과만 한다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant P as 프록시
+    participant S as 원서버
+
+    C->>P: CONNECT example.com:443
+    P->>S: TCP 연결
+    S-->>P: 연결 수립
+    P-->>C: 200 Connection Established
+    C->>S: TLS 핸드셰이크와 암호문 (프록시는 중계만)
+    S-->>C: 암호문 응답 (프록시 경유)
+```
+
 포워드 프록시 운영에서 기억할 건, CONNECT가 200을 못 받으면 프록시가 그 목적지/포트를 막은 것이고, 200은 받았는데 그 뒤 TLS에서 실패하면 프록시가 아니라 원서버 인증서 문제라는 점이다. 단, 회사 프록시가 SSL 인터셉트를 켜둔 경우는 얘기가 달라지는데, 그게 다음 절이다.
 
 ## 투명 프록시와 PAC 파일
@@ -217,6 +278,18 @@ http_port 3129 intercept
 ```bash
 # 라우터/게이트웨이에서 80 트래픽을 Squid로 리다이렉트 (예시)
 iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 3129
+```
+
+명시적 프록시와 투명 프록시는 클라이언트가 프록시를 아느냐에서 갈린다. 아래 그림에서 투명 쪽은 클라이언트와 Squid 사이에 게이트웨이의 리다이렉트가 끼어 있다.
+
+```mermaid
+flowchart LR
+    subgraph E["명시적 프록시"]
+        C1["클라이언트"] -->|"프록시 주소를 설정"| P1["Squid 3128"] --> D1["외부 서버"]
+    end
+    subgraph T["투명 프록시"]
+        C2["클라이언트"] -->|"직접 나간다고 생각"| G["게이트웨이 REDIRECT"] -->|"intercept"| P2["Squid 3129"] --> D2["외부 서버"]
+    end
 ```
 
 투명 프록시의 한계가 HTTPS다. 클라이언트는 자기가 프록시를 거치는 줄 모르니 CONNECT를 보내지 않는다. 그래서 프록시는 TLS의 ClientHello에 담긴 SNI(접속하려는 호스트 이름)를 엿봐서 목적지를 알아내는 정도만 한다. 내용을 보려면 SSL 인터셉트가 필요하고, 그건 인증서 신뢰 문제를 동반한다. 투명 프록시는 인증 헤더를 받을 자리가 없어서 사용자 인증이 어렵다는 점도 알아둬야 한다.
@@ -241,6 +314,17 @@ function FindProxyForURL(url, host) {
 ```
 
 `FindProxyForURL`이 반환하는 문자열이 결과다. `DIRECT`는 프록시 우회, `PROXY host:port`는 프록시 경유, 세미콜론으로 폴백을 이어 적는다. PAC 파일을 웹서버에 올리고 그 URL을 클라이언트에 지정하거나, WPAD(`http://wpad/wpad.dat`)로 자동 발견하게 한다. 운영하다 보면 PAC를 application/x-ns-proxy-autoconfig MIME 타입으로 서빙해야 일부 클라이언트가 인식하는 점, `isInNet`이 DNS 조회를 유발해 느려질 수 있는 점이 걸린다. 그래서 도메인 매칭(`dnsDomainIs`, `shExpMatch`)을 IP 매칭보다 앞에 둔다.
+
+위 예제 함수의 판정 순서를 그리면 이렇다. 위에서 매칭되면 바로 `DIRECT`로 끝나고, 어디에도 안 걸린 요청만 프록시로 간다.
+
+```mermaid
+flowchart TD
+    U["FindProxyForURL 호출"] --> A{"점 없는 호스트이거나 .internal.corp?"}
+    A -- 예 --> DI["DIRECT"]
+    A -- 아니오 --> B{"10.0.0.0/8 안?"}
+    B -- 예 --> DI
+    B -- 아니오 --> PR["PROXY 192.168.0.10:3128, 실패하면 DIRECT"]
+```
 
 명령행 도구 대부분은 PAC를 직접 해석하지 못한다. PAC는 브라우저/OS용이고, curl이나 npm은 결국 `http_proxy` 환경변수를 봐야 한다. 그래서 사내 PC는 PAC로 굴러가는데 서버에서 돌리는 스크립트는 환경변수를 따로 잡아줘야 하는 이원화가 생긴다.
 
@@ -329,8 +413,103 @@ keytool -importcert -alias corp-ca -file corp-ca.crt \
 
 Node가 OS 저장소를 안 본다는 점, Java가 cacerts라는 완전히 별도의 truststore를 본다는 점 이 둘만 기억해도 사내에서 "왜 curl은 되는데 빌드는 인증서 오류가 나지"의 절반은 설명된다.
 
+## SOCKS5와 익명화 프록시의 한계
+
+지금까지 다룬 프록시는 사내 통제용이다. 프록시 운영자가 회사이고, 로그를 남기는 것이 목적이다. 같은 포워드 프록시를 "내 IP를 숨기는 용도"로 쓰려는 순간 전제가 뒤집힌다. 이때는 프록시 운영자가 누구인지가 위협 모델의 전부가 된다.
+
+### 프록시 한 대는 신뢰 지점 한 곳이다
+
+SOCKS5는 HTTP CONNECT와 달리 HTTP에 묶이지 않은 TCP 중계 프로토콜이다. SSH, DB 클라이언트, 임의의 TCP 프로그램을 같은 프록시로 보낼 수 있어서 `ssh -D 1080`으로 만든 동적 포워딩 포트가 SOCKS5로 열린다. 그런데 프로토콜이 달라져도 구조는 같다. 클라이언트는 프록시에 "어디로 가라"고 알려 줘야 하므로, 프록시는 클라이언트 IP와 목적지를 둘 다 안다. 무료 공개 프록시나 VPN 사업자를 거치는 경우도 마찬가지로, 로그 한 줄이면 둘이 연결된다.
+
+그래서 프록시를 여러 대 이어 붙이는 아이디어가 나온다. `proxychains`가 이 방식이다. 설정 파일에 `socks5 1.2.3.4 1080`, `socks5 5.6.7.8 1080`처럼 줄을 이어 적으면 첫 프록시에 접속해서 그 터널 안에서 두 번째 프록시에 접속하는 식으로 중첩한다. Tor도 겉으로는 이 구조와 같다. 클라이언트가 릴레이 세 대를 골라 이어 붙인다. 차이는 홉마다 키를 따로 협상해서 겹겹이 암호화한다는 점이다. 아래 그림에서 단일 프록시, 프록시 체인, Tor 3홉의 경로 구조를 나란히 본다.
+
+```mermaid
+flowchart LR
+    subgraph S["단일 프록시"]
+        C1["클라이언트"] --> P1["프록시"] --> D1["목적지"]
+    end
+    subgraph H["프록시 체인 (2홉)"]
+        C2["클라이언트"] --> PA["프록시 A"] --> PB["프록시 B"] --> D2["목적지"]
+    end
+    subgraph T["Tor (3홉)"]
+        C3["클라이언트"] --> G["Guard"] --> M["Middle"] --> E["Exit"] --> D3["목적지"]
+    end
+```
+
+세 경로의 모양은 홉 수만 다르다. 달라지는 쪽은 각 중간자가 무엇을 아느냐다.
+
+| 구성 | 중간자 | 출발지 IP | 목적지 | 평문 내용 |
+|---|---|---|---|---|
+| 단일 프록시 | 프록시 | 안다 | 안다 | `http://`면 요청 전체를 봄. `https://`면 CONNECT 대상만 알고 내용은 못 봄(SSL 인터셉트를 켠 경우 제외) |
+| 프록시 체인 2홉 | 프록시 A | 안다 | A에서 B로 가는 구간이 암호화되지 않으면 안쪽 CONNECT 요청에서 읽을 수 있음 | 마찬가지로 암호화 여부에 달림 |
+| | 프록시 B | 모른다 (A의 IP만 봄) | 안다 | `http://`면 봄 |
+| Tor 3홉 | Guard | 안다 | 모른다 | 못 봄 |
+| | Middle | 모른다 | 모른다 | 못 봄 |
+| | Exit | 모른다 | 안다 | 애플리케이션 계층이 평문이면 봄 |
+
+프록시 체인은 홉이 늘었어도 프록시 A가 목적지를 아는지가 프로토콜 구성에 달려 있다. 체인을 이루는 프록시가 한 사람이 운영하는 서버이거나, 같은 사업자의 서버라면 A와 B의 로그를 합치는 것으로 끝난다. Tor는 같은 /16 대역이나 같은 운영자 패밀리의 릴레이를 한 서킷에 넣지 않는다. 그래도 Guard와 Exit을 같은 주체가 잡으면 시간 상관으로 연결된다. 이 한계와 각 노드가 아는 정보의 자세한 내용은 [Tor 동작 원리의 노드별 정보 절](../Security/Tor_Onion_Routing.md#각-노드가-아는-것)에 정리했다.
+
+체인과 Tor 둘 다 마지막 구간은 평문 그대로라는 점은 같다. Exit(또는 마지막 프록시)에서 목적지로 나가는 구간은 원래 프로토콜로 나가므로, 로그인 폼을 `http://`로 열어 두면 마지막 홉 운영자가 계정 정보를 본다. 위 표의 "평문 내용" 열이 이 이유로 단일 프록시와 Tor Exit에서 비슷해진다.
+
+### socks5와 socks5h, 이름을 어디서 푸는가
+
+SOCKS5로 나가는 클라이언트에서 가장 먼저 새는 곳이 DNS다. curl의 `socks5://`는 목적지 이름을 로컬에서 풀어 IP만 프록시에 넘기고, `socks5h://`는 이름을 그대로 프록시에 넘겨 프록시가 푼다. `h`는 hostname이다. 사내 프록시 뒤에서는 별 차이가 없어 보이지만, 익명화가 목적이면 로컬 DNS 질의에 접속하려는 사이트가 평문으로 남는다.
+
+이 차이를 직접 확인했다. 로컬에서 SOCKS5 핸드셰이크만 받고 요청의 주소 타입(ATYP)을 찍은 뒤 연결을 거부하는 짧은 파이썬 서버를 `127.0.0.1:19050`에 띄우고, 같은 URL을 두 방식으로 호출했다.
+
+```bash
+$ curl -sv -o /dev/null --socks5 127.0.0.1:19050 http://no-such-host.invalid/ 2>&1 | grep -i socks5
+* SOCKS5 connect to IPv4 183.110.225.61:80 (locally resolved)
+
+$ curl -sv -o /dev/null --socks5-hostname 127.0.0.1:19050 http://no-such-host.invalid/ 2>&1 | grep -i socks5
+* SOCKS5 connect to no-such-host.invalid:80 (remotely resolved)
+```
+
+프록시 서버가 받은 요청은 이랬다.
+
+```
+SOCKS5 CONNECT atyp=IPv4 addr=183.110.225.61 port=80
+SOCKS5 CONNECT atyp=DOMAIN addr=no-such-host.invalid port=80
+```
+
+앞이 `socks5`, 뒤가 `socks5h`다. 이 머신의 리졸버는 존재하지 않는 `.invalid` 이름에도 IP를 돌려줬다(`getent hosts`로도 같은 값). 그래서 `socks5`는 그 IP를 프록시에 넘겼고, 프록시는 원래 이름을 알 수 없었다. `socks5h`는 이름 그대로 도착했다. 소켓 호출도 `strace -f -e trace=connect`로 비교했다.
+
+```
+# --socks5
+connect(5, {sin_port=htons(19050), sin_addr=inet_addr("127.0.0.1")}, 16)
+connect(8, {sin_port=htons(53), sin_addr=inet_addr("210.220.163.82")}, 16)
+
+# --socks5-hostname
+connect(5, {sin_port=htons(19050), sin_addr=inet_addr("127.0.0.1")}, 16)
+```
+
+`--socks5`만 리졸버(53번 포트)에 연결하는 호출이 하나 더 있다. 프록시 쪽 서킷이 아무리 안전해도 이 질의 한 번이 ISP나 회사 DNS 서버에 "이 클라이언트가 이 사이트를 열었다"는 기록을 남긴다.
+
+```mermaid
+sequenceDiagram
+    participant A as curl
+    participant L as 로컬 DNS
+    participant P as SOCKS5 프록시
+
+    Note over A,P: socks5
+    A->>L: no-such-host.invalid 질의
+    L-->>A: 183.110.225.61
+    A->>P: CONNECT IPv4 183.110.225.61:80
+
+    Note over A,P: socks5h
+    A->>P: CONNECT DOMAIN no-such-host.invalid:80
+    P->>P: 프록시가 이름 해석
+```
+
+위쪽에서는 로컬 DNS로 질의가 나가고, 아래쪽에서는 프록시에 도메인 이름 그대로 넘어간다. Tor에서는 이 차이가 특히 치명적이라 `socks5h`가 사실상 필수다. 9050 포트와 `.onion` 주소 동작까지 포함한 실제 확인은 [Tor 동작 원리의 DNS 누수 절](../Security/Tor_Onion_Routing.md#dns-누수-socks5와-socks5h)에 있다.
+
+### 사내 프록시에 익명성을 기대하지 않는다
+
+위 확인은 SOCKS5 서버를 직접 띄운 로컬 실험이라 DNS 위치와 프록시가 받는 주소 타입만 보여 준다. 프록시 체인에서 첫 프록시가 목적지를 읽을 수 있는지는 체인 구성(프록시 간 구간의 암호화 여부)에 따라 달라지므로 위 표에서 조건을 붙였다. 사내 Squid 앞에서 일하는 개발자라면 두 가지만 기억하면 된다. 프록시를 거친다고 출발지가 가려지지 않는다는 것, 그리고 `socks5`와 `socks5h`를 헷갈리면 프록시가 몰라야 할 정보는 가리고 DNS 서버에는 그대로 알리는 구성이 된다는 것이다. 신뢰 지점을 나눠야 하는 요구가 실제로 있다면 프록시를 이어 붙이는 대신 [Tor 동작 원리](../Security/Tor_Onion_Routing.md)처럼 홉마다 암호화하는 구조를 쓴다.
+
 ## 참고
 
+- [Tor 동작 원리](../Security/Tor_Onion_Routing.md)
 - [Squid 공식 문서](http://www.squid-cache.org/Doc/)
 - [Squid ACL 설정](https://wiki.squid-cache.org/SquidFaq/SquidAcl)
 - [PAC 파일 함수 레퍼런스 (MDN)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling/Proxy_Auto-Configuration_PAC_file)
