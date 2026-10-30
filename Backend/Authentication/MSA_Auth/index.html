@@ -141,7 +141,120 @@
 </span><span id=__span-1-4><a id=__codelineno-1-4 name=__codelineno-1-4 href=#__codelineno-1-4></a>                      2. 만료 확인
 </span><span id=__span-1-5><a id=__codelineno-1-5 name=__codelineno-1-5 href=#__codelineno-1-5></a>                      3. 사용자 정보 추출
 </span><span id=__span-1-6><a id=__codelineno-1-6 name=__codelineno-1-6 href=#__codelineno-1-6></a>                      4. 내부 헤더에 담아 전달
-</span></code></pre></div> <h3 id=nestjs-api-gateway-구현>NestJS API Gateway 구현<a class=headerlink href=#nestjs-api-gateway-구현 title="Permanent link">&para;</a></h3> <div class="language-typescript highlight"><pre data-search-exclude><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Injectable</span><span class=p>,</span><span class=w> </span><span class=nx>NestMiddleware</span><span class=p>,</span><span class=w> </span><span class=nx>UnauthorizedException</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'@nestjs/common'</span><span class=p>;</span>
+</span></code></pre></div> <div class=ygd-gateway-token-verification-flow id=ygd-gateway-token-verification-flow> <style>
+.ygd-gateway-token-verification-flow{max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box;padding:12px;border:1px solid var(--ygd-line);border-radius:8px;background:var(--ygd-bg);color:var(--ygd-fg);--ygd-bg:#FAF8F6;--ygd-fg:#2B2825;--ygd-muted:#5F5A54;--ygd-line:#8A847C;--ygd-box:#FFFFFF;--ygd-on:#2F6B80;--ygd-on-bg:#DDEEF4;--ygd-ok:#2F7D4F;--ygd-ok-bg:#E4F3EA;--ygd-bad:#B3261E;--ygd-bad-bg:#FBE9E7;}
+body[data-md-color-scheme="slate"] .ygd-gateway-token-verification-flow{--ygd-bg:#1F1C1E;--ygd-fg:#F0EDE9;--ygd-muted:#B5AFA7;--ygd-line:#8F897F;--ygd-box:#2A2729;--ygd-on:#7FC0D6;--ygd-on-bg:#223A44;--ygd-ok:#6FCF97;--ygd-ok-bg:#1F3A2B;--ygd-bad:#FF8A80;--ygd-bad-bg:#432220;}
+.ygd-gateway-token-verification-flow *{box-sizing:border-box;}
+.ygd-gateway-token-verification-flow .ygd-svg{display:block;width:100%;height:auto;max-width:100%;}
+.ygd-gateway-token-verification-flow .ygd-r{fill:var(--ygd-box);stroke:var(--ygd-line);stroke-width:1.5;transition:fill .3s,stroke .3s;}
+.ygd-gateway-token-verification-flow .ygd-tx{fill:var(--ygd-fg);font-size:12px;text-anchor:middle;}
+.ygd-gateway-token-verification-flow .ygd-tx-s{fill:var(--ygd-fg);font-size:11px;text-anchor:middle;}
+.ygd-gateway-token-verification-flow .ygd-tx-xs{fill:var(--ygd-fg);font-size:10px;text-anchor:middle;}
+.ygd-gateway-token-verification-flow .ygd-xmark{fill:var(--ygd-bad);font-size:16px;font-weight:700;text-anchor:middle;}
+.ygd-gateway-token-verification-flow .ygd-ln{stroke:var(--ygd-line);stroke-width:2;fill:none;transition:stroke .3s;}
+.ygd-gateway-token-verification-flow .ygd-thin{stroke:var(--ygd-line);stroke-width:1;fill:none;}
+.ygd-gateway-token-verification-flow .ygd-ln.ygd-on{stroke:var(--ygd-on);}
+.ygd-gateway-token-verification-flow .ygd-ln.ygd-ok{stroke:var(--ygd-ok);}
+.ygd-gateway-token-verification-flow .ygd-ln.ygd-bad{stroke:var(--ygd-bad);}
+.ygd-gateway-token-verification-flow g.ygd-on .ygd-r{stroke:var(--ygd-on);fill:var(--ygd-on-bg);stroke-width:2.5;}
+.ygd-gateway-token-verification-flow g.ygd-ok .ygd-r{stroke:var(--ygd-ok);fill:var(--ygd-ok-bg);stroke-width:2;}
+.ygd-gateway-token-verification-flow g.ygd-bad .ygd-r{stroke:var(--ygd-bad);fill:var(--ygd-bad-bg);stroke-width:2.5;}
+.ygd-gateway-token-verification-flow .ygd-dim{opacity:.5;}
+.ygd-gateway-token-verification-flow .ygd-hid{visibility:hidden;}
+.ygd-gateway-token-verification-flow .ygd-flow{stroke-dasharray:6 4;animation:ygd-gateway-token-verification-flow-dash .8s linear infinite;}
+@keyframes ygd-gateway-token-verification-flow-dash{to{stroke-dashoffset:-10;}}
+.ygd-gateway-token-verification-flow .ygd-mn{fill:var(--ygd-line);}
+.ygd-gateway-token-verification-flow .ygd-mo{fill:var(--ygd-on);}
+.ygd-gateway-token-verification-flow .ygd-mk{fill:var(--ygd-ok);}
+.ygd-gateway-token-verification-flow .ygd-mb{fill:var(--ygd-bad);}
+.ygd-gateway-token-verification-flow .ygd-pbox{fill:var(--ygd-box);stroke:var(--ygd-line);stroke-width:1;}
+.ygd-gateway-token-verification-flow .ygd-pt{fill:var(--ygd-muted);font-size:11px;font-weight:700;}
+.ygd-gateway-token-verification-flow .ygd-pl{fill:var(--ygd-fg);font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.ygd-gateway-token-verification-flow .ygd-ctl{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 8px;}
+.ygd-gateway-token-verification-flow .ygd-btn{font:inherit;font-size:14px;min-height:40px;padding:6px 16px;border:1px solid var(--ygd-line);border-radius:6px;background:var(--ygd-box);color:var(--ygd-fg);cursor:pointer;}
+.ygd-gateway-token-verification-flow .ygd-btn-main{border-color:var(--ygd-on);background:var(--ygd-on-bg);font-weight:700;}
+.ygd-gateway-token-verification-flow .ygd-btn:disabled{opacity:.5;cursor:default;}
+.ygd-gateway-token-verification-flow .ygd-btn:focus-visible{outline:3px solid var(--ygd-on);outline-offset:2px;}
+.ygd-gateway-token-verification-flow .ygd-step{margin:0 0 4px;font-size:15px;font-weight:700;color:var(--ygd-fg);}
+.ygd-gateway-token-verification-flow .ygd-desc{margin:0 0 8px;font-size:15px;line-height:1.6;color:var(--ygd-fg);min-height:4.8em;}
+.ygd-gateway-token-verification-flow .ygd-note{margin:0;padding-top:8px;border-top:1px solid var(--ygd-line);font-size:14px;line-height:1.6;color:var(--ygd-muted);}
+@media (prefers-reduced-motion:reduce){.ygd-gateway-token-verification-flow *{transition:none !important;animation:none !important;}}
+</style> <svg class=ygd-svg viewbox="0 0 360 292" role=img aria-label="Client가 Bearer 토큰으로 요청하면 API Gateway가 서명 검증, 만료 확인, 사용자 정보 추출을 거쳐 Authorization 헤더를 지우고 X-User 헤더를 붙여 Order 서비스로 전달한다. 검증에 실패하면 Gateway가 401로 끊고, Gateway를 우회한 직접 요청은 네트워크 차단으로 막힌다."> <defs> <marker id=ygd-gateway-token-verification-flow-m-n markerwidth=8 markerheight=8 refx=7 refy=4 orient=auto><path class=ygd-mn d="M0,0 L8,4 L0,8 Z"/></marker> <marker id=ygd-gateway-token-verification-flow-m-o markerwidth=8 markerheight=8 refx=7 refy=4 orient=auto><path class=ygd-mo d="M0,0 L8,4 L0,8 Z"/></marker> <marker id=ygd-gateway-token-verification-flow-m-k markerwidth=8 markerheight=8 refx=7 refy=4 orient=auto><path class=ygd-mk d="M0,0 L8,4 L0,8 Z"/></marker> <marker id=ygd-gateway-token-verification-flow-m-b markerwidth=8 markerheight=8 refx=7 refy=4 orient=auto><path class=ygd-mb d="M0,0 L8,4 L0,8 Z"/></marker> </defs> <line class=ygd-thin x1=180 y1=64 x2=180 y2=84 /> <line class=ygd-ln data-k=a1 x1=92 y1=42 x2=136 y2=42 marker-end=url(#ygd-gateway-token-verification-flow-m-n) /> <line class=ygd-ln data-k=a2 x1=222 y1=42 x2=266 y2=42 marker-end=url(#ygd-gateway-token-verification-flow-m-n) /> <line class=ygd-ln data-k=a401 x1=118 y1=95 x2=94 y2=95 marker-end=url(#ygd-gateway-token-verification-flow-m-n) /> <line class=ygd-ln data-k=aatk x1=310 y1=148 x2=310 y2=112 marker-end=url(#ygd-gateway-token-verification-flow-m-n) /> <line class=ygd-ln data-k=adash x1=310 y1=94 x2=310 y2=66 stroke-dasharray="3 4"/> <g data-k=client><rect class=ygd-r x=8 y=20 width=84 height=44 rx=6 /><text class=ygd-tx x=50 y=46>Client</text></g> <g data-k=gw><rect class=ygd-r x=138 y=20 width=84 height=44 rx=6 /><text class=ygd-tx x=180 y=38>API</text><text class=ygd-tx x=180 y=54>Gateway</text></g> <g data-k=order><rect class=ygd-r x=268 y=20 width=84 height=44 rx=6 /><text class=ygd-tx x=310 y=38>Order</text><text class=ygd-tx x=310 y=54>서비스</text></g> <g data-k=b401><rect class=ygd-r x=8 y=84 width=84 height=22 rx=4 /><text class=ygd-tx-s x=50 y=99>401 응답</text></g> <g data-k=c1><rect class=ygd-r x=118 y=84 width=124 height=22 rx=4 /><text class=ygd-tx-s x=180 y=99>1. 서명 검증</text></g> <g data-k=c2><rect class=ygd-r x=118 y=112 width=124 height=22 rx=4 /><text class=ygd-tx-s x=180 y=127>2. 만료 확인</text></g> <g data-k=c3><rect class=ygd-r x=118 y=140 width=124 height=22 rx=4 /><text class=ygd-tx-s x=180 y=155>3. 사용자 정보 추출</text></g> <g data-k=c4><rect class=ygd-r x=118 y=168 width=124 height=22 rx=4 /><text class=ygd-tx-s x=180 y=183>4. 헤더 교체 후 전달</text></g> <g data-k=bar><rect class=ygd-r x=268 y=96 width=84 height=14 rx=3 /><text class=ygd-tx-xs x=310 y=106.5>네트워크 차단</text></g> <text class=ygd-xmark data-k=x x=310 y=86>✕</text> <g data-k=atk><rect class=ygd-r x=268 y=150 width=84 height=40 rx=6 /><text class=ygd-tx-s x=310 y=167>공격자</text><text class=ygd-tx-s x=310 y=183>(직접 호출)</text></g> <rect class=ygd-pbox x=8 y=198 width=344 height=92 rx=6 /> <text class=ygd-pt data-k=pt x=18 y=214></text> <text class=ygd-pl data-k=p0 x=18 y=232></text> <text class=ygd-pl data-k=p1 x=18 y=248></text> <text class=ygd-pl data-k=p2 x=18 y=264></text> <text class=ygd-pl data-k=p3 x=18 y=280></text> </svg> <div class=ygd-ctl> <button type=button class="ygd-btn ygd-btn-main" data-k=play>재생</button> <button type=button class=ygd-btn data-k=next>다음 단계</button> <button type=button class=ygd-btn data-k=reset>처음으로</button> </div> <p class=ygd-step data-k=step aria-live=polite></p> <p class=ygd-desc data-k=desc aria-live=polite></p> <p class=ygd-note>비유: 건물 안내데스크가 방문증을 확인한 뒤 내부 출입 전용 카드로 바꿔 주는 것과 비슷하다. 다만 X-User 헤더 자체에는 위조를 막는 장치가 없으므로, 데스크를 거치지 않는 뒷문은 네트워크 수준에서 닫아 두어야 한다.</p> <script>
+(function(){
+var root=document.getElementById('ygd-gateway-token-verification-flow');
+if(!root){return;}
+var P='ygd-gateway-token-verification-flow-m-';
+function q(k){return root.querySelector('[data-k="'+k+'"]');}
+var keys=['client','gw','order','atk','c1','c2','c3','c4','a1','a2','a401','b401','aatk','bar','adash','x'];
+var arrows=['a1','a2','a401','aatk'];
+var el={};
+keys.forEach(function(k){el[k]=q(k);});
+var pt=q('pt'),pl=[q('p0'),q('p1'),q('p2'),q('p3')];
+var playBtn=q('play'),nextBtn=q('next'),resetBtn=q('reset'),stepEl=q('step'),descEl=q('desc');
+var steps=[
+{t:'준비',d:'재생을 누르면 Client의 요청이 Gateway를 거쳐 Order 서비스에 닿기까지를 한 단계씩 보여 준다. 마지막에는 검증 실패와 Gateway 우회 공격도 다룬다.',on:[],ok:[],bad:[],p:['요청 헤더',['재생 또는 다음 단계를 눌러 시작한다']]},
+{t:'정상 경로 · Bearer 토큰으로 요청',d:'Client가 Authorization 헤더에 Bearer 토큰을 실어 요청한다. 모든 외부 요청은 API Gateway를 먼저 통과한다.',on:['client','a1'],ok:[],bad:[],p:['Client → Gateway',['GET /orders','Authorization: Bearer <JWT>']]},
+{t:'정상 경로 · 1. 서명 검증',d:'Gateway가 Bearer 뒤의 토큰을 꺼내 JWT 서명을 검증한다. 검증을 각 서비스가 따로 하지 않고 여기서 한 번만 한다.',on:['gw','c1'],ok:['client','a1'],bad:[],p:['Gateway 내부',['Bearer 뒤의 토큰 문자열을 꺼낸다','JWT 서명을 검증한다']]},
+{t:'정상 경로 · 2. 만료 확인',d:'서명이 맞더라도 토큰이 만료됐다면 통과하지 못한다. 서명과 만료 확인이 모두 끝나야 다음 단계로 넘어간다.',on:['gw','c2'],ok:['client','a1','c1'],bad:[],p:['Gateway 내부',['토큰이 만료됐는지 확인한다','만료됐다면 여기서 멈춘다']]},
+{t:'정상 경로 · 3. 사용자 정보 추출',d:'검증을 통과한 토큰에서 sub, roles, email을 꺼낸다. 이 값이 내부 서비스에 넘길 사용자 정보가 된다.',on:['gw','c3'],ok:['client','a1','c1','c2'],bad:[],p:['Gateway 내부',['검증된 토큰에서 꺼낸 값','sub, roles, email']]},
+{t:'정상 경로 · 4. 헤더 교체',d:'Gateway는 원본 Authorization 헤더를 지우고 X-User-Id, X-User-Roles, X-User-Email을 붙인다. 내부 서비스가 외부 토큰을 직접 파싱하지 않게 하려는 것이다.',on:['gw','c4'],ok:['client','a1','c1','c2','c3'],bad:[],p:['Gateway가 만든 내부 헤더',['X-User-Id: <sub>','X-User-Roles: <roles를 쉼표로 연결>','X-User-Email: <email>','Authorization: (제거됨)']]},
+{t:'정상 경로 · Order 서비스로 전달',d:'Order 서비스는 Gateway가 넣어 준 X-User-* 헤더만 신뢰한다. X-User-Id로 사용자를 식별하고 roles에는 ROLE_ 접두어를 붙여 권한으로 쓴다.',on:['a2','order'],ok:['client','a1','gw','c1','c2','c3','c4'],bad:[],p:['Order 서비스 수신',['X-User-Id로 사용자를 식별한다','X-User-Roles를 ROLE_ 권한으로 바꾼다','Authorization은 보지 않는다']]},
+{t:'실패 분기 · 401로 끊김',d:'Bearer 헤더가 없거나 검증 중 예외가 나면 Gateway가 401로 응답하고 끝낸다. 서명이 틀렸거나 만료된 토큰도 여기에 해당하며, Order 서비스까지는 요청이 가지 않는다.',on:['gw'],ok:['client','a1'],bad:['c1','c2','a401','b401'],p:['검증 실패 → Gateway에서 종료',['Bearer 헤더 없음 또는 검증 예외','Gateway가 401을 돌려주고 끝낸다','Order 서비스에는 요청이 도달하지 않는다']]},
+{t:'우회 공격 · 네트워크에서 차단',d:'Gateway를 거치지 않고 X-User-Id: admin을 직접 보내면 관리자 행세가 가능해진다. 그래서 내부 서비스는 내부 네트워크에서만 접근되게 막아야 하고, Kubernetes는 NetworkPolicy, AWS는 Security Group으로 잡는다.',on:['atk','aatk'],ok:['order'],bad:['bar','adash','x'],p:['공격자 → Order (Gateway 우회)',['X-User-Id: admin','내부 네트워크 밖에서 온 직접 요청은','NetworkPolicy / Security Group이 차단한다']]}
+];
+var last=steps.length-1,idx=0,timer=null,DELAY=3400;
+function render(i){
+var s=steps[i];
+keys.forEach(function(k){
+var e=el[k],st='';
+e.classList.remove('ygd-on','ygd-ok','ygd-bad','ygd-dim');
+if(s.on.indexOf(k)>=0){st='on';}else if(s.ok.indexOf(k)>=0){st='ok';}else if(s.bad.indexOf(k)>=0){st='bad';}
+if(st){e.classList.add('ygd-'+st);}else if(i>0){e.classList.add('ygd-dim');}
+if(arrows.indexOf(k)>=0){
+var m=st==='on'?'o':st==='ok'?'k':st==='bad'?'b':'n';
+e.setAttribute('marker-end','url(#'+P+m+')');
+if(st==='on'){e.classList.add('ygd-flow');}else{e.classList.remove('ygd-flow');}
+}
+});
+if(i===last){el.x.classList.remove('ygd-hid');}else{el.x.classList.add('ygd-hid');}
+pt.textContent=s.p[0];
+for(var n=0;n<4;n++){pl[n].textContent=s.p[1][n]||'';}
+stepEl.textContent=(i===0?'단계 0 / ':'단계 '+i+' / ')+last+' · '+s.t;
+descEl.textContent=s.d;
+nextBtn.disabled=(i>=last);
+playBtn.textContent=timer?'일시정지':(i>=last?'다시 재생':'재생');
+}
+function stop(){
+if(timer){clearTimeout(timer);timer=null;}
+}
+function tick(){
+timer=null;
+if(idx<last){
+idx++;
+if(idx<last){timer=setTimeout(tick,DELAY);}
+}
+render(idx);
+}
+playBtn.addEventListener('click',function(){
+if(timer){stop();render(idx);return;}
+if(idx>=last){idx=0;}
+idx++;
+timer=setTimeout(tick,DELAY);
+render(idx);
+});
+nextBtn.addEventListener('click',function(){
+stop();
+if(idx<last){idx++;}
+render(idx);
+});
+resetBtn.addEventListener('click',function(){
+stop();
+idx=0;
+render(idx);
+});
+render(0);
+})();
+</script> </div> <h3 id=nestjs-api-gateway-구현>NestJS API Gateway 구현<a class=headerlink href=#nestjs-api-gateway-구현 title="Permanent link">&para;</a></h3> <div class="language-typescript highlight"><pre data-search-exclude><span></span><code><span id=__span-2-1><a id=__codelineno-2-1 name=__codelineno-2-1 href=#__codelineno-2-1></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Injectable</span><span class=p>,</span><span class=w> </span><span class=nx>NestMiddleware</span><span class=p>,</span><span class=w> </span><span class=nx>UnauthorizedException</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'@nestjs/common'</span><span class=p>;</span>
 </span><span id=__span-2-2><a id=__codelineno-2-2 name=__codelineno-2-2 href=#__codelineno-2-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>JwtService</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'@nestjs/jwt'</span><span class=p>;</span>
 </span><span id=__span-2-3><a id=__codelineno-2-3 name=__codelineno-2-3 href=#__codelineno-2-3></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Request</span><span class=p>,</span><span class=w> </span><span class=nx>Response</span><span class=p>,</span><span class=w> </span><span class=nx>NextFunction</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'express'</span><span class=p>;</span>
 </span><span id=__span-2-4><a id=__codelineno-2-4 name=__codelineno-2-4 href=#__codelineno-2-4></a>
@@ -217,7 +330,158 @@
 </span><span id=__span-4-11><a id=__codelineno-4-11 name=__codelineno-4-11 href=#__codelineno-4-11></a><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=k>this</span><span class=p>.</span><span class=nx>orderService</span><span class=p>.</span><span class=nx>findByUserId</span><span class=p>(</span><span class=nx>req</span><span class=p>.</span><span class=nx>internalUser</span><span class=p>.</span><span class=nx>userId</span><span class=p>);</span>
 </span><span id=__span-4-12><a id=__codelineno-4-12 name=__codelineno-4-12 href=#__codelineno-4-12></a><span class=w>  </span><span class=p>}</span>
 </span><span id=__span-4-13><a id=__codelineno-4-13 name=__codelineno-4-13 href=#__codelineno-4-13></a><span class=p>}</span>
-</span></code></pre></div> <p>여기서 중요한 문제가 하나 있다. <code>X-User-Id</code> 헤더를 외부에서 직접 보내면? Gateway를 거치지 않고 내부 서비스에 직접 접근하는 경우, 누구든 <code>X-User-Id: admin</code>을 넣어서 관리자 행세를 할 수 있다. 내부 서비스는 반드시 내부 네트워크에서만 접근 가능하도록 네트워크 레벨에서 차단해야 한다. Kubernetes라면 NetworkPolicy, AWS라면 Security Group으로 잡는다.</p> <h2 id=service-to-service-인증>Service-to-Service 인증<a class=headerlink href=#service-to-service-인증 title="Permanent link">&para;</a></h2> <p>사용자 요청 전파와는 별개로, 서비스끼리 직접 호출하는 경우가 있다. 배치 처리, 이벤트 처리, 헬스 체크 같은 상황이다. 이때는 사용자 토큰이 없으니 서비스 자체를 인증해야 한다.</p> <h3 id=mtls-mutual-tls>mTLS (Mutual TLS)<a class=headerlink href=#mtls-mutual-tls title="Permanent link">&para;</a></h3> <p>일반 HTTPS에서는 클라이언트가 서버 인증서를 검증한다. mTLS는 서버도 클라이언트 인증서를 검증한다. 양방향 인증이다.</p> <div class="language-text highlight"><pre data-search-exclude><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>일반 TLS:
+</span></code></pre></div> <p>여기서 중요한 문제가 하나 있다. <code>X-User-Id</code> 헤더를 외부에서 직접 보내면? Gateway를 거치지 않고 내부 서비스에 직접 접근하는 경우, 누구든 <code>X-User-Id: admin</code>을 넣어서 관리자 행세를 할 수 있다. 내부 서비스는 반드시 내부 네트워크에서만 접근 가능하도록 네트워크 레벨에서 차단해야 한다. Kubernetes라면 NetworkPolicy, AWS라면 Security Group으로 잡는다.</p> <h2 id=service-to-service-인증>Service-to-Service 인증<a class=headerlink href=#service-to-service-인증 title="Permanent link">&para;</a></h2> <p>사용자 요청 전파와는 별개로, 서비스끼리 직접 호출하는 경우가 있다. 배치 처리, 이벤트 처리, 헬스 체크 같은 상황이다. 이때는 사용자 토큰이 없으니 서비스 자체를 인증해야 한다.</p> <div class=ygd-service-to-service-auth-compare id=ygd-service-to-service-auth-compare> <style>
+.ygd-service-to-service-auth-compare{--ygd-bg:#FFFFFF;--ygd-surface:#F5F3F0;--ygd-border:#CFC9C0;--ygd-text:#2B2825;--ygd-muted:#5F5A54;--ygd-a1:#2F6477;--ygd-a2:#8F4B00;--ygd-ac:var(--ygd-a1);--ygd-on:#FFFFFF;--ygd-line:#6B655E;--ygd-soft:#EAF1F4;max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box;padding:12px;border:1px solid var(--ygd-border);border-radius:10px;background:var(--ygd-bg);color:var(--ygd-text);font-size:15px;line-height:1.6}
+body[data-md-color-scheme="slate"] .ygd-service-to-service-auth-compare{--ygd-bg:#262325;--ygd-surface:#302C2F;--ygd-border:#5A5558;--ygd-text:#F0EDE9;--ygd-muted:#B8B2AA;--ygd-a1:#7FC0D6;--ygd-a2:#F0B35E;--ygd-on:#1F1C1E;--ygd-line:#A39D95;--ygd-soft:#2A3A41}
+.ygd-service-to-service-auth-compare .ygd-title{font-size:16px;font-weight:700;margin:0 0 10px}
+.ygd-service-to-service-auth-compare .ygd-tabs{display:flex;gap:6px;margin-bottom:12px}
+.ygd-service-to-service-auth-compare .ygd-tab,.ygd-service-to-service-auth-compare .ygd-btn{box-sizing:border-box;font-family:inherit;font-size:14px;line-height:1.3;min-height:44px;padding:8px 14px;border:1px solid var(--ygd-border);border-radius:8px;background:var(--ygd-surface);color:var(--ygd-text);cursor:pointer}
+.ygd-service-to-service-auth-compare .ygd-tab{flex:1 1 0;font-size:15px;font-weight:700}
+.ygd-service-to-service-auth-compare .ygd-tab.ygd-on{background:var(--ygd-a1);border-color:var(--ygd-a1);color:var(--ygd-on)}
+.ygd-service-to-service-auth-compare .ygd-tab:focus-visible,.ygd-service-to-service-auth-compare .ygd-btn:focus-visible{outline:3px solid var(--ygd-a2);outline-offset:2px}
+.ygd-service-to-service-auth-compare .ygd-btn:disabled{opacity:.5;cursor:default}
+.ygd-service-to-service-auth-compare .ygd-panel[hidden]{display:none}
+.ygd-service-to-service-auth-compare .ygd-p-jwt{--ygd-ac:var(--ygd-a2)}
+.ygd-service-to-service-auth-compare .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:0 auto}
+.ygd-service-to-service-auth-compare .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.ygd-service-to-service-auth-compare .ygd-step{padding:10px 12px;border-left:4px solid var(--ygd-ac);background:var(--ygd-soft);border-radius:6px;font-size:15px;line-height:1.6}
+.ygd-service-to-service-auth-compare .ygd-sn{font-size:14px;font-weight:700;color:var(--ygd-muted);margin-bottom:2px}
+.ygd-service-to-service-auth-compare .ygd-sd{color:var(--ygd-text)}
+.ygd-service-to-service-auth-compare .ygd-facts{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.ygd-service-to-service-auth-compare .ygd-fact{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:14px;line-height:1.6}
+.ygd-service-to-service-auth-compare .ygd-fl{flex:0 0 auto;font-weight:700;padding:0 8px;border:1px solid var(--ygd-ac);border-radius:6px;color:var(--ygd-ac)}
+.ygd-service-to-service-auth-compare .ygd-ft{flex:1 1 220px;min-width:0}
+.ygd-service-to-service-auth-compare .ygd-note{margin-top:12px;font-size:14px;line-height:1.6;color:var(--ygd-muted)}
+.ygd-service-to-service-auth-compare .ygd-s{opacity:.5;transition:opacity .3s}
+.ygd-service-to-service-auth-compare .ygd-s.ygd-done,.ygd-service-to-service-auth-compare .ygd-s.ygd-now{opacity:1}
+.ygd-service-to-service-auth-compare .ygd-ln{fill:none;stroke:var(--ygd-line);stroke-width:1.6;marker-end:url(#ygd-service-to-service-auth-compare-mk)}
+.ygd-service-to-service-auth-compare .ygd-now .ygd-ln{stroke:var(--ygd-ac);stroke-width:2.4;stroke-dasharray:6 4;animation:ygd-service-to-service-auth-compare-flow .8s linear infinite;marker-end:url(#ygd-service-to-service-auth-compare-mkh)}
+@keyframes ygd-service-to-service-auth-compare-flow{to{stroke-dashoffset:-20}}
+.ygd-service-to-service-auth-compare .ygd-mk{fill:var(--ygd-line)}
+.ygd-service-to-service-auth-compare .ygd-mkh{fill:var(--ygd-ac)}
+.ygd-service-to-service-auth-compare .ygd-box{fill:var(--ygd-surface);stroke:var(--ygd-border);stroke-width:1.2}
+.ygd-service-to-service-auth-compare .ygd-pod{fill:none;stroke:var(--ygd-border);stroke-width:1.2;stroke-dasharray:4 3}
+.ygd-service-to-service-auth-compare .ygd-life{stroke:var(--ygd-border);stroke-width:1.2;stroke-dasharray:3 3}
+.ygd-service-to-service-auth-compare .ygd-card{fill:var(--ygd-surface);stroke:var(--ygd-border);stroke-width:1.2}
+.ygd-service-to-service-auth-compare .ygd-now .ygd-card{stroke:var(--ygd-ac);stroke-width:2}
+.ygd-service-to-service-auth-compare .ygd-tx{fill:var(--ygd-text);font-family:inherit}
+.ygd-service-to-service-auth-compare .ygd-tm{fill:var(--ygd-muted)}
+.ygd-service-to-service-auth-compare .ygd-b{font-weight:700}
+.ygd-service-to-service-auth-compare .ygd-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.ygd-service-to-service-auth-compare .ygd-now .ygd-tx{fill:var(--ygd-ac);font-weight:700}
+.ygd-service-to-service-auth-compare .ygd-bd{fill:var(--ygd-muted)}
+.ygd-service-to-service-auth-compare .ygd-done .ygd-bd,.ygd-service-to-service-auth-compare .ygd-now .ygd-bd{fill:var(--ygd-ac)}
+.ygd-service-to-service-auth-compare .ygd-s .ygd-bdt{fill:var(--ygd-on);font-weight:700}
+@media (prefers-reduced-motion:reduce){.ygd-service-to-service-auth-compare .ygd-s{transition:none}.ygd-service-to-service-auth-compare .ygd-now .ygd-ln{animation:none;stroke-dasharray:none}}
+</style> <div class=ygd-title>Service-to-Service 인증: mTLS와 Internal JWT</div> <div class=ygd-tabs role=tablist aria-label="서비스 간 인증 방식 선택"> <button type=button class="ygd-tab ygd-on" role=tab data-key=mtls id=ygd-service-to-service-auth-compare-tab-mtls aria-controls=ygd-service-to-service-auth-compare-panel-mtls aria-selected=true tabindex=0>mTLS</button> <button type=button class=ygd-tab role=tab data-key=jwt id=ygd-service-to-service-auth-compare-tab-jwt aria-controls=ygd-service-to-service-auth-compare-panel-jwt aria-selected=false tabindex=-1>Internal JWT</button> </div> <div class="ygd-panel ygd-p-mtls" role=tabpanel data-key=mtls id=ygd-service-to-service-auth-compare-panel-mtls aria-labelledby=ygd-service-to-service-auth-compare-tab-mtls> <svg class=ygd-svg viewbox="0 0 320 334" role=img aria-label="mTLS 핸드셰이크 다이어그램. Order 앱이 자기 Pod의 사이드카로 요청을 보내면, 두 사이드카가 TLS 연결을 열고 서버 인증서와 클라이언트 인증서를 서로 제시해 검증한 뒤 암호화된 연결로 요청을 Payment 앱에 전달한다."> <defs> <marker id=ygd-service-to-service-auth-compare-mk viewbox="0 0 10 10" refx=9 refy=5 markerwidth=7 markerheight=7 orient=auto><path class=ygd-mk d="M0 0L10 5L0 10z"/></marker> <marker id=ygd-service-to-service-auth-compare-mkh viewbox="0 0 10 10" refx=9 refy=5 markerwidth=7 markerheight=7 orient=auto><path class=ygd-mkh d="M0 0L10 5L0 10z"/></marker> </defs> <rect class=ygd-pod x=2 y=4 width=100 height=104 rx=8 /> <rect class=ygd-pod x=218 y=4 width=100 height=104 rx=8 /> <text class="ygd-tx ygd-tm" x=52 y=18 text-anchor=middle font-size=10.5>Order Pod</text> <text class="ygd-tx ygd-tm" x=268 y=18 text-anchor=middle font-size=10.5>Payment Pod</text> <rect class=ygd-box x=10 y=28 width=84 height=24 rx=5 /> <text class=ygd-tx x=52 y=44 text-anchor=middle font-size=11>Order 앱</text> <rect class=ygd-box x=10 y=76 width=84 height=24 rx=5 /> <text class=ygd-tx x=52 y=92 text-anchor=middle font-size=11>사이드카</text> <rect class=ygd-box x=226 y=28 width=84 height=24 rx=5 /> <text class=ygd-tx x=268 y=44 text-anchor=middle font-size=11>Payment 앱</text> <rect class=ygd-box x=226 y=76 width=84 height=24 rx=5 /> <text class=ygd-tx x=268 y=92 text-anchor=middle font-size=11>사이드카</text> <line class=ygd-life x1=52 y1=100 x2=52 y2=328 /> <line class=ygd-life x1=268 y1=100 x2=268 y2=328 /> <g class=ygd-s data-s=1> <line class=ygd-ln x1=52 y1=54 x2=52 y2=74 /> <circle class=ygd-bd cx=74 cy=64 r=8 /> <text class="ygd-tx ygd-bdt" x=74 y=67.5 text-anchor=middle font-size=10>1</text> </g> <g class=ygd-s data-s=2> <circle class=ygd-bd cx=16 cy=140 r=8 /> <text class="ygd-tx ygd-bdt" x=16 y=143.5 text-anchor=middle font-size=10>2</text> <text class=ygd-tx x=160 y=132 text-anchor=middle font-size=11.5>TLS 연결 시작</text> <line class=ygd-ln x1=56 y1=140 x2=264 y2=140 /> </g> <g class=ygd-s data-s=3> <circle class=ygd-bd cx=16 cy=196 r=8 /> <text class="ygd-tx ygd-bdt" x=16 y=199.5 text-anchor=middle font-size=10>3</text> <text class=ygd-tx x=160 y=188 text-anchor=middle font-size=11.5>서버 인증서 제시</text> <line class=ygd-ln x1=264 y1=196 x2=56 y2=196 /> <text class="ygd-tx ygd-tm" x=60 y=216 font-size=11>Order 사이드카가 검증</text> </g> <g class=ygd-s data-s=4> <circle class=ygd-bd cx=16 cy=252 r=8 /> <text class="ygd-tx ygd-bdt" x=16 y=255.5 text-anchor=middle font-size=10>4</text> <text class=ygd-tx x=160 y=244 text-anchor=middle font-size=11.5>클라이언트 인증서 제시</text> <line class=ygd-ln x1=56 y1=252 x2=264 y2=252 /> <text class="ygd-tx ygd-tm" x=264 y=272 text-anchor=end font-size=11>Payment 사이드카가 검증</text> </g> <g class=ygd-s data-s=5> <circle class=ygd-bd cx=16 cy=308 r=8 /> <text class="ygd-tx ygd-bdt" x=16 y=311.5 text-anchor=middle font-size=10>5</text> <text class=ygd-tx x=160 y=300 text-anchor=middle font-size=11.5>암호화된 연결로 요청 전달</text> <line class=ygd-ln x1=56 y1=308 x2=264 y2=308 /> <text class="ygd-tx ygd-tm" x=160 y=326 text-anchor=middle font-size=11>STRICT: mTLS가 아닌 평문은 거부</text> </g> <g class=ygd-s data-s=5> <line class=ygd-ln x1=268 y1=74 x2=268 y2=54 /> </g> </svg> <div class=ygd-ctrl> <button type=button class="ygd-btn ygd-play" aria-pressed=false>재생</button> <button type=button class="ygd-btn ygd-next">다음 단계</button> <button type=button class="ygd-btn ygd-reset">처음으로</button> </div> <div class=ygd-step aria-live=polite><div class=ygd-sn></div><div class=ygd-sd></div></div> <div class=ygd-facts> <div class=ygd-fact><span class=ygd-fl>관리 부담</span><span class=ygd-ft>메시가 있으면 사이드카가 발급·갱신·검증을 맡는다. 직접 구현하면 만료·갱신·배포를 직접 해야 하고 서비스가 늘수록 관리 포인트가 폭발한다.</span></div> <div class=ygd-fact><span class=ygd-fl>키 유출 시</span><span class=ygd-ft>인증서는 Pod(서비스)별로 발급되므로, 유출된 개인키로는 해당 서비스의 신원으로 행세할 수 있다.</span></div> </div> </div> <div class="ygd-panel ygd-p-jwt" role=tabpanel data-key=jwt id=ygd-service-to-service-auth-compare-panel-jwt aria-labelledby=ygd-service-to-service-auth-compare-tab-jwt hidden> <svg class=ygd-svg viewbox="0 0 320 300" role=img aria-label="Internal JWT 흐름 다이어그램. 호출하는 Order 서비스가 type이 service이고 permissions가 담긴 5분짜리 서비스 토큰을 발급해 X-Service-Auth 헤더로 보내면, 수신 측 Payment 서비스가 type 클레임과 permissions를 차례로 검사하고 통과하면 요청을 처리한다."> <defs> <marker id=ygd-service-to-service-auth-compare-mk2 viewbox="0 0 10 10" refx=9 refy=5 markerwidth=7 markerheight=7 orient=auto><path class=ygd-mk d="M0 0L10 5L0 10z"/></marker> <marker id=ygd-service-to-service-auth-compare-mkh2 viewbox="0 0 10 10" refx=9 refy=5 markerwidth=7 markerheight=7 orient=auto><path class=ygd-mkh d="M0 0L10 5L0 10z"/></marker> </defs> <rect class=ygd-box x=2 y=4 width=100 height=40 rx=6 /> <text class="ygd-tx ygd-b" x=52 y=21 text-anchor=middle font-size=11.5>Order 서비스</text> <text class="ygd-tx ygd-tm" x=52 y=37 text-anchor=middle font-size=10.5>호출 측</text> <rect class=ygd-box x=218 y=4 width=100 height=40 rx=6 /> <text class="ygd-tx ygd-b" x=268 y=21 text-anchor=middle font-size=11.5>Payment 서비스</text> <text class="ygd-tx ygd-tm" x=268 y=37 text-anchor=middle font-size=10.5>수신 측</text> <line class=ygd-life x1=52 y1=44 x2=52 y2=56 /> <line class=ygd-life x1=268 y1=44 x2=268 y2=56 /> <line class=ygd-life x1=52 y1=142 x2=52 y2=196 /> <line class=ygd-life x1=268 y1=142 x2=268 y2=196 /> <g class=ygd-s data-s=1> <rect class=ygd-card x=8 y=56 width=304 height=86 rx=8 /> <circle class=ygd-bd cx=22 cy=74 r=8 /> <text class="ygd-tx ygd-bdt" x=22 y=77.5 text-anchor=middle font-size=10>1</text> <text class=ygd-tx x=38 y=78 font-size=11.5>서비스 토큰 발급 · Order 서비스가 직접 서명</text> <text class="ygd-tx ygd-tm ygd-mono" x=18 y=96 font-size=10.5>sub: order-service type: service</text> <text class="ygd-tx ygd-tm ygd-mono" x=18 y=112 font-size=10.5>permissions: order:read, payment:process</text> <text class="ygd-tx ygd-tm" x=18 y=128 font-size=10.5>만료 300초(5분) · 서비스 서명 키로 서명</text> </g> <g class=ygd-s data-s=2> <circle class=ygd-bd cx=16 cy=176 r=8 /> <text class="ygd-tx ygd-bdt" x=16 y=179.5 text-anchor=middle font-size=10>2</text> <text class=ygd-tx x=160 y=168 text-anchor=middle font-size=11.5>X-Service-Auth: Bearer 토큰</text> <line class=ygd-ln x1=56 y1=176 x2=264 y2=176 /> </g> <rect class=ygd-card x=8 y=196 width=304 height=98 rx=8 /> <text class="ygd-tx ygd-b" x=18 y=214 font-size=11.5>Payment 서비스가 수신 후 검사</text> <g class=ygd-s data-s=3> <circle class=ygd-bd cx=22 cy=232 r=8 /> <text class="ygd-tx ygd-bdt" x=22 y=235.5 text-anchor=middle font-size=10>3</text> <text class=ygd-tx x=38 y=236 font-size=11.5>type 클레임이 service인가</text> </g> <g class=ygd-s data-s=4> <circle class=ygd-bd cx=22 cy=256 r=8 /> <text class="ygd-tx ygd-bdt" x=22 y=259.5 text-anchor=middle font-size=10>4</text> <text class=ygd-tx x=38 y=260 font-size=11.5>permissions에 호출 API 권한이 있는가</text> </g> <g class=ygd-s data-s=5> <circle class=ygd-bd cx=22 cy=280 r=8 /> <text class="ygd-tx ygd-bdt" x=22 y=283.5 text-anchor=middle font-size=10>5</text> <text class=ygd-tx x=38 y=284 font-size=11.5>둘 다 통과하면 요청 처리</text> </g> </svg> <div class=ygd-ctrl> <button type=button class="ygd-btn ygd-play" aria-pressed=false>재생</button> <button type=button class="ygd-btn ygd-next">다음 단계</button> <button type=button class="ygd-btn ygd-reset">처음으로</button> </div> <div class=ygd-step aria-live=polite><div class=ygd-sn></div><div class=ygd-sd></div></div> <div class=ygd-facts> <div class=ygd-fact><span class=ygd-fl>관리 부담</span><span class=ygd-ft>mTLS보다 구현이 간단하다. 대신 서비스가 서명 키를 보관하고 토큰을 직접 발급해야 한다.</span></div> <div class=ygd-fact><span class=ygd-fl>키 유출 시</span><span class=ygd-ft>서명 키가 유출되면 서비스 토큰을 위조할 수 있다. 사용자 JWT와 같은 키를 쓰면 사용자 토큰까지 위조되므로 키를 분리해야 한다.</span></div> </div> </div> <div class=ygd-note>비유: 보안 구역 출입에 견주면, mTLS는 양쪽이 서로 신분증을 보여 주고 확인하는 것이고, Internal JWT는 권한이 적힌 5분짜리 출입증을 건네고 문 앞에서 확인하는 것이다. 비유일 뿐, 실제 동작은 위 단계를 따른다.</div> <style>
+.ygd-service-to-service-auth-compare .ygd-p-jwt .ygd-ln{marker-end:url(#ygd-service-to-service-auth-compare-mk2)}
+.ygd-service-to-service-auth-compare .ygd-p-jwt .ygd-now .ygd-ln{marker-end:url(#ygd-service-to-service-auth-compare-mkh2)}
+</style> <script>
+(function(){
+var root=document.getElementById('ygd-service-to-service-auth-compare');
+if(!root){return;}
+var DELAY=2600;
+var DATA={
+mtls:{n:5,text:[
+'재생을 누르면 Order 서비스가 Payment 서비스를 호출하는 과정을 사이드카 기준으로 보여 준다. 애플리케이션 코드에는 인증서 처리가 들어가지 않는다.',
+'Order 앱은 요청만 보낸다. 인증서 발급, 갱신, 검증은 Pod에 붙은 사이드카 프록시가 맡는다.',
+'Order 쪽 사이드카가 Payment 쪽 사이드카와 TLS 연결을 시작한다. 여기까지는 일반 TLS와 같다.',
+'Payment 사이드카가 서버 인증서를 보내고 Order 사이드카가 이를 검증한다. 일반 TLS에서도 하는 단방향 검증이다.',
+'mTLS의 차이는 여기다. Order 사이드카가 클라이언트 인증서를 보내고 Payment 사이드카가 검증해 양방향 인증이 완성된다.',
+'양쪽 검증이 끝나면 요청이 암호화된 연결을 지나 Payment 앱으로 전달된다. STRICT 모드에서는 mTLS가 아닌 평문 연결을 거부한다.'
+]},
+jwt:{n:5,text:[
+'재생을 누르면 Order 서비스가 서비스 토큰을 만들어 Payment 서비스를 호출하는 흐름을 보여 준다.',
+'호출하는 Order 서비스가 서비스 토큰을 직접 발급한다. type은 service, permissions에는 허용 권한을 담고 만료는 5분(300초)이다.',
+'토큰은 X-Service-Auth 헤더에 Bearer 형식으로 실려 간다. 수신 측은 이 헤더로 호출한 서비스의 신원을 확인한다.',
+'수신 측 Payment 서비스는 먼저 type 클레임이 service인지 확인한다. 이 값이 아니면 서비스 토큰으로 보지 않는다.',
+'다음으로 permissions에 이번에 호출한 API의 권한이 들어 있는지 검사한다. 서비스 신원이 맞아도 권한이 없으면 통과하지 못한다.',
+'두 검사를 모두 통과하면 요청을 처리한다. 예시 코드는 요청마다 토큰을 새로 발급한다.'
+]}
+};
+var panels={};
+var tabs=Array.prototype.slice.call(root.querySelectorAll('.ygd-tab'));
+Array.prototype.forEach.call(root.querySelectorAll('.ygd-panel'),function(el){
+var key=el.getAttribute('data-key');
+var d=DATA[key];
+var groups=el.querySelectorAll('.ygd-s');
+var playBtn=el.querySelector('.ygd-play');
+var nextBtn=el.querySelector('.ygd-next');
+var resetBtn=el.querySelector('.ygd-reset');
+var sn=el.querySelector('.ygd-sn');
+var sd=el.querySelector('.ygd-sd');
+var step=0;
+var timer=null;
+function render(){
+Array.prototype.forEach.call(groups,function(g){
+var s=parseInt(g.getAttribute('data-s'),10);
+g.classList.toggle('ygd-done',step>s);
+g.classList.toggle('ygd-now',step===s);
+});
+sn.textContent=step===0?'시작 전':'단계 '+step+' / '+d.n;
+sd.textContent=d.text[step];
+nextBtn.disabled=step>=d.n;
+}
+function stop(){
+if(timer){clearInterval(timer);timer=null;}
+playBtn.textContent=step>=d.n?'다시 재생':'재생';
+playBtn.setAttribute('aria-pressed','false');
+}
+function advance(){
+if(step>=d.n){stop();return;}
+step+=1;
+render();
+if(step>=d.n){stop();}
+}
+playBtn.addEventListener('click',function(){
+if(timer){stop();return;}
+if(step>=d.n){step=0;render();}
+playBtn.textContent='일시정지';
+playBtn.setAttribute('aria-pressed','true');
+advance();
+if(step<d.n){timer=setInterval(advance,DELAY);}
+});
+nextBtn.addEventListener('click',function(){
+stop();
+advance();
+playBtn.textContent=step>=d.n?'다시 재생':'재생';
+});
+resetBtn.addEventListener('click',function(){
+step=0;
+stop();
+render();
+});
+panels[key]={el:el,reset:function(){step=0;stop();render();}};
+render();
+});
+function select(key,focus){
+tabs.forEach(function(t){
+var on=t.getAttribute('data-key')===key;
+t.classList.toggle('ygd-on',on);
+t.setAttribute('aria-selected',on?'true':'false');
+t.setAttribute('tabindex',on?'0':'-1');
+if(on&&focus){t.focus();}
+});
+Object.keys(panels).forEach(function(k){
+var p=panels[k];
+if(k===key){p.el.removeAttribute('hidden');}
+else{p.el.setAttribute('hidden','');p.reset();}
+});
+}
+tabs.forEach(function(t,i){
+t.addEventListener('click',function(){select(t.getAttribute('data-key'),false);});
+t.addEventListener('keydown',function(e){
+var n=tabs.length;
+var to=-1;
+if(e.key==='ArrowRight'){to=(i+1)%n;}
+else if(e.key==='ArrowLeft'){to=(i+n-1)%n;}
+else if(e.key==='Home'){to=0;}
+else if(e.key==='End'){to=n-1;}
+if(to>-1){e.preventDefault();select(tabs[to].getAttribute('data-key'),true);}
+});
+});
+})();
+</script> </div> <h3 id=mtls-mutual-tls>mTLS (Mutual TLS)<a class=headerlink href=#mtls-mutual-tls title="Permanent link">&para;</a></h3> <p>일반 HTTPS에서는 클라이언트가 서버 인증서를 검증한다. mTLS는 서버도 클라이언트 인증서를 검증한다. 양방향 인증이다.</p> <div class="language-text highlight"><pre data-search-exclude><span></span><code><span id=__span-5-1><a id=__codelineno-5-1 name=__codelineno-5-1 href=#__codelineno-5-1></a>일반 TLS:
 </span><span id=__span-5-2><a id=__codelineno-5-2 name=__codelineno-5-2 href=#__codelineno-5-2></a>Client ────────▶ Server
 </span><span id=__span-5-3><a id=__codelineno-5-3 name=__codelineno-5-3 href=#__codelineno-5-3></a>         서버 인증서 검증
 </span><span id=__span-5-4><a id=__codelineno-5-4 name=__codelineno-5-4 href=#__codelineno-5-4></a>
@@ -284,7 +548,201 @@
 </span><span id=__span-9-5><a id=__codelineno-9-5 name=__codelineno-9-5 href=#__codelineno-9-5></a>                                            │
 </span><span id=__span-9-6><a id=__codelineno-9-6 name=__codelineno-9-6 href=#__codelineno-9-6></a>                                     이 토큰에 Admin 권한이 있네?
 </span><span id=__span-9-7><a id=__codelineno-9-7 name=__codelineno-9-7 href=#__codelineno-9-7></a>                                     Payment의 Admin API도 호출 가능?
-</span></code></pre></div> <p>문제가 보이는가. 사용자가 Order Service에 대해 Admin 권한을 갖고 있으면, 그 토큰이 Payment Service에 전달됐을 때 Payment의 Admin API까지 접근할 수 있다. 의도하지 않은 권한 확대다.</p> <h3 id=해결-토큰-다운스코핑>해결: 토큰 다운스코핑<a class=headerlink href=#해결-토큰-다운스코핑 title="Permanent link">&para;</a></h3> <p>Gateway에서 내부 서비스로 요청을 전달할 때, 해당 서비스에 필요한 최소 권한만 담은 토큰으로 교체한다.</p> <div class="language-typescript highlight"><pre data-search-exclude><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Injectable</span><span class=p>,</span><span class=w> </span><span class=nx>NestMiddleware</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'@nestjs/common'</span><span class=p>;</span>
+</span></code></pre></div> <p>문제가 보이는가. 사용자가 Order Service에 대해 Admin 권한을 갖고 있으면, 그 토큰이 Payment Service에 전달됐을 때 Payment의 Admin API까지 접근할 수 있다. 의도하지 않은 권한 확대다.</p> <div class=ygd-token-relay-vs-downscoping id=ygd-token-relay-vs-downscoping> <style>
+.ygd-token-relay-vs-downscoping{--ygd-bg:#FDFBFA;--ygd-fg:#2B2725;--ygd-muted:#736E68;--ygd-line:#B9B2AA;--ygd-arrow:#6B655F;--ygd-node-bg:#FFFFFF;--ygd-chip-bg:#F3F0EC;--ygd-accent:#3D7387;--ygd-on-accent:#FFFFFF;--ygd-danger:#B3261E;--ygd-danger-bg:#FBE9E7;--ygd-ok:#1F7A45;--ygd-ok-bg:#E6F4EA;max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box;padding:12px;border:1px solid var(--ygd-line);border-radius:8px;background:var(--ygd-bg);color:var(--ygd-fg);font-size:14px;line-height:1.5;overflow:hidden}
+body[data-md-color-scheme="slate"] .ygd-token-relay-vs-downscoping{--ygd-bg:#1F1C1E;--ygd-fg:#F0EDE9;--ygd-muted:#9A948C;--ygd-line:#5A5459;--ygd-arrow:#B5AEA6;--ygd-node-bg:#2A2628;--ygd-chip-bg:#2F2B2D;--ygd-accent:#8CC4D8;--ygd-on-accent:#1F1C1E;--ygd-danger:#FF8A80;--ygd-danger-bg:#3A2020;--ygd-ok:#7FD6A0;--ygd-ok-bg:#1E3326}
+.ygd-token-relay-vs-downscoping .ygd-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px 0}
+.ygd-token-relay-vs-downscoping .ygd-btn{box-sizing:border-box;min-height:40px;padding:8px 14px;border:1px solid var(--ygd-line);border-radius:6px;background:var(--ygd-chip-bg);color:var(--ygd-fg);font:inherit;font-size:14px;cursor:pointer}
+.ygd-token-relay-vs-downscoping .ygd-mode{flex:1 1 140px}
+.ygd-token-relay-vs-downscoping .ygd-mode[aria-pressed="true"]{background:var(--ygd-accent);border-color:var(--ygd-accent);color:var(--ygd-on-accent);font-weight:700}
+.ygd-token-relay-vs-downscoping .ygd-btn:disabled{opacity:.5;cursor:default}
+.ygd-token-relay-vs-downscoping .ygd-btn:focus-visible{outline:3px solid var(--ygd-accent);outline-offset:2px}
+.ygd-token-relay-vs-downscoping .ygd-svg{display:block;width:100%;max-width:520px;height:auto;margin:0 auto}
+.ygd-token-relay-vs-downscoping .ygd-s{opacity:.45;transition:opacity .3s}
+.ygd-token-relay-vs-downscoping .ygd-s.ygd-on{opacity:1}
+.ygd-token-relay-vs-downscoping .ygd-box{fill:var(--ygd-node-bg);stroke:var(--ygd-line);stroke-width:1.5}
+.ygd-token-relay-vs-downscoping .ygd-line{stroke:var(--ygd-arrow);stroke-width:2;fill:none}
+.ygd-token-relay-vs-downscoping .ygd-arrowhead{fill:var(--ygd-arrow)}
+.ygd-token-relay-vs-downscoping .ygd-t{fill:var(--ygd-fg);font-size:13.5px;font-weight:700}
+.ygd-token-relay-vs-downscoping .ygd-sub{fill:var(--ygd-muted);font-size:11.5px}
+.ygd-token-relay-vs-downscoping .ygd-chip-r{fill:var(--ygd-chip-bg);stroke:var(--ygd-line);stroke-width:1.5}
+.ygd-token-relay-vs-downscoping .ygd-ct{fill:var(--ygd-fg);font-size:11.5px}
+.ygd-token-relay-vs-downscoping .ygd-ct0{font-weight:700}
+.ygd-token-relay-vs-downscoping .ygd-k-a .ygd-chip-r{stroke:var(--ygd-danger)}
+.ygd-token-relay-vs-downscoping .ygd-k-a .ygd-ct0{fill:var(--ygd-danger)}
+.ygd-token-relay-vs-downscoping .ygd-k-s .ygd-chip-r{stroke:var(--ygd-accent)}
+.ygd-token-relay-vs-downscoping .ygd-k-s .ygd-ct0{fill:var(--ygd-accent)}
+.ygd-token-relay-vs-downscoping .ygd-cur .ygd-line{stroke:var(--ygd-accent);stroke-width:3}
+.ygd-token-relay-vs-downscoping .ygd-cur .ygd-box{stroke:var(--ygd-accent);stroke-width:2.5}
+.ygd-token-relay-vs-downscoping .ygd-bad .ygd-box{fill:var(--ygd-danger-bg);stroke:var(--ygd-danger)}
+.ygd-token-relay-vs-downscoping .ygd-bad .ygd-t,.ygd-token-relay-vs-downscoping .ygd-bad .ygd-sub{fill:var(--ygd-danger)}
+.ygd-token-relay-vs-downscoping .ygd-good .ygd-box{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok)}
+.ygd-token-relay-vs-downscoping .ygd-good .ygd-t,.ygd-token-relay-vs-downscoping .ygd-good .ygd-sub{fill:var(--ygd-ok)}
+.ygd-token-relay-vs-downscoping .ygd-pkt{stroke:var(--ygd-bg);stroke-width:1.5}
+.ygd-token-relay-vs-downscoping .ygd-pkt.ygd-k-a{fill:var(--ygd-danger)}
+.ygd-token-relay-vs-downscoping .ygd-pkt.ygd-k-s{fill:var(--ygd-accent)}
+.ygd-token-relay-vs-downscoping .ygd-x{opacity:0;transition:opacity .3s .8s}
+.ygd-token-relay-vs-downscoping .ygd-x.ygd-show{opacity:1}
+.ygd-token-relay-vs-downscoping .ygd-xc{fill:var(--ygd-ok-bg);stroke:var(--ygd-ok);stroke-width:2}
+.ygd-token-relay-vs-downscoping .ygd-xp{stroke:var(--ygd-ok);stroke-width:2.5;fill:none;stroke-linecap:round}
+.ygd-token-relay-vs-downscoping .ygd-panel{margin-top:10px;padding:10px 12px;min-height:8.5em;box-sizing:border-box;background:var(--ygd-chip-bg);border-left:4px solid var(--ygd-accent);border-radius:6px}
+.ygd-token-relay-vs-downscoping .ygd-step-title{font-size:14px;font-weight:700;color:var(--ygd-accent);margin:0 0 4px 0}
+.ygd-token-relay-vs-downscoping .ygd-desc{font-size:15px;line-height:1.6;margin:0;color:var(--ygd-fg)}
+.ygd-token-relay-vs-downscoping .ygd-note{margin-top:10px;font-size:14px;line-height:1.6;color:var(--ygd-muted)}
+@media (prefers-reduced-motion: reduce){
+.ygd-token-relay-vs-downscoping .ygd-s,.ygd-token-relay-vs-downscoping .ygd-x{transition:none}
+.ygd-token-relay-vs-downscoping .ygd-pkt{display:none}
+}
+</style> <div class=ygd-bar role=group aria-label="방식 전환"> <button type=button class="ygd-btn ygd-mode" data-mode=relay aria-pressed=true>토큰 그대로 릴레이</button> <button type=button class="ygd-btn ygd-mode" data-mode=down aria-pressed=false>다운스코핑 적용</button> </div> <div class=ygd-bar role=group aria-label="재생 제어"> <button type=button class="ygd-btn ygd-play">재생</button> <button type=button class="ygd-btn ygd-next">다음 단계</button> <button type=button class="ygd-btn ygd-reset">처음으로</button> </div> <svg class=ygd-svg viewbox="0 0 362 400" role=img aria-label> <defs><marker id=ygd-token-relay-vs-downscoping-arrow viewbox="0 0 10 10" refx=9 refy=5 markerwidth=7 markerheight=7 orient=auto><path class=ygd-arrowhead d="M0 0L10 5L0 10z"/></marker></defs> <g class=ygd-s data-step=0><line class=ygd-line x1=85 y1=52 x2=85 y2=108 marker-end=url(#ygd-token-relay-vs-downscoping-arrow) /><g class=ygd-chip><rect class=ygd-chip-r x=172 y=54 width=180 height=52 rx=6 /><text class="ygd-ct ygd-ct0" x=180 y=0></text><text class=ygd-ct x=180 y=0></text><text class=ygd-ct x=180 y=0></text></g></g> <g class=ygd-s data-step=1><line class=ygd-line x1=85 y1=152 x2=85 y2=208 marker-end=url(#ygd-token-relay-vs-downscoping-arrow) /><g class=ygd-chip><rect class=ygd-chip-r x=172 y=154 width=180 height=52 rx=6 /><text class="ygd-ct ygd-ct0" x=180 y=0></text><text class=ygd-ct x=180 y=0></text><text class=ygd-ct x=180 y=0></text></g></g> <g class=ygd-s data-step=2><line class=ygd-line x1=85 y1=252 x2=85 y2=308 marker-end=url(#ygd-token-relay-vs-downscoping-arrow) /><g class=ygd-chip><rect class=ygd-chip-r x=172 y=254 width=180 height=52 rx=6 /><text class="ygd-ct ygd-ct0" x=180 y=0></text><text class=ygd-ct x=180 y=0></text><text class=ygd-ct x=180 y=0></text></g></g> <g class=ygd-s data-step=3><line class=ygd-line x1=160 y1=330 x2=232 y2=330 marker-end=url(#ygd-token-relay-vs-downscoping-arrow) /></g> <g class=ygd-s data-step=0><rect class=ygd-box x=10 y=8 width=150 height=44 rx=8 /><text class=ygd-t x=85 y=27 text-anchor=middle>Client</text><text class=ygd-sub x=85 y=43 text-anchor=middle>Admin 권한 보유</text></g> <g class=ygd-s data-step=0><rect class=ygd-box x=10 y=108 width=150 height=44 rx=8 /><text class=ygd-t x=85 y=127 text-anchor=middle>API Gateway</text><text class="ygd-sub ygd-gw" x=85 y=143 text-anchor=middle></text></g> <g class=ygd-s data-step=1><rect class=ygd-box x=10 y=208 width=150 height=44 rx=8 /><text class=ygd-t x=85 y=227 text-anchor=middle>Order Service</text><text class=ygd-sub x=85 y=243 text-anchor=middle>order-service</text></g> <g class=ygd-s data-step=2><rect class=ygd-box x=10 y=308 width=150 height=44 rx=8 /><text class=ygd-t x=85 y=327 text-anchor=middle>Payment Service</text><text class=ygd-sub x=85 y=343 text-anchor=middle>payment-service</text></g> <g class="ygd-s ygd-admin" data-step=3><rect class=ygd-box x=232 y=308 width=120 height=44 rx=8 /><text class=ygd-t x=292 y=327 text-anchor=middle>Admin API</text><text class="ygd-sub ygd-admin-sub" x=292 y=343 text-anchor=middle>Payment 내부</text></g> <g class="ygd-s ygd-banner" data-step=3><rect class=ygd-box x=10 y=364 width=342 height=28 rx=6 /><text class="ygd-t ygd-banner-t" x=181 y=383 text-anchor=middle style=font-size:12px></text></g> <circle cx=0 cy=0 r=6 class="ygd-pkt ygd-k-a"/> <g class=ygd-x><circle class=ygd-xc cx=196 cy=330 r=10 /><path class=ygd-xp d="M191 325L201 335M201 325L191 335"/></g> </svg> <div class=ygd-panel aria-live=polite><div class=ygd-step-title></div><div class=ygd-desc></div></div> <div class=ygd-note>비유: 마스터키를 다른 층 직원에게 그대로 넘기느냐, 그 층만 열리고 곧 만료되는 임시 카드키로 바꿔 주느냐의 차이다. 실제로는 Gateway가 스코프를 줄인 새 JWT를 발급해 교체하는 것이다.</div> <script>
+(function(){
+var root=document.getElementById('ygd-token-relay-vs-downscoping');
+if(!root){return;}
+function q(s){return root.querySelector(s);}
+function qa(s){return root.querySelectorAll(s);}
+function each(list,fn){Array.prototype.forEach.call(list,fn);}
+var TITLES=['Admin 토큰으로 요청','Gateway 통과','Order가 Payment 호출','Payment Admin API 접근'];
+var PATHS=[{x1:85,y1:52,x2:85,y2:108},{x1:85,y1:152,x2:85,y2:208},{x1:85,y1:252,x2:85,y2:308},{x1:160,y1:330,x2:232,y2:330}];
+var BLOCK_X=196;
+var START_DESC='Admin 권한을 가진 사용자가 토큰을 들고 Gateway로 요청을 보낸다. 여기까지는 두 방식이 같다.';
+var MODES={
+relay:{
+gw:'검증 후 그대로 전달',
+label:'Client에서 API Gateway, Order Service, Payment Service로 Admin 토큰이 그대로 전달되어 Payment Admin API가 열리는 다이어그램',
+chips:[
+{k:'a',t:['Admin 토큰','Admin 권한 포함']},
+{k:'a',t:['Admin 토큰 (그대로)','스코프 변경 없음']},
+{k:'a',t:['Admin 토큰 (그대로)','Admin 권한 포함']}
+],
+desc:[
+START_DESC,
+'Gateway는 토큰을 검증한 뒤 스코프를 건드리지 않고 Order Service로 그대로 넘긴다.',
+'Order Service가 받은 사용자 토큰을 Payment Service 호출에 그대로 붙인다. 이것이 토큰 릴레이다.',
+'같은 토큰으로 Payment의 Admin API를 부르면 토큰에 Admin 권한이 있어 열린다. 의도하지 않은 권한 확대다.'
+],
+banner:'Admin API 열림: 의도하지 않은 권한 확대',
+state:'ygd-bad',
+adminSub:'접근 허용'
+},
+down:{
+gw:'스코프 축소·30초 교체',
+label:'Client에서 API Gateway, Order Service, Payment Service로 이어지며 Gateway가 서비스별 허용 스코프만 남긴 30초 토큰으로 교체해 Payment Admin API 요청이 거부되는 다이어그램',
+chips:[
+{k:'a',t:['Admin 토큰','Admin 권한 포함']},
+{k:'s',t:['Order 전용 토큰 · 30초','order:read, order:write,','user:read']},
+{k:'s',t:['Payment 전용 토큰 · 30초','payment:process,','user:read']}
+],
+desc:[
+START_DESC,
+'Gateway가 원본 스코프 중 order-service 허용 목록에 있는 것만 남기고, 만료 30초짜리 새 토큰으로 교체해 전달한다.',
+'Payment로 가는 요청도 payment-service 허용 스코프만 남긴 30초 토큰으로 교체된다. Admin 권한은 이미 없다.',
+'같은 요청이 Payment의 Admin API에 도달해도 토큰에 Admin 권한이 없어 거부된다. 토큰도 30초 뒤 만료된다.'
+],
+banner:'Admin API 거부: 토큰에 Admin 권한 없음',
+state:'ygd-good',
+adminSub:'접근 거부'
+}
+};
+var mode='relay';
+var step=0;
+var timer=null;
+var svg=q('.ygd-svg');
+var pkt=q('.ygd-pkt');
+var playBtn=q('.ygd-play');
+var nextBtn=q('.ygd-next');
+function placePacket(animate){
+var p=PATHS[step];
+var tx=p.x2;
+if(mode==='down'&&step===3){tx=BLOCK_X;}
+var admin=(mode==='relay'||step===0);
+pkt.setAttribute('class','ygd-pkt '+(admin?'ygd-k-a':'ygd-k-s'));
+if(animate){
+pkt.style.transition='none';
+pkt.style.transform='translate('+p.x1+'px,'+p.y1+'px)';
+void pkt.getBoundingClientRect();
+pkt.style.transition='transform .9s ease-in-out';
+}else{
+pkt.style.transition='none';
+}
+pkt.style.transform='translate('+tx+'px,'+p.y2+'px)';
+}
+function render(animate){
+var m=MODES[mode];
+each(qa('.ygd-mode'),function(b){
+b.setAttribute('aria-pressed',b.getAttribute('data-mode')===mode?'true':'false');
+});
+svg.setAttribute('aria-label',m.label);
+q('.ygd-gw').textContent=m.gw;
+var chipEls=qa('.ygd-chip');
+for(var i=0;i!==3;i++){
+var c=m.chips[i];
+var g=chipEls[i];
+g.setAttribute('class','ygd-chip ygd-k-'+c.k);
+var top=54+100*i;
+var texts=g.querySelectorAll('.ygd-ct');
+var start=top+(52-c.t.length*14)/2+11;
+for(var j=0;j!==3;j++){
+if(c.t[j]){
+texts[j].textContent=c.t[j];
+texts[j].setAttribute('y',String(start+j*14));
+}else{
+texts[j].textContent='';
+}
+}
+}
+each(qa('.ygd-s'),function(el){
+var ds=parseInt(el.getAttribute('data-step'),10);
+var cls=el.getAttribute('class').replace(/\s*ygd-(on|cur|bad|good)\b/g,'');
+if(step>=ds){cls+=' ygd-on';}
+if(step===ds){cls+=' ygd-cur';}
+if(step>=3&&(el.getAttribute('data-step')==='3')&&(cls.indexOf('ygd-admin')!==-1||cls.indexOf('ygd-banner')!==-1)){cls+=' '+m.state;}
+el.setAttribute('class',cls);
+});
+q('.ygd-admin-sub').textContent=step>=3?m.adminSub:'Payment 내부';
+q('.ygd-banner-t').textContent=step>=3?m.banner:'결과: 마지막 단계에서 확인';
+var xEl=q('.ygd-x');
+xEl.setAttribute('class',(mode==='down'&&step>=3)?'ygd-x ygd-show':'ygd-x');
+q('.ygd-step-title').textContent=(step+1)+' / 4 · '+TITLES[step];
+q('.ygd-desc').textContent=m.desc[step];
+nextBtn.disabled=(step>=3);
+placePacket(animate);
+}
+function stop(){
+if(timer!==null){clearInterval(timer);timer=null;}
+playBtn.textContent='재생';
+}
+function tick(){
+if(!root.isConnected){stop();return;}
+if(step>=3){stop();return;}
+step=step+1;
+render(true);
+if(step>=3){stop();}
+}
+playBtn.addEventListener('click',function(){
+if(timer!==null){stop();return;}
+if(step>=3){step=0;render(false);}else{tick();}
+if(step<3){
+playBtn.textContent='일시정지';
+timer=setInterval(tick,2400);
+}
+});
+nextBtn.addEventListener('click',function(){
+stop();
+if(step<3){step=step+1;render(true);}
+});
+q('.ygd-reset').addEventListener('click',function(){
+stop();
+step=0;
+render(false);
+});
+each(qa('.ygd-mode'),function(b){
+b.addEventListener('click',function(){
+mode=b.getAttribute('data-mode');
+render(false);
+});
+});
+render(false);
+})();
+</script> </div> <h3 id=해결-토큰-다운스코핑>해결: 토큰 다운스코핑<a class=headerlink href=#해결-토큰-다운스코핑 title="Permanent link">&para;</a></h3> <p>Gateway에서 내부 서비스로 요청을 전달할 때, 해당 서비스에 필요한 최소 권한만 담은 토큰으로 교체한다.</p> <div class="language-typescript highlight"><pre data-search-exclude><span></span><code><span id=__span-10-1><a id=__codelineno-10-1 name=__codelineno-10-1 href=#__codelineno-10-1></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Injectable</span><span class=p>,</span><span class=w> </span><span class=nx>NestMiddleware</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'@nestjs/common'</span><span class=p>;</span>
 </span><span id=__span-10-2><a id=__codelineno-10-2 name=__codelineno-10-2 href=#__codelineno-10-2></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>JwtService</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'@nestjs/jwt'</span><span class=p>;</span>
 </span><span id=__span-10-3><a id=__codelineno-10-3 name=__codelineno-10-3 href=#__codelineno-10-3></a><span class=k>import</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=nx>Request</span><span class=p>,</span><span class=w> </span><span class=nx>Response</span><span class=p>,</span><span class=w> </span><span class=nx>NextFunction</span><span class=w> </span><span class=p>}</span><span class=w> </span><span class=kr>from</span><span class=w> </span><span class=s1>'express'</span><span class=p>;</span>
 </span><span id=__span-10-4><a id=__codelineno-10-4 name=__codelineno-10-4 href=#__codelineno-10-4></a>
@@ -504,7 +962,210 @@
 </span><span id=__span-16-33><a id=__codelineno-16-33 name=__codelineno-16-33 href=#__codelineno-16-33></a><span class=w>    </span><span class=p>);</span>
 </span><span id=__span-16-34><a id=__codelineno-16-34 name=__codelineno-16-34 href=#__codelineno-16-34></a><span class=w>  </span><span class=p>}</span>
 </span><span id=__span-16-35><a id=__codelineno-16-35 name=__codelineno-16-35 href=#__codelineno-16-35></a><span class=p>}</span>
-</span></code></pre></div> <p>수신 서비스에서는 <code>X-Service-Auth</code>로 호출한 서비스의 신원을 확인하고, <code>X-User-Id</code>로 원래 사용자가 누구인지 파악한다. 두 가지 인증이 동시에 필요하다.</p> <h2 id=실무에서-자주-겪는-문제>실무에서 자주 겪는 문제<a class=headerlink href=#실무에서-자주-겪는-문제 title="Permanent link">&para;</a></h2> <h3 id=토큰-만료-타이밍>토큰 만료 타이밍<a class=headerlink href=#토큰-만료-타이밍 title="Permanent link">&para;</a></h3> <p>서비스 A가 서비스 B를 호출하는 시점에 토큰이 만료되는 경우가 있다. Access Token 유효시간이 15분인데, Gateway에서 검증한 시점과 내부 서비스에서 사용하는 시점 사이에 1-2초 차이가 나면서 만료되는 거다.</p> <p>내부 전파용 토큰은 Gateway가 발급하고 수명을 짧게(30초~1분) 잡되, 외부 토큰 만료와는 독립적으로 관리한다.</p> <h3 id=gateway-장애-시-인증-불가>Gateway 장애 시 인증 불가<a class=headerlink href=#gateway-장애-시-인증-불가 title="Permanent link">&para;</a></h3> <p>Gateway가 죽으면 모든 인증이 멈춘다. Gateway는 최소 2개 이상의 인스턴스를 띄우고, 로드밸런서 뒤에 두어야 한다. Gateway의 토큰 검증은 가능하면 인증 서버 호출 없이 로컬에서 처리한다(JWT 서명 검증). JWKS(공개키 세트)를 캐시해두면 인증 서버가 잠깐 죽어도 기존 키로 검증이 가능하다.</p> <div class="language-yaml highlight"><pre data-search-exclude><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=nt>spring</span><span class=p>:</span>
+</span></code></pre></div> <p>수신 서비스에서는 <code>X-Service-Auth</code>로 호출한 서비스의 신원을 확인하고, <code>X-User-Id</code>로 원래 사용자가 누구인지 파악한다. 두 가지 인증이 동시에 필요하다.</p> <div class=ygd-user-context-propagation-flow id=ygd-user-context-propagation-flow> <style>
+.ygd-user-context-propagation-flow{--ygd-surface:#F7F5F2;--ygd-node:#FFFFFF;--ygd-border:#C9C3BB;--ygd-text:#2B2724;--ygd-muted:#5E5851;--ygd-accent:#2F6A80;--ygd-on-accent:#FFFFFF;--ygd-warn:#8A5200;--ygd-err:#B3261E;--ygd-edge:#8C867E;--ygd-focus:#1F5FBF;max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box;border:1px solid var(--ygd-border);border-radius:10px;background:var(--ygd-surface);color:var(--ygd-text);padding:14px;font-size:15px;line-height:1.55;}
+body[data-md-color-scheme="slate"] .ygd-user-context-propagation-flow{--ygd-surface:#2B282B;--ygd-node:#343036;--ygd-border:#5B555C;--ygd-text:#F0EDE9;--ygd-muted:#BDB7AF;--ygd-accent:#82C3D8;--ygd-on-accent:#0F2630;--ygd-warn:#F0B861;--ygd-err:#FF9A92;--ygd-edge:#8F898F;--ygd-focus:#8DB8FF;}
+.ygd-user-context-propagation-flow *{box-sizing:border-box;}
+.ygd-user-context-propagation-flow .ygd-ctrl{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+.ygd-user-context-propagation-flow .ygd-btn{font-family:inherit;font-size:14px;line-height:1.2;min-height:40px;padding:6px 14px;border-radius:8px;border:1px solid var(--ygd-border);background:var(--ygd-node);color:var(--ygd-text);cursor:pointer;margin:0;}
+.ygd-user-context-propagation-flow .ygd-btn:hover{border-color:var(--ygd-accent);}
+.ygd-user-context-propagation-flow .ygd-btn:focus-visible{outline:3px solid var(--ygd-focus);outline-offset:2px;}
+.ygd-user-context-propagation-flow .ygd-btn:disabled{opacity:.5;cursor:default;}
+.ygd-user-context-propagation-flow .ygd-btn-main{background:var(--ygd-accent);color:var(--ygd-on-accent);border-color:var(--ygd-accent);font-weight:600;}
+.ygd-user-context-propagation-flow .ygd-body{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;}
+.ygd-user-context-propagation-flow .ygd-figure{flex:1 1 300px;min-width:0;max-width:420px;margin:0 auto;}
+.ygd-user-context-propagation-flow .ygd-svg{display:block;width:100%;height:auto;}
+.ygd-user-context-propagation-flow .ygd-panel{flex:1 1 300px;min-width:0;}
+.ygd-user-context-propagation-flow .ygd-step{font-size:14px;color:var(--ygd-muted);}
+.ygd-user-context-propagation-flow .ygd-title{font-size:16px;font-weight:700;margin:2px 0 4px;}
+.ygd-user-context-propagation-flow .ygd-desc{font-size:15px;margin:0 0 10px;min-height:7.4em;}
+.ygd-user-context-propagation-flow .ygd-wire{font-size:14px;color:var(--ygd-muted);margin:0 0 6px;}
+.ygd-user-context-propagation-flow .ygd-off{display:none;}
+.ygd-user-context-propagation-flow .ygd-hdr{display:grid;gap:6px;margin:0 0 6px;}
+.ygd-user-context-propagation-flow .ygd-row{display:grid;grid-template-columns:minmax(0,10.5em) minmax(0,1fr) auto;column-gap:8px;align-items:center;border:1px solid var(--ygd-border);border-left-width:4px;border-radius:6px;padding:5px 8px;background:var(--ygd-node);}
+.ygd-user-context-propagation-flow .ygd-row.ygd-chg{border-left-color:var(--ygd-accent);}
+.ygd-user-context-propagation-flow .ygd-row.ygd-r-swap{border-left-color:var(--ygd-warn);}
+.ygd-user-context-propagation-flow .ygd-row.ygd-r-err{border-left-color:var(--ygd-err);}
+.ygd-user-context-propagation-flow .ygd-rn{grid-row:1;grid-column:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;font-weight:600;overflow-wrap:anywhere;}
+.ygd-user-context-propagation-flow .ygd-val{grid-row:1;grid-column:2;font-size:14px;overflow-wrap:anywhere;}
+.ygd-user-context-propagation-flow .ygd-pill{grid-row:1;grid-column:3;font-size:14px;line-height:1.3;padding:0 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;}
+.ygd-user-context-propagation-flow .ygd-k-new,.ygd-user-context-propagation-flow .ygd-k-add,.ygd-user-context-propagation-flow .ygd-k-inc{color:var(--ygd-accent);}
+.ygd-user-context-propagation-flow .ygd-k-swap{color:var(--ygd-warn);}
+.ygd-user-context-propagation-flow .ygd-k-keep,.ygd-user-context-propagation-flow .ygd-k-none{color:var(--ygd-muted);}
+.ygd-user-context-propagation-flow .ygd-k-err{color:var(--ygd-err);font-weight:700;}
+@media (max-width:520px){.ygd-user-context-propagation-flow .ygd-rn{grid-column:1;}.ygd-user-context-propagation-flow .ygd-pill{grid-column:2;}.ygd-user-context-propagation-flow .ygd-val{grid-row:2;grid-column:1 / -1;}}
+.ygd-user-context-propagation-flow .ygd-note{font-size:14px;color:var(--ygd-muted);margin:0;}
+.ygd-user-context-propagation-flow .ygd-log{border:1px solid var(--ygd-border);border-radius:6px;background:var(--ygd-node);padding:8px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;}
+.ygd-user-context-propagation-flow .ygd-logline{margin:0 0 6px;overflow-wrap:anywhere;}
+.ygd-user-context-propagation-flow .ygd-logline:last-child{margin-bottom:0;}
+.ygd-user-context-propagation-flow .ygd-rid{background:var(--ygd-accent);color:var(--ygd-on-accent);border-radius:4px;padding:0 3px;}
+.ygd-user-context-propagation-flow .ygd-analogy{font-size:14px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--ygd-border);}
+.ygd-user-context-propagation-flow .ygd-node{opacity:.65;transition:opacity .25s;}
+.ygd-user-context-propagation-flow .ygd-node.ygd-act{opacity:1;}
+.ygd-user-context-propagation-flow .ygd-node-box{fill:var(--ygd-node);stroke:var(--ygd-border);stroke-width:1.5;}
+.ygd-user-context-propagation-flow .ygd-node.ygd-act .ygd-node-box{stroke:var(--ygd-accent);stroke-width:2.5;}
+.ygd-user-context-propagation-flow .ygd-node.ygd-bad .ygd-node-box{stroke:var(--ygd-err);}
+.ygd-user-context-propagation-flow .ygd-nm{fill:var(--ygd-text);font-size:12px;font-weight:600;}
+.ygd-user-context-propagation-flow .ygd-sb{fill:var(--ygd-muted);font-size:11px;}
+.ygd-user-context-propagation-flow .ygd-edge{opacity:.75;transition:opacity .25s;}
+.ygd-user-context-propagation-flow .ygd-edge.ygd-act{opacity:1;}
+.ygd-user-context-propagation-flow .ygd-edge line,.ygd-user-context-propagation-flow .ygd-edge path{stroke:var(--ygd-edge);stroke-width:2;fill:none;}
+.ygd-user-context-propagation-flow .ygd-edge polygon{fill:var(--ygd-edge);}
+.ygd-user-context-propagation-flow .ygd-edge text{fill:var(--ygd-muted);font-size:11px;}
+.ygd-user-context-propagation-flow .ygd-edge.ygd-act line,.ygd-user-context-propagation-flow .ygd-edge.ygd-act path{stroke:var(--ygd-accent);}
+.ygd-user-context-propagation-flow .ygd-edge.ygd-act polygon{fill:var(--ygd-accent);}
+.ygd-user-context-propagation-flow .ygd-edge.ygd-act text{fill:var(--ygd-text);}
+.ygd-user-context-propagation-flow .ygd-loop path{stroke-dasharray:5 4;}
+.ygd-user-context-propagation-flow .ygd-bdg{opacity:0;transition:opacity .25s;}
+.ygd-user-context-propagation-flow .ygd-bdg.ygd-on{opacity:1;}
+.ygd-user-context-propagation-flow .ygd-bdg rect{fill:var(--ygd-node);stroke:var(--ygd-accent);stroke-width:1.5;}
+.ygd-user-context-propagation-flow .ygd-bdg text{fill:var(--ygd-text);font-size:11px;}
+.ygd-user-context-propagation-flow .ygd-hopb rect{stroke:var(--ygd-warn);}
+.ygd-user-context-propagation-flow .ygd-bdg.ygd-glow rect{fill:var(--ygd-accent);}
+.ygd-user-context-propagation-flow .ygd-bdg.ygd-glow text{fill:var(--ygd-on-accent);}
+.ygd-user-context-propagation-flow .ygd-bdg.ygd-berr rect{stroke:var(--ygd-err);stroke-width:2;}
+.ygd-user-context-propagation-flow .ygd-bdg.ygd-berr text{fill:var(--ygd-err);font-weight:700;}
+.ygd-user-context-propagation-flow .ygd-pkt{transition:transform .28s linear;}
+.ygd-user-context-propagation-flow .ygd-pkt circle{fill:var(--ygd-accent);stroke:var(--ygd-surface);stroke-width:2;}
+.ygd-user-context-propagation-flow .ygd-pkt.ygd-bad circle{fill:var(--ygd-err);}
+@media (prefers-reduced-motion:reduce){.ygd-user-context-propagation-flow .ygd-pkt,.ygd-user-context-propagation-flow .ygd-node,.ygd-user-context-propagation-flow .ygd-edge,.ygd-user-context-propagation-flow .ygd-bdg{transition:none;}}
+</style> <div class=ygd-ctrl> <button type=button class="ygd-btn ygd-btn-main" data-ygd=play aria-label="재생 또는 일시정지">재생</button> <button type=button class=ygd-btn data-ygd=prev aria-label="이전 단계">이전</button> <button type=button class=ygd-btn data-ygd=next aria-label="다음 단계">다음</button> <button type=button class=ygd-btn data-ygd=reset aria-label="처음으로 되돌리기">처음으로</button> </div> <div class=ygd-body> <div class=ygd-figure> <svg class=ygd-svg viewbox="0 0 340 372" role=img aria-label="Client에서 Gateway, Order Service, Payment Service, Inventory Service로 이어지는 요청 경로. 각 구간에서 X-User-Id, X-User-Roles, X-Request-Id, X-Service-Auth, X-Hop-Count 헤더가 붙거나 바뀌는 모습과, Inventory에서 Order로 되돌아가는 순환 호출이 Hop Count 5에서 508로 끊기는 분기를 보여준다."> <g class=ygd-edge data-e=0><line x1=72 y1=52 x2=72 y2=78 /><polygon points="68,78 76,78 72,86"/><text x=84 y=73>Authorization: Bearer JWT</text></g> <g class=ygd-edge data-e=1><line x1=72 y1=130 x2=72 y2=156 /><polygon points="68,156 76,156 72,164"/><text x=84 y=151>X-User-Id, Roles, Request-Id</text></g> <g class=ygd-edge data-e=2><line x1=72 y1=208 x2=72 y2=234 /><polygon points="68,234 76,234 72,242"/><text x=84 y=229>+ X-Service-Auth, X-Hop-Count</text></g> <g class=ygd-edge data-e=3><line x1=72 y1=286 x2=72 y2=312 /><polygon points="68,312 76,312 72,320"/><text x=84 y=307>X-Service-Auth 교체, Hop +1</text></g> <g class="ygd-edge ygd-loop" data-e=loop><path d="M60 342 H30 V186 H52"/><polygon points="52,182 52,190 60,186"/><text x=17 y=264 text-anchor=middle transform="rotate(-90 17 264)">순환 호출</text></g> <g class=ygd-node data-n=0><rect class=ygd-node-box x=60 y=8 width=156 height=44 rx=8 /><text class=ygd-nm x=84 y=27>Client</text><text class=ygd-sb x=84 y=43>사용자 요청</text></g> <g class=ygd-node data-n=1><rect class=ygd-node-box x=60 y=86 width=156 height=44 rx=8 /><text class=ygd-nm x=84 y=105>Gateway</text><text class=ygd-sb x=84 y=121>JWT 검증</text></g> <g class=ygd-node data-n=2><rect class=ygd-node-box x=60 y=164 width=156 height=44 rx=8 /><text class=ygd-nm x=84 y=183>Order Service</text><text class=ygd-sb x=84 y=199>주문</text></g> <g class=ygd-node data-n=3><rect class=ygd-node-box x=60 y=242 width=156 height=44 rx=8 /><text class=ygd-nm x=84 y=261>Payment Service</text><text class=ygd-sb x=84 y=277>결제</text></g> <g class=ygd-node data-n=4><rect class=ygd-node-box x=60 y=320 width=156 height=44 rx=8 /><text class=ygd-nm x=84 y=339>Inventory Service</text><text class=ygd-sb x=84 y=355>재고</text></g> <g class="ygd-bdg ygd-idb" data-n=1><rect x=226 y=109 width=104 height=17 rx=8.5 /><text x=278 y=121.5 text-anchor=middle>ID a1b2c3d4</text></g> <g class="ygd-bdg ygd-hopb" data-n=2><rect x=226 y=168 width=104 height=17 rx=8.5 /><text x=278 y=180.5 text-anchor=middle></text></g> <g class="ygd-bdg ygd-idb" data-n=2><rect x=226 y=187 width=104 height=17 rx=8.5 /><text x=278 y=199.5 text-anchor=middle>ID a1b2c3d4</text></g> <g class="ygd-bdg ygd-hopb" data-n=3><rect x=226 y=246 width=104 height=17 rx=8.5 /><text x=278 y=258.5 text-anchor=middle></text></g> <g class="ygd-bdg ygd-idb" data-n=3><rect x=226 y=265 width=104 height=17 rx=8.5 /><text x=278 y=277.5 text-anchor=middle>ID a1b2c3d4</text></g> <g class="ygd-bdg ygd-hopb" data-n=4><rect x=226 y=324 width=104 height=17 rx=8.5 /><text x=278 y=336.5 text-anchor=middle></text></g> <g class="ygd-bdg ygd-idb" data-n=4><rect x=226 y=343 width=104 height=17 rx=8.5 /><text x=278 y=355.5 text-anchor=middle>ID a1b2c3d4</text></g> <g class=ygd-pkt data-ygd=pkt><circle r=6 cx=0 cy=0 /></g> </svg> </div> <div class=ygd-panel> <div aria-live=polite> <div class=ygd-step data-ygd=step></div> <div class=ygd-title data-ygd=title></div> <p class=ygd-desc data-ygd=desc></p> </div> <div data-ygd=hdrbox> <p class=ygd-wire data-ygd=wire></p> <div class=ygd-hdr data-ygd=rows></div> <p class=ygd-note>X-Hop-Count의 화살표는 수신한 값 → 미들웨어가 올린 값이다.</p> </div> <div class="ygd-log ygd-off" data-ygd=logbox> <div class=ygd-logline>14:23:01 <span class=ygd-rid>[a1b2c3d4]</span> [user-123] [order-service] 주문 생성 요청</div> <div class=ygd-logline>14:23:01 <span class=ygd-rid>[a1b2c3d4]</span> [user-123] [payment-service] 결제 처리 시작</div> <div class=ygd-logline>14:23:02 <span class=ygd-rid>[a1b2c3d4]</span> [user-123] [inventory-service] 재고 차감</div> </div> </div> </div> <p class=ygd-analogy>비유: Gateway는 신분증(JWT)을 확인하고 방문증(내부 헤더)을 발급하는 안내 데스크이고, 방문증은 부서(서비스)를 옮겨 다녀도 그대로 따라간다. 다만 방문증과 달리 이 헤더는 서명되지 않은 평문이라, 내부 서비스는 네트워크 수준에서 Gateway 외의 직접 접근을 막아야 한다.</p> <script>
+(function () {
+  var root = document.getElementById("ygd-user-context-propagation-flow");
+  if (!root) { return; }
+  function q(s) { return root.querySelector(s); }
+  function qa(s) { return Array.prototype.slice.call(root.querySelectorAll(s)); }
+  function reduced() { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  var KIND = { "new": "신규", keep: "유지", add: "추가", swap: "교체", inc: "+1", none: "없음", err: "508" };
+  var NAMES = ["X-User-Id", "X-User-Roles", "X-Request-Id", "X-Service-Auth", "X-Hop-Count"];
+  function r(v, k) { return { v: v, k: k }; }
+  function keep3() { return [r("user-123", "keep"), r("USER", "keep"), r("a1b2c3d4", "keep")]; }
+  var steps = [
+    { t: "Client가 Gateway로 요청을 보낸다", wire: "Client → Gateway (Authorization: Bearer JWT만 전송)",
+      d: "Client는 Access Token(JWT)을 Authorization 헤더에 담아 보낸다. 내부용 헤더 5개는 아직 하나도 없고, 외부에서 X-User-Id 같은 값을 임의로 넣어 보내도 Gateway가 다음 단계에서 지운다.",
+      rows: [r("—", "none"), r("—", "none"), r("—", "none"), r("—", "none"), r("—", "none")],
+      nodes: [0, 1], edge: 0, from: [72, 52], pkt: [[72, 86]] },
+    { t: "Gateway가 헤더를 새로 쓴다", wire: "Gateway 내부 처리 후",
+      d: "JWT 서명을 검증한 뒤, 외부에서 들어온 x-user-id와 x-user-roles를 먼저 삭제하고 검증된 값으로 다시 설정한다. X-Request-Id는 이 지점에서 처음 생성한다.",
+      rows: [r("user-123", "new"), r("USER", "new"), r("a1b2c3d4", "new"), r("—", "none"), r("—", "none")],
+      nodes: [1], edge: -1, pkt: [[72, 130]], ids: [1] },
+    { t: "Order Service가 사용자 컨텍스트를 받는다", wire: "Gateway → Order Service",
+      d: "Order는 Gateway가 넣어 준 X-User-Id와 X-User-Roles로 사용자를 파악한다. HopCountMiddleware는 X-Hop-Count가 없으면 0으로 보고 1로 올린다.",
+      rows: keep3().concat([r("—", "none"), r("없음 → 1", "inc")]),
+      nodes: [2], edge: 1, pkt: [[72, 164]], ids: [2], hop: { 2: "Hop 0 → 1" } },
+    { t: "Order가 Payment를 호출한다", wire: "Order Service → Payment Service",
+      d: "호출 코드가 X-User-Id와 X-User-Roles를 그대로 옮기고, order-service 신원의 서비스 토큰을 X-Service-Auth에 추가한다. Payment는 서비스 토큰으로 호출자를, X-User-Id로 원래 사용자를 확인한다. Hop은 받은 1이 5 미만이라 통과하고 2로 올라간다.",
+      rows: keep3().concat([r("Bearer (order-service 토큰)", "add"), r("1 → 2", "inc")]),
+      nodes: [3], edge: 2, pkt: [[72, 242]], ids: [3], hop: { 3: "Hop 1 → 2" } },
+    { t: "Payment가 Inventory를 호출한다", wire: "Payment Service → Inventory Service",
+      d: "호출하는 서비스가 바뀌었으므로 X-Service-Auth는 payment-service 신원의 토큰으로 교체된다. 사용자 컨텍스트와 X-Request-Id는 처음 값 그대로 따라가고, Hop은 2에서 3이 된다.",
+      rows: keep3().concat([r("Bearer (payment-service 토큰)", "swap"), r("2 → 3", "inc")]),
+      nodes: [4], edge: 3, pkt: [[72, 320]], ids: [4], hop: { 4: "Hop 2 → 3" } },
+    { t: "같은 requestId로 로그가 이어진다", wire: "각 서비스의 로그", log: true,
+      d: "각 서비스의 LogContextMiddleware가 requestId와 userId를 로그에 심는다. a1b2c3d4로 검색하면 세 서비스를 거친 흐름을 한 번에 추적할 수 있다.",
+      rows: [], nodes: [1, 2, 3, 4], edge: -1, pkt: [[72, 320]], glow: true },
+    { t: "분기: Inventory가 Order를 다시 호출한다", wire: "Inventory Service → Order Service",
+      d: "A → B → C → A 같은 순환 호출이 생기면 사용자 컨텍스트를 단 채 계속 돈다. 호출할 때마다 X-Hop-Count가 올라가므로, 이번에는 Order가 3을 받아 4로 올린다.",
+      rows: keep3().concat([r("Bearer (inventory-service 토큰)", "swap"), r("3 → 4", "inc")]),
+      nodes: [2], edge: "loop", pkt: [[72, 342], [30, 342], [30, 186], [60, 186]], hop: { 2: "Hop 3 → 4" } },
+    { t: "순환이 한 바퀴 더 돈다", wire: "Order Service → Payment Service",
+      d: "Payment는 받은 값 4가 5 미만이라 통과시키고 5로 올린다. 이 요청은 다음 호출에서 한계에 닿는다.",
+      rows: keep3().concat([r("Bearer (order-service 토큰)", "swap"), r("4 → 5", "inc")]),
+      nodes: [3], edge: 2, pkt: [[72, 186], [72, 242]], hop: { 3: "Hop 4 → 5" } },
+    { t: "Hop Count가 5에 닿아 508로 끊긴다", wire: "Payment Service → Inventory Service",
+      d: "Inventory는 받은 값 5가 MAX_HOPS(5) 이상이라 next를 호출하지 않고 508과 서비스 호출 깊이 초과를 응답한다. 순환 호출은 설계 문제이고, 이 헤더는 방어용 안전장치일 뿐이다.",
+      rows: keep3().concat([r("Bearer (payment-service 토큰)", "swap"), r("5 → 거부", "err")]),
+      nodes: [4], edge: 3, bad: 4, pkt: [[72, 320]], hop: { 4: "Hop 5 → 508" } }
+  ];
+  var last = steps.length - 1, idx = 0, playing = false, tm = null, mv = [];
+  var pkt = q('[data-ygd="pkt"]');
+  var nodeEls = qa(".ygd-node"), edgeEls = qa(".ygd-edge");
+  var rowsBox = q('[data-ygd="rows"]'), rowEls = [];
+  NAMES.forEach(function (n) {
+    var row = document.createElement("div"); row.className = "ygd-row";
+    var a = document.createElement("span"); a.className = "ygd-rn"; a.textContent = n;
+    var b = document.createElement("span"); b.className = "ygd-val";
+    var c = document.createElement("span"); c.className = "ygd-pill";
+    row.appendChild(a); row.appendChild(b); row.appendChild(c); rowsBox.appendChild(row);
+    rowEls.push({ row: row, val: b, pill: c });
+  });
+  var playBtn = q('[data-ygd="play"]'), prevBtn = q('[data-ygd="prev"]'), nextBtn = q('[data-ygd="next"]');
+  function place(p) { pkt.style.transform = "translate(" + p[0] + "px," + p[1] + "px)"; }
+  function move(s, animate) {
+    while (mv.length) { clearTimeout(mv.pop()); }
+    var pts = s.pkt, k = 0;
+    if (!animate || reduced()) { place(pts[pts.length - 1]); return; }
+    if (s.from) {
+      pkt.style.transition = "none"; place(s.from); void pkt.getBoundingClientRect(); pkt.style.transition = "";
+    }
+    (function go() {
+      place(pts[k]); k++;
+      if (k < pts.length) { mv.push(setTimeout(go, 300)); }
+    })();
+  }
+  function label() {
+    playBtn.textContent = playing ? "일시정지" : (idx === last ? "다시 재생" : (idx === 0 ? "재생" : "이어서 재생"));
+  }
+  function show(i, animate) {
+    idx = i;
+    var s = steps[i], bad = (s.bad === undefined ? -1 : s.bad), ids = {}, hops = {}, j;
+    nodeEls.forEach(function (el, k) {
+      el.classList.toggle("ygd-act", s.nodes.indexOf(k) !== -1);
+      el.classList.toggle("ygd-bad", bad === k);
+    });
+    edgeEls.forEach(function (el) { el.classList.toggle("ygd-act", String(s.edge) === el.getAttribute("data-e")); });
+    for (j = 0; j <= i; j++) {
+      (steps[j].ids || []).forEach(function (n) { ids[n] = true; });
+      if (steps[j].hop) { Object.keys(steps[j].hop).forEach(function (n) { hops[n] = steps[j].hop[n]; }); }
+    }
+    qa(".ygd-idb").forEach(function (el) {
+      el.classList.toggle("ygd-on", !!ids[el.getAttribute("data-n")]);
+      el.classList.toggle("ygd-glow", !!s.glow);
+    });
+    qa(".ygd-hopb").forEach(function (el) {
+      var n = el.getAttribute("data-n");
+      el.classList.toggle("ygd-on", !!hops[n]);
+      el.classList.toggle("ygd-berr", bad === Number(n));
+      el.querySelector("text").textContent = hops[n] || "";
+    });
+    pkt.classList.toggle("ygd-bad", bad !== -1);
+    move(s, animate);
+    q('[data-ygd="step"]').textContent = "단계 " + (i + 1) + " / " + steps.length;
+    q('[data-ygd="title"]').textContent = s.t;
+    q('[data-ygd="desc"]').textContent = s.d;
+    q('[data-ygd="wire"]').textContent = "구간: " + s.wire;
+    q('[data-ygd="hdrbox"]').classList.toggle("ygd-off", !!s.log);
+    q('[data-ygd="logbox"]').classList.toggle("ygd-off", !s.log);
+    s.rows.forEach(function (rw, k) {
+      var e = rowEls[k], changed = rw.k !== "keep" && rw.k !== "none";
+      e.val.textContent = rw.v;
+      e.pill.textContent = KIND[rw.k];
+      e.pill.className = "ygd-pill ygd-k-" + rw.k;
+      e.row.className = "ygd-row" + (changed ? " ygd-chg" : "") + (rw.k === "swap" ? " ygd-r-swap" : "") + (rw.k === "err" ? " ygd-r-err" : "");
+    });
+    prevBtn.disabled = (i === 0);
+    nextBtn.disabled = (i === last);
+    label();
+  }
+  function pause() { playing = false; clearTimeout(tm); label(); }
+  function schedule() {
+    clearTimeout(tm);
+    tm = setTimeout(function () {
+      show(idx + 1, true);
+      if (idx === last) { pause(); } else { schedule(); }
+    }, 3800);
+  }
+  playBtn.addEventListener("click", function () {
+    if (playing) { pause(); return; }
+    if (idx === last) { show(0, true); } else if (idx === 0) { show(0, true); }
+    playing = true; label(); schedule();
+  });
+  prevBtn.addEventListener("click", function () { pause(); if (idx > 0) { show(idx - 1, false); } });
+  nextBtn.addEventListener("click", function () { pause(); if (idx < last) { show(idx + 1, true); } });
+  q('[data-ygd="reset"]').addEventListener("click", function () { pause(); show(0, false); });
+  show(0, false);
+})();
+</script> </div> <h2 id=실무에서-자주-겪는-문제>실무에서 자주 겪는 문제<a class=headerlink href=#실무에서-자주-겪는-문제 title="Permanent link">&para;</a></h2> <h3 id=토큰-만료-타이밍>토큰 만료 타이밍<a class=headerlink href=#토큰-만료-타이밍 title="Permanent link">&para;</a></h3> <p>서비스 A가 서비스 B를 호출하는 시점에 토큰이 만료되는 경우가 있다. Access Token 유효시간이 15분인데, Gateway에서 검증한 시점과 내부 서비스에서 사용하는 시점 사이에 1-2초 차이가 나면서 만료되는 거다.</p> <p>내부 전파용 토큰은 Gateway가 발급하고 수명을 짧게(30초~1분) 잡되, 외부 토큰 만료와는 독립적으로 관리한다.</p> <h3 id=gateway-장애-시-인증-불가>Gateway 장애 시 인증 불가<a class=headerlink href=#gateway-장애-시-인증-불가 title="Permanent link">&para;</a></h3> <p>Gateway가 죽으면 모든 인증이 멈춘다. Gateway는 최소 2개 이상의 인스턴스를 띄우고, 로드밸런서 뒤에 두어야 한다. Gateway의 토큰 검증은 가능하면 인증 서버 호출 없이 로컬에서 처리한다(JWT 서명 검증). JWKS(공개키 세트)를 캐시해두면 인증 서버가 잠깐 죽어도 기존 키로 검증이 가능하다.</p> <div class="language-yaml highlight"><pre data-search-exclude><span></span><code><span id=__span-17-1><a id=__codelineno-17-1 name=__codelineno-17-1 href=#__codelineno-17-1></a><span class=nt>spring</span><span class=p>:</span>
 </span><span id=__span-17-2><a id=__codelineno-17-2 name=__codelineno-17-2 href=#__codelineno-17-2></a><span class=w>  </span><span class=nt>security</span><span class=p>:</span>
 </span><span id=__span-17-3><a id=__codelineno-17-3 name=__codelineno-17-3 href=#__codelineno-17-3></a><span class=w>    </span><span class=nt>oauth2</span><span class=p>:</span>
 </span><span id=__span-17-4><a id=__codelineno-17-4 name=__codelineno-17-4 href=#__codelineno-17-4></a><span class=w>      </span><span class=nt>resourceserver</span><span class=p>:</span>
@@ -562,4 +1223,4 @@
 </span></code></pre></div> <p>이렇게 하면 로그가 이렇게 찍힌다:</p> <div class="language-text highlight"><pre data-search-exclude><span></span><code><span id=__span-21-1><a id=__codelineno-21-1 name=__codelineno-21-1 href=#__codelineno-21-1></a>14:23:01 [a1b2c3d4] [user-123] [order-service] 주문 생성 요청
 </span><span id=__span-21-2><a id=__codelineno-21-2 name=__codelineno-21-2 href=#__codelineno-21-2></a>14:23:01 [a1b2c3d4] [user-123] [payment-service] 결제 처리 시작
 </span><span id=__span-21-3><a id=__codelineno-21-3 name=__codelineno-21-3 href=#__codelineno-21-3></a>14:23:02 [a1b2c3d4] [user-123] [inventory-service] 재고 차감
-</span></code></pre></div> <p>같은 <code>requestId</code>로 전체 흐름을 추적할 수 있다.</p> <h2 id=참고>참고<a class=headerlink href=#참고 title="Permanent link">&para;</a></h2> <ul> <li><a href=../Authentication_Strategy/ >인증/인가 방식 비교</a> — 단일 서비스 기준 인증 방식</li> <li><a href=../RBAC_ABAC/ >RBAC/ABAC</a> — 역할/속성 기반 접근 제어</li> <li><a href=../../API/API_Security_Patterns/ >API 인증/인가 실무 패턴</a></li> </ul> <hr> <p>이 문서는 <a href=../../../_hub/%EC%9D%B8%EC%A6%9D%EA%B3%BC_%ED%86%A0%ED%81%B0/ >인증과 토큰 허브</a>의 일부입니다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../API_Key_Management/ >API 키 관리</a></li> <li><a href=../O_Auth2_PKCE/ >OAuth2 Authorization Code + PKCE 구현</a></li> <li><a href=../../../Architecture/MSA/API_%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC/ >API 버전 관리</a></li> <li><a href=../../../Architecture/MSA/BFF_%ED%8C%A8%ED%84%B4/ >BFF 패턴 (Backend for Frontend)</a></li> <li><a href=../../../Security/FDS_Architecture/ >FDS 이상거래탐지 시스템 구조</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 8월 8일 12:53:25 UTC">2026년 8월 8일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> <button type=button class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg> 맨위로 </button> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../MFA_Passkey/ class="md-footer__link md-footer__link--prev" aria-label="이전: 다중 인증과 패스키"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 다중 인증과 패스키 </div> </div> </a> <a href=../RBAC_ABAC/ class="md-footer__link md-footer__link--next" aria-label="다음: RBAC·ABAC"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> RBAC·ABAC </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.c21346df.min.js></script> <script src=../../../javascripts/extra.js></script> </body> </html>
+</span></code></pre></div> <p>같은 <code>requestId</code>로 전체 흐름을 추적할 수 있다.</p> <h2 id=참고>참고<a class=headerlink href=#참고 title="Permanent link">&para;</a></h2> <ul> <li><a href=../Authentication_Strategy/ >인증/인가 방식 비교</a> — 단일 서비스 기준 인증 방식</li> <li><a href=../RBAC_ABAC/ >RBAC/ABAC</a> — 역할/속성 기반 접근 제어</li> <li><a href=../../API/API_Security_Patterns/ >API 인증/인가 실무 패턴</a></li> </ul> <hr> <p>이 문서는 <a href=../../../_hub/%EC%9D%B8%EC%A6%9D%EA%B3%BC_%ED%86%A0%ED%81%B0/ >인증과 토큰 허브</a>의 일부입니다.</p> <!-- related-docs --> <hr> <p><strong>관련 문서</strong></p> <ul> <li><a href=../API_Key_Management/ >API 키 관리</a></li> <li><a href=../O_Auth2_PKCE/ >OAuth2 Authorization Code + PKCE 구현</a></li> <li><a href=../../../Architecture/MSA/API_%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC/ >API 버전 관리</a></li> <li><a href=../../../Architecture/MSA/BFF_%ED%8C%A8%ED%84%B4/ >BFF 패턴 (Backend for Frontend)</a></li> <li><a href=../../../Security/FDS_Architecture/ >FDS 이상거래탐지 시스템 구조</a></li> </ul> <aside class=md-source-file> <span class=md-source-file__fact> <span class=md-icon title="마지막 업데이트"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 10월 30일 04:04:25 UTC">2026년 10월 30일</span> </span> <span class=md-source-file__fact> <span class=md-icon title=작성일> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg> </span> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="2026년 7월 3일 07:06:21 UTC">2026년 7월 3일</span> </span> </aside> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> <button type=button class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg> 맨위로 </button> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=하단/푸터> <a href=../MFA_Passkey/ class="md-footer__link md-footer__link--prev" aria-label="이전: 다중 인증과 패스키"> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </div> <div class=md-footer__title> <span class=md-footer__direction> 이전 </span> <div class=md-ellipsis> 다중 인증과 패스키 </div> </div> </a> <a href=../RBAC_ABAC/ class="md-footer__link md-footer__link--next" aria-label="다음: RBAC·ABAC"> <div class=md-footer__title> <span class=md-footer__direction> 다음 </span> <div class=md-ellipsis> RBAC·ABAC </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> <div class=md-copyright__highlight> Copyright &copy; 2024 - 2026 GYUTORY </div> </div> <div class=md-social> <a href=https://github.com/GYUTORY target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 512 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": "../../..", "features": ["navigation.prune", "navigation.tracking", "navigation.indexes", "navigation.footer", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tooltips", "toc.follow"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "\ud074\ub9bd\ubcf4\ub4dc\uc5d0 \ubcf5\uc0ac\ub428", "clipboard.copy": "\ud074\ub9bd\ubcf4\ub4dc\ub85c \ubcf5\uc0ac", "search.result.more.one": "\uc774 \ubb38\uc11c\uc5d0\uc11c 1\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.more.other": "\uc774 \ubb38\uc11c\uc5d0\uc11c #\uac1c\uc758 \uac80\uc0c9 \uacb0\uacfc \ub354 \ubcf4\uae30", "search.result.none": "\uac80\uc0c9\uc5b4\uc640 \uc77c\uce58\ud558\ub294 \ubb38\uc11c\uac00 \uc5c6\uc2b5\ub2c8\ub2e4", "search.result.one": "1\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.other": "#\uac1c\uc758 \uc77c\uce58\ud558\ub294 \ubb38\uc11c", "search.result.placeholder": "\uac80\uc0c9\uc5b4\ub97c \uc785\ub825\ud558\uc138\uc694", "search.result.term.missing": "\ud3ec\ud568\ub418\uc9c0 \uc54a\uc740 \uac80\uc0c9\uc5b4", "select.version": "\ubc84\uc804 \uc120\ud0dd"}, "version": null}</script> <script src=../../../assets/javascripts/bundle.c21346df.min.js></script> <script src=../../../javascripts/extra.js></script> </body> </html>
