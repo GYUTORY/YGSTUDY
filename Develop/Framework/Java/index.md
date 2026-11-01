@@ -3,13 +3,14 @@ title: Framework · Java 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-11-01
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # Framework · Java 전체 보기
 
-문서 36개.
+문서 37개.
 
 ## Spring
 
@@ -44,6 +45,7 @@ hide:
 - [Spring MVC와 REST API 설계](Spring/Spring_MVC_REST_API.md)
 - [Spring SSE (Server-Sent Events)](Spring/Spring_SSE.md)
 - [Spring Security 핵심 개념과 실전 적용](Spring/Spring_Security.md)
+- [Spring TransactionalEventListener와 TransactionSynchronization](Spring/Spring_Transaction_Event_Listener.md)
 - [Spring WebFlux](Spring/Spring_WebFlux.md)
 - [Spring 테스트](Spring/Spring_Test.md)
 - [낙관적 락 충돌 후 재시도 처리](Spring/Optimistic_Lock_Retry_Pattern.md)

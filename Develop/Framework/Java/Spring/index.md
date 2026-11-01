@@ -3,13 +3,14 @@ title: Spring 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-11-01
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # Spring 전체 보기
 
-문서 34개.
+문서 35개.
 
 ## DI와 Bean
 
@@ -67,5 +68,6 @@ hide:
 - [Spring Actuator Micrometer 심화](Spring_Actuator_Micrometer.md)
 - [Spring Cache 심화](Spring_Cache_Advanced.md)
 - [Spring Cache 테스트](Spring_Cache_Testing.md)
+- [Spring TransactionalEventListener와 TransactionSynchronization](Spring_Transaction_Event_Listener.md)
 - [Spring 테스트](Spring_Test.md)
 
