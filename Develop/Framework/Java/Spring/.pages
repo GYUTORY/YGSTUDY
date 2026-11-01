@@ -6,3 +6,4 @@ nav:
   - Spring_Actuator_Micrometer.md
   - Jakarta_Migration_Tooling.md
   - Spring_Transaction_Event_Listener.md
+  - Spring_Transaction_Internals.md
