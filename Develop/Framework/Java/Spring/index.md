@@ -10,7 +10,7 @@ updated: 2026-11-01
 
 # Spring 전체 보기
 
-문서 36개.
+문서 37개.
 
 ## DI와 Bean
 
@@ -71,4 +71,5 @@ updated: 2026-11-01
 - [Spring TransactionalEventListener와 TransactionSynchronization](Spring_Transaction_Event_Listener.md)
 - [Spring 테스트](Spring_Test.md)
 - [Spring 트랜잭션 내부 동작 소스 추적](Spring_Transaction_Internals.md)
+- [Spring 트랜잭션과 커넥션 풀이 부딪히는 운영 사고](Spring_Transaction_Connection_Pool_Pitfalls.md)
 

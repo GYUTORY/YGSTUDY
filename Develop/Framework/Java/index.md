@@ -10,7 +10,7 @@ updated: 2026-11-01
 
 # Framework · Java 전체 보기
 
-문서 38개.
+문서 39개.
 
 ## Spring
 
@@ -49,6 +49,7 @@ updated: 2026-11-01
 - [Spring WebFlux](Spring/Spring_WebFlux.md)
 - [Spring 테스트](Spring/Spring_Test.md)
 - [Spring 트랜잭션 내부 동작 소스 추적](Spring/Spring_Transaction_Internals.md)
+- [Spring 트랜잭션과 커넥션 풀이 부딪히는 운영 사고](Spring/Spring_Transaction_Connection_Pool_Pitfalls.md)
 - [낙관적 락 충돌 후 재시도 처리](Spring/Optimistic_Lock_Retry_Pattern.md)
 
 ## Testing

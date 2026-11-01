@@ -7,3 +7,4 @@ nav:
   - Jakarta_Migration_Tooling.md
   - Spring_Transaction_Event_Listener.md
   - Spring_Transaction_Internals.md
+  - Spring_Transaction_Connection_Pool_Pitfalls.md
