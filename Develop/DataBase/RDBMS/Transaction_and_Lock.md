@@ -1,11 +1,13 @@
 ---
 title: 트랜잭션과 Lock
 tags: [database, rdbms]
-updated: 2026-04-10
+updated: 2026-11-01
 description: "트랜잭션 ACID 속성과 Lock 메커니즘으로 데이터 일관성 보장하기"
 ---
 
 # 트랜잭션과 Lock
+
+> Spring 에서는 `@Transactional(isolation = ...)` 로 이 문서의 격리 수준을 지정하고, 행 락은 JPA 의 `@Lock(LockModeType.PESSIMISTIC_WRITE)` 같은 락 모드로 건다. 프록시가 BEGIN 과 COMMIT 을 끼워 넣는 과정, 전파 옵션, 롤백 규칙은 [Spring AOP & 트랜잭션 심화](../../Framework/Java/Spring/AOP_트랜잭션.md)에서 다룬다. 이 문서는 그 아래에서 DB 가 실제로 하는 일을 본다.
 
 ## 개요
 
@@ -76,28 +78,53 @@ ROLLBACK;
 
 #### 동시성 문제
 
+세 가지 이상 현상은 두 트랜잭션의 실행 순서만 보면 구분된다. 아래 타임라인은 위에서 아래로 시간이 흐른다.
+
+**Dirty Read** — 커밋되지 않은 값을 읽는다. T1 이 롤백하면 T2 는 존재한 적 없는 값을 근거로 후속 로직을 돌린 셈이 된다. READ UNCOMMITTED 에서만 일어난다.
+
+```mermaid
+sequenceDiagram
+    participant T1
+    participant DB
+    participant T2
+    T1->>DB: UPDATE balance = 0 WHERE id = 'A' (미커밋)
+    T2->>DB: SELECT balance WHERE id = 'A'
+    DB-->>T2: 0 (T1 의 미커밋 값)
+    T1->>DB: ROLLBACK
+    Note over T2: 원래 값은 100만원이다. 0 을 읽고 진행한 로직은 틀린 입력을 썼다
 ```
-1. Dirty Read (더티 리드)
-   커밋되지 않은 데이터를 읽음
 
-   T1: UPDATE balance = 0 WHERE id = 'A'  (미커밋)
-   T2: SELECT balance FROM ... WHERE id = 'A'  → 0 (잘못된 값)
-   T1: ROLLBACK  → 실제로는 원래 값이어야 함
+**Non-Repeatable Read** — 같은 행을 두 번 읽었는데 값이 다르다. 두 번째 SELECT 직전에 T2 가 커밋한 값을 T1 이 그대로 본다. READ COMMITTED 는 문장마다 새 스냅샷을 잡으므로 이 현상이 일어나고, REPEATABLE READ 부터는 T1 이 계속 100만원을 읽는다.
 
-2. Non-Repeatable Read (반복 불가 읽기)
-   같은 쿼리를 두 번 실행했는데 결과가 다름
-
-   T1: SELECT balance → 100만원
-   T2: UPDATE balance = 50만원; COMMIT;
-   T1: SELECT balance → 50만원  (값이 변경됨!)
-
-3. Phantom Read (팬텀 리드)
-   같은 조건의 쿼리인데 행의 수가 달라짐
-
-   T1: SELECT COUNT(*) WHERE age > 20 → 5명
-   T2: INSERT INTO users (age=25); COMMIT;
-   T1: SELECT COUNT(*) WHERE age > 20 → 6명  (유령 행 출현!)
+```mermaid
+sequenceDiagram
+    participant T1
+    participant DB
+    participant T2
+    T1->>DB: SELECT balance WHERE id = 'A'
+    DB-->>T1: 100만원
+    T2->>DB: UPDATE balance = 50만원 WHERE id = 'A'
+    T2->>DB: COMMIT
+    T1->>DB: SELECT balance WHERE id = 'A'
+    DB-->>T1: 50만원 (READ COMMITTED), 100만원 (REPEATABLE READ)
 ```
+
+**Phantom Read** — 같은 조건으로 조회했는데 행 수가 달라진다. 값이 바뀐 것이 아니라 조건에 맞는 새 행이 생긴 경우다. 행 하나하나에 거는 락으로는 아직 존재하지 않는 행을 막지 못하기 때문에, InnoDB 는 인덱스 사이의 구간에 갭 락을 건다.
+
+```mermaid
+sequenceDiagram
+    participant T1
+    participant DB
+    participant T2
+    T1->>DB: SELECT COUNT(*) FROM users WHERE age > 20
+    DB-->>T1: 5명
+    T2->>DB: INSERT INTO users (age) VALUES (25)
+    T2->>DB: COMMIT
+    T1->>DB: SELECT COUNT(*) FROM users WHERE age > 20
+    DB-->>T1: 6명 (READ COMMITTED), 5명 (REPEATABLE READ 의 일반 SELECT)
+```
+
+마지막 줄의 REPEATABLE READ 결과는 일반 SELECT 가 스냅샷을 읽기 때문이다. `FOR UPDATE` 나 `UPDATE` 같은 현재 읽기는 스냅샷이 아니라 최신 데이터를 보므로, 이쪽을 막는 것이 갭 락이다. 두 읽기가 갈리는 지점은 MVCC 절의 흐름도에 정리했다.
 
 #### 격리 수준 비교
 
@@ -310,6 +337,30 @@ T1: SELECT balance
   → T1 시작 시점(txid=100) 기준 → 100만원 (이전 버전 읽음)
   → T2의 변경은 T1에게 보이지 않음 (Snapshot Isolation)
 ```
+
+MVCC 라고 모든 읽기가 락 없이 끝나는 것은 아니다. 일반 SELECT 는 스냅샷에서 이전 버전을 읽어 아무도 기다리지 않지만, `SELECT ... FOR UPDATE` 와 UPDATE, DELETE 는 이전 버전이 아니라 **최신 커밋 버전**에 락을 걸고 읽는다. 이 읽기를 현재 읽기(current read)라고 부른다. 같은 트랜잭션 안에서 스냅샷 읽기 결과와 현재 읽기 결과가 다르게 나오는 경우가 여기서 생긴다.
+
+```mermaid
+flowchart TD
+    Q["쿼리 실행"] --> K{"락을 거는 문장인가<br/>FOR UPDATE, FOR SHARE, UPDATE, DELETE"}
+    K -- "아니오 (일반 SELECT)" --> I{"격리 수준"}
+    I -- "READ COMMITTED" --> S1["문장 시작 시점의 스냅샷"]
+    I -- "REPEATABLE READ" --> S2["트랜잭션 첫 읽기 시점의 스냅샷"]
+    I -- "SERIALIZABLE (InnoDB)" --> C
+    S1 --> V["스냅샷에 보이는 버전을 찾을 때까지 Undo 체인을 따라감"]
+    S2 --> V
+    V --> R1["락 없음, 대기 없음"]
+    K -- "예" --> C["최신 커밋 버전을 읽는 현재 읽기"]
+    C --> X{"다른 트랜잭션이 그 행에 충돌하는 락을 쥐고 있는가"}
+    X -- "예" --> WT["락 해제까지 대기<br/>innodb_lock_wait_timeout 초과 시 1205"]
+    X -- "아니오" --> G["행 락 획득<br/>REPEATABLE READ 면 갭 락도 함께"]
+    WT --> G
+    G --> R2["최신 값을 읽고 수정"]
+```
+
+흐름도에서 갈리는 지점은 두 곳이다. 첫째는 문장이 락을 거는가이고, 둘째는 격리 수준이다. InnoDB 의 SERIALIZABLE 은 autocommit 이 꺼진 상태에서 일반 SELECT 를 `FOR SHARE` 로 바꿔 실행하므로 현재 읽기 쪽으로 넘어간다. 그래서 "읽기는 안 막는다"는 MVCC 의 성질이 SERIALIZABLE 에서는 성립하지 않는다.
+
+PostgreSQL 은 현재 읽기의 동작이 다르다. REPEATABLE READ 에서 스냅샷 이후 다른 트랜잭션이 바꾼 행을 `FOR UPDATE` 하거나 UPDATE 하면, 대기 후 최신 값으로 진행하지 않고 `could not serialize access due to concurrent update` 로 실패한다. 애플리케이션은 이 에러를 받아 트랜잭션을 처음부터 다시 실행해야 한다.
 
 ```
 MVCC 버전 관리 방식 비교:
@@ -624,15 +675,24 @@ async decreaseStock(productId: number, quantity: number, attempt = 0): Promise<v
 
 두 트랜잭션이 서로가 가진 락을 기다리며 **무한 대기**하는 상태.
 
-```
-T1: Lock(A) → Lock(B) 대기
-T2: Lock(B) → Lock(A) 대기
+락을 잡는 순서가 서로 반대면 생긴다. 한 트랜잭션만 보면 정상인 코드가 두 개 동시에 돌 때만 터지기 때문에 테스트에서는 잘 안 보이고 트래픽이 붙은 뒤에 나타난다. 아래는 계좌 이체 두 건이 반대 방향으로 겹친 경우다.
 
-  T1 ──Lock(A)──▶ ◀──Lock(A) 대기── T2
-      ──Lock(B) 대기──▶ ◀──Lock(B)──
-
-→ 둘 다 영원히 대기 (교착 상태)
+```mermaid
+sequenceDiagram
+    participant T1
+    participant A as A 행
+    participant B as B 행
+    participant T2
+    T1->>A: UPDATE id = 'A' (X 락 획득)
+    T2->>B: UPDATE id = 'B' (X 락 획득)
+    T1->>B: UPDATE id = 'B' (T2 가 보유, 대기 시작)
+    T2->>A: UPDATE id = 'A' (T1 이 보유, 대기 시작)
+    Note over T1,T2: T1 은 T2 를, T2 는 T1 을 기다린다. 대기 관계가 순환한다
+    Note over A,B: InnoDB 가 순환을 감지하고 한쪽을 희생자로 골라 롤백한다
+    B-->>T1: T2 롤백으로 B 락 해제, T1 진행
 ```
+
+타임아웃이 끝나기를 기다리는 것이 아니다. InnoDB 는 락 대기 그래프에서 순환이 생기는 즉시 감지해 한쪽에 1213 을 돌려준다. 희생자로 뽑히는 쪽은 보통 변경한 행이 적은 트랜잭션이다. 어느 쪽이 죽을지는 애플리케이션이 정할 수 없으므로, 호출하는 쪽에서 재시도할 수 있게 짜두어야 한다.
 
 ```sql
 -- 데드락 발생 예시
@@ -861,22 +921,23 @@ TypeScript/Node.js에서는 모든 에러가 동일하게 처리되므로 `dataS
 
 트랜잭션이 오래 열려 있으면 그 트랜잭션이 점유한 DB 커넥션은 풀에 반환되지 않는다. 동시 요청이 많은 상황에서 장기 트랜잭션 몇 개가 커넥션 풀을 고갈시키면 **전체 서비스가 멈춘다**.
 
+풀 크기가 10이고 8개가 사용 중인 상태에서 그중 3개가 외부 API 호출이나 대량 처리로 수 분간 반환되지 않는다고 하자. 새 요청 7개가 들어오면 남은 커넥션은 2개라 5개가 대기하고, 대기가 타임아웃을 넘으면 짧은 트랜잭션까지 실패한다.
+
+```mermaid
+flowchart TD
+    S["장기 트랜잭션<br/>외부 API 호출, 대량 처리, 커밋 누락"] --> H["커넥션을 트랜잭션 종료까지 점유"]
+    H --> P["풀의 여유 커넥션 감소"]
+    H --> L["잡고 있는 행 락이 풀리지 않음"]
+    L --> W["같은 행을 건드리는 요청이 락 대기"]
+    W --> HW["대기하는 요청도 커넥션을 쥔 채 멈춤"]
+    HW --> P
+    P --> R["새 요청이 풀에서 커넥션을 기다림"]
+    R --> T{"connection-timeout 안에 커넥션이 반환되는가"}
+    T -- "예" --> OK["응답 지연만 늘어남"]
+    T -- "아니오" --> F["타임아웃 예외<br/>짧은 트랜잭션까지 실패"]
 ```
-장기 트랜잭션 → 커넥션 풀 고갈 흐름:
 
-커넥션 풀 (max=10)
-┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
-│사│사│사│사│사│사│사│사│  │  │   ← 8개 사용 중
-│용│용│용│용│용│용│용│용│  │  │
-└──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
-
-이 중 3개가 장기 트랜잭션 (외부 API 호출, 대량 처리 등)
-→ 3개 커넥션이 수 분간 반환 안 됨
-→ 새 요청 7개 → 풀에 남은 커넥션 2개 → 5개는 대기
-→ 대기 타임아웃 → ConnectionPoolExhausted
-
-다른 정상적인 짧은 트랜잭션까지 전부 실패
-```
+흐름도에서 "대기하는 요청도 커넥션을 쥔 채 멈춤"에서 풀로 되돌아가는 화살표를 봐야 한다. 장기 트랜잭션이 행 락까지 쥐고 있으면, 그 행을 기다리는 요청들이 각자 커넥션을 하나씩 쥔 채 멈춘다. 풀 고갈은 장기 트랜잭션 개수보다 훨씬 빠르게 진행되고, 이때 증상은 "DB 가 느리다"가 아니라 "애플리케이션이 커넥션을 못 얻는다"로 나타난다. DB CPU 는 한가한데 서비스가 죽어 있으면 이 경로를 의심한다.
 
 흔히 발생하는 원인:
 
@@ -1046,6 +1107,26 @@ COMMIT;
 ### 11. 락 때문에 멈췄을 때 보는 순서
 
 "쿼리가 느리다"와 "쿼리가 락을 기다린다"는 대응이 완전히 다르다. 인덱스를 아무리 손봐도 후자는 안 풀린다.
+
+전체 순서는 아래 흐름도와 같다. 에러 코드부터 갈라지고, 락 대기 중이면 막는 쪽을 찾아 원인을 가른 뒤, 마지막에 지금 풀어야 하는지를 판단한다. 각 단계의 근거는 이어지는 소절에 있다.
+
+```mermaid
+flowchart TD
+    Start["쿼리가 멈추거나 타임아웃이 난다"] --> Q1{"에러 코드가 1213 인가"}
+    Q1 -- "예" --> DL["트랜잭션 전체가 롤백됨<br/>배치 단위로 재시도, 락 획득 순서 통일<br/>innodb_print_all_deadlocks 로 원인 쿼리 확인"]
+    Q1 -- "아니오" --> Q2{"innodb_trx 에 LOCK WAIT 상태가 있는가"}
+    Q2 -- "아니오" --> NL["락 문제가 아님<br/>EXPLAIN 과 슬로우 쿼리 확인"]
+    Q2 -- "예" --> Q3["막는 트랜잭션을 찾는다<br/>8.0 은 performance_schema.data_lock_waits<br/>없으면 SHOW ENGINE INNODB STATUS"]
+    Q3 --> Q4{"막는 쪽 trx_query 가 비어 있는가"}
+    Q4 -- "예" --> IDLE["트랜잭션만 열려 있음<br/>trx_started 시각으로 애플리케이션 로그 역추적"]
+    Q4 -- "아니오" --> Q5{"대기하는 쪽 WHERE 가 인덱스를 타는가"}
+    Q5 -- "아니오" --> IDX["풀스캔이 넓은 범위에 락을 건 상태<br/>인덱스 추가 또는 조건 수정"]
+    Q5 -- "예" --> Q6
+    IDLE --> Q6{"막는 쪽 trx_rows_modified 가 큰가"}
+    IDX --> Q6
+    Q6 -- "큼" --> WAIT["KILL 하면 롤백이 더 오래 걸릴 수 있음<br/>끝나기를 기다림"]
+    Q6 -- "작음" --> KILL["KILL 또는 pg_terminate_backend"]
+```
 
 #### 먼저 구분한다
 
