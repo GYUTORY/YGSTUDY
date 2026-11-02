@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="440" viewBox="0 0 680 440" role="img" aria-label="valid time과 transaction time 두 축 위의 가격 행 세 개">
+  <rect x="0" y="0" width="680" height="440" fill="#ffffff" stroke="#d0ccc6"/>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#444"/>
+    </marker>
+  </defs>
+
+  <line x1="90" y1="360" x2="650" y2="360" stroke="#444" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="90" y1="360" x2="90" y2="30" stroke="#444" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="650" y="384" text-anchor="end" font-family="sans-serif" font-size="14" fill="#222">valid time (현실에서 유효한 기간)</text>
+  <text x="20" y="24" font-family="sans-serif" font-size="14" fill="#222">transaction time (DB가 알고 있던 기간)</text>
+
+  <rect x="90" y="200" width="500" height="130" fill="#e4e4e4" stroke="#777" stroke-width="1.5"/>
+  <text x="340" y="258" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#222">id 1 : 19900</text>
+  <text x="340" y="278" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#444">01-05 입력, 03-01에 닫힘</text>
+
+  <rect x="90" y="60" width="83" height="140" fill="#cfe3ea" stroke="#3D7387" stroke-width="1.5"/>
+  <text x="131" y="122" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#222">id 2</text>
+  <text x="131" y="142" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#222">19900</text>
+
+  <rect x="173" y="60" width="417" height="140" fill="#f6dfc4" stroke="#a86a1f" stroke-width="1.5"/>
+  <text x="381" y="122" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#222">id 3 : 24900</text>
+  <text x="381" y="142" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#444">03-01 정정으로 들어온 행, 아직 열려 있음</text>
+
+  <line x1="86" y1="330" x2="94" y2="330" stroke="#444"/>
+  <text x="80" y="334" text-anchor="end" font-family="sans-serif" font-size="12" fill="#222">01-05</text>
+  <line x1="86" y1="200" x2="94" y2="200" stroke="#444"/>
+  <text x="80" y="204" text-anchor="end" font-family="sans-serif" font-size="12" fill="#222">03-01</text>
+  <line x1="86" y1="60" x2="94" y2="60" stroke="#444"/>
+  <text x="80" y="64" text-anchor="end" font-family="sans-serif" font-size="12" fill="#222">현재</text>
+
+  <line x1="90" y1="356" x2="90" y2="364" stroke="#444"/>
+  <text x="90" y="378" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#222">01-01</text>
+  <line x1="173" y1="356" x2="173" y2="364" stroke="#444"/>
+  <text x="173" y="378" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#222">02-01</text>
+  <line x1="590" y1="356" x2="590" y2="364" stroke="#444"/>
+  <text x="590" y="378" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#222">07-01</text>
+
+  <circle cx="213" cy="215" r="6" fill="#c0392b"/>
+  <text x="225" y="219" font-family="sans-serif" font-size="12" fill="#c0392b">A  02-15 가격을 02-28에 물으면 19900</text>
+  <circle cx="213" cy="175" r="6" fill="#c0392b"/>
+  <text x="225" y="179" font-family="sans-serif" font-size="12" fill="#c0392b">B  02-15 가격을 지금 물으면 24900</text>
+
+  <text x="340" y="414" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#444">세로 간격은 비례하지 않는다. 같은 02-15라도 물은 시점에 따라 다른 행이 걸린다.</text>
+</svg>
