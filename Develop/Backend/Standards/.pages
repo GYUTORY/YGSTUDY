@@ -7,6 +7,7 @@ nav:
   - UTC 저장: UTC_Storage.md
   - Instant vs LocalDT: Instant_vs_Local_Date_Time.md
   - DST (일광 절약 시간): DST.md
+  - 스케줄러와 타임존: Scheduler_Timezone.md
   - tzdata 버전 관리: Tzdata_Management.md
   - 타임존 테스트: Timezone_Testing.md
   - UUIDv4: UUI_Dv4.md
