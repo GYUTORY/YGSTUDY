@@ -1,12 +1,21 @@
 ---
 title: Kafka Exactly-Once Semantics (EOS)
 tags: [messaging, backend, event-driven, architecture]
-updated: 2026-10-23
+updated: 2026-11-03
 ---
 
 # Kafka Exactly-Once Semantics (EOS)
 
 Kafka EOS는 두 개의 독립 기능이 합쳐진 결과다. 하나는 Idempotent Producer로 프로듀서 재시도로 인한 중복을 제거하는 것이고, 다른 하나는 트랜잭션 API로 읽기-처리-쓰기를 원자적으로 묶는 것이다. 이 둘을 이해하지 않고 `exactly-once`라는 단어만 믿으면, Kafka→DB 파이프라인에서 중복이 발생할 때 원인을 찾을 수 없다.
+
+세 기능이 각각 어디까지 보장하는지 먼저 표로 잡아 둔다. 이 문서에서 가장 많이 틀리는 부분이 맨 아랫줄이다.
+
+| 기능 | 막는 것 | 보장 범위 | 못 막는 것 |
+|---|---|---|---|
+| Idempotent Producer | 프로듀서 재시도로 같은 배치가 두 번 append | 한 PID 세션, 파티션 단위 | 프로듀서 재시작 뒤 재전송, 앱이 `send`를 두 번 호출 |
+| 트랜잭션 API | 여러 파티션 쓰기와 입력 offset이 일부만 반영 | Kafka 브로커 안 | DB INSERT, 외부 API 호출, 캐시 갱신 |
+| `read_committed` | abort된 레코드와 미완료 레코드가 컨슈머에 노출 | 그 설정을 가진 컨슈머 | 열린 트랜잭션 뒤 메시지의 지연(LSO 정체) |
+| 위 셋의 합 | Kafka → Kafka 파이프라인의 중복과 유실 | Kafka 브로커 안 | Kafka 밖으로 나가는 쓰기 전부 ([Kafka 트랜잭션이 닫는 범위](#kafka-트랜잭션이-닫는-범위) 참조) |
 
 ## Idempotent Producer: PID + sequence number
 
@@ -83,6 +92,21 @@ max.in.flight.requests.per.connection=5 -> ok
 ## 트랜잭션 API
 
 Idempotent Producer가 단일 프로듀서의 재시도 중복을 막는다면, 트랜잭션 API는 **여러 파티션에 대한 write와 컨슈머 offset commit을 원자적으로 묶는다**. "원자적으로"의 의미는 모두 성공하거나, 모두 없었던 일이 되거나 둘 중 하나라는 뜻이다.
+
+두 방식이 막는 범위를 나란히 놓으면 아래와 같다. 멱등 프로듀서는 프로듀서 세션과 파티션 단위에서 멈추고, 트랜잭션은 그 위에 여러 파티션과 offset commit을 묶는다.
+
+```mermaid
+flowchart LR
+    subgraph IDEM["Idempotent Producer"]
+        I1["PID + sequence number"] --> I2["파티션별 재시도 중복 제거"]
+        I2 --> I3["프로듀서 세션 안에서만 유효<br/>재시작하면 PID 변경"]
+    end
+    subgraph TXN["트랜잭션 API"]
+        T1["transactional.id + epoch"] --> T2["여러 파티션 write +<br/>sendOffsetsToTransaction 원자 처리"]
+        T2 --> T3["재시작 후에도 같은 논리적 프로듀서<br/>좀비는 epoch로 fencing"]
+    end
+    IDEM -->|"위에 얹힌다"| TXN
+```
 
 ### transactional.id
 
@@ -456,15 +480,7 @@ sequenceDiagram
     L-->>G: 10~12 (C가 commit이면 8,9 도 함께)
 ```
 
-이 현상은 컨슈머 코드에는 문제가 없고 CPU도 놀고 있는데 lag만 늘어나서 원인을 찾기 어렵다. 처음 겪으면 파티션 리더나 네트워크부터 의심하게 된다. 실제로 재현한 수치는 이렇다. 트랜잭션 C를 열어 둔 채 일반 메시지 3개를 뒤에 넣고 두 그룹을 읽혔다.
-
-```
-GROUP   TOPIC    PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
-g-rc    eos-lso  0          8               13              5      (read_committed)
-g-ru    eos-lso  0          13              13              0      (read_uncommitted)
-```
-
-`g-rc`는 offset 8에서 멈췄다. 뒤에 쌓인 plain-3~5는 `g-ru`가 읽은 것과 같은 커밋 상태의 일반 메시지인데도 읽지 못했다. 원인은 `kafka-transactions.sh`로 확인한다. `list`에서 `Ongoing`이 남아 있거나 `find-hanging`이 결과를 내면 그 트랜잭션이 원인이다. 이번 실험에서는 프로세스가 `close()`를 부르며 종료하는 순간 미완료 트랜잭션을 프로듀서가 스스로 abort했고, 그 시점에 LSO가 풀렸다. 프로세스가 `kill -9`로 죽거나 네트워크가 끊겨 `close()`가 안 불리면 `transaction.timeout.ms`(최대 15분)와 스캔 주기가 지날 때까지 막힌다. 이 경우는 직접 재현하지 않았고, 아무 활동 없이 방치된 트랜잭션이 타임아웃 스캔에 abort되는 것까지만 위 타임아웃 실험으로 확인했다.
+이 현상은 컨슈머 코드에는 문제가 없고 CPU도 놀고 있는데 lag만 늘어나서 원인을 찾기 어렵다. 처음 겪으면 파티션 리더나 네트워크부터 의심하게 된다. 실제로 재현한 수치는 문서 끝의 실험 기록에 있다. 트랜잭션 C를 열어 둔 채 일반 메시지 3개를 뒤에 넣고 두 그룹을 읽혔더니 `read_committed` 그룹은 CURRENT-OFFSET 8에서 멈춰 LAG 5가 남았고, `read_uncommitted` 그룹은 LAG 0이었다. `g-rc`는 offset 8에서 멈췄다. 뒤에 쌓인 plain-3~5는 `g-ru`가 읽은 것과 같은 커밋 상태의 일반 메시지인데도 읽지 못했다. 원인은 `kafka-transactions.sh`로 확인한다. `list`에서 `Ongoing`이 남아 있거나 `find-hanging`이 결과를 내면 그 트랜잭션이 원인이다. 이번 실험에서는 프로세스가 `close()`를 부르며 종료하는 순간 미완료 트랜잭션을 프로듀서가 스스로 abort했고, 그 시점에 LSO가 풀렸다. 프로세스가 `kill -9`로 죽거나 네트워크가 끊겨 `close()`가 안 불리면 `transaction.timeout.ms`(최대 15분)와 스캔 주기가 지날 때까지 막힌다. 이 경우는 직접 재현하지 않았고, 아무 활동 없이 방치된 트랜잭션이 타임아웃 스캔에 abort되는 것까지만 위 타임아웃 실험으로 확인했다.
 
 <div class="ygd-kafka-lso-toggle" id="ygd-kafka-lso-toggle">
 <style>
@@ -666,44 +682,139 @@ Kafka Streams가 내부적으로 하는 일:
 - 처리 interval마다 `commitTransaction` → `beginTransaction`을 반복한다
 - 컨슈머 offset을 `sendOffsetsToTransaction`으로 같은 트랜잭션 안에 포함시킨다
 
-Kafka Streams로 파이프라인을 구성하면 EOS 설정만으로 상당한 중복 처리 문제가 사라진다. 단, 처리 로직 안에서 외부 API를 호출하거나 DB에 쓰는 부분은 Kafka EOS 범위 밖이다.
+Kafka Streams로 파이프라인을 구성하면 EOS 설정만으로 Kafka 안의 중복 처리 문제가 사라진다. 처리 로직 안에서 외부 API를 호출하거나 DB에 쓰는 부분은 트랜잭션에 참여하지 않는다. 이 경우의 실패 지점은 [Kafka 트랜잭션이 닫는 범위](#kafka-트랜잭션이-닫는-범위)에서 다룬다.
 
 `exactly_once` vs `exactly_once_v2` 선택: 브로커와 클라이언트가 모두 Kafka 2.5 이상이면 v2를 쓴다. 그 미만이면 `exactly_once`(deprecated)를 쓰는 수밖에 없다.
 
-## Kafka→DB 쓰기가 EOS 범위 밖인 이유
+## Kafka 트랜잭션이 닫는 범위
 
-Kafka 트랜잭션은 Kafka 내부에서만 성립한다. DB 쓰기는 별도의 트랜잭션 시스템이다. 두 시스템을 하나의 트랜잭션으로 묶으려면 2PC(Two-Phase Commit)가 필요하다. Kafka는 2PC를 지원하지 않는다.
+Kafka 트랜잭션이 원자적으로 묶는 대상은 브로커 안에 있는 두 가지다. 토픽 파티션에 쓴 레코드와 `__consumer_offsets`에 쓴 입력 offset이다. Transaction Coordinator는 이 둘에 commit 마커나 abort 마커를 찍을 뿐이고, 애플리케이션이 DB나 외부 API에 한 일은 알지 못한다. `abortTransaction()`을 불러도 이미 DB에 커밋된 행은 그대로 남는다.
 
-실제로 어떤 일이 벌어지는지 보면 이해가 빠르다.
+그림에서 왼쪽 상자만 코디네이터의 마커가 닿는 범위다. 오른쪽 세 가지는 같은 처리 로직 안에서 실행되지만 트랜잭션에 참여하지 않는다.
 
+```mermaid
+flowchart LR
+    APP["처리 로직<br/>consume-transform-produce"]
+    subgraph K["Kafka 트랜잭션 범위"]
+        OUT["output 토픽 레코드"]
+        IN["input offset<br/>__consumer_offsets"]
+        TC["Transaction Coordinator<br/>COMMIT 또는 ABORT 마커"]
+    end
+    subgraph X["코디네이터가 모르는 쓰기"]
+        DB[("DB INSERT")]
+        API["외부 API 호출"]
+        CACHE["캐시 갱신"]
+    end
+    APP --> OUT
+    APP --> IN
+    TC -.-> OUT
+    TC -.-> IN
+    APP --> DB
+    APP --> API
+    APP --> CACHE
 ```
-시나리오 1 — DB 성공, Kafka offset 실패:
-  컨슈머가 메시지 읽음
-  → DB INSERT 실행 후 commit 성공
-  → Kafka offset commit 실패 (네트워크 오류)
-  → 컨슈머 재시작
-  → 같은 메시지를 다시 읽음
-  → DB에 같은 INSERT 다시 실행 → 중복
 
-시나리오 2 — DB 실패, Kafka offset 이미 커밋:
-  컨슈머가 메시지 읽음
-  → Kafka offset commit 성공
-  → DB INSERT 실행 중 크래시
-  → 컨슈머 재시작
-  → offset이 앞으로 가 있어서 해당 메시지 영구 유실
+"그러면 DB도 참가자로 넣으면 되지 않느냐"는 질문이 나오는데, 커밋 2단계가 Kafka 내부 프로토콜이라 외부 리소스를 참가자로 등록할 수단이 없다. XA처럼 DB의 prepare 응답을 받아 commit 시점을 맞추는 구조가 아니다. Spring의 `KafkaTransactionManager`와 `DataSourceTransactionManager`를 묶어 순서대로 커밋하는 방식도 best-effort 1PC라서, 두 번째 커밋이 실패하면 첫 번째는 이미 확정된 채로 남는다. 아래 sequenceDiagram의 실패 지점이 그대로 나온다.
+
+### consume-transform-produce 중 DB 커밋이 끼는 경우
+
+입력을 읽어 DB에 저장하고 결과를 output 토픽에 내보내는 서비스다. DB 커밋을 Kafka 커밋보다 먼저 두는 순서로 그렸다. 실패 지점 1~3은 모두 "DB는 반영됐고 Kafka는 반영되지 않은" 상태로 끝나고, 재시작하면 같은 레코드를 다시 읽는다.
+
+```mermaid
+sequenceDiagram
+    participant A as 처리 인스턴스
+    participant DB as DB
+    participant K as output 토픽
+    participant TC as Transaction Coordinator
+
+    Note over A: input 토픽에서 offset 41 을 poll
+    A->>TC: beginTransaction 후 첫 send 에서 AddPartitionsToTxn
+    A->>DB: INSERT 후 DB COMMIT
+    Note over A,DB: 실패 지점 1. DB 는 반영됨, Kafka 쪽은 아직 아무것도 안 씀
+    A->>K: send 결과 레코드
+    Note over A,K: 실패 지점 2. DB 는 반영됨, output 레코드는 abort 로 숨음
+    A->>TC: AddOffsetsToTxn, TxnOffsetCommit 입력 offset 42
+    A->>TC: EndTxn commit
+    Note over A,TC: 실패 지점 3. 응답 유실, 타임아웃, fencing 이면 Kafka 는 abort, DB 는 이미 반영됨
+    alt 지점 1 부터 3 에서 크래시 또는 abort
+        Note over A: 재시작
+        A->>TC: initTransactions 로 열린 트랜잭션 정리
+        A->>A: input offset 은 41 그대로라서 같은 레코드를 다시 poll
+        A->>DB: 같은 INSERT 재실행
+        Note over DB: 멱등 처리가 없으면 중복 행이 생긴다
+    else commit 성공
+        TC-->>A: 완료. output 레코드와 offset 42 가 함께 보임
+    end
 ```
 
-DB commit과 Kafka commit 사이의 창이 존재하는 한 중복이나 유실 중 하나가 가능성으로 남는다. Kafka 트랜잭션을 켜도 이 창은 없어지지 않는다.
+지점 1과 2에서 Kafka 쪽 결과는 깨끗하다. output 레코드는 abort 마커 때문에 `read_committed` 컨슈머에게 보이지 않고, 재시도에서 한 번만 다시 쓰인다. 중복이 남는 곳은 DB 하나뿐이다. 지점 3은 `commitTransaction()`이 타임아웃으로 끝났는데 코디네이터에는 이미 PREPARE_COMMIT이 기록된 경우도 있어서, 예외만 보고는 commit이 됐는지 abort됐는지 알 수 없다. 이때 재시작 후 결과가 commit이면 offset이 이미 42라 재처리가 없고, abort이면 재처리가 일어난다. 어느 쪽이든 DB 쓰기는 이미 한 번 끝나 있다.
 
-## at-least-once + 멱등으로 수렴하는 이유
+순서를 바꾸면 중복 대신 유실이 생긴다. 입력이 같은 레코드(offset 41)일 때 순서별 결과를 정리했다.
 
-브로커 수준의 exactly-once를 달성하더라도, 파이프라인 끝단에 Kafka 바깥의 시스템이 있는 한 at-least-once로 돌아온다. 선택지는 두 가지다.
+| 순서 | 실패 시점 | Kafka 상태 | DB 상태 | 재시작 후 |
+|---|---|---|---|---|
+| DB 커밋 먼저 | DB 커밋 전 | 기록 없음 또는 abort | 롤백 | 정상 재처리. 문제 없음 |
+| DB 커밋 먼저 | DB 커밋 후, Kafka 커밋 전 | abort, offset 41 | 반영됨 | 재처리. **DB 중복** |
+| Kafka 커밋 먼저 | Kafka 커밋 후, DB 커밋 전 | commit, offset 42 | 미반영 | 재처리 없음. **DB 쓰기 유실** |
+| 둘 다 성공 | - | commit | 반영됨 | 정상 |
 
-**DB 쓰기에 멱등 처리 추가**: `INSERT ... ON CONFLICT DO NOTHING`처럼 같은 메시지가 두 번 들어와도 결과가 같게 만든다.
+대부분 앞쪽 순서(DB 먼저)를 고르고 DB 쪽을 멱등으로 만든다. 유실은 나중에 발견되고 복구 수단도 없지만, 중복은 unique 키로 막을 수 있기 때문이다.
 
-**Transactional Outbox**: DB와 메시지 발행을 같은 DB 트랜잭션 안에서 처리한다. 메시지는 Outbox 테이블에 먼저 저장하고, CDC나 폴링으로 Kafka로 발행한다.
+DB에는 프로듀서 epoch 펜싱이 적용되지 않는다는 점도 짚어야 한다. 좀비 프로듀서 절에서 본 것처럼 GC pause로 멈췄던 인스턴스 A는 깨어난 뒤 Kafka 쪽에서는 `InvalidProducerEpochException`으로 거부되지만, 그 전에 실행한 DB INSERT는 막을 방법이 없다. 새 소유자 B가 같은 레코드를 다시 처리하면 DB에는 A의 행과 B의 행이 모두 남는다.
 
-실무에서는 대부분 전자로 해결한다. 로직이 단순하고 추가 인프라가 없어도 된다.
+output 토픽 없이 DB에만 쓰는 단순한 컨슈머는 이 표에서 Kafka 트랜잭션을 뺀 형태다. offset 커밋만 Kafka 쪽 동작이고, 그 위치가 DB 커밋 앞이냐 뒤냐로 갈린다.
+
+| offset 커밋 위치 | 크래시 지점 | 결과 |
+|---|---|---|
+| DB 커밋 뒤 | DB 커밋 후, offset 커밋 전 | 같은 메시지를 다시 읽어 DB 중복 |
+| DB 커밋 앞 | offset 커밋 후, DB 커밋 전 | offset이 앞으로 가 있어서 메시지 영구 유실 |
+
+`enable.auto.commit=true`는 어느 쪽인지조차 애플리케이션이 정하지 못하는 상태라서, DB를 쓰는 컨슈머에서는 수동 커밋으로 바꾸고 DB 커밋 뒤에 offset을 올리는 순서를 쓴다.
+
+## DB 쓰기와 발행에 Outbox가 필요한 이유
+
+위의 한계는 Kafka → DB 방향에서만 나오는 게 아니다. HTTP 요청을 받아 DB에 저장하고 이벤트를 Kafka로 발행하는 서비스는 consume 단계가 없어서 트랜잭션 API가 풀어 줄 게 아예 없다. `beginTransaction()`을 쓰더라도 DB 커밋과 `send` 사이의 창은 그대로이고, Idempotent Producer는 같은 PID 세션 안의 재시도만 막는다.
+
+```java
+@Transactional
+public void createOrder(OrderRequest req) {
+    orderRepository.save(order);        // DB 커밋은 메서드가 끝날 때
+    kafkaTemplate.send("order-created", event);  // 이 send 는 DB 트랜잭션 밖의 일
+}
+```
+
+DB 커밋 후 `send` 전에 프로세스가 죽으면 주문은 저장됐는데 이벤트는 영영 나가지 않는다. `send`를 커밋 전에 두면 반대로 롤백된 주문의 이벤트가 나간다. 어느 쪽 순서로도 두 시스템의 원자성은 나오지 않는다.
+
+[트랜잭셔널 아웃박스 패턴](../../Architecture/MSA/트랜잭셔널_아웃박스_패턴.md)은 이 창을 없애지 않고 DB 한 곳으로 옮긴다. 이벤트를 `outbox` 테이블 행으로 비즈니스 데이터와 같은 DB 트랜잭션에서 저장하고, 별도 릴레이(폴링이나 CDC)가 그 행을 읽어 Kafka로 보낸다. 그림은 직접 발행과 Outbox가 크래시 시점마다 어떻게 갈리는지 보여 준다.
+
+```mermaid
+flowchart LR
+    subgraph S1["직접 발행"]
+        A1["비즈니스 데이터 DB COMMIT"] --> A2["Kafka send"]
+        A1 -. 여기서 크래시 .-> A3["이벤트 유실"]
+    end
+    subgraph S2["Outbox"]
+        B1["비즈니스 데이터 + outbox 행<br/>같은 DB COMMIT"] --> B2["릴레이가 outbox 행을 읽음"]
+        B2 --> B3["Kafka send"]
+        B3 --> B4["릴레이가 발행 완료 표시"]
+        B3 -. 표시 전 크래시 .-> B5["같은 행을 다시 발행, 중복"]
+    end
+```
+
+Outbox가 유실은 없애지만 중복은 만든다는 점이 중요하다. 릴레이가 `send` 후 발행 완료를 기록하기 전에 죽으면 같은 행을 다시 보낸다. 그래서 outbox 행의 id를 이벤트의 `event_id`로 그대로 실어 보내야 하고, 소비하는 쪽에 멱등 처리가 있어야 한다. 릴레이의 프로듀서에 `enable.idempotence`를 켜는 건 이 중복의 일부(전송 재시도)만 막는다. 릴레이 재시작 뒤의 재발행은 PID가 바뀌어서 Kafka가 걸러 주지 않는다. 폴링과 CDC 선택, outbox 테이블 정리, 순서 보장은 Outbox 문서에서 다룬다.
+
+구간별로 어떤 도구가 어느 틈을 메우는지는 표와 같다.
+
+| 구간 | 깨지는 가정 | 쓰는 도구 |
+|---|---|---|
+| Kafka → Kafka | 없음. 트랜잭션이 원자적으로 묶는다 | Kafka 트랜잭션, Streams EOS |
+| Kafka → DB | offset 커밋과 DB 커밋이 원자적이지 않다 | DB 쪽 멱등 쓰기, 또는 offset을 같은 DB 트랜잭션에 저장 |
+| DB → Kafka | DB 커밋과 `send`가 원자적이지 않다 | Transactional Outbox |
+| Kafka → DB → Kafka | 위 두 가지가 모두 | 입력은 멱등 쓰기, 출력은 Outbox |
+
+### 수신 쪽 멱등 처리
+
+Outbox든 EOS를 켠 파이프라인이든 Kafka 바깥으로 나가는 마지막 구간은 at-least-once로 돌아온다. DB 쓰기를 멱등으로 만드는 방법이 가장 흔하다. 로직이 단순하고 추가 인프라가 필요 없다.
 
 ```java
 @Transactional
@@ -713,11 +824,12 @@ public void handle(OrderEvent event) {
         "VALUES (?, ?, ?) ON CONFLICT (event_id) DO NOTHING",
         event.getEventId(), event.getOrderId(), event.getStatus()
     );
-    // ON CONFLICT DO NOTHING — 같은 event_id가 두 번 들어와도 두 번째는 insert 안 됨
 }
 ```
 
-`event_id`에 unique constraint를 걸어두면 컨슈머 로직 자체가 멱등해진다. Kafka EOS 설정 유무와 관계없이 중복 처리가 막힌다.
+`event_id`에 unique constraint를 걸어 두면 같은 이벤트가 두 번 들어와도 두 번째는 insert되지 않는다. Kafka EOS 설정 여부와 상관없이 성립한다. 주의할 점은 `event_id`가 **발행하는 쪽에서 한 번 정해 이벤트에 고정한 값**이어야 한다는 것이다. 처리할 때마다 `UUID.randomUUID()`로 새로 만들면 재처리 때 다른 값이 들어가서 unique 제약이 아무것도 막지 못한다.
+
+offset을 DB에 함께 저장하는 방식도 있다. 처리 결과와 `(topic, partition, offset)`을 한 DB 트랜잭션에 커밋하고, 파티션을 할당받을 때 `seek`로 저장된 offset 다음부터 읽는다. Kafka의 offset 커밋을 쓰지 않으니 Kafka→DB 구간의 중복과 유실이 모두 없어진다. 대신 리밸런스 콜백에서 `seek`를 직접 관리해야 하고, 파티션이 다른 인스턴스로 옮겨질 때 옛 소유자가 DB에 쓰는 것을 막는 장치는 직접 만들어야 한다.
 
 ## transactional.id 관리
 
@@ -775,7 +887,15 @@ sequenceDiagram
     Note over A: 코디네이터에 바로 commit 을 보내는 경우에는 ProducerFencedException 이 나온다
 ```
 
-Kafka 3.7.1 클라이언트로 이 순서를 그대로 재현했다. 실험 결과에서 눈여겨볼 점이 두 가지다. 첫째, 이미 트랜잭션에 등록된 파티션에 옛 epoch로 `send`하면 데이터 파티션 리더가 거부하고 예외는 `ProducerFencedException`이 아니라 `InvalidProducerEpochException`으로 나온다. `ProducerFencedException`은 코디네이터에 곧장 닿는 `commitTransaction()`에서 나온다(아래 타임아웃 실험에서 확인). `catch (ProducerFencedException e)` 한 가지만 잡는 코드는 `send` 경로에서 새는 경우가 있으므로 두 예외를 함께 치명 오류로 다뤄야 한다. 둘째, epoch는 0부터 시작해 A가 0, abort 마커가 1, B의 트랜잭션이 2로 올라갔다. abort 한 번에 epoch가 한 번 더 오른다.
+Kafka 3.7.1 클라이언트로 이 순서를 그대로 재현했다. 옛 epoch로 접근했을 때 어디서 막히느냐에 따라 예외 타입이 달라진다.
+
+| A가 한 동작 | 막는 곳 | 예외 |
+|---|---|---|
+| 이미 트랜잭션에 등록된 파티션에 `send` | 데이터 파티션 리더 | `InvalidProducerEpochException` |
+| 코디네이터로 곧장 가는 `commitTransaction()` (예: 만료 abort 뒤) | Transaction Coordinator | `ProducerFencedException` |
+| 앞선 `send`가 실패해 오류 상태가 된 뒤 `commitTransaction()` | 클라이언트 | `InvalidProducerEpochException` 반복 |
+
+`catch (ProducerFencedException e)` 한 가지만 잡는 코드는 `send` 경로에서 새므로 두 예외를 함께 치명 오류로 다뤄야 한다. epoch는 0부터 시작해 A가 0, abort 마커가 1, B의 트랜잭션이 2로 올라갔다. abort 한 번에 epoch가 한 번 더 오른다.
 
 `ProducerFencedException`을 받은 인스턴스는 복구가 불가능하다. 해당 프로듀서 인스턴스를 종료하고 새로 시작해야 한다. 이 예외를 잡아서 재시도하거나 무시하면 안 된다.
 
@@ -955,11 +1075,29 @@ render();
 
 ## EOS를 써야 하는 경우
 
-파이프라인이 `Kafka → 처리 → Kafka` 형태이고, 처리 결과가 다시 Kafka 토픽으로 가는 경우에 EOS가 의미 있다. 이벤트 집계, 스트림 조인, 토픽 간 데이터 변환이 여기에 해당한다.
+파이프라인 끝이 어디인지로 갈린다. 처리 결과가 다시 Kafka 토픽으로 가는 경로만 EOS가 의미 있다.
 
-`Kafka → DB`, `Kafka → 외부 API` 형태라면 EOS를 켜도 외부 시스템 쪽에서 중복이 발생한다. 이 경우에는 at-least-once로 두고 DB 멱등 처리 또는 API 멱등 키를 쓰는 게 현실적이다.
+| 파이프라인 | EOS | 중복 방어 |
+|---|---|---|
+| Kafka → 처리 → Kafka (집계, 스트림 조인, 토픽 변환) | 의미 있음 | 트랜잭션과 `read_committed` |
+| Kafka → DB | 켜도 DB 쪽 중복은 그대로 | unique 키 멱등 쓰기 |
+| Kafka → 외부 API | 켜도 API 쪽 중복은 그대로 | API 멱등 키 |
+| DB → Kafka | 적용 대상 아님 | Transactional Outbox |
 
-EOS를 켜면 처리량이 떨어진다. 트랜잭션 코디네이터와 추가 통신이 발생하고, `read_committed` 컨슈머는 트랜잭션이 닫힐 때까지 메시지를 읽지 않아서 지연이 생긴다. 지연 시간 요구사항이 엄격한 파이프라인에서는 트레이드오프를 검토해야 한다.
+같은 내용을 파이프라인 끝에서 거꾸로 따라가면 아래 분기가 된다. 출력이 Kafka 토픽이면 EOS로 가고, 아니면 어느 쪽이든 수신 쪽 멱등 처리나 Outbox가 중복을 막는다.
+
+```mermaid
+flowchart TD
+    S["파이프라인 처리 결과가 가는 곳"] --> Q{"결과가 Kafka 토픽으로 가는가"}
+    Q -- 예 --> Q2{"입력도 Kafka 토픽인가"}
+    Q2 -- 예 --> E["Kafka → 처리 → Kafka<br/>EOS 트랜잭션 + read_committed"]
+    Q2 -- 아니오 --> O["DB → Kafka<br/>Transactional Outbox"]
+    Q -- 아니오 --> Q3{"결과가 가는 곳"}
+    Q3 -- DB --> D["Kafka → DB<br/>unique 키 멱등 쓰기"]
+    Q3 -- 외부 API --> X["Kafka → 외부 API<br/>API 멱등 키"]
+```
+
+EOS를 켜면 처리량이 떨어진다. 트랜잭션 코디네이터와 추가 통신이 생기고, `read_committed` 컨슈머는 트랜잭션이 닫힐 때까지 메시지를 읽지 못해 지연이 늘어난다. 지연 요구가 엄격한 파이프라인에서는 이 비용과 중복 방어 이득을 같이 따져야 한다.
 
 ## 로컬 실험 기록
 
@@ -1013,11 +1151,32 @@ g-rc  read_committed    CURRENT-OFFSET 8   LOG-END-OFFSET 13  LAG 5
 g-ru  read_uncommitted  CURRENT-OFFSET 13  LOG-END-OFFSET 13  LAG 0
 ```
 
-C의 프로세스가 `close()`로 종료되자 프로듀서가 미완료 트랜잭션을 abort했고 offset 13에 ABORT 마커가 찍혔다. 이때 `kafka-transactions.sh describe`는 `CompleteAbort`, `TransactionTimeoutMs 300000`을 보여 줬다. 타임아웃(300초)이 아니라 `close()` 때문에 끝난 것이다.
+C를 쥐고 있던 프로세스가 `close()`로 종료되자 프로듀서가 미완료 트랜잭션을 abort했고 offset 13에 ABORT 마커가 찍혔다. 이때 `kafka-transactions.sh describe`는 `CompleteAbort`, `TransactionTimeoutMs 300000`을 보여 줬다. 타임아웃(300초)이 아니라 `close()` 때문에 끝난 것이다.
 
 ### 좀비 펜싱
 
-같은 `transactional.id`로 A가 `send`한 뒤 B가 `initTransactions()`, `send`, `commitTransaction()`을 하고 A가 깨어나 `send`와 `commitTransaction()`을 호출했다.
+같은 `transactional.id`로 A가 `send`한 뒤 B가 `initTransactions()`, `send`, `commitTransaction()`을 하고 A가 깨어나 `send`와 `commitTransaction()`을 호출했다. 아래 순서도는 이 실험에서 epoch가 어느 시점에 올라가는지와 A의 호출이 어디서 막히는지를 보여 준다.
+
+```mermaid
+sequenceDiagram
+    participant A as 프로듀서 A (epoch 0)
+    participant B as 프로듀서 B
+    participant TC as Transaction Coordinator
+    participant L as 파티션 리더
+
+    A->>L: send A-1 (offset 0, epoch 0)
+    B->>TC: initTransactions()
+    TC->>L: A의 열린 트랜잭션 abort, ABORT 마커 (offset 1, epoch 1)
+    TC-->>B: epoch 2 발급
+    B->>L: send B-1 (offset 2, epoch 2)
+    B->>TC: commitTransaction()
+    TC->>L: COMMIT 마커 (offset 3, epoch 2)
+    A->>L: send (epoch 0)
+    L-->>A: InvalidProducerEpochException
+    Note over A: send 실패로 이미 오류 상태
+    A->>A: commitTransaction()
+    Note over A: InvalidProducerEpochException
+```
 
 ```
 A: sent A-1 -> offset 0
@@ -1027,7 +1186,7 @@ A: send  -> InvalidProducerEpochException: Producer attempted to produce with an
 A: commit -> InvalidProducerEpochException
 ```
 
-덤프에서는 offset 0(A-1, epoch 0), offset 1(ABORT 마커, epoch 1), offset 2(B-1, epoch 2), offset 3(COMMIT 마커, epoch 2) 순으로 나왔다. B의 `initTransactions()`가 A의 열린 트랜잭션을 abort하면서 A의 A-1이 무효가 됐다. 이 실험에서 A의 `commitTransaction()`은 앞선 `send`가 실패해 프로듀서가 이미 오류 상태였던 탓인지 `InvalidProducerEpochException`으로 다시 나왔다. 코디네이터까지 도달해 `ProducerFencedException`이 나온 경우는 다음 타임아웃 실험이다.
+덤프는 offset 0(A-1, epoch 0), 1(ABORT 마커, epoch 1), 2(B-1, epoch 2), 3(COMMIT 마커, epoch 2) 순이다. B의 `initTransactions()`가 A의 열린 트랜잭션을 abort해서 A-1이 무효가 됐다. A의 `commitTransaction()`이 `ProducerFencedException`이 아니라 `InvalidProducerEpochException`으로 나온 것은 앞선 `send` 실패로 프로듀서가 이미 오류 상태였기 때문으로 보인다. `ProducerFencedException`이 나오는 경우는 다음 타임아웃 실험이다.
 
 ### transaction.timeout.ms 초과
 
