@@ -10,7 +10,7 @@ updated: 2026-11-03
 
 # RDBMS 전체 보기
 
-문서 62개.
+문서 63개.
 
 ## 인덱스
 
@@ -84,6 +84,7 @@ updated: 2026-11-03
 - [Row Level Security](Row_Level_Security.md)
 - [Schema-Per-Tenant](Schema_Per_Tenant.md)
 - [Shared Table](Shared_Table.md)
+- [XA와 2PC 구현 내부](XA_Two_Phase_Commit.md)
 - [gh-ost](gh_ost.md)
 - [pt-online-schema-change](pt_online_schema_change.md)
 - [복합 인덱스 선두 컬럼](복합_인덱스_선두.md)

@@ -34,6 +34,7 @@ nav:
     - MySQL InnoDB 락 심화: My_SQL_Inno_DB_Locking_Deep_Dive.md
     - Advisory Lock: Postgre_SQL_Advisory_Lock.md
     - 분산 트랜잭션: Distributed_Transaction.md
+    - XA와 2PC 구현 내부: XA_Two_Phase_Commit.md
   - 모델링과 정규화:
     - DB 모델링: DB_Modeling.md
     - Codd 12 Rules: Codd_12_Rules.md
