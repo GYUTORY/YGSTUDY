@@ -3,13 +3,14 @@ title: NoSQL 전체 보기
 tags: []
 hide:
   - toc
+updated: 2026-11-04
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # NoSQL 전체 보기
 
-문서 13개.
+문서 14개.
 
 ## Redis
 
@@ -31,7 +32,8 @@ hide:
 
 ## 개요
 
-- [CouchDB](Couch_DB.md)
+- [CouchDB 데이터 모델과 복제](Couch_DB.md)
+- [CouchDB 리비전 트리](CouchDB_Revision_Tree.md)
 - [Graph DB 관계 모델](Graph_DB.md)
 - [MongoDB 심화](MongoDB.md)
 - [NoSQL 데이터베이스 개요](NoSQL.md)

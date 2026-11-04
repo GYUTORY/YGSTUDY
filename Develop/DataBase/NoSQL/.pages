@@ -4,6 +4,7 @@ nav:
   - NoSQL 데이터베이스 개요: NoSQL.md
   - MongoDB 심화: MongoDB.md
   - CouchDB: Couch_DB.md
+  - CouchDB 리비전 트리: CouchDB_Revision_Tree.md
   - Graph DB 관계 모델: Graph_DB.md
   - Redis
   - ScyllaDB
