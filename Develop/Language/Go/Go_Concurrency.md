@@ -1,7 +1,7 @@
 ---
 title: Go 동시성 - 고루틴과 채널
 tags: [go, os, language]
-updated: 2026-09-25
+updated: 2026-11-04
 ---
 
 # Go 동시성 - 고루틴과 채널
@@ -40,6 +40,78 @@ func workerPool(jobs <-chan Job, numWorkers int) {
 }
 ```
 
+## 고루틴 안의 panic은 밖에서 못 잡는다
+
+`recover`는 같은 고루틴에서 실행 중인 defer 함수 안에서만 panic을 받는다. 부모 고루틴에 `defer recover()`를 걸어도 자식 고루틴의 panic은 잡히지 않는다. 자식에서 복구되지 않은 panic은 그 고루틴의 defer를 전부 실행한 뒤 프로세스 전체를 종료시킨다. 종료 코드는 2다.
+
+```go
+func main() {
+    defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("복구", r) // 이 줄은 실행되지 않는다
+        }
+    }()
+
+    go func() {
+        var m map[string]int
+        m["a"] = 1 // nil 맵 쓰기 panic
+    }()
+
+    time.Sleep(time.Second)
+}
+```
+
+```mermaid
+flowchart TD
+    A["고루틴 안에서 panic 발생"] --> B["그 고루틴의 defer 를 역순으로 실행"]
+    B --> C{"defer 안에서 recover 를 호출했는가"}
+    C -- "호출함" --> D["panic 소멸, 고루틴은 defer 를 가진 함수에서 정상 반환"]
+    C -- "호출 안 함" --> E["런타임이 스택을 출력하고 프로세스 종료"]
+    E --> F["다른 고루틴의 작업, 처리 중인 요청, 열린 연결이 모두 끊김"]
+```
+
+도식에서 보면 판정은 panic이 난 고루틴의 defer 체인 안에서만 이뤄진다. `net/http` 서버는 요청마다 만드는 핸들러 고루틴에 recover를 걸어 두기 때문에 핸들러 안의 panic은 로그만 남기고 넘어간다. 문제는 핸들러가 직접 `go func()`로 띄운 고루틴이다. 그쪽은 http 서버의 보호 밖이라 panic 한 번에 서버 프로세스가 내려간다. 비동기로 알림을 보내거나 이벤트를 발행하는 코드에서 nil 포인터 하나가 서비스 전체 장애로 번지는 경우가 이렇게 생긴다.
+
+고루틴을 띄우는 지점마다 recover를 직접 쓰면 빠뜨리게 된다. 래퍼 하나로 모으는 편이 낫다.
+
+```go
+func SafeGo(name string, fn func()) {
+    go func() {
+        defer func() {
+            if r := recover(); r != nil {
+                slog.Error("goroutine panic",
+                    "name", name,
+                    "panic", r,
+                    "stack", string(debug.Stack()))
+                metrics.GoroutinePanic.WithLabelValues(name).Inc()
+            }
+        }()
+        fn()
+    }()
+}
+```
+
+`debug.Stack()`은 recover를 호출한 defer 안에서 불러야 panic이 난 지점의 스택이 남는다. 바깥에서 부르면 이미 풀린 스택이라 원인 위치를 알 수 없다.
+
+errgroup으로 띄우는 작업은 함수가 `error`를 반환하므로 panic을 에러로 바꿔서 돌려주는 형태가 맞다.
+
+```go
+func recoverToError(fn func() error) (err error) {
+    defer func() {
+        if r := recover(); r != nil {
+            err = fmt.Errorf("panic: %v\n%s", r, debug.Stack())
+        }
+    }()
+    return fn()
+}
+
+g.Go(func() error {
+    return recoverToError(func() error { return process(ctx, it) })
+})
+```
+
+recover로 모든 걸 막을 수는 없다. 맵 동시 쓰기(`fatal error: concurrent map writes`), 메모리 고갈, 모든 고루틴이 잠든 deadlock은 panic이 아니라 런타임의 fatal error라서 recover가 받지 못한다. 그리고 panic을 삼키고 계속 돌리면 공유 상태가 중간까지만 바뀐 채 남을 수 있다. 래퍼에서 로그와 메트릭을 남기고, 워커 루프라면 해당 워커를 새로 띄울지 결정하는 것까지가 래퍼의 몫이다.
+
 ## 채널 방향성
 
 채널은 선언할 때 방향을 지정할 수 있다. 함수 시그니처에서 방향을 명시하면 컴파일러가 잘못된 사용을 잡아준다.
@@ -77,9 +149,132 @@ ch2 := make(chan int, 10)
 
 버퍼드 채널을 잘못 쓰면 오히려 문제를 숨긴다. 버퍼 크기를 넉넉하게 잡아서 당장 블로킹이 안 일어나는 것처럼 보이지만, 수신 속도가 송신 속도를 따라가지 못하면 결국 가득 찬다. 버퍼 크기는 벤치마크를 기반으로 결정해야 한다.
 
+### 블록되는 순서
+
+두 방식의 차이는 송신자가 어느 시점에 멈추느냐다. 언버퍼드 채널은 수신자가 올 때까지 송신자가 멈추고, 버퍼드 채널은 버퍼가 찰 때까지 송신자가 멈추지 않는다. 아래 시퀀스에서 송신 쪽 Note가 붙은 위치를 비교하면 된다.
+
+```mermaid
+sequenceDiagram
+    participant S as 송신 고루틴
+    participant C as 언버퍼드 채널
+    participant R as 수신 고루틴
+    S->>C: 값 1 송신
+    Note over S: 수신자가 없어 송신 대기 큐에서 블록
+    R->>C: 수신
+    C-->>R: 값 1 전달
+    C-->>S: 송신자를 깨움
+    Note over S,R: 전달 시점에 두 고루틴이 만난다
+```
+
+```mermaid
+sequenceDiagram
+    participant S as 송신 고루틴
+    participant C as 버퍼드 채널 cap 2
+    participant R as 수신 고루틴
+    S->>C: 값 1 송신
+    Note over S,C: 버퍼 1/2, 송신자는 바로 다음 줄로 진행
+    S->>C: 값 2 송신
+    Note over S,C: 버퍼 2/2, 가득 참
+    S->>C: 값 3 송신
+    Note over S: 빈 슬롯이 없어 블록
+    R->>C: 수신
+    C-->>R: 값 1 전달
+    C-->>S: 값 3을 버퍼에 넣고 송신자를 깨움
+```
+
+언버퍼드 채널의 송신이 끝났다는 건 수신자가 값을 받았다는 뜻이다. 그래서 `ch <- v` 다음 줄에서 "상대가 받았다"를 전제로 코드를 쓸 수 있다. 버퍼드 채널은 이 보장이 없다. 송신이 리턴했어도 값은 버퍼에 있을 뿐이고, 수신자가 죽었다면 영영 처리되지 않는다. 종료 시점에 버퍼에 남은 값을 어떻게 비울지 정하지 않고 버퍼를 키우면 프로세스를 내릴 때 작업이 유실된다.
+
+### 닫힌 채널에서 수신하면
+
+`close(ch)` 이후 수신은 블록되지 않는다. 버퍼에 남은 값이 있으면 그걸 먼저 순서대로 돌려주고, 다 비우면 그 타입의 zero value와 `ok == false`를 즉시 돌려준다.
+
+```go
+ch := make(chan int, 2)
+ch <- 1
+ch <- 2
+close(ch)
+
+v, ok := <-ch // 1, true
+v, ok = <-ch  // 2, true
+v, ok = <-ch  // 0, false
+v, ok = <-ch  // 0, false  몇 번을 받아도 같다
+```
+
+`ok`를 안 받는 `v := <-ch`는 정상적으로 보낸 0과 닫혀서 나온 0을 구분하지 못한다. 이걸 `for { v := <-ch; handle(v) }` 형태로 돌리면 채널이 닫힌 뒤 `handle(0)`이 CPU를 다 쓰며 무한 반복된다. 값을 끝까지 소비하는 루프는 `for v := range ch`로 쓴다. range는 버퍼를 비운 뒤 닫힘을 감지해서 스스로 끝난다. select 안에서는 닫힌 채널의 case가 항상 준비 상태라 같은 문제가 생기고, 앞의 `fanIn`처럼 `ok`가 false일 때 변수를 nil로 바꿔 case를 꺼야 한다.
+
+| 연산 | nil 채널 | 열린 채널 | 닫힌 채널 |
+|---|---|---|---|
+| 송신 | 영구 블록 | 전달되거나 블록 | panic |
+| 수신 | 영구 블록 | 값을 받거나 블록 | 남은 값 소진 후 zero value, ok는 false |
+| close | panic | 정상 | panic |
+
+닫는 쪽은 송신자여야 한다. 수신자가 닫으면 송신자가 닫힌 채널에 보내다 panic이 난다. 송신자가 여럿이면 어느 쪽도 데이터 채널을 닫을 수 없다. 이때는 `sync.WaitGroup`으로 송신자가 전부 끝난 것을 확인한 별도 고루틴이 한 번만 닫거나, 데이터 채널은 두고 `done` 채널이나 context로 종료를 알린다.
+
+### len과 cap으로 흐름을 제어하면 안 된다
+
+`len(ch)`는 호출한 순간의 버퍼 개수일 뿐이다. 읽고 나서 그 값에 따라 행동하는 사이에 다른 고루틴이 채널을 바꾼다.
+
+```go
+// 틀린 코드
+if len(queue) < cap(queue) {
+    queue <- job // 송신자가 둘 이상이면 그 사이 가득 차서 여기서 블록된다
+}
+
+// 틀린 코드
+for len(queue) > 0 {
+    handle(<-queue) // 다른 수신자가 마지막 값을 가져가면 여기서 영구 블록
+}
+```
+
+가득 찼을 때 버리거나 다른 처리로 넘기려면 non-blocking 송신을 쓴다.
+
+```go
+select {
+case queue <- job:
+default:
+    metrics.Dropped.Inc()
+}
+```
+
+비우는 쪽도 같은 방식이다.
+
+```go
+func drain(queue <-chan Job) {
+    for {
+        select {
+        case j := <-queue:
+            handle(j)
+        default:
+            return
+        }
+    }
+}
+```
+
+`len(ch) == 0`을 "생산자가 끝났다"는 신호로 쓰는 코드도 있는데, 생산자가 아직 보내기 전일 수도 있어서 성립하지 않는다. 끝남은 close나 WaitGroup으로 표현한다. 언버퍼드 채널은 `len`과 `cap`이 항상 0이라 판단 근거가 될 수도 없다. `len(ch)`를 쓸 곳은 큐 적체를 보는 게이지 메트릭 정도다. 이 값으로 분기하는 코드가 있다면 레이스로 본다.
+
 ## select
 
 select는 여러 채널 연산 중 준비된 것을 처리한다. 여러 채널이 동시에 준비됐으면 무작위로 하나를 선택한다.
+
+case를 고르는 순서는 아래 흐름으로 정해진다. 준비된 case가 여러 개일 때 소스 코드 위쪽이 우선하지 않는다는 점과, default가 없을 때 nil 채널만 남으면 깨워줄 쪽이 없다는 점을 보면 된다.
+
+```mermaid
+flowchart TD
+    A["select 진입"] --> B["모든 case 의 채널 식과 송신 값을 소스 순서대로 한 번 평가"]
+    B --> C{"바로 진행 가능한 case 가 있는가"}
+    C -- "하나" --> D["그 case 실행"]
+    C -- "여러 개" --> E["균등 무작위로 하나 선택"]
+    E --> D
+    C -- "없음" --> F{"default 가 있는가"}
+    F -- "있음" --> G["default 실행, 블록되지 않음"]
+    F -- "없음" --> H{"nil 이 아닌 채널이 하나라도 있는가"}
+    H -- "있음" --> I["각 채널의 대기 큐에 등록하고 블록"]
+    I --> J["상대 연산이나 close 가 오면 깨어나 그 case 실행"]
+    H -- "없음" --> K["영구 블록"]
+```
+
+닫힌 채널의 수신 case는 항상 진행 가능으로 취급되고, 닫힌 채널로의 송신 case도 진행 가능으로 잡혔다가 선택되는 순간 panic이 난다. 우선순위를 두고 싶으면 select를 두 겹으로 쓴다. 바깥에서 `ctx.Done()`만 default와 함께 먼저 확인하고, 통과하면 안쪽 select에서 나머지를 기다린다.
 
 ```go
 func fanIn(ch1, ch2 <-chan string) <-chan string {
@@ -161,6 +356,71 @@ func processAll(items []Item) {
 `wg.Add(1)`은 고루틴을 띄우기 전에 호출해야 한다. 고루틴 안에서 호출하면 `Wait`이 먼저 리턴되는 레이스 컨디션이 생긴다.
 
 루프 변수 캡처 문제도 자주 발생한다. Go 1.22 이전에는 루프 변수를 고루틴 클로저가 캡처하면 루프가 끝난 시점의 값을 보는 버그가 있었다. 위 예제처럼 함수 인자로 명시적으로 넘겨야 안전하다. Go 1.22부터는 루프 변수 캡처 시맨틱이 바뀌어서 각 반복마다 새 변수가 생기지만, 구버전 호환을 고려하면 명시적으로 넘기는 습관을 유지하는 게 낫다.
+
+### Go 1.22 루프 변수 의미 변경과 마이그레이션
+
+1.21 이하 의미에서는 `for` 문이 변수를 하나만 만들고 반복마다 값을 덮어쓴다. 클로저가 그 변수를 잡으면 고루틴이 실제로 실행되는 시점의 값을 본다.
+
+```go
+// go.mod 가 go 1.21 이하
+for _, item := range items {
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        process(item) // 고루틴이 늦게 돌면 대부분 마지막 item 이 들어간다
+    }()
+}
+```
+
+마지막 항목만 여러 번 처리되고 나머지는 건너뛰어진다. 에러가 나지 않아서 테스트 데이터가 항목 한두 개일 때는 통과하다가 운영에서 건수가 늘면 드러난다. 1.22부터는 반복마다 새 변수가 생겨서 위 코드가 의도대로 돈다. 3절짜리 `for i := 0; i < n; i++`도 같다. 반복마다 `i`의 복사본을 만들고, 본문에서 `i`를 바꾸면 그 값이 post 문(`i++`) 실행 전에 다음 반복의 변수로 복사된다. 본문 안에서 `i += 2`처럼 카운터를 건드리는 기존 코드는 그대로 동작한다.
+
+```mermaid
+flowchart LR
+    subgraph OLD["go.mod 의 go 줄이 1.21 이하"]
+        direction TB
+        O1["변수 item 하나"] --> O2["반복 1 의 클로저"]
+        O1 --> O3["반복 2 의 클로저"]
+        O1 --> O4["반복 3 의 클로저"]
+    end
+    subgraph NEW["go.mod 의 go 줄이 1.22 이상"]
+        direction TB
+        N1["item 반복 1"] --> N2["클로저 1"]
+        N3["item 반복 2"] --> N4["클로저 2"]
+        N5["item 반복 3"] --> N6["클로저 3"]
+    end
+```
+
+왼쪽은 클로저 세 개가 변수 하나를 공유하고, 오른쪽은 각자 자기 변수를 갖는다. 1.21 이하 코드가 남아 있는 프로젝트에서 이 변경을 받을 때 걸리는 지점은 다음과 같다.
+
+첫째, 동작을 정하는 것은 툴체인 버전이 아니라 `go.mod`의 `go` 줄이다. Go 1.23 툴체인으로 빌드해도 모듈이 `go 1.21`이면 옛 의미로 컴파일된다. 툴체인만 올리고 버그가 사라졌다고 판단하면 틀린다. 반대로 `go` 줄을 1.22로 올리는 순간 그 모듈의 모든 루프가 한꺼번에 새 의미로 바뀐다. 모듈 단위라서, 메인 모듈이 1.22여도 `go 1.21` 줄을 가진 라이브러리 모듈의 루프는 옛 의미 그대로다. 모노레포에서 모듈마다 `go` 줄이 다르면 같은 코드 패턴이 모듈에 따라 다르게 돈다.
+
+둘째, 한 번에 올리기 부담스러우면 파일 단위로 시작할 수 있다. 소스 파일 맨 위에 `//go:build go1.22`를 두면 그 파일만 새 의미가 적용된다.
+
+셋째, 옛 의미에 기대어 우연히 맞던 코드가 있는지 찾아야 한다. 루프 변수의 주소를 모아서(`ptrs = append(ptrs, &item)`) 전부 같은 주소를 가리키는 걸 전제로 쓴 코드나, 클로저가 이후 반복에서 바뀌는 값을 읽도록 의도한 코드가 해당한다. 드물지만 있다. 별도 브랜치에서 `go` 줄을 올리고 `go build -gcflags=-d=loopvar=2 ./...`를 돌리면 컴파일러가 새 의미로 바뀐 루프 위치를 출력한다. 툴체인 버전에 따라 출력 형식이 다를 수 있으니 실제로 돌려서 확인하고, 나온 루프를 전부 읽어 의도를 확인한 뒤 `go` 줄을 올린다. `go vet`의 `loopclosure` 검사는 고루틴·defer 안의 캡처만 잡으므로 이 목록을 대신하지 못한다.
+
+넷째, `it := item`, `tt := tt` 같은 복사 줄은 새 의미에서 불필요하지만 해롭지는 않다. 그대로 두어도 되고, 정리하려면 `copyloopvar` 린터가 찾아준다. `go` 줄이 1.22 미만인 모듈에서 이 줄을 먼저 지우면 버그가 되살아나므로, 지우는 커밋은 `go` 줄을 올린 다음에 넣는다. 서브테스트에서 `t.Parallel()`을 쓰는 테이블 테스트가 이 복사 줄이 가장 많이 남아 있는 곳이다.
+
+### Go 1.25 WaitGroup.Go
+
+`wg.Add(1)` → `go func()` → `defer wg.Done()` 세 줄은 순서를 틀리기 쉬운 반복 코드다. Go 1.25에서 `sync.WaitGroup`에 `Go` 메서드가 들어와 이 세 줄을 하나로 줄인다.
+
+```go
+func processAll(items []Item) {
+    var wg sync.WaitGroup
+    for _, item := range items {
+        wg.Go(func() {
+            process(item) // go.mod 가 go 1.22 이상이면 item 은 반복마다 새 변수
+        })
+    }
+    wg.Wait()
+}
+```
+
+`wg.Go(f)`는 내부에서 `Add(1)`을 먼저 호출하고 고루틴을 띄우며, `f`가 끝나면(panic으로 끝나도) `Done`을 호출한다. `Add`를 고루틴 안에 넣어 `Wait`이 먼저 리턴하는 실수가 구조적으로 사라진다. 주의할 점이 둘 있다. `f`는 인자도 반환값도 없어서 에러를 돌려받지 못한다. 에러가 필요하면 errgroup을 쓴다. 그리고 `f` 안에서 panic이 나면 recover가 없는 한 앞 절처럼 프로세스가 죽는다. `Go` 메서드는 panic을 대신 처리해주지 않는다.
+
+1.24 이하 툴체인에서는 이 메서드가 없어서 컴파일되지 않는다. 개발 머신은 최신인데 CI 이미지나 Docker 베이스 이미지가 옛 버전이면 로컬에서만 빌드되는 상황이 생긴다. 도입 전에 빌드 이미지의 Go 버전부터 확인한다.
+
+### 에러를 모아야 할 때
 
 에러를 수집해야 한다면 `errgroup`이 편하다.
 
@@ -392,6 +652,28 @@ func worker(ctx context.Context) {
 ## goroutine leak 패턴과 방지법
 
 고루틴 누수는 고루틴이 종료되지 않고 계속 메모리를 점유하는 상태다. 서비스가 오래 돌면 메모리가 계속 늘어나는 형태로 나타난다.
+
+### 생명주기에서 누수가 생기는 지점
+
+고루틴은 함수가 반환해야 끝난다. 누가 대신 죽여주는 방법은 없다. 그래서 대기 상태에 들어간 뒤 깨워줄 상대가 사라지면 그 고루틴은 끝나지 않는다. 아래 흐름에서 마지막 분기(상대가 오는가)가 누수와 정상 종료를 가르는 자리이고, 대기하는 이유는 크게 세 가지다.
+
+```mermaid
+flowchart TD
+    A["go f() 호출"] --> B["runnable: 실행 대기"]
+    B --> C["running: 스케줄러가 P 위에서 실행"]
+    C --> D{"블록되는 연산을 만났는가"}
+    D -- "없음" --> E["f 반환, 고루틴 종료"]
+    D -- "채널 송수신" --> F["waiting: 채널 대기 큐"]
+    D -- "Mutex, WaitGroup, Cond" --> G["waiting: sync 대기 큐"]
+    D -- "ctx 를 안 받는 I/O 호출" --> H["waiting: 네트워크나 DB 응답"]
+    F --> I{"깨워줄 상대가 오는가"}
+    G --> I
+    H --> I
+    I -- "온다" --> B
+    I -- "오지 않는다" --> J["goroutine leak: 스택과 참조 객체를 계속 점유"]
+```
+
+채널 대기는 수신자가 없는 송신, 송신자도 close도 없는 수신이 원인이고 아래 두 절에서 다룬다. 락 대기는 Unlock 없이 반환한 경로(early return에서 `defer`를 빠뜨린 경우)나 `wg.Done`이 한 번 모자란 `wg.Wait`에서 생긴다. 이쪽은 pprof 스택에 `sync.runtime_SemacquireMutex`나 `sync.(*WaitGroup).Wait`가 찍힌다. 세 번째는 ctx가 전파되지 않은 호출이다. 타임아웃 없는 HTTP 클라이언트나 `context.Background()`로 시작한 DB 쿼리는 상대 서버가 응답하지 않으면 요청이 끝나도 고루틴이 남는다. 이 경우는 코드를 읽어도 블록 지점이 보이지 않아서 pprof의 `net/http`나 `database/sql` 프레임으로 찾게 된다.
 
 ### 채널 수신 대기 누수
 
