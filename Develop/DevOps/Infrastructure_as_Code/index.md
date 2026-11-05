@@ -10,7 +10,7 @@ updated: 2026-11-05
 
 # IaC 전체 보기
 
-문서 10개.
+문서 11개.
 
 ## 개요
 
@@ -21,6 +21,7 @@ updated: 2026-11-05
 - [Terraform](Terraform.md)
 - [Terraform CI/CD 파이프라인](Terraform_CI_CD_파이프라인.md)
 - [Terraform 기초](Terraform_기초.md)
+- [Terraform 버전 업그레이드와 OpenTofu](Terraform_버전_업그레이드와_Open_Tofu.md)
 - [Terraform 운영 실무](Terraform_운영_실무.md)
 - [Terraform 정적 분석과 테스트](Terraform_정적_분석과_테스트.md)
 - [Terragrunt](Terragrunt.md)
