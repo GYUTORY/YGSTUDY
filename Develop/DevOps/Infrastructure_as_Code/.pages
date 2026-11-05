@@ -5,6 +5,7 @@ nav:
     - Terraform: Terraform.md
     - 기초: Terraform_기초.md
     - 운영 실무: Terraform_운영_실무.md
+    - CI/CD 파이프라인: Terraform_CI_CD_파이프라인.md
   - AWS Terraform 실전: AWS_Terraform_실전.md
   - Ansible: Ansible.md
   - Terragrunt: Terragrunt.md
