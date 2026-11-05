@@ -2,3 +2,4 @@ title: Redis
 nav:
   - index.md
   - Valkey_Migration.md
+  - Redis_Database_Number.md

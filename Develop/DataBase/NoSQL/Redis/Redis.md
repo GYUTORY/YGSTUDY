@@ -1,7 +1,7 @@
 ---
 title: Redis — 내부 동작 원리와 아키텍처
 tags: [database, nosql, redis, architecture]
-updated: 2026-07-30
+updated: 2026-11-05
 ---
 
 # Redis (Remote Dictionary Server)
@@ -459,13 +459,34 @@ redis-cli CLUSTER KEYSLOT "{user:1000}:profile"
 
 ### DB 선택 vs 키 프리픽스
 
-Redis는 DB 0~15번을 지원하고 `SELECT` 명령으로 전환한다.
+Redis는 `databases` 설정값(기본 16)만큼 번호 붙은 키 공간을 만들고, 번호는 0부터 15까지다. 서버가 뜬 뒤에는 이 값을 바꿀 수 없다. 범위를 넘기면 `ERR DB index is out of range` 가 나온다.
+
+번호는 서버가 아니라 **연결 단위**로 붙는다. 새 연결은 항상 0번에서 시작하고, `SELECT` 는 그 연결에서 이후에 보내는 명령의 키 공간만 바꾼다. 같은 서버에 붙은 다른 연결은 영향을 받지 않는다.
+
+```mermaid
+flowchart LR
+    A[redis-cli 연결] --> B[DB 0 에서 시작]
+    B --> C{SELECT n}
+    C -->|n 이 0~15| D[이 연결의 키 공간이 db n 으로 전환]
+    C -->|n 이 범위 밖| E[ERR DB index is out of range]
+    D --> F[이후 SET / GET 은 db n 에서만 동작]
+    F -->|연결이 끊겼다 재접속| B
+```
+
+재접속하면 다시 0번이 되므로, 커넥션 풀이나 자동 재연결 클라이언트에서는 클라이언트 설정에 DB 번호를 지정해야 한다. `SELECT` 를 코드에서 직접 한 번 호출하는 방식은 재연결 뒤에 조용히 0번으로 돌아간다.
 
 ```bash
+SET a 1
 SELECT 1
-SET key "value"
-SELECT 0
+SET b 2
+SET c 3 EX 100
+INFO keyspace
+# Keyspace
+# db0:keys=1,expires=0,avg_ttl=0
+# db1:keys=2,expires=1,avg_ttl=0
 ```
+
+`INFO keyspace` 는 키가 하나라도 있는 DB만 보여준다. 비어 있는 번호는 줄 자체가 없다. 지금 연결이 어느 번호인지는 `redis-cli` 프롬프트의 `[1]` 표시로 알 수 있다. 번호별 메모리 격리, `FLUSHALL` 범위, 클라이언트별 설정 방법은 [Redis 논리 DB 번호](Redis_Database_Number.md)에 따로 정리했다.
 
 실서비스에서 DB 분리 방식은 쓰지 않는 게 낫다:
 

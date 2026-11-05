@@ -10,11 +10,12 @@ updated: 2026-11-05
 
 # NoSQL 전체 보기
 
-문서 14개.
+문서 15개.
 
 ## Redis
 
 - [Redis — 내부 동작 원리와 아키텍처](Redis/Redis.md)
+- [Redis 논리 DB 번호](Redis/Redis_Database_Number.md)
 - [Redis 다루기 — 코드 패턴과 실무 트러블슈팅](<Redis/Redis 다루기.md>)
 - [Redis 심화](Redis/Redis_Advanced.md)
 - [Redis 캐시 설계 실무](Redis/Redis_Cache_Strategy.md)
