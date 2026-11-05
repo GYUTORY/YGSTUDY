@@ -10,7 +10,7 @@ updated: 2026-11-05
 
 # IaC 전체 보기
 
-문서 11개.
+문서 12개.
 
 ## 개요
 
@@ -20,6 +20,7 @@ updated: 2026-11-05
 - [Pulumi](Pulumi.md)
 - [Terraform](Terraform.md)
 - [Terraform CI/CD 파이프라인](Terraform_CI_CD_파이프라인.md)
+- [Terraform State 장애 복구](Terraform_State_장애_복구.md)
 - [Terraform 기초](Terraform_기초.md)
 - [Terraform 버전 업그레이드와 OpenTofu](Terraform_버전_업그레이드와_Open_Tofu.md)
 - [Terraform 운영 실무](Terraform_운영_실무.md)
