@@ -1,7 +1,7 @@
 ---
 title: Redis 심화
 tags: [redis, kubernetes, architecture, performance]
-updated: 2026-09-27
+updated: 2026-11-05
 ---
 
 # Redis 심화
@@ -107,6 +107,8 @@ Master A 장애 발생:
 | **Lua 스크립트** | 접근하는 모든 키가 같은 슬롯 | 해시 태그 사용 |
 | **트랜잭션** | 같은 슬롯 내에서만 MULTI/EXEC | 해시 태그 사용 |
 | **Pub/Sub** | 모든 노드에 브로드캐스트 → 오버헤드 | Sharded Pub/Sub (7.0+) |
+
+DB 번호 제약의 이유와 이전 절차는 [2.8절](#28-sentinel에서-cluster로-마이그레이션)에서 다룬다. 번호가 나누는 것과 나누지 않는 것은 [Redis 논리 DB 번호](Redis_Database_Number.md)에 따로 정리했다.
 
 ### 1.6 Spring Boot Cluster 설정
 
@@ -478,6 +480,83 @@ MGET, 파이프라인, 트랜잭션을 많이 쓰는 경우:
     Redis 7.0+면 Sharded Pub/Sub(SSUBSCRIBE/SPUBLISH)으로 변경한다.
 ```
 
+#### DB 번호가 Cluster에서 막히는 이유
+
+Cluster는 키 이름 하나로 담당 노드를 정한다. `CRC16(키) mod 16384` 가 슬롯 번호이고, 슬롯마다 담당 Master가 하나다. 라우팅 정보에는 DB 번호가 들어갈 자리가 없다. DB 1의 `user:1` 과 DB 2의 `user:1` 은 같은 슬롯, 같은 노드로 간다. 슬롯 리샤딩도 "이 슬롯에 속한 키를 옮긴다" 는 단위로 돌아가기 때문에, 이전 도중에 키 이름이 같은 값이 여러 DB에 있으면 어느 쪽을 옮길지 정할 방법이 없다. 그래서 Redis는 Cluster 모드에서 DB 0만 열어 둔다.
+
+로컬 Redis 6.0.16 두 대(일반 인스턴스 하나, 슬롯 16384개를 전부 가진 단일 노드 Cluster 하나)로 확인한 결과는 이렇다.
+
+```text
+$ redis-cli -p 6391 SELECT 1
+ERR SELECT is not allowed in cluster mode
+
+# 목적지 DB 번호를 1로 주고 MIGRATE
+$ redis-cli -p 6390 -n 1 MIGRATE 127.0.0.1 6391 "" 1 5000 COPY KEYS only1
+ERR Target instance replied with error: ERR SELECT is not allowed in cluster mode
+```
+
+두 번째가 놓치기 쉽다. 원본 DB 번호는 `-n 1` 로 지정해도 되지만 목적지 DB 번호 자리에는 0만 들어간다. DB 1에 있던 키를 `MIGRATE` 로 그대로 옮기면 DB 0에서 원래 있던 키와 같은 이름끼리 부딪친다. 번호가 사라지는 만큼 이름 공간이 합쳐지고, 합치는 방법은 직접 정해야 한다.
+
+#### DB 1 이상의 데이터를 합치는 순서
+
+DB 번호가 하던 구분을 키 이름 앞부분으로 옮기는 작업이다. 번호 대신 서비스 역할로 prefix 를 정한다. `db1:` 처럼 번호를 그대로 쓰면 이전은 끝나도 의미 없는 이름만 남는다.
+
+```mermaid
+flowchart TD
+    A["INFO keyspace 로 DB 별 키 수 기록<br/>db0 db1 db2 ..."] --> B["DB 마다 SCAN 으로 키 이름 수집<br/>겹치는 이름 집계"]
+    B --> C["DB 번호 -> prefix 매핑 확정<br/>예: db0 session: / db1 cache: / db2 queue:"]
+    C --> D["애플리케이션 키 생성부에 prefix 적용<br/>읽기는 새 이름 우선, 없으면 옛 이름"]
+    D --> E["DUMP -> RESTORE 로 Cluster DB 0 에 적재<br/>REPLACE 없이"]
+    E --> F{"BUSYKEY 발생"}
+    F -->|"예"| G["충돌 키 목록 수동 판단<br/>원본 유지 또는 덮어쓰기"]
+    F -->|"아니오"| H["Cluster 키 수 합계와<br/>원본 DB 키 수 합계 대조"]
+    G --> H
+    H --> I["쓰기를 Cluster 로 전환<br/>옛 DB 는 읽기 전용으로 일정 기간 유지"]
+```
+
+흐름에서 봐야 할 곳은 E와 F다. 적재 단계에서 `REPLACE` 를 주지 않으면 이미 있는 이름은 `BUSYKEY` 로 거절되고 기존 값은 건드리지 않는다. 같은 단계에서 prefix 를 DB마다 다르게 붙이므로 원본 DB끼리는 충돌하지 않는다. 남는 충돌은 Cluster 에 이미 들어 있던 키와 새 이름이 겹치는 경우, 그리고 적재 스크립트를 두 번 돌린 경우뿐이다.
+
+`MIGRATE` 는 키 이름을 바꾸지 못한다. prefix 를 붙이려면 `DUMP` 와 `RESTORE` 를 직접 돌려야 하고, 그때 TTL을 따로 챙겨야 한다. `DUMP` 페이로드에는 만료 시간이 들어가지 않는다. 원본의 `PTTL` 을 읽어서 `RESTORE` 의 ttl 인자로 넘기고, 만료 시간이 없는 키(`PTTL` 이 -1)는 0으로 준다. 이 값을 빼먹으면 만료되어야 할 캐시가 영구 키로 남아 Cluster 메모리를 서서히 채운다.
+
+```python
+import redis
+from redis.cluster import RedisCluster
+
+PREFIX = {0: "session:", 1: "cache:", 2: "queue:"}   # DB 번호 -> 새 prefix
+
+dst = RedisCluster(host="127.0.0.1", port=6391)
+conflicts, moved = [], 0
+
+for db, prefix in PREFIX.items():
+    src = redis.Redis(port=6390, db=db)
+    for key in src.scan_iter(count=500):
+        pttl = src.pttl(key)
+        payload = src.dump(key)
+        if payload is None:                      # SCAN 과 DUMP 사이에 만료됨
+            continue
+        try:
+            dst.restore(prefix + key.decode(), max(pttl, 0), payload)
+            moved += 1
+        except redis.exceptions.ResponseError as e:
+            if "BUSYKEY" in str(e):
+                conflicts.append((db, key))
+            else:
+                raise
+
+print("moved", moved, "conflicts", conflicts)
+```
+
+각 DB에 `user:1` 이 있고 Cluster 쪽에 `cache:user:1` 이 미리 있는 상태로 돌리면 3개를 옮기고 `(1, b'user:1')` 하나가 충돌 목록에 남는다. 같은 스크립트를 한 번 더 돌리면 이번엔 전부 `BUSYKEY` 라서 아무것도 옮기지 않는다. 중간에 죽은 스크립트를 이어서 돌릴 때도 충돌 목록이 길게 나오므로, 목록이 곧 오류라고 읽지 말고 이미 옮긴 키인지 먼저 비교한다.
+
+몇 가지 걸리는 점이 있다.
+
+- `RedisCluster` 클라이언트가 슬롯 담당 노드로 알아서 보내 준다. 일반 `redis.Redis` 로 노드 한 대에 붙어 `RESTORE` 하면 다른 노드 슬롯의 키에서 `MOVED` 가 난다.
+- prefix 를 `{cache}:` 처럼 중괄호로 감싸지 않는다. 해시 태그가 되어 그 prefix 의 키가 전부 슬롯 하나, 곧 노드 하나로 몰린다.
+- 적재 중에도 원본에 쓰기가 계속되면 옮긴 뒤에 바뀐 값은 Cluster 에 반영되지 않는다. 듀얼 라이트 기간을 두거나 쓰기를 잠깐 멈춘다. 캐시 성격의 데이터는 옮기지 않고 Cluster 에서 새로 채우는 편이 빠를 때가 많다.
+- 검증은 키 수 대조로 한다. 원본 `INFO keyspace` 의 DB 별 `keys=` 합계와 Cluster 모든 Master 의 `DBSIZE` 합계를 비교한다. 이전 중에 만료된 키 때문에 정확히 같지는 않으므로, `expires` 가 붙은 키가 많은 DB는 차이 허용 범위를 미리 정한다.
+
+Valkey 9 는 `cluster-databases` 설정으로 Cluster 에서도 `SELECT` 를 열어 주는 경우가 있다. 이 경우 번호를 그대로 쓸 수는 있지만 메모리와 이벤트 루프를 공유하는 점은 그대로여서 격리 수단은 아니다. 각 버전별 `SELECT` 결과와 prefix, 인스턴스 분리 중 무엇을 고를지는 [Redis 논리 DB 번호](Redis_Database_Number.md)에 실험 결과와 함께 있다.
+
 ### 2.9 아키텍처별 장애 패턴과 대응
 
 #### Sentinel에서 흔히 겪는 장애
@@ -620,6 +699,29 @@ Stream: orders
   │
   └── Consumer Group: analytics
         └── Consumer D: 모든 엔트리 분석
+```
+
+아래 시퀀스는 메시지 하나가 전달·확인되고, Consumer가 죽었을 때 PEL의 미확인 메시지를 다른 Consumer가 가져가는 순서다. `XACK`가 오지 않으면 엔트리가 PEL에 남는다는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant S as Stream orders
+    participant A as Consumer A
+    participant B as Consumer B
+    P->>S: XADD orders * ...
+    A->>S: XREADGROUP GROUP order-processing consumer-A ... >
+    S-->>A: 아직 전달되지 않은 엔트리 (PEL에 등록)
+    A->>S: XACK
+    Note over S: ACK된 엔트리는 PEL에서 제거
+    P->>S: XADD orders * ...
+    A->>S: XREADGROUP ... >
+    S-->>A: 엔트리 전달 (PEL에 등록)
+    Note over A: Consumer A 장애, XACK 없음
+    B->>S: XPENDING orders order-processing - + 10
+    S-->>B: 60초 넘게 미확인인 엔트리 목록
+    B->>S: XCLAIM orders order-processing consumer-B 60000 ID
+    S-->>B: 엔트리 소유권 이전, 재처리 후 XACK
 ```
 
 ```redis
@@ -885,6 +987,19 @@ Redlock (N=5 인스턴스):
   Redis 4: ✅ 획득
   Redis 5: ✅ 획득
   → 4/5 성공 → 락 획득 (유효 시간 = 원래 만료 - 소요 시간)
+```
+
+성공 조건이 과반수 하나가 아니라 **소요 시간까지 포함한 두 조건**이라는 점을 아래 흐름에서 확인한다.
+
+```mermaid
+flowchart TD
+    S1["현재 시간 T1 기록"] --> S2["5개 인스턴스에 순차 락 요청 (짧은 타임아웃)"]
+    S2 --> C1{"과반수(3개 이상) 획득?"}
+    C1 -- 아니오 --> F["모든 인스턴스에서 락 해제"]
+    C1 -- 예 --> C2{"총 소요 시간 < 만료 시간?"}
+    C2 -- 아니오 --> F
+    C2 -- 예 --> OK["락 획득 성공 (유효 시간 = 원래 만료 - 소요 시간)"]
+    F --> NG["락 획득 실패"]
 ```
 
 ### 5.3 Node.js ioredis 분산 락
@@ -1452,6 +1567,19 @@ BGSAVE(RDB 저장)나 AOF 재작성 시 Redis는 `fork()`를 호출한다. Copy-
      # Replica에서 BGSAVE 실행
 ```
 
+위 시나리오가 왜 메모리를 2배로 만드는지는 아래 흐름으로 보면 된다. 부모가 쓰는 만큼 자식과 공유하던 페이지가 복사된다.
+
+```mermaid
+flowchart TD
+    B1["BGSAVE 또는 AOF 재작성"] --> B2["fork() 호출"]
+    B2 --> B3["부모와 자식이 메모리 페이지를 공유"]
+    B3 --> B4["부모(Redis)가 계속 쓰기 처리"]
+    B4 --> B5["쓰기가 닿은 페이지를 CoW로 복사"]
+    B5 --> B6{"부모 + 복사본이 물리 메모리 이내?"}
+    B6 -- 예 --> B7["저장 완료, 자식 종료, 메모리 반환"]
+    B6 -- 아니오 --> B8["OOM Killer 발동 또는 swap 폭주"]
+```
+
 ### 8.5 maxmemory 설정 실수로 인한 장애
 
 실제로 많이 겪는 장애 패턴이다.
@@ -1595,6 +1723,23 @@ Lettuce 6.x부터 Client-side Caching 지원:
       TrackingArgs.Builder.enabled()
   );
   String value = frontend.get("user:1000");  // 로컬 캐시 → 미스 시 서버 조회
+```
+
+위 5단계를 클라이언트 둘의 관점에서 풀어 쓴 순서다. 무효화 메시지가 유실되면 4번이 일어나지 않는다는 점이 best-effort의 의미다.
+
+```mermaid
+sequenceDiagram
+    participant A as 클라이언트 A
+    participant R as Redis 서버
+    participant B as 클라이언트 B
+    A->>R: GET user:1000
+    R-->>A: 응답 + 키 추적 시작
+    Note over A: 응답값을 로컬 메모리에 캐시
+    B->>R: SET user:1000 new
+    R-->>A: 무효화 메시지 전송
+    Note over A: 로컬 캐시에서 user:1000 삭제
+    A->>R: GET user:1000 (다시 요청)
+    R-->>A: new
 ```
 
 Redis에 대한 네트워크 요청 자체를 줄이므로 읽기 비율이 높은 워크로드에서 지연 시간이 크게 줄어든다. 단, 캐시 일관성은 best-effort다. 네트워크 문제로 무효화 메시지가 유실될 수 있으므로 로컬 캐시에 TTL을 함께 설정하는 게 안전하다.
@@ -1784,6 +1929,20 @@ const v = await this.redis.incr('userList:version');   // 무효화 = 버전 1 �
 
 §2.3의 설명은 맞지만 한계가 분명하다. Redis 복제는 비동기라 **마스터는 레플리카의 ACK를 기다리지 않고 클라이언트에 OK를 반환한다.** `min-replicas-to-write 1`은 "연결된 레플리카가 1대 이상인가"만 확인할 뿐, 방금 그 쓰기가 레플리카에 도달했는지는 보지 않는다.
 
+아래 순서에서 클라이언트가 OK를 받는 시점이 복제보다 앞선다는 점을 본다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant M as 마스터
+    participant R as 레플리카
+    C->>M: SET key value
+    M-->>C: OK (레플리카 ACK를 기다리지 않음)
+    M->>R: 복제 전송 (비동기)
+    Note over M,R: 이 사이에 파티션이 나면 쓰기가 레플리카에 도달하지 못한다
+    Note over R: 페일오버로 승격되면 해당 쓰기는 사라진다
+```
+
 파티션이 생긴 직후 `min-replicas-max-lag`(10초) 동안은 마스터가 여전히 쓰기를 받는다. 그 10초치 쓰기는 페일오버 후 사라진다. 이 옵션은 **손실 창을 유한하게 만드는 것**이지 없애는 게 아니다.
 
 정말 유실이 곤란한 데이터는 Redis에 최종 저장하지 않는다. Redis는 캐시·세션·큐로 쓰고, 원장은 RDB에 둔다. `WAIT` 명령으로 특정 쓰기의 복제를 확인할 수는 있지만 지연이 크게 늘어난다.
@@ -1872,6 +2031,19 @@ lfu-decay-time 1    # 분 단위. 이 주기마다 카운터가 감소 (기본 1
 키 접근 패턴 파악 전:
   → allkeys-lru로 시작
   → OBJECT FREQ, INFO stats 확인 후 필요하면 lfu로 전환
+```
+
+위 기준을 질문 순서로 정리한 흐름이다.
+
+```mermaid
+flowchart TD
+    E0["maxmemory 도달 시 정책 선택"] --> E1{"데이터를 잃으면 안 되는가?"}
+    E1 -- "예 (세션 전용, 큐, 영속 데이터)" --> N["noeviction + 80% 임계값 알람"]
+    E1 -- 아니오 --> E2{"TTL 없는 키가 섞여 있는가?"}
+    E2 -- "예 (캐시 + 세션 혼용)" --> V["volatile-lru, 캐시 키에 TTL 필수"]
+    E2 -- "아니오 (캐시 전용)" --> E3{"hot/cold 패턴이 명확한가?"}
+    E3 -- 예 --> LFU["allkeys-lfu"]
+    E3 -- "아니오 또는 파악 전" --> LRU["allkeys-lru"]
 ```
 
 ```bash
@@ -2020,6 +2192,24 @@ lazyfree-lazy-eviction yes     # Eviction 시 비동기 삭제
 ### 12.4 Pipeline으로 RTT 절감
 
 Redis 단일 명령 처리 속도가 빨라도 RTT(Round-Trip Time)가 병목이 된다. 같은 데이터센터 안에서 Redis 호출이 0.1ms이면 1,000번에 100ms다. Pipeline은 여러 명령을 한 번의 네트워크 왕복으로 보낸다.
+
+순차 호출과 Pipeline의 차이는 왕복 횟수다. 아래 순서에서 RTT가 3번에서 1번으로 줄어든다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant R as Redis
+    Note over C,R: 순차 호출 - RTT 3번
+    C->>R: GET user:1
+    R-->>C: 응답 1
+    C->>R: HGETALL session:1
+    R-->>C: 응답 2
+    C->>R: SMEMBERS user:1:roles
+    R-->>C: 응답 3
+    Note over C,R: Pipeline - RTT 1번
+    C->>R: GET, HGETALL, SMEMBERS를 한 번에 전송
+    R-->>C: 응답 3개를 순서대로 반환
+```
 
 #### MGET vs Pipeline
 
