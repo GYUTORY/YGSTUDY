@@ -1,7 +1,7 @@
 ---
 title: 세션 캐시와 데이터 캐시 분리 설계
 tags: [redis, cache, backend, architecture, auth, performance]
-updated: 2026-09-27
+updated: 2026-11-05
 ---
 
 # 세션 캐시와 데이터 캐시 분리 설계
@@ -22,17 +22,108 @@ eviction 정책 하나로 "중요한 건 지우지 말고 중요하지 않은 �
 
 ## Redis DB 분리가 해결책이 아닌 이유
 
-Redis는 인스턴스 안에 데이터베이스 번호(0~15)를 지원한다. `SELECT 0`에는 세션, `SELECT 1`에는 데이터 캐시를 두는 방식이다.
+Redis는 인스턴스 안에 데이터베이스 번호(기본 0~15)를 지원한다. `SELECT 0`에는 세션, `SELECT 1`에는 데이터 캐시를 두는 방식이다. 설정 한 줄로 끝나고 `INFO keyspace`에도 `db0`, `db1`이 따로 찍혀서 분리된 것처럼 보인다. 프로덕션에서 쓰지 않는 이유는 네 가지다.
 
-분리된 것처럼 보이지만 실제로는 같은 메모리 풀을 공유한다. `maxmemory`와 `maxmemory-policy`는 인스턴스 전체에 적용된다. DB 1번에 캐시가 쌓여 메모리가 꽉 차면 DB 0번의 세션도 eviction 대상이 된다. 네임스페이스만 나뉠 뿐 격리는 없다.
+### maxmemory와 eviction 정책을 같이 쓴다
 
-Lettuce는 기본적으로 DB 번호 선택을 지원하지만 연결 풀 구성이 복잡해진다. Spring Data Redis도 DB 번호를 설정할 수 있으나 프로덕션 용도로 권장되지 않는다. 로컬 개발에서 네임스페이스를 나눌 때 쓰는 것이 맞는 용도다.
+`maxmemory`와 `maxmemory-policy`는 인스턴스 하나에 하나씩만 있다. DB 별 한도도, DB 별 정책도 없다. DB 1번에 캐시가 쌓여 메모리가 차면 Redis는 DB 번호를 가리지 않고 모든 DB의 키에서 eviction 후보를 뽑는다. 정책이 `allkeys-lru`면 DB 0번의 세션도 후보다.
+
+정책을 하나로 정해야 하는 순간 양쪽 요구가 부딪힌다. 캐시를 위해 `allkeys-lru`로 두면 세션이 날아가고, 세션을 위해 `noeviction`으로 두면 캐시 쓰기가 `OOM command not allowed`로 실패한다. 캐시 쓰기 실패는 DB 조회로 우회되니 곧바로 장애가 되지는 않지만, 그 우회 트래픽이 DB를 압박하고 세션 쓰기까지 같은 에러로 막힌다.
+
+아래 그림은 DB 번호를 나눠도 한도와 정책이 인스턴스 하나에 묶여 있어서 eviction 후보가 DB 경계를 넘는다는 점을 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph INST["Redis 인스턴스 하나 (maxmemory, maxmemory-policy 하나)"]
+        DB0["DB 0: session:*"]
+        DB1["DB 1: product:*"]
+    end
+    DB1 -->|"캐시 적재로 maxmemory 도달"| EV["eviction: DB 번호를 가리지 않고 후보 선정"]
+    EV -->|"allkeys-lru면 후보"| DB0
+    EV -->|"후보"| DB1
+```
+
+아래 시퀀스는 플래시 세일 중에 `allkeys-lru` 인스턴스에서 벌어지는 일이다. 세션 키가 DB 0에 있어도 eviction 대상에서 빠지지 않는다는 점, 그리고 재로그인이 다시 세션을 쓰면서 악순환이 생기는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant A as 앱 서버
+    participant R as Redis 인스턴스 하나
+    participant D as RDBMS
+
+    U->>A: 상품 목록 조회 (세션 쿠키 포함)
+    A->>R: SELECT 1, SET product:list:*
+    Note over R: DB 1 캐시 적재로 used_memory가 maxmemory에 도달
+    R->>R: allkeys-lru로 eviction 시작
+    Note over R: 20분째 조회 중이던 DB 0의 session 키가 LRU 후보에 포함
+    R->>R: session:abc123 삭제
+    U->>A: 결제 요청 (session:abc123)
+    A->>R: SELECT 0, GET session:abc123
+    R-->>A: nil
+    A-->>U: 401, 로그인 화면으로 이동
+    U->>A: 재로그인
+    A->>R: SELECT 0, SET session:new
+    Note over R: 새 세션이 메모리를 더 차지, 또 다른 세션이 후보로 밀림
+    A->>D: 캐시 miss가 늘어 상품 조회가 DB로 쏠림
+    D-->>A: 응답 지연
+```
+
+로그아웃당한 사용자가 한꺼번에 재로그인하면 인증 API와 세션 쓰기가 몰리고, 그 쓰기가 다시 eviction을 일으킨다. 이 흐름은 로컬에서 `maxmemory 3mb`로 낮추고 DB 1에 1KB짜리 키를 수천 개 쓰면 DB 0의 세션 수십 개가 사라지는 것으로 재현된다. 재현 과정은 [Redis 논리 DB 번호](../../DataBase/NoSQL/Redis/Redis_Database_Number.md)에 정리해 두었다.
+
+### FLUSHDB와 FLUSHALL의 범위를 사람이 기억해야 한다
+
+`FLUSHDB`는 현재 연결이 선택한 DB만 비운다. 그런데 `redis-cli`를 `-n` 없이 붙이면 0번이고, 0번에는 보통 세션이 있다. 캐시를 비우려고 붙었는데 접속한 곳이 캐시 DB가 아니라 세션 DB였다면 전체 사용자가 로그아웃된다. `FLUSHALL`은 DB 번호와 무관하게 전부 지운다. "내 DB만 비운다"는 감각으로 `FLUSHALL`을 치는 사고는 번호로 용도를 나눈 인스턴스에서 가장 흔하다.
+
+인스턴스가 분리돼 있으면 접속 호스트가 곧 대상이다. 세션 Redis 호스트에 캐시 비우는 명령을 칠 일이 구조적으로 사라진다. 호스트 이름이 틀리는 사고는 여전히 있지만, DB 번호까지 한 단계 더 틀릴 수 있는 지점은 없어진다.
+
+### Redis Cluster는 DB 0만 쓴다
+
+Redis Cluster에서 `SELECT 1`을 보내면 `ERR SELECT is not allowed in cluster mode`가 나온다. 단일 인스턴스에서 DB 번호로 세션과 캐시를 나눠 쓰다가 트래픽이 늘어 Cluster로 옮기려 하면 키 설계부터 다시 해야 한다. 이때 서비스 코드의 `SELECT` 호출, 연결 설정, 키 마이그레이션이 한꺼번에 걸린다. ElastiCache의 클러스터 모드 활성화 구성도 같은 제약이다. 규모가 커질 가능성이 있는 서비스면 처음부터 DB 번호에 의존하지 않는 편이 낫다.
+
+### ACL로 DB 단위 권한을 줄 수 없다
+
+Redis 6의 ACL은 명령, 키 패턴, 채널 단위로 권한을 나눈다. DB 번호는 권한 대상이 아니다. 캐시 서비스 계정에 `~cache:*`만 허용해도 `SELECT 0` 후 `FLUSHDB`를 막을 수 없다. `FLUSHDB`는 키 인자가 없어서 키 패턴 검사를 통과하기 때문이다. "캐시 쪽 계정은 1번만 쓰게 한다"는 정책은 만들 수 없고, 세션 데이터를 보호하려면 결국 `-flushdb -flushall` 같은 명령 차단에 기대야 한다.
+
+### 클라이언트 쪽 부담
+
+Lettuce와 Spring Data Redis는 DB 번호를 설정으로 지정할 수 있다. 다만 `SELECT`는 연결에 붙는 상태라서 풀에서 꺼낸 연결이 어느 DB를 보고 있는지 코드가 보장해야 한다. 재연결 후 `SELECT`가 빠진 연결이 0번에 캐시를 쓰는 사고가 나기도 한다. 로컬 개발에서 한 인스턴스로 여러 서비스를 띄울 때 네임스페이스를 나누는 용도라면 문제없다.
+
+### 분리 방식 비교
+
+세션과 캐시를 나누는 방법은 세 가지로 정리된다. 키 prefix만 나누는 방식은 DB 번호보다 Cluster와 ACL 면에서 낫지만, 메모리와 eviction 정책은 똑같이 공유한다.
+
+| 항목 | DB 번호 분리 | 인스턴스 하나, 키 prefix | 인스턴스 분리 | 별도 클러스터 |
+|---|---|---|---|---|
+| maxmemory·eviction 격리 | 안 됨 | 안 됨 | 됨 | 됨 |
+| 정책을 따로 지정 | 불가 | 불가 | 가능 (`noeviction` / `allkeys-lru`) | 가능 |
+| FLUSH 사고 범위 | `FLUSHALL`은 전체, `FLUSHDB`는 접속 DB | `FLUSHALL`은 전체 | 접속한 인스턴스만 | 접속한 클러스터만 |
+| ACL 권한 분리 | 불가 | 키 패턴으로 가능 | 인스턴스 단위로 가능 | 가능 |
+| Redis Cluster | 불가 | 가능 | 각각 선택 가능 | 가능 |
+| 영속성 설정 분리 | 불가 | 불가 | 가능 | 가능 |
+| 비용·운영 부담 | 가장 낮음 | 낮음 | 노드 수만큼 증가 | 가장 높음, 샤딩과 failover를 따로 운영 |
+| 적합한 규모 | 로컬 개발 | 소규모, 세션 손실이 치명적이지 않은 서비스 | 대부분의 프로덕션 | 세션 또는 캐시 한쪽이 단일 노드 메모리를 넘는 경우 |
+
+세션 데이터는 보통 작고 증가 속도가 느려서 단일 인스턴스(복제본 포함)로 충분하다. 캐시는 용량이 훨씬 커서 먼저 Cluster가 필요해지는 쪽이다. 그래서 실무에서는 세션은 작은 단일 인스턴스에 `noeviction`, 캐시는 Cluster 또는 큰 인스턴스에 `allkeys-lru` 조합이 가장 많다.
 
 ---
 
 ## 인스턴스 분리 기준
 
 세션이 인증 상태를 저장한다면 분리가 기본값이다. JWT refresh token, OAuth access token, 로그인 세션처럼 사라지면 사용자가 인증 흐름을 다시 거쳐야 하는 데이터는 eviction 가능한 캐시 저장소에 두지 않는다.
+
+아래 흐름도는 이 절의 판단 기준을 순서대로 묶은 것이다. 어느 분기에서든 하나라도 걸리면 분리 쪽으로 간다는 점을 보면 된다.
+
+```mermaid
+flowchart TD
+    S["저장할 데이터"] --> Q1{"인증 상태를 저장하는가"}
+    Q1 -->|"예 (refresh token, OAuth access token, 로그인 세션)"| SEP["세션 Redis 분리, noeviction"]
+    Q1 -->|"아니오"| Q2{"트래픽 패턴이나 영속성 요구가 세션과 다른가"}
+    Q2 -->|"예 (이벤트 급등, 배치 워밍, 영속성 불필요)"| SEP
+    Q2 -->|"아니오"| Q3{"eviction 이력 없음, 세션 손실 무방, 데이터 캐시 키 TTL 강제 가능"}
+    Q3 -->|"모두 충족"| SH["같은 인스턴스, volatile-lru"]
+    Q3 -->|"하나라도 미충족"| SEP
+```
 
 트래픽 패턴이 다를 때도 분리한다. 세션 접근은 요청마다 일정하게 발생하지만 데이터 캐시는 이벤트에 따라 급등하거나 배치 워밍으로 한꺼번에 적재된다. 같은 인스턴스에 두면 데이터 캐시 부하가 세션 레이턴시에 영향을 준다.
 
@@ -59,6 +150,26 @@ redis-cli -h cache-redis  INFO stats | grep evicted_keys
 Fixed TTL은 세션 생성 시점에 만료 시각이 결정된다. 30분 TTL이면 마지막 활동과 무관하게 생성 후 30분이 지나면 만료된다. 슬라이딩 윈도우는 "마지막 활동"으로부터 TTL이 재설정된다. 요청이 들어올 때마다 만료 시각을 미룬다.
 
 Redis에는 슬라이딩 윈도우 TTL이 내장되어 있지 않다.
+
+아래 시퀀스는 활동 중인 세션이 요청마다 만료 시각을 미루는 흐름이다. GET과 EXPIRE가 두 번의 왕복이라는 점, 그 사이가 비는 구간이라는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant C as 클라이언트
+    participant A as 앱 서버
+    participant R as Redis
+
+    C->>A: 로그인 (t=0분)
+    A->>R: SET session:abc123 (TTL 30분)
+    Note over R: Fixed TTL이면 t=30분에 활동 여부와 무관하게 만료
+    C->>A: 요청 (t=20분)
+    A->>R: GET session:abc123
+    R-->>A: 세션 데이터
+    Note over A,R: 이 사이에 TTL이 만료되면 갱신 없이 null
+    A->>R: EXPIRE session:abc123 (TTL 30분)
+    Note over R: 슬라이딩 윈도우는 만료 시각이 t=50분으로 밀림
+    A-->>C: 응답
+```
 
 ### 기본 구현 (GET + EXPIRE)
 
@@ -168,6 +279,24 @@ redis-cli TTL session:abc123
 상품 정보를 수정하면 단일 키 하나를 지우는 것으로 끝나지 않는 경우가 많다. `product:detail:{id}` 외에도 그 상품이 포함된 카테고리 목록 캐시, 검색 결과 캐시, 추천 캐시가 모두 무효화 대상이 된다. 변경이 생길 때마다 어떤 키를 지워야 하는지 호출 측이 알아야 한다면 코드가 복잡해진다.
 
 태그 기반 무효화는 캐시를 저장할 때 태그 집합에 키를 등록해두고, 태그 단위로 한 번에 무효화한다.
+
+아래 그림은 태그 집합이 데이터 키를 가리키는 구조다. 상세 캐시는 태그 두 개에 걸려 있어서 카테고리 무효화와 상품 무효화 어느 쪽으로도 지워진다.
+
+```mermaid
+flowchart LR
+    subgraph TAGS["태그 집합 (SET)"]
+        TP["tag:product:1001"]
+        TC["tag:category:7"]
+    end
+    subgraph KEYS["데이터 키"]
+        K1["product:detail:1001"]
+        K2["product:list:category:7"]
+    end
+    TP --> K1
+    TC --> K1
+    TC --> K2
+    INV["invalidate_category(7)"] -->|"SMEMBERS 후 DEL"| TC
+```
 
 ```python
 import json
