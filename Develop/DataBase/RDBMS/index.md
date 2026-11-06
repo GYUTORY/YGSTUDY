@@ -3,14 +3,14 @@ title: RDBMS 전체 보기
 tags: []
 hide:
   - toc
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 <!-- AUTO-SECTION-INDEX: tools/section_index.py 가 빌드마다 다시 만든다. 직접 고치지 말 것. -->
 
 # RDBMS 전체 보기
 
-문서 63개.
+문서 64개.
 
 ## 인덱스
 
@@ -84,6 +84,7 @@ updated: 2026-11-06
 - [Row Level Security](Row_Level_Security.md)
 - [Schema-Per-Tenant](Schema_Per_Tenant.md)
 - [Shared Table](Shared_Table.md)
+- [Snowflake ID](Snowflake_ID.md)
 - [XA와 2PC 구현 내부](XA_Two_Phase_Commit.md)
 - [gh-ost](gh_ost.md)
 - [pt-online-schema-change](pt_online_schema_change.md)

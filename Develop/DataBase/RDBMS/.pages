@@ -51,6 +51,7 @@ nav:
     - Bitemporal: Bitemporal.md
   - 키와 타입 설계:
     - 식별자 설계: Identifier_Design.md
+    - Snowflake ID: Snowflake_ID.md
     - 자연키: Natural_Key.md
     - 대리키: Surrogate_Key.md
     - AUTO_INCREMENT: Auto_Increment.md
