@@ -1,7 +1,7 @@
 ---
 title: 자연키
 tags: [database, rdbms]
-updated: 2026-07-30
+updated: 2026-11-14
 ---
 
 # 자연키
@@ -23,6 +23,100 @@ ISO 4217 통화 코드 `CHAR(3)`은 알파벳 3자 조합으로 표현 가능한
 관리 주체가 외부 기관인지 내부인지 구분한다. 외부 기관이 키 공간을 관리하면 내부 정책 변경과 무관하게 유일성이 유지된다. 내부에서 관리하는 키는 정책 변경, 조직 개편, 시스템 통합 시 키 공간 자체가 흔들린다.
 
 키 공간 자체가 재정의될 가능성도 있다. ISBN-10에서 ISBN-13으로의 전환, 한국 우편번호 6자리→5자리 개편이 여기에 해당한다. 외부 기관이 관리하는 키라도 그 기관이 기준을 바꾸면 기존 키 공간이 무효화된다.
+
+## 자연키가 깨지는 경로
+
+흔한 자연키 후보가 PK 자격을 잃는 경로는 네 가지다. 값이 바뀌거나, 다른 대상에게 재할당되거나, 같은 대상이 값을 둘 이상 갖거나, 형식 자체가 개편된다. 후보마다 어느 경로를 타는지 따져 보는 편이 "이건 안 변하겠지"라는 감보다 정확하다.
+
+```mermaid
+flowchart TD
+    EM["이메일"]
+    PH["휴대폰 번호"]
+    RR["주민등록번호"]
+    BR["사업자등록번호"]
+    IS["ISBN"]
+
+    CH["값이 바뀐다"]
+    RE["다른 대상에게 재할당된다"]
+    DU["한 대상이 값을 여러 개 갖는다"]
+    FM["형식이 개편된다"]
+
+    EM -->|"사용자가 주소 변경"| CH
+    EM -->|"도메인 만료 후 재취득"| RE
+    EM -->|"대소문자, 별칭 표기"| DU
+    PH -->|"번호 변경, 통신사 이동"| CH
+    PH -->|"해지 후 다른 가입자에게 재할당"| RE
+    RR -->|"유출 피해 시 번호 변경"| CH
+    BR -->|"법인 전환 시 새 번호"| CH
+    BR -->|"사업장마다 번호 발급"| DU
+    IS -->|"판형, 전자책마다 별도 번호"| DU
+    IS -->|"ISBN-10에서 ISBN-13"| FM
+
+    CH --> R1["PK를 참조하는 모든 FK를 UPDATE"]
+    RE --> R2["서로 다른 사람의 이력이 한 PK에 합쳐진다"]
+    DU --> R3["같은 대상이 여러 행으로 쪼개진다"]
+    FM --> R4["컬럼 타입과 자식 FK 전부 변경"]
+```
+
+위 그림에서 후보 하나에서 나가는 화살표가 둘 이상이면 그 키는 한 가지 이유로만 깨지지 않는다는 뜻이다. 오른쪽 끝 네 상자가 실제로 장애가 되는 결과이고, 이 중 `다른 대상에게 재할당된다`가 가장 늦게 발견된다. 값이 바뀌거나 형식이 바뀌는 건 에러가 나서 바로 알지만, 재할당은 에러 없이 데이터가 섞인다.
+
+주민등록번호는 번호 자체보다 처리 제한이 문제다. 유출 피해가 인정되면 번호를 바꿀 수 있고(2017년 시행), 개인정보보호법상 처리가 원칙적으로 제한돼 있다. PK로 쓰면 이 번호가 자식 테이블, 인덱스, 로그, URL까지 퍼진다.
+
+사업자등록번호는 사업장 단위로 발급되어서 개인사업자 한 명이 여러 번호를 갖는다. 법인으로 전환하면 새 번호를 받는다. "회사 한 곳 = 사업자번호 하나"라는 가정으로 유일 키를 잡으면 B2B 정산 데이터를 합칠 때 같은 거래처가 둘로 갈린다.
+
+### 휴대폰 번호 재할당
+
+휴대폰 번호를 회원 PK로 쓴 시스템에서 가장 늦게 드러나는 사고가 재할당이다. 통신사는 해지된 번호를 일정 기간 뒤 다른 가입자에게 다시 내준다. 그 사이 서비스 쪽에서는 해지를 알 방법이 없다.
+
+```mermaid
+stateDiagram-v2
+    state "가입자 A가 사용" as UsedA
+    state "해지" as Canceled
+    state "통신사 보관" as Hold
+    state "가입자 B가 사용" as UsedB
+
+    [*] --> UsedA : A가 번호 개통
+    UsedA --> Canceled : A가 통신사 해지
+    Canceled --> Hold : 서비스는 해지 사실을 모름
+    Hold --> UsedB : B에게 재할당
+    UsedB --> [*] : B가 서비스에 가입
+```
+
+서비스 입장에서 `UsedA`에서 `UsedB`까지는 아무 이벤트도 오지 않는다. B가 가입하는 시점에 같은 번호의 A 행이 살아 있다. 이 시점의 DB 반응은 두 갈래로 갈린다. 재현하면 이렇다.
+
+```sql
+CREATE TABLE members (phone CHAR(11) PRIMARY KEY, name VARCHAR(50), canceled_at DATETIME NULL);
+CREATE TABLE payments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    phone CHAR(11) NOT NULL, amount INT,
+    FOREIGN KEY (phone) REFERENCES members(phone)
+);
+
+INSERT INTO members VALUES ('01012345678', '김A', NULL);
+INSERT INTO payments (phone, amount) VALUES ('01012345678', 30000);
+UPDATE members SET canceled_at = NOW() WHERE phone = '01012345678';   -- 소프트 삭제
+
+INSERT INTO members VALUES ('01012345678', '박B', NULL);
+-- ERROR 1062 (23000): Duplicate entry '01012345678' for key 'members.PRIMARY'
+
+DELETE FROM members WHERE phone = '01012345678';
+-- ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails
+```
+
+소프트 삭제로 A 행을 남겨두면 B 가입이 PK 중복으로 막힌다. 행을 지우려 해도 A의 결제 이력이 FK로 걸려 있어 지워지지 않는다. 여기서 FK에 `ON DELETE CASCADE`를 걸어 풀면 A의 결제 이력이 사라지고, `canceled_at`을 `NULL`로 되돌려 번호를 B에게 넘기면 A의 결제 이력이 B 계정에 붙는다. 어느 쪽이든 PK가 "사람"이 아니라 "번호"를 가리키는 데서 생긴 문제다.
+
+회원 식별은 대리키로 하고, 번호는 `phone`에 두되 유일성을 "현재 활성 회원 중에서만" 보장하는 쪽으로 푼다. MySQL에는 부분 유니크 인덱스가 없다. `(phone, canceled_at)` 복합 UNIQUE는 `NULL`을 서로 다른 값으로 취급해 활성 회원끼리의 중복을 못 막으니, 활성일 때만 `phone`을 갖고 아니면 `NULL`인 생성 컬럼을 만들어 거기에 UNIQUE를 건다. PostgreSQL은 [부분 인덱스](부분_인덱스.md)로 `WHERE canceled_at IS NULL` 조건을 건다.
+
+### 이메일 대소문자
+
+이메일은 같은 사람이 `Kim@Example.com`과 `kim@example.com`으로 들어오는 경우가 있다. UNIQUE가 이걸 중복으로 보는지는 DB와 collation에 달려 있다.
+
+| DB | 설정 | `'Kim@Example.com'` 뒤에 `'kim@example.com'` INSERT |
+|---|---|---|
+| MySQL 8.0.46 | 기본 `utf8mb4_0900_ai_ci` | `ERROR 1062 Duplicate entry` |
+| PostgreSQL 16 | `varchar` 기본 | 성공, 두 행이 공존 |
+
+같은 스키마가 DB를 바꾸면 유일성의 의미가 달라진다. 자연키로 이메일을 쓰려면 저장 전에 소문자로 정규화하는 규칙을 애플리케이션에 못 박아야 하고, 그 규칙을 지키는 책임이 DB 밖에 있다는 점은 변하지 않는다.
 
 ## 자연키가 적합한 경우
 
@@ -124,90 +218,96 @@ CREATE TABLE order_history (
 
 자연키에 `ON UPDATE CASCADE`는 키가 절대 바뀌지 않는 환경(ISO 코드류)에서만 안전하다. 조금이라도 변경 가능성이 있는 키라면 대리키로 분리하는 것이 낫다.
 
-## 복합 자연키를 FK로 쓸 때 조인 복잡도
+## 복합 자연키를 FK로 쓸 때 인덱스 크기와 조인 조건
 
-ISO 코드처럼 단순한 단일 컬럼 자연키는 FK 선언이 깔끔하다. 복합 자연키를 FK로 참조할 때부터 복잡도가 누적된다.
+ISO 코드처럼 단일 컬럼 자연키는 FK 선언이 깔끔하다. 복합 자연키를 자식 테이블이 FK로 참조하는 순간부터 부모의 키 컬럼 전부가 자식 행과 자식의 FK 인덱스에 복제된다. 한 단계 더 내려가 손자 테이블이 생기면 같은 컬럼이 다시 복제된다.
 
-```sql
--- 제품과 버전의 조합을 복합 자연키로 관리
-CREATE TABLE product_versions (
-    product_code VARCHAR(20) NOT NULL,
-    version      INT NOT NULL,
-    description  TEXT,
-    released_at  DATE NOT NULL,
-    PRIMARY KEY (product_code, version)
-);
-
-CREATE TABLE version_reviews (
-    id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    product_code VARCHAR(20) NOT NULL,
-    version      INT NOT NULL,
-    reviewer     VARCHAR(100) NOT NULL,
-    score        TINYINT NOT NULL,
-    FOREIGN KEY (product_code, version)
-        REFERENCES product_versions(product_code, version)
-);
+```mermaid
+flowchart LR
+    PV["product_versions<br/>PK (product_code, version)"]
+    VR["version_reviews<br/>product_code, version 복제"]
+    RC["review_comments<br/>product_code, version 다시 복제"]
+    PV -->|"복합 FK"| VR
+    PV -->|"복합 FK"| RC
+    VR -->|"review_id"| RC
 ```
 
-조인 조건이 두 컬럼이다. 여기에 `version_reviews`를 참조하는 테이블이 생기면 복합 FK가 또 전달된다.
+`product_versions`의 키 컬럼 두 개가 `version_reviews`와 `review_comments`에 각각 복제된다. 대리키였다면 두 곳 모두 `version_id` 8바이트 하나다.
+
+### 측정 환경
+
+크기는 추정하지 않고 같은 데이터로 두 구조를 만들어 쟀다. MySQL 8.0.46, InnoDB, 버퍼 풀 기본값 128MB, 문자셋 utf8mb4다.
+
+- 제품 20,000개 × 버전 5개 = `product_versions` 100,000행. `product_code`는 `PROD-000123` 형식 11자 `VARCHAR(20)`
+- `version_reviews` 2,000,000행(버전당 20건), `review_comments` 1,000,000행
+- 구조 A는 `(product_code, version)` 복합 PK와 복합 FK. 구조 B는 `id BIGINT` PK, 복합 키는 `UNIQUE`, 자식은 `version_id BIGINT` FK
+- 부모는 키 순서대로 적재했다. 랜덤 순서로 넣으면 페이지가 덜 차서 두 구조 모두 이보다 커진다
 
 ```sql
-CREATE TABLE review_comments (
-    id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    product_code VARCHAR(20) NOT NULL,
-    version      INT NOT NULL,
-    review_id    BIGINT NOT NULL,
-    comment      TEXT,
-    FOREIGN KEY (product_code, version)
-        REFERENCES product_versions(product_code, version),
-    FOREIGN KEY (review_id) REFERENCES version_reviews(id)
-);
-```
-
-`product_code`와 `version`이 `review_comments`까지 퍼진다. 테이블이 늘어날수록 복합 FK가 계속 전달된다. 인덱스 크기가 커지고, INSERT 시 복합 FK 검증 비용도 증가한다. 조인 조건도 매번 두 컬럼을 써야 한다.
-
-```sql
--- 복합 자연키로 조인할 때
-SELECT pv.product_code, pv.version, AVG(vr.score) AS avg_score
-FROM product_versions pv
-JOIN version_reviews vr
-    ON pv.product_code = vr.product_code
-    AND pv.version = vr.version
-WHERE pv.product_code = 'PROD-001'
-GROUP BY pv.product_code, pv.version;
-```
-
-대리키를 쓰면 `version_id BIGINT` 하나가 복합 FK 전체를 대체한다.
-
-```sql
-CREATE TABLE product_versions (
-    id           BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    product_code VARCHAR(20) NOT NULL,
-    version      INT NOT NULL,
-    released_at  DATE NOT NULL,
-    UNIQUE INDEX uq_product_version (product_code, version)
+-- 구조 A: 자식에 복합 FK
+CREATE TABLE a_reviews (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  product_code VARCHAR(20) NOT NULL,
+  version INT NOT NULL,
+  reviewer VARCHAR(100) NOT NULL,
+  score TINYINT NOT NULL,
+  FOREIGN KEY (product_code, version) REFERENCES a_versions(product_code, version)
 );
 
-CREATE TABLE version_reviews (
-    id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    version_id BIGINT NOT NULL,
-    reviewer   VARCHAR(100) NOT NULL,
-    score      TINYINT NOT NULL,
-    FOREIGN KEY (version_id) REFERENCES product_versions(id)
+-- 구조 B: 자식에 BIGINT FK 하나
+CREATE TABLE b_reviews (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  version_id BIGINT NOT NULL,
+  reviewer VARCHAR(100) NOT NULL,
+  score TINYINT NOT NULL,
+  FOREIGN KEY (version_id) REFERENCES b_versions(id)
 );
 ```
 
-조인 조건도 단순해진다.
+### 크기 비교
+
+`information_schema`가 아니라 `mysql.innodb_index_stats`의 `size`(페이지 수 × 16KB)로 인덱스별로 쟀다.
+
+| 테이블 (행 수) | 항목 | A 복합 자연키 | B 대리키 | A / B |
+|---|---|---|---|---|
+| `version_reviews` (2,000,000) | 클러스터드(데이터) | 103.6MB | 86.6MB | 1.20 |
+| | FK 보조 인덱스 | 57.6MB | 41.6MB | 1.38 |
+| | 합계 | 161.2MB | 128.2MB | 1.26 |
+| `review_comments` (1,000,000) | 클러스터드(데이터) | 55.6MB | 47.6MB | 1.17 |
+| | 버전 FK 보조 인덱스 | 28.6MB | 21.6MB | 1.32 |
+| | `review_id` 보조 인덱스 | 21.6MB | 21.6MB | 1.00 |
+| `product_versions` (100,000) | PK + UNIQUE | 4.5MB | 5.5MB + 3.5MB | 0.50 |
+| 세 테이블 합계 | | 271.5MB | 228.0MB | 1.19 |
+
+FK 보조 인덱스 항목 하나는 인덱스 컬럼 값에 클러스터드 PK(8바이트)가 붙는다. A는 `PROD-000123`(11바이트 + 길이 1바이트) + `INT` 4바이트 + PK 8바이트로 24바이트, B는 8 + 8로 16바이트다. 24 대 16이면 1.5배인데 실측은 1.38배였다. 페이지 헤더와 채움률이 고정비로 끼기 때문이다.
+
+클러스터드 인덱스 쪽 차이(2,000,000행에서 17MB)는 행마다 복제된 키 컬럼에서 나온다. 행당 약 8바이트 차이다. 부모 테이블은 B가 오히려 두 배 크지만 10만 행이라 차이가 4.5MB다. 부모에서 늘어난 만큼보다 자식에서 줄어든 만큼이 크고, 자식 테이블이 늘수록 그 폭이 벌어진다.
+
+`product_code`가 11자라서 이 정도다. 실제 SKU나 공급사 코드가 20자를 채우면 A의 FK 인덱스 항목은 30바이트 가까이 간다. 반대로 키가 `CHAR(3)` 통화 코드라면 B와 차이가 거의 없다.
+
+### 조회 시간은 갈리지 않았다
+
+같은 데이터에서 `EXPLAIN`을 보면 단건 조회는 두 구조 모두 `ref` 접근이다. `key_len`만 다르다.
+
+| 쿼리 | A | B |
+|---|---|---|
+| 부모 조회 `product_code = 'PROD-000300'` | `PRIMARY`, key_len 82 | `uq_product_version`, key_len 82 |
+| 자식 조회 | `product_code`, key_len 86 | `version_id`, key_len 8 |
+
+제품 5,000개를 단건 조인으로 돌린 시간은 A가 16.6초와 14.4초, B가 12.3초와 15.6초였다. 두 번 돌렸는데 순서가 뒤집혔으니 차이가 있다고 볼 수 없다. 건당 3ms 안팎이고 대부분 프로시저 루프와 디스크 읽기 시간이다. 인덱스가 커서 단건 조인이 눈에 띄게 느려지는 일은 이 규모에서 없었다.
+
+범위 조건에서는 오히려 A가 빨랐다.
 
 ```sql
-SELECT pv.product_code, pv.version, AVG(vr.score)
-FROM product_versions pv
-JOIN version_reviews vr ON pv.id = vr.version_id
-WHERE pv.product_code = 'PROD-001'
-GROUP BY pv.id;
+SELECT COUNT(*), AVG(r.score)
+FROM a_versions v
+JOIN a_reviews r ON v.product_code = r.product_code AND v.version = r.version
+WHERE v.product_code BETWEEN 'PROD-000000' AND 'PROD-009999';
 ```
 
-복합 자연키가 PK인 경우, 단일 컬럼으로 FK를 선언할 수 없다. 그 구조가 두 단계 이상 전파될 수 있다면 대리키를 PK로 두고 복합 자연키를 UNIQUE 제약으로 내리는 것이 낫다.
+A는 2.1~3.0초, B(`ON v.id = r.version_id`)는 7.3~7.5초였다. 이걸 복합 키가 빠르다는 근거로 읽으면 안 된다. A의 `EXPLAIN`은 `a_reviews`를 `type: ALL`(200만 행 전체 스캔)로 읽고 부모는 `eq_ref`로 확인했다. B는 부모 범위 약 5만 행에서 시작해 자식을 `version_id` 인덱스로 찾고, `score`를 읽으려고 클러스터드 인덱스로 100만 번 되돌아간다. 같은 쿼리에서 옵티마이저가 고른 플랜이 달랐고, 버퍼 풀이 128MB라 랜덤 읽기가 비쌌던 결과다. 버퍼 풀이 데이터를 다 품는 서버에서는 순서가 바뀔 수 있다.
+
+복합 자연키의 대가는 속도보다 용량에서 먼저 나온다. 자식 행, FK 인덱스, 손자 테이블의 FK 인덱스까지 키가 복제되면서 버퍼 풀에 올려야 할 페이지가 늘고, 자식 INSERT 한 번이 갱신하는 인덱스 항목도 커진다. 조인 조건이 컬럼 둘이 되는 불편은 쿼리 작성자 몫이다. 복합 PK를 대리키로 바꾸는 판단 기준과 `order_items` 예시는 [대리키](Surrogate_Key.md)의 `복합 PK와 대리키` 절에 있다.
 
 ## 복합 자연키의 키 공간 교차 문제
 
@@ -267,6 +367,28 @@ CREATE TABLE currencies (
 ```
 
 내부 조인과 FK는 `id`(SMALLINT)를 쓴다. 외부 API나 사람이 읽는 쿼리에서는 `code`('KRW', 'USD')를 쓴다.
+
+```mermaid
+erDiagram
+    CURRENCIES {
+        smallint id PK
+        char code UK "KRW, USD (외부 연동 기준)"
+        varchar name
+    }
+    EXCHANGE_RATE_HISTORY {
+        bigint id PK
+        smallint from_currency_id FK
+        smallint to_currency_id FK
+        decimal rate
+        datetime recorded_at
+    }
+    CURRENCIES ||--o{ EXCHANGE_RATE_HISTORY : "from_currency_id"
+    CURRENCIES ||--o{ EXCHANGE_RATE_HISTORY : "to_currency_id"
+```
+
+PK(`id`)는 내부 테이블끼리의 FK 연결에만 쓰이고, UK(`code`)는 외부 요청을 받는 입구에서 한 번 `id`로 바꾸는 데만 쓰인다. 유일성 제약은 두 곳에 걸려 있지만 참조는 `id` 한 방향으로만 흐른다. `code`가 바뀌거나 형식이 개편돼도 `exchange_rate_history`는 건드리지 않는다.
+
+이 이중 키 구조에서 생기는 비용도 있다. `code`에 걸린 UNIQUE 인덱스 하나가 더 생기고, 외부 입력을 받을 때마다 `code`로 `id`를 찾는 조회가 한 번 끼어든다. 통화처럼 행이 수백 개인 테이블이면 애플리케이션 메모리에 올려두고 쓴다. 행이 수천만 건인 테이블에 같은 구조를 쓰면 이 조회가 요청마다 인덱스 룩업이 된다. 이 구조를 어느 테이블에 적용할지, 전환 순서는 어떻게 되는지는 [대리키](Surrogate_Key.md)와 [식별자 설계](Identifier_Design.md)에서 다룬다.
 
 ### 대용량 조인에서 얻는 이점
 

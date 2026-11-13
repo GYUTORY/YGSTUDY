@@ -1,7 +1,7 @@
 ---
 title: Cookie VS Session
-tags: [network, http]
-updated: 2026-07-11
+tags: [network, http, security, auth, backend]
+updated: 2026-11-13
 ---
 
 # Cookie VS Session
@@ -9,6 +9,39 @@ updated: 2026-07-11
 ## HTTP가 로그인 상태를 기억하지 못하는 문제
 
 HTTP는 Stateless 프로토콜이다. 서버는 이전 요청을 기억하지 않는다. 로그인 후 다음 요청에서도 서버가 "이 사람이 로그인했다"는 사실을 알려면 별도의 상태 저장 수단이 필요하다. 쿠키와 세션이 그 수단이다.
+
+둘은 경쟁 관계가 아니다. 세션 방식도 세션 ID를 운반할 때 쿠키를 쓴다. 갈리는 지점은 로그인 정보 자체를 어디에 두느냐다. 쿠키에 값을 직접 넣으면 브라우저가 들고 있는 값을 서버가 믿어야 하고, 세션에 두면 브라우저는 열쇠(세션 ID)만 들고 있고 값은 서버 저장소에 있다.
+
+첫 번째 도식은 쿠키에 `role=user`를 직접 담은 경우다. 개발자 도구에서 값을 `admin`으로 바꿔 보내면 서버는 구분할 방법이 없다. 두 번째 도식은 같은 로그인을 세션으로 처리한 경우로, 브라우저가 보내는 것은 임의 문자열 하나뿐이고 사용자 정보는 서버 저장소 조회로만 얻는다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant S as 서버
+    B->>S: POST /login (id, pw)
+    S-->>B: Set-Cookie userId=42, role=user
+    Note over B: 개발자 도구에서 role 값을 admin 으로 수정
+    B->>S: GET /admin, Cookie userId=42 role=admin
+    Note over S: 쿠키 값이 곧 신원이라 검증할 근거가 없다
+    S-->>B: 200 관리자 화면
+```
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant S as 서버
+    participant R as 세션 저장소
+    B->>S: POST /login (id, pw)
+    S->>R: SET sess XYZ789 userId=42 TTL 3600
+    S-->>B: Set-Cookie JSESSIONID=XYZ789
+    B->>S: GET /api/profile, Cookie JSESSIONID=XYZ789
+    S->>R: GET sess XYZ789
+    R-->>S: userId=42
+    S-->>B: 200 프로필
+    Note over B,R: 브라우저가 XYZ789 를 바꿔도 저장소에 없으면 401
+```
+
+쿠키 단독 방식을 서버 서명으로 보완하는 구조(서명 쿠키, JWT)도 있다. 값을 위조할 수는 없게 되지만 서버가 강제로 무효화할 수 없고, 크기가 쿠키 한도에 묶인다. 이 문서 끝의 JWT 비교에서 다룬다.
 
 ---
 
@@ -24,7 +57,7 @@ HTTP는 Stateless 프로토콜이다. 서버는 이전 요청을 기억하지 �
 
 ### 쿠키의 특징
 
-쿠키는 이름, 값, 만료일, 경로 정보로 구성된다. 브라우저 기준으로 도메인당 20개, 총 300개, 개당 4KB 제한이 있다. 용량 제한이 작기 때문에 민감하지 않은 경량 데이터를 저장하는 데 적합하다. 브라우저가 자동으로 전송하기 때문에, 저장하는 데이터가 많아질수록 매 요청마다 불필요한 네트워크 트래픽이 증가한다.
+쿠키는 이름, 값, 만료일, 경로 정보로 구성된다. 개당 4KB(이름+값 4096바이트) 제한이 있다. 개수 제한은 브라우저마다 다르다. RFC 6265가 브라우저에 요구하는 최소치는 도메인당 50개, 전체 3000개다. "도메인당 20개, 총 300개"라는 수치가 자주 보이는데 이건 이전 규격(RFC 2109)의 권장값이다. 용량 제한이 작기 때문에 민감하지 않은 경량 데이터를 저장하는 데 적합하다. 브라우저가 모든 요청에 자동으로 실어 보내므로 저장하는 데이터가 많아질수록 이미지·CSS 요청까지 헤더가 무거워진다. 4KB 한도를 넘겼을 때 생기는 일은 뒤의 "쿠키 크기 한도와 431/400"에서 다룬다.
 
 ### 쿠키 동작 과정
 
@@ -43,6 +76,22 @@ Cookie: sessionId=abc123; theme=dark
 ```
 
 `theme` 쿠키는 영구 쿠키로 30일 유지되고, `sessionId`는 1시간 후 만료되는 보안 쿠키다.
+
+아래 도식은 위 헤더가 오가는 순서다. 두 쿠키가 같은 응답으로 저장되고, 1시간 뒤에는 `sessionId`만 요청에서 빠지는 지점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant S as 서버
+    B->>S: POST /login
+    S-->>B: 200, Set-Cookie sessionId=abc123 Max-Age=3600, Set-Cookie theme=dark Max-Age=2592000
+    Note over B: sessionId 와 theme 쿠키를 저장
+    B->>S: GET /dashboard, Cookie sessionId=abc123, theme=dark
+    S-->>B: 200
+    Note over B: 1시간 뒤 sessionId 만료, theme 는 30일 유지
+    B->>S: GET /dashboard, Cookie theme=dark
+    S-->>B: 세션 쿠키가 없어 로그인 필요
+```
 
 ### 쿠키 보안 위험 및 대응
 
@@ -304,6 +353,183 @@ ctl();build();paint();
 </script>
 </div>
 
+### 쿠키가 요청에 실리는 조건
+
+쿠키가 안 붙는 문제는 서버 로그에 흔적이 없다. 요청은 정상적으로 도착하고 `Cookie` 헤더만 비어 있다. 로그인 API는 200을 주는데 다음 요청이 401이 되는 증상이 이 부류다. 브라우저가 쿠키마다 조건을 통과시키는 순서를 도식으로 정리하면 어디서 빠졌는지 따라가기 쉽다. 순서는 이해를 위한 것이고 브라우저 내부 구현 순서와 같지는 않다.
+
+```mermaid
+flowchart TD
+    Start["요청 URL 확정 (scheme, host, path)"] --> Dom("host 가 쿠키 Domain 범위인가")
+    Dom -->|아니오| No["Cookie 헤더에 넣지 않는다"]
+    Dom -->|예| Path("요청 path 가 쿠키 Path 아래인가")
+    Path -->|아니오| No
+    Path -->|예| Exp("만료 전인가")
+    Exp -->|아니오| No
+    Exp -->|예| Sec("Secure 쿠키인가")
+    Sec -->|예| Https("요청이 https 인가")
+    Https -->|아니오| No
+    Https -->|예| Same
+    Sec -->|아니오| Same("요청이 same-site 인가")
+    Same -->|예| Yes["Cookie 헤더에 넣는다"]
+    Same -->|아니오| SS("SameSite 값")
+    SS -->|None| Yes
+    SS -->|Strict| No
+    SS -->|"Lax 또는 속성 없음"| Nav("최상위 이동 + GET 인가")
+    Nav -->|예| Yes
+    Nav -->|아니오| Post("속성 없음 + 생성 2분 이내 + 최상위 POST")
+    Post -->|예| Yes
+    Post -->|아니오| No
+```
+
+Chrome 158(headless)에서 쿠키 네 종류를 심고, 같은 사이트와 다른 사이트에서 요청을 보내 서버가 받은 `Cookie` 헤더를 기록했다. 호스트는 `app.example.test`, `api.example.test`, `app.other.test`를 로컬로 매핑해서 썼다. Firefox와 Safari는 확인하지 않았다.
+
+| 요청 | Strict | Lax | None | 속성 없음 |
+|------|:---:|:---:|:---:|:---:|
+| 같은 사이트(api → app fetch) | 전송 | 전송 | 전송 | 전송 |
+| 다른 사이트에서 링크 클릭(GET 이동) | 차단 | 전송 | 전송 | 전송 |
+| 다른 사이트 폼 POST, 쿠키 생성 2분 이내 | 차단 | 차단 | 전송 | 전송 |
+| 다른 사이트 폼 POST, 쿠키 생성 125초 후 | 차단 | 차단 | 전송 | 차단 |
+| 다른 사이트의 `img`, `fetch` | 차단 | 차단 | 전송 | 차단 |
+
+표에서 조용히 깨지는 지점이 세 군데 나온다.
+
+속성 없는 쿠키는 Chrome이 Lax로 취급하는데, 쿠키를 만든 지 2분이 안 지났으면 최상위 cross-site POST에는 붙는다. 외부 결제창에서 POST로 돌아오는 흐름을 개발할 때는 잘 되다가, 사용자가 결제창에 3분 머물면 세션이 풀리는 식으로 나타난다. 재현이 어려워서 원인을 한참 못 찾는 유형이다. 결제 복귀 URL처럼 외부에서 POST로 들어오는 경로에는 세션 쿠키에 기대지 말고 주문 번호 같은 토큰을 파라미터로 넘겨 서버에서 다시 조회하는 편이 낫다.
+
+`SameSite=None`은 `Secure` 없이는 쿠키 자체가 저장되지 않는다. `none_nosecure=1; SameSite=None`을 내려 봤더니 저장소에 남은 것은 `Secure`를 붙인 쪽뿐이었다. 응답은 200이고 `Set-Cookie` 헤더도 정상으로 보여서 개발자 도구 Network 탭만 보면 놓친다. Application 탭의 Cookies에 없는지 확인해야 한다.
+
+`SameSite=Strict`는 같은 사이트 안에서는 서브도메인이 달라도 붙는다. site 기준이 호스트가 아니라 등록 가능 도메인(eTLD+1)이기 때문이다. 반대로 외부 링크로 들어오는 첫 요청에는 안 붙으므로, 메일이나 메신저 링크를 눌렀을 때 "로그아웃된 것처럼" 보이는 문제가 생긴다. 세션 쿠키는 Lax, 결제·계정 삭제 같은 민감 쿠키만 Strict로 나누는 구성을 많이 쓴다.
+
+### 서브도메인 간 쿠키 공유
+
+`Domain` 속성이 없으면 쿠키는 그 쿠키를 내려준 호스트에만 붙는다(host-only). `Domain=example.test`를 쓰면 그 도메인과 모든 하위 도메인으로 확장된다. `app.example.test`에서 두 종류를 심고 호스트를 바꿔 요청한 결과다.
+
+| 쿠키 | app.example.test | api.example.test | example.test | app.other.test |
+|------|:---:|:---:|:---:|:---:|
+| `h` (Domain 없음) | 전송 | 없음 | 없음 | 없음 |
+| `d` (Domain=example.test) | 전송 | 전송 | 전송 | 없음 |
+
+`app`과 `api`가 따로 있는 구조에서 SSO를 단순하게 만들려고 `Domain=example.test`로 여는 경우가 많다. 열기 전에 알아야 할 것이 세 가지 있다.
+
+첫째, 이름이 같은 쿠키가 두 개 생길 수 있다. 앞의 `d`처럼 상위 도메인에 `Domain` 쿠키가 있는 상태에서 하위 호스트가 같은 이름의 host-only 쿠키를 내려주면 브라우저는 둘을 모두 보관한다. `s=apex-domain`을 `example.test`에서, `s=app-hostonly`를 `app.example.test`에서 심고 `app`으로 요청했더니 서버가 받은 헤더는 `Cookie: s=apex-domain; s=app-hostonly`였다. 경로 길이가 같으면 먼저 만들어진 쿠키가 앞에 오고, 대부분의 쿠키 파서는 먼저 나온 값을 쓴다. 방금 로그인해서 새 세션 쿠키를 받았는데 서버는 옛 쿠키를 읽어서 계속 로그아웃 상태로 보인다. 로그인 시 서버에서 `Domain`이 다른 같은 이름의 쿠키를 만료시키는 `Set-Cookie`를 함께 내려야 풀린다.
+
+아래 도식은 이 증상이 생기는 순서다. 서버가 읽는 쪽이 새 쿠키가 아니라 먼저 나온 옛 쿠키라는 점을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant S as app.example.test 서버
+    Note over B: example.test 의 Domain 쿠키 s=apex-domain 과 app.example.test 의 host-only 쿠키 s=app-hostonly 를 둘 다 보관
+    B->>S: GET /me, Cookie s=apex-domain 다음에 s=app-hostonly
+    Note over S: 대부분의 쿠키 파서는 먼저 나온 s=apex-domain 을 사용
+    S-->>B: 옛 쿠키로 조회해서 로그아웃 상태 응답
+    Note over B,S: 로그인 응답에서 Domain 이 다른 같은 이름 쿠키를 Max-Age=0 으로 만료시켜야 풀린다
+```
+
+둘째, `Domain`을 연 쿠키는 그 아래 모든 서브도메인에 실린다. 사용자 콘텐츠를 올리는 서브도메인이나 외부 업체에 위임한 서브도메인이 있으면 거기서 돌아가는 스크립트가 같은 쿠키를 받는다. `HttpOnly`는 스크립트 읽기만 막을 뿐, 그 서브도메인 서버의 `Cookie` 헤더로는 그대로 들어온다.
+
+셋째, 같은 사이트라고 해서 같은 오리진은 아니다. `api.example.test`에서 `app.example.test`로 보내는 fetch는 `Sec-Fetch-Site: same-site`라서 `Strict` 쿠키까지 붙지만, 응답을 JS가 읽으려면 CORS 허용(`Access-Control-Allow-Credentials` 포함)이 별도로 필요하다. "쿠키가 갔는데 응답이 안 보인다"는 증상이 여기서 나온다.
+
+### 리버스 프록시 뒤에서 Secure 쿠키가 안 붙는 문제
+
+운영 환경에서는 TLS를 로드 밸런서나 nginx에서 끝내고 앱 서버에는 HTTP로 전달하는 구성이 흔하다. 앱 입장에서는 들어오는 연결이 평문 HTTP다. 쿠키 라이브러리가 `Secure` 쿠키를 내려도 되는 연결인지 판단할 때 이 정보를 쓴다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant N as nginx (TLS 종료)
+    participant S as 앱 서버
+    B->>N: HTTPS POST /login
+    N->>S: HTTP POST /login, X-Forwarded-Proto https
+    alt trust proxy 설정 있음
+        S-->>N: 200, Set-Cookie connect.sid Secure
+        N-->>B: 200, Set-Cookie connect.sid Secure
+        B->>N: GET /me, Cookie connect.sid
+        N->>S: GET /me
+        S-->>B: 200 로그인 상태 유지
+    else trust proxy 설정 없음
+        S-->>N: 200, Set-Cookie 없음
+        N-->>B: 200, Set-Cookie 없음
+        B->>N: GET /me, Cookie 없음
+        N->>S: GET /me
+        S-->>B: 401
+    end
+```
+
+`express-session`(1.19.0)과 Express 5.3.0에서 `cookie.secure: true`를 주고 같은 요청을 보내 봤다. 프록시가 `X-Forwarded-Proto: https`를 달아 줬는데 `trust proxy`가 꺼져 있으면 응답은 200이고 `Set-Cookie` 헤더는 아예 없다. `app.set('trust proxy', 1)`을 켜면 `Secure` 쿠키가 정상으로 내려온다. 헤더를 안 달아 주는 경우는 켜 놔도 안 내려온다.
+
+```javascript
+app.set('trust proxy', 1);   // 앞단 프록시 1단을 신뢰하고 X-Forwarded-Proto 를 해석한다
+```
+
+```nginx
+location / {
+    proxy_pass http://app:3000;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+}
+```
+
+이 문제는 로컬에서 재현되지 않는다. 로컬은 `NODE_ENV`가 `production`이 아니라 `secure: false`로 돌고, 프록시가 없어서 연결이 그냥 HTTP다. 스테이징에서 처음 터진다. 로그인 API는 성공 로그가 찍히고 이후 요청이 전부 401이라 세션 저장소나 CORS를 먼저 의심하게 되는데, 응답 헤더에 `Set-Cookie`가 있는지부터 보면 5분 안에 끝난다.
+
+ALB는 `X-Forwarded-Proto`를 기본으로 붙여 주지만 nginx는 직접 설정해야 한다. `trust proxy`에 `true`를 넣으면 클라이언트가 보낸 `X-Forwarded-*`까지 믿게 되므로 프록시 단수(1)나 대역을 지정한다. Spring Boot에서는 `server.forward-headers-strategy`(`native` 또는 `framework`)가 같은 역할을 한다.
+
+### 쿠키 크기 한도와 431/400
+
+브라우저는 쿠키 하나가 4096바이트를 넘으면 `Set-Cookie`를 무시한다. 5000바이트짜리와 4000바이트짜리를 같이 내려줬더니 5000바이트 쪽은 저장되지 않았고 4000바이트 쪽만 남았다. 에러는 나지 않는다. 쿠키에 사용자 권한 목록이나 장바구니를 직렬화해서 넣는 코드가 데이터가 늘다가 어느 날부터 값이 저장되지 않는 식으로 드러난다.
+
+문제는 저장되는 쿠키가 여러 개 쌓일 때다. 쿠키 하나는 한도 안에 있어도 합계가 서버나 프록시의 헤더 한도를 넘으면 요청이 앱에 도달하지 못한다. 한도는 서버마다 다르다.
+
+| 서버 | 기본 한도 | 직접 확인한 결과 |
+|------|------|------|
+| Node.js 20 (`http`) | 요청 헤더 전체 16KB (`--max-http-header-size`) | Cookie 약 12KB는 200, 약 20KB는 431 |
+| nginx 1.18 | `large_client_header_buffers 4 8k`, 헤더 한 줄이 버퍼 하나에 들어가야 함 | Cookie 7000바이트는 200, 9000바이트는 400, 4000바이트짜리 3개(한 줄 12KB)도 400 |
+
+nginx는 431이 아니라 `400 Bad Request`와 "Request Header Or Cookie Too Large" 본문을 돌려준다. 브라우저는 모든 쿠키를 `Cookie` 헤더 한 줄로 합쳐 보내므로, 쿠키가 8KB를 넘으면 쿠키 개수와 상관없이 걸린다.
+
+```mermaid
+flowchart LR
+    B["브라우저<br/>쿠키 누적 9KB"] -->|"Cookie 헤더 한 줄 9KB"| N["nginx<br/>헤더 버퍼 8KB"]
+    N -->|"400 Request Header Or Cookie Too Large"| B
+    N -.->|"요청이 전달되지 않음"| A["앱 서버<br/>로그에 아무것도 없음"]
+```
+
+이 오류는 해당 사용자만 겪고, 앱 로그에는 남지 않으며, 쿠키를 지우면 바로 풀린다. 고객센터에는 "특정 브라우저에서만 사이트가 안 열린다"로 들어온다. 원인은 대개 아래 셋이다.
+
+- 같은 이름이 도메인 설정만 바뀌어 여러 개 쌓였다 (앞 절의 `Domain` 이중 쿠키).
+- 세션 대신 클라이언트 쪽 세션(`cookie-session` 류)이나 JWT를 쿠키에 담았는데 클레임이 늘었다.
+- 서브도메인마다 서로 다른 서비스가 쿠키를 심었다. `Domain=example.com`으로 열어 둔 사이트에서는 모든 서브도메인의 서비스 쿠키가 한 헤더에 합쳐진다.
+
+버퍼를 키우는 것(`large_client_header_buffers 4 16k`)은 임시방편이다. 쿠키에는 세션 ID 정도만 두고 나머지는 서버 저장소로 옮기는 쪽이 근본 해결이다. 이미 쌓인 쿠키는 로그인 응답에서 안 쓰는 이름을 `Max-Age=0`으로 만료시켜 청소한다.
+
+### 서드파티 쿠키 차단 환경에서 로그인이 풀리는 경우
+
+다른 사이트 안에 iframe으로 들어가는 구조(결제 위젯, 외부 로그인 상태 확인, 채팅 위젯)에서는 쿠키가 서드파티 컨텍스트로 다뤄진다. `app.example.test` 페이지 안에 `idp.other.test`를 iframe으로 넣고, idp가 세 종류의 쿠키를 내리게 해 봤다.
+
+| idp가 내린 쿠키 | iframe(top이 app.example.test) | iframe(top이 www.third.test) | idp를 직접 방문 |
+|------|:---:|:---:|:---:|
+| `SameSite=Lax` | 저장 안 됨 | 저장 안 됨 | 없음 |
+| `SameSite=None; Secure` | 전송 | 전송 | 전송 |
+| `SameSite=None; Secure; Partitioned` | 전송 | 없음 | 없음 |
+
+`Lax` 쿠키는 iframe 응답으로는 저장조차 되지 않는다. 속성을 안 붙이고 개발하던 위젯이 Lax 기본값 때문에 로그인 상태를 못 읽는 경우가 이것이다. `SameSite=None; Secure`로 고치면 이 환경에서는 동작한다.
+
+이 환경은 서드파티 쿠키 차단이 꺼진 상태다. headless Chrome에서 차단 모드를 재현하지 못해서 차단 상태에서의 동작은 직접 확인하지 못했다. 브라우저와 사용자 설정에 따라 갈리는 영역이고, Safari는 기본으로 막고 Firefox는 기본으로 top 사이트별로 분리하며 Chrome은 설정과 시크릿 모드에서 막는 경우가 있다. 이런 브라우저에서는 `SameSite=None` 쿠키도 iframe에서 받거나 보내지 못한다. 증상은 일부 사용자의 위젯만 로그아웃 상태로 보이는 형태이고, 개발 PC의 Chrome에서는 재현되지 않는다.
+
+CHIPS의 `Partitioned` 속성은 이 상황의 대안이다. 쿠키가 "iframe을 품은 top 사이트 + 쿠키 도메인" 쌍으로 따로 저장된다. 위 표에서 `Partitioned` 쿠키는 같은 top(`app.example.test`) 아래의 iframe에만 갔고, 다른 top(`www.third.test`)이나 idp 직접 방문에서는 보이지 않았다. 같은 위젯이라도 임베드한 사이트마다 따로 로그인해야 한다는 뜻이다. 위젯 안에서 한 번 로그인하면 모든 사이트에서 유지되는 구조를 기대했다면 맞지 않는다. 그런 용도라면 Storage Access API로 권한을 요청하거나, 위젯 대신 리다이렉트 방식의 로그인으로 바꿔야 한다.
+
+아래 도식은 iframe 안에서 idp가 내린 쿠키가 속성에 따라 어떻게 처리되는지 위 표를 갈래로 다시 그린 것이다. `Partitioned`만 top 사이트에 따라 보이는 범위가 갈린다.
+
+```mermaid
+flowchart TD
+    I["idp.other.test 를 iframe 으로 임베드"] --> A{"idp 가 내린 쿠키 속성"}
+    A -->|"SameSite=Lax"| L["iframe 응답으로는 저장 안 됨"]
+    A -->|"SameSite=None 과 Secure"| N["top 사이트와 무관하게 전송"]
+    A -->|"SameSite=None 과 Secure 와 Partitioned"| P["top 사이트와 쿠키 도메인 쌍으로 분리 저장"]
+    N --> NB["서드파티 쿠키 차단 브라우저에서는 받지도 보내지도 못함"]
+    P --> P1["top 이 app.example.test 이면 전송"]
+    P --> P2["top 이 www.third.test 이거나 idp 직접 방문이면 없음"]
+```
+
 ## 세션(Session)
 
 ### 정의
@@ -315,6 +541,32 @@ ctl();build();paint();
 데이터는 서버에 있으므로 클라이언트에서 위변조할 수 없다. 저장 용량은 서버 용량 범위 내에서 제한이 없다. 서버 메모리나 Redis 같은 외부 저장소를 사용하기 때문에, 동시 접속자가 많아지면 저장소 부하가 증가한다.
 
 서버를 수평 확장할 때 세션 공유 문제가 생긴다. 특정 서버에만 세션이 있으면 로드 밸런서가 다른 서버로 요청을 보낼 때 세션을 찾지 못한다. Redis 같은 중앙 세션 저장소를 두거나, Sticky Session을 사용해야 한다.
+
+저장 위치에 따라 서버 여러 대에서 벌어지는 일이 갈린다. 아래 도식은 같은 요청(`JSESSIONID=XYZ789`)이 로드 밸런서를 거쳐 서버 A나 B로 갔을 때, 세션을 어디서 찾느냐에 따라 달라지는 결과를 정리한 것이다.
+
+```mermaid
+flowchart TD
+    REQ["요청 Cookie JSESSIONID=XYZ789"] --> LB{"로드 밸런서"}
+    LB -->|서버 A| A["서버 A"]
+    LB -->|서버 B| B["서버 B"]
+    A --> Where{"세션을 어디서 찾나"}
+    B --> Where
+    Where -->|"프로세스 메모리"| Mem["서버마다 따로 보관"]
+    Where -->|"DB 테이블"| Db["공유 DB 에서 요청마다 SELECT"]
+    Where -->|"Redis"| Rd["공유 Redis 에서 GET"]
+    Mem --> MemBad["A 가 만든 세션을 B 가 못 찾는다, 401"]
+    MemBad --> Fix1["해결 1: sticky session 으로 한 서버에 고정"]
+    MemBad --> Fix2["해결 2: 중앙 저장소로 이동"]
+    Fix1 --> Fix1Cost["서버 재시작이나 장애 시 그 서버 세션 전부 소실"]
+    Db --> DbCost["어느 서버든 조회됨, 요청마다 쿼리, 만료 행 청소 필요"]
+    Rd --> RdCost["어느 서버든 조회됨, TTL 로 만료, Redis 장애 시 전체 로그아웃"]
+```
+
+Sticky Session은 세션 문제를 푼 것이 아니라 피한 것이다. 로드 밸런서가 쿠키나 소스 IP로 같은 사용자를 같은 서버에 묶어 두는 방식이라, 롤링 배포로 서버를 한 대씩 재시작하면 그 서버에 묶여 있던 사용자가 전부 로그아웃된다. 배포할 때마다 "로그인이 풀린다"는 문의가 오는 서비스를 본 적이 있는데 메모리 세션과 sticky 조합이 원인이었다. 그리고 한 서버에 트래픽이 쏠려도 분산이 안 된다.
+
+DB 테이블에 세션을 두는 방식은 쓰기 부하를 놓치기 쉽다. 마지막 접근 시각을 갱신하는 요청마다 UPDATE가 나가서, 읽기만 하는 API도 세션 테이블에는 쓰기가 된다. 사용자 수가 늘면 세션 테이블이 메인 DB의 병목이 된다. 세션 전용 Redis로 빼는 이유가 이것이다.
+
+Redis로 옮기면 Redis가 단일 장애점이 된다. Redis가 내려가면 서버는 멀쩡한데 모든 사용자가 동시에 로그아웃된다. 세션 유실이 허용되지 않는 서비스라면 복제와 장애 조치를 구성하고, 유실이 허용된다면 재로그인으로 복구되는 수준인지 미리 정해 두어야 한다.
 
 <div class="ygd-session-scaling-tabs" id="ygd-session-scaling-tabs">
 <style>
@@ -785,11 +1037,103 @@ render();
 
 메모리 기반 세션은 별도 설정 없이 사용할 수 있고 속도가 빠르지만, 서버 재시작 시 모든 세션이 날아간다. 개발 환경에서는 괜찮지만 운영 환경에서는 쓰지 않는다. 파일 기반 세션은 재시작 후에도 세션이 유지되지만 I/O가 느리고 서버 확장 시 공유 파일 시스템이 필요해진다. 데이터베이스 기반 세션은 안정적이지만 쿼리 오버헤드가 있다. 현재는 대부분 Redis를 사용한다. 메모리 기반으로 빠르고, 클러스터를 구성하면 수평 확장도 된다.
 
+네 가지 방식의 장단점을 한눈에 비교하면 아래와 같다. 운영 환경에서 남는 선택지가 어디로 좁혀지는지 보면 된다.
+
+```mermaid
+flowchart LR
+    S["세션 저장 방식"] --> M["메모리"]
+    S --> F["파일"]
+    S --> D["데이터베이스"]
+    S --> R["Redis"]
+    M --> M1["설정 불필요, 빠름, 재시작 시 전부 소실, 운영 비권장"]
+    F --> F1["재시작 후 유지, I/O 느림, 확장 시 공유 파일 시스템 필요"]
+    D --> D1["안정적, 쿼리 오버헤드"]
+    R --> R1["메모리 기반으로 빠름, 클러스터로 수평 확장, 현재 대부분 사용"]
+```
+
 ### 세션 보안 및 관리
 
 세션 하이재킹은 유효한 Session ID를 탈취해 피해자로 위장하는 공격이다. HTTPS를 강제하고, Session ID를 충분히 길고 무작위로 생성해야 한다. 일정 시간 요청이 없으면 세션을 만료시키는 타임아웃 설정도 필수다.
 
 세션 고정 공격은 공격자가 미리 만든 Session ID를 피해자에게 사용하게 만든 뒤, 피해자가 로그인하면 그 세션을 탈취하는 방식이다. 로그인 성공 시 반드시 새 Session ID를 발급해야 이 공격을 막는다.
+
+공격자는 비밀번호를 몰라도 된다. 익명 상태에서 받은 Session ID를 피해자가 쓰게 만들고, 피해자가 로그인하는 순간 그 ID에 사용자 정보가 붙는 것을 기다린다. 아래 도식은 로그인 후에도 ID가 그대로인 경우와 로그인 시점에 ID를 바꾸는 경우를 한 흐름에 나란히 둔 것이다.
+
+```mermaid
+sequenceDiagram
+    participant A as 공격자
+    participant V as 피해자 브라우저
+    participant S as 서버
+    A->>S: GET / (익명 세션 요청)
+    S-->>A: Set-Cookie SID=attack123
+    A->>V: 링크나 쿠키 주입으로 SID=attack123 을 심는다
+    V->>S: POST /login, Cookie SID=attack123
+    alt 로그인 후에도 같은 SID 유지
+        S-->>V: 200, attack123 세션에 userId=42 기록
+        A->>S: GET /me, Cookie SID=attack123
+        S-->>A: 200 피해자 계정 데이터
+    else 로그인 시 SID 재발급
+        S-->>V: Set-Cookie SID=new456, attack123 폐기
+        A->>S: GET /me, Cookie SID=attack123
+        S-->>A: 401 Unauthorized
+    end
+```
+
+Express 코드로 두 경우를 그대로 돌려 봤다. curl 쿠키 파일 두 개를 공격자용과 피해자용으로 만들고, 공격자 파일에 익명 세션을 받아 둔 뒤 같은 쿠키를 피해자 파일에 복사해서 피해자 쪽으로 로그인한다. `req.session.userId = 1`만 한 로그인 핸들러는 공격자가 옛 쿠키로 `/me`를 호출했을 때 `{"userId":1}`을 돌려줬고, `req.session.regenerate()`로 ID를 바꾼 핸들러는 `{"userId":null}`을 돌려줬다.
+
+세션 고정은 로그인 직후만의 문제가 아니다. 권한이 올라가는 모든 지점이 해당한다. 일반 사용자가 관리자 인증(2차 인증, 재인증)을 통과해 권한이 올라갈 때도 같은 이유로 ID를 바꿔야 한다. 로그아웃 시에는 서버 저장소에서 세션을 지우고 쿠키도 만료시킨다. 쿠키만 지우면 탈취된 ID는 TTL이 끝날 때까지 서버에서 유효하다.
+
+### 세션 만료: sliding과 absolute
+
+"세션 1시간"이라는 요구사항은 두 가지로 읽힌다. 마지막 요청 후 1시간(sliding, idle timeout)인지, 로그인 후 1시간(absolute)인지다. 둘은 동작이 다르고 보안 의미도 다르다. sliding만 쓰면 요청이 계속 오는 한 세션이 영원히 산다. 탈취된 ID로 주기적으로 요청을 보내는 스크립트가 있으면 만료되지 않는다. absolute만 쓰면 사용자가 작업 중에 갑자기 로그아웃된다. 보통은 둘을 같이 건다.
+
+```mermaid
+flowchart TD
+    R["요청 도착, 세션 ID 로 조회"] --> E{"세션이 존재하나"}
+    E -->|아니오| L["401, 재로그인"]
+    E -->|예| Abs{"로그인 후 경과 시간이 absolute 상한을 넘었나"}
+    Abs -->|예| K["세션 삭제, 401"]
+    Abs -->|아니오| Idle{"마지막 요청 후 경과 시간이 idle 한도를 넘었나"}
+    Idle -->|예| K
+    Idle -->|아니오| T["마지막 접근 시각 갱신, TTL 연장, 요청 처리"]
+```
+
+`express-session`에서 이 차이는 `rolling` 옵션에서 갈린다. `cookie.maxAge`를 4초로 두고 로그인한 뒤 2.5초에 한 번 요청을 보내고, 로그인 후 4.5초에 다시 요청해 봤다.
+
+| `rolling` | 활동 중 `Set-Cookie` 재발행 | 로그인 후 4.5초(중간에 요청 1회) |
+|-----------|:---:|------|
+| `false` (기본값) | 없음 | `{"userId":null}`, 브라우저가 쿠키를 버림 |
+| `true` | 매 응답 | `{"userId":1}`, 만료 시각이 밀림 |
+
+기본값인 `rolling: false`는 요청이 있어도 쿠키 만료 시각을 안 바꾸므로 브라우저 쪽에서는 사실상 absolute로 동작한다. "활동하면 연장되는 세션"을 기대하고 `maxAge`만 줬다가, 사용자가 쓰는 도중에 로그아웃된다는 문의가 오는 경우가 있다. sliding이 필요하면 `rolling: true`를 명시해야 한다.
+
+둘을 함께 걸려면 `rolling: true`에 absolute 상한을 직접 검사하는 미들웨어를 추가한다. idle 3초, absolute 5초로 줄여서 1.5초마다 요청을 보내 확인했다.
+
+```javascript
+const IDLE = 30 * 60 * 1000;          // sliding: 마지막 요청 후 30분
+const ABSOLUTE = 12 * 60 * 60 * 1000; // absolute: 로그인 후 12시간
+
+app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: { httpOnly: true, secure: true, sameSite: 'lax', maxAge: IDLE }
+}));
+
+// 로그인 핸들러에서 req.session.loginAt = Date.now() 를 함께 저장한다
+function enforceAbsolute(req, res, next) {
+    if (req.session.loginAt && Date.now() - req.session.loginAt > ABSOLUTE) {
+        return req.session.destroy(() => res.status(401).json({ error: 'Session expired' }));
+    }
+    next();
+}
+```
+
+축소 값으로 돌린 결과, 요청을 계속 보내는 동안 1.5초·3초·4.5초에는 `{"userId":1}`이었고 6초에 `{"error":"Session expired"}`가 나왔다. 활동이 있어도 absolute 상한은 넘지 못한다. 이후 요청은 `{"userId":null}`이다.
+
+Spring에서 `server.servlet.session.timeout`(또는 `setMaxInactiveInterval`)은 idle timeout만 담당한다. absolute 상한은 같은 방식으로 세션 속성에 로그인 시각을 저장하고 필터에서 직접 검사해야 한다.
 
 ---
 
@@ -1007,15 +1351,29 @@ show();
 |------|------|------|
 | 저장 위치 | 클라이언트 측 | 서버 측 |
 | 보안 | 클라이언트에 저장되어 변조 가능 | 서버에 저장되어 상대적으로 안전 |
-| 용량 제한 | 도메인당 20개, 총 300개, 개당 4KB | 서버 용량에 따라 제한 없음 |
-| 라이프사이클 | 만료 기간 설정 가능 | 브라우저 종료 또는 서버에서 삭제 시 종료 |
+| 용량 제한 | 개당 4KB, 개수는 브라우저마다 다름(RFC 6265 최소치 도메인당 50개) | 서버 용량에 따라 제한 없음 |
+| 라이프사이클 | 만료 기간 설정 가능 | 서버 TTL이나 삭제 시 종료. 브라우저를 닫아도 서버 세션은 TTL까지 남는다 |
 | 서버 자원 | 서버 자원 사용하지 않음 | 서버 메모리 사용 |
+| 요청 크기 | 모든 요청 헤더에 포함되어 커질수록 431/400 위험 | 세션 ID 하나만 전송 |
 
 ---
 
 ## Q&A: 세션이 더 안전한데 왜 쿠키를 사용할까?
 
 세션은 서버 메모리를 소비한다. 동시 접속자가 수만 명이면 세션 데이터 저장소가 그만큼의 부하를 받는다. 쿠키는 데이터를 클라이언트에 두므로 서버 자원이 필요 없다. 사용자 선호도(테마, 언어 설정 등)는 탈취당해도 피해가 크지 않고, 서버 요청마다 조회할 필요도 없다. 이런 데이터는 쿠키에 저장하는 편이 낫다. 수평 확장 시에도 세션은 공유 저장소가 필요하지만 쿠키는 클라이언트가 관리하니 서버 측 고려사항이 없다.
+
+아래 도식은 위 설명을 데이터를 어디에 둘지 고르는 분기로 정리한 것이다. 기준은 탈취나 변조 시 피해와 서버의 조회 필요 여부다.
+
+```mermaid
+flowchart TD
+    D["저장할 데이터"] --> Q1{"탈취나 변조되면 피해가 큰가"}
+    Q1 -->|예| S["세션: 서버 저장소에 두고 쿠키에는 Session ID 만"]
+    Q1 -->|아니오| Q2{"서버가 요청마다 조회할 필요가 있나"}
+    Q2 -->|예| S
+    Q2 -->|아니오| C["쿠키: 테마, 언어 같은 선호도"]
+    S --> SC["비용: 저장소 부하, 수평 확장 시 공유 저장소 필요"]
+    C --> CC["비용: 모든 요청 헤더에 실림, 개당 4KB 한도"]
+```
 
 ---
 
@@ -1036,7 +1394,10 @@ Set-Cookie: theme=dark; Path=/; Max-Age=2592000
 | `HttpOnly` | JavaScript에서 접근 불가 (XSS 방어) |
 | `Secure` | HTTPS에서만 전송 |
 | `SameSite=Strict` | 동일 사이트 요청에만 전송 (CSRF 방어) |
-| `SameSite=Lax` | 안전한 교차 사이트 GET 요청 허용 |
+| `SameSite=Lax` | 다른 사이트에서 링크를 눌러 이동하는 GET만 허용. `img`, `fetch`, POST는 차단 |
+| `SameSite=None` | 다른 사이트 요청에도 전송. `Secure`가 없으면 쿠키가 저장되지 않음 |
+| `Domain=example.com` | 하위 도메인까지 전송. 생략하면 내려준 호스트에만 전송 |
+| `Partitioned` | 임베드한 top 사이트별로 쿠키를 분리 저장(CHIPS). `Secure` 필요 |
 | `Max-Age=3600` | 1시간 후 만료 (초 단위) |
 | `Path=/` | 모든 경로에서 전송 |
 
@@ -1050,6 +1411,9 @@ const { createClient } = require('redis');
 
 const app = express();
 
+// 프록시가 TLS 를 끝내는 구성에서 빠지면 secure 쿠키의 Set-Cookie 가 아예 나가지 않는다
+app.set('trust proxy', 1);
+
 const redisClient = createClient({ url: 'redis://localhost:6379' });
 redisClient.connect();
 
@@ -1058,10 +1422,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: true,  // 요청이 있으면 만료 시각을 민다(sliding). 기본값 false 는 사실상 absolute 로 동작한다
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',  // strict 는 메일·메신저 링크로 들어온 첫 요청에 쿠키가 빠진다
         maxAge: 60 * 60 * 1000  // 1시간
     }
 }));
@@ -1115,22 +1480,31 @@ app.post('/preferences', (req, res) => {
 });
 ```
 
+`requireAuth`의 User-Agent 비교는 하이재킹 탐지로는 약하다. 쿠키를 훔친 쪽은 User-Agent 헤더도 그대로 복사해서 보내면 통과한다. 오히려 브라우저가 자동 업데이트되어 버전 문자열이 바뀌면 정상 사용자가 로그아웃된다. 탐지 신호로 쓸 거라면 차단이 아니라 로그로 남기고 IP 대역 변화 같은 다른 신호와 합쳐서 보는 편이 오탐이 적다.
+
+`/logout`의 `res.clearCookie('connect.sid')`는 쿠키를 만들 때 쓴 `path`, `domain` 옵션과 같은 값을 줘야 지워진다. `Domain`을 연 쿠키를 옵션 없이 지우면 브라우저에 그대로 남는다.
+
 ### Spring Boot 세션 설정
 
 ```yaml
-# application.yml
+# application.yml (Spring Boot 3.x)
 spring:
   session:
-    store-type: redis
-    timeout: 3600
+    timeout: 3600          # 초 단위, 마지막 요청 후 만료(idle)
   data:
     redis:
       host: localhost
       port: 6379
-  security:
+server:
+  forward-headers-strategy: native   # 프록시 뒤에서 X-Forwarded-Proto 해석
+  servlet:
     session:
-      creation-policy: if_required
+      cookie:
+        secure: true
+        same-site: lax
 ```
+
+블로그나 예제에서 `spring.session.store-type: redis`와 `spring.data.redis.host`를 한 파일에 같이 쓴 설정이 자주 보인다. Spring Boot의 설정 메타데이터(`spring-configuration-metadata.json`)를 직접 열어 보니 `spring.session.store-type`은 2.7.18에만 있고 3.3.5에는 없다. `spring.data.redis.host`는 반대로 3.3.5에만 있다(2.7.18은 `spring.redis.host`). 어느 버전에서도 두 키가 같이 유효하지 않다. 그리고 `spring.security.session.creation-policy`는 두 버전 모두에 없는 키라서 쓰면 조용히 무시된다. 세션 생성 정책은 아래 Java 설정의 `sessionCreationPolicy`가 담당한다. Redis 세션은 Spring Session Data Redis 의존성이 클래스패스에 있으면 자동으로 선택된다.
 
 ```java
 @Configuration
@@ -1155,12 +1529,29 @@ public class SecurityConfig {
 }
 
 @PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpSession session) {
+public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest request) {
     User user = authService.authenticate(req.getUsername(), req.getPassword());
+    request.changeSessionId();  // 직접 만든 로그인 API 는 ID 를 스스로 바꿔야 한다
+    HttpSession session = request.getSession();
     session.setAttribute("userId", user.getId());
-    session.setMaxInactiveInterval(3600);  // 1시간
+    session.setAttribute("loginAt", System.currentTimeMillis());  // absolute 상한 검사용
+    session.setMaxInactiveInterval(3600);  // 1시간(idle)
     return ResponseEntity.ok(new LoginResponse(user));
 }
+```
+
+로그인 컨트롤러에서 `session.setAttribute`만 호출하고 `sessionFixation(newSession())` 설정이 세션 고정을 막아 준다고 믿는 코드가 흔하다. 이 컨트롤러는 Spring Security의 인증 필터를 거치지 않고 세션 속성만 직접 채운다. 세션 고정 방어는 인증 필터가 인증을 성공 처리할 때 실행되는 구조라서, 이 경로에서는 ID가 바뀌지 않는다고 보고 `changeSessionId()` 호출을 직접 넣었다. 이 부분은 Spring 앱을 띄워서 돌려 보지는 않았고 필터 구조를 근거로 한 판단이다. 시큐리티의 `formLogin`이나 `AuthenticationManager` 경로로 로그인을 처리한다면 설정만으로 충분하다. 어느 쪽인지는 로그인 전후에 `JSESSIONID` 값이 달라지는지 개발자 도구로 직접 확인해야 한다.
+
+아래 도식은 위 판단을 로그인 경로별로 나눈 것이다. 세션 고정 방어가 실행되는 경로와 건너뛰는 경로가 갈리는 지점을 보면 된다.
+
+```mermaid
+flowchart TD
+    L["POST /login"] --> Q{"로그인 처리 경로"}
+    Q -->|"formLogin 또는 AuthenticationManager"| F["인증 필터가 인증 성공을 처리"]
+    F --> N["sessionFixation newSession 실행, JSESSIONID 교체"]
+    Q -->|"컨트롤러에서 session.setAttribute 만 호출"| C["인증 필터를 거치지 않음"]
+    C --> K["JSESSIONID 그대로, 설정만으로는 방어 안 됨"]
+    K --> X["request.changeSessionId 를 직접 호출해야 한다"]
 ```
 
 ### JWT vs Session 비교
@@ -1183,14 +1574,17 @@ app.post('/login', async (req, res) => {
         { expiresIn: '1h' }
     );
     // JWT를 HttpOnly 쿠키에 저장 (XSS 방어)
-    res.cookie('token', token, { httpOnly: true, secure: true });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 1000 });
     res.json({ message: 'Logged in' });
 });
+
+// req.cookies 는 cookie-parser 가 채운다. 없으면 undefined.token 에서 TypeError 가 나 500 이 된다
+app.use(require('cookie-parser')());
 
 app.get('/api/me', (req, res) => {
     const token = req.cookies.token;
     try {
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        const payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
         res.json({ userId: payload.userId });
     } catch (e) {
         res.status(401).json({ error: 'Unauthorized' });
@@ -1209,6 +1603,24 @@ app.get('/api/me', (req, res) => {
 JWT의 "즉시 무효화 어려움" 문제를 우회하려고 JWT를 HttpOnly 쿠키에 저장하는 하이브리드 패턴을 쓰는 경우가 있다. JWT를 쿠키에 넣으면 XSS로 탈취되는 문제는 줄어들지만, CSRF에는 여전히 취약하다. `SameSite=Strict`로 어느 정도 방어할 수 있지만, 크로스 도메인 API를 써야 하는 구조라면 `SameSite=None; Secure`를 써야 하고 그러면 CSRF 방어가 약해진다.
 
 토큰 무효화 문제도 그대로다. 로그아웃 시 서버에서 토큰을 폐기할 방법이 없으므로, Redis에 블랙리스트를 두거나 짧은 만료 시간(15분~1시간)으로 설정하고 Refresh Token으로 갱신하는 구조가 필요하다. Refresh Token을 별도로 관리해야 하는 시점에서, 단순 세션 방식 대비 복잡도가 크게 높아진다.
+
+아래 도식은 짧은 만료의 Access JWT와 Refresh Token을 함께 쓸 때의 흐름이다. 서버에 저장소가 다시 생기는 지점이 Refresh Token 조회라는 것을 보면 된다.
+
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant S as 서버
+    participant R as Redis
+    B->>S: GET /api/me, Cookie token=Access JWT
+    S-->>B: 401, Access JWT 만료
+    B->>S: POST /refresh, Cookie refresh=Refresh Token
+    S->>R: Refresh Token 조회
+    R-->>S: 유효
+    S-->>B: Set-Cookie 새 Access JWT
+    B->>S: GET /api/me, Cookie token=새 Access JWT
+    S-->>B: 200
+    Note over B,R: 로그아웃 시 Redis 의 Refresh Token 을 지우면 갱신은 막히지만 이미 발급된 Access JWT 는 만료까지 유효
+```
 
 ---
 
