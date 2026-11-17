@@ -1,7 +1,7 @@
 ---
 title: 캐싱 전략 (Caching Strategies)
 tags: [backend, cache, redis]
-updated: 2026-01-18
+updated: 2026-11-17
 ---
 
 # 캐싱 전략 (Caching Strategies)
@@ -12,12 +12,9 @@ updated: 2026-01-18
 
 ### 왜 필요한가
 
-**문제 상황:**
-
-**시나리오:**
 상품 상세 페이지. 초당 1,000개 요청.
 
-**캐시 없이:**
+캐시 없이 구현한 코드다.
 ```typescript
 import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -40,13 +37,14 @@ export class ProductController {
 }
 ```
 
-**문제:**
+캐시가 없으면 이렇게 된다.
+
 - 초당 1,000개 DB 쿼리
 - 같은 상품을 반복 조회
 - DB 부하 증가
 - 응답 시간 느림 (평균 50ms)
 
-**캐시 적용:**
+같은 컨트롤러에 캐시를 적용하면 이렇게 바뀐다.
 ```typescript
 import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
@@ -65,7 +63,8 @@ export class ProductController {
 }
 ```
 
-**효과:**
+캐시를 적용한 결과다.
+
 - 첫 요청만 DB 조회
 - 이후 요청은 캐시에서 반환
 - DB 쿼리: 1,000 → 10 (새 상품만)
@@ -79,14 +78,15 @@ export class ProductController {
 
 **가장 많이 사용하는 패턴.** 애플리케이션이 캐시를 직접 관리한다.
 
-**읽기:**
+읽기 흐름은 다섯 단계다.
+
 1. 캐시 확인
 2. 캐시에 있으면 반환 (Cache Hit)
 3. 없으면 DB 조회 (Cache Miss)
 4. DB 결과를 캐시에 저장
 5. 반환
 
-**코드:**
+Redis 를 직접 쓰는 구현이다.
 ```typescript
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -124,7 +124,7 @@ export class ProductService {
 }
 ```
 
-**NestJS Cache Manager 추상화:**
+NestJS Cache Manager 로 추상화하면 이렇게 쓴다.
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -152,12 +152,14 @@ export class ProductService {
 }
 ```
 
-**장점:**
+장점은 세 가지다.
+
 - 간단하다
 - 필요한 데이터만 캐시 (Lazy)
 - 캐시 장애 시에도 동작 (DB로 직접 조회)
 
-**단점:**
+단점은 두 가지다.
+
 - Cache Miss 시 두 번의 호출 (캐시 + DB)
 - 초기 요청이 느리다
 
@@ -199,12 +201,13 @@ private reviveProduct(raw: Record<string, unknown>): Product {
 
 쓰기 시 캐시와 DB를 동시에 업데이트한다.
 
-**동작:**
+동작 순서는 세 단계다.
+
 1. 캐시 업데이트
 2. DB 업데이트
 3. 성공 응답
 
-**코드:**
+Cache Manager 를 쓰는 구현이다.
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -234,7 +237,7 @@ export class ProductService {
 }
 ```
 
-**수동 구현 (ioredis):**
+ioredis 로 직접 구현하면 이렇다.
 ```typescript
 async updateProduct(product: Product): Promise<Product> {
   // 1. DB 저장
@@ -248,11 +251,13 @@ async updateProduct(product: Product): Promise<Product> {
 }
 ```
 
-**장점:**
+장점은 두 가지다.
+
 - 캐시와 DB가 항상 동기화
 - 읽기 성능 좋음
 
-**단점:**
+단점은 두 가지다.
+
 - 쓰기 성능 저하 (캐시 + DB 두 번)
 - 캐시에 안 쓰는 데이터도 저장될 수 있음
 
@@ -260,12 +265,13 @@ async updateProduct(product: Product): Promise<Product> {
 
 쓰기 시 캐시만 업데이트하고 나중에 DB에 반영한다.
 
-**동작:**
+동작 순서는 세 단계다.
+
 1. 캐시 업데이트
 2. 즉시 성공 응답
 3. 비동기로 DB 업데이트 (배치)
 
-**코드:**
+메모리 큐와 `@Cron` 으로 구현한 코드다.
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -311,16 +317,19 @@ export class ProductService {
 }
 ```
 
-**장점:**
+장점은 두 가지다.
+
 - 쓰기 성능이 매우 빠름
 - DB 부하 감소 (배치 쓰기)
 
-**단점:**
+단점은 세 가지다.
+
 - 캐시 장애 시 데이터 손실 위험
 - 캐시와 DB 불일치 기간 존재
 - 구현 복잡
 
-**사용 사례:**
+쓰는 곳은 세 가지다.
+
 - 좋아요 수, 조회수 (정확성이 덜 중요)
 - 로그 집계
 - 실시간 랭킹
@@ -341,13 +350,15 @@ export class ProductService {
 
 캐시가 DB 조회를 대신한다. 애플리케이션은 캐시만 접근한다.
 
-**동작:**
+동작 순서는 네 단계다.
+
 1. 애플리케이션 → 캐시 요청
 2. 캐시에 있으면 반환
 3. 없으면 캐시가 DB 조회
 4. 캐시에 저장 후 반환
 
-**특징:**
+특징은 세 가지다.
+
 - Cache-Aside와 비슷하지만 캐시가 주도
 - NestJS에서는 Cache Manager 커스텀 스토어로 구현 가능
 - 전용 솔루션 필요 시 Redis + 자체 캐시 로더 패턴 사용
@@ -358,7 +369,7 @@ export class ProductService {
 
 애플리케이션 메모리에 저장.
 
-**NestJS Cache Manager 설정 (메모리):**
+메모리 저장소로 설정하면 이렇게 된다.
 ```typescript
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -375,7 +386,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 export class AppModule {}
 ```
 
-**사용:**
+사용하는 코드다.
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -397,17 +408,20 @@ export class ProductService {
 }
 ```
 
-**장점:**
+장점은 세 가지다.
+
 - 매우 빠름 (네트워크 없음)
 - 간단함
 - 비용 없음
 
-**단점:**
+단점은 세 가지다.
+
 - 서버마다 다른 캐시 (불일치)
 - 메모리 제한
 - 서버 재시작 시 캐시 소실
 
-**사용 사례:**
+쓰는 곳은 세 가지다.
+
 - 설정 값 (변경 없음)
 - 코드 테이블
 - 서버별로 달라도 되는 데이터
@@ -416,7 +430,7 @@ export class ProductService {
 
 별도 서버에 저장. 모든 애플리케이션 서버가 공유.
 
-**Redis 설정 (NestJS Cache Manager + Redis Store):**
+Redis 스토어로 설정하는 코드다.
 ```typescript
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -439,7 +453,7 @@ import { redisStore } from 'cache-manager-ioredis-yet';
 export class AppModule {}
 ```
 
-**ioredis 직접 사용:**
+ioredis 모듈을 직접 등록하는 방법도 있다.
 ```typescript
 import { Module } from '@nestjs/common';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -455,17 +469,20 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 export class AppModule {}
 ```
 
-**장점:**
+장점은 세 가지다.
+
 - 모든 서버가 공유 (일관성)
 - 메모리 확장 가능
 - 영속성 (AOF/RDB)
 
-**단점:**
+단점은 세 가지다.
+
 - 네트워크 지연 (0.5-2ms)
 - 비용 (인프라)
 - 장애 시 영향 큼
 
-**사용 사례:**
+쓰는 곳은 세 가지다.
+
 - 세션
 - 사용자 데이터
 - 여러 서버에서 접근하는 데이터
@@ -474,13 +491,13 @@ export class AppModule {}
 
 로컬 캐시 (L1)와 분산 캐시 (L2)를 함께 사용.
 
-**구조:**
+조회는 L1, L2, DB 순으로 내려간다. 각 단계의 응답 시간은 도식 아래에 적었다.
 ```
 요청 → L1 (메모리) → L2 (Redis) → DB
        0.01ms          1ms          50ms
 ```
 
-**코드:**
+L1 과 L2 를 함께 쓰는 구현이다.
 ```typescript
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -543,7 +560,8 @@ export class ProductService {
 }
 ```
 
-**효과:**
+효과는 세 가지다.
+
 - 대부분 L1에서 처리 (매우 빠름)
 - L1 Miss 시 L2에서 처리 (빠름)
 - 서버 간 일관성 유지 (L2 공유)
@@ -554,7 +572,7 @@ export class ProductService {
 
 캐시와 DB가 다른 값을 가질 수 있다.
 
-**시나리오:**
+서버 A 가 가격을 바꾸는 동안 서버 B 와 C 가 조회하는 경우다.
 ```
 서버 A: 상품 가격 변경 (10,000원 → 15,000원)
   1. DB 업데이트 (15,000원)
@@ -599,10 +617,15 @@ export class ProductService {
 }
 ```
 
-**문제:**
-삭제와 새로운 캐시 저장 사이에 짧은 불일치 기간 존재.
+삭제와 새로운 캐시 저장 사이에 짧은 불일치 기간이 존재한다.
 
-**`KEYS` 는 운영 Redis 에서 쓰지 않는다.** `redis.keys('product:*')` 는 전체 키스페이스를 훑는다. Redis 는 명령 하나를 처리하는 동안 다른 요청을 받지 않으므로, 키가 많으면 그 시간만큼 **Redis 를 쓰는 모든 서비스가 함께 멈춘다.** 순회가 필요하면 `SCAN` 으로 커서를 돌리고, 더 나은 방법은 지워야 할 키를 집합(Set)으로 따로 모아 두고 그것만 지우는 것이다. 이어지는 `del(...keys)` 도 같은 문제를 갖는다 — 수만 개를 스프레드로 넘기면 명령 하나가 지나치게 커지고 인자 개수 한계에 걸린다.
+**`KEYS` 는 운영 Redis 에서 쓰지 않는다.** `redis.keys('product:*')` 는 전체 키스페이스를 훑는다.
+
+Redis 는 명령 하나를 처리하는 동안 다른 요청을 받지 않으므로, 키가 많으면 그 시간만큼 **Redis 를 쓰는 모든 서비스가 함께 멈춘다.**
+
+순회가 필요하면 `SCAN` 으로 커서를 돌리고, 더 나은 방법은 지워야 할 키를 집합(Set)으로 따로 모아 두고 그것만 지우는 방식이다. 이어지는 `del(...keys)` 도 같은 문제를 갖는다.
+
+수만 개를 스프레드로 넘기면 명령 하나가 지나치게 커지고 인자 개수 한계에 걸린다.
 
 **삭제 순서에는 경쟁이 남는다.** 위 코드는 DB 저장 후 캐시 삭제인데, 아래 순서로 얽히면 오래된 값이 캐시에 자리 잡는다.
 
@@ -629,7 +652,7 @@ export class ProductService {
 
 업데이트 시 모든 서버에 알림.
 
-**Redis Pub/Sub:**
+Redis Pub/Sub 으로 구현한 코드다.
 ```typescript
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -738,18 +761,20 @@ await this.redis.set(key, JSON.stringify(value), 'EX', 600);
 await this.cacheManager.set(key, value, 600_000); // ms 단위
 ```
 
-**환경 변수 / 모듈 설정:**
+모듈 설정으로 지정하는 방법이다.
 ```typescript
 CacheModule.register({
   ttl: 600_000, // 10분 (ms)
 })
 ```
 
-**장점:**
+장점은 두 가지다.
+
 - 자동
 - 간단
 
-**단점:**
+단점은 두 가지다.
+
 - 만료 전까지 오래된 데이터
 - 적절한 TTL 설정 어려움
 
@@ -817,15 +842,13 @@ export class ProductService {
 
 인기 있는 데이터의 캐시가 만료되면 동시에 많은 요청이 DB로 몰린다.
 
-**시나리오:**
-```
-캐시 만료 (인기 상품)
-  ↓
-동시에 1,000개 요청
-  ↓
-1,000개 DB 쿼리 (동일한 상품)
-  ↓
-DB 과부하
+아래 도식은 인기 상품의 캐시가 만료된 직후 동시 요청이 모두 DB 로 몰려 과부하가 되는 흐름을 보여준다.
+
+```mermaid
+flowchart TD
+    A["캐시 만료 (인기 상품)"] --> B["동시에 1,000개 요청"]
+    B --> C["1,000개 DB 쿼리 (동일한 상품)"]
+    C --> D["DB 과부하"]
 ```
 
 ### 해결 1: 단일 프로세스 Mutex Lock
@@ -955,7 +978,9 @@ for (let i = 0; i < 10; i++) {
 
 대기에도 대가가 있다. Lock 을 쥔 요청이 느리면 나머지가 다 같이 느려지고, 그 요청이 죽으면 Lock TTL 만큼 아무도 진행하지 못한다. **스탬피드 방지란 "많은 요청을 DB 로 보내는 것"과 "많은 요청을 기다리게 하는 것" 중 후자를 고르는 일이다.** 응답 시간 상한이 빡빡한 API 라면 오히려 전자가 나을 수도 있다.
 
-Lock TTL 도 임의로 정하면 안 된다. DB 조회가 TTL 보다 오래 걸리면 Lock 이 먼저 풀려 두 번째 요청이 들어오고, 첫 번째가 뒤늦게 끝나며 오래된 값을 캐시에 덮어쓴다. Lua 로 본인 Lock 만 지우게 해 뒀으니 남의 Lock 을 삭제하는 사고는 없지만, **중복 실행 자체는 막지 못한다.** TTL 은 조회 시간의 최악값보다 넉넉해야 하고, 그러면 이번엔 장애 시 정지 시간이 길어진다.
+Lock TTL 도 임의로 정하면 안 된다. DB 조회가 TTL 보다 오래 걸리면 Lock 이 먼저 풀려 두 번째 요청이 들어오고, 첫 번째가 뒤늦게 끝나며 오래된 값을 캐시에 덮어쓴다.
+
+Lua 로 본인 Lock 만 지우게 해 뒀으니 남의 Lock 을 삭제하는 사고는 없지만, **중복 실행 자체는 막지 못한다.** TTL 은 조회 시간의 최악값보다 넉넉해야 하고, 그러면 이번엔 장애 시 정지 시간이 길어진다.
 
 ### 해결 3: Probabilistic Early Expiration
 
@@ -988,7 +1013,11 @@ async getProduct(id: number): Promise<Product> {
 }
 ```
 
-**`ttl` 의 반환값을 확인하지 않고 있다.** Redis 의 `TTL` 은 키가 없으면 `-2`, 만료 시간이 설정돼 있지 않으면 `-1` 을 돌려준다([TTL 명령 문서](https://redis.io/docs/latest/commands/ttl/)). `ttl !== null && ttl < 60` 은 이 둘을 전부 통과시킨다. 그래서 **캐시가 아예 없을 때도 백그라운드 갱신이 돌고**, 바로 아래 미스 경로가 다시 DB 를 조회한다. 같은 상품을 두 번 읽는 것이다. 조건을 아래처럼 좁힌다.
+**`ttl` 의 반환값을 확인하지 않고 있다.** Redis 의 `TTL` 은 키가 없으면 `-2`, 만료 시간이 설정돼 있지 않으면 `-1` 을 돌려준다([TTL 명령 문서](https://redis.io/docs/latest/commands/ttl/)).
+
+`ttl !== null && ttl < 60` 은 이 둘을 전부 통과시킨다. 그래서 **캐시가 아예 없을 때도 백그라운드 갱신이 돌고**, 바로 아래 미스 경로가 다시 DB 를 조회한다.
+
+같은 상품을 두 번 읽는다. 조건을 아래처럼 좁힌다.
 
 ```typescript
 if (ttl > 0 && ttl < 60 && Math.random() < 0.1) { /* 미리 갱신 */ }
@@ -1002,7 +1031,7 @@ if (ttl > 0 && ttl < 60 && Math.random() < 0.1) { /* 미리 갱신 */ }
 
 ### 사용자 세션
 
-**Redis (ioredis):**
+ioredis 로 구현한 세션 저장소다.
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -1063,7 +1092,7 @@ export class ProductController {
 
 ### 랭킹/리더보드
 
-**Redis Sorted Set:**
+Sorted Set 으로 구현한 리더보드다.
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
