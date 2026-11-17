@@ -1,7 +1,7 @@
 ---
 title: AWS KMS (Key Management Service)
 tags: [aws, security, encryption, cloud]
-updated: 2026-05-29
+updated: 2026-11-17
 ---
 
 # AWS KMS (Key Management Service)
@@ -9,7 +9,7 @@ updated: 2026-05-29
 ## 개요
 
 AWS KMS는 암호화 키를 생성, 저장, 제어하는 완전 관리형 서비스다.  
-데이터 암호화의 복잡성을 AWS가 대신 처리해주며, 다양한 AWS 서비스와 연동된다.
+데이터 암호화의 복잡성을 AWS가 대신 처리해주며, S3, EBS, RDS 같은 AWS 서비스와 연동된다.
 
 ### 주요 기능
 - 암호화 키(CMK) 생성 및 관리
@@ -35,33 +35,16 @@ AWS KMS는 암호화 키를 생성, 저장, 제어하는 완전 관리형 서비
 
 KMS의 키는 3단계 계층으로 구성된다. 상위 키가 하위 키를 암호화하는 구조로, 최상위 키는 AWS가 관리하는 HSM 내부에서만 존재한다.
 
-```
-┌─────────────────────────────────────────────────┐
-│              AWS KMS HSM (하드웨어)                │
-│                                                   │
-│  ┌───────────────────────────────────────┐        │
-│  │  HSM Backing Key (AWS 관리)            │        │
-│  │  - HSM 내부에서만 존재                  │        │
-│  │  - 사용자 접근 불가                     │        │
-│  │  - KMS Key를 암호화                    │        │
-│  └──────────────┬────────────────────────┘        │
-│                 │ 암호화                            │
-│  ┌──────────────▼────────────────────────┐        │
-│  │  KMS Key (Customer Master Key)         │        │
-│  │  - 논리적 키 리소스 (KeyId, ARN)        │        │
-│  │  - 키 정책, 로테이션 설정 포함           │        │
-│  │  - 직접 데이터 암호화는 4KB까지만 가능    │        │
-│  └──────────────┬────────────────────────┘        │
-│                 │                                   │
-└─────────────────┼───────────────────────────────────┘
-                  │ GenerateDataKey API
-                  │
-   ┌──────────────▼────────────────────────┐
-   │  Data Key (데이터 키)                   │
-   │  - 실제 데이터 암호화에 사용             │
-   │  - 평문 키는 사용 후 즉시 폐기           │
-   │  - 암호화된 키만 데이터와 함께 저장       │
-   └────────────────────────────────────────┘
+아래 도식은 HSM 안의 Backing Key가 KMS Key를 암호화하고, KMS Key가 GenerateDataKey로 HSM 밖의 Data Key를 만드는 흐름을 보여준다.
+
+```mermaid
+flowchart TB
+    subgraph HSM["AWS KMS HSM (하드웨어)"]
+        B["HSM Backing Key (AWS 관리)<br/>HSM 내부에서만 존재<br/>사용자 접근 불가<br/>KMS Key를 암호화"]
+        K["KMS Key (Customer Master Key)<br/>논리적 키 리소스 (KeyId, ARN)<br/>키 정책, 로테이션 설정 포함<br/>직접 데이터 암호화는 4KB까지만 가능"]
+        B -->|암호화| K
+    end
+    K -->|GenerateDataKey API| D["Data Key (데이터 키)<br/>실제 데이터 암호화에 사용<br/>평문 키는 사용 후 즉시 폐기<br/>암호화된 키만 데이터와 함께 저장"]
 ```
 
 ### KMS Key 종류
@@ -269,54 +252,39 @@ KMS의 핵심 패턴이다. 4KB 이상 데이터를 암호화할 때 반드시 �
 
 ### 암호화 흐름
 
-```
-┌──────────────┐         ┌──────────────┐
-│  애플리케이션  │         │   AWS KMS     │
-└──────┬───────┘         └──────┬───────┘
-       │                        │
-       │  1. GenerateDataKey    │
-       │───────────────────────>│
-       │                        │  KMS Key로
-       │                        │  Data Key 생성
-       │  2. 평문 키 + 암호화 키  │
-       │<───────────────────────│
-       │                        │
-       │  3. 평문 키로 데이터 암호화
-       │  (로컬에서 AES-256)
-       │
-       │  4. 평문 키 메모리에서 삭제
-       │
-       │  5. 암호화된 데이터 + 암호화된 키 함께 저장
-       │  (S3, DB 등)
-       ▼
+아래 도식은 애플리케이션이 KMS에서 Data Key를 받아 로컬에서 데이터를 암호화하고, 평문 키를 버린 뒤 암호화된 키만 저장하는 순서를 보여준다.
+
+```mermaid
+sequenceDiagram
+    participant App as 애플리케이션
+    participant KMS as AWS KMS
+    App->>KMS: 1. GenerateDataKey
+    Note right of KMS: KMS Key로 Data Key 생성
+    KMS-->>App: 2. 평문 키 + 암호화된 키
+    Note over App: 3. 평문 키로 데이터 암호화 (로컬에서 AES-256)
+    Note over App: 4. 평문 키 메모리에서 삭제
+    Note over App: 5. 암호화된 데이터 + 암호화된 키 함께 저장 (S3, DB 등)
 ```
 
 ### 복호화 흐름
 
-```
-┌──────────────┐         ┌──────────────┐
-│  애플리케이션  │         │   AWS KMS     │
-└──────┬───────┘         └──────┬───────┘
-       │                        │
-       │  1. 저장소에서 암호화된 데이터 + 암호화된 키 조회
-       │
-       │  2. Decrypt(암호화된 키) │
-       │───────────────────────>│
-       │                        │  KMS Key로
-       │                        │  Data Key 복호화
-       │  3. 평문 키 반환        │
-       │<───────────────────────│
-       │                        │
-       │  4. 평문 키로 데이터 복호화
-       │  (로컬에서 AES-256)
-       │
-       │  5. 평문 키 메모리에서 삭제
-       ▼
+아래 도식은 저장소에서 읽은 암호화된 키를 KMS로 풀어 평문 키를 받고, 로컬에서 데이터를 복호화하는 순서를 보여준다.
+
+```mermaid
+sequenceDiagram
+    participant App as 애플리케이션
+    participant KMS as AWS KMS
+    Note over App: 1. 저장소에서 암호화된 데이터 + 암호화된 키 조회
+    App->>KMS: 2. Decrypt(암호화된 키)
+    Note right of KMS: KMS Key로 Data Key 복호화
+    KMS-->>App: 3. 평문 키 반환
+    Note over App: 4. 평문 키로 데이터 복호화 (로컬에서 AES-256)
+    Note over App: 5. 평문 키 메모리에서 삭제
 ```
 
-핵심은 **평문 키가 KMS 외부에서 존재하는 시간을 최소화하는 것**이다. 암호화가 끝나면 평문 키를 즉시 폐기하고, 암호화된 키만 보관한다. 복호화가 필요할 때마다 KMS에 복호화를 요청한다.
+**평문 키가 KMS 밖에 머무는 시간을 최소로 줄이는 게** 핵심이다. 암호화가 끝나면 평문 키를 즉시 폐기하고, 암호화된 키만 보관한다. 복호화가 필요할 때마다 KMS에 복호화를 요청한다.
 
-이 구조의 장점은 KMS API 호출을 줄일 수 있다는 것이다. Data Key 하나로 여러 데이터를 암호화한 뒤 키를 폐기하면, GenerateDataKey 호출은 1번이면 된다.
+이 구조는 KMS API 호출을 줄인다. Data Key 하나로 여러 데이터를 암호화한 뒤 키를 폐기하면, GenerateDataKey 호출은 1번이면 된다.
 
 ---
 
@@ -324,23 +292,19 @@ KMS의 핵심 패턴이다. 4KB 이상 데이터를 암호화할 때 반드시 �
 
 KMS 키는 기본적으로 리전에 종속된다. 하지만 멀티리전 키를 사용하면 여러 리전에서 동일한 키 material로 암호화/복호화할 수 있다.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     멀티리전 키 구조                       │
-│                                                          │
-│  ap-northeast-2 (Primary)      us-east-1 (Replica)      │
-│  ┌─────────────────────┐      ┌─────────────────────┐   │
-│  │  mrk-1234abcd        │      │  mrk-1234abcd        │  │
-│  │  (Primary Key)       │─────>│  (Replica Key)       │  │
-│  │                      │ 복제  │                      │  │
-│  │  키 정책: 독립 관리    │      │  키 정책: 독립 관리    │  │
-│  └─────────────────────┘      └─────────────────────┘   │
-│                                                          │
-│  - 동일한 Key ID (mrk- 접두사)                             │
-│  - 동일한 key material                                    │
-│  - 키 정책은 리전별로 독립                                  │
-│  - Primary에서만 key material 관리 (로테이션 등)             │
-└─────────────────────────────────────────────────────────┘
+아래 도식은 Primary 키가 다른 리전의 Replica 키로 복제되는 구조와 두 키가 공유하는 속성을 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph P["ap-northeast-2 (Primary)"]
+        PK["mrk-1234abcd (Primary Key)<br/>키 정책: 독립 관리"]
+    end
+    subgraph R["us-east-1 (Replica)"]
+        RK["mrk-1234abcd (Replica Key)<br/>키 정책: 독립 관리"]
+    end
+    PK -->|복제| RK
+    N["동일한 Key ID (mrk- 접두사)<br/>동일한 key material<br/>키 정책은 리전별로 독립<br/>Primary에서만 key material 관리 (로테이션 등)"]
+    RK ~~~ N
 ```
 
 ### 사용하는 경우
@@ -405,7 +369,7 @@ KMS는 여러 조건 키를 제공한다. 실무에서 자주 쓰는 것들을 �
 
 #### kms:ViaService
 
-특정 AWS 서비스를 통해서만 키를 사용할 수 있게 제한한다. 사용자가 직접 KMS API를 호출하는 건 차단된다.
+특정 AWS 서비스를 경유할 때만 키를 쓸 수 있게 제한한다. 사용자가 직접 KMS API를 호출하는 건 차단된다.
 
 ```json
 {
@@ -424,7 +388,7 @@ KMS는 여러 조건 키를 제공한다. 실무에서 자주 쓰는 것들을 �
 }
 ```
 
-이렇게 하면 S3를 통한 암복호화만 허용된다. 누군가 aws kms decrypt CLI로 직접 복호화를 시도하면 거부된다.
+이렇게 하면 S3가 요청한 암복호화만 허용된다. 누군가 aws kms decrypt CLI로 직접 복호화를 시도하면 거부된다.
 
 #### kms:CallerAccount
 
@@ -476,7 +440,7 @@ Encryption Context는 암호화 시 전달한 key-value 쌍으로, 복호화 시
 | `kms:GrantIsForAWSResource` | AWS 서비스가 생성한 Grant만 허용 |
 | `kms:KeyOrigin` | 키 material 출처 제한 (AWS_KMS, EXTERNAL 등) |
 | `kms:KeySpec` | 특정 키 스펙만 허용 (SYMMETRIC_DEFAULT 등) |
-| `kms:RequestAlias` | 특정 alias를 통한 요청만 허용 |
+| `kms:RequestAlias` | 특정 alias로 보낸 요청만 허용 |
 
 ---
 
@@ -486,17 +450,21 @@ Encryption Context는 암호화 시 전달한 key-value 쌍으로, 복호화 시
 
 ### 설정 과정
 
-```
-┌──────────────────────┐         ┌──────────────────────┐
-│  계정 A (키 소유자)    │         │  계정 B (키 사용자)    │
-│  111122223333         │         │  444455556666         │
-│                       │         │                       │
-│  1. 키 정책에          │         │  2. IAM 정책에         │
-│     계정 B 추가        │         │     KMS 권한 추가      │
-│                       │         │                       │
-│  KMS Key              │◄────────│  EC2 / Lambda 등      │
-│  (키 정책 수정)        │ 사용     │  (IAM Role에 정책)     │
-└──────────────────────┘         └──────────────────────┘
+아래 도식은 계정 A에서 키 정책에 계정 B를 추가하고, 계정 B에서 IAM 정책에 KMS 권한을 추가한 뒤 계정 B의 워크로드가 계정 A의 키를 쓰는 구조를 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph A["계정 A (키 소유자) 111122223333"]
+        KP["1. 키 정책에 계정 B 추가"]
+        KEY["KMS Key (키 정책 수정)"]
+        KP --> KEY
+    end
+    subgraph B["계정 B (키 사용자) 444455556666"]
+        IAM["2. IAM 정책에 KMS 권한 추가"]
+        WL["EC2 / Lambda 등 (IAM Role에 정책)"]
+        IAM --> WL
+    end
+    WL -->|사용| KEY
 ```
 
 **양쪽 모두 설정해야 동작한다.** 키 정책만 수정하거나, IAM 정책만 추가하면 AccessDeniedException이 발생한다.
@@ -563,7 +531,7 @@ aws kms put-key-policy \
 
 ## AccessDeniedException 트러블슈팅
 
-KMS에서 가장 많이 만나는 에러다. 원인이 다양해서 하나씩 확인해야 한다.
+KMS에서 가장 많이 만나는 에러다. 원인이 여럿이라 하나씩 확인해야 한다.
 
 ### 에러 메시지 예시
 
@@ -575,7 +543,7 @@ kms:Decrypt on resource: arn:aws:kms:ap-northeast-2:111122223333:key/abcd-1234
 
 ### 확인 순서
 
-**1단계: 키 정책 확인**
+#### 1단계 키 정책 확인
 
 ```bash
 aws kms get-key-policy \
@@ -586,7 +554,7 @@ aws kms get-key-policy \
 
 키 정책에 "Enable IAM policies" Statement가 있는지 확인한다. 이게 없으면 IAM 정책이 아무리 맞아도 접근이 안 된다.
 
-**2단계: IAM 정책 확인**
+#### 2단계 IAM 정책 확인
 
 ```bash
 # Role에 붙은 정책 확인
@@ -599,11 +567,11 @@ aws iam get-role-policy --role-name MyRole --policy-name PolicyName
 
 `kms:Decrypt` 등 필요한 Action이 허용되어 있는지 확인한다.
 
-**3단계: SCP, Permission Boundary 확인**
+#### 3단계 SCP, Permission Boundary 확인
 
 Organizations의 SCP(Service Control Policy)나 Permission Boundary가 KMS 접근을 차단하는 경우가 있다. IAM 정책과 키 정책이 정상인데도 접근이 안 되면 이쪽을 의심한다.
 
-**4단계: VPC Endpoint 정책 확인**
+#### 4단계 VPC Endpoint 정책 확인
 
 VPC Endpoint를 사용하는 환경이면 Endpoint 정책도 확인한다.
 
@@ -615,11 +583,11 @@ aws ec2 describe-vpc-endpoints \
 
 Endpoint 정책에서 특정 키나 Action을 제한하고 있을 수 있다.
 
-**5단계: kms:ViaService 조건 확인**
+#### 5단계 kms:ViaService 조건 확인
 
-키 정책에 `kms:ViaService` 조건이 있으면, 해당 서비스를 경유하지 않는 직접 호출은 거부된다. CLI로 직접 `aws kms decrypt`를 호출하면 실패하는데 S3를 통한 복호화는 성공하는 경우, 이 조건 때문이다.
+키 정책에 `kms:ViaService` 조건이 있으면, 해당 서비스를 경유하지 않는 직접 호출은 거부된다. CLI로 직접 `aws kms decrypt`를 호출하면 실패하는데 S3가 요청한 복호화는 성공하는 경우, 이 조건 때문이다.
 
-**6단계: Encryption Context 불일치**
+#### 6단계 Encryption Context 불일치
 
 암호화 시 Encryption Context를 사용했으면 복호화 시에도 동일한 값을 전달해야 한다. Context가 빠져 있거나 값이 다르면 AccessDeniedException이 아니라 InvalidCiphertextException이 발생하는 경우도 있다.
 
@@ -646,7 +614,7 @@ aws cloudtrail lookup-events \
   --output text | python3 -m json.tool
 ```
 
-CloudTrail 이벤트의 `errorCode`와 `errorMessage` 필드에 구체적인 거부 사유가 남는다. `requestParameters`에서 어떤 키에 대해 어떤 Action을 시도했는지 확인할 수 있다.
+CloudTrail 이벤트의 `errorCode`와 `errorMessage` 필드에 구체적인 거부 사유가 남는다. `requestParameters`에서 어떤 키에 어떤 Action을 시도했는지 확인할 수 있다.
 
 ---
 
@@ -808,7 +776,11 @@ aws kms delete-imported-key-material --key-id $KEY_ID
 
 ## 감사와 로깅
 
-KMS의 모든 API 호출은 CloudTrail에 남는다. Encrypt, Decrypt, GenerateDataKey, CreateGrant 같은 호출마다 누가 어떤 키에 어떤 작업을 했는지, 어떤 Encryption Context를 넘겼는지가 이벤트로 기록된다. 키를 누가 쓰는지 추적하거나 AccessDeniedException 원인을 찾을 때 이 기록이 출발점이 된다. 삭제 예약 전에 그 키를 아직 쓰는 곳이 있는지 보는 것도 결국 CloudTrail의 Decrypt/Encrypt 이벤트를 확인하는 일이다.
+KMS의 모든 API 호출은 CloudTrail에 남는다. Encrypt, Decrypt, GenerateDataKey, CreateGrant 같은 호출마다 누가 어떤 키에 어떤 작업을 했는지, 어떤 Encryption Context를 넘겼는지가 이벤트로 기록된다.
+
+키를 누가 쓰는지 추적하거나 AccessDeniedException 원인을 찾을 때 이 기록이 출발점이 된다.
+
+삭제 예약 전에 그 키를 아직 쓰는 곳이 있는지 보는 것도 결국 CloudTrail의 Decrypt/Encrypt 이벤트를 확인하는 일이다.
 
 CloudWatch로는 키 사용량이나 비정상 패턴에 경보를 건다. 평소보다 Decrypt 호출이 급증하거나 삭제 예약한 키에 접근 시도가 들어오면 알림이 오도록 메트릭 필터와 경보를 걸어 둔다.
 
@@ -818,7 +790,7 @@ CloudWatch로는 키 사용량이나 비정상 패턴에 경보를 건다. 평�
 
 | 서비스 | 연동 방식 |
 |--------|-----------|
-| S3 | SSE-KMS를 통한 객체 암호화 |
+| S3 | SSE-KMS로 객체 암호화 |
 | EBS | 볼륨 암호화 및 스냅샷 보안 |
 | RDS | 저장 데이터 및 백업 암호화 |
 | Lambda | 환경변수 KMS 암호화 지원 |
@@ -827,7 +799,9 @@ CloudWatch로는 키 사용량이나 비정상 패턴에 경보를 건다. 평�
 
 ## 네트워크 보안
 
-KMS API는 전부 HTTPS로 호출된다. 기본적으로 퍼블릭 엔드포인트(kms.<region>.amazonaws.com)를 거치기 때문에, VPC 안에서만 도는 워크로드가 NAT 게이트웨이 없이 KMS를 쓰려면 인터페이스 VPC 엔드포인트(PrivateLink)를 만든다. 그러면 KMS 트래픽이 인터넷을 타지 않고 VPC 내부에서 처리된다. 엔드포인트에 정책을 붙여 특정 키나 Action만 통과시킬 수도 있는데, 이 정책을 너무 좁게 잡으면 그 자체가 AccessDeniedException의 원인이 되니 트러블슈팅 때 같이 본다.
+KMS API는 전부 HTTPS로 호출된다. 기본적으로 퍼블릭 엔드포인트(kms.<region>.amazonaws.com)를 거치기 때문에, VPC 안에서만 도는 워크로드가 NAT 게이트웨이 없이 KMS를 쓰려면 인터페이스 VPC 엔드포인트(PrivateLink)를 만든다.
+
+그러면 KMS 트래픽이 인터넷을 타지 않고 VPC 내부에서 처리된다. 엔드포인트에 정책을 붙여 특정 키나 Action만 통과시킬 수도 있는데, 이 정책을 너무 좁게 잡으면 그 자체가 AccessDeniedException의 원인이 되니 트러블슈팅 때 같이 본다.
 
 ---
 
