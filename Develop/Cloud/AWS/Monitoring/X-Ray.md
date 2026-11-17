@@ -1,7 +1,7 @@
 ---
 title: AWS X-Ray
 tags: [aws, observability, monitoring, performance]
-updated: 2026-01-23
+updated: 2026-11-17
 ---
 
 # AWS X-Ray
@@ -14,36 +14,38 @@ X-Ray는 분산 애플리케이션을 추적하는 서비스다. 요청이 여�
 
 마이크로서비스는 여러 서비스로 나뉘어 있다. 하나의 요청이 여러 서비스를 거친다.
 
-**문제 상황:**
-
-**느린 API 응답:**
 사용자가 주문 API를 호출한다. 응답 시간이 5초다. 어디가 느린지 모른다.
 
-**호출 경로:**
+호출은 API Gateway 뒤에서 세 갈래로 나뉜다.
+
 ```
 Client → API Gateway → Order Service → Payment Service → DB
                      → Inventory Service → DB
                      → Notification Service → SNS → Email
 ```
 
-**각 서비스 로그:**
+서비스마다 남기는 로그는 이렇다.
+
 - Order Service: "Payment API called"
 - Payment Service: "Processing payment"
 - Inventory Service: "Checking stock"
 
-**문제:**
+이 로그들로는 흐름을 잇기 어렵다.
+
 - 로그가 분산되어 있다
 - 전체 흐름을 파악하기 어렵다
 - 어느 구간이 느린지 알 수 없다
 - 요청 ID로 로그를 연결해야 한다 (번거롭다)
 
-**X-Ray의 해결:**
+X-Ray는 이 문제를 이렇게 푼다.
+
 - 전체 요청 경로를 시각화
 - 각 서비스의 응답 시간 표시
 - 병목 구간 자동 탐지
 - 에러 발생 위치 확인
 
-**Service Map:**
+Service Map에서는 서비스별 응답 시간이 한눈에 보인다.
+
 ```
 API Gateway (50ms)
   → Order Service (100ms)
@@ -60,17 +62,16 @@ Payment Service가 느리다는 것을 즉시 파악한다.
 
 하나의 요청에 대한 전체 경로다. 요청이 시작부터 끝까지 거치는 모든 서비스를 포함한다.
 
-**Trace ID:**
-요청을 고유하게 식별한다. 모든 서비스가 같은 Trace ID를 사용한다.
+Trace ID는 요청을 고유하게 식별한다. 모든 서비스가 같은 Trace ID를 사용한다.
 
-**예시:**
-`1-5e9a6c8f-7d8e4c3b2a1f0e9d8c7b6a5f`
+Trace ID 예시는 `1-5e9a6c8f-7d8e4c3b2a1f0e9d8c7b6a5f`이다.
 
 ### Segment
 
 하나의 서비스 또는 리소스에 대한 작업이다. Trace는 여러 Segment로 구성된다.
 
-**예시:**
+한 Trace는 이런 Segment로 이뤄질 수 있다.
+
 - Segment 1: API Gateway
 - Segment 2: Lambda Function
 - Segment 3: DynamoDB Query
@@ -79,7 +80,6 @@ Payment Service가 느리다는 것을 즉시 파악한다.
 
 Segment 내의 세부 작업이다. SQL 쿼리, HTTP 호출, 외부 API 호출 등을 추적한다.
 
-**예시:**
 Order Service Segment 내에서:
 - Subsegment 1: Parse request
 - Subsegment 2: Validate order
@@ -90,7 +90,8 @@ Order Service Segment 내에서:
 
 검색 가능한 키-값 쌍이다. 필터링과 그룹화에 사용한다.
 
-**예시:**
+요청에 붙이는 Annotation은 이런 모양이다.
+
 ```javascript
 {
   "user_id": "user_123",
@@ -105,7 +106,8 @@ Order Service Segment 내에서:
 
 검색할 수 없는 추가 정보다. 디버깅에 유용하다.
 
-**예시:**
+Metadata는 이런 모양이다.
+
 ```javascript
 {
   "order_details": {
@@ -120,7 +122,8 @@ Order Service Segment 내에서:
 
 ### Lambda 함수
 
-**Node.js:**
+#### Node.js
+
 ```javascript
 const AWSXRay = require('aws-xray-sdk-core');
 const AWS = AWSXRay.captureAWS(require('aws-sdk'));
@@ -157,10 +160,12 @@ exports.handler = async (event) => {
 };
 ```
 
-**환경 변수 설정:**
+#### 환경 변수 설정
+
 Lambda 콘솔에서 X-Ray 추적 활성화.
 
-**Python:**
+#### Python
+
 ```python
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
@@ -186,12 +191,14 @@ def lambda_handler(event, context):
 
 ### Express (Node.js)
 
-**미들웨어 설치:**
+#### 미들웨어 설치
+
 ```bash
 npm install aws-xray-sdk
 ```
 
-**설정:**
+#### 설정
+
 ```javascript
 const AWSXRay = require('aws-xray-sdk-core');
 const express = require('express');
@@ -231,7 +238,8 @@ app.use(AWSXRay.express.closeSegment());
 app.listen(3000);
 ```
 
-**Daemon 실행:**
+#### Daemon 실행
+
 X-Ray Daemon을 EC2에 설치한다.
 
 ```bash
@@ -243,9 +251,8 @@ sudo systemctl enable xray
 
 ### ECS/Fargate
 
-**X-Ray Daemon 컨테이너 추가:**
+X-Ray Daemon 컨테이너를 추가한 Task Definition이다.
 
-**Task Definition:**
 ```json
 {
   "family": "my-app",
@@ -289,39 +296,42 @@ sudo systemctl enable xray
 
 X-Ray 콘솔에서 Service Map을 확인한다.
 
-**표시 정보:**
+Service Map에는 이런 정보가 표시된다.
+
 - 각 서비스 (노드)
 - 서비스 간 연결 (엣지)
 - 평균 응답 시간
 - 요청 수
 - 에러율
 
-**색상:**
+노드 색상은 상태를 나타낸다.
+
 - 초록색: 정상
 - 노란색: 경고 (지연)
 - 빨간색: 에러
 
-**예시:**
-```
-[API Gateway] 50ms, 1000 req/min
-    ↓
-[Order Service] 100ms, 950 req/min
-    ↓
-[Payment Service] 3000ms (빨간색), 900 req/min ← 문제!
-    ↓
-[Payment DB] 2800ms, 900 req/min
+아래 도식은 요청이 API Gateway에서 Payment DB까지 내려가며 노드마다 평균 응답 시간과 분당 요청 수가 어떻게 달라지는지 보여준다. 빨간색으로 표시한 Payment Service가 문제 구간이다.
+
+```mermaid
+flowchart TD
+    A["API Gateway<br/>50ms, 1000 req/min"] --> B["Order Service<br/>100ms, 950 req/min"]
+    B --> C["Payment Service (빨간색)<br/>3000ms, 900 req/min<br/>문제"]
+    C --> D["Payment DB<br/>2800ms, 900 req/min"]
+    style C fill:#f8d7da,stroke:#c0392b,color:#333
 ```
 
 Payment Service와 DB가 느리다. 병목 구간이다.
 
 ### 필터링
 
-**시간 범위:**
+시간 범위는 세 가지로 고른다.
+
 - 최근 5분
 - 최근 1시간
 - 커스텀 범위
 
-**Annotation 필터:**
+Annotation 필터는 이렇게 쓴다.
+
 ```
 order_type = "express"
 region = "us-west-2"
@@ -335,7 +345,8 @@ region = "us-west-2"
 
 특정 시간 범위의 모든 Trace를 확인한다.
 
-**필터:**
+Trace 목록은 이런 조건으로 거른다.
+
 - 응답 시간 > 3초
 - HTTP 상태 코드 = 500
 - Annotation: user_id = "user_123"
@@ -346,7 +357,8 @@ region = "us-west-2"
 
 개별 Trace를 선택하면 타임라인을 볼 수 있다.
 
-**예시:**
+3.2초가 걸린 Trace의 타임라인 예시다.
+
 ```
 Total: 3.2초
 
@@ -369,14 +381,16 @@ Payment Service의 Process가 2.5초 걸린다. 최적화가 필요하다.
 
 에러가 발생한 Trace를 찾는다.
 
-**필터:**
+에러 Trace는 이 조건으로 찾는다.
+
 ```
 http.status = 500
 error = true
 fault = true
 ```
 
-**Trace 상세:**
+에러 Trace 상세에는 이런 내용이 나온다.
+
 ```
 Payment Service:
   Exception: TimeoutError
@@ -392,17 +406,20 @@ Payment Gateway 연결이 타임아웃된다. 네트워크 문제나 Gateway 과
 
 ### 기본 Sampling
 
-**규칙:**
+기본 규칙은 이렇다.
+
 - 초당 첫 요청은 항상 추적
 - 이후 요청의 5% 추적
 
-**예시:**
+초당 요청이 100개면 이렇게 계산된다.
+
 - 초당 100개 요청
 - 추적: 1 + (99 × 0.05) = 약 6개
 
 ### 커스텀 Sampling
 
-**규칙 파일 (sampling-rules.json):**
+규칙 파일 sampling-rules.json은 이렇게 쓴다.
+
 ```json
 {
   "version": 2,
@@ -445,28 +462,29 @@ Payment Gateway 연결이 타임아웃된다. 네트워크 문제나 Gateway 과
 }
 ```
 
-**규칙:**
+이 파일은 세 규칙을 정의한다.
+
 1. 에러 (5xx): 100% 추적
 2. Express 주문: 10% 추적
 3. 나머지: 5% 추적
 
-**적용:**
-X-Ray 콘솔에서 Sampling rules를 생성한다.
+X-Ray 콘솔에서 Sampling rules를 생성해 적용한다.
 
 ## 실무 사용
 
 ### 성능 최적화
 
-**문제:**
 API 응답이 느리다. p95가 2초다.
 
-**분석:**
+분석 순서는 이렇다.
+
 1. X-Ray Service Map 확인
 2. 가장 느린 서비스 찾기
 3. Trace 상세 확인
 4. 병목 Subsegment 찾기
 
-**발견:**
+Trace 상세에서 확인한 Subsegment다.
+
 ```
 DB Query Subsegment: 1.5초
   SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC
@@ -474,23 +492,25 @@ DB Query Subsegment: 1.5초
 
 인덱스가 없다. `user_id`에 인덱스를 추가한다.
 
-**결과:**
+인덱스를 추가한 결과는 이렇다.
+
 - DB Query: 1.5초 → 50ms
 - 전체 응답: 2초 → 500ms
 
-**75% 개선**
+75% 개선이다.
 
 ### 에러 추적
 
-**문제:**
 간헐적으로 500 에러가 발생한다. 재현이 어렵다.
 
-**분석:**
+분석 순서는 이렇다.
+
 1. X-Ray에서 에러 필터 적용
 2. 에러 Trace 확인
 3. 공통 패턴 찾기
 
-**발견:**
+에러 Trace에서 공통으로 보이는 내용이다.
+
 ```
 Payment Service:
   Annotation: payment_provider = "ProviderA"
@@ -499,21 +519,23 @@ Payment Service:
 
 ProviderA만 실패한다. ProviderA 서버 문제를 확인한다.
 
-**해결:**
+대응은 이렇다.
+
 - ProviderA 담당자에게 문의
 - 임시로 ProviderB로 전환
 - 재시도 로직 추가
 
 ### 의존성 파악
 
-**신규 기능 배포:**
 Order Service에 새 기능을 추가한다. 어떤 서비스에 영향을 줄지 모른다.
 
-**확인:**
+확인 순서는 이렇다.
+
 1. Service Map에서 Order Service 선택
 2. Downstream 서비스 확인
 
-**발견:**
+Downstream에 이런 서비스가 나온다.
+
 ```
 Order Service
   → Payment Service
@@ -528,11 +550,13 @@ Recommendation Service도 영향을 받는다. 사전에 테스트한다.
 
 ### 무료 티어
 
-**매월:**
+무료 티어는 매월 이만큼 제공된다.
+
 - 추적: 100,000개
 - 검색: 1,000,000개
 
-**예시 (소규모):**
+소규모 서비스를 가정한 계산이다.
+
 - 초당 10개 요청
 - Sampling 10%
 - 월 추적: 10 × 0.1 × 60 × 60 × 24 × 30 = 259,200개
@@ -541,29 +565,29 @@ Recommendation Service도 영향을 받는다. 사전에 테스트한다.
 
 ### 유료
 
-**추적 기록:**
-$5.00 per 1 million traces recorded
+추적 기록 요금은 $5.00 per 1 million traces recorded이고, 추적 검색 요금은 $0.50 per 1 million traces retrieved다.
 
-**추적 검색:**
-$0.50 per 1 million traces retrieved
+중규모 서비스를 가정한 계산이다.
 
-**예시 (중규모):**
 - 초당 100개 요청
 - Sampling 5%
 - 월 추적: 100 × 0.05 × 60 × 60 × 24 × 30 = 13M
 
-**비용:**
+비용은 이렇게 나온다.
+
 - 기록: (13M - 0.1M) × $5.00 / 1M = $64.50
 - 검색 (10만개): 0.1M × $0.50 / 1M = $0.05
 - 합계: $64.55/월
 
 ### 최적화
 
-**Sampling 조정:**
+환경별 Sampling 비율은 이렇게 둔다.
+
 - 프로덕션: 1-5%
 - 개발: 100%
 
-**조건부 Sampling:**
+조건부 Sampling은 이렇게 건다.
+
 - 에러: 100%
 - 느린 요청 (>1초): 100%
 - 정상: 1%
@@ -572,21 +596,25 @@ $0.50 per 1 million traces retrieved
 
 ## X-Ray vs CloudWatch Logs
 
-**CloudWatch Logs:**
+CloudWatch Logs의 성격은 이렇다.
+
 - 텍스트 로그
 - grep으로 검색
 - 단일 서비스 관점
 
-**X-Ray:**
+X-Ray의 성격은 이렇다.
+
 - 분산 추적
 - 시각화
 - 전체 시스템 관점
 
-**함께 사용:**
+둘은 역할이 달라 같이 쓴다.
+
 - X-Ray: 병목 구간 파악
 - Logs: 상세 디버깅
 
-**예시:**
+같이 쓰는 순서는 이렇다.
+
 1. X-Ray에서 Payment Service가 느린 것 확인
 2. Payment Service 로그에서 상세 에러 메시지 확인
 3. 원인 파악 및 수정
