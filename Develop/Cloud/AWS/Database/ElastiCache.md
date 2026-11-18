@@ -1,7 +1,7 @@
 ---
 title: AWS ElastiCache
 tags: [aws, redis, cache, performance]
-updated: 2026-01-18
+updated: 2026-11-18
 ---
 
 # AWS ElastiCache
@@ -14,9 +14,6 @@ ElastiCache는 인메모리 캐시 서비스다. Redis와 Memcached 두 가지 �
 
 데이터베이스에서 매번 데이터를 읽으면 느리다.
 
-**문제 상황:**
-
-**상품 목록 조회:**
 쇼핑몰 메인 페이지를 연다. 인기 상품 10개를 보여준다.
 
 ```javascript
@@ -29,14 +26,16 @@ app.get('/products/popular', async (req, res) => {
 });
 ```
 
-**문제:**
+#### 문제
+
 - 매 요청마다 데이터베이스를 조회한다
 - 복잡한 쿼리를 실행한다
 - 응답 시간: 50-100ms
 - 초당 1,000명이 접속하면 데이터베이스에 1,000번 쿼리
 - 데이터베이스가 과부하된다
 
-**해결: 캐시 사용**
+#### 캐시를 사용한 해결
+
 ```javascript
 app.get('/products/popular', async (req, res) => {
   // 캐시 확인
@@ -59,7 +58,8 @@ app.get('/products/popular', async (req, res) => {
 });
 ```
 
-**결과:**
+#### 결과
+
 - 첫 요청: 데이터베이스 조회 (50ms)
 - 이후 요청: 캐시에서 조회 (1-2ms)
 - 5분 동안 데이터베이스 조회 1회
@@ -68,18 +68,21 @@ app.get('/products/popular', async (req, res) => {
 
 ### 캐시가 유용한 경우
 
-**자주 읽히는 데이터:**
+#### 자주 읽히는 데이터
+
 - 상품 정보
 - 사용자 프로필
 - 설정 값
 - 코드 테이블
 
-**계산 비용이 높은 데이터:**
+#### 계산 비용이 높은 데이터
+
 - 통계
 - 집계
 - 순위
 
-**실시간성이 덜 중요한 데이터:**
+#### 실시간성이 덜 중요한 데이터
+
 - 조회수
 - 좋아요 수
 - 댓글 수
@@ -88,10 +91,12 @@ app.get('/products/popular', async (req, res) => {
 
 ### 캐시가 적합하지 않은 경우
 
-**자주 변경되는 데이터:**
+#### 자주 변경되는 데이터
+
 캐시를 계속 갱신해야 한다. 오히려 성능이 나빠진다.
 
-**정확성이 중요한 데이터:**
+#### 정확성이 중요한 데이터
+
 - 잔액
 - 재고
 - 결제 정보
@@ -104,8 +109,9 @@ ElastiCache는 Redis와 Memcached를 지원한다.
 
 ### Redis
 
-**특징:**
-- 다양한 데이터 타입 (String, List, Set, Hash, Sorted Set)
+#### 특징
+
+- 데이터 타입 (String, List, Set, Hash, Sorted Set)
 - 영구 저장 지원 (Persistence)
 - 복제 지원 (Replication)
 - 자동 장애 조치 (Failover)
@@ -113,7 +119,8 @@ ElastiCache는 Redis와 Memcached를 지원한다.
 - Lua 스크립트
 - 트랜잭션
 
-**사용 사례:**
+#### 사용 사례
+
 - 복잡한 데이터 구조
 - 고가용성 필요
 - 영구 저장 필요
@@ -123,13 +130,15 @@ ElastiCache는 Redis와 Memcached를 지원한다.
 
 ### Memcached
 
-**특징:**
+#### 특징
+
 - 단순한 Key-Value
 - 멀티스레드
 - 수평 확장 쉬움
 - 메모리 효율적
 
-**사용 사례:**
+#### 사용 사례
+
 - 단순한 캐시
 - 매우 높은 처리량
 - 영구 저장 불필요
@@ -137,14 +146,16 @@ ElastiCache는 Redis와 Memcached를 지원한다.
 
 ### 선택 기준
 
-**Redis를 선택:**
+#### Redis를 선택하는 경우
+
 - 복잡한 데이터 타입 필요
 - 데이터 영구 저장 필요
 - 자동 장애 조치 필요
 - 복제 필요
 - Pub/Sub 필요
 
-**Memcached를 선택:**
+#### Memcached를 선택하는 경우
+
 - 단순한 Key-Value만 필요
 - 멀티코어를 최대한 활용
 - 수평 확장
@@ -177,7 +188,8 @@ redis.on('error', (err) => {
 
 ### 기본 명령
 
-**SET / GET:**
+#### SET / GET
+
 ```javascript
 // 저장
 await redis.set('user:123:name', '김철수');
@@ -187,7 +199,8 @@ const name = await redis.get('user:123:name');
 console.log(name);  // '김철수'
 ```
 
-**만료 시간 설정:**
+#### 만료 시간 설정
+
 ```javascript
 // 10초 후 자동 삭제
 await redis.setex('session:abc', 10, 'session_data');
@@ -196,18 +209,21 @@ await redis.setex('session:abc', 10, 'session_data');
 await redis.set('session:abc', 'session_data', 'EX', 10);
 ```
 
-**삭제:**
+#### 삭제
+
 ```javascript
 await redis.del('user:123:name');
 ```
 
-**존재 확인:**
+#### 존재 확인
+
 ```javascript
 const exists = await redis.exists('user:123:name');
 console.log(exists);  // 1 (존재) 또는 0 (없음)
 ```
 
-**TTL 확인:**
+#### TTL 확인
+
 ```javascript
 const ttl = await redis.ttl('session:abc');
 console.log(ttl);  // 남은 초 수, -1 (만료 없음), -2 (키 없음)
@@ -219,7 +235,8 @@ console.log(ttl);  // 남은 초 수, -1 (만료 없음), -2 (키 없음)
 
 가장 기본적인 타입이다. 문자열이나 숫자를 저장한다.
 
-**숫자 증가/감소:**
+#### 숫자 증가/감소
+
 ```javascript
 // 조회수 증가
 await redis.incr('product:123:views');
@@ -258,7 +275,8 @@ console.log(name);  // '김철수'
 await redis.hset('user:123', 'age', 31);
 ```
 
-**장점:**
+#### 장점
+
 - 객체 전체를 가져오지 않고 필드만 조회 가능
 - 메모리 효율적
 
@@ -284,7 +302,8 @@ const len = await redis.llen('logs');
 console.log(len);  // 2
 ```
 
-**사용 사례:**
+#### 사용 사례
+
 - 최근 활동 내역
 - 작업 큐
 - 타임라인
@@ -314,7 +333,8 @@ const count = await redis.scard('tags:123');
 console.log(count);  // 2
 ```
 
-**집합 연산:**
+#### 집합 연산
+
 ```javascript
 // 교집합
 const common = await redis.sinter('tags:123', 'tags:456');
@@ -326,7 +346,8 @@ const all = await redis.sunion('tags:123', 'tags:456');
 const diff = await redis.sdiff('tags:123', 'tags:456');
 ```
 
-**사용 사례:**
+#### 사용 사례
+
 - 태그
 - 팔로워/팔로잉
 - 중복 제거
@@ -358,7 +379,8 @@ console.log(rank);  // 1 (2등)
 await redis.zincrby('leaderboard', 50, 'user_123');
 ```
 
-**사용 사례:**
+#### 사용 사례
+
 - 게임 순위
 - 인기 게시물
 - 우선순위 큐
@@ -370,14 +392,14 @@ await redis.zincrby('leaderboard', 50, 'user_123');
 
 애플리케이션이 캐시를 직접 관리한다.
 
-**동작:**
+#### 동작
+
 1. 캐시에서 조회
 2. 있으면 반환
 3. 없으면 데이터베이스 조회
 4. 캐시에 저장
 5. 반환
 
-**코드:**
 ```javascript
 async function getUser(userId) {
   // 1. 캐시 확인
@@ -396,17 +418,20 @@ async function getUser(userId) {
 }
 ```
 
-**장점:**
+#### 장점
+
 - 구현이 간단하다
 - 캐시가 없어도 동작한다
 - 필요한 데이터만 캐시된다
 
-**단점:**
+#### 단점
+
 - 첫 요청은 느리다
 - 캐시 미스 시 지연
 - 데이터 갱신이 느리다
 
-**사용 사례:**
+#### 사용 사례
+
 - 읽기 위주 데이터
 - 데이터 변경이 적음
 
@@ -414,11 +439,11 @@ async function getUser(userId) {
 
 데이터를 쓸 때 캐시도 함께 갱신한다.
 
-**동작:**
+#### 동작
+
 1. 데이터베이스에 쓰기
 2. 캐시에도 쓰기
 
-**코드:**
 ```javascript
 async function updateUser(userId, userData) {
   // 1. 데이터베이스 업데이트
@@ -432,11 +457,13 @@ async function updateUser(userId, userData) {
 }
 ```
 
-**장점:**
+#### 장점
+
 - 캐시가 항상 최신 상태
 - 읽기 성능이 일정함
 
-**단점:**
+#### 단점
+
 - 쓰기가 느려진다
 - 읽히지 않는 데이터도 캐시됨
 - 구현이 복잡하다
@@ -445,20 +472,24 @@ async function updateUser(userId, userData) {
 
 캐시에 먼저 쓰고 나중에 데이터베이스에 쓴다.
 
-**동작:**
+#### 동작
+
 1. 캐시에 쓰기
 2. 비동기로 데이터베이스에 쓰기
 
-**장점:**
+#### 장점
+
 - 쓰기가 매우 빠르다
 - 데이터베이스 부하 감소
 
-**단점:**
+#### 단점
+
 - 데이터 손실 가능 (캐시만 쓰고 서버 죽으면)
 - 구현이 복잡하다
 - 일관성 문제
 
-**사용 사례:**
+#### 사용 사례
+
 - 쓰기가 매우 많음
 - 약간의 데이터 손실 허용
 - 통계, 로그
@@ -467,7 +498,6 @@ async function updateUser(userId, userData) {
 
 데이터가 변경되면 캐시를 삭제한다.
 
-**코드:**
 ```javascript
 async function updateUser(userId, userData) {
   // 1. 데이터베이스 업데이트
@@ -480,11 +510,13 @@ async function updateUser(userId, userData) {
 
 다음 조회 시 캐시 미스가 발생한다. 데이터베이스에서 읽고 캐시에 저장한다.
 
-**장점:**
+#### 장점
+
 - 구현이 간단하다
 - 항상 최신 데이터
 
-**단점:**
+#### 단점
+
 - 캐시 미스 증가
 - 첫 요청이 느리다
 
@@ -530,7 +562,8 @@ app.post('/login', async (req, res) => {
 });
 ```
 
-**장점:**
+#### 장점
+
 - 여러 서버에서 세션 공유
 - 빠른 조회
 - 자동 만료
@@ -541,38 +574,42 @@ app.post('/login', async (req, res) => {
 
 Primary 노드의 데이터를 Replica 노드에 복제한다.
 
-**구성:**
+#### 구성
+
 - Primary 1개
 - Replica 1-5개
 
-**동작:**
+#### 동작
+
 - 쓰기: Primary에만
 - 읽기: Primary 또는 Replica
 
-**장애 조치:**
+#### 장애 조치
+
 Primary가 죽으면 Replica 중 하나가 Primary로 승격된다. 자동으로 처리된다.
 
 ### Cluster Mode
 
 데이터를 여러 노드에 분산한다. 샤딩이다.
 
-**샤드:**
-데이터를 나누는 단위다. 각 샤드는 Primary와 Replica를 가진다.
+샤드는 데이터를 나누는 단위다. 각 샤드는 Primary와 Replica를 가진다.
 
-**예시:**
+#### 예시
+
 - 샤드 3개
 - 각 샤드에 Primary 1개 + Replica 1개
 - 총 6개 노드
 
-**데이터 분산:**
-Key를 해시해서 샤드를 결정한다. 자동으로 분산된다.
+Key를 해시해서 샤드를 결정한다. 데이터는 자동으로 분산된다.
 
-**장점:**
+#### 장점
+
 - 메모리 용량 증가
 - 처리량 증가
 - 수평 확장
 
-**단점:**
+#### 단점
+
 - 멀티 키 연산 제약
 - 트랜잭션 제약
 
@@ -580,7 +617,8 @@ Key를 해시해서 샤드를 결정한다. 자동으로 분산된다.
 
 여러 가용 영역에 노드를 배치한다.
 
-**구성:**
+#### 구성
+
 - Primary: us-west-2a
 - Replica: us-west-2b
 
@@ -590,7 +628,8 @@ Key를 해시해서 샤드를 결정한다. 자동으로 분산된다.
 
 ### CloudWatch 메트릭
 
-**주요 메트릭:**
+#### 주요 메트릭
+
 - **CPUUtilization**: CPU 사용률
 - **EngineCPUUtilization**: Redis 프로세스 CPU
 - **DatabaseMemoryUsagePercentage**: 메모리 사용률
@@ -598,19 +637,20 @@ Key를 해시해서 샤드를 결정한다. 자동으로 분산된다.
 - **CacheMisses**: 캐시 미스 수
 - **Evictions**: 메모리 부족으로 삭제된 키 수
 
-**캐시 히트율:**
+캐시 히트율은 히트 수를 전체 조회 수로 나눈 값이다.
+
 ```
 Hit Rate = CacheHits / (CacheHits + CacheMisses)
 ```
 
 80% 이상이 좋다. 50% 미만이면 캐시가 제대로 동작하지 않는다.
 
-**Evictions:**
-메모리가 부족해서 키를 삭제한다. 0이 좋다. 증가하면 메모리를 늘려야 한다.
+Evictions는 메모리가 부족해서 키를 삭제할 때 올라간다. 0이 좋다. 증가하면 메모리를 늘려야 한다.
 
 ### 알람 설정
 
-**메모리 사용률:**
+#### 메모리 사용률
+
 ```json
 {
   "MetricName": "DatabaseMemoryUsagePercentage",
@@ -621,7 +661,8 @@ Hit Rate = CacheHits / (CacheHits + CacheMisses)
 
 80%를 넘으면 알림을 받는다. 메모리를 늘리거나 불필요한 키를 삭제한다.
 
-**Evictions:**
+#### Evictions
+
 ```json
 {
   "MetricName": "Evictions",
@@ -670,7 +711,8 @@ await redis.setex('user:123', 3600, userData);
 
 Redis는 단일 스레드다. 큰 값을 읽고 쓰면 다른 요청이 블록된다.
 
-**권장:**
+#### 권장
+
 - 값 크기: 100KB 이하
 - 큰 데이터는 S3에 저장하고 URL만 캐시
 
@@ -678,7 +720,6 @@ Redis는 단일 스레드다. 큰 값을 읽고 쓰면 다른 요청이 블록�
 
 여러 요청이 동시에 캐시를 갱신할 수 있다.
 
-**문제:**
 ```javascript
 // 두 요청이 동시에 실행
 const value = await redis.get('counter');
@@ -687,7 +728,8 @@ await redis.set('counter', parseInt(value) + 1);
 
 동시에 실행되면 값이 잘못된다.
 
-**해결: Atomic 연산**
+원자 연산으로 바꾼다.
+
 ```javascript
 await redis.incr('counter');
 ```
@@ -698,13 +740,13 @@ await redis.incr('counter');
 
 캐시가 만료되는 순간 수천 개의 요청이 데이터베이스로 간다.
 
-**문제:**
 - 캐시 TTL: 1시간
 - 오후 3시에 캐시 생성
 - 오후 4시에 캐시 만료
 - 동시에 1,000개 요청이 데이터베이스로
 
-**해결 1: TTL 랜덤화**
+#### TTL 랜덤화로 해결
+
 ```javascript
 const ttl = 3600 + Math.floor(Math.random() * 300);  // 1시간 ± 5분
 await redis.setex(key, ttl, value);
@@ -712,7 +754,8 @@ await redis.setex(key, ttl, value);
 
 캐시 만료 시간을 분산한다.
 
-**해결 2: Locking**
+#### 락으로 해결
+
 ```javascript
 // 값 비교 후 삭제를 원자적으로 처리한다.
 const UNLOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
@@ -757,7 +800,8 @@ DB 조회가 락 TTL(10초)보다 오래 걸리면 락이 먼저 만료돼 다�
 
 ### 적절한 인스턴스 타입
 
-**노드 타입:**
+#### 노드 타입
+
 - **cache.t4g.micro**: 개발/테스트 (0.5GB)
 - **cache.t4g.small**: 소규모 (1.5GB)
 - **cache.r7g.large**: 중규모 (13GB)
@@ -769,7 +813,6 @@ DB 조회가 락 TTL(10초)보다 오래 걸리면 락이 먼저 만료돼 다�
 
 1년 또는 3년 예약하면 할인을 받는다.
 
-**할인율:**
 - 1년: 약 30-40% 할인
 - 3년: 약 50-60% 할인
 
@@ -779,7 +822,6 @@ DB 조회가 락 TTL(10초)보다 오래 걸리면 락이 먼저 만료돼 다�
 
 메모리가 부족할 때 어떤 키를 삭제할지 정한다.
 
-**정책:**
 - **allkeys-lru**: 가장 오래 사용하지 않은 키 삭제 (권장)
 - **volatile-lru**: TTL이 있는 키 중 LRU 삭제
 - **allkeys-random**: 무작위 삭제
@@ -817,14 +859,16 @@ memcached.del('user:123', (err) => {
 
 ### 차이점
 
-**Memcached:**
+#### Memcached의 제약
+
 - String만 지원
 - 영구 저장 없음
 - 복제 없음
 - 자동 장애 조치 없음
 - 최대 1MB per item
 
-**사용 사례:**
+#### 사용 사례
+
 - 단순한 캐시
 - 일시적인 데이터
 - 손실되어도 괜찮은 데이터
