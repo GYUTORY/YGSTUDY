@@ -1,36 +1,38 @@
 ---
 title: AWS CodePipeline
 tags: [aws, ci-cd, devops, cloud]
-updated: 2026-01-18
+updated: 2026-11-18
 ---
 
 # AWS CodePipeline
 
 ## 개요
 
-CodePipeline은 CI/CD 파이프라인 서비스다. 소스 변경부터 배포까지 자동화한다. GitHub, Bitbucket, CodeCommit 등과 연동한다. CodeBuild로 빌드하고 CodeDeploy로 배포한다. Lambda, ECS, EC2, S3 등 다양한 배포 대상을 지원한다.
+CodePipeline은 CI/CD 파이프라인 서비스다. 소스 변경부터 배포까지 자동화한다. GitHub, Bitbucket, CodeCommit 등과 연동한다. CodeBuild로 빌드하고 CodeDeploy로 배포한다. Lambda, ECS, EC2, S3 등을 배포 대상으로 지원한다.
 
 ### 왜 필요한가
 
 수동 배포는 실수가 많다.
 
-**문제 상황:**
 
-**수동 배포 과정:**
+수동 배포는 이 순서로 진행한다.
+
 1. 개발자가 코드를 푸시
 2. Jenkins/로컬에서 빌드
 3. 빌드 결과물을 서버에 업로드
 4. 서버 재시작
 5. 테스트 확인
 
-**문제점:**
+이 방식에는 이런 문제가 있다.
+
 - 매번 반복 작업
 - 빌드 환경이 다름 (로컬 vs 서버)
 - 실수로 잘못된 브랜치 배포
 - 배포 이력 추적 어려움
 - 롤백 복잡
 
-**CodePipeline의 해결:**
+CodePipeline으로 바꾸면 이렇게 달라진다.
+
 - Git Push → 자동 빌드 → 자동 배포
 - 일관된 빌드/배포 환경
 - 승인 단계 추가 가능
@@ -41,19 +43,22 @@ CodePipeline은 CI/CD 파이프라인 서비스다. 소스 변경부터 배포�
 
 ### GitHub Actions
 
-**장점:**
+GitHub Actions의 장점은 이렇다.
+
 - GitHub와 완전히 통합
 - YAML 파일로 관리 (코드와 함께 버전 관리)
 - 무료 티어 관대 (Public 무제한, Private 2,000분/월)
-- Marketplace에 다양한 Actions
+- Marketplace에 공개된 Action이 많음
 - 셀프 호스트 러너 지원
 
-**단점:**
+단점은 이렇다.
+
 - GitHub 종속
 - AWS 배포 시 추가 설정 필요
 - 복잡한 승인 프로세스 구현 어려움
 
-**예시 (.github/workflows/deploy.yml):**
+`.github/workflows/deploy.yml` 예시다.
+
 ```yaml
 name: Deploy to AWS
 on:
@@ -83,19 +88,22 @@ jobs:
 
 ### CodePipeline
 
-**장점:**
+CodePipeline의 장점은 이렇다.
+
 - AWS 서비스와 완벽하게 통합
 - IAM 기반 권한 관리
 - 승인 단계 기본 제공
 - CloudWatch Events 연동
 - 여러 AWS 계정 간 배포 간편
 
-**단점:**
+단점은 이렇다.
+
 - GitHub Actions보다 비쌈
 - YAML 파일로 관리 불가 (콘솔 또는 CloudFormation)
 - Git 외부 소스에서만 강점
 
-**언제 사용하나:**
+CodePipeline은 이런 경우에 쓴다.
+
 - 여러 AWS 계정 배포
 - 복잡한 승인 프로세스
 - AWS 서비스만 사용하는 환경
@@ -103,12 +111,14 @@ jobs:
 
 ### Bitbucket Pipeline
 
-**특징:**
+Bitbucket Pipeline의 특징은 이렇다.
+
 - Bitbucket과 통합
 - YAML 파일로 관리
 - 매월 50분 무료 (소규모에는 부족)
 
-**예시 (bitbucket-pipelines.yml):**
+`bitbucket-pipelines.yml` 예시다.
+
 ```yaml
 pipelines:
   branches:
@@ -143,40 +153,46 @@ pipelines:
 
 ### 기본 파이프라인
 
-**Source → Build → Deploy**
+기본 파이프라인은 Source → Build → Deploy 순서다.
 
-**구성:**
+각 단계의 구성은 이렇다.
+
 1. Source: GitHub
 2. Build: CodeBuild
 3. Deploy: ECS
 
-**생성 (콘솔):**
+콘솔에서 만드는 순서는 이렇다.
+
 1. CodePipeline 콘솔
 2. "Create pipeline"
 3. 이름: production-deploy
 4. Service role: 새로 생성
 5. Next
 
-**Source:**
+Source 단계는 이렇게 설정한다.
+
 - Provider: GitHub (Version 2)
 - Connection: GitHub 연결 (OAuth)
 - Repository: my-org/my-app
 - Branch: main
 - Output artifact: SourceArtifact
 
-**Build:**
+Build 단계는 이렇게 설정한다.
+
 - Provider: CodeBuild
 - Project: my-app-build
 - Input artifact: SourceArtifact
 - Output artifact: BuildArtifact
 
-**Deploy:**
+Deploy 단계는 이렇게 설정한다.
+
 - Provider: ECS
 - Cluster: production
 - Service: my-app-service
 - Input artifact: BuildArtifact
 
-**CLI (CloudFormation):**
+CloudFormation 템플릿으로는 이렇게 만든다.
+
 ```yaml
 Resources:
   Pipeline:
@@ -237,7 +253,8 @@ Resources:
 
 프로덕션 배포 전에 승인을 받는다.
 
-**Stage 추가:**
+Approval Stage를 추가한다.
+
 ```yaml
 - Name: Approval
   Actions:
@@ -252,7 +269,8 @@ Resources:
         CustomData: "프로덕션 배포를 승인하시겠습니까?"
 ```
 
-**동작:**
+승인 흐름은 이렇다.
+
 1. Build 완료
 2. SNS로 알림 발송 (Slack, Email)
 3. 승인자가 콘솔에서 승인/거부
@@ -262,7 +280,8 @@ Resources:
 
 여러 작업을 동시에 실행한다.
 
-**예시: 테스트 병렬 실행**
+테스트를 병렬로 실행하는 예시다.
+
 ```yaml
 - Name: Test
   Actions:
@@ -339,7 +358,8 @@ Resources:
 
 커스텀 작업을 Lambda로 실행한다.
 
-**예시: 슬랙 알림**
+슬랙 알림 예시다.
+
 ```yaml
 - Name: Notify
   Actions:
@@ -354,7 +374,8 @@ Resources:
         UserParameters: '{"message": "배포 완료"}'
 ```
 
-**Lambda 함수:**
+호출되는 Lambda 함수는 이렇다.
+
 ```python
 import json
 import urllib.request
@@ -386,12 +407,17 @@ def lambda_handler(event, context):
 
 ### ECS 배포 파이프라인
 
-**전체 흐름:**
-```
-GitHub Push → CodeBuild (Docker 빌드 → ECR 푸시) → ECS 배포
+아래 도식은 GitHub Push 이후 CodeBuild가 이미지를 빌드해 ECR에 푸시하고, ECS에 배포하는 흐름을 보여준다.
+
+```mermaid
+flowchart LR
+    A[GitHub Push] --> B["CodeBuild: Docker 빌드"]
+    B --> C["ECR 푸시"]
+    C --> D["ECS 배포"]
 ```
 
-**buildspec.yml:**
+`buildspec.yml`은 이렇다.
+
 ```yaml
 version: 0.2
 phases:
@@ -418,17 +444,20 @@ artifacts:
     - imagedefinitions.json
 ```
 
-**imagedefinitions.json:**
-ECS가 어떤 이미지를 배포할지 정의한다.
+`imagedefinitions.json`은 ECS가 어떤 이미지를 배포할지 정의한다.
 
 ### Lambda 배포 파이프라인
 
-**SAM 사용:**
-```
-GitHub Push → CodeBuild (sam build + sam package) → CloudFormation Deploy
+아래 도식은 SAM으로 빌드한 결과를 CloudFormation으로 배포하는 흐름을 보여준다.
+
+```mermaid
+flowchart LR
+    A[GitHub Push] --> B["CodeBuild: sam build, sam package"]
+    B --> C["CloudFormation Deploy"]
 ```
 
-**buildspec.yml:**
+`buildspec.yml`은 이렇다.
+
 ```yaml
 version: 0.2
 phases:
@@ -447,7 +476,8 @@ artifacts:
     - template.yml
 ```
 
-**Deploy Stage:**
+Deploy Stage는 이렇게 설정한다.
+
 - Provider: CloudFormation
 - Action mode: CREATE_UPDATE
 - Stack name: my-lambda-stack
@@ -456,12 +486,16 @@ artifacts:
 
 ### S3 정적 사이트 배포
 
-**React/Vue 앱 배포:**
-```
-GitHub Push → CodeBuild (npm build) → S3 + CloudFront Invalidation
+아래 도식은 React나 Vue 앱을 빌드해 S3에 올리고 CloudFront 캐시를 무효화하는 흐름을 보여준다.
+
+```mermaid
+flowchart LR
+    A[GitHub Push] --> B["CodeBuild: npm build"]
+    B --> C["S3 + CloudFront Invalidation"]
 ```
 
-**buildspec.yml:**
+`buildspec.yml`은 이렇다.
+
 ```yaml
 version: 0.2
 phases:
@@ -490,7 +524,8 @@ artifacts:
 
 파이프라인 상태 변경을 감지한다.
 
-**EventBridge Rule:**
+EventBridge Rule은 이렇게 만든다.
+
 ```json
 {
   "source": ["aws.codepipeline"],
@@ -502,7 +537,8 @@ artifacts:
 }
 ```
 
-**Lambda로 알림:**
+알림을 보내는 Lambda는 이렇다.
+
 ```python
 def lambda_handler(event, context):
     detail = event['detail']
@@ -518,14 +554,16 @@ def lambda_handler(event, context):
 
 콘솔에서 모든 실행 이력을 확인한다.
 
-**표시:**
+콘솔에는 이런 항목이 나온다.
+
 - 실행 ID
 - 시작 시간
 - 소스 커밋
 - 각 Stage 상태
 - 실행 시간
 
-**CLI로 확인:**
+CLI로도 확인할 수 있다.
+
 ```bash
 aws codepipeline list-pipeline-executions --pipeline-name production-deploy
 ```
@@ -536,7 +574,8 @@ aws codepipeline list-pipeline-executions --pipeline-name production-deploy
 
 배포 실패 시 자동으로 이전 버전으로 돌아간다.
 
-**CodeDeploy 설정:**
+CodeDeploy 설정은 이렇다.
+
 ```yaml
 DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
 AutoRollbackConfiguration:
@@ -546,8 +585,7 @@ AutoRollbackConfiguration:
     - DEPLOYMENT_STOP_ON_ALARM
 ```
 
-**CloudWatch Alarm 연동:**
-에러율이 5%를 넘으면 자동 롤백.
+CloudWatch Alarm을 연동하면 에러율이 5%를 넘을 때 자동 롤백한다.
 
 ```bash
 aws codedeploy create-deployment-group \
@@ -561,12 +599,14 @@ aws codedeploy create-deployment-group \
 
 이전 실행을 다시 릴리스한다.
 
-**콘솔:**
+콘솔에서는 이렇게 한다.
+
 1. 파이프라인 선택
 2. 실행 이력에서 이전 성공 실행 선택
 3. "Retry" 또는 "Release change"
 
-**CLI:**
+CLI에서는 이렇게 한다.
+
 ```bash
 # 특정 커밋으로 재배포
 aws codepipeline start-pipeline-execution \
@@ -577,13 +617,16 @@ aws codepipeline start-pipeline-execution \
 
 ### 파이프라인 비용
 
-**무료 티어:**
+무료 티어는 이렇다.
+
 - 매월 1개 활성 파이프라인 무료
 
-**유료:**
+유료 구간은 이렇다.
+
 - $1.00 per active pipeline per month
 
-**예시:**
+파이프라인이 5개인 경우를 계산하면 이렇다.
+
 - 파이프라인 5개
 - 비용: (5 - 1) × $1 = $4/월
 
@@ -593,21 +636,18 @@ aws codepipeline start-pipeline-execution \
 
 파이프라인 실행 자체는 무료. 하지만 연결된 서비스는 별도 과금.
 
-**CodeBuild:**
-$0.005 per build minute (일반 인스턴스)
+CodeBuild는 일반 인스턴스 기준 build minute당 $0.005다.
 
-**S3 (Artifact):**
-$0.023/GB-월
+S3 아티팩트 저장은 $0.023/GB-월이다.
 
-**CloudWatch Events:**
-무료 (규칙 제한 내)
+CloudWatch Events는 규칙 제한 안에서 무료다.
 
 ### 최적화
 
-**Artifact 정리:**
 오래된 빌드 결과물을 삭제한다.
 
-**S3 Lifecycle:**
+S3 Lifecycle 규칙은 이렇다.
+
 ```json
 {
   "Rules": [
@@ -628,7 +668,8 @@ $0.023/GB-월
 
 GitHub Actions로 빌드하고 CodePipeline으로 배포할 수도 있다.
 
-**GitHub Actions로 ECR 푸시:**
+GitHub Actions로 ECR에 푸시하는 예시다.
+
 ```yaml
 name: Build and Push
 on:
@@ -652,11 +693,13 @@ jobs:
           docker push $ECR_REGISTRY/my-app:$GITHUB_SHA
 ```
 
-**CodePipeline으로 배포:**
+CodePipeline에서는 이렇게 배포한다.
+
 - Source: ECR
 - Deploy: ECS
 
-**장점:**
+이 조합의 장점은 이렇다.
+
 - GitHub Actions의 빠른 빌드
 - CodePipeline의 승인 프로세스
 
