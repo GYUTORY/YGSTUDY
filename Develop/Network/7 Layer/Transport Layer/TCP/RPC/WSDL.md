@@ -1,7 +1,7 @@
 ---
 title: WSDL (Web Services Description Language)
 tags: [network, tcp]
-updated: 2025-12-22
+updated: 2026-11-18
 ---
 
 # WSDL (Web Services Description Language)
@@ -13,9 +13,6 @@ WSDL은 Web Services Description Language의 약자로, 웹 서비스의 인터�
 ### WSDL의 목적
 
 WSDL은 웹 서비스의 계약서 역할을 한다. 클라이언트는 WSDL 파일을 읽어 서버가 제공하는 기능을 파악하고, 자동으로 클라이언트 코드를 생성할 수 있다.
-
-**실무 팁:**
-WSDL 파일을 받으면 해당 서비스의 모든 기능을 파악할 수 있다. SOAP 클라이언트 라이브러리는 WSDL을 파싱하여 자동으로 클라이언트 코드를 생성한다.
 
 ## WSDL의 기본 구조
 
@@ -42,14 +39,14 @@ WSDL 문서는 다음 6가지 주요 섹션으로 구성된다:
     name="UserService">
 ```
 
-**주요 네임스페이스:**
+네임스페이스마다 쓰임이 다르다.
+
 - `http://schemas.xmlsoap.org/wsdl/`: WSDL 기본 네임스페이스
 - `http://schemas.xmlsoap.org/wsdl/soap/`: SOAP 바인딩 네임스페이스
 - `http://www.w3.org/2001/XMLSchema`: XML Schema 네임스페이스
 - `targetNamespace`: 이 WSDL 문서의 고유 식별자
 
-**실무 팁:**
-네임스페이스는 충돌을 방지하기 위해 도메인 기반으로 작성한다. `targetNamespace`는 서비스의 고유 식별자로 사용된다.
+네임스페이스는 충돌을 피하려고 도메인 기반으로 작성한다.
 
 ## WSDL 섹션 상세 설명
 
@@ -123,7 +120,6 @@ WSDL 문서는 다음 6가지 주요 섹션으로 구성된다:
 </types>
 ```
 
-**실무 팁:**
 `minOccurs="0"`은 선택적 필드를 의미한다. 기본값은 1이다. `maxOccurs="unbounded"`는 배열을 의미한다.
 
 ### 2. message 섹션
@@ -152,7 +148,6 @@ WSDL 문서는 다음 6가지 주요 섹션으로 구성된다:
 </message>
 ```
 
-**실무 팁:**
 WSDL 2.0에서는 message 섹션이 제거되고 types에서 직접 참조한다. 대부분의 실무에서는 WSDL 1.1을 사용한다.
 
 ### 3. portType 섹션
@@ -183,13 +178,13 @@ WSDL 2.0에서는 message 섹션이 제거되고 types에서 직접 참조한다
 </portType>
 ```
 
-**작업 패턴:**
+작업 패턴은 네 가지다.
+
 - **Request-Response**: 입력과 출력이 모두 있는 일반적인 패턴
 - **One-Way**: 입력만 있고 출력이 없는 패턴 (알림 등)
 - **Solicit-Response**: 서버가 먼저 요청하는 패턴 (거의 사용 안 함)
 - **Notification**: 출력만 있는 패턴 (거의 사용 안 함)
 
-**실무 팁:**
 대부분의 경우 Request-Response 패턴을 사용한다. One-Way는 비동기 알림에 사용한다.
 
 ### 4. binding 섹션
@@ -234,13 +229,13 @@ WSDL 2.0에서는 message 섹션이 제거되고 types에서 직접 참조한다
 </binding>
 ```
 
-**바인딩 스타일:**
+바인딩 스타일은 네 가지 조합이 있다.
+
 - **document/literal**: XML 문서를 그대로 전송 (권장)
 - **rpc/literal**: RPC 스타일로 메서드 호출 형식
 - **document/encoded**: SOAP 인코딩 사용 (구식, 권장 안 함)
 - **rpc/encoded**: RPC + 인코딩 (구식, 권장 안 함)
 
-**실무 팁:**
 `document/literal` 스타일을 사용한다. `rpc/encoded`는 하위 호환성 문제가 있어 사용하지 않는다.
 
 ### 5. port 섹션
@@ -253,7 +248,6 @@ WSDL 2.0에서는 message 섹션이 제거되고 types에서 직접 참조한다
 </port>
 ```
 
-**실무 팁:**
 프로덕션 환경에서는 HTTPS를 사용한다. `location` 속성에 실제 서비스 URL을 지정한다.
 
 ### 6. service 섹션
@@ -407,7 +401,8 @@ WSDL 2.0에서는 message 섹션이 제거되고 types에서 직접 참조한다
 
 SOAP(Simple Object Access Protocol)는 XML 기반 메시지 프로토콜이다. WSDL은 SOAP 서비스를 설명하는 문서다.
 
-**관계:**
+둘의 역할은 구분된다.
+
 - WSDL: 서비스의 인터페이스를 정의하는 문서
 - SOAP: 실제 통신에 사용되는 프로토콜
 - WSDL 없이 SOAP 사용 가능하지만, WSDL이 있으면 자동 코드 생성 가능
@@ -416,7 +411,8 @@ SOAP(Simple Object Access Protocol)는 XML 기반 메시지 프로토콜이다. 
 
 WSDL로 정의된 서비스를 호출할 때 전송되는 SOAP 메시지 예시:
 
-**요청 메시지:**
+요청 메시지는 Body에 CreateUserRequest를 담는다.
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope 
@@ -435,7 +431,8 @@ WSDL로 정의된 서비스를 호출할 때 전송되는 SOAP 메시지 예시:
 </soap:Envelope>
 ```
 
-**응답 메시지:**
+응답 메시지는 생성된 user와 success를 담는다.
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope 
@@ -455,7 +452,6 @@ WSDL로 정의된 서비스를 호출할 때 전송되는 SOAP 메시지 예시:
 </soap:Envelope>
 ```
 
-**실무 팁:**
 SOAP 메시지는 항상 Envelope로 감싸진다. Header는 선택적이고, Body는 필수다.
 
 ## WSDL 버전
@@ -464,26 +460,27 @@ SOAP 메시지는 항상 Envelope로 감싸진다. Header는 선택적이고, Bo
 
 가장 널리 사용되는 버전이다.
 
-**특징:**
+1.1의 특징은 네 가지다.
+
 - 2001년 W3C Note로 발표
 - message 섹션 사용
 - SOAP 바인딩 지원
-- HTTP, SMTP 등 다양한 전송 프로토콜 지원
+- HTTP, SMTP 등 전송 프로토콜 지원
 
-**실무 팁:**
 대부분의 기존 시스템은 WSDL 1.1을 사용한다. 새로운 프로젝트도 호환성을 위해 1.1을 사용하는 경우가 많다.
 
 ### WSDL 2.0
 
 2007년 W3C 권고안으로 발표되었다.
 
-**주요 변경사항:**
+1.1에서 바뀐 점은 네 가지다.
+
 - message 섹션 제거, types에서 직접 참조
 - interface로 portType 대체
 - HTTP 바인딩 개선
 - 더 명확한 네임스페이스 처리
 
-**WSDL 1.1 vs 2.0 비교:**
+두 버전의 차이를 표로 정리했다.
 
 | 항목 | WSDL 1.1 | WSDL 2.0 |
 |------|----------|----------|
@@ -493,7 +490,6 @@ SOAP 메시지는 항상 Envelope로 감싸진다. Header는 선택적이고, Bo
 | HTTP 바인딩 | 제한적 | 개선됨 |
 | 사용률 | 높음 | 낮음 |
 
-**실무 팁:**
 WSDL 2.0은 아직 널리 사용되지 않는다. 대부분의 도구와 라이브러리는 WSDL 1.1을 지원한다.
 
 ## WSDL 사용 시나리오
@@ -541,9 +537,6 @@ public class UserService {
 서버 실행 시 자동으로 WSDL이 생성된다:
 - `http://localhost:8080/services/UserService?wsdl`
 
-**실무 팁:**
-JAX-WS는 어노테이션을 기반으로 WSDL을 자동 생성한다. 수동으로 작성할 필요가 없다.
-
 ### 2. 클라이언트에서 WSDL 사용
 
 Node.js에서 `soap` 라이브러리를 사용한 예시:
@@ -583,9 +576,6 @@ soap.createClient(url, (err, client) => {
 });
 ```
 
-**실무 팁:**
-WSDL을 파싱하면 클라이언트 코드를 자동으로 생성할 수 있다. 수동으로 SOAP 메시지를 작성할 필요가 없다.
-
 ### 3. Java에서 WSDL로 클라이언트 생성
 
 ```bash
@@ -615,9 +605,6 @@ public class Client {
     }
 }
 ```
-
-**실무 팁:**
-`wsimport`는 WSDL에서 Java 클라이언트 코드를 자동 생성한다. 수동으로 SOAP 메시지를 작성할 필요가 없다.
 
 ## WSDL 문서화 및 주석
 
@@ -657,8 +644,7 @@ public class Client {
 </definitions>
 ```
 
-**실무 팁:**
-WSDL에 주석을 추가하면 다른 개발자가 이해하기 쉽다. 특히 복잡한 타입이나 비즈니스 로직이 있는 경우 주석이 중요하다.
+복잡한 타입이나 비즈니스 규칙이 얽힌 부분에는 주석을 달아 둔다.
 
 ## WSDL 검증 및 테스트
 
@@ -670,37 +656,35 @@ WSDL에 주석을 추가하면 다른 개발자가 이해하기 쉽다. 특히 �
 wsimport -Xnocompile http://example.com/services/UserService?wsdl
 ```
 
-**일반적인 오류:**
+검증에서 자주 나오는 오류는 네 가지다.
+
 - 네임스페이스 불일치
 - 타입 정의 오류
 - 바인딩 설정 오류
 - 포트 주소 오류
 
-**실무 팁:**
 WSDL을 배포하기 전에 반드시 검증한다. 잘못된 WSDL은 클라이언트 코드 생성 실패를 유발한다.
 
 ### SOAP UI로 테스트
 
 SOAP UI는 WSDL을 로드하여 서비스를 테스트할 수 있는 도구다.
 
-**사용 방법:**
+사용 순서는 이렇다.
+
 1. SOAP UI 실행
 2. New SOAP Project 생성
 3. WSDL URL 입력
 4. 자동으로 작업 목록 생성
-5. 각 작업에 대해 요청/응답 테스트
+5. 각 작업의 요청/응답 테스트
 
-**실무 팁:**
 SOAP UI는 WSDL 기반 서비스를 테스트하는 표준 도구다. 개발 중에 자주 사용한다.
 
 ## 실무에서의 주의사항
 
 ### 1. 네임스페이스 관리
 
-**문제:**
-네임스페이스가 일치하지 않으면 클라이언트가 서비스를 호출할 수 없다.
+네임스페이스가 일치하지 않으면 클라이언트가 서비스를 호출할 수 없다. 모든 섹션에서 같은 네임스페이스를 쓰도록 맞춘다.
 
-**해결:**
 ```xml
 <!-- 모든 네임스페이스가 일관되게 사용되도록 주의 -->
 <definitions 
@@ -716,15 +700,10 @@ SOAP UI는 WSDL 기반 서비스를 테스트하는 표준 도구다. 개발 중
 </definitions>
 ```
 
-**실무 팁:**
-네임스페이스는 도메인 기반으로 작성하고, 모든 섹션에서 일관되게 사용한다.
-
 ### 2. 버전 관리
 
-**문제:**
-서비스 변경 시 기존 클라이언트가 동작하지 않을 수 있다.
+서비스를 바꾸면 기존 클라이언트가 동작하지 않을 수 있다. 대응은 세 가지다.
 
-**해결:**
 - 새로운 버전의 서비스는 별도 네임스페이스 사용
 - 기존 서비스는 유지 (deprecated 표시)
 - 점진적 마이그레이션 지원
@@ -739,15 +718,12 @@ SOAP UI는 WSDL 기반 서비스를 테스트하는 표준 도구다. 개발 중
     targetNamespace="http://example.com/wsdl/UserService/v2">
 ```
 
-**실무 팁:**
-서비스 변경 시 기존 클라이언트 호환성을 고려한다. 큰 변경은 새 버전으로 배포한다.
+큰 변경은 새 버전으로 배포한다.
 
 ### 3. 성능 고려사항
 
-**문제:**
-WSDL 파일이 크면 파싱 시간이 오래 걸린다.
+WSDL 파일이 크면 파싱 시간이 오래 걸린다. 줄이는 방법은 세 가지다.
 
-**해결:**
 - 불필요한 타입 정의 제거
 - 타입 재사용
 - WSDL 파일 분리 (import 사용)
@@ -763,20 +739,16 @@ WSDL 파일이 크면 파싱 시간이 오래 걸린다.
 </types>
 ```
 
-**실무 팁:**
 공통 타입은 별도 스키마 파일로 분리하고 import로 참조한다. WSDL 파일 크기를 줄일 수 있다.
 
 ### 4. 보안 고려사항
 
-**문제:**
-WSDL 파일에 민감한 정보가 포함될 수 있다.
+WSDL 파일에 민감한 정보가 포함될 수 있다. 막으려면 세 가지를 지킨다.
 
-**해결:**
 - 인증 정보는 WSDL에 포함하지 않음
 - HTTPS 사용
 - WSDL 접근 제한
 
-**실무 팁:**
 WSDL은 공개 정보만 포함한다. 인증은 SOAP Header나 별도 메커니즘으로 처리한다.
 
 ## WSDL vs REST API 비교
@@ -792,7 +764,6 @@ WSDL은 공개 정보만 포함한다. 인증은 SOAP Header나 별도 메커니
 | 트랜잭션 | WS-Transaction 지원 | 제한적 |
 | 보안 | WS-Security | HTTPS + OAuth 등 |
 
-**실무 팁:**
 새로운 프로젝트는 REST API를 선호한다. 기존 SOAP 서비스와 통신해야 하는 경우에만 WSDL을 사용한다.
 
 ## WSDL 2.0 예제
@@ -864,14 +835,12 @@ WSDL 2.0의 주요 변경사항:
 </description>
 ```
 
-**주요 차이점:**
+1.1과 달라진 이름은 네 가지다.
+
 - `definitions` → `description`
 - `portType` → `interface`
 - `message` 섹션 제거
 - `port` → `endpoint`
-
-**실무 팁:**
-WSDL 2.0은 아직 널리 사용되지 않는다. 대부분의 도구는 WSDL 1.1을 지원한다.
 
 ## 요약
 
@@ -890,8 +859,5 @@ WSDL은 SOAP 웹 서비스를 기술하는 XML 기반 언어다. 서비스의 �
 - 엔터프라이즈 시스템 간 통신
 - 트랜잭션 지원이 필요한 경우
 - 강력한 타입 검증이 필요한 경우
-
-**실무 팁:**
-새로운 프로젝트는 REST API를 선호한다. 기존 SOAP 서비스와 통신해야 하는 경우에만 WSDL을 사용한다.
 
 
