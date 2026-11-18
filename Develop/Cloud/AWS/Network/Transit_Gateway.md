@@ -1,7 +1,7 @@
 ---
 title: AWS Transit Gateway
 tags: [aws, vpc, network, cloud]
-updated: 2026-01-23
+updated: 2026-11-18
 ---
 
 # AWS Transit Gateway
@@ -12,43 +12,44 @@ Transit Gateway는 여러 VPC와 온프레미스 네트워크를 연결하는 �
 
 ### 왜 필요한가
 
-VPC가 많아지면 관리가 복잡해진다.
+VPC가 많아지면 관리가 복잡해진다. VPC Peering은 VPC가 늘어날수록 한계가 드러난다.
 
-**문제 상황: VPC Peering의 한계**
+3개 VPC를 연결하는 경우를 보자.
 
-**3개 VPC 연결:**
 - VPC A (개발)
 - VPC B (스테이징)
 - VPC C (프로덕션)
 
-**VPC Peering:**
+Peering은 VPC 쌍마다 하나씩 필요하다.
+
 - A ↔ B
 - A ↔ C
 - B ↔ C
 
 3개 Peering이 필요하다. 관리 가능하다.
 
-**10개 VPC 연결:**
-필요한 Peering 수: 10 × 9 ÷ 2 = 45개
+VPC가 10개면 필요한 Peering 수는 10 × 9 ÷ 2 = 45개다.
 
-**100개 VPC 연결:**
-필요한 Peering 수: 100 × 99 ÷ 2 = 4,950개
+VPC가 100개면 필요한 Peering 수는 100 × 99 ÷ 2 = 4,950개다.
 
 불가능하다. VPC Peering은 확장성이 없다.
 
-**추가 문제:**
+Peering에는 문제가 더 있다.
 
-**1. 전이적 라우팅 불가:**
+#### 전이적 라우팅 불가
+
 - VPC A ↔ VPC B Peering
 - VPC B ↔ VPC C Peering
 - VPC A는 VPC C에 접근 불가능
 
 A → B → C 경로가 자동으로 만들어지지 않는다. A ↔ C Peering을 별도로 생성해야 한다.
 
-**2. 온프레미스 연결:**
+#### 온프레미스 연결
+
 온프레미스 데이터센터와 10개 VPC를 연결한다.
 
-**VPN 방식:**
+VPN 방식으로 연결하면 작업이 이만큼 늘어난다.
+
 - 각 VPC에 VPN Gateway 생성
 - 온프레미스에서 10개 VPN 연결
 - 각 VPN 설정 및 관리
@@ -56,28 +57,30 @@ A → B → C 경로가 자동으로 만들어지지 않는다. A ↔ C Peering�
 
 복잡하고 에러 발생 가능성이 높다.
 
-**3. 라우팅 테이블 관리:**
+#### 라우팅 테이블 관리
+
 각 VPC마다 라우팅 테이블을 관리한다. 새 VPC를 추가하면 모든 VPC의 라우팅 테이블을 수정해야 한다.
 
 ### Transit Gateway의 해결
 
-**중앙 허브:**
-- Transit Gateway 1개 생성
+Transit Gateway 1개를 중앙 허브로 둔다.
+
 - 모든 VPC를 Transit Gateway에 연결
 - 온프레미스도 Transit Gateway에 연결
 
-**연결 수:**
+연결 수는 이렇게 줄어든다.
+
 - VPC 100개 + 온프레미스 1개 = 101개 연결
 - VPC Peering 4,950개 → Transit Gateway 연결 101개
 
 관리가 훨씬 간단하다.
 
-**전이적 라우팅:**
+전이적 라우팅은 Transit Gateway가 처리한다.
+
 - VPC A → Transit Gateway → VPC C
 - 자동으로 라우팅된다
 - 추가 설정 불필요
 
-**중앙 라우팅 관리:**
 Transit Gateway의 라우팅 테이블 하나만 관리한다. 새 VPC를 추가해도 Transit Gateway에 연결만 하면 된다.
 
 ## 핵심 개념
@@ -86,7 +89,6 @@ Transit Gateway의 라우팅 테이블 하나만 관리한다. 새 VPC를 추가
 
 중앙 라우터 역할을 한다. 리전당 하나 또는 여러 개를 만들 수 있다.
 
-**특징:**
 - 최대 5,000개 Attachment 지원
 - 최대 50Gbps per Attachment
 - 여러 가용 영역에 자동 배포
@@ -96,7 +98,8 @@ Transit Gateway의 라우팅 테이블 하나만 관리한다. 새 VPC를 추가
 
 Transit Gateway에 리소스를 연결하는 방법이다.
 
-**종류:**
+Attachment 종류는 다섯 가지다.
+
 - **VPC Attachment**: VPC 연결
 - **VPN Attachment**: Site-to-Site VPN 연결
 - **Direct Connect Gateway Attachment**: Direct Connect 연결
@@ -107,16 +110,17 @@ Transit Gateway에 리소스를 연결하는 방법이다.
 
 트래픽을 어디로 보낼지 결정한다.
 
-**동작:**
+트래픽은 이 순서로 처리된다.
+
 1. 트래픽이 Transit Gateway로 들어온다
 2. 목적지 IP 확인
 3. 라우팅 테이블에서 매칭되는 규칙 찾기
 4. 해당 Attachment로 트래픽 전송
 
-**여러 라우팅 테이블:**
 Transit Gateway는 여러 라우팅 테이블을 가질 수 있다. Attachment마다 다른 라우팅 테이블을 사용한다.
 
-**사용 사례:**
+라우팅 테이블을 나눠 쓰는 사례는 이렇다.
+
 - 개발 VPC는 개발 환경만 접근
 - 프로덕션 VPC는 프로덕션 환경만 접근
 - 관리 VPC는 모든 환경 접근
@@ -125,7 +129,8 @@ Transit Gateway는 여러 라우팅 테이블을 가질 수 있다. Attachment�
 
 Attachment를 라우팅 테이블에 연결한다.
 
-**예시:**
+연결 예시다.
+
 - VPC A Attachment를 Route Table 1에 연결
 - VPC A에서 나가는 트래픽은 Route Table 1 사용
 
@@ -133,7 +138,8 @@ Attachment를 라우팅 테이블에 연결한다.
 
 Attachment의 CIDR을 라우팅 테이블에 자동으로 추가한다.
 
-**예시:**
+전파 예시다.
+
 - VPC B (10.1.0.0/16)를 Route Table 1에 Propagate
 - Route Table 1에 자동으로 추가: 10.1.0.0/16 → VPC B Attachment
 
@@ -143,7 +149,8 @@ Attachment의 CIDR을 라우팅 테이블에 자동으로 추가한다.
 
 ### Transit Gateway 생성
 
-**콘솔:**
+콘솔에서 만드는 순서다.
+
 1. VPC 콘솔 → Transit Gateways
 2. "Create Transit Gateway" 클릭
 3. 이름 입력
@@ -153,7 +160,8 @@ Attachment의 CIDR을 라우팅 테이블에 자동으로 추가한다.
 7. 기본 라우팅 테이블 연결 활성화
 8. 생성
 
-**CLI:**
+CLI 명령이다.
+
 ```bash
 aws ec2 create-transit-gateway \
   --description "Main Transit Gateway" \
@@ -166,20 +174,18 @@ aws ec2 create-transit-gateway \
     VpnEcmpSupport=enable
 ```
 
-**주요 옵션:**
+주요 옵션은 세 가지다.
 
-**AmazonSideAsn:**
-BGP ASN 번호. 온프레미스와 BGP를 사용하면 필요하다. 기본값 64512.
+AmazonSideAsn은 BGP ASN 번호다. 온프레미스와 BGP를 사용하면 필요하다. 기본값 64512.
 
-**DefaultRouteTableAssociation:**
-새 Attachment를 자동으로 기본 라우팅 테이블에 연결. 간단한 구성에서는 enable.
+DefaultRouteTableAssociation은 새 Attachment를 자동으로 기본 라우팅 테이블에 연결한다. 간단한 구성에서는 enable.
 
-**DnsSupport:**
-DNS 쿼리가 Transit Gateway를 통과할 수 있게 한다. 대부분 enable.
+DnsSupport는 DNS 쿼리가 Transit Gateway를 통과할 수 있게 한다. 대부분 enable.
 
 ### VPC 연결
 
-**콘솔:**
+콘솔에서 연결하는 순서다.
+
 1. Transit Gateway Attachments 메뉴
 2. "Create Transit Gateway Attachment" 클릭
 3. Transit Gateway 선택
@@ -188,7 +194,8 @@ DNS 쿼리가 Transit Gateway를 통과할 수 있게 한다. 대부분 enable.
 6. 서브넷 선택 (각 AZ에서 하나씩)
 7. 생성
 
-**CLI:**
+CLI 명령이다.
+
 ```bash
 aws ec2 create-transit-gateway-vpc-attachment \
   --transit-gateway-id tgw-12345678 \
@@ -196,7 +203,6 @@ aws ec2 create-transit-gateway-vpc-attachment \
   --subnet-ids subnet-11111111 subnet-22222222 subnet-33333333
 ```
 
-**서브넷 선택:**
 각 가용 영역에서 서브넷을 하나씩 선택한다. 고가용성을 위해 필요하다.
 
 보통 프라이빗 서브넷을 선택한다. Transit Gateway는 VPC 내부 리소스에만 접근한다.
@@ -205,17 +211,18 @@ aws ec2 create-transit-gateway-vpc-attachment \
 
 VPC에서 Transit Gateway로 트래픽을 보내려면 라우팅 규칙을 추가한다.
 
-**예시:**
 VPC A (10.0.0.0/16)에서 VPC B (10.1.0.0/16)로 트래픽을 보낸다.
 
-**VPC A의 라우팅 테이블:**
+VPC A의 라우팅 테이블에는 이 규칙이 들어간다.
+
 ```
 Destination         Target
 10.0.0.0/16        local
 10.1.0.0/16        tgw-12345678
 ```
 
-**CLI:**
+CLI 명령이다.
+
 ```bash
 aws ec2 create-route \
   --route-table-id rtb-abcd1234 \
@@ -223,7 +230,6 @@ aws ec2 create-route \
   --transit-gateway-id tgw-12345678
 ```
 
-**모든 트래픽 전송:**
 VPC 외부로 가는 모든 트래픽을 Transit Gateway로 보낸다.
 
 ```bash
@@ -233,7 +239,7 @@ aws ec2 create-route \
   --transit-gateway-id tgw-12345678
 ```
 
-인터넷 게이트웨이가 없는 프라이빗 서브넷에서 유용하다. Transit Gateway를 통해 NAT Gateway가 있는 VPC로 트래픽을 보낸다.
+인터넷 게이트웨이가 없는 프라이빗 서브넷에서 유용하다. 트래픽을 Transit Gateway로 보내 NAT Gateway가 있는 VPC로 넘긴다.
 
 ## 라우팅 시나리오
 
@@ -241,14 +247,16 @@ aws ec2 create-route \
 
 모든 VPC가 서로 통신한다.
 
-**구성:**
+구성 요소다.
+
 - VPC A (10.0.0.0/16)
 - VPC B (10.1.0.0/16)
 - VPC C (10.2.0.0/16)
 - Transit Gateway 1개
 - 라우팅 테이블 1개
 
-**Transit Gateway 라우팅 테이블:**
+Transit Gateway 라우팅 테이블은 이렇다.
+
 ```
 Destination         Attachment
 10.0.0.0/16        VPC A
@@ -256,10 +264,10 @@ Destination         Attachment
 10.2.0.0/16        VPC C
 ```
 
-**자동 전파:**
 각 VPC Attachment를 라우팅 테이블에 Propagate한다. 자동으로 규칙이 추가된다.
 
-**결과:**
+통신 가능 여부다.
+
 - VPC A → VPC B: 가능
 - VPC A → VPC C: 가능
 - VPC B → VPC C: 가능
@@ -270,13 +278,15 @@ Destination         Attachment
 
 개발과 프로덕션을 분리한다.
 
-**요구사항:**
+요구사항은 네 가지다.
+
 - 개발 VPC끼리만 통신
 - 프로덕션 VPC끼리만 통신
 - 개발과 프로덕션은 통신 불가
 - 관리 VPC는 모든 VPC와 통신
 
-**구성:**
+구성 요소다.
+
 - VPC Dev1 (10.0.0.0/16)
 - VPC Dev2 (10.1.0.0/16)
 - VPC Prod1 (10.10.0.0/16)
@@ -285,7 +295,8 @@ Destination         Attachment
 - Transit Gateway 1개
 - 라우팅 테이블 3개
 
-**Route Table: Dev**
+Dev 라우팅 테이블은 이렇게 구성한다.
+
 ```
 Destination         Attachment
 10.0.0.0/16        VPC Dev1
@@ -293,7 +304,8 @@ Destination         Attachment
 10.100.0.0/16      VPC Mgmt
 ```
 
-**Route Table: Prod**
+Prod 라우팅 테이블은 이렇게 구성한다.
+
 ```
 Destination         Attachment
 10.10.0.0/16       VPC Prod1
@@ -301,7 +313,8 @@ Destination         Attachment
 10.100.0.0/16      VPC Mgmt
 ```
 
-**Route Table: Mgmt**
+Mgmt 라우팅 테이블은 이렇게 구성한다.
+
 ```
 Destination         Attachment
 10.0.0.0/16        VPC Dev1
@@ -310,12 +323,14 @@ Destination         Attachment
 10.11.0.0/16       VPC Prod2
 ```
 
-**Association:**
+Association은 이렇게 건다.
+
 - VPC Dev1, Dev2 → Route Table Dev
 - VPC Prod1, Prod2 → Route Table Prod
 - VPC Mgmt → Route Table Mgmt
 
-**결과:**
+통신 가능 여부다.
+
 - Dev1 → Dev2: 가능 (같은 라우팅 테이블)
 - Prod1 → Prod2: 가능 (같은 라우팅 테이블)
 - Dev1 → Prod1: 불가능 (Route Table Dev에 Prod1 규칙 없음)
@@ -325,14 +340,16 @@ Destination         Attachment
 
 데이터센터와 VPC를 연결한다.
 
-**구성:**
+구성 요소다.
+
 - 온프레미스 (192.168.0.0/16)
 - VPC A (10.0.0.0/16)
 - VPC B (10.1.0.0/16)
 - Transit Gateway
 - Site-to-Site VPN
 
-**VPN 연결:**
+VPN 연결 명령이다.
+
 ```bash
 # Customer Gateway 생성 (온프레미스 라우터 IP)
 aws ec2 create-customer-gateway \
@@ -347,7 +364,8 @@ aws ec2 create-vpn-connection \
   --transit-gateway-id tgw-12345678
 ```
 
-**Transit Gateway 라우팅 테이블:**
+Transit Gateway 라우팅 테이블은 이렇다.
+
 ```
 Destination         Attachment
 10.0.0.0/16        VPC A
@@ -355,7 +373,6 @@ Destination         Attachment
 192.168.0.0/16     VPN
 ```
 
-**VPC 라우팅 테이블:**
 각 VPC의 라우팅 테이블에 온프레미스로 가는 경로를 추가한다.
 
 ```
@@ -364,7 +381,8 @@ Destination         Target
 192.168.0.0/16     tgw-12345678
 ```
 
-**결과:**
+통신 가능 여부다.
+
 - VPC A → 온프레미스: 가능
 - VPC B → 온프레미스: 가능
 - 온프레미스 → VPC A, B: 가능
@@ -373,19 +391,19 @@ Destination         Target
 
 프라이빗 VPC에서 인터넷에 접근한다.
 
-**배경:**
 프라이빗 VPC는 NAT Gateway가 없다. 인터넷에 접근할 수 없다. 모든 VPC에 NAT Gateway를 만들면 비용이 증가한다.
 
-**해결:**
-하나의 VPC에만 NAT Gateway를 만든다. 다른 VPC는 Transit Gateway를 통해 NAT Gateway VPC로 트래픽을 보낸다.
+하나의 VPC에만 NAT Gateway를 만든다. 다른 VPC는 Transit Gateway로 NAT Gateway VPC에 트래픽을 보낸다.
 
-**구성:**
+구성 요소다.
+
 - VPC Egress (10.100.0.0/16): NAT Gateway 있음
 - VPC A (10.0.0.0/16): NAT Gateway 없음
 - VPC B (10.1.0.0/16): NAT Gateway 없음
 - Transit Gateway
 
-**Transit Gateway 라우팅 테이블:**
+Transit Gateway 라우팅 테이블은 이렇다.
+
 ```
 Destination         Attachment
 10.0.0.0/16        VPC A
@@ -394,14 +412,16 @@ Destination         Attachment
 0.0.0.0/0          VPC Egress
 ```
 
-**VPC A, B 라우팅 테이블:**
+VPC A, B 라우팅 테이블은 이렇다.
+
 ```
 Destination         Target
 10.0.0.0/16        local
 0.0.0.0/0          tgw-12345678
 ```
 
-**VPC Egress 라우팅 테이블 (프라이빗 서브넷):**
+VPC Egress의 프라이빗 서브넷 라우팅 테이블은 이렇다.
+
 ```
 Destination         Target
 10.100.0.0/16      local
@@ -410,7 +430,8 @@ Destination         Target
 0.0.0.0/0          nat-12345678
 ```
 
-**흐름:**
+트래픽 흐름이다.
+
 1. VPC A의 인스턴스가 인터넷 요청
 2. Transit Gateway로 전송
 3. VPC Egress로 라우팅
@@ -418,19 +439,20 @@ Destination         Target
 5. 인터넷 게이트웨이 통과
 6. 인터넷 도달
 
-**비용 절감:**
 NAT Gateway 1개만 사용. 비용이 절감된다.
 
 ## 리전 간 연결
 
 다른 리전의 Transit Gateway를 연결한다.
 
-**사용 사례:**
+사용 사례는 세 가지다.
+
 - 글로벌 네트워크
 - 재해 복구
 - 데이터 복제
 
-**설정:**
+설정 명령이다.
+
 ```bash
 # us-west-2의 Transit Gateway
 TGW_WEST=tgw-12345678
@@ -451,34 +473,37 @@ aws ec2 accept-transit-gateway-peering-attachment \
   --region us-east-1
 ```
 
-**라우팅 설정:**
+라우팅은 두 리전의 Transit Gateway에 각각 설정한다.
 
-**us-west-2 Transit Gateway:**
+us-west-2 Transit Gateway의 라우팅 테이블이다.
+
 ```
 Destination         Attachment
 10.0.0.0/16        VPC West
 172.16.0.0/16      Peering (to us-east-1)
 ```
 
-**us-east-1 Transit Gateway:**
+us-east-1 Transit Gateway의 라우팅 테이블이다.
+
 ```
 Destination         Attachment
 172.16.0.0/16      VPC East
 10.0.0.0/16        Peering (to us-west-2)
 ```
 
-**결과:**
+연결 결과다.
+
 - us-west-2 VPC → us-east-1 VPC: 가능
 - 리전 간 프라이빗 네트워크
 
-**비용:**
 리전 간 데이터 전송 비용이 발생한다. $0.02/GB (리전에 따라 다름).
 
 ## 모니터링
 
 ### CloudWatch 메트릭
 
-**주요 메트릭:**
+주요 메트릭이다.
+
 - **BytesIn**: Transit Gateway로 들어오는 바이트
 - **BytesOut**: Transit Gateway에서 나가는 바이트
 - **PacketsIn**: 들어오는 패킷 수
@@ -486,14 +511,14 @@ Destination         Attachment
 - **PacketDropCountBlackhole**: Blackhole 라우팅으로 삭제된 패킷
 - **PacketDropCountNoRoute**: 라우팅 규칙이 없어서 삭제된 패킷
 
-**PacketDropCountNoRoute:**
-이 메트릭이 0이 아니면 라우팅 설정을 확인한다. 목적지로 가는 경로가 없다.
+PacketDropCountNoRoute가 0이 아니면 라우팅 설정을 확인한다. 목적지로 가는 경로가 없다.
 
 ### Flow Logs
 
 Transit Gateway를 통과하는 트래픽을 로그로 남긴다.
 
-**활성화:**
+활성화 명령이다.
+
 ```bash
 aws ec2 create-flow-logs \
   --resource-type TransitGateway \
@@ -503,7 +528,8 @@ aws ec2 create-flow-logs \
   --log-group-name /aws/transitgateway/flowlogs
 ```
 
-**로그 내용:**
+로그에는 이 항목이 남는다.
+
 - 소스 IP
 - 목적지 IP
 - 소스 포트
@@ -513,7 +539,8 @@ aws ec2 create-flow-logs \
 - 바이트 수
 - Action (ACCEPT/REJECT)
 
-**사용:**
+주로 이런 용도로 쓴다.
+
 - 트래픽 패턴 분석
 - 보안 이슈 파악
 - 트러블슈팅
@@ -522,17 +549,15 @@ aws ec2 create-flow-logs \
 
 ### 연결이 안 된다
 
-**1. 라우팅 테이블 확인:**
+#### 라우팅 테이블 확인
 
-**VPC 라우팅 테이블:**
-목적지로 가는 경로가 Transit Gateway로 설정되어 있는지 확인한다.
+VPC 라우팅 테이블에서 목적지로 가는 경로가 Transit Gateway로 설정되어 있는지 확인한다.
 
 ```bash
 aws ec2 describe-route-tables --route-table-ids rtb-12345678
 ```
 
-**Transit Gateway 라우팅 테이블:**
-목적지 VPC로 가는 경로가 있는지 확인한다.
+Transit Gateway 라우팅 테이블에서는 목적지 VPC로 가는 경로가 있는지 확인한다.
 
 ```bash
 aws ec2 search-transit-gateway-routes \
@@ -540,16 +565,16 @@ aws ec2 search-transit-gateway-routes \
   --filters "Name=type,Values=static,propagated"
 ```
 
-**2. 보안 그룹 / NACL:**
+#### 보안 그룹 / NACL
+
 보안 그룹과 NACL이 트래픽을 허용하는지 확인한다.
 
-**소스 VPC의 보안 그룹:**
-아웃바운드 규칙이 목적지 IP를 허용하는지 확인.
+소스 VPC의 보안 그룹은 아웃바운드 규칙이 목적지 IP를 허용하는지 확인한다.
 
-**목적지 VPC의 보안 그룹:**
-인바운드 규칙이 소스 IP를 허용하는지 확인.
+목적지 VPC의 보안 그룹은 인바운드 규칙이 소스 IP를 허용하는지 확인한다.
 
-**3. Attachment 상태:**
+#### Attachment 상태
+
 Attachment가 "available" 상태인지 확인한다.
 
 ```bash
@@ -559,7 +584,8 @@ aws ec2 describe-transit-gateway-attachments \
 
 "pending" 또는 "failed" 상태면 문제가 있다.
 
-**4. Association / Propagation:**
+#### Association / Propagation
+
 Attachment가 올바른 라우팅 테이블에 연결되어 있는지 확인한다.
 
 ```bash
@@ -569,13 +595,10 @@ aws ec2 get-transit-gateway-attachment-propagations \
 
 ### 성능이 느리다
 
-**대역폭 확인:**
 Transit Gateway는 Attachment당 최대 50Gbps를 제공한다. 초과하면 제한된다.
 
-**CloudWatch 메트릭:**
-BytesIn/BytesOut을 확인한다. 50Gbps에 가까우면 Attachment를 추가하거나 트래픽을 분산한다.
+CloudWatch에서 BytesIn/BytesOut을 확인한다. 50Gbps에 가까우면 Attachment를 추가하거나 트래픽을 분산한다.
 
-**MTU 크기:**
 Transit Gateway는 8500 바이트 MTU를 지원한다. EC2 인스턴스의 MTU를 확인한다.
 
 ```bash
@@ -590,28 +613,30 @@ sudo ip link set dev eth0 mtu 8500
 
 ### 비용이 많이 나온다
 
-**데이터 전송 비용:**
 Transit Gateway는 데이터 전송량에 따라 비용이 발생한다.
 
-**요금:**
+요금은 이렇다.
+
 - Attachment: $0.05/시간
 - 데이터 처리: $0.02/GB
 
-**예시:**
+예시 조건이다.
+
 - VPC 10개
 - 각 VPC당 10TB/월 전송
 
-**비용:**
+이 조건의 비용이다.
+
 - Attachment: 10 × $0.05 × 730시간 = $365/월
 - 데이터: 10 × 10TB × 1024GB × $0.02 = $2,048/월
 - 합계: $2,413/월
 
-**최적화:**
+비용을 줄이는 방법이다.
 
-**불필요한 Attachment 삭제:**
 사용하지 않는 VPC는 연결을 해제한다.
 
-**데이터 전송 최소화:**
+데이터 전송량은 이렇게 줄인다.
+
 - 같은 VPC 내에서 통신
 - S3 Gateway Endpoint 사용 (Transit Gateway 우회)
 - 캐싱으로 반복 전송 줄이기
@@ -620,50 +645,51 @@ Transit Gateway는 데이터 전송량에 따라 비용이 발생한다.
 
 ### Attachment 비용
 
-**시간당 요금:**
-$0.05/시간 per Attachment
+Attachment당 시간당 $0.05다.
 
-**월 비용:**
-$0.05 × 730시간 = $36.50/Attachment
+월 비용은 $0.05 × 730시간 = $36.50/Attachment다.
 
-**예시:**
 VPC 5개 연결 = $36.50 × 5 = $182.50/월
 
 ### 데이터 전송 비용
 
-**AZ 내:**
-$0.02/GB
+AZ 내 전송은 $0.02/GB다.
 
-**리전 간:**
-$0.02/GB (같은 리전의 다른 AZ)
-$0.02/GB ~ $0.09/GB (다른 리전)
+리전 간 전송 요금이다.
 
-**예시:**
+- $0.02/GB (같은 리전의 다른 AZ)
+- $0.02/GB ~ $0.09/GB (다른 리전)
+
 100TB/월 전송 = 100 × 1024GB × $0.02 = $2,048/월
 
 ### VPC Peering과 비교
 
-**VPC Peering:**
+VPC Peering 요금이다.
+
 - 연결 비용: 무료
 - 데이터 전송: 같은 AZ 무료, 다른 AZ $0.01/GB
 
-**Transit Gateway:**
+Transit Gateway 요금이다.
+
 - Attachment: $36.50/월
 - 데이터 전송: $0.02/GB
 
-**VPC 2개, 10GB/월:**
+VPC 2개, 월 10GB를 전송하면 이렇다.
+
 - Peering: $0.10/월
 - Transit Gateway: $73 + $0.20 = $73.20/월
 
 Peering이 저렴하다.
 
-**VPC 10개, 100GB/월:**
+VPC 10개, 월 100GB를 전송하면 이렇다.
+
 - Peering: 45개 연결, $45/월 (데이터 전송)
 - Transit Gateway: $365 + $200 = $565/월
 
 Peering이 여전히 저렴하다. 하지만 관리가 복잡하다.
 
-**선택 기준:**
+선택 기준이다.
+
 - VPC 3개 이하: VPC Peering
 - VPC 4개 이상: Transit Gateway
 - 온프레미스 연결: Transit Gateway
