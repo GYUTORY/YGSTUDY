@@ -1,7 +1,7 @@
 ---
 title: "BigQuery"
 tags: [gcp, database, cloud]
-updated: 2026-04-12
+updated: 2026-11-18
 ---
 
 # BigQuery
@@ -16,44 +16,36 @@ Google Cloud의 서버리스 데이터 웨어하우스다. 인프라 관리 없�
 
 BigQuery의 핵심 구조는 스토리지와 컴퓨팅이 완전히 분리된 형태다.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                      사용자 요청                          │
-│              (Console / bq CLI / REST API)                │
-└──────────────┬───────────────────────────────────────────┘
-               │
-               v
-┌──────────────────────────────────────────────────────────┐
-│                   BigQuery Service                        │
-│  ┌─────────────────┐    ┌────────────────────────────┐   │
-│  │  Query Engine    │    │   Job Orchestrator         │   │
-│  │  (Dremel)        │    │   - 쿼리 파싱/최적화       │   │
-│  │                  │    │   - 실행 계획 수립          │   │
-│  │  ┌────────────┐  │    │   - 슬롯 할당 요청         │   │
-│  │  │ Root Server│  │    └────────────────────────────┘   │
-│  │  └─────┬──────┘  │                                     │
-│  │   ┌────┴────┐    │                                     │
-│  │   v         v    │                                     │
-│  │ ┌─────┐ ┌─────┐  │                                     │
-│  │ │Mixer│ │Mixer│  │  <-- 중간 집계 (셔플, 정렬)         │
-│  │ └──┬──┘ └──┬──┘  │                                     │
-│  │  ┌─┴─┐  ┌─┴─┐   │                                     │
-│  │  v   v  v   v    │                                     │
-│  │ ┌──┐┌──┐┌──┐┌──┐ │                                     │
-│  │ │S1││S2││S3││S4│ │  <-- Leaf 슬롯 (병렬 스캔/필터)     │
-│  │ └──┘└──┘└──┘└──┘ │                                     │
-│  └─────────┬────────┘                                     │
-└────────────┼─────────────────────────────────────────────┘
-             │ 네트워크 (Jupiter)
-             v
-┌──────────────────────────────────────────────────────────┐
-│                   Colossus (분산 스토리지)                 │
-│                                                           │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
-│  │Capacitor │  │Capacitor │  │Capacitor │  ...           │
-│  │(컬럼형)   │  │(컬럼형)   │  │(컬럼형)   │               │
-│  └──────────┘  └──────────┘  └──────────┘               │
-└──────────────────────────────────────────────────────────┘
+아래 도식은 사용자 요청이 BigQuery Service의 Dremel 쿼리 엔진을 거쳐 Colossus 스토리지의 데이터를 읽는 경로를 보여준다. Root Server에서 Mixer, Leaf 슬롯 순으로 내려가며 Leaf 슬롯이 Jupiter 네트워크로 스토리지를 스캔한다.
+
+```mermaid
+flowchart TB
+    U["사용자 요청<br/>Console / bq CLI / REST API"]
+    subgraph SVC["BigQuery Service"]
+        subgraph QE["Query Engine (Dremel)"]
+            RS["Root Server"]
+            M1["Mixer<br/>중간 집계 (셔플, 정렬)"]
+            M2["Mixer<br/>중간 집계 (셔플, 정렬)"]
+            S1["S1"]
+            S2["S2"]
+            S3["S3"]
+            S4["S4"]
+            RS --> M1
+            RS --> M2
+            M1 --> S1
+            M1 --> S2
+            M2 --> S3
+            M2 --> S4
+        end
+        JO["Job Orchestrator<br/>쿼리 파싱/최적화<br/>실행 계획 수립<br/>슬롯 할당 요청"]
+    end
+    subgraph COL["Colossus (분산 스토리지)"]
+        C1["Capacitor (컬럼형)"]
+        C2["Capacitor (컬럼형)"]
+        C3["Capacitor (컬럼형)"]
+    end
+    U --> SVC
+    QE -->|"네트워크 (Jupiter)<br/>Leaf 슬롯이 병렬 스캔/필터"| COL
 ```
 
 이 구조에서 중요한 포인트:
@@ -70,7 +62,7 @@ BigQuery의 핵심 구조는 스토리지와 컴퓨팅이 완전히 분리된 �
 
 ### 파티셔닝
 
-테이블을 특정 컬럼 기준으로 물리적으로 나누는 것이다. 쿼리 시 파티션 필터를 걸면 해당 파티션만 스캔하므로 비용과 속도 모두 개선된다.
+테이블을 특정 컬럼 기준으로 물리적으로 나눈다. 쿼리 시 파티션 필터를 걸면 해당 파티션만 스캔하므로 비용과 속도 모두 개선된다.
 
 파티셔닝 방식은 세 가지다:
 
@@ -98,7 +90,7 @@ OPTIONS (
 
 ### 클러스터링
 
-파티션 안에서 데이터를 특정 컬럼 기준으로 정렬해서 저장하는 것이다. 최대 4개 컬럼까지 지정할 수 있고, 순서가 중요하다. 첫 번째 컬럼 기준으로 먼저 정렬하고, 그 안에서 두 번째 컬럼으로 정렬하는 식이다.
+파티션 안에서 데이터를 특정 컬럼 기준으로 정렬해서 저장한다. 최대 4개 컬럼까지 지정할 수 있고, 순서가 중요하다. 첫 번째 컬럼 기준으로 먼저 정렬하고, 그 안에서 두 번째 컬럼으로 정렬하는 식이다.
 
 ```sql
 CREATE TABLE `project.dataset.events`
@@ -117,43 +109,30 @@ CLUSTER BY event_type, region;
 
 파티셔닝과 클러스터링이 데이터를 나누는 방식은 근본적으로 다르다.
 
+아래 두 도식 중 첫 번째는 파티셔닝이 테이블을 날짜별 저장 단위로 나누고, 날짜 조건이 걸린 쿼리가 해당 파티션만 읽는 모습을 보여준다.
+
+```mermaid
+flowchart LR
+    Q["WHERE date = '2026-04-02'"]
+    subgraph T["테이블"]
+        P1["Partition 2026-04-01<br/>row1, row2, row3"]
+        P2["Partition 2026-04-02<br/>row4, row5, row6"]
+        P3["Partition 2026-04-03<br/>row7, row8, row9"]
+    end
+    Q -->|"해당 파티션만 읽음 (비용 1/3)"| P2
 ```
-[ 파티셔닝: 물리적 분리 ]
 
- 테이블
- ┌────────────────────────────────┐
- │ Partition: 2026-04-01          │  ← 하나의 독립된 저장 단위
- │  row1, row2, row3 ...         │
- ├────────────────────────────────┤
- │ Partition: 2026-04-02          │  ← 쿼리 시 이 파티션만 스캔 가능
- │  row4, row5, row6 ...         │
- ├────────────────────────────────┤
- │ Partition: 2026-04-03          │
- │  row7, row8, row9 ...         │
- └────────────────────────────────┘
- → WHERE date = '2026-04-02' → 해당 파티션만 읽음 (비용 1/3)
+두 번째는 파티션 내부에서 `CLUSTER BY event_type, region`으로 정렬된 블록 중 조건에 맞는 블록만 읽는 모습을 보여준다.
 
-
-[ 클러스터링: 파티션 내부 정렬 ]
-
- Partition: 2026-04-02
- ┌────────────────────────────────────────────────┐
- │  CLUSTER BY event_type, region                 │
- │                                                │
- │  ┌─────────────────────┐  블록 1               │
- │  │ event_type=click     │                      │
- │  │ region=jp            │                      │
- │  └─────────────────────┘                       │
- │  ┌─────────────────────┐  블록 2               │
- │  │ event_type=click     │                      │
- │  │ region=kr            │                      │
- │  └─────────────────────┘                       │
- │  ┌─────────────────────┐  블록 3               │
- │  │ event_type=purchase  │                      │
- │  │ region=kr            │                      │
- │  └─────────────────────┘                       │
- └────────────────────────────────────────────────┘
- → WHERE event_type='purchase' AND region='kr' → 블록 3만 읽음
+```mermaid
+flowchart LR
+    Q["WHERE event_type='purchase' AND region='kr'"]
+    subgraph P["Partition 2026-04-02 (CLUSTER BY event_type, region)"]
+        B1["블록 1<br/>event_type=click<br/>region=jp"]
+        B2["블록 2<br/>event_type=click<br/>region=kr"]
+        B3["블록 3<br/>event_type=purchase<br/>region=kr"]
+    end
+    Q -->|"블록 3만 읽음"| B3
 ```
 
 | 구분 | 파티셔닝 | 클러스터링 |
@@ -209,46 +188,49 @@ bq query --dry_run --use_legacy_sql=false \
 
 슬롯은 BigQuery의 컴퓨팅 단위다. 쿼리 하나가 실행될 때 여러 슬롯이 병렬로 작업을 처리한다.
 
+아래 도식은 조직 안에서 Reservation과 Assignment로 프로젝트에 슬롯이 배분되는 구조를 보여준다. `analytics`는 기준선 500 슬롯에 Autoscale로 최대 1500 슬롯까지 늘어나고, `etl`은 기준선 200 슬롯에 Autoscale이 꺼져 있다. 어느 Reservation에도 할당되지 않은 프로젝트는 온디맨드 공유 풀을 쓴다.
+
+```mermaid
+flowchart TB
+    subgraph ORG["Organization"]
+        R1["Reservation analytics<br/>기준선 500 슬롯<br/>Autoscale 최대 1500 슬롯"]
+        R2["Reservation etl<br/>기준선 200 슬롯<br/>Autoscale 비활성화"]
+        PA["project-a (BI팀)"]
+        PB["project-b (DS팀)"]
+        PC["project-c (파이프라인)"]
+        PU["미할당 프로젝트"]
+        POOL["온디맨드 공유 풀"]
+        R1 -->|"Assignment"| PA
+        R1 -->|"Assignment"| PB
+        R2 -->|"Assignment"| PC
+        PU --> POOL
+    end
 ```
-[ 슬롯 할당 흐름 — Editions 모델 ]
 
- ┌───────────────────────────────────────────────┐
- │              Organization                      │
- │                                                │
- │  Reservation: "analytics"   (500 기준선 슬롯)   │
- │  ┌───────────────────────────────────────────┐ │
- │  │  Autoscale: 최대 1500 슬롯까지 확장 가능    │ │
- │  │                                           │ │
- │  │  Assignment ──→ project-a (BI팀)          │ │
- │  │  Assignment ──→ project-b (DS팀)          │ │
- │  └───────────────────────────────────────────┘ │
- │                                                │
- │  Reservation: "etl"         (200 기준선 슬롯)   │
- │  ┌───────────────────────────────────────────┐ │
- │  │  Autoscale: 비활성화                       │ │
- │  │                                           │ │
- │  │  Assignment ──→ project-c (파이프라인)     │ │
- │  └───────────────────────────────────────────┘ │
- │                                                │
- │  (미할당 프로젝트 → 온디맨드 공유 풀 사용)       │
- └───────────────────────────────────────────────┘
+아래 도식은 project-a가 쿼리를 제출했을 때 슬롯이 할당되고 반환되는 순서를 보여준다.
 
- 쿼리 실행 시:
- 1. project-a에서 쿼리 제출
- 2. "analytics" Reservation에서 슬롯 할당
- 3. 기준선 500 슬롯 부족 시 → Autoscale로 최대 1500까지 확장
- 4. 쿼리 완료 후 → 확장 슬롯 반환 (초 단위 과금)
+```mermaid
+sequenceDiagram
+    participant P as project-a
+    participant R as analytics Reservation
+    participant A as Autoscale
+    P->>R: 쿼리 제출
+    R->>R: 기준선 500 슬롯 할당
+    R->>A: 기준선 부족 시 최대 1500 슬롯까지 확장
+    A-->>R: 슬롯 확장
+    R-->>P: 쿼리 완료
+    R->>A: 확장 슬롯 반환 (초 단위 과금)
 ```
 
 온디맨드 사용자는 프로젝트당 약 2,000 슬롯을 공유한다. 이 한도는 보장이 아니라 상한이며, 피크 타임에는 슬롯이 부족해서 쿼리가 느려질 수 있다.
 
-예약(Reservation)을 구매하면 전용 슬롯을 확보한다. Editions 모델에서는 다음과 같이 나뉜다:
+예약(Reservation)을 구매하면 전용 슬롯을 확보한다. Editions 모델은 세 단계로 나뉜다:
 
 - **Standard**: 자동 스케일링. 사용한 만큼 과금.
 - **Enterprise**: 커밋 기간에 따른 할인. 기준선 슬롯 + 자동 스케일링.
 - **Enterprise Plus**: 가장 높은 SLA와 성능.
 
-슬롯 예약은 조직 전체에서 공유할 수 있고, Assignment를 통해 프로젝트나 폴더 단위로 할당한다.
+슬롯 예약은 조직 전체에서 공유할 수 있고, Assignment로 프로젝트나 폴더 단위에 할당한다.
 
 실무에서 슬롯 모니터링은 `INFORMATION_SCHEMA.JOBS` 뷰로 한다:
 
@@ -537,7 +519,7 @@ pip 설치:
 pip install google-cloud-bigquery
 ```
 
-Python 클라이언트에서 주의할 점은, `client.query()`가 비동기로 Job을 생성한다는 것이다. `.result()`를 호출해야 완료를 기다린다. 대량 데이터를 가져올 때는 `to_dataframe()`으로 pandas DataFrame으로 변환하는 게 편하다.
+Python 클라이언트에서 주의할 점은, `client.query()`가 비동기로 Job을 생성한다. `.result()`를 호출해야 완료를 기다린다. 대량 데이터를 가져올 때는 `to_dataframe()`으로 pandas DataFrame으로 변환하는 게 편하다.
 
 ```python
 df = client.query(query).to_dataframe()
@@ -745,22 +727,29 @@ BigQuery의 IAM 역할은 세 단계로 나뉜다:
 
 특정 컬럼에 Policy Tag를 걸어서 접근을 제한한다. Data Catalog의 Policy Tag Taxonomy를 사용한다.
 
-```
- 설정 흐름:
+아래 도식은 Data Catalog의 Taxonomy 아래 Policy Tag가 BigQuery 테이블의 어느 컬럼에 연결되는지 보여준다. `email_tag`와 `phone_tag`가 각각 `email`, `phone` 컬럼에 붙어 있다.
 
- Data Catalog                   BigQuery 테이블
- ┌──────────────────┐           ┌──────────────────────┐
- │ Taxonomy:         │           │ users                │
- │  "PII"           │           │ ├─ user_id           │
- │  ├─ email_tag  ──┼──────────→│ ├─ email   [PII:email]│
- │  ├─ phone_tag  ──┼──────────→│ ├─ phone   [PII:phone]│
- │  └─ ssn_tag      │           │ ├─ name              │
- └──────────────────┘           │ └─ created_at        │
-                                └──────────────────────┘
-
- → email_tag에 Fine-Grained Reader 역할이 없는 사용자는
-   SELECT email FROM users 실행 시 "Access Denied" 발생
+```mermaid
+flowchart LR
+    subgraph DC["Data Catalog"]
+        subgraph TX["Taxonomy: PII"]
+            T1["email_tag"]
+            T2["phone_tag"]
+            T3["ssn_tag"]
+        end
+    end
+    subgraph BQ["BigQuery 테이블: users"]
+        C1["user_id"]
+        C2["email"]
+        C3["phone"]
+        C4["name"]
+        C5["created_at"]
+    end
+    T1 --> C2
+    T2 --> C3
 ```
+
+`email_tag`에 Fine-Grained Reader 역할이 없는 사용자가 `SELECT email FROM users`를 실행하면 "Access Denied"가 발생한다.
 
 설정 순서:
 
@@ -874,25 +863,23 @@ WHEN NOT MATCHED THEN
 
 외부 시스템(MySQL, PostgreSQL 등)의 변경 사항을 BigQuery에 반영하는 일반적인 패턴이다. Debezium이나 Datastream 같은 CDC 도구가 변경 이벤트를 스테이징 테이블에 넣으면, MERGE로 최종 테이블에 반영한다.
 
-```
- CDC 흐름:
+아래 도식은 MySQL의 변경 이벤트가 CDC 도구를 거쳐 staging 테이블에 쌓이고, MERGE로 최종 테이블에 반영되는 흐름을 보여준다.
 
- ┌─────────┐    CDC 도구     ┌──────────────┐   MERGE    ┌──────────────┐
- │ MySQL   │ ──(binlog)───→ │ staging      │ ────────→  │ target       │
- │ (원본DB) │    Datastream  │ (변경 이벤트) │            │ (최종 테이블)  │
- └─────────┘               └──────────────┘            └──────────────┘
-
- staging 테이블 레코드 예시:
- ┌──────────┬──────┬─────────┬─────────────────────┐
- │ user_id  │ name │ op_type │ change_timestamp     │
- ├──────────┼──────┼─────────┼─────────────────────┤
- │ 101      │ Kim  │ INSERT  │ 2026-04-12 10:00:00 │
- │ 102      │ Lee  │ UPDATE  │ 2026-04-12 10:01:00 │
- │ 103      │ Park │ DELETE  │ 2026-04-12 10:02:00 │
- └──────────┴──────┴─────────┴─────────────────────┘
+```mermaid
+flowchart LR
+    A["MySQL (원본 DB)"] -->|"binlog, Datastream"| B["staging (변경 이벤트)"]
+    B -->|"MERGE"| C["target (최종 테이블)"]
 ```
 
-같은 키에 대해 여러 변경 이벤트가 쌓일 수 있으니, 가장 최신 이벤트만 MERGE에 사용해야 한다:
+staging 테이블 레코드 예시:
+
+| user_id | name | op_type | change_timestamp |
+|---------|------|---------|------------------|
+| 101 | Kim | INSERT | 2026-04-12 10:00:00 |
+| 102 | Lee | UPDATE | 2026-04-12 10:01:00 |
+| 103 | Park | DELETE | 2026-04-12 10:02:00 |
+
+같은 키에 변경 이벤트가 여러 개 쌓일 수 있으니, 가장 최신 이벤트만 MERGE에 사용해야 한다:
 
 ```sql
 MERGE `project.dataset.users` AS target
@@ -940,7 +927,7 @@ PARTITION BY DATE(effective_from)
 CLUSTER BY user_id;
 ```
 
-SCD Type 2 MERGE는 두 단계로 진행한다. BigQuery의 MERGE는 같은 target 행에 대해 INSERT와 UPDATE를 동시에 수행할 수 없기 때문이다:
+SCD Type 2 MERGE는 두 단계로 진행한다. BigQuery의 MERGE는 같은 target 행에 INSERT와 UPDATE를 동시에 수행할 수 없기 때문이다:
 
 ```sql
 -- Step 1: 기존 현재 레코드 종료 처리
