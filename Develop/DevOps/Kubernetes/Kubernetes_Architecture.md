@@ -1,7 +1,7 @@
 ---
 title: Kubernetes 클러스터 아키텍처
 tags: [iac, kubernetes, devops]
-updated: 2026-07-25
+updated: 2026-11-18
 ---
 
 # Kubernetes 클러스터 아키텍처
@@ -10,34 +10,37 @@ updated: 2026-07-25
 
 Kubernetes 클러스터는 컨트롤 플레인(Control Plane)과 워커 노드(Worker Node)로 나뉜다. 컨트롤 플레인이 클러스터 상태를 관리하고 워커 노드가 실제 워크로드를 실행한다.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    Control Plane                         │
-│                                                          │
-│  ┌──────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │   etcd   │  │  kube-apiserver  │  │   scheduler   │ │
-│  └──────────┘  └──────────────────┘  └───────────────┘ │
-│                                                          │
-│  ┌──────────────────────────────┐                       │
-│  │     controller-manager       │                       │
-│  └──────────────────────────────┘                       │
-└──────────────────────────┬───────────────────────────────┘
-                           │ API 통신
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│  Worker Node │  │  Worker Node │  │  Worker Node │
-│  ┌─────────┐ │  │  ┌─────────┐ │  │  ┌─────────┐ │
-│  │ kubelet │ │  │  │ kubelet │ │  │  │ kubelet │ │
-│  └─────────┘ │  │  └─────────┘ │  │  └─────────┘ │
-│  ┌──────────┐│  │  ┌──────────┐│  │  ┌──────────┐│
-│  │kube-proxy││  │  │kube-proxy││  │  │kube-proxy││
-│  └──────────┘│  │  └──────────┘│  │  └──────────┘│
-│  Pod, Pod... │  │  Pod, Pod... │  │  Pod, Pod... │
-└──────────────┘  └──────────────┘  └──────────────┘
+아래 도식은 컨트롤 플레인 안의 컴포넌트 네 개와, API 통신으로 연결된 워커 노드 세 대를 보여준다. 워커 노드마다 kubelet, kube-proxy, Pod가 하나씩 묶여 있다.
+
+```mermaid
+flowchart TB
+    subgraph CP["Control Plane"]
+        etcd["etcd"]
+        api["kube-apiserver"]
+        sched["scheduler"]
+        cm["controller-manager"]
+    end
+    subgraph W1["Worker Node"]
+        k1["kubelet"]
+        p1["kube-proxy"]
+        pod1["Pod, Pod..."]
+    end
+    subgraph W2["Worker Node"]
+        k2["kubelet"]
+        p2["kube-proxy"]
+        pod2["Pod, Pod..."]
+    end
+    subgraph W3["Worker Node"]
+        k3["kubelet"]
+        p3["kube-proxy"]
+        pod3["Pod, Pod..."]
+    end
+    CP -->|"API 통신"| W1
+    CP -->|"API 통신"| W2
+    CP -->|"API 통신"| W3
 ```
 
-모든 컴포넌트는 kube-apiserver를 통해서만 통신한다. 컴포넌트끼리 직접 대화하지 않는다. 이 원칙이 클러스터 상태의 일관성을 보장하는 핵심이다.
+모든 컴포넌트는 kube-apiserver로만 통신한다. 컴포넌트끼리 직접 대화하지 않는다. 이 원칙이 클러스터 상태의 일관성을 보장하는 핵심이다.
 
 ---
 
@@ -77,7 +80,7 @@ etcd 성능 저하는 전체 클러스터에 영향을 준다. Kubernetes의 모
 
 ### 2.2 kube-apiserver
 
-클러스터의 유일한 진입점이다. 모든 클라이언트(kubectl, kubelet, 컨트롤러, 외부 오퍼레이터)는 apiserver를 통해서만 클러스터에 접근한다. REST API로 제공되며, 요청마다 인증(Authentication) → 인가(Authorization) → 어드미션 컨트롤(Admission Control) → etcd 기록 순서로 처리한다.
+클러스터의 유일한 진입점이다. 모든 클라이언트(kubectl, kubelet, 컨트롤러, 외부 오퍼레이터)는 apiserver로만 클러스터에 접근한다. REST API로 제공되며, 요청마다 인증(Authentication) → 인가(Authorization) → 어드미션 컨트롤(Admission Control) → etcd 기록 순서로 처리한다.
 
 어드미션 컨트롤러는 종종 예상치 못한 거부 원인이 된다. `PodSecurity`, `LimitRanger`, `ResourceQuota` 같은 내장 컨트롤러 외에도 ValidatingWebhook, MutatingWebhook이 붙어 있으면 외부 웹훅 서버가 응답하지 않을 때 Pod 생성 자체가 막힌다.
 
@@ -116,7 +119,7 @@ apiserver가 느려지는 경우가 있는데, 주로 대규모 클러스터에�
 
 **스케줄러 장애 시나리오**
 
-스케줄러가 죽으면 기존 Pod는 영향 없다. 새 Pod만 Pending 상태로 쌓인다. kube-scheduler는 leader election을 통해 HA 구성이 가능하다. 스케줄러를 여러 개 띄워도 실제로 일하는 건 리더 하나다.
+스케줄러가 죽으면 기존 Pod는 영향 없다. 새 Pod만 Pending 상태로 쌓인다. kube-scheduler는 leader election으로 HA 구성이 가능하다. 스케줄러를 여러 개 띄워도 실제로 일하는 건 리더 하나다.
 
 ### 2.4 controller-manager
 
@@ -148,9 +151,9 @@ systemctl status kube-controller-manager
 kubelet이 하는 일은 이렇다.
 
 - apiserver에서 자신의 노드로 배정된 PodSpec을 가져옴
-- CRI(Container Runtime Interface)를 통해 컨테이너 런타임(containerd, CRI-O)에 컨테이너 실행 요청
-- CNI를 통해 네트워크 인터페이스 설정
-- CSI를 통해 볼륨 마운트
+- CRI(Container Runtime Interface)로 컨테이너 런타임(containerd, CRI-O)에 컨테이너 실행 요청
+- CNI로 네트워크 인터페이스 설정
+- CSI로 볼륨 마운트
 - liveness/readiness probe 주기적 실행
 - 노드 상태와 파드 상태를 주기적으로 apiserver에 보고
 
@@ -158,7 +161,9 @@ kubelet은 `/etc/kubernetes/manifests/` 디렉토리도 감시한다. 여기 있
 
 **kubelet 장애 시나리오**
 
-특정 노드의 kubelet이 죽으면 해당 노드의 Pod가 관리되지 않는다. 죽어있는 컨테이너가 재시작되지 않고, liveness probe 실패가 감지되지 않는다. controller-manager는 kubelet의 응답이 없으면(`node.kubernetes.io/not-ready` taint) 해당 노드의 Pod를 Terminating 상태로 바꾸고 다른 노드에 새로 스케줄링한다. 기본 대기 시간은 5분이다.
+특정 노드의 kubelet이 죽으면 해당 노드의 Pod가 관리되지 않는다. 죽어있는 컨테이너가 재시작되지 않고, liveness probe 실패가 감지되지 않는다.
+
+controller-manager는 kubelet의 응답이 없으면(`node.kubernetes.io/not-ready` taint) 해당 노드의 Pod를 Terminating 상태로 바꾸고 다른 노드에 새로 스케줄링한다. 기본 대기 시간은 5분이다.
 
 ```bash
 # 노드 상태 확인
@@ -190,31 +195,21 @@ Cilium 같은 CNI를 쓰면 kube-proxy 없이 eBPF로 처리할 수 있다(`kube
 
 Pod가 생성 요청을 받고 실제로 컨테이너가 실행되기까지 이 순서로 진행된다.
 
-```
-kubectl apply -f pod.yaml
-       │
-       ▼
-kube-apiserver: 인증 → 인가 → 어드미션
-       │
-       ▼
-etcd: Pod 오브젝트 저장 (nodeName = "")
-       │
-       ▼
-kube-scheduler: watch로 nodeName 없는 Pod 감지
-       │  필터링 → 스코어링
-       ▼
-etcd: Pod의 nodeName 업데이트
-       │
-       ▼
-kubelet: 자신의 노드에 배정된 Pod watch로 감지
-       │  이미지 풀 → CNI 네트워크 설정 → 컨테이너 실행
-       ▼
-Pod: Running 상태
+아래 도식은 `kubectl apply`부터 Pod가 Running이 되기까지 요청이 지나가는 순서를 위에서 아래로 보여준다. 스케줄러와 kubelet은 둘 다 watch로 변경을 감지해서 움직인다.
+
+```mermaid
+flowchart TB
+    A["kubectl apply -f pod.yaml"] --> B["kube-apiserver<br/>인증 → 인가 → 어드미션"]
+    B --> C["etcd<br/>Pod 오브젝트 저장 (nodeName 비어 있음)"]
+    C --> D["kube-scheduler<br/>watch로 nodeName 없는 Pod 감지<br/>필터링 → 스코어링"]
+    D --> E["etcd<br/>Pod의 nodeName 업데이트"]
+    E --> F["kubelet<br/>자신의 노드에 배정된 Pod를 watch로 감지<br/>이미지 풀 → CNI 네트워크 설정 → 컨테이너 실행"]
+    F --> G["Pod: Running 상태"]
 ```
 
 각 단계는 비동기로 이어진다. `kubectl apply` 명령이 성공했다는 건 apiserver가 etcd에 오브젝트를 저장했다는 뜻이지, Pod가 실행됐다는 뜻이 아니다.
 
-스케줄링이 완료되어도 실제 컨테이너 시작까지 이미지 풀 시간이 걸린다. 첫 배포 시 이미지가 노드에 없으면 수 분이 걸릴 수 있다. 이미지를 미리 캐싱(DaemonSet으로 이미지 풀 + 로컬 레지스트리 미러)하거나, 배포 시간이 중요한 경우 이미지 크기를 줄이는 것이 현실적인 해결책이다.
+스케줄링이 완료되어도 실제 컨테이너 시작까지 이미지 풀 시간이 걸린다. 첫 배포 시 이미지가 노드에 없으면 수 분이 걸릴 수 있다. 이미지를 미리 캐싱(DaemonSet으로 이미지 풀 + 로컬 레지스트리 미러)하거나, 배포 시간이 중요한 경우 이미지 크기를 줄이는 쪽이 현실적인 해결책이다.
 
 ### 4.1 리소스 요청과 실제 배치
 
@@ -244,12 +239,19 @@ CNI(Container Network Interface)는 Pod에 네트워크를 붙여주는 플러�
 
 쓰는 경우는 명확하다. 테스트 환경, 소규모 클러스터, 네트워크 정책이 필요 없는 상황. 운영 환경에서 Flannel만 쓰면 Pod 간 접근 제어가 없어서 보안 문제가 생긴다.
 
-```
-노드 A (10.244.1.0/24)          노드 B (10.244.2.0/24)
-┌─────────────────────┐         ┌─────────────────────┐
-│  Pod: 10.244.1.10   │──VXLAN──│  Pod: 10.244.2.10   │
-│  Pod: 10.244.1.11   │  (UDP   │  Pod: 10.244.2.11   │
-└─────────────────────┘  8472)  └─────────────────────┘
+아래 도식은 서로 다른 노드의 Pod가 VXLAN(UDP 8472) 터널로 이어지는 구조를 보여준다.
+
+```mermaid
+flowchart LR
+    subgraph A["노드 A (10.244.1.0/24)"]
+        a1["Pod: 10.244.1.10"]
+        a2["Pod: 10.244.1.11"]
+    end
+    subgraph B["노드 B (10.244.2.0/24)"]
+        b1["Pod: 10.244.2.10"]
+        b2["Pod: 10.244.2.11"]
+    end
+    A <-->|"VXLAN (UDP 8472)"| B
 ```
 
 ### 5.2 Calico
@@ -295,7 +297,7 @@ eBPF 기반이다. iptables 대신 커널 내 eBPF 프로그램으로 네트워�
 
 kube-proxy를 대체하는 기능(`kubeProxyReplacement: true`)을 활성화하면 iptables 규칙 없이 eBPF만으로 Service 처리를 한다. 대규모 클러스터에서 iptables 관련 CPU 스파이크가 사라지는 효과가 있다.
 
-Hubble UI를 통해 네트워크 트래픽을 시각화할 수 있어서, 장애 시 어느 Pod에서 어느 Pod로 트래픽이 차단되는지 바로 확인된다. 이 관찰성 기능 때문에 Cilium을 선택하는 팀이 늘고 있다.
+Hubble UI로 네트워크 트래픽을 시각화할 수 있어서, 장애 시 어느 Pod에서 어느 Pod로 트래픽이 차단되는지 바로 확인된다. 이 관찰성 기능 때문에 Cilium을 선택하는 팀이 늘고 있다.
 
 **선택 기준 정리**
 
@@ -376,7 +378,7 @@ spec:
 
 ### 7.1 ImagePullBackOff
 
-컨테이너 이미지를 pull하지 못했을 때 나타난다. 원인은 생각보다 다양하다.
+컨테이너 이미지를 pull하지 못했을 때 나타난다. 원인은 이미지 자체, 레지스트리 인증, 네트워크로 나뉜다.
 
 **이미지가 존재하지 않음**
 
@@ -503,25 +505,32 @@ ConfigMap을 먼저 배포하지 않은 채로 Deployment를 배포했을 때 �
 
 프로덕션에서 단일 컨트롤 플레인 노드는 위험하다. 컨트롤 플레인 HA 구성은 보통 이렇다.
 
-```
-                    ┌──────────────────┐
-                    │  Load Balancer   │
-                    │  (HAProxy/NLB)   │
-                    └────────┬─────────┘
-                             │
-          ┌──────────────────┼──────────────────┐
-          ▼                  ▼                  ▼
-┌──────────────────┐┌──────────────────┐┌──────────────────┐
-│  Control Plane 1 ││  Control Plane 2 ││  Control Plane 3 │
-│  apiserver       ││  apiserver       ││  apiserver       │
-│  scheduler       ││  scheduler       ││  scheduler       │
-│  ctrl-manager    ││  ctrl-manager    ││  ctrl-manager    │
-│  etcd            ││  etcd            ││  etcd            │
-└──────────────────┘└──────────────────┘└──────────────────┘
-         etcd 클러스터 (쿼럼 유지)
+아래 도식은 로드밸런서가 컨트롤 플레인 노드 세 대로 요청을 나누고, 세 노드의 etcd가 하나의 클러스터로 묶여 쿼럼을 유지하는 구성을 보여준다.
+
+```mermaid
+flowchart TB
+    LB["Load Balancer<br/>(HAProxy/NLB)"]
+    subgraph CP1["Control Plane 1"]
+        a1["apiserver<br/>scheduler<br/>ctrl-manager"]
+        e1["etcd"]
+    end
+    subgraph CP2["Control Plane 2"]
+        a2["apiserver<br/>scheduler<br/>ctrl-manager"]
+        e2["etcd"]
+    end
+    subgraph CP3["Control Plane 3"]
+        a3["apiserver<br/>scheduler<br/>ctrl-manager"]
+        e3["etcd"]
+    end
+    LB --> a1
+    LB --> a2
+    LB --> a3
+    e1 <-->|"etcd 클러스터 (쿼럼 유지)"| e2
+    e2 <--> e3
+    e1 <--> e3
 ```
 
-scheduler와 controller-manager는 리더 선출(leader election)을 통해 3개 중 1개만 실제로 동작한다. apiserver는 로드밸런서 뒤에서 3개 모두 동작한다. etcd는 3노드가 모두 Raft로 합의한다.
+scheduler와 controller-manager는 리더 선출(leader election)로 3개 중 1개만 실제로 동작한다. apiserver는 로드밸런서 뒤에서 3개 모두 동작한다. etcd는 3노드가 모두 Raft로 합의한다.
 
 ```bash
 # 현재 scheduler 리더 확인
