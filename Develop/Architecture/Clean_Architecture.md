@@ -2,7 +2,7 @@
 title: 클린 아키텍처
 description: "의존성 방향 규칙 기반의 클린·헥사고날·레이어드 아키텍처 비교와 Spring Boot/NestJS 구현 예시, 실무 마이그레이션 절차"
 tags: [architecture]
-updated: 2026-03-25
+updated: 2026-11-18
 ---
 
 # 클린 아키텍처 (Clean Architecture)
@@ -13,25 +13,20 @@ updated: 2026-03-25
 
 ### 핵심 원칙
 
-```
-"의존성은 바깥에서 안쪽으로만 향한다"
+의존성은 바깥에서 안쪽으로만 향한다. 아래 도식은 레이어를 바깥쪽부터 안쪽으로 겹쳐 놓은 것이고, 가장 안쪽이 Entity(도메인)다.
 
-┌─────────────────────────────────────────┐
-│  Frameworks & Drivers (외부)            │
-│  ┌──────────────────────────────────┐   │
-│  │  Interface Adapters (어댑터)      │   │
-│  │  ┌───────────────────────────┐   │   │
-│  │  │  Application (유스케이스)   │   │   │
-│  │  │  ┌────────────────────┐   │   │   │
-│  │  │  │  Entity (도메인)    │   │   │   │
-│  │  │  └────────────────────┘   │   │   │
-│  │  └───────────────────────────┘   │   │
-│  └──────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-
-안쪽 레이어는 바깥쪽 레이어를 모른다.
-Entity는 DB가 MySQL인지 MongoDB인지 모른다.
+```mermaid
+flowchart TB
+    subgraph L1["Frameworks & Drivers (외부)"]
+        subgraph L2["Interface Adapters (어댑터)"]
+            subgraph L3["Application (유스케이스)"]
+                L4["Entity (도메인)"]
+            end
+        end
+    end
 ```
+
+안쪽 레이어는 바깥쪽 레이어를 모른다. Entity는 DB가 MySQL인지 MongoDB인지 모른다.
 
 ### 왜 필요한가
 
@@ -68,16 +63,15 @@ Entity는 DB가 MySQL인지 MongoDB인지 모른다.
 
 가장 보편적인 아키텍처. 대부분의 Spring Boot 프로젝트가 이 구조이다.
 
-```
-┌─────────────────┐
-│  Presentation   │  Controller, DTO
-├─────────────────┤
-│   Application   │  Service (비즈니스 로직)
-├─────────────────┤
-│    Domain       │  Entity
-├─────────────────┤
-│ Infrastructure  │  Repository, 외부 API
-└─────────────────┘
+아래 도식은 Layered 구조의 계층을 위에서 아래로 쌓은 것이다. 각 계층 이름 밑에 그 계층에 들어가는 클래스를 적었다.
+
+```mermaid
+flowchart TB
+    P["Presentation<br/>Controller, DTO"]
+    A["Application<br/>Service (비즈니스 로직)"]
+    D["Domain<br/>Entity"]
+    I["Infrastructure<br/>Repository, 외부 API"]
+    P ~~~ A ~~~ D ~~~ I
 ```
 
 ```
@@ -102,26 +96,23 @@ src/
 
 비즈니스 로직(Application Core)과 외부 세계를 **포트(인터페이스)**와 **어댑터(구현체)**로 분리한다.
 
-```
-           ┌──── 인바운드 어댑터 ────┐
-           │  REST Controller       │
-           │  GraphQL Resolver      │
-           │  CLI Command           │
-           └──────────┬─────────────┘
-                      │ 인바운드 포트 (UseCase 인터페이스)
-              ┌───────▼───────┐
-              │               │
-              │  Application  │  ← 비즈니스 로직
-              │     Core      │
-              │               │
-              └───────┬───────┘
-                      │아웃바운드 포트 (Repository 인터페이스)
-           ┌──────────▼─────────────┐
-           │  아웃바운드 어댑터       │
-           │  JPA Repository        │
-           │  Redis Client          │
-           │  External API Client   │
-           └────────────────────────┘
+아래 도식은 요청이 인바운드 어댑터에서 인바운드 포트를 거쳐 Application Core로 들어가고, Core가 아웃바운드 포트를 통해 외부 인프라를 호출하는 흐름을 보여준다.
+
+```mermaid
+flowchart TB
+    subgraph IN["인바운드 어댑터"]
+        A1["REST Controller"]
+        A2["GraphQL Resolver"]
+        A3["CLI Command"]
+    end
+    CORE["Application Core<br/>비즈니스 로직"]
+    subgraph OUT["아웃바운드 어댑터"]
+        B1["JPA Repository"]
+        B2["Redis Client"]
+        B3["External API Client"]
+    end
+    A1 & A2 & A3 -->|"인바운드 포트 (UseCase 인터페이스)"| CORE
+    CORE -->|"아웃바운드 포트 (Repository 인터페이스)"| B1 & B2 & B3
 ```
 
 #### 포트와 어댑터
@@ -580,7 +571,7 @@ class OrderServiceTest {
 
 도메인 엔티티와 영속성 엔티티를 분리하면 `toDomain()`, `fromDomain()` 같은 매핑 코드가 쏟아진다. 엔티티에 필드가 20개면 매핑 메서드도 20줄씩 늘어난다. 연관 엔티티가 3~4개 물려있으면 매핑 코드만으로 파일 하나가 채워지는 경우가 있다.
 
-**실제로 일어나는 일:**
+매핑 코드는 이런 모양이고, 엔티티마다 하나씩 필요하다.
 
 ```java
 // OrderJpaEntity.java — 이런 매핑이 엔티티마다 필요하다
@@ -613,7 +604,7 @@ public static OrderJpaEntity from(Order order) {
 }
 ```
 
-**대처 방법:**
+매핑 코드를 줄이는 방법은 세 가지다.
 
 - MapStruct 같은 매핑 라이브러리를 쓰면 필드명이 같은 경우 자동 매핑된다. 다만 커스텀 변환 규칙이 많아지면 MapStruct 설정 자체가 복잡해진다.
 - 프로젝트 초기에는 No Mapping(도메인 = 영속성 엔티티)으로 시작하고, 도메인 로직이 복잡해지는 시점에 분리하는 게 현실적이다.
@@ -623,7 +614,7 @@ public static OrderJpaEntity from(Order order) {
 
 인터페이스 → 구현체 → 어댑터 → 도메인 변환 경로가 길어지면, 에러가 터졌을 때 콜스택을 따라가기가 힘들다. IDE에서 "Go to Implementation"을 3~4번 눌러야 실제 코드에 도달하는 경우가 생긴다.
 
-**자주 발생하는 상황:**
+매핑 누락은 보통 이런 에러로 드러난다.
 
 ```
 NullPointerException at OrderPersistenceAdapter.save()
@@ -638,7 +629,7 @@ NullPointerException at OrderPersistenceAdapter.save()
 4. Command/Result DTO — 필요하면 추가
 5. Request/Response DTO — 필요하면 추가
 
-**대처 방법:**
+매핑 누락은 두 가지로 줄인다.
 
 - 매핑 코드에 대한 테스트를 반드시 작성한다. 필드가 추가됐을 때 매핑 누락을 잡아주는 테스트가 없으면 런타임에 터진다.
 - 아키텍처 계층을 4단계까지 나누지 말고, 프로젝트 규모에 맞게 2~3단계로 줄이는 것도 방법이다.
@@ -647,7 +638,7 @@ NullPointerException at OrderPersistenceAdapter.save()
 
 클린 아키텍처에서 트랜잭션은 어디에 둬야 하는가? 도메인 레이어는 DB를 모르니까 `@Transactional`을 달 수 없다. UseCase(Application Service)에 다는 게 일반적인데, 여러 아웃바운드 포트를 걸쳐야 하는 경우 문제가 생긴다.
 
-**자주 발생하는 상황:**
+이체 서비스에 알림 전송까지 넣으면 이런 코드가 된다.
 
 ```java
 @Service
@@ -676,7 +667,7 @@ public class TransferMoneyService implements TransferMoneyUseCase {
 
 DB 저장과 외부 API 호출이 하나의 트랜잭션에 묶여있으면 외부 API 실패 시 DB 작업도 롤백된다. 이체는 성공해야 하는데 알림 실패 때문에 롤백되면 안 된다.
 
-**대처 방법:**
+외부 호출을 트랜잭션에서 떼는 방법은 두 가지다.
 
 - 외부 시스템 호출은 트랜잭션 밖으로 뺀다. `@TransactionalEventListener`를 쓰거나, 트랜잭션 커밋 후 별도로 호출한다.
 - 이벤트 기반으로 분리한다. 도메인 이벤트를 발행하고, 이벤트 리스너에서 외부 API를 호출하면 트랜잭션 경계가 자연스럽게 나뉜다.
@@ -754,7 +745,9 @@ public class OrderService {
 }
 ```
 
-이 단계에서 부딪히는 문제: JPA Entity에 비즈니스 로직을 넣으면 `@Transient` 필드, 지연 로딩, 프록시 객체 등 JPA 특성과 충돌하는 경우가 있다. 예를 들어 `order.getItems()`를 호출했는데 LazyInitializationException이 터지면, 비즈니스 로직이 영속성 컨텍스트에 의존하게 되는 것이다. 이 문제가 빈번하다면 2단계로 넘어가야 할 시점이다.
+이 단계에서 부딪히는 문제: JPA Entity에 비즈니스 로직을 넣으면 `@Transient` 필드, 지연 로딩, 프록시 객체 등 JPA 특성과 충돌하는 경우가 있다. 예를 들어 `order.getItems()`를 호출했는데 LazyInitializationException이 터지면, 비즈니스 로직이 영속성 컨텍스트에 의존하게 된다.
+
+이 문제가 빈번하다면 2단계로 넘어가야 할 시점이다.
 
 **2단계: 아웃바운드 포트 도입 (Repository 인터페이스 분리)**
 
@@ -771,7 +764,9 @@ adapter/out/
   └── OrderRepositoryImpl.java  ← 구현체는 adapter 패키지
 ```
 
-이 단계에서 부딪히는 문제: Spring Data JPA의 `JpaRepository<OrderJpaEntity, Long>`을 도메인 인터페이스로 감싸야 하는데, 기존에 `findByStatusAndCreatedAtBetween()` 같은 쿼리 메서드를 20개씩 만들어둔 경우가 있다. 이걸 전부 도메인 인터페이스로 옮기면 도메인이 쿼리 중심 인터페이스가 된다. 조회용 쿼리는 CQRS 패턴으로 분리하거나, 복잡한 조회는 별도의 ReadModel로 처리하는 방법을 쓴다.
+이 단계에서 부딪히는 문제: Spring Data JPA의 `JpaRepository<OrderJpaEntity, Long>`을 도메인 인터페이스로 감싸야 하는데, 기존에 `findByStatusAndCreatedAtBetween()` 같은 쿼리 메서드를 20개씩 만들어둔 경우가 있다.
+
+이걸 전부 도메인 인터페이스로 옮기면 도메인이 쿼리 중심 인터페이스가 된다. 조회용 쿼리는 CQRS 패턴으로 분리하거나, 복잡한 조회는 별도의 ReadModel로 처리하는 방법을 쓴다.
 
 **3단계: 도메인 엔티티와 JPA 엔티티 분리**
 
@@ -795,7 +790,9 @@ Controller가 Service 구현체를 직접 쓰는 것을 UseCase 인터페이스�
 
 ### CRUD 위주 서비스
 
-관리자 페이지, 내부 운영 도구, 데이터 조회 API처럼 비즈니스 규칙이 거의 없는 서비스가 있다. 이런 곳에 클린 아키텍처를 적용하면 파일 하나 추가에 5개 파일(Controller, UseCase, Service, Port, Adapter)을 만들어야 한다. 필드 하나 추가하면 DTO 3개, 매핑 코드 2곳을 고쳐야 한다. 비즈니스 로직이 `save(entity)` 한 줄인 UseCase를 인터페이스로 감싸는 건 의미가 없다.
+관리자 페이지, 내부 운영 도구, 데이터 조회 API처럼 비즈니스 규칙이 거의 없는 서비스가 있다. 이런 곳에 클린 아키텍처를 적용하면 파일 하나 추가에 5개 파일(Controller, UseCase, Service, Port, Adapter)을 만들어야 한다.
+
+필드 하나 추가하면 DTO 3개, 매핑 코드 2곳을 고쳐야 한다. 비즈니스 로직이 `save(entity)` 한 줄인 UseCase를 인터페이스로 감싸는 건 의미가 없다.
 
 ```java
 // 이런 UseCase가 대부분이면 클린 아키텍처가 과하다
@@ -823,7 +820,9 @@ public ProductResult createProduct(CreateProductCommand command) {
 
 ### DB 변경 가능성이 사실상 없는 경우
 
-클린 아키텍처를 쓰는 이유로 "나중에 DB를 바꿀 수 있으니까"를 드는 경우가 많다. 실제로 운영 중인 서비스에서 MySQL을 MongoDB로 바꾸는 일이 얼마나 자주 있는지 생각해보면, 대부분의 프로젝트에서 이 이유는 성립하지 않는다. DB 교체보다는 "도메인 로직을 격리해서 테스트하기 쉽게 만드는 것"이 클린 아키텍처를 도입하는 실질적인 이유다. 테스트 필요성이 낮으면 도입 이유가 약해진다.
+클린 아키텍처를 쓰는 이유로 "나중에 DB를 바꿀 수 있으니까"를 드는 경우가 많다. 실제로 운영 중인 서비스에서 MySQL을 MongoDB로 바꾸는 일이 얼마나 자주 있는지 생각해보면, 대부분의 프로젝트에서 이 이유는 성립하지 않는다.
+
+DB 교체보다는 "도메인 로직을 격리해서 테스트하기 쉽게 만드는 것"이 클린 아키텍처를 도입하는 실질적인 이유다. 테스트 필요성이 낮으면 도입 이유가 약해진다.
 
 ## 참고
 
