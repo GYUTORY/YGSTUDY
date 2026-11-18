@@ -1,7 +1,7 @@
 ---
 title: Rate Limiting & Bulkhead 패턴
 tags: [backend, performance]
-updated: 2026-04-09
+updated: 2026-11-18
 ---
 
 # Rate Limiting & Bulkhead 패턴
@@ -10,22 +10,18 @@ updated: 2026-04-09
 
 **Rate Limiting**은 일정 시간 내 요청 수를 제한하여 시스템을 보호하고, **Bulkhead**는 장애를 격리하여 전체 시스템으로 전파되는 것을 방지한다. Circuit Breaker/Retry와 함께 복원력 패턴의 핵심 구성 요소이다.
 
-```
-Rate Limiting:
-  요청이 너무 많으면 거절 → 서버 보호
+아래 도식은 두 패턴의 역할을 보여준다. Rate Limiting은 요청이 너무 많으면 거절해서 서버를 보호하고, Bulkhead는 서비스 A 전용 풀만 고갈시켜서 서비스 B가 정상으로 남게 한다.
 
-Bulkhead (격벽):
-  서비스 A 장애 → 서비스 A 전용 스레드만 영향 → 서비스 B는 정상
-
-  ┌──────────────────────────────────┐
-  │        Application Server        │
-  │  ┌──────────┐ ┌──────────┐      │
-  │  │ Pool: A  │ │ Pool: B  │      │
-  │  │ [████  ] │ │ [██    ] │      │
-  │  │ (고갈)   │ │ (정상)   │      │
-  │  └──────────┘ └──────────┘      │
-  └──────────────────────────────────┘
-  → A가 느려져도 B는 영향 없음
+```mermaid
+flowchart TB
+    RL["Rate Limiting<br/>요청이 너무 많으면 거절"] --> PROT[서버 보호]
+    subgraph APP["Application Server (Bulkhead)"]
+        direction LR
+        PA["Pool: A<br/>고갈"]
+        PB["Pool: B<br/>정상"]
+    end
+    FA[서비스 A 장애] --> PA
+    PB --> OKB["A가 느려져도<br/>B는 영향 없음"]
 ```
 
 ## Rate Limiting
@@ -36,29 +32,15 @@ Bulkhead (격벽):
 
 버킷에 일정 속도로 토큰이 채워진다. 요청마다 토큰 1개를 소비한다. 토큰이 없으면 거절.
 
-```
-Token Bucket 동작 흐름:
+아래 도식은 토큰이 버킷에 채워지고 요청이 도착할 때마다 토큰 하나를 소비해 허용 또는 거절이 갈리는 흐름을 보여준다.
 
-  토큰 공급기 (일정 속도로 토큰 생성)
-       │
-       │  2개/초
-       ▼
-  ┌────────────────────┐
-  │  Token Bucket      │  용량(capacity): 10
-  │                    │
-  │  ○ ○ ○ ○ ○ ○ ●    │  ○ = 사용 가능 토큰, ● = 빈 슬롯
-  │                    │
-  └────────┬───────────┘
-           │
-           │  요청 도착 시 토큰 1개 소비
-           ▼
-     ┌───────────┐
-     │ 토큰 있음? │
-     └─────┬─────┘
-       예  │  아니오
-       ▼   │   ▼
-     허용   │  거절 (429)
-           │
+```mermaid
+flowchart TB
+    SUP["토큰 공급기<br/>일정 속도로 토큰 생성"] -->|2개/초| BKT["Token Bucket<br/>용량(capacity): 10"]
+    REQ[요청 도착] -->|토큰 1개 소비| CHK{토큰 있음?}
+    BKT --> CHK
+    CHK -->|예| OK[허용]
+    CHK -->|아니오| NO["거절 (429)"]
 ```
 
 ```
@@ -184,36 +166,22 @@ Sliding Window Log와 달리 개별 타임스탬프를 저장하지 않고, 윈�
 
 Nginx의 `limit_req`는 Leaky Bucket 알고리즘을 사용한다. 애플리케이션 레벨에서 자주 쓰는 Token Bucket과 이름이 비슷하지만 동작 방식이 근본적으로 다르다.
 
-```
-Leaky Bucket (Nginx limit_req):
+아래 도식은 두 알고리즘이 백엔드로 넘기는 방식을 나란히 보여준다. Leaky Bucket은 불규칙하게 들어온 요청을 큐에 담았다가 일정한 속도로 내보내고, Token Bucket은 토큰이 있으면 요청을 바로 통과시킨다.
 
-  요청 유입 (불규칙)
-  │ ││ │  │││ │ │
-  ▼ ▼▼ ▼  ▼▼▼ ▼ ▼
-  ┌──────────────┐
-  │   버킷(큐)    │ ← burst 크기만큼 대기 가능
-  │  req req req │
-  │  req req     │
-  └──────┬───────┘
-         │  일정한 속도로 유출 (rate)
-         │  100ms마다 1개 (10r/s 기준)
-         ▼
-    백엔드 서버        출력이 항상 균일하다
-
-
-Token Bucket (애플리케이션 레벨):
-
-  토큰 공급 (일정 속도)
-         │
-         ▼
-  ┌──────────────┐
-  │   토큰 저장소  │ ← capacity만큼 토큰 보관
-  │  ○ ○ ○ ○ ○  │
-  └──────┬───────┘
-         │  요청 도착 시 토큰 소비
-         │  토큰 있으면 즉시 통과
-         ▼
-    백엔드 서버        토큰 쌓여있으면 버스트 가능
+```mermaid
+flowchart LR
+    subgraph LB["Leaky Bucket (Nginx limit_req)"]
+        direction LR
+        A1["요청 유입<br/>(불규칙)"] --> A2["버킷(큐)<br/>burst 크기만큼 대기 가능"]
+        A2 -->|"일정한 속도로 유출<br/>100ms마다 1개 (10r/s 기준)"| A3["백엔드 서버<br/>출력이 항상 균일하다"]
+    end
+    subgraph TKB["Token Bucket (애플리케이션 레벨)"]
+        direction LR
+        B1["토큰 공급<br/>(일정 속도)"] --> B2["토큰 저장소<br/>capacity만큼 토큰 보관"]
+        B3[요청 도착] -->|"토큰 소비<br/>토큰 있으면 즉시 통과"| B2
+        B2 --> B4["백엔드 서버<br/>토큰 쌓여있으면 버스트 가능"]
+    end
+    LB ~~~ TKB
 ```
 
 **핵심 차이**:
@@ -327,13 +295,17 @@ redis.call('PEXPIRE', KEYS[1], ARGV[5])
 return 1
 ```
 
-**member 가 밀리초 문자열이라 같은 밀리초의 요청이 1건으로 합쳐진다.** `zadd(redisKey, now, String(now))` 에서 member 는 `String(now)` 다. ZSET 의 member 는 유일하므로, 이미 있는 member 로 ZADD 하면 원소가 추가되지 않고 score 만 갱신된다([ZADD 문서](https://redis.io/docs/latest/commands/zadd/)). 같은 밀리초에 들어온 요청 20건이 ZSET 에 원소 하나로 남는다. 초당 수백 건이 오는 API 라면 세는 값 자체가 실제보다 작아진다. member 에는 충돌하지 않는 값을 넣는다.
+**member 가 밀리초 문자열이라 같은 밀리초의 요청이 1건으로 합쳐진다.** `zadd(redisKey, now, String(now))` 에서 member 는 `String(now)` 다. ZSET 의 member 는 유일하므로, 이미 있는 member 로 ZADD 하면 원소가 추가되지 않고 score 만 갱신된다([ZADD 문서](https://redis.io/docs/latest/commands/zadd/)).
+
+같은 밀리초에 들어온 요청 20건이 ZSET 에 원소 하나로 남는다. 초당 수백 건이 오는 API 라면 세는 값 자체가 실제보다 작아진다. member 에는 충돌하지 않는 값을 넣는다.
 
 ```typescript
 await this.redis.zadd(redisKey, now, `${now}:${randomUUID()}`);
 ```
 
-**클라이언트 식별에도 함정이 있다.** `extractClientId` 는 `x-api-key` 헤더를 검증 없이 키로 쓴다. 이 헤더는 클라이언트가 아무 값이나 넣을 수 있으니, 요청마다 다른 값을 보내면 제한이 통째로 무력해진다. **인증을 통과한 뒤 서버가 확인한 신원**으로 키를 만들어야 한다. 폴백인 `req.ip` 도 프록시·로드밸런서 뒤에서는 프록시 주소가 되어 모든 사용자가 카운터 하나를 공유한다 — 한 명이 한도를 채우면 전원이 함께 429 를 받는다. Express 라면 `trust proxy` 를 설정하고, 그 앞단이 신뢰할 수 있는 경로인지 먼저 확인한다.
+**클라이언트 식별에도 함정이 있다.** `extractClientId` 는 `x-api-key` 헤더를 검증 없이 키로 쓴다. 이 헤더는 클라이언트가 아무 값이나 넣을 수 있으니, 요청마다 다른 값을 보내면 제한이 통째로 무력해진다. **인증을 통과한 뒤 서버가 확인한 신원**으로 키를 만들어야 한다.
+
+폴백인 `req.ip` 도 프록시·로드밸런서 뒤에서는 프록시 주소가 되어 모든 사용자가 카운터 하나를 공유한다. 한 명이 한도를 채우면 전원이 함께 429 를 받는다. Express 라면 `trust proxy` 를 설정하고, 그 앞단이 신뢰할 수 있는 경로인지 먼저 확인한다.
 
 ### 3. 다중 계층 Rate Limiting
 
@@ -373,15 +345,23 @@ X-RateLimit-Reset: 1709280000
 
 선박의 격벽(Bulkhead)처럼, 시스템을 **격리된 구획**으로 나누어 한 구획의 장애가 전체에 영향을 주지 않도록 한다.
 
-```
-[문제] 격벽 없이 (공유 스레드 풀):
-  Thread Pool: [결제, 결제, 결제, 배송, 결제, 결제, 결제, 재고, 결제, 결제]
-  → 결제 API 느려짐 → 스레드 모두 점유 → 배송/재고도 처리 불가
+아래 도식은 공유 스레드 풀에서 결제 API 지연이 배송·재고까지 번지는 흐름과, 풀을 나눴을 때 영향이 결제 풀에 머무는 모습을 비교한다.
 
-[해결] 격벽 적용 (분리된 스레드 풀):
-  결제 Pool:  [결제, 결제, 결제, 결제, 결제]  ← 느려져도 여기만 영향
-  배송 Pool:  [배송, 배송, 배송]              ← 정상
-  재고 Pool:  [재고, 재고]                    ← 정상
+```mermaid
+flowchart TB
+    subgraph BEFORE["격벽 없음 (공유 스레드 풀)"]
+        direction LR
+        S1["Thread Pool<br/>결제 · 배송 · 재고 요청이 섞여 있음"] --> S2[결제 API 느려짐]
+        S2 --> S3[스레드 모두 점유]
+        S3 --> S4[배송/재고도 처리 불가]
+    end
+    subgraph AFTER["격벽 적용 (분리된 스레드 풀)"]
+        direction LR
+        P1["결제 Pool<br/>느려져도 여기만 영향"]
+        P2["배송 Pool<br/>정상"]
+        P3["재고 Pool<br/>정상"]
+    end
+    BEFORE ~~~ AFTER
 ```
 
 ### 2. 유형
@@ -533,15 +513,16 @@ private release() {
 
 실전에서는 여러 패턴을 **조합**하여 사용한다.
 
-```
-요청 → Rate Limiter → Bulkhead → Circuit Breaker → Retry → Timeout → 외부 API
+아래 도식은 요청이 외부 API에 닿기까지 거치는 다섯 단계와 단계별 역할을 왼쪽에서 오른쪽 순서로 보여준다.
 
-적용 순서:
-  1. Rate Limiter: 과도한 요청 차단
-  2. Bulkhead: 격리된 스레드 풀에서 실행
-  3. Circuit Breaker: 연속 실패 시 차단
-  4. Retry: 일시적 오류 재시도
-  5. Timeout: 응답 대기 시간 제한
+```mermaid
+flowchart LR
+    REQ[요청] --> RL["1. Rate Limiter<br/>과도한 요청 차단"]
+    RL --> BH["2. Bulkhead<br/>격리된 스레드 풀에서 실행"]
+    BH --> CB["3. Circuit Breaker<br/>연속 실패 시 차단"]
+    CB --> RT["4. Retry<br/>일시적 오류 재시도"]
+    RT --> TO["5. Timeout<br/>응답 대기 시간 제한"]
+    TO --> API[외부 API]
 ```
 
 ```typescript
