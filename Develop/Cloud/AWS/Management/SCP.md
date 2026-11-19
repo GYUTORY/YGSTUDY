@@ -1,7 +1,7 @@
 ---
 title: AWS SCP (Service Control Policies)
 tags: [aws, security, cloud]
-updated: 2026-01-18
+updated: 2026-11-19
 ---
 
 # AWS SCP (Service Control Policies)
@@ -12,14 +12,8 @@ SCP는 Organizations의 정책이다. 계정이나 OU에서 사용할 수 있는
 
 ### 왜 필요한가
 
-IAM만으로는 부족하다.
+IAM만으로는 부족하다. 개발자에게 EC2 관리 권한을 주는 경우를 보자. IAM Policy는 이렇게 쓴다.
 
-**문제 상황:**
-
-**시나리오:**
-개발자에게 EC2 관리 권한을 준다.
-
-**IAM Policy:**
 ```json
 {
   "Effect": "Allow",
@@ -28,8 +22,7 @@ IAM만으로는 부족하다.
 }
 ```
 
-**문제:**
-개발자가 실수로 (또는 고의로) 자신의 권한을 확대할 수 있다.
+이때 개발자가 실수로 (또는 고의로) 자신의 권한을 확대할 수 있다.
 
 ```bash
 # 자기 자신에게 AdministratorAccess 부여
@@ -40,9 +33,8 @@ aws iam attach-user-policy \
 
 이제 모든 권한을 가진다. 프로덕션 DB 삭제 가능.
 
-**SCP의 해결:**
+SCP는 계정 레벨에서 이 문제를 막는다.
 
-**계정 레벨 제한:**
 ```json
 {
   "Version": "2012-10-17",
@@ -64,40 +56,33 @@ IAM 권한을 스스로 확대하는 것을 원천 차단한다.
 
 ### IAM Policy
 
-**개별 사용자/역할 권한:**
+IAM은 개별 사용자와 역할의 권한을 정한다.
+
 ```
 IAM: "이 사용자는 EC2를 시작할 수 있다"
 ```
 
-**Allow 기반:**
-명시적으로 허용해야 한다.
+Allow 기반이라 명시적으로 허용해야 한다.
 
 ### SCP
 
-**계정 전체 제한:**
+SCP는 계정 전체를 제한한다.
+
 ```
 SCP: "이 계정의 누구도 us-east-1 외 리전을 사용할 수 없다"
 ```
 
-**Deny 기반 (주로):**
-명시적으로 차단한다.
+주로 Deny 기반이라 명시적으로 차단한다.
 
 ### 관계
 
-**SCP와 IAM 모두 허용해야 실행 가능:**
+SCP와 IAM 모두 허용해야 실행할 수 있다. 아래 도식은 두 정책의 조합별 결과를 보여준다. 어느 한쪽이라도 차단하면 실행되지 않는다.
 
-```
-SCP: 허용
-IAM: 허용
-→ 실행 가능
-
-SCP: 차단
-IAM: 허용
-→ 실행 불가
-
-SCP: 허용
-IAM: 차단
-→ 실행 불가
+```mermaid
+flowchart LR
+    A1["SCP 허용, IAM 허용"] --> B1["실행 가능"]
+    A2["SCP 차단, IAM 허용"] --> B2["실행 불가"]
+    A3["SCP 허용, IAM 차단"] --> B3["실행 불가"]
 ```
 
 **SCP는 최대 권한의 경계다.**
@@ -123,17 +108,14 @@ Organizations 생성 시 자동으로 적용된다.
 
 모든 작업을 허용한다. 제한이 없다.
 
-**주의:**
 이 SCP를 제거하면 아무것도 할 수 없다. 다른 SCP로 명시적으로 허용해야 한다.
 
 ## 실무 SCP
 
 ### 리전 제한
 
-**요구사항:**
 비용 절감과 규정 준수를 위해 특정 리전만 사용한다.
 
-**SCP:**
 ```json
 {
   "Version": "2012-10-17",
@@ -156,11 +138,9 @@ Organizations 생성 시 자동으로 적용된다.
 }
 ```
 
-**동작:**
 us-west-2, ap-northeast-2 외 리전에서는 아무것도 할 수 없다.
 
-**예외 (글로벌 서비스):**
-IAM, CloudFront, Route 53은 리전이 없다. 명시적으로 허용한다.
+글로벌 서비스는 예외다. IAM, CloudFront, Route 53은 리전이 없다. 명시적으로 허용한다.
 
 ```json
 {
@@ -183,10 +163,8 @@ IAM, CloudFront, Route 53은 리전이 없다. 명시적으로 허용한다.
 
 ### 루트 사용자 제한
 
-**요구사항:**
 루트 사용자는 매우 위험하다. 일상적인 사용을 금지한다.
 
-**SCP:**
 ```json
 {
   "Version": "2012-10-17",
@@ -206,18 +184,12 @@ IAM, CloudFront, Route 53은 리전이 없다. 명시적으로 허용한다.
 }
 ```
 
-**동작:**
-루트 사용자는 아무것도 할 수 없다.
-
-**예외:**
-계정 닫기, 결제 등 루트만 할 수 있는 작업은 Management Account에서 한다.
+루트 사용자는 아무것도 할 수 없다. 계정 닫기, 결제 등 루트만 할 수 있는 작업은 Management Account에서 한다.
 
 ### 특정 서비스 차단
 
-**요구사항:**
-비용이 많이 드는 서비스를 차단한다.
+비용이 많이 드는 서비스를 차단한다. EMR과 Redshift를 막는 SCP다.
 
-**SCP (EMR, Redshift 차단):**
 ```json
 {
   "Version": "2012-10-17",
@@ -235,15 +207,12 @@ IAM, CloudFront, Route 53은 리전이 없다. 명시적으로 허용한다.
 }
 ```
 
-**적용:**
-Development OU에 적용. 개발 계정에서는 EMR, Redshift 사용 불가.
+Development OU에 적용한다. 개발 계정에서는 EMR, Redshift 사용 불가.
 
 ### 인스턴스 타입 제한
 
-**요구사항:**
 개발 환경에서 큰 인스턴스를 막는다.
 
-**SCP:**
 ```json
 {
   "Version": "2012-10-17",
@@ -266,15 +235,12 @@ Development OU에 적용. 개발 계정에서는 EMR, Redshift 사용 불가.
 }
 ```
 
-**동작:**
-t3, t2 인스턴스만 시작 가능. m5, r5 등 큰 인스턴스는 차단.
+t3, t2 인스턴스만 시작할 수 있다. m5, r5 등 큰 인스턴스는 차단.
 
 ### 보안 그룹 0.0.0.0/0 차단
 
-**요구사항:**
 보안 그룹에서 전 세계 접근을 막는다.
 
-**SCP:**
 ```json
 {
   "Version": "2012-10-17",
@@ -301,15 +267,12 @@ t3, t2 인스턴스만 시작 가능. m5, r5 등 큰 인스턴스는 차단.
 }
 ```
 
-**동작:**
 SSH 포트 (22)를 0.0.0.0/0에 여는 것을 차단.
 
 ### S3 Public 접근 차단
 
-**요구사항:**
 실수로 S3 버킷을 public으로 만드는 것을 막는다.
 
-**SCP:**
 ```json
 {
   "Version": "2012-10-17",
@@ -339,22 +302,16 @@ SSH 포트 (22)를 0.0.0.0/0에 여는 것을 차단.
 
 ### OU에 적용
 
-**콘솔:**
-1. Organizations 콘솔
-2. "Policies" → "Service control policies"
-3. SCP 선택
-4. "Targets" 탭
-5. "Attach" 클릭
-6. OU 선택
+콘솔에서는 Organizations 콘솔의 "Policies" → "Service control policies"에서 SCP를 고른다. "Targets" 탭에서 "Attach"를 누르고 OU를 선택한다.
 
-**CLI:**
+CLI로는 이렇게 붙인다.
+
 ```bash
 aws organizations attach-policy \
   --policy-id p-abc123 \
   --target-id ou-abc123-production
 ```
 
-**효과:**
 해당 OU와 하위 모든 계정에 적용된다.
 
 ### 계정에 적용
@@ -397,10 +354,7 @@ Root
     └── Dev
 ```
 
-**Prod-App에 적용되는 SCP:**
-1. Root의 DenyAllOutsideUS
-2. Production OU의 DenyRootUser
-3. Prod-App의 DenyLargeInstances
+Prod-App에는 Root의 DenyAllOutsideUS, Production OU의 DenyRootUser, Prod-App의 DenyLargeInstances가 적용된다.
 
 **3개 모두 적용된다.**
 
@@ -410,27 +364,17 @@ Root
 
 SCP를 테스트한다.
 
-**콘솔:**
-1. IAM 콘솔
-2. "Policy Simulator"
-3. "Service Control Policy" 선택
-4. SCP JSON 붙여넣기
-5. Action 선택 (예: ec2:RunInstances)
-6. Simulate
+IAM 콘솔의 "Policy Simulator"에서 "Service Control Policy"를 선택한다. SCP JSON을 붙여넣고 Action(예: ec2:RunInstances)을 골라 Simulate를 누른다.
 
-**결과:**
+결과는 둘 중 하나다.
+
 - Allowed: SCP가 허용
 - Denied: SCP가 차단
 
 ### 실제 테스트
 
-**테스트 계정:**
-1. 테스트용 Member Account 생성
-2. SCP 적용
-3. 실제로 작업 시도
-4. 차단되는지 확인
+테스트용 Member Account를 만들고 SCP를 적용한다. 실제로 작업을 시도해서 차단되는지 확인한다.
 
-**예시:**
 ```bash
 # us-east-1 차단 SCP 적용 후
 aws ec2 describe-instances --region us-east-1
@@ -445,7 +389,8 @@ An error occurred (UnauthorizedOperation) when calling the DescribeInstances ope
 
 ### Deny는 신중하게
 
-**잘못된 SCP:**
+아래처럼 쓰면 잘못된 SCP다.
+
 ```json
 {
   "Effect": "Deny",
@@ -454,27 +399,15 @@ An error occurred (UnauthorizedOperation) when calling the DescribeInstances ope
 }
 ```
 
-**결과:**
-아무것도 할 수 없다. 계정이 잠긴다.
-
-**복구:**
-Management Account에서 SCP를 제거한다. Member Account에서는 불가능.
+아무것도 할 수 없다. 계정이 잠긴다. 복구는 Management Account에서 SCP를 제거해서 한다. Member Account에서는 불가능하다.
 
 ### Management Account 제외
 
-**권장:**
-Management Account에는 SCP를 적용하지 않는다.
-
-**이유:**
-SCP가 잘못되어도 Management Account에서 수정할 수 있다.
+Management Account에는 SCP를 적용하지 않는다. SCP가 잘못되어도 Management Account에서 수정할 수 있다.
 
 ### 점진적 적용
 
-**절차:**
-1. 테스트 계정에 적용
-2. 문제 없으면 Development OU에 적용
-3. Staging OU에 적용
-4. 마지막에 Production OU에 적용
+테스트 계정에 먼저 적용한다. 문제가 없으면 Development OU, Staging OU 순으로 적용하고 마지막에 Production OU에 적용한다.
 
 갑자기 모든 계정에 적용하면 위험하다.
 
@@ -490,9 +423,7 @@ Root (FullAWSAccess)
     └── SCP: DenyExpensiveServices
 ```
 
-**간단:**
-- 루트 사용자 차단
-- 개발 환경 비용 제한
+루트 사용자를 막고 개발 환경의 비용만 제한하는 단순한 구성이다.
 
 ### 중견 기업
 
@@ -510,10 +441,7 @@ Root
     └── (SCP 없음 - 감사 목적)
 ```
 
-**세밀한 제어:**
-- 리전 제한
-- MFA 강제
-- 환경별 제한
+리전 제한, MFA 강제, 환경별 제한으로 세밀하게 제어한다.
 
 ### 대기업
 
@@ -533,31 +461,18 @@ Root
     └── SCP: AuditOnly
 ```
 
-**규정 준수:**
-- 암호화 강제
-- 태그 필수
-- Public 접근 차단
+규정 준수를 위해 암호화 강제, 태그 필수, Public 접근 차단을 건다.
 
 ## 비용
 
 ### SCP 자체
 
-**무료**
-
-Organizations 기능의 일부. 추가 비용 없음.
+무료다. Organizations 기능의 일부. 추가 비용 없음.
 
 ### 비용 절감 효과
 
-**리전 제한:**
-실수로 비싼 리전 사용 방지.
+리전 제한은 실수로 비싼 리전을 쓰는 것을 막는다. 인스턴스 타입 제한은 개발자가 r5.24xlarge를 실수로 실행하는 것을 막는다 ($6.912/시간). 비싼 서비스 차단은 EMR, Redshift의 무분별한 사용을 막는다.
 
-**인스턴스 타입 제한:**
-개발자가 r5.24xlarge 실수로 실행 방지 ($6.912/시간).
-
-**비싼 서비스 차단:**
-EMR, Redshift 무분별한 사용 방지.
-
-**총 효과:**
 월 $1,000+ 절감 가능.
 
 ## 참고
