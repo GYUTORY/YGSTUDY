@@ -1,7 +1,7 @@
 ---
 title: AWS Config
 tags: [aws, security, devops, cloud]
-updated: 2026-01-22
+updated: 2026-11-19
 ---
 
 # AWS Config
@@ -14,40 +14,38 @@ AWS Config는 리소스 구성을 추적하는 서비스다. 모든 변경사항
 
 AWS 리소스가 많아지면 관리가 어렵다.
 
-**문제 상황 1: 보안 그룹 변경**
+#### 문제 상황 1: 보안 그룹 변경
 
-**상황:**
 누군가 프로덕션 DB의 보안 그룹을 수정했다. 3306 포트가 0.0.0.0/0에 열렸다. 전 세계에서 DB에 접근 가능하다. 심각한 보안 문제다.
 
-**질문:**
+바로 확인해야 할 것이 네 가지 있다.
 - 누가 변경했나?
 - 언제 변경했나?
 - 이전 설정은 무엇이었나?
 - 다른 DB도 같은 문제가 있나?
 
-**일반적인 대응:**
+일반적으로는 이렇게 대응한다.
 - CloudTrail 로그 확인 (복잡)
 - 수동으로 모든 보안 그룹 확인
 - 시간이 오래 걸림
 
-**AWS Config의 해결:**
+AWS Config는 이렇게 해결한다.
 - 자동으로 변경 감지
 - 즉시 알림 (SNS)
 - 누가, 언제, 무엇을 바꿨는지 명확히 표시
 - 이전 설정으로 복원 가능
 - 모든 리소스를 자동 검사
 
-**문제 상황 2: 규정 준수**
+#### 문제 상황 2: 규정 준수
 
-**요구사항:**
 금융 규제로 모든 S3 버킷은 암호화되어야 한다.
 
-**질문:**
+이때 확인할 것은 세 가지다.
 - 모든 버킷이 암호화되어 있나?
 - 새로 만든 버킷은 자동으로 암호화되나?
 - 비준수 버킷이 있으면 즉시 알림받나?
 
-**AWS Config:**
+AWS Config는 이렇게 처리한다.
 - 자동으로 모든 버킷 검사
 - 암호화되지 않은 버킷 탐지
 - 비준수 리포트 생성
@@ -59,7 +57,7 @@ AWS 리소스가 많아지면 관리가 어렵다.
 
 리소스의 구성 스냅샷이다. 특정 시점의 리소스 상태를 기록한다.
 
-**포함 정보:**
+CI에 들어 있는 정보는 이렇다.
 - 리소스 ID
 - 리소스 타입
 - 구성 (태그, 속성 등)
@@ -67,7 +65,7 @@ AWS 리소스가 많아지면 관리가 어렵다.
 - 변경 시간
 - 변경한 사용자 (CloudTrail 연동)
 
-**예시 (Security Group CI):**
+Security Group의 CI는 이런 모양이다.
 ```json
 {
   "resourceType": "AWS::EC2::SecurityGroup",
@@ -98,7 +96,7 @@ AWS 리소스가 많아지면 관리가 어렵다.
 
 리소스의 변경 이력이다. 타임라인으로 확인한다.
 
-**예시:**
+보안 그룹 하나의 이력은 이렇게 쌓인다.
 ```
 2026-01-18 10:00:00 - 보안 그룹 생성
 2026-01-18 10:30:00 - 포트 3306 추가 (10.0.0.0/16)
@@ -109,22 +107,20 @@ AWS 리소스가 많아지면 관리가 어렵다.
 
 리소스가 규정을 준수하는지 자동으로 확인한다.
 
-**AWS Managed Rules:**
-AWS가 미리 만든 규칙. 바로 사용한다.
+AWS Managed Rules는 AWS가 미리 만든 규칙이다. 바로 사용한다.
 
-**예시:**
+Managed Rule 예시는 이렇다.
 - `s3-bucket-public-read-prohibited`: S3 버킷이 public read 금지
 - `rds-storage-encrypted`: RDS가 암호화되어 있는지
 - `ec2-instance-no-public-ip`: EC2에 Public IP 없는지
 
-**Custom Rules:**
-Lambda 함수로 직접 만든다.
+Custom Rules는 Lambda 함수로 직접 만든다.
 
 ### Compliance
 
 규정 준수 상태다.
 
-**상태:**
+상태는 네 가지다.
 - **Compliant**: 준수
 - **Non-Compliant**: 비준수
 - **Not Applicable**: 해당 없음
@@ -134,7 +130,7 @@ Lambda 함수로 직접 만든다.
 
 ### Config 활성화
 
-**콘솔:**
+콘솔에서는 이 순서로 켠다.
 1. AWS Config 콘솔
 2. "Get started" 클릭
 3. 기록할 리소스 선택
@@ -145,7 +141,7 @@ Lambda 함수로 직접 만든다.
 6. IAM role 생성 또는 선택
 7. 시작
 
-**CLI:**
+CLI로는 이렇게 켠다.
 ```bash
 # S3 버킷 생성
 aws s3 mb s3://my-config-bucket
@@ -163,14 +159,13 @@ aws configservice start-configuration-recorder \
   --configuration-recorder-name default
 ```
 
-**비용:**
-매월 활성화한 리소스당 비용 발생.
+비용은 매월 활성화한 리소스당 발생한다.
 
 ## Config Rules 설정
 
 ### Managed Rule 추가
 
-**S3 암호화 규칙:**
+S3 암호화 규칙이다.
 ```bash
 aws configservice put-config-rule \
   --config-rule \
@@ -183,7 +178,7 @@ aws configservice put-config-rule \
     }'
 ```
 
-**RDS 암호화 규칙:**
+RDS 암호화 규칙이다.
 ```bash
 aws configservice put-config-rule \
   --config-rule \
@@ -196,7 +191,7 @@ aws configservice put-config-rule \
     }'
 ```
 
-**EBS 암호화 규칙:**
+EBS 암호화 규칙이다.
 ```bash
 aws configservice put-config-rule \
   --config-rule \
@@ -211,10 +206,9 @@ aws configservice put-config-rule \
 
 ### Custom Rule (Lambda)
 
-**요구사항:**
-모든 EC2 인스턴스는 특정 태그를 가져야 한다.
+모든 EC2 인스턴스는 특정 태그를 가져야 한다는 요구사항을 예로 든다.
 
-**Lambda 함수:**
+검사 Lambda 함수는 이렇다.
 ```python
 import boto3
 import json
@@ -255,7 +249,7 @@ def lambda_handler(event, context):
     }
 ```
 
-**Config Rule 생성:**
+이 함수를 소스로 Config Rule을 만든다.
 ```bash
 aws configservice put-config-rule \
   --config-rule \
@@ -281,7 +275,7 @@ aws configservice put-config-rule \
 
 ### 보안 규칙
 
-**Public 접근 차단:**
+Public 접근을 막는 규칙이다.
 ```bash
 # S3 Public Read 금지
 aws configservice put-config-rule --config-rule \
@@ -296,7 +290,7 @@ aws configservice put-config-rule --config-rule \
   '{"ConfigRuleName":"ec2-instance-no-public-ip","Source":{"Owner":"AWS","SourceIdentifier":"EC2_INSTANCE_NO_PUBLIC_IP"}}'
 ```
 
-**암호화 규칙:**
+암호화 규칙이다.
 ```bash
 # EBS 암호화
 # RDS 암호화
@@ -304,7 +298,7 @@ aws configservice put-config-rule --config-rule \
 # DynamoDB 암호화
 ```
 
-**보안 그룹 규칙:**
+보안 그룹 규칙이다.
 ```bash
 # SSH 0.0.0.0/0 금지
 aws configservice put-config-rule --config-rule \
@@ -317,7 +311,7 @@ aws configservice put-config-rule --config-rule \
 
 ### 비용 최적화 규칙
 
-**미사용 리소스:**
+미사용 리소스를 찾는 규칙이다.
 ```bash
 # Unattached EBS 볼륨
 aws configservice put-config-rule --config-rule \
@@ -330,7 +324,7 @@ aws configservice put-config-rule --config-rule \
 
 ### 백업 규칙
 
-**RDS 백업:**
+RDS 백업 규칙이다.
 ```bash
 aws configservice put-config-rule --config-rule \
   '{"ConfigRuleName":"db-backup-enabled","Source":{"Owner":"AWS","SourceIdentifier":"DB_BACKUP_ENABLED"},"InputParameters":"{\"backupRetentionPeriod\":\"7\"}"}'
@@ -344,7 +338,7 @@ aws configservice put-config-rule --config-rule \
 
 ### SSM Automation
 
-**S3 버킷 암호화 활성화:**
+S3 버킷 암호화를 켜는 Remediation이다.
 ```bash
 aws configservice put-remediation-configuration \
   --config-rule-name s3-bucket-encryption \
@@ -371,7 +365,7 @@ aws configservice put-remediation-configuration \
     }'
 ```
 
-**동작:**
+동작 순서는 이렇다.
 1. Config가 암호화되지 않은 버킷 탐지
 2. SSM Automation 실행
 3. 버킷 암호화 활성화
@@ -380,10 +374,9 @@ aws configservice put-remediation-configuration \
 
 ### Lambda Remediation
 
-**보안 그룹 수정:**
 비준수 보안 그룹의 위험한 규칙을 삭제한다.
 
-**Lambda 함수:**
+Remediation Lambda 함수는 이렇다.
 ```python
 import boto3
 
@@ -417,12 +410,12 @@ def lambda_handler(event, context):
 
 리소스의 변경 이력을 타임라인으로 확인한다.
 
-**콘솔:**
+콘솔에서는 이 순서로 확인한다.
 1. Config 콘솔 → Resources
 2. 리소스 선택 (예: Security Group)
 3. "Resource Timeline" 탭
 
-**표시:**
+타임라인에는 이렇게 표시된다.
 ```
 2026-01-18 11:00 - 구성 변경 (IpPermissions 수정)
 2026-01-18 10:30 - 구성 변경 (IpPermissions 추가)
@@ -431,24 +424,23 @@ def lambda_handler(event, context):
 
 각 시점을 클릭하면 상세 구성을 볼 수 있다.
 
-**변경 사항 비교:**
 두 시점의 구성을 비교한다. 무엇이 바뀌었는지 명확히 보인다.
 
 ### CloudTrail 통합
 
 누가 변경했는지 확인한다.
 
-**Config의 변경 이력:**
+Config의 변경 이력은 두 가지를 알려준다.
 - 무엇이 바뀌었나
 - 언제 바뀌었나
 
-**CloudTrail:**
+CloudTrail은 다른 두 가지를 알려준다.
 - 누가 바꿨나
 - 어떤 API를 호출했나
 
 Config가 자동으로 CloudTrail 이벤트를 연결한다.
 
-**예시:**
+연결된 결과는 이렇게 보인다.
 ```
 변경 시간: 2026-01-18 11:00:00
 변경 내용: IpPermissions 수정 (0.0.0.0/0 추가)
@@ -463,12 +455,12 @@ API: AuthorizeSecurityGroupIngress
 
 모든 규칙의 준수 상태를 한눈에 확인한다.
 
-**표시:**
+대시보드에는 이 항목이 나온다.
 - Compliant 리소스 수
 - Non-Compliant 리소스 수
 - 규칙별 준수율
 
-**필터링:**
+필터링 조건은 이렇다.
 - 비준수만 표시
 - 특정 규칙만 표시
 - 특정 리소스 타입만 표시
@@ -477,8 +469,7 @@ API: AuthorizeSecurityGroupIngress
 
 감사용 리포트를 생성한다.
 
-**Config Aggregator:**
-여러 계정과 리전의 데이터를 집계한다.
+Config Aggregator는 여러 계정과 리전의 데이터를 집계한다.
 
 ```bash
 aws configservice put-configuration-aggregator \
@@ -490,7 +481,7 @@ aws configservice put-configuration-aggregator \
     }]'
 ```
 
-**리포트:**
+리포트에는 이 항목이 들어간다.
 - 계정별 준수율
 - 리전별 준수율
 - 규칙별 비준수 리소스 목록
@@ -499,10 +490,9 @@ aws configservice put-configuration-aggregator \
 
 ### Configuration Items
 
-**가격:**
 $0.003 per configuration item recorded
 
-**예시:**
+계산 예시다.
 - 리소스 1,000개
 - 매월 평균 3회 변경
 - 월 CI: 1,000 × 3 = 3,000
@@ -510,62 +500,57 @@ $0.003 per configuration item recorded
 
 ### Config Rules
 
-**가격:**
 - Active Rules: $2.00 per rule per month (처음 10개)
 - 11개 이상: $1.00 per rule per month
 
-**예시:**
+계산 예시다.
 - 규칙 20개
 - 비용: (10 × $2) + (10 × $1) = $30/월
 
 ### 최적화
 
-**리소스 선택:**
 모든 리소스를 기록하지 않는다. 중요한 리소스만 선택한다.
 
-**예시:**
+기록 대상 예시는 이렇다.
 - EC2, RDS, S3: 기록
 - CloudWatch Logs, Lambda 실행: 제외
 
-**규칙 최적화:**
 중복된 규칙을 제거한다.
 
 ## 실무 사용
 
 ### 보안 감사
 
-**요구사항:**
-모든 프로덕션 리소스가 암호화되어 있는지 감사.
+모든 프로덕션 리소스가 암호화되어 있는지 감사해야 한다.
 
-**규칙 설정:**
+설정한 규칙은 이렇다.
 - RDS 암호화
 - EBS 암호화
 - S3 암호화
 - DynamoDB 암호화
 
-**비준수 발견:**
+감사하면 이런 비준수 리소스가 나온다.
 ```
 Non-Compliant Resources:
 - RDS: prod-db-2 (암호화 안 됨)
 - S3: legacy-bucket (암호화 안 됨)
 ```
 
-**조치:**
+조치 순서는 이렇다.
 1. 비준수 리소스 확인
 2. 암호화 활성화 또는 마이그레이션
 3. 재검사
 
 ### 변경 추적
 
-**문제:**
 프로덕션 서비스가 다운됐다. 최근 변경사항을 확인한다.
 
-**Config:**
+Config에서는 이 순서로 확인한다.
 1. 관련 리소스 선택 (ALB, EC2, Security Group)
 2. Timeline 확인
 3. 최근 1시간 내 변경 찾기
 
-**발견:**
+Timeline에서 이 변경이 나왔다.
 ```
 2026-01-18 10:45 - Security Group 변경
   변경 전: Port 80 허용
@@ -575,7 +560,6 @@ Non-Compliant Resources:
 
 보안 그룹에서 포트 80을 삭제했다. 웹 서버 접근 불가.
 
-**복구:**
 이전 구성을 확인하고 포트 80을 다시 추가한다.
 
 ## 참고
