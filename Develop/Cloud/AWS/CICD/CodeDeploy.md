@@ -1,7 +1,7 @@
 ---
 title: AWS CodeDeploy
 tags: [aws, devops, cloud]
-updated: 2026-04-14
+updated: 2026-11-19
 ---
 
 # AWS CodeDeploy
@@ -12,11 +12,8 @@ CodeDeploy는 배포 자동화 서비스다. EC2, ECS, Lambda에 배포한다. B
 
 ### 왜 필요한가
 
-수동 배포는 위험하다.
+수동 배포는 위험하다. 서버마다 SSH로 접속해 직접 교체하는 방식이 대표적이다.
 
-**문제 상황:**
-
-**수동 SSH 배포:**
 ```bash
 # 서버 1
 ssh server1
@@ -29,14 +26,16 @@ ssh server2
 ...
 ```
 
-**문제점:**
+이 방식은 다음 문제가 있다.
+
 - 서버가 10대면 10번 반복
 - 실수로 파일 경로 잘못 입력
 - 배포 중 일부 서버만 새 버전
 - 문제 발생 시 롤백 복잡
 - 다운타임 발생
 
-**CodeDeploy의 해결:**
+CodeDeploy는 이 문제를 이렇게 푼다.
+
 - 모든 서버에 자동 배포
 - 일관된 배포 과정
 - 단계별 배포 (일부 서버씩)
@@ -67,9 +66,8 @@ graph TB
 
 ### In-Place (Rolling)
 
-기존 서버에 새 버전을 배포한다.
+기존 서버에 새 버전을 배포한다. 인스턴스 한 대는 아래 순서로 처리된다.
 
-**동작:**
 1. 로드 밸런서에서 인스턴스 제거
 2. 애플리케이션 중지
 3. 새 버전 설치
@@ -160,7 +158,8 @@ sequenceDiagram
 
 ### 기본 설정
 
-**1. CodeDeploy Agent 설치:**
+1. CodeDeploy Agent를 설치한다.
+
 ```bash
 # Amazon Linux 2
 sudo yum install -y ruby wget
@@ -171,15 +170,14 @@ sudo ./install auto
 sudo service codedeploy-agent start
 ```
 
-**확인:**
+설치 후 상태를 확인한다.
+
 ```bash
 sudo service codedeploy-agent status
 ```
 
-**2. IAM Role 연결:**
-EC2에 CodeDeploy Agent가 S3, CodeDeploy에 접근할 수 있도록 IAM Role을 연결한다.
+2. EC2에 CodeDeploy Agent가 S3, CodeDeploy에 접근할 수 있도록 IAM Role을 연결한다. 정책은 아래 JSON을 쓴다.
 
-**정책:**
 ```json
 {
   "Version": "2012-10-17",
@@ -198,8 +196,7 @@ EC2에 CodeDeploy Agent가 S3, CodeDeploy에 접근할 수 있도록 IAM Role을
 }
 ```
 
-**3. 태그 추가:**
-배포 대상 인스턴스에 태그를 추가한다.
+3. 배포 대상 인스턴스에 태그를 추가한다.
 
 ```
 Key: Environment
@@ -208,9 +205,8 @@ Value: Production
 
 ### appspec.yml
 
-배포 동작을 정의한다. 프로젝트 루트에 위치한다.
+배포 동작을 정의한다. 프로젝트 루트에 위치한다. 기본 구조는 이렇다.
 
-**기본 구조:**
 ```yaml
 version: 0.0
 os: linux
@@ -260,7 +256,8 @@ graph TD
 
 ### 실무 스크립트
 
-**scripts/stop_server.sh:**
+`scripts/stop_server.sh`는 실행 중일 때만 앱을 멈춘다.
+
 ```bash
 #!/bin/bash
 if systemctl is-active --quiet myapp; then
@@ -271,7 +268,8 @@ else
 fi
 ```
 
-**scripts/before_install.sh:**
+`scripts/before_install.sh`는 이전 파일을 지우고 디렉터리를 만든다.
+
 ```bash
 #!/bin/bash
 echo "Cleaning up old files..."
@@ -281,7 +279,8 @@ echo "Creating directories..."
 mkdir -p /opt/myapp/logs
 ```
 
-**scripts/after_install.sh:**
+`scripts/after_install.sh`는 권한과 환경 변수 파일을 설정한다.
+
 ```bash
 #!/bin/bash
 echo "Setting permissions..."
@@ -292,14 +291,16 @@ echo "Loading environment variables..."
 cp /opt/myapp/config/production.env /opt/myapp/.env
 ```
 
-**scripts/start_server.sh:**
+`scripts/start_server.sh`는 앱을 시작한다.
+
 ```bash
 #!/bin/bash
 echo "Starting application..."
 sudo systemctl start myapp
 ```
 
-**scripts/validate_service.sh:**
+`scripts/validate_service.sh`는 헬스 체크 엔드포인트가 200을 돌려줄 때까지 기다린다.
+
 ```bash
 #!/bin/bash
 echo "Validating service..."
@@ -321,7 +322,8 @@ exit 1
 
 ### Deployment Group 생성
 
-**콘솔:**
+콘솔에서는 아래 순서로 만든다.
+
 1. CodeDeploy 콘솔
 2. Applications → Create application
 3. Name: MyApp
@@ -334,7 +336,8 @@ exit 1
 10. Deployment settings: CodeDeployDefault.AllAtOnce
 11. Load balancer: My-ALB
 
-**CLI:**
+CLI로는 이렇게 만든다.
+
 ```bash
 aws deploy create-deployment-group \
   --application-name MyApp \
@@ -347,7 +350,8 @@ aws deploy create-deployment-group \
 
 ### 배포 실행
 
-**CLI:**
+S3에 올린 번들은 CLI로 배포한다.
+
 ```bash
 aws deploy create-deployment \
   --application-name MyApp \
@@ -355,7 +359,8 @@ aws deploy create-deployment \
   --s3-location bucket=my-deployment-bucket,key=app-v1.0.zip,bundleType=zip
 ```
 
-**GitHub 연동:**
+GitHub 커밋을 직접 지정할 수도 있다.
+
 ```bash
 aws deploy create-deployment \
   --application-name MyApp \
@@ -367,25 +372,26 @@ aws deploy create-deployment \
 
 ### 사전 정의 구성
 
-**AllAtOnce:**
-모든 인스턴스에 동시 배포.
+AllAtOnce는 모든 인스턴스에 동시 배포한다.
+
 - 빠름
 - 일시적 다운타임
 
-**HalfAtATime:**
-50%씩 배포.
+HalfAtATime은 50%씩 배포한다.
+
 - 중간 속도
 - 용량 50% 유지
 
-**OneAtATime:**
-한 번에 한 대씩.
+OneAtATime은 한 번에 한 대씩 배포한다.
+
 - 느림
 - 용량 최대 유지
 - 안전
 
 ### 커스텀 구성
 
-**예시: 25%씩 배포**
+25%씩 배포하는 구성은 이렇게 만든다.
+
 ```bash
 aws deploy create-deployment-config \
   --deployment-config-name Custom25Percent \
@@ -398,13 +404,15 @@ aws deploy create-deployment-config \
 
 ### Auto Scaling Group 사용
 
-**동작:**
+동작 순서는 이렇다.
+
 1. Green Auto Scaling Group 생성
 2. Green에 배포
 3. ALB 트래픽을 Green으로
 4. Blue ASG 삭제 (또는 대기)
 
-**Deployment Group 설정:**
+Deployment Group 설정은 아래처럼 한다.
+
 ```yaml
 DeploymentGroup:
   BlueGreenDeploymentConfiguration:
@@ -418,7 +426,8 @@ DeploymentGroup:
       Action: COPY_AUTO_SCALING_GROUP
 ```
 
-**배포:**
+배포는 이 명령으로 실행한다.
+
 ```bash
 aws deploy create-deployment \
   --application-name MyApp \
@@ -516,7 +525,7 @@ sequenceDiagram
     Note over TG1: 드레이닝 대기 후 종료
 ```
 
-**ALB 구성:**
+ALB는 리스너를 둘로 나눠 구성한다.
 
 - Production Listener: Port 443 → Blue Target Group
 - Test Listener: Port 8443 → Green Target Group
@@ -659,11 +668,9 @@ aws lambda update-function-configuration \
 
 ### Canary (ECS)
 
-**Linear10PercentEvery1Minute:**
-1분마다 10%씩 트래픽 전환.
+Linear10PercentEvery1Minute는 1분마다 10%씩 트래픽을 전환한다.
 
-**Canary10Percent5Minutes:**
-10% 트래픽을 5분 동안 Green으로. 문제 없으면 나머지 90% 전환.
+Canary10Percent5Minutes는 10% 트래픽을 5분 동안 Green으로 보내고, 문제가 없으면 나머지 90%를 전환한다.
 
 ```mermaid
 graph LR
@@ -708,12 +715,14 @@ Hooks:
 
 ### Canary (Lambda)
 
-**LambdaCanary10Percent5Minutes:**
+LambdaCanary10Percent5Minutes는 아래 순서로 진행된다.
+
 1. 10% 트래픽 → 새 버전
 2. 5분 대기
 3. 나머지 90% 전환
 
-**Pre/Post Hook:**
+Pre/Post Hook 함수는 이렇게 작성한다.
+
 ```python
 import boto3
 import json
@@ -753,7 +762,8 @@ ECS Blue/Green 배포에서 롤백이 발생하는 두 가지 시나리오다. �
 
 ### 조건
 
-**배포 실패 시:**
+배포 실패 시 롤백하려면 이벤트를 하나만 지정한다.
+
 ```yaml
 AutoRollbackConfiguration:
   Enabled: true
@@ -761,7 +771,8 @@ AutoRollbackConfiguration:
     - DEPLOYMENT_FAILURE
 ```
 
-**CloudWatch Alarm 시:**
+CloudWatch Alarm으로도 롤백하려면 알람 이벤트와 알람 목록을 추가한다.
+
 ```yaml
 AutoRollbackConfiguration:
   Enabled: true
@@ -774,8 +785,7 @@ AlarmConfiguration:
     - Name: high-error-rate
 ```
 
-**예시:**
-에러율이 5%를 넘으면 자동으로 이전 버전으로 롤백.
+에러율이 5%를 넘으면 자동으로 이전 버전으로 롤백하는 식으로 쓴다.
 
 ### 수동 롤백
 
@@ -789,16 +799,15 @@ aws deploy stop-deployment \
 
 ### 배포 상태
 
-**콘솔:**
-CodeDeploy → Deployments → 배포 ID 선택
+콘솔에서는 CodeDeploy → Deployments → 배포 ID 선택 순서로 들어간다. 화면에는 아래 항목이 나온다.
 
-**표시:**
 - 배포 상태 (진행 중, 성공, 실패)
 - 인스턴스별 상태
 - Lifecycle 단계별 진행률
 - 에러 로그
 
-**CLI:**
+CLI로는 이렇게 조회한다.
+
 ```bash
 aws deploy get-deployment --deployment-id d-ABCDEFGH
 ```
@@ -807,7 +816,8 @@ aws deploy get-deployment --deployment-id d-ABCDEFGH
 
 각 Lifecycle Hook의 로그를 CloudWatch Logs에 전송한다.
 
-**설정 (appspec.yml):**
+appspec.yml 설정은 이렇다.
+
 ```yaml
 version: 0.0
 os: linux
@@ -819,31 +829,23 @@ hooks:
       # stdout, stderr 로그
 ```
 
-**로그 그룹:**
-`/aws/codedeploy/<deployment-group-name>`
+로그 그룹은 `/aws/codedeploy/<deployment-group-name>`이다.
 
 ## 비용
 
 ### 무료
 
-**EC2/온프레미스:**
-무료 (CodeDeploy Agent 사용)
-
-**Lambda, ECS:**
-무료
+EC2/온프레미스는 CodeDeploy Agent를 쓰는 한 무료다. Lambda, ECS도 무료다.
 
 ### 비용 발생 요소
 
-**EC2 추가 인스턴스:**
-Blue-Green 배포 시 일시적으로 2배 인스턴스.
+Blue-Green 배포 시 EC2 인스턴스가 일시적으로 2배가 된다.
 
-**예시:**
 - 기존: t3.medium × 4 = $134/월
 - Blue-Green 배포 중 (1시간): 추가 $2.24
 - 무시할 수준
 
-**S3 (Artifact 저장):**
-$0.023/GB-월
+S3에 Artifact를 저장하면 $0.023/GB-월이 든다.
 
 ## 참고
 
