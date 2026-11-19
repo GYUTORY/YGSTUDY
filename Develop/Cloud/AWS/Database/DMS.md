@@ -1,7 +1,7 @@
 ---
 title: AWS DMS (Database Migration Service)
 tags: [aws, database, devops, cloud]
-updated: 2026-01-18
+updated: 2026-11-19
 ---
 
 # AWS DMS (Database Migration Service)
@@ -14,24 +14,26 @@ DMS는 데이터베이스를 마이그레이션하는 서비스다. 소스 데�
 
 데이터베이스를 옮겨야 하는 경우가 있다.
 
-**상황 1: 온프레미스에서 AWS로**
+#### 상황 1. 온프레미스에서 AWS로
 
-**배경:**
 회사 데이터센터에서 MySQL을 운영한다. AWS로 이전하고 싶다.
 
-**전통적인 방법:**
+전통적인 방법은 서비스를 멈추고 덤프로 옮기는 것이다.
+
 1. 서비스를 중단한다
 2. mysqldump로 백업한다
 3. AWS RDS로 복원한다
 4. 서비스를 재개한다
 
-**문제:**
+이 방법에는 문제가 네 가지 있다.
+
 - 다운타임이 몇 시간에서 하루 이상
 - 데이터가 많으면 복원이 오래 걸린다
 - 고객이 서비스를 사용할 수 없다
 - 문제가 생기면 롤백이 어렵다
 
-**DMS의 해결:**
+DMS를 쓰면 이렇게 진행된다.
+
 1. DMS 작업을 생성한다
 2. 서비스는 계속 실행된다
 3. DMS가 데이터를 복사한다
@@ -39,32 +41,34 @@ DMS는 데이터베이스를 마이그레이션하는 서비스다. 소스 데�
 5. 전환 준비가 되면 DNS를 변경한다
 6. 다운타임: 몇 분
 
-**상황 2: 데이터베이스 엔진 변경**
+#### 상황 2. 데이터베이스 엔진 변경
 
-**배경:**
 Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바꾸고 싶다.
 
-**문제:**
+엔진이 다르면 걸리는 점이 있다.
+
 - Oracle과 PostgreSQL은 SQL이 다르다
 - 데이터 타입이 다르다
 - 직접 변환하면 며칠이 걸린다
 
-**DMS의 해결:**
+DMS는 이 부분을 이렇게 처리한다.
+
 - 자동으로 데이터 타입을 변환한다
 - Schema Conversion Tool(SCT)로 스키마 변환
 - 다운타임 최소화
 
-**상황 3: 데이터 복제**
+#### 상황 3. 데이터 복제
 
-**배경:**
 프로덕션 데이터베이스의 데이터를 분석용 데이터베이스로 복제하고 싶다.
 
-**문제:**
+복제 요구에는 조건이 붙는다.
+
 - 프로덕션에 부하를 주고 싶지 않다
 - 실시간으로 동기화되어야 한다
 - 읽기 전용 복제본으로는 부족하다 (다른 스키마 필요)
 
-**DMS의 해결:**
+DMS는 이 조건을 이렇게 맞춘다.
+
 - 지속적으로 데이터를 복제한다
 - 소스에 최소한의 부하만 발생한다
 - 타겟을 자유롭게 설정한다
@@ -75,7 +79,8 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 데이터를 가져올 데이터베이스다.
 
-**지원 소스:**
+지원하는 소스는 관계형 데이터베이스와 AWS 데이터베이스로 나뉜다.
+
 - **관계형 데이터베이스:**
   - Oracle
   - Microsoft SQL Server
@@ -95,7 +100,8 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 데이터를 저장할 데이터베이스다.
 
-**지원 타겟:**
+지원하는 타겟도 관계형 데이터베이스와 AWS 데이터베이스로 나뉜다.
+
 - **관계형 데이터베이스:**
   - MySQL
   - MariaDB
@@ -118,12 +124,14 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 마이그레이션을 실행하는 EC2 인스턴스다. DMS가 자동으로 관리한다.
 
-**역할:**
+Replication Instance의 역할은 세 가지다.
+
 1. 소스에서 데이터를 읽는다
 2. 필요하면 변환한다
 3. 타겟에 쓴다
 
-**인스턴스 크기:**
+인스턴스 크기는 용도별로 고른다.
+
 - **dms.t3.micro**: 테스트용
 - **dms.t3.medium**: 소규모 마이그레이션
 - **dms.c5.large**: 중규모 마이그레이션
@@ -135,7 +143,8 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 실제 마이그레이션 작업이다. 무엇을 어떻게 복사할지 정의한다.
 
-**설정:**
+Task에서 정하는 항목은 네 가지다.
+
 - 어떤 테이블을 복사할지
 - 필터링 규칙
 - 변환 규칙
@@ -147,22 +156,26 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 소스의 모든 데이터를 한 번에 복사한다.
 
-**동작:**
+Full Load는 세 단계로 동작한다.
+
 1. 테이블 스캔
 2. 모든 행 복사
 3. 완료
 
-**특징:**
+Full Load의 특징은 세 가지다.
+
 - 시작 시점의 스냅샷
 - 복사 중 변경사항은 반영 안 됨
 - 가장 단순
 
-**사용 사례:**
+주로 쓰는 경우는 세 가지다.
+
 - 한 번만 복사
 - 아카이빙
 - 초기 데이터 로드
 
-**단점:**
+단점은 두 가지다.
+
 - 복사 중 변경사항 손실
 - 다운타임 필요
 
@@ -170,22 +183,26 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 변경사항만 지속적으로 복사한다.
 
-**동작:**
+CDC는 세 단계로 동작한다.
+
 1. 트랜잭션 로그를 읽는다
 2. INSERT, UPDATE, DELETE를 파악한다
 3. 타겟에 적용한다
 
-**특징:**
+CDC의 특징은 세 가지다.
+
 - 실시간 동기화
 - 다운타임 없음
 - 소스 성능 영향 최소
 
-**사용 사례:**
+주로 쓰는 경우는 세 가지다.
+
 - 지속적인 복제
 - 분석용 데이터 복제
 - 재해 복구
 
-**요구사항:**
+CDC를 쓰려면 소스에 두 가지 조건이 필요하다.
+
 - 소스에 트랜잭션 로그 활성화
 - Primary Key 필수
 
@@ -193,19 +210,22 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 전체 데이터를 복사한 후 변경사항을 계속 동기화한다.
 
-**동작:**
+Full Load + CDC는 다섯 단계로 동작한다.
+
 1. Full Load 시작
 2. 동시에 변경사항 캡처 시작
 3. Full Load 완료
 4. 캡처한 변경사항 적용
 5. 이후 변경사항 계속 동기화
 
-**특징:**
+특징은 세 가지다.
+
 - 초기 데이터 + 실시간 동기화
 - 다운타임 최소화
 - 가장 많이 사용
 
-**사용 사례:**
+주로 쓰는 경우는 세 가지다.
+
 - 프로덕션 마이그레이션
 - 다운타임 최소화 필요
 - 전환 시점 유연하게 선택
@@ -214,13 +234,14 @@ Oracle을 사용 중이다. 라이선스 비용이 비싸다. PostgreSQL로 바�
 
 ### 1단계: 준비
 
-**소스 데이터베이스 확인:**
+소스 데이터베이스에서는 네 가지를 확인한다.
+
 - 버전 지원 여부 확인
 - 트랜잭션 로그 활성화
 - Binary Logging 활성화 (MySQL)
 - 마이그레이션용 계정 생성
 
-**MySQL 예시:**
+MySQL은 Binary Logging과 계정을 이렇게 설정한다.
 ```sql
 -- Binary Logging 확인
 SHOW VARIABLES LIKE 'log_bin';
@@ -238,14 +259,15 @@ GRANT SELECT, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'dms_user'@'%';
 FLUSH PRIVILEGES;
 ```
 
-**타겟 데이터베이스 준비:**
+타겟 데이터베이스는 세 가지를 준비한다.
+
 - RDS 인스턴스 생성
 - 보안 그룹 설정
 - 파라미터 그룹 설정
 
 ### 2단계: DMS 설정
 
-**Replication Instance 생성:**
+Replication Instance를 만드는 명령이다.
 ```bash
 aws dms create-replication-instance \
   --replication-instance-identifier my-replication-instance \
@@ -254,7 +276,7 @@ aws dms create-replication-instance \
   --allocated-storage 100
 ```
 
-**Source Endpoint 생성:**
+Source Endpoint를 만드는 명령이다.
 ```bash
 aws dms create-endpoint \
   --endpoint-identifier source-mysql \
@@ -267,7 +289,7 @@ aws dms create-endpoint \
   --database-name mydb
 ```
 
-**Target Endpoint 생성:**
+Target Endpoint를 만드는 명령이다.
 ```bash
 aws dms create-endpoint \
   --endpoint-identifier target-aurora \
@@ -280,7 +302,7 @@ aws dms create-endpoint \
   --database-name mydb
 ```
 
-**연결 테스트:**
+Replication Instance와 Endpoint 사이 연결을 테스트하는 명령이다.
 ```bash
 aws dms test-connection \
   --replication-instance-arn arn:aws:dms:us-west-2:123456789012:rep:ABC123 \
@@ -291,7 +313,7 @@ aws dms test-connection \
 
 ### 3단계: Task 생성
 
-**테이블 선택:**
+테이블 선택 규칙은 JSON으로 쓴다.
 ```json
 {
   "rules": [
@@ -311,7 +333,7 @@ aws dms test-connection \
 
 모든 테이블을 포함한다.
 
-**특정 테이블만:**
+특정 테이블만 고르려면 규칙을 테이블마다 하나씩 둔다.
 ```json
 {
   "rules": [
@@ -337,7 +359,7 @@ aws dms test-connection \
 }
 ```
 
-**Task 생성:**
+Task를 만드는 명령이다.
 ```bash
 aws dms create-replication-task \
   --replication-task-identifier my-migration-task \
@@ -350,27 +372,27 @@ aws dms create-replication-task \
 
 ### 4단계: 실행 및 모니터링
 
-**Task 시작:**
+Task를 시작하는 명령이다.
 ```bash
 aws dms start-replication-task \
   --replication-task-arn arn:aws:dms:us-west-2:123456789012:task:TASK123 \
   --start-replication-task-type start-replication
 ```
 
-**진행 상황 확인:**
+진행 상황을 조회하는 명령이다.
 ```bash
 aws dms describe-replication-tasks \
   --filters Name=replication-task-arn,Values=arn:aws:dms:...:task:TASK123
 ```
 
-**CloudWatch 모니터링:**
+CloudWatch에서 볼 지표는 세 가지다.
+
 - FullLoadThroughputRowsTarget: 초당 복사 행 수
 - CDCLatencySource: 소스 지연 시간
 - CDCLatencyTarget: 타겟 지연 시간
 
 ### 5단계: 검증
 
-**데이터 검증:**
 Task 설정에서 Validation을 활성화한다.
 
 ```json
@@ -384,7 +406,7 @@ Task 설정에서 Validation을 활성화한다.
 
 DMS가 자동으로 데이터를 비교한다. 불일치가 있으면 CloudWatch에 기록된다.
 
-**수동 검증:**
+행 수를 직접 비교한다.
 ```sql
 -- 소스
 SELECT COUNT(*) FROM users;
@@ -395,7 +417,7 @@ SELECT COUNT(*) FROM users;
 
 행 수가 같은지 확인한다.
 
-**샘플 데이터 확인:**
+샘플 행도 비교한다.
 ```sql
 -- 소스
 SELECT * FROM users WHERE id = 123;
@@ -408,15 +430,15 @@ SELECT * FROM users WHERE id = 123;
 
 ### 6단계: 전환
 
-**지연 시간 확인:**
 CloudWatch에서 `CDCLatencySource`를 확인한다. 1초 미만이면 거의 실시간이다.
 
-**전환 준비:**
+전환 준비는 세 단계다.
+
 1. 애플리케이션 트래픽 줄이기
 2. 지연 시간이 0에 가까워질 때까지 대기
 3. 소스를 읽기 전용으로 전환 (선택)
 
-**DNS 변경:**
+DNS는 Route 53에서 바꾼다.
 ```bash
 # Route 53에서 데이터베이스 엔드포인트 변경
 aws route53 change-resource-record-sets \
@@ -424,23 +446,23 @@ aws route53 change-resource-record-sets \
   --change-batch file://change-batch.json
 ```
 
-**애플리케이션 재시작:**
 새로운 데이터베이스로 연결한다.
 
-**확인:**
+전환 후에는 세 가지를 확인한다.
+
 - 애플리케이션이 정상 동작하는지
 - 에러가 없는지
 - 성능이 괜찮은지
 
 ### 7단계: 정리
 
-**Task 중지:**
+Task를 중지하는 명령이다.
 ```bash
 aws dms stop-replication-task \
   --replication-task-arn arn:aws:dms:...:task:TASK123
 ```
 
-**리소스 삭제:**
+리소스는 Task, Endpoint, Replication Instance 순서로 삭제한다.
 ```bash
 # Task 삭제
 aws dms delete-replication-task --replication-task-arn ...
@@ -452,7 +474,8 @@ aws dms delete-endpoint --endpoint-arn ...
 aws dms delete-replication-instance --replication-instance-arn ...
 ```
 
-**소스 데이터베이스:**
+소스 데이터베이스는 두 가지 중 하나로 정리한다.
+
 - 백업 후 종료
 - 또는 일정 기간 보관
 
@@ -462,9 +485,9 @@ aws dms delete-replication-instance --replication-instance-arn ...
 
 소스와 타겟의 데이터베이스 엔진이 다르면 스키마를 변환해야 한다.
 
-**예시: Oracle → PostgreSQL**
+Oracle에서 PostgreSQL로 바꾸는 경우를 예로 든다.
 
-**Oracle:**
+Oracle의 원본 DDL이다.
 ```sql
 CREATE TABLE employees (
   emp_id NUMBER PRIMARY KEY,
@@ -474,7 +497,7 @@ CREATE TABLE employees (
 );
 ```
 
-**PostgreSQL (SCT 변환):**
+SCT가 변환한 PostgreSQL DDL이다.
 ```sql
 CREATE TABLE employees (
   emp_id INTEGER PRIMARY KEY,
@@ -484,7 +507,8 @@ CREATE TABLE employees (
 );
 ```
 
-**사용 방법:**
+SCT는 여섯 단계로 쓴다.
+
 1. SCT 다운로드 및 설치
 2. 소스와 타겟 연결
 3. 스키마 분석
@@ -492,7 +516,6 @@ CREATE TABLE employees (
 5. 검토 및 수정
 6. 타겟에 적용
 
-**변환 리포트:**
 SCT가 변환 가능 여부를 리포트한다.
 - 자동 변환 가능: 초록색
 - 수동 수정 필요: 노란색
@@ -504,7 +527,7 @@ SCT가 변환 가능 여부를 리포트한다.
 
 ### Task가 실패한다
 
-**로그 확인:**
+Task 상태와 실패 메시지는 이 명령으로 본다.
 ```bash
 aws dms describe-replication-tasks \
   --filters Name=replication-task-arn,Values=arn:aws:dms:...:task:TASK123
@@ -512,18 +535,21 @@ aws dms describe-replication-tasks \
 
 `LastFailureMessage`를 확인한다.
 
-**흔한 원인:**
+흔한 원인은 네 가지다.
 
-**1. 연결 실패:**
+#### 1. 연결 실패
+
 - 보안 그룹 설정 확인
 - 네트워크 ACL 확인
 - 데이터베이스 방화벽 확인
 
-**2. 권한 부족:**
+#### 2. 권한 부족
+
 - 소스 계정 권한 확인
 - 타겟 계정 권한 확인
 
-**3. Primary Key 없음:**
+#### 3. Primary Key 없음
+
 CDC는 Primary Key가 필수다. 없으면 실패한다.
 
 ```sql
@@ -531,17 +557,20 @@ CDC는 Primary Key가 필수다. 없으면 실패한다.
 ALTER TABLE users ADD PRIMARY KEY (id);
 ```
 
-**4. 디스크 부족:**
+#### 4. 디스크 부족
+
 Replication Instance의 디스크가 부족하다. 스토리지를 늘린다.
 
 ### 복사 속도가 느리다
 
-**병목 지점 확인:**
+병목은 Replication Instance, 소스, 타겟 중 한 곳에서 생긴다.
 
-**Replication Instance:**
+#### Replication Instance
+
 CloudWatch에서 CPU, 메모리, 네트워크를 확인한다. 80% 이상이면 인스턴스를 크게 한다.
 
-**소스 데이터베이스:**
+#### 소스 데이터베이스
+
 쿼리가 느릴 수 있다. 인덱스를 확인한다.
 
 ```sql
@@ -550,12 +579,14 @@ SHOW VARIABLES LIKE 'slow_query_log';
 SET GLOBAL slow_query_log = 'ON';
 ```
 
-**타겟 데이터베이스:**
+#### 타겟 데이터베이스
+
 쓰기 성능이 부족할 수 있다. IOPS를 늘리거나 인스턴스를 크게 한다.
 
-**최적화:**
+속도를 올리는 방법은 병렬 처리와 배치 크기 조정이다.
 
-**병렬 처리:**
+#### 병렬 처리
+
 Task 설정에서 병렬 로드를 활성화한다.
 
 ```json
@@ -566,7 +597,8 @@ Task 설정에서 병렬 로드를 활성화한다.
 }
 ```
 
-**배치 크기 조정:**
+#### 배치 크기 조정
+
 ```json
 {
   "BatchApplyEnabled": true,
@@ -578,23 +610,25 @@ Task 설정에서 병렬 로드를 활성화한다.
 
 ### CDC 지연이 크다
 
-**지연 시간 확인:**
 CloudWatch에서 `CDCLatencySource`를 확인한다. 10초 이상이면 문제다.
 
-**원인:**
+원인은 세 가지다.
 
-**1. Replication Instance 성능:**
+#### 1. Replication Instance 성능
+
 CPU나 네트워크가 부족하다. 더 큰 인스턴스로 변경한다.
 
-**2. 타겟 쓰기 느림:**
+#### 2. 타겟 쓰기 느림
+
 타겟 데이터베이스의 IOPS를 확인한다. 부족하면 늘린다.
 
-**3. 트랜잭션 로그 많음:**
+#### 3. 트랜잭션 로그 많음
+
 소스의 쓰기 트래픽이 너무 많다. Replication Instance를 확장한다.
 
 ### 데이터 불일치
 
-**Validation 확인:**
+Validation 결과는 이 명령으로 본다.
 ```bash
 aws dms describe-table-statistics \
   --replication-task-arn arn:aws:dms:...:task:TASK123
@@ -602,7 +636,6 @@ aws dms describe-table-statistics \
 
 `ValidationState`가 `Failed`인 테이블을 확인한다.
 
-**재로드:**
 문제가 있는 테이블을 다시 로드한다.
 
 ```bash
@@ -617,18 +650,18 @@ aws dms reload-tables \
 
 큰 텍스트나 바이너리 데이터는 특별히 처리해야 한다.
 
-**설정:**
+LOB 처리 모드는 두 가지다.
+
 - **Limited LOB Mode**: 크기 제한 설정 (예: 32KB)
 - **Full LOB Mode**: 전체 LOB 복사 (느림)
 
-**권장:**
 대부분의 LOB이 작으면 Limited LOB Mode를 사용한다. 크기를 적절히 설정한다.
 
 ### 트리거와 외래 키
 
 타겟에서 트리거와 외래 키를 비활성화한다. Full Load 중에는 순서가 맞지 않을 수 있다.
 
-**MySQL:**
+MySQL은 이 설정으로 끈다.
 ```sql
 SET FOREIGN_KEY_CHECKS = 0;
 ```
@@ -641,48 +674,49 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 ### 다운타임 최소화
 
-**테스트 마이그레이션:**
 프로덕션 전에 테스트 환경에서 먼저 마이그레이션한다. 시간을 측정한다.
 
-**Low Traffic 시간대:**
 새벽이나 주말처럼 트래픽이 적은 시간에 전환한다.
 
-**점진적 전환:**
+점진적으로 전환하는 순서는 이렇다.
+
 - 읽기 트래픽부터 전환
 - 쓰기 트래픽은 나중에
 - 문제가 생기면 빠르게 롤백
 
 ### 비용 관리
 
-**Replication Instance 크기:**
 필요 이상으로 크게 만들지 않는다. 모니터링하면서 조정한다.
 
-**Task 중지:**
 마이그레이션이 끝나면 Task를 중지한다. 실행 중에는 비용이 발생한다.
 
-**리소스 삭제:**
 더 이상 필요 없으면 모든 리소스를 삭제한다.
 
 ## 비용
 
-**Replication Instance:**
+Replication Instance는 시간당 요금이 붙는다.
+
 - dms.t3.medium: $0.219/시간 (약 $160/월)
 - dms.c5.large: $0.346/시간 (약 $250/월)
 - dms.c5.xlarge: $0.692/시간 (약 $500/월)
 
-**스토리지:**
+스토리지 요금이다.
+
 - $0.115/GB-월
 
-**데이터 전송:**
+데이터 전송 요금은 방향에 따라 다르다.
+
 - AWS 내 전송: 무료
 - 인터넷 송신: 유료
 
-**예시:**
+7일간 dms.c5.large를 쓰는 경우를 계산한다. 조건은 이렇다.
+
 - Replication Instance: dms.c5.large
 - 스토리지: 100GB
 - 기간: 7일
 
-**비용:**
+7일 비용은 이렇게 나온다.
+
 - Instance: $0.346 × 24시간 × 7일 = $58
 - Storage: $0.115 × 100GB = $11.50
 - 합계: 약 $70
