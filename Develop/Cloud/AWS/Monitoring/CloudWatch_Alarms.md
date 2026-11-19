@@ -1,7 +1,7 @@
 ---
 title: AWS CloudWatch Alarms
 tags: [aws, monitoring, messaging, cloud]
-updated: 2026-01-22
+updated: 2026-11-19
 ---
 
 # AWS CloudWatch Alarms
@@ -14,28 +14,29 @@ CloudWatch Alarms는 메트릭을 모니터링하고 알림을 보낸다. CPU �
 
 시스템 문제를 빠르게 감지해야 한다.
 
-**문제 상황 1: 서버 과부하**
+#### 서버 과부하
 
-**상황:**
 새벽 3시에 CPU 사용률이 95%로 급증한다. 서버가 응답하지 않는다. 고객이 불만을 제기한다. 아침에 출근해서 문제를 발견한다.
 
-**손실:**
+손실은 세 가지다.
+
 - 3시간 다운타임
 - 고객 이탈
 - 매출 손실
 
-**CloudWatch Alarms의 해결:**
+CloudWatch Alarms로 이렇게 막는다.
+
 - CPU 사용률 80% 알람 설정
 - SNS로 Slack/PagerDuty 연동
 - 즉시 알림 받음
 - 문제 해결 또는 Auto Scaling 자동 실행
 
-**문제 상황 2: 에러 급증**
+#### 에러 급증
 
-**상황:**
 외부 API가 다운된다. 애플리케이션에서 500 에러가 급증한다. 사용자가 서비스를 이용할 수 없다.
 
-**일반적인 대응:**
+알람이 없으면 이 순서로 대응하게 된다.
+
 - 고객이 문의
 - 로그 확인
 - 원인 파악
@@ -43,7 +44,8 @@ CloudWatch Alarms는 메트릭을 모니터링하고 알림을 보낸다. CPU �
 
 시간이 오래 걸린다.
 
-**CloudWatch Alarms:**
+알람을 걸어 두면 대응이 짧아진다.
+
 - 에러율 5% 알람 설정
 - 즉시 알림
 - 빠른 대응 (외부 API Fallback 활성화)
@@ -52,7 +54,8 @@ CloudWatch Alarms는 메트릭을 모니터링하고 알림을 보낸다. CPU �
 
 ### 기본 설정
 
-**콘솔:**
+콘솔에서는 이 순서로 만든다.
+
 1. CloudWatch 콘솔
 2. "Alarms" → "Create alarm"
 3. "Select metric"
@@ -60,22 +63,26 @@ CloudWatch Alarms는 메트릭을 모니터링하고 알림을 보낸다. CPU �
 5. 인스턴스 선택
 6. "Select metric"
 
-**조건 설정:**
+조건은 이렇게 잡는다.
+
 - Threshold type: Static
 - Whenever CPUUtilization is...: Greater than
 - than...: 80
 
-**기간:**
+평가 기간은 이렇게 둔다.
+
 - Period: 5 minutes
 - Datapoints to alarm: 2 out of 3
 
 3개 데이터 포인트 중 2개가 80%를 넘으면 알람.
 
-**Action:**
+마지막으로 Action 단계에서 알림 대상을 고른다.
+
 - Notification: SNS topic 선택
 - 생성
 
-**CLI:**
+CLI로는 put-metric-alarm 한 번이면 된다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name high-cpu \
@@ -106,7 +113,8 @@ aws cloudwatch put-metric-alarm \
 
 데이터가 부족하다. 판단할 수 없다.
 
-**원인:**
+원인은 세 가지다.
+
 - 메트릭이 아직 생성되지 않음
 - 데이터 포인트가 충분하지 않음
 - 인스턴스가 중지됨
@@ -117,25 +125,19 @@ aws cloudwatch put-metric-alarm \
 
 기간 내 평균값.
 
-**예시:**
-5분 동안 CPU: 70%, 80%, 90%, 85%, 75%
-Average: 80%
+예를 들어 5분 동안 CPU가 70%, 80%, 90%, 85%, 75%였다면 Average는 80%다.
 
 ### Sum (합계)
 
 기간 내 총합.
 
-**예시:**
-5분 동안 에러 수: 10, 15, 20, 25, 30
-Sum: 100
+예를 들어 5분 동안 에러 수가 10, 15, 20, 25, 30이었다면 Sum은 100이다.
 
 ### Maximum (최대)
 
 기간 내 최대값.
 
-**사용:**
-- CPU 피크 감지
-- 응답 시간 최악의 경우
+CPU 피크를 잡거나 응답 시간의 최악의 경우를 볼 때 쓴다.
 
 ### Minimum (최소)
 
@@ -149,18 +151,16 @@ Sum: 100
 
 상위 1%를 제외한 최대값.
 
-**예시:**
-100개 요청의 응답 시간.
-p99 = 99번째로 느린 요청의 시간.
+예를 들어 100개 요청의 응답 시간이 있으면 p99는 99번째로 느린 요청의 시간이다.
 
-**사용:**
-평균보다 정확한 사용자 경험 측정.
+평균보다 정확하게 사용자 경험을 측정할 때 쓴다.
 
 ## 실무 Alarms
 
 ### CPU 알람
 
-**높은 CPU:**
+CPU 80% 경고 알람은 이렇게 만든다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name high-cpu-warning \
@@ -177,7 +177,8 @@ aws cloudwatch put-metric-alarm \
 
 CPU 80% 이상이 10분 지속되면 알림.
 
-**매우 높은 CPU:**
+95% 위험 알람은 period를 60초로 줄여 바로 반응하게 한다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name critical-cpu \
@@ -196,13 +197,15 @@ CPU 95% 이상이면 즉시 알림.
 
 ### 메모리 알람
 
-**CloudWatch Agent 설치 필요:**
+메모리 메트릭은 CloudWatch Agent를 설치해야 수집된다.
+
 ```bash
 sudo wget https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
 sudo rpm -U amazon-cloudwatch-agent.rpm
 ```
 
-**설정 파일 (config.json):**
+설정 파일은 config.json에 둔다.
+
 ```json
 {
   "metrics": {
@@ -222,13 +225,15 @@ sudo rpm -U amazon-cloudwatch-agent.rpm
 }
 ```
 
-**시작:**
+에이전트는 이 명령으로 시작한다.
+
 ```bash
 sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
   -a fetch-config -m ec2 -s -c file:config.json
 ```
 
-**알람:**
+수집된 mem_used_percent에 알람을 건다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name high-memory \
@@ -245,7 +250,8 @@ aws cloudwatch put-metric-alarm \
 
 ### 에러율 알람
 
-**ALB 타겟 5xx 에러:**
+ALB 타겟의 5xx 에러는 Sum 통계로 센다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name high-error-rate \
@@ -262,7 +268,8 @@ aws cloudwatch put-metric-alarm \
 
 1분에 500 에러가 100개 이상이면 알림.
 
-**Lambda 에러:**
+Lambda 에러도 같은 방식으로 건다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name lambda-errors \
@@ -315,8 +322,7 @@ aws cloudwatch put-metric-alarm \
 
 여러 알람을 조합한다.
 
-**예시:**
-CPU와 메모리가 모두 높을 때만 알림.
+CPU와 메모리가 모두 높을 때만 알림을 받으려면 두 알람을 만든 뒤 조합한다.
 
 ```bash
 # CPU 알람 생성
@@ -340,7 +346,8 @@ aws cloudwatch put-composite-alarm \
   --alarm-actions arn:aws:sns:...:critical
 ```
 
-**OR 조건:**
+OR로 묶을 수도 있다.
+
 ```bash
 --alarm-rule "ALARM(high-cpu) OR ALARM(high-memory)"
 ```
@@ -351,12 +358,14 @@ CPU 또는 메모리 중 하나라도 높으면 알림.
 
 ### SNS 알림
 
-**SNS Topic 생성:**
+SNS topic부터 만든다.
+
 ```bash
 aws sns create-topic --name system-alerts
 ```
 
-**이메일 구독:**
+이메일 구독을 추가한다.
+
 ```bash
 aws sns subscribe \
   --topic-arn arn:aws:sns:us-west-2:123456789012:system-alerts \
@@ -366,13 +375,12 @@ aws sns subscribe \
 
 이메일 확인 링크를 클릭한다.
 
-**Slack 통합:**
-- AWS Chatbot 사용
-- SNS → Chatbot → Slack
+Slack은 AWS Chatbot을 쓴다. 경로는 SNS → Chatbot → Slack이다.
 
 ### Auto Scaling
 
-**CPU 높으면 인스턴스 추가:**
+CPU가 높으면 인스턴스를 추가하도록 scaling policy를 만들고 알람에 연결한다.
+
 ```bash
 # Scaling Policy 생성
 aws autoscaling put-scaling-policy \
@@ -399,7 +407,8 @@ CPU 80% 이상이면 인스턴스 1개 추가.
 
 ### EC2 Actions
 
-**인스턴스 재부팅:**
+재부팅은 ec2:reboot 액션으로 건다.
+
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name instance-stuck \
@@ -416,7 +425,8 @@ aws cloudwatch put-metric-alarm \
 
 시스템 체크가 2회 실패하면 재부팅.
 
-**인스턴스 복구:**
+복구는 액션만 ec2:recover로 바꾼다.
+
 ```bash
 --alarm-actions arn:aws:automate:us-west-2:ec2:recover
 ```
@@ -425,7 +435,8 @@ aws cloudwatch put-metric-alarm \
 
 ### Lambda 함수 실행
 
-**Lambda 함수:**
+알람을 받아 처리하는 Lambda 함수는 이런 형태다.
+
 ```python
 import boto3
 
@@ -439,7 +450,8 @@ def lambda_handler(event, context):
     return {'statusCode': 200}
 ```
 
-**SNS → Lambda 연결:**
+SNS 구독으로 Lambda를 연결한다.
+
 ```bash
 aws sns subscribe \
   --topic-arn arn:aws:sns:us-west-2:123456789012:system-alerts \
@@ -451,16 +463,14 @@ aws sns subscribe \
 
 ## Alarm 상태 변경 알림
 
-**OK → ALARM:**
-문제 발생.
+상태가 바뀌는 경우는 세 가지다.
 
-**ALARM → OK:**
-문제 해결. 
+- OK → ALARM: 문제 발생
+- ALARM → OK: 문제 해결
+- OK → INSUFFICIENT_DATA: 데이터 부족. 인스턴스 중지 등
 
-**OK → INSUFFICIENT_DATA:**
-데이터 부족. 인스턴스 중지 등.
+상태마다 다른 액션을 걸 수 있다.
 
-**알림 설정:**
 ```bash
 --alarm-actions arn:aws:sns:...:alerts         # ALARM 상태
 --ok-actions arn:aws:sns:...:ok-notifications  # OK 상태
@@ -471,13 +481,10 @@ aws sns subscribe \
 
 ### 알람 비용
 
-**Standard:**
-$0.10 per alarm per month
+Standard 알람은 월 알람당 $0.10, High-resolution(1분 미만) 알람은 월 알람당 $0.30이다.
 
-**High-resolution (1분 미만):**
-$0.30 per alarm per month
+알람 100개를 쓰는 경우를 계산하면 이렇다.
 
-**예시:**
 - 알람 100개
 - Standard: 100 × $0.10 = $10/월
 - High-resolution 20개: 20 × $0.30 = $6/월
@@ -487,39 +494,34 @@ $0.30 per alarm per month
 
 ### 메트릭 비용
 
-**Standard 메트릭:**
-무료 (AWS 서비스 기본 메트릭)
+Standard 메트릭(AWS 서비스 기본 메트릭)은 무료다. Custom 메트릭은 월 메트릭당 $0.30이다.
 
-**Custom 메트릭:**
-$0.30 per metric per month
-
-**예시:**
-- Custom 메트릭 50개
-- 비용: 50 × $0.30 = $15/월
+Custom 메트릭 50개를 쓰면 50 × $0.30 = $15/월이다.
 
 ## 알람 최적화
 
 ### 알람 피로도 방지
 
-**문제:**
-알람이 너무 많이 온다. 중요하지 않은 알람도 많다. 무시하게 된다.
+알람이 너무 많이 온다. 중요하지 않은 알람도 많다. 무시하게 된다. 해결은 세 갈래다.
 
-**해결:**
+#### 임계값 조정
 
-**임계값 조정:**
 - 너무 낮으면 false positive
 - 너무 높으면 늦게 감지
 
-**평가 기간 증가:**
+#### 평가 기간 증가
+
 - 1개 데이터 포인트: 일시적 스파이크도 알람
 - 2-3개 데이터 포인트: 지속적인 문제만 알람
 
-**우선순위 분리:**
+#### 우선순위 분리
+
 - Critical (PagerDuty, 24/7)
 - Warning (Slack, 근무 시간)
 - Info (Email, 주간 리포트)
 
-**예시:**
+Critical과 Warning을 임계값과 알림 대상으로 나눈 예시다.
+
 ```bash
 # Critical: CPU 95% 이상
 aws cloudwatch put-metric-alarm \
@@ -536,10 +538,8 @@ aws cloudwatch put-metric-alarm \
 
 ### 시간 기반 알람
 
-**야간에는 알람 조정:**
-트래픽이 적다. 임계값을 낮춘다.
+야간에는 트래픽이 적어서 임계값을 낮춘다. EventBridge와 Lambda로 시간대별 임계값을 바꾼다.
 
-**EventBridge + Lambda:**
 - 오전 8시: 임계값 80%
 - 오후 6시: 임계값 60%
 
