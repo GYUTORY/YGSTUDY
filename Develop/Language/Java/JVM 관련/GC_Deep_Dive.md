@@ -1,7 +1,7 @@
 ---
 title: JVM Garbage Collection 심화
 tags: [java, os, docker, language]
-updated: 2026-10-10
+updated: 2026-11-19
 ---
 
 # JVM Garbage Collection 심화
@@ -20,27 +20,14 @@ GC는 JVM이 쓰지 않는 객체를 자동으로 해제하는 장치다. 직접
 
 ## 힙은 어떻게 나뉘어 있는가
 
-```text
-┌──────────────────────────────────────────────┐
-│                    Heap                       │
-│  ┌─────────────────────┐  ┌───────────────┐  │
-│  │    Young Generation  │  │ Old Generation│  │
-│  │  ┌─────┬─────┬─────┐│  │               │  │
-│  │  │Eden │ S0  │ S1  ││  │  (Tenured)    │  │
-│  │  │     │     │     ││  │               │  │
-│  │  └─────┴─────┴─────┘│  └───────────────┘  │
-│  └─────────────────────┘                      │
-├──────────────────────────────────────────────┤
-│  Metaspace (클래스 메타데이터, 네이티브 메모리)    │
-└──────────────────────────────────────────────┘
-```
-
 | 영역 | 역할 | 크기 비율 |
 |------|------|----------|
 | **Eden** | 새 객체가 생성되는 곳 | Young의 80% |
 | **Survivor (S0, S1)** | Minor GC에서 살아남은 객체 | Young의 각 10% |
 | **Old (Tenured)** | 오래 살아남은 객체 | 전체 Heap의 2/3 |
 | **Metaspace** | 클래스 메타데이터 | 네이티브 메모리 (별도) |
+
+아래 도식은 Heap 안에서 Young(Eden, S0, S1)과 Old가 어떻게 나뉘는지, Metaspace가 Heap 밖에 있다는 점, 그리고 객체가 영역 사이를 옮겨 가는 방향을 보여준다.
 
 ```mermaid
 graph TB
@@ -73,19 +60,19 @@ graph TB
 
 멀티스레드 환경에서 객체를 Eden에 할당할 때, 스레드마다 잠금(lock) 없이 독립적으로 사용하는 작은 버퍼다.
 
-```text
-Eden 영역:
-┌────────────────────────────────────────────┐
-│  ┌──────┐  ┌──────┐  ┌──────┐             │
-│  │TLAB-1│  │TLAB-2│  │TLAB-3│   (공유)     │
-│  │(T1)  │  │(T2)  │  │(T3)  │             │
-│  └──────┘  └──────┘  └──────┘             │
-└────────────────────────────────────────────┘
+아래 도식은 Eden 안에 스레드별 TLAB이 따로 잡혀 있는 모습과, Thread-1이 `new Object()`를 호출했을 때 할당이 진행되는 순서를 보여준다. lock이 필요한 곳은 새 TLAB을 받아올 때뿐이다.
 
-Thread-1이 new Object()를 호출하면:
-  1. 자신의 TLAB 안에서 bump pointer로 할당 (lock 없음)
-  2. TLAB이 가득 차면 새 TLAB을 Eden에서 받아옴
-  3. 새 TLAB 할당 시에만 CAS 연산 필요
+```mermaid
+flowchart TB
+    subgraph Eden["Eden 영역"]
+        T1["TLAB-1 (Thread-1)"]
+        T2["TLAB-2 (Thread-2)"]
+        T3["TLAB-3 (Thread-3)"]
+    end
+
+    N["Thread-1: new Object()"] -->|"1. bump pointer로 할당<br/>(lock 없음)"| T1
+    T1 -->|"2. TLAB이 가득 참"| R["Eden에서 새 TLAB 확보<br/>(3. CAS 연산 필요)"]
+    R --> T1
 ```
 
 TLAB이 없으면 모든 스레드가 Eden의 할당 포인터를 놓고 경쟁한다. 스레드 수가 많을수록 경합이 심해지고, 객체 할당 속도가 급격히 떨어진다.
@@ -121,18 +108,16 @@ TLAB 관련 주의사항:
 5. Old가 가득 참 → Major GC (Full GC) 발생
 ```
 
-```text
-Minor GC:
-  Eden [████████████] → GC → Eden [          ]
-  살아남은 객체 → S0 [██]
+아래 도식은 Minor GC가 반복될 때 살아남은 객체가 S0과 S1을 오가다가, age가 15에 도달하면 Old로 올라가는 과정을 보여준다.
 
-다음 Minor GC:
-  Eden [████████████] + S0 [██] → GC
-  살아남은 객체 → S1 [███]  (S0 비움)
-
-객체 age가 15 도달:
-  Survivor → Old 영역으로 이동 (Promotion)
+```mermaid
+flowchart LR
+    E1["Eden (가득 참)"] -->|"Minor GC 후 Eden 비움"| S0["S0 (생존 객체)"]
+    S0 -->|"다음 Minor GC: Eden + S0 수거"| S1["S1 (생존 객체, S0 비움)"]
+    S1 -->|"age 15 도달"| OLD["Old 영역 (Promotion)"]
 ```
+
+아래 도식은 죽은 객체가 해제되는 분기까지 포함한 전체 경로다. 화살표에 붙은 조건이 다음 단계로 넘어가는 기준이다.
 
 ```mermaid
 flowchart LR
@@ -177,6 +162,8 @@ GC Root:
   - JNI 참조
   - 활성 스레드
 ```
+
+아래 도식은 GC Root에서 도달하는 객체 A, B, C만 남고 도달하지 못하는 D, E가 해제된 뒤 Compact로 한쪽에 모이는 세 단계를 보여준다.
 
 ```mermaid
 flowchart TB
@@ -290,6 +277,8 @@ Reference 수가 많으면 GC pause가 늘어난다. G1 GC 로그에서 `Ref Pro
 | **ZGC** | 초저지연 | **< 1ms** | 대용량 힙, 실시간 |
 | **Shenandoah** | 초저지연 | **< 1ms** | 대용량 힙 (RedHat) |
 
+아래 도식은 컬렉터를 처리량(가로)과 지연(세로)으로 배치한 것이다. 위쪽일수록 STW가 짧고, 오른쪽일수록 처리량이 높다.
+
 ```mermaid
 quadrantChart
     title GC 컬렉터 포지셔닝 — 처리량 vs 지연
@@ -333,12 +322,9 @@ CMS GC 단계:
 4. Concurrent Sweep
    - 마킹되지 않은 객체를 해제
    - STW 없음
-
-시간축:
-|--STW--|------concurrent------|--STW--|------concurrent------|
- Initial     Concurrent Mark    Remark     Concurrent Sweep
-  Mark
 ```
+
+아래 도식은 네 단계를 시간 순서로 놓고 STW 구간(Initial Mark, Remark)과 애플리케이션과 동시에 도는 구간(Concurrent Mark, Concurrent Sweep)을 구분해서 보여준다.
 
 ```mermaid
 gantt
@@ -359,14 +345,16 @@ CMS의 치명적 문제점:
 
 **Compaction이 없다.** Sweep 후 메모리 파편화가 누적된다. 파편화가 심해지면 연속된 공간을 확보하지 못해 Full GC가 발생한다. 이 Full GC는 Serial Old GC(단일 스레드)로 동작해서 힙이 크면 수 초~수십 초 멈출 수 있다.
 
-```text
-파편화 발생:
-[사용] [빈] [사용] [빈] [사용] [빈] [빈] [사용]
+아래 도식은 파편화된 Old 영역에 큰 객체를 할당하려 할 때 Full GC까지 이어지는 흐름을 보여준다.
 
-→ 큰 객체를 할당하려 하면 연속 공간이 없어서
-→ Concurrent Mode Failure 발생
-→ Serial Old GC(Full GC)로 fallback
-→ 힙 전체 Compact → 수 초 STW
+```mermaid
+flowchart TB
+    F["Old 영역 파편화<br/>사용 / 빈 / 사용 / 빈 / 사용 / 빈 / 빈 / 사용"]
+    F --> A["큰 객체 할당 시도"]
+    A --> B["연속 공간 없음"]
+    B --> C["Concurrent Mode Failure 발생"]
+    C --> D["Serial Old GC(Full GC)로 fallback"]
+    D --> E["힙 전체 Compact → 수 초 STW"]
 ```
 
 **Concurrent Mode Failure**: Old 영역이 가득 차기 전에 CMS가 수거를 끝내지 못하면 발생한다. GC 로그에서 `concurrent mode failure`가 보이면 CMS를 포기하고 G1으로 가야 한다.
@@ -388,20 +376,20 @@ Java 8에서 CMS를 쓰고 있다면 G1으로 바꾸는 게 맞다. Java 8에서
 
 Java 9+ 기본 GC. 힙을 리전(Region) 단위로 나누어 관리한다.
 
-```text
-G1 힙 구조 (리전 기반):
+아래 도식은 G1 힙을 같은 크기의 리전 24개로 나눈 모습이다. Eden, Survivor, Old, Humongous(대형 객체) 리전이 연속되지 않고 섞여 있다. G1은 이 중 가비지가 많은 리전부터 우선 수거한다(Garbage-First).
 
-┌───┬───┬───┬───┬───┬───┬───┬───┐
-│ E │ E │ S │ O │ O │ H │ E │ O │
-├───┼───┼───┼───┼───┼───┼───┼───┤
-│ O │ E │ O │ O │ S │ E │ O │   │
-├───┼───┼───┼───┼───┼───┼───┼───┤
-│ E │ O │ O │ E │ O │ O │ E │ O │
-└───┴───┴───┴───┴───┴───┴───┴───┘
-
-E=Eden, S=Survivor, O=Old, H=Humongous (대형 객체)
-
-→ 가비지가 많은 리전부터 우선 수거 (Garbage-First)
+```mermaid
+flowchart TB
+    subgraph Row1["1행"]
+        a1["Eden"] ~~~ a2["Eden"] ~~~ a3["Survivor"] ~~~ a4["Old"] ~~~ a5["Old"] ~~~ a6["Humongous"] ~~~ a7["Eden"] ~~~ a8["Old"]
+    end
+    subgraph Row2["2행"]
+        b1["Old"] ~~~ b2["Eden"] ~~~ b3["Old"] ~~~ b4["Old"] ~~~ b5["Survivor"] ~~~ b6["Eden"] ~~~ b7["Old"] ~~~ b8["빈 리전"]
+    end
+    subgraph Row3["3행"]
+        c1["Eden"] ~~~ c2["Old"] ~~~ c3["Old"] ~~~ c4["Eden"] ~~~ c5["Old"] ~~~ c6["Old"] ~~~ c7["Eden"] ~~~ c8["Old"]
+    end
+    Row1 ~~~ Row2 ~~~ Row3
 ```
 
 ### Remembered Set과 Card Table
@@ -414,25 +402,37 @@ Card Table (전통적 Generational GC에서 사용):
   - Old → Young 참조가 발생하면 해당 카드를 dirty로 표시
   - Minor GC 시 dirty 카드만 스캔
 
-  Old 영역:
-  ┌─────┬─────┬─────┬─────┬─────┐
-  │Card0│Card1│Card2│Card3│Card4│
-  │     │dirty│     │dirty│     │
-  └─────┴─────┴─────┴─────┴─────┘
-                ↓
-  Minor GC 때 Card1, Card3만 확인
-
 G1의 Remembered Set:
   - 리전별로 "나를 참조하는 리전" 목록을 관리
   - 리전 A의 RSet = {B:card3, D:card7, ...}
   - 특정 리전만 수거할 때 RSet을 보면 어떤 리전을 확인해야 하는지 바로 알 수 있다
+```
 
-  리전 A의 RSet:
-  ┌──────────────────────┐
-  │ B → card 3           │
-  │ D → card 7           │  ← B의 card3, D의 card7이
-  │ F → card 1, card 4   │     리전 A를 참조하고 있다
-  └──────────────────────┘
+아래 도식은 Card Table에서 Old 영역의 카드 5개 중 dirty로 표시된 Card1, Card3만 Minor GC 때 스캔 대상이 되는 모습이다.
+
+```mermaid
+flowchart LR
+    subgraph OldArea["Old 영역"]
+        C0["Card0"]
+        C1["Card1 (dirty)"]
+        C2["Card2"]
+        C3["Card3 (dirty)"]
+        C4["Card4"]
+    end
+    C1 --> SCAN["Minor GC 때 확인"]
+    C3 --> SCAN
+
+    style C1 fill:#f87171,stroke:#991b1b,color:#000
+    style C3 fill:#f87171,stroke:#991b1b,color:#000
+```
+
+아래 도식은 리전 A의 RSet이 기록하는 내용이다. 리전 B의 card3, D의 card7, F의 card1과 card4가 리전 A를 참조하고 있어서, A를 수거할 때 이 카드들만 확인하면 된다.
+
+```mermaid
+flowchart LR
+    B["리전 B<br/>card 3"] --> A["리전 A의 RSet"]
+    D["리전 D<br/>card 7"] --> A
+    F["리전 F<br/>card 1, card 4"] --> A
 ```
 
 RSet은 리전마다 유지해야 해서 메모리를 먹는다. 힙의 5~10%를 차지하는 경우가 있다. `-XX:G1HeapRegionSize`를 키우면 리전 수가 줄어들어 RSet 오버헤드가 줄지만, 리전 단위가 커서 수거 효율이 떨어질 수 있다.
@@ -500,6 +500,8 @@ G1은 Young GC만으로 Old 영역이 차오르면 Mixed GC를 수행한다. 전
 5. Mixed GC 완료 후 다시 Young GC만 반복
    - Old 영역이 다시 차오르면 2번부터 반복
 ```
+
+아래 도식은 위 과정을 하나의 순환으로 그린 것이다. Old 사용률이 IHOP에 도달하기 전에는 Young GC만 돌고, 도달하면 Concurrent Marking을 거쳐 Mixed GC로 넘어갔다가 다시 Young GC로 돌아온다.
 
 ```mermaid
 flowchart TB
@@ -590,7 +592,9 @@ slow_path에서 하는 일:
   3. 수정된 포인터를 원래 필드에 기록 (self-healing)
 ```
 
-Write Barrier(G1)는 참조를 쓸 때마다 동작하고, Load Barrier(ZGC)는 참조를 읽을 때 동작한다. 읽기가 쓰기보다 훨씬 빈번하지만, ZGC는 bad color인 경우에만 slow path에 진입하기 때문에 실제 오버헤드는 2~5% 수준이다. self-healing 덕분에 같은 포인터에 대해 slow path는 한 번만 실행된다.
+Write Barrier(G1)는 참조를 쓸 때마다 동작하고, Load Barrier(ZGC)는 참조를 읽을 때 동작한다. 읽기가 쓰기보다 훨씬 빈번하지만, ZGC는 bad color인 경우에만 slow path에 진입하기 때문에 실제 오버헤드는 2~5% 수준이다.
+
+self-healing 덕분에 같은 포인터는 slow path를 한 번만 탄다.
 
 ### ZGC 동작 과정
 
@@ -614,6 +618,8 @@ Write Barrier(G1)는 참조를 쓸 때마다 동작하고, Load Barrier(ZGC)는 
    - Load Barrier의 self-healing으로 점진적 갱신
    - 모든 포인터가 갱신되면 Forwarding Table 해제
 ```
+
+아래 도식은 위 다섯 단계 중 STW가 걸리는 구간(Mark Start, Mark End)과 애플리케이션과 동시에 도는 구간을 시간 순서로 보여준다.
 
 ```mermaid
 gantt
@@ -910,6 +916,8 @@ java -XshowSettings:vm -version
 → 75%가 빡빡하면 60~70%로 낮춰야 한다
 → 스레드 수가 많으면 스택 크기(-Xss)도 줄여야 한다
 ```
+
+아래 도식은 위 계산에서 2GB 중 힙이 차지하는 비중과 힙 밖 영역이 나눠 쓰는 몫을 보여준다.
 
 ```mermaid
 pie title 컨테이너 메모리 2GB 기준 — JVM 메모리 분배
