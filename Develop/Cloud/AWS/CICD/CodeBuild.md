@@ -1,7 +1,7 @@
 ---
 title: AWS CodeBuild
 tags: [aws, docker, ci-cd, cloud]
-updated: 2026-01-18
+updated: 2026-11-19
 ---
 
 # AWS CodeBuild
@@ -14,9 +14,8 @@ CodeBuild는 빌드 서비스다. 소스 코드를 컴파일하고 테스트한�
 
 Jenkins는 서버 관리가 필요하다.
 
-**문제 상황:**
+Jenkins를 운영하면 아래 일을 직접 한다.
 
-**Jenkins 운영:**
 - EC2 인스턴스 관리
 - 플러그인 업데이트
 - 디스크 용량 관리
@@ -25,7 +24,8 @@ Jenkins는 서버 관리가 필요하다.
 
 시간과 비용이 든다.
 
-**CodeBuild의 해결:**
+CodeBuild는 이 부담을 덜어낸다.
+
 - 서버리스
 - 자동 스케일링
 - 사용한 시간만 과금
@@ -70,8 +70,7 @@ cache:
 
 ### Phases (단계)
 
-**install:**
-런타임과 도구를 설치한다.
+install 단계는 런타임과 도구를 설치한다.
 
 ```yaml
 phases:
@@ -84,8 +83,7 @@ phases:
       - npm install -g typescript
 ```
 
-**pre_build:**
-빌드 전 준비 작업.
+pre_build 단계는 빌드 전 준비 작업을 한다.
 
 ```yaml
 pre_build:
@@ -94,8 +92,7 @@ pre_build:
     - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 ```
 
-**build:**
-실제 빌드.
+build 단계에서 실제 빌드를 한다.
 
 ```yaml
 build:
@@ -104,8 +101,7 @@ build:
     - docker build -t my-app .
 ```
 
-**post_build:**
-빌드 후 정리.
+post_build 단계는 빌드 후 정리를 한다.
 
 ```yaml
 post_build:
@@ -127,7 +123,8 @@ artifacts:
   discard-paths: yes
 ```
 
-**여러 Artifact:**
+결과물이 여러 개면 secondary-artifacts로 나눈다.
+
 ```yaml
 artifacts:
   secondary-artifacts:
@@ -153,15 +150,15 @@ cache:
     - 'node_modules/**/*'    # npm
 ```
 
-**로컬 캐시:**
+로컬 캐시는 경로만 적는다.
+
 ```yaml
 cache:
   paths:
     - 'node_modules/**/*'
 ```
 
-**S3 캐시:**
-CodeBuild 프로젝트 설정에서 S3 버킷 지정.
+S3 캐시는 CodeBuild 프로젝트 설정에서 S3 버킷을 지정한다.
 
 ## 실무 buildspec
 
@@ -327,14 +324,16 @@ artifacts:
 
 CodeBuild가 자동으로 제공한다.
 
-**자주 사용:**
+자주 쓰는 변수는 다섯 개다.
+
 - `CODEBUILD_BUILD_ID`: 빌드 ID
 - `CODEBUILD_BUILD_NUMBER`: 빌드 번호
 - `CODEBUILD_SOURCE_VERSION`: Git 커밋 해시
 - `CODEBUILD_SOURCE_REPO_URL`: Git 저장소 URL
 - `CODEBUILD_RESOLVED_SOURCE_VERSION`: 전체 커밋 해시
 
-**예시:**
+빌드 번호를 이미지 태그에 쓰는 예다.
+
 ```yaml
 build:
   commands:
@@ -345,7 +344,8 @@ build:
 
 ### 커스텀 환경 변수
 
-**buildspec에서 정의:**
+buildspec의 env 블록에서 변수를 정의한다.
+
 ```yaml
 env:
   variables:
@@ -357,7 +357,8 @@ env:
     API_KEY: prod/api:key
 ```
 
-**Parameter Store:**
+Parameter Store에는 SecureString으로 값을 넣는다.
+
 ```bash
 aws ssm put-parameter \
   --name /prod/db/password \
@@ -365,14 +366,16 @@ aws ssm put-parameter \
   --type SecureString
 ```
 
-**Secrets Manager:**
+Secrets Manager에는 JSON 문자열로 값을 넣는다.
+
 ```bash
 aws secretsmanager create-secret \
   --name prod/api \
   --secret-string '{"key":"my-api-key-12345"}'
 ```
 
-**사용:**
+정의한 변수는 명령에서 `$이름`으로 쓴다.
+
 ```yaml
 build:
   commands:
@@ -449,7 +452,8 @@ Resources:
 | LARGE | 8 | 15 GB | 150 GB | $0.02 | 큰 프로젝트 |
 | 2X_LARGE | 72 | 145 GB | 824 GB | $0.10 | 매우 큰 프로젝트 |
 
-**선택 기준:**
+언어와 빌드 방식별로 고르는 기준이다.
+
 - Node.js, Python: SMALL
 - Java, .NET: MEDIUM
 - Docker 멀티스테이지: MEDIUM-LARGE
@@ -457,28 +461,31 @@ Resources:
 
 ### ARM vs x86
 
-**ARM (Graviton2):**
+ARM(Graviton2)은 아래 특징이 있다.
+
 - 저렴 (약 20% 절감)
 - 성능 유사
 - 일부 도구 미지원
 
-**x86:**
+x86은 아래 특징이 있다.
+
 - 호환성 좋음
 - 모든 도구 지원
 
-**선택:**
-호환성 문제 없으면 ARM 추천.
+호환성 문제가 없으면 ARM을 고른다.
 
 ## 로컬 테스트
 
 CodeBuild 로컬 에이전트로 테스트한다.
 
-**설치:**
+로컬 에이전트 이미지를 받는다.
+
 ```bash
 docker pull public.ecr.aws/codebuild/local-builds:latest
 ```
 
-**실행:**
+빌드 스크립트로 buildspec을 실행한다.
+
 ```bash
 ./codebuild_build.sh \
   -i aws/codebuild/standard:7.0 \
@@ -493,12 +500,14 @@ docker pull public.ecr.aws/codebuild/local-builds:latest
 
 프라이빗 서브넷의 리소스에 접근한다.
 
-**사용 사례:**
+VPC 연동이 필요한 경우다.
+
 - RDS 접근 (테스트 DB)
 - ElastiCache 접근
 - 프라이빗 ECR
 
-**설정:**
+VPC 설정은 VPC, 서브넷, 보안 그룹을 지정한다.
+
 ```yaml
 VpcConfig:
   VpcId: vpc-12345678
@@ -509,21 +518,22 @@ VpcConfig:
     - sg-12345678
 ```
 
-**보안 그룹:**
+보안 그룹은 아웃바운드를 전체 허용한다.
+
 ```
 Outbound:
 - Type: All traffic
 - Destination: 0.0.0.0/0
 ```
 
-**주의:**
 VPC 연동 시 빌드 시작 시간이 증가한다 (수십 초).
 
 ## 병렬 빌드
 
 여러 브랜치를 동시에 빌드한다.
 
-**Batch Build:**
+Batch Build는 buildspec에 batch 블록을 둔다.
+
 ```yaml
 batch:
   fast-fail: true
@@ -539,7 +549,8 @@ batch:
         - lint
 ```
 
-**동작:**
+build-list는 이 순서로 동작한다.
+
 1. test와 lint 병렬 실행
 2. 둘 다 성공하면 build 실행
 3. 하나라도 실패하면 중단 (fast-fail)
@@ -548,31 +559,36 @@ batch:
 
 ### 기본 요금
 
-**리눅스 (x86):**
+리눅스 x86 요금이다.
+
 - SMALL: $0.005/분
 - MEDIUM: $0.01/분
 - LARGE: $0.02/분
 
-**리눅스 (ARM):**
+리눅스 ARM 요금이다.
+
 - SMALL: $0.004/분 (20% 저렴)
 - MEDIUM: $0.008/분
 - LARGE: $0.016/분
 
 ### 계산 예시
 
-**Node.js 앱 (SMALL, 5분):**
+Node.js 앱을 SMALL로 5분 빌드하는 경우다.
+
 - 빌드 1회: 5 × $0.005 = $0.025
 - 하루 10회: 10 × $0.025 = $0.25
 - 월 (20일): 20 × $0.25 = $5
 
-**Java 앱 (MEDIUM, 10분):**
+Java 앱을 MEDIUM으로 10분 빌드하는 경우다.
+
 - 빌드 1회: 10 × $0.01 = $0.10
 - 하루 5회: 5 × $0.10 = $0.50
 - 월 (20일): 20 × $0.50 = $10
 
 ### 최적화
 
-**캐시 활용:**
+캐시를 켜면 빌드 시간이 줄어든다.
+
 ```yaml
 cache:
   paths:
@@ -582,46 +598,50 @@ cache:
 
 빌드 시간: 10분 → 3분 (70% 단축)
 
-**작은 컴퓨팅 타입:**
-MEDIUM → SMALL로 변경.
+컴퓨팅 타입을 MEDIUM → SMALL로 변경한다.
 비용: $0.01/분 → $0.005/분 (50% 절감)
 
-**ARM 사용:**
-x86 → ARM.
+x86 → ARM으로 변경한다.
 비용: $0.005/분 → $0.004/분 (20% 절감)
 
 ## GitHub Actions와 비교
 
 ### GitHub Actions
 
-**장점:**
+GitHub Actions의 장점이다.
+
 - 무료 티어 많음 (Public 무제한, Private 2,000분)
 - 설정 간단 (YAML 파일)
 - Marketplace 액션 풍부
 
-**단점:**
+GitHub Actions의 단점이다.
+
 - AWS 통합 수동
 - 긴 빌드는 비쌈 ($0.008/분, Private)
 
 ### CodeBuild
 
-**장점:**
+CodeBuild의 장점이다.
+
 - AWS 서비스 네이티브 통합
 - IAM 권한 관리
 - VPC 접근 간편
 
-**단점:**
+CodeBuild의 단점이다.
+
 - 무료 티어 없음
 - 짧은 빌드도 과금
 
 ### 선택 가이드
 
-**GitHub Actions:**
+GitHub Actions가 맞는 경우다.
+
 - Public 프로젝트
 - 짧은 빌드 (< 10분)
 - AWS 외 서비스 사용
 
-**CodeBuild:**
+CodeBuild가 맞는 경우다.
+
 - Private 프로젝트 (빌드 많음)
 - AWS 서비스만 사용
 - VPC 내 리소스 접근
