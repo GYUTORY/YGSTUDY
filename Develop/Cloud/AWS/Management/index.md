@@ -10,7 +10,7 @@ updated: 2026-11-20
 
 # Management 전체 보기
 
-문서 5개.
+문서 6개.
 
 ## 개요
 
@@ -18,5 +18,6 @@ updated: 2026-11-20
 - [AWS Organizations](Organizations.md)
 - [AWS SCP (Service Control Policies)](SCP.md)
 - [Parameter Store 변경 감지와 만료 운영](SSM_Parameter_Store_Change_Management.md)
+- [Parameter Store를 IaC·EKS·빌드 파이프라인에서 읽기](SSM_Parameter_Store_Integration.md)
 - [SSM Parameter Store](SSM_Parameter_Store.md)
 
