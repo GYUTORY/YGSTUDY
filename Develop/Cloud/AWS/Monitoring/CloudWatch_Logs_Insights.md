@@ -1,7 +1,7 @@
 ---
 title: AWS CloudWatch Logs Insights
 tags: [aws, monitoring, cloud]
-updated: 2026-01-22
+updated: 2026-11-20
 ---
 
 # AWS CloudWatch Logs Insights
@@ -14,19 +14,14 @@ CloudWatch Logs Insights는 로그 분석 서비스다. SQL과 비슷한 쿼리 
 
 CloudWatch Logs는 로그를 저장한다. 하지만 검색과 분석이 제한적이다.
 
-**문제 상황:**
+지난 1시간 동안 500 에러가 몇 번 발생했는지 확인하고 싶다고 하자. 일반 검색은 이렇게 한다.
 
-**에러 로그 찾기:**
-지난 1시간 동안 500 에러가 몇 번 발생했는지 확인하고 싶다.
-
-**일반 검색:**
 ```
 "status":500
 ```
 
-모든 500 에러 로그를 찾는다. 하지만 개수는 수동으로 세야 한다. 느리고 불편하다.
+모든 500 에러 로그를 찾는다. 하지만 개수는 수동으로 세야 한다. 느리고 불편하다. Logs Insights는 이렇게 쓴다.
 
-**Logs Insights:**
 ```sql
 fields @timestamp, @message
 | filter status = 500
@@ -35,14 +30,8 @@ fields @timestamp, @message
 
 5분 단위로 에러 개수를 자동 집계한다. 그래프로 시각화한다.
 
-**문제 상황 2: 느린 API 찾기**
+평균 응답 시간이 1초 이상인 API 엔드포인트를 찾고 싶은 경우도 있다. 일반 검색은 각 로그를 확인하고 수동으로 계산해야 해서 불가능에 가깝다. Logs Insights는 이렇게 쓴다.
 
-평균 응답 시간이 1초 이상인 API 엔드포인트를 찾고 싶다.
-
-**일반 검색:**
-각 로그를 확인하고 수동으로 계산한다. 불가능에 가깝다.
-
-**Logs Insights:**
 ```sql
 fields @timestamp, api, duration
 | filter duration > 1000
@@ -70,19 +59,18 @@ fields <필드 목록>
 
 표시할 필드를 선택한다.
 
-**예시:**
 ```sql
 fields @timestamp, @message
 ```
 
 타임스탬프와 메시지만 표시한다.
 
-**자동 필드:**
+자동으로 제공되는 필드는 세 가지다.
+
 - `@timestamp`: 로그 시간
 - `@message`: 로그 내용
 - `@logStream`: 로그 스트림 이름
 
-**JSON 파싱:**
 로그가 JSON이면 자동으로 파싱된다.
 
 ```json
@@ -99,7 +87,6 @@ JSON 필드를 직접 사용한다.
 
 조건에 맞는 로그만 선택한다.
 
-**예시:**
 ```sql
 fields @timestamp, level, @message
 | filter level = "ERROR"
@@ -107,21 +94,24 @@ fields @timestamp, level, @message
 
 ERROR 로그만 선택한다.
 
-**연산자:**
+쓸 수 있는 연산자는 이렇다.
+
 - `=`, `!=`: 같음, 다름
 - `>`, `>=`, `<`, `<=`: 비교
 - `like`: 패턴 매칭
 - `in`: 목록 포함
 - `and`, `or`, `not`: 논리 연산
 
-**복합 조건:**
+조건은 `and`로 묶을 수 있다.
+
 ```sql
 | filter level = "ERROR" and api like "/orders%"
 ```
 
 `/orders`로 시작하는 API의 에러만 선택한다.
 
-**IN 사용:**
+`in`으로 여러 값을 한 번에 비교한다.
+
 ```sql
 | filter status in [500, 502, 503]
 ```
@@ -130,19 +120,20 @@ ERROR 로그만 선택한다.
 
 집계 함수를 사용한다.
 
-**count:**
+전체 개수는 `count()`로 센다.
+
 ```sql
 | stats count() as total
 ```
 
-**count by:**
+`by`를 붙이면 그룹별로 센다.
+
 ```sql
 | stats count() as error_count by level
 ```
 
-레벨별로 개수를 센다.
+레벨별로 개수를 센다. 결과는 이렇게 나온다.
 
-**출력:**
 ```
 level   error_count
 ERROR   150
@@ -150,7 +141,8 @@ WARN    80
 INFO    1200
 ```
 
-**avg, sum, min, max:**
+`avg`, `sum`, `min`, `max`도 같은 방식으로 쓴다.
+
 ```sql
 | stats avg(duration) as avg_duration,
         max(duration) as max_duration,
@@ -160,14 +152,14 @@ INFO    1200
 
 API별로 평균, 최대 응답 시간과 요청 수를 계산한다.
 
-**bin (시간 단위 집계):**
+`bin`은 시간 단위로 집계한다.
+
 ```sql
 | stats count() as requests by bin(5m)
 ```
 
-5분 단위로 요청 수를 집계한다.
+5분 단위로 요청 수를 집계한다. 결과는 이렇게 나온다.
 
-**출력:**
 ```
 bin(5m)              requests
 2026-01-18 10:00:00  1200
@@ -205,7 +197,8 @@ bin(5m)              requests
 
 ### 에러 분석
 
-**시간대별 에러 개수:**
+시간대별 에러 개수를 본다.
+
 ```sql
 fields @timestamp, level
 | filter level = "ERROR"
@@ -214,7 +207,8 @@ fields @timestamp, level
 
 10분 단위로 에러 개수를 확인한다. 트래픽 패턴을 파악한다.
 
-**에러 타입별 분석:**
+에러 타입별로 나눠 본다.
+
 ```sql
 fields @timestamp, error_type, error_message
 | filter level = "ERROR"
@@ -224,7 +218,8 @@ fields @timestamp, error_type, error_message
 
 가장 많이 발생하는 에러 타입을 찾는다.
 
-**특정 에러 상세:**
+특정 에러의 상세 내용은 이렇게 찾는다.
+
 ```sql
 fields @timestamp, @message, stack_trace
 | filter error_type = "DatabaseConnectionError"
@@ -236,7 +231,8 @@ fields @timestamp, @message, stack_trace
 
 ### 성능 분석
 
-**느린 API Top 10:**
+느린 API 상위 10개를 찾는다.
+
 ```sql
 fields @timestamp, api, duration
 | filter duration > 1000
@@ -250,7 +246,8 @@ fields @timestamp, api, duration
 
 평균 응답 시간이 1초 이상인 API를 찾는다.
 
-**p95, p99 응답 시간:**
+p95, p99 응답 시간은 이렇게 구한다.
+
 ```sql
 fields duration
 | filter api = "/orders"
@@ -261,7 +258,8 @@ fields duration
 
 `pct` 함수로 백분위수를 계산한다.
 
-**시간대별 응답 시간:**
+시간대별 응답 시간을 본다.
+
 ```sql
 fields @timestamp, duration
 | stats avg(duration) as avg_duration by bin(15m)
@@ -271,7 +269,8 @@ fields @timestamp, duration
 
 ### 사용자 분석
 
-**사용자별 요청 수:**
+사용자별 요청 수를 센다.
+
 ```sql
 fields @timestamp, user_id, api
 | stats count() as request_count by user_id
@@ -281,7 +280,8 @@ fields @timestamp, user_id, api
 
 가장 많이 요청한 사용자 20명을 찾는다. Rate Limiting이 필요한지 확인한다.
 
-**특정 사용자 활동:**
+특정 사용자의 활동을 조회한다.
+
 ```sql
 fields @timestamp, api, status, duration
 | filter user_id = "user_123"
@@ -292,7 +292,8 @@ fields @timestamp, api, status, duration
 
 ### 비즈니스 메트릭
 
-**주문 성공/실패 비율:**
+주문 성공과 실패 건수를 센다.
+
 ```sql
 fields @timestamp, order_status
 | filter api = "/orders/create"
@@ -301,7 +302,8 @@ fields @timestamp, order_status
         sum(case order_status = "failed" when 1 else 0 end) as failed
 ```
 
-**결제 금액 집계:**
+결제 금액을 집계한다.
+
 ```sql
 fields @timestamp, amount, payment_method
 | filter event_type = "payment_completed"
@@ -316,15 +318,14 @@ fields @timestamp, amount, payment_method
 
 ### 정규 표현식
 
-**parse:**
-로그에서 패턴을 추출한다.
+`parse`는 로그에서 패턴을 추출한다. 대상 로그는 이렇다.
 
-**예시 로그:**
 ```
 2026-01-18 10:30:45 [ERROR] Failed to connect to database: timeout
 ```
 
-**쿼리:**
+쿼리는 이렇게 쓴다.
+
 ```sql
 fields @message
 | parse @message /(?<timestamp>\S+\s+\S+)\s+\[(?<level>\w+)\]\s+(?<message>.*)/
@@ -353,8 +354,7 @@ fields @logStream, @message
 
 ### 서브쿼리
 
-**예시:**
-평균보다 느린 요청을 찾는다.
+평균보다 느린 요청을 찾는 경우를 보자.
 
 ```sql
 fields @timestamp, duration, api
@@ -365,16 +365,16 @@ fields @timestamp, duration, api
 
 (실제로는 서브쿼리가 제한적. 두 번의 쿼리로 나눈다.)
 
-**방법 1:**
+한 쿼리로는 안 되므로 두 번에 나눠 실행한다. 먼저 평균을 구한다.
+
 ```sql
 -- 1단계: 평균 계산
 fields duration
 | stats avg(duration) as avg_duration
 ```
 
-평균: 500ms
+평균이 500ms로 나왔다면 그 값 이상인 요청을 찾는다.
 
-**2단계: 평균 이상 찾기**
 ```sql
 fields @timestamp, duration, api
 | filter duration > 500
@@ -386,7 +386,8 @@ fields @timestamp, duration, api
 
 쿼리 결과를 그래프로 표시한다.
 
-**Line Graph:**
+선 그래프는 이렇게 만든다.
+
 ```sql
 fields @timestamp
 | stats count() as requests by bin(5m)
@@ -394,7 +395,8 @@ fields @timestamp
 
 시간별 요청 수를 선 그래프로 표시한다.
 
-**Bar Chart:**
+막대 그래프는 이렇게 만든다.
+
 ```sql
 fields api
 | stats count() as requests by api
@@ -404,7 +406,8 @@ fields api
 
 API별 요청 수를 막대 그래프로 표시한다.
 
-**Pie Chart:**
+파이 차트는 이렇게 만든다.
+
 ```sql
 fields status
 | stats count() as count by status
@@ -414,17 +417,16 @@ fields status
 
 ### 대시보드 추가
 
-**쿼리 저장:**
+쿼리를 대시보드에 추가하는 순서다.
+
 1. 쿼리 실행
 2. "Actions" → "Add to dashboard"
 3. 대시보드 선택 또는 생성
 4. 위젯 타입 선택 (Line, Bar, Table)
 5. 추가
 
-**대시보드:**
-여러 쿼리를 한 화면에 표시한다.
+대시보드는 여러 쿼리를 한 화면에 표시한다. 구성 예시는 이렇다.
 
-**예시 대시보드:**
 - 요청 수 (시간별)
 - 에러율 (시간별)
 - 평균 응답 시간 (API별)
@@ -434,13 +436,15 @@ fields status
 
 자주 사용하는 쿼리를 저장한다.
 
-**저장:**
+저장 순서다.
+
 1. 쿼리 작성
 2. "Actions" → "Save query"
 3. 이름 입력: "Error count by time"
 4. 저장
 
-**사용:**
+저장한 쿼리를 쓰는 순서다.
+
 1. "Saved queries" 선택
 2. 쿼리 클릭
 3. 실행
@@ -451,15 +455,14 @@ fields status
 
 ### 쿼리 비용
 
-**가격:**
-$0.005 per GB of data scanned
+쿼리 가격은 $0.005 per GB of data scanned다. 예를 들면 이렇다.
 
-**예시:**
 - 로그 그룹 크기: 10 GB
 - 쿼리 실행: 1회
 - 비용: 10 × $0.005 = $0.05
 
-**시간 범위 제한:**
+시간 범위에 따라 스캔량이 달라진다.
+
 - 1시간 쿼리: 1 GB 스캔
 - 24시간 쿼리: 24 GB 스캔
 
@@ -467,17 +470,14 @@ $0.005 per GB of data scanned
 
 ### 로그 저장 비용
 
-**Standard:**
-$0.50/GB-월
-
-**Infrequent Access:**
-$0.03/GB-월 (저장), $0.005/GB (검색)
+Standard는 $0.50/GB-월이다. Infrequent Access는 $0.03/GB-월(저장), $0.005/GB(검색)다.
 
 자주 검색하지 않는 로그는 IA로 이동한다.
 
 ### 최적화
 
-**필터 먼저:**
+필터를 먼저 건다. 순서를 바꾸면 스캔량이 달라진다.
+
 ```sql
 -- Bad: 모든 데이터 스캔 후 필터
 fields @timestamp, level
@@ -485,9 +485,8 @@ fields @timestamp, level
 | filter level = "ERROR"
 ```
 
-10 GB를 모두 스캔한다.
+10 GB를 모두 스캔한다. 필터를 앞에 두면 이렇게 된다.
 
-**Good:**
 ```sql
 fields @timestamp, level
 | filter level = "ERROR"
@@ -496,7 +495,8 @@ fields @timestamp, level
 
 ERROR 로그만 스캔한다. 1 GB만 스캔. **90% 절감**
 
-**로그 보관 기간:**
+로그 보관 기간은 등급별로 나눈다.
+
 - 중요 로그: 90일
 - 일반 로그: 30일
 - 디버그 로그: 7일
@@ -509,12 +509,14 @@ ERROR 로그만 스캔한다. 1 GB만 스캔. **90% 절감**
 
 JSON 로그는 자동으로 파싱된다. 별도 설정 불필요.
 
-**로그:**
+로그는 이렇다.
+
 ```json
 {"timestamp":"2026-01-18T10:30:00Z","level":"INFO","api":"/orders","duration":150,"user":"user_123"}
 ```
 
-**쿼리:**
+쿼리는 이렇게 쓴다.
+
 ```sql
 fields @timestamp, level, api, duration, user
 ```
@@ -525,12 +527,14 @@ JSON 키가 자동으로 필드가 된다.
 
 점(`.`) 표기법을 사용한다.
 
-**로그:**
+로그는 이렇다.
+
 ```json
 {"user":{"id":"user_123","name":"김철수"},"order":{"id":"order_456","amount":100}}
 ```
 
-**쿼리:**
+쿼리는 이렇게 쓴다.
+
 ```sql
 fields @timestamp, user.id, user.name, order.id, order.amount
 ```
@@ -539,7 +543,8 @@ fields @timestamp, user.id, user.name, order.id, order.amount
 
 자주 사용하는 패턴을 템플릿으로 만든다.
 
-**에러 분석 템플릿:**
+에러 분석 템플릿이다.
+
 ```sql
 fields @timestamp, error_type, error_message
 | filter level = "ERROR"
@@ -552,23 +557,27 @@ fields @timestamp, error_type, error_message
 
 ## CloudWatch Logs Insights vs Athena
 
-**Logs Insights:**
+Logs Insights의 특징이다.
+
 - 실시간 쿼리
 - 빠른 응답 (초 단위)
 - CloudWatch Logs 전용
 - 간단한 쿼리 언어
 
-**Athena:**
+Athena의 특징이다.
+
 - S3 데이터 쿼리
 - 복잡한 SQL 지원
 - 대용량 데이터 (TB)
 - JOIN, 서브쿼리 지원
 
-**선택:**
+용도에 따라 고른다.
+
 - 실시간 로그 분석: Logs Insights
 - 장기 로그 분석: S3 + Athena
 
-**함께 사용:**
+둘을 함께 쓰는 경우의 기간 구분이다.
+
 - 최근 7일: CloudWatch Logs (Insights로 쿼리)
 - 7일 이상: S3로 내보내기 (Athena로 쿼리)
 
