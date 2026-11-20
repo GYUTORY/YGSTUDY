@@ -1,7 +1,7 @@
 ---
 title: SSM Parameter Store
 tags: [aws, encryption, devops, iam]
-updated: 2026-06-21
+updated: 2026-11-20
 ---
 
 # SSM Parameter Store
@@ -38,6 +38,70 @@ aws ssm update-service-setting \
   --setting-id /ssm/parameter-store/default-parameter-tier \
   --setting-value Intelligent-Tiering
 ```
+
+---
+
+## 한도에 걸렸을 때 나타나는 증상
+
+Standard의 한도는 값 4KB와 계정·리전당 10,000개다. 한도에 닿으면 서비스가 죽는 게 아니라 **쓰기만 실패한다.** 이미 있는 파라미터는 계속 읽히니 앱은 멀쩡하고, 배포 파이프라인이나 IaC가 먼저 깨진다.
+
+| 걸린 한도 | 나타나는 증상 | 앱 영향 |
+|---|---|---|
+| 값 4KB 초과 (Standard) | `put-parameter`가 거부된다. 덮어쓰기라면 이전 버전이 그대로 남는다 | 옛 값을 계속 읽는다. 값을 바꿨다고 믿고 배포하면 설정이 안 바뀐 채 나간다 |
+| 10,000개 도달 (Standard) | 새 이름 생성이 `ParameterLimitExceeded`로 실패한다 | 신규 서비스·신규 환경 생성만 막힌다 |
+| 값 8KB 초과 (Advanced) | 같은 방식으로 거부된다. 티어를 더 올릴 곳이 없다 | S3 경로 참조로 바꿔야 한다 |
+
+값 크기 쪽이 더 늦게 발견된다. 파이프라인이 `put-parameter` 실패를 무시하면(`|| true`) 성공한 줄 알고 넘어가기 때문이다. 인증서 체인을 갱신하다 4KB를 넘겨서 옛 인증서가 계속 나가는 사고가 이 경로로 난다.
+
+개수 한도는 Intelligent-Tiering으로 두면 Standard가 가득 찼을 때 새 파라미터를 Advanced로 만들어 주니 막히지 않는다. 대신 그 시점부터 파라미터당 월 $0.05가 붙는다. 막히는 쪽이 나은지 과금이 나은지는 팀이 정할 일이고, 어느 쪽이든 안 쓰는 파라미터를 주기적으로 지우는 편이 싸다.
+
+### 빈 문자열은 넣을 수 없다
+
+파라미터 값은 비어 있을 수 없다. AWS CLI는 `--value ""`를 로컬에서 막지 않고 서버까지 보낸다(botocore 입력 모델에 `Value`의 최소 길이 제약이 없다). 거부는 서비스가 한다. "값 없음"이 의미 있는 설정, 예를 들어 프록시 주소를 비워서 프록시를 끄는 경우에는 센티널 값을 정해둔다.
+
+```bash
+# 비어 있음을 뜻하는 값으로 "-" 를 약속하고 앱에서 빈 문자열로 바꿔 읽는다
+aws ssm put-parameter --name "/app/prod/http/proxy" --value "-" --type String
+```
+
+```javascript
+const proxy = config["/app/prod/http/proxy"];
+const effectiveProxy = proxy === "-" ? "" : proxy;
+```
+
+값에 `{{ssm:다른이름}}` 처럼 이중 중괄호로 다른 파라미터를 참조하는 것도 안 된다. API 문서에 파라미터 값 안에서 다른 파라미터를 참조하거나 중첩할 수 없다고 적혀 있다.
+
+---
+
+## 파라미터 정책 (Advanced 전용)
+
+만료와 변경 알림은 Advanced에만 붙는다. Standard 파라미터에 `--policies`를 주려면 `--tier Advanced`를 같이 줘야 하고, 기본 티어가 Intelligent-Tiering이면 정책을 붙이는 순간 자동으로 Advanced가 된다. 정책은 세 종류다.
+
+| 정책 | 하는 일 |
+|---|---|
+| `Expiration` | 지정한 시각이 되면 파라미터를 **삭제한다** |
+| `ExpirationNotification` | 만료 N일(또는 N시간) 전에 EventBridge 이벤트를 낸다 |
+| `NoChangeNotification` | 지정한 기간 동안 값이 안 바뀌면 이벤트를 낸다 |
+
+```bash
+aws ssm put-parameter \
+  --name "/app/prod/payment/api-key" \
+  --value "sk_live_xxxx" \
+  --type SecureString \
+  --tier Advanced \
+  --overwrite \
+  --policies '[
+    {"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2027-03-31T00:00:00.000Z"}},
+    {"Type":"ExpirationNotification","Version":"1.0","Attributes":{"Before":"14","Unit":"Days"}},
+    {"Type":"NoChangeNotification","Version":"1.0","Attributes":{"After":"90","Unit":"Days"}}
+  ]'
+```
+
+`Expiration`은 알림이 아니라 삭제다. 만료 시각에 파라미터가 사라지고 이후 읽기는 `ParameterNotFound`가 된다. 임시 토큰처럼 진짜 지워져야 하는 값에는 맞지만, 외부 API 키처럼 만료돼도 앱이 읽어야 하는 값에 `Expiration`만 걸어두면 만료일에 장애가 난다. 알림 없이 쓰지 않는다. `ExpirationNotification`을 짝으로 붙이고, 이벤트를 받을 EventBridge 규칙을 먼저 만들어 둔다.
+
+`NoChangeNotification`은 로테이션을 사람이 하는 비밀값에서 쓸모가 있다. Parameter Store에는 자동 로테이션이 없으니 "90일째 안 바뀌었다"는 이벤트를 받아 담당자에게 알리는 식으로 로테이션 누락을 잡는다.
+
+한 파라미터에 정책은 최대 10개고, 같은 종류를 둘 넣으면(`Expiration` 두 개 등) `IncompatiblePolicyException`이 난다. 값을 덮어써도 `Expiration` 시각은 그대로다. 만료를 늦추려면 정책을 다시 넣어야 한다.
 
 ---
 
@@ -88,6 +152,80 @@ aws ssm get-parameter \
   --query "Parameter.Value" --output text
 ```
 
+SecureString 읽기는 호출자 권한이 두 번 평가된다. SSM이 `ssm:GetParameter`를 보고, 통과하면 SSM이 호출자 자격으로 KMS에 `Decrypt`를 요청해 `kms:Decrypt`를 한 번 더 본다. 도식은 고객 관리형 키 기준이고, 어느 단계에서 막히느냐에 따라 에러 문구가 다르다.
+
+```mermaid
+sequenceDiagram
+    participant App as 앱
+    participant Role as IAM 역할
+    participant SSM as Parameter Store
+    participant KMS as KMS 키
+
+    App->>SSM: GetParameter (WithDecryption=true)
+    SSM->>Role: ssm:GetParameter 평가
+    alt ssm:GetParameter 없음
+        SSM-->>App: AccessDeniedException (ssm:GetParameter 거부)
+    else 통과
+        SSM->>KMS: Decrypt 요청 (호출자 자격)
+        KMS->>Role: kms:Decrypt 평가 (IAM 정책 + 키 정책)
+        alt kms:Decrypt 없음
+            KMS-->>SSM: 거부
+            SSM-->>App: AccessDeniedException (kms:Decrypt 거부)
+        else 통과
+            KMS-->>SSM: 평문 데이터 키
+            SSM-->>App: 복호화된 값
+        end
+    end
+```
+
+어느 쪽에서 막혔는지는 에러 메시지에 들어 있는 거부된 액션(`ssm:GetParameter`인지 `kms:Decrypt`인지)으로 가린다. 에러를 로그에 찍을 때 메시지를 자르지 않아야 바로 보인다. `--with-decryption` 없이 읽으면 KMS 호출 자체가 없으니 암호문이 그대로 나온다. 이 상태로 읽혀서 "읽기는 되는데 값이 이상하다"로 시간을 쓰는 경우가 있다.
+
+### aws/ssm 기본 키와 고객 관리형 키
+
+`--key-id`를 생략하면 AWS 관리형 키 `alias/aws/ssm`을 쓴다. 두 선택은 비용보다 **키 정책을 내가 고칠 수 있느냐**에서 갈린다.
+
+| 항목 | `aws/ssm` (AWS 관리형) | 고객 관리형 키 |
+|---|---|---|
+| 키 비용 | 없음 | 키당 월 $1 안팎 + KMS 요청 과금 |
+| 키 정책 수정 | 불가 | 가능 |
+| 다른 계정 principal의 복호화 | 불가 | 키 정책에 상대 계정을 허용하면 가능 |
+| 키 단위 권한 분리 | 불가 | 키별 정책·grant로 가능 |
+| 삭제·비활성화 | 불가 | 가능. 비활성화하면 그 키로 만든 SecureString이 전부 안 읽힌다 |
+
+교차 계정이 걸리면 사실상 고객 관리형 키만 가능하다. 계정 B의 역할이 계정 A의 SecureString을 읽으려면 세 가지가 맞아야 한다.
+
+```mermaid
+graph LR
+    B["계정 B 역할"] -->|"1. 파라미터 ARN으로 읽기"| P["계정 A SecureString"]
+    P -->|"2. 암호화에 쓴 키"| K["계정 A 고객 관리형 KMS 키"]
+    K -->|"3. 키 정책이 계정 B 허용"| B
+```
+
+1. 파라미터 자체를 공유해야 한다. 공유는 Advanced 티어만 되고(Resource Access Manager 사용), 읽는 쪽은 짧은 이름이 아니라 전체 ARN으로 요청한다.
+2. 계정 A의 키 정책이 계정 B 역할(또는 계정)에 `kms:Decrypt`를 허용해야 한다.
+3. 계정 B 역할의 IAM 정책에도 그 키 ARN에 대한 `kms:Decrypt`가 있어야 한다.
+
+`aws/ssm`으로 만든 SecureString은 2번을 만들 방법이 없다. 이미 `aws/ssm`으로 수백 개를 만들어 놓고 교차 계정이 필요해진 경우, 값을 읽어서 고객 관리형 키로 새로 만드는 수밖에 없다. 그래서 다계정 구조가 예상되면 처음부터 고객 관리형 키를 지정한다.
+
+### 같은 이름의 타입은 바꿀 수 없다
+
+String으로 만든 파라미터를 SecureString으로, 반대로 SecureString을 String으로 `--overwrite`해서 바꾸는 건 안 된다. API 오류 목록에 `HierarchyTypeMismatchException`이 있고 설명이 "타입 변경은 지원하지 않는다, 새 이름으로 만들라"다. 비밀번호를 처음에 String으로 넣었다가 뒤늦게 SecureString으로 바꾸려는 경우가 흔하다.
+
+같은 이름을 유지해야 하면 삭제 후 재생성이다.
+
+```bash
+# 값을 파일이 아니라 셸 변수에만 둔다
+PW=$(aws ssm get-parameter --name "/app/prod/db/password" --with-decryption \
+  --query "Parameter.Value" --output text)
+
+aws ssm delete-parameter --name "/app/prod/db/password"
+aws ssm put-parameter --name "/app/prod/db/password" \
+  --value "$PW" --type SecureString --key-id "alias/app-prod-secrets"
+unset PW
+```
+
+삭제하면 **버전 이력과 라벨이 전부 사라진다.** 1번부터 다시 시작하고, `production` 라벨도 새로 달아야 한다. 삭제와 재생성 사이에는 그 이름이 없어서 읽는 쪽이 `ParameterNotFound`를 받는다. 이 틈을 피하려면 새 이름(`/app/prod/db/password-v2`)으로 SecureString을 만들고, 앱의 참조를 옮긴 뒤 옛 이름을 지운다. 이름이 코드에 박혀 있으면 이 방법도 배포가 한 번 필요하다.
+
 ---
 
 ## 계층 경로 설계
@@ -103,6 +241,28 @@ aws ssm get-parameter \
 /app/staging/db/host
 /payment/prod/stripe/secret-key
 ```
+
+같은 경로가 두 군데에서 경계로 쓰인다. IAM 정책의 리소스 ARN 와일드카드와 `GetParametersByPath`의 `--path`다. 도식에서 `/app/prod` 노드가 두 역할을 동시에 한다.
+
+```mermaid
+graph TD
+    ROOT["/"] --> APP["/app"]
+    ROOT --> PAY["/payment"]
+    APP --> PROD["/app/prod"]
+    APP --> STG["/app/staging"]
+    PROD --> DB["/app/prod/db"]
+    PROD --> REDIS["/app/prod/redis"]
+    DB --> DBH["host - String"]
+    DB --> DBP["password - SecureString"]
+    REDIS --> RH["host - String"]
+    STG --> SDB["/app/staging/db"]
+    PAY --> PPROD["/payment/prod"]
+
+    IAM["IAM 리소스 parameter/app/prod/*"] -.->|"허용 범위"| PROD
+    PATH["GetParametersByPath --path /app/prod/ --recursive"] -.->|"조회 범위"| PROD
+```
+
+`/app/prod` 아래만 허용하는 정책이면 `/app/staging`과 `/payment`는 같은 계정에 있어도 읽히지 않는다. 같은 경로를 `--path`로 주면 그 아래 전부가 한 번에 내려온다.
 
 이렇게 두면 `GetParametersByPath`로 prefix 하나를 통째로 읽을 수 있다. 애플리케이션이 부팅할 때 `/app/prod/`만 재귀로 긁어오면 그 환경 설정이 전부 들어온다.
 
@@ -131,7 +291,7 @@ aws ssm get-parameters-by-path \
 | 크로스 리전 복제 | 없음 (직접 복사) | 기본 제공 |
 | 값 크기 | 4KB / 8KB | 64KB |
 
-정리하면, **자동 로테이션이 필요 없고 비용을 아끼려면 Parameter Store**다. RDS 자격증명을 주기적으로 자동 교체해야 한다거나, 로테이션 Lambda를 직접 짜기 싫으면 Secrets Manager를 쓴다.
+자동 로테이션이 필요 없고 비용을 아끼려면 **Parameter Store**다. RDS 자격증명을 주기적으로 자동 교체해야 한다거나, 로테이션 Lambda를 직접 짜기 싫으면 Secrets Manager를 쓴다.
 
 비밀 100개를 Secrets Manager에 두면 월 $40이지만 Parameter Store SecureString이면 0원이다(KMS 기본 키 사용 시). 스타트업 초기엔 이 차이가 크다. 그래서 로테이션이 강제되는 DB 비밀번호만 Secrets Manager에 두고 나머지 API 키·설정은 Parameter Store에 두는 식으로 섞어 쓰는 경우가 많다.
 
@@ -164,6 +324,42 @@ ECS에서 컨테이너 환경변수로 파라미터를 넣을 때 `secrets` 필�
 ```
 
 `valueFrom`은 전체 ARN이나 파라미터 이름 둘 다 받는다. 여기서 두 가지 IAM 권한이 필요하다. 태스크 실행 역할(`executionRole`)에 `ssm:GetParameters`가 있어야 하고, SecureString이면 KMS `kms:Decrypt`도 있어야 한다. 둘 중 하나라도 빠지면 태스크가 `ResourceInitializationError`로 죽는다. 컨테이너 로그도 안 남고 태스크가 바로 멈추니 처음엔 원인 찾기가 까다롭다. 이 에러를 보면 실행 역할 권한부터 확인한다.
+
+주입은 컨테이너가 뜨기 전에 ECS 에이전트가 한다. 앱 코드는 아직 실행되지 않은 시점이고, 쓰는 자격은 태스크 역할(`taskRole`)이 아니라 실행 역할이다. 도식에서 실패 지점이 세 군데로 갈린다.
+
+```mermaid
+sequenceDiagram
+    participant ECS as ECS 에이전트
+    participant Role as executionRole
+    participant SSM as Parameter Store
+    participant KMS as KMS
+    participant C as 컨테이너
+
+    ECS->>Role: executionRole 자격 획득
+    ECS->>SSM: GetParameters (secrets의 valueFrom 목록)
+    alt SSM 엔드포인트로 가는 경로 없음
+        SSM-->>ECS: 응답 없음 (타임아웃)
+        ECS->>ECS: 태스크 STOPPED, ResourceInitializationError
+    else 도달함
+        SSM->>Role: ssm:GetParameters 평가
+        alt 권한 없음 또는 이름·리전 불일치
+            SSM-->>ECS: AccessDenied 또는 ParameterNotFound
+            ECS->>ECS: 태스크 STOPPED, ResourceInitializationError
+        else 통과 (SecureString이면 계속)
+            SSM->>KMS: Decrypt
+            alt kms:Decrypt 없음
+                KMS-->>SSM: 거부
+                SSM-->>ECS: AccessDenied
+                ECS->>ECS: 태스크 STOPPED, ResourceInitializationError
+            else 통과
+                SSM-->>ECS: 복호화된 값
+                ECS->>C: 환경변수로 주입하고 컨테이너 시작
+            end
+        end
+    end
+```
+
+세 가지 중 네트워크가 가장 늦게 의심된다. 프라이빗 서브넷의 Fargate 태스크는 NAT 게이트웨이나 `ssm` 인터페이스 VPC 엔드포인트가 없으면 SSM에 닿지 못하고 같은 에러로 멈춘다. 이 경우 IAM은 완벽하다. 이벤트 메시지에 `i/o timeout`이 보이면 권한이 아니라 경로 문제다. 값은 태스크 시작 시점에 한 번 읽혀 환경변수로 굳기 때문에, 파라미터를 바꿔도 이미 떠 있는 태스크에는 반영되지 않는다. 새 값은 태스크를 다시 띄워야 들어간다.
 
 ECS 비밀 주입의 세부 동작은 [ECS Secrets 관리](../Containers/ECS_Secrets_관리.md)에 더 있다.
 
@@ -210,6 +406,42 @@ export const handler = async (event) => {
 
 Lambda Extension을 쓰면 익스텐션이 파라미터를 캐시하고 `http://localhost:2773`로 로컬 HTTP 엔드포인트를 열어준다. 코드에서 SDK 대신 이 로컬 주소로 요청하면 캐시된 값을 받는다. 캐시 TTL은 환경변수로 조절한다.
 
+세 방식을 한 장으로 놓고 보면 SSM API를 치는 횟수가 갈린다. 도식의 오른쪽 끝(`SSM API`)에 닿는 빈도를 보라.
+
+```mermaid
+graph LR
+    subgraph S1["SDK 직접 호출"]
+        A1["핸들러 실행"] --> A2["GetParameters"] --> A3["SSM API"]
+    end
+    subgraph S2["모듈 스코프 캐시"]
+        B1["콜드 스타트"] --> B2["GetParameters 1회"] --> B3["변수에 보관"]
+        B4["웜 호출"] --> B3
+    end
+    subgraph S3["Lambda Extension"]
+        C1["핸들러 실행"] --> C2["localhost:2773"] --> C3["익스텐션 캐시 TTL"]
+        C3 -->|"만료 시에만"| C4["SSM API"]
+    end
+```
+
+| 방식 | SSM API 호출 | 값이 바뀌었을 때 | 코드 부담 |
+|---|---|---|---|
+| SDK 직접 호출 | 호출 1회당 1번 | 즉시 반영 | 낮음, 대신 throttling에 가장 약함 |
+| 모듈 스코프 캐시 | 실행 환경당 1번 | 그 실행 환경이 죽을 때까지 옛 값 | TTL을 직접 구현해야 한다 |
+| Lambda Extension | TTL당 1번 | TTL 만료 후 반영 | 레이어 추가, HTTP 호출 |
+
+Extension은 요청에 세션 토큰 헤더를 요구해서 `fetch`로 부를 때 `AWS_SESSION_TOKEN`을 넣어야 한다.
+
+```javascript
+const name = encodeURIComponent("/app/prod/db/password");
+const res = await fetch(
+  `http://localhost:2773/systemsmanager/parameters/get?name=${name}&withDecryption=true`,
+  { headers: { "X-Aws-Parameters-Secrets-Token": process.env.AWS_SESSION_TOKEN } }
+);
+const { Parameter } = await res.json();
+```
+
+모듈 스코프 캐시는 동시성이 높으면 실행 환경 수만큼 읽는다. 동시 실행 500개가 뜨는 순간 콜드 스타트가 500번 SSM을 친다. 이 구간에서 throttling이 가장 잘 난다.
+
 ---
 
 ## 버전 관리와 라벨
@@ -241,11 +473,35 @@ aws ssm get-parameter \
 
 새 값을 넣고 검증한 뒤 라벨만 옮기면 애플리케이션 코드 변경 없이 전환되고, 문제가 생기면 라벨을 이전 버전으로 다시 옮겨 즉시 롤백한다. 라벨 하나는 동시에 한 버전만 가리키므로 옮기면 자동으로 이전 버전에서 떨어진다.
 
+버전은 최근 100개까지만 남는다. 101번째를 만들면 가장 오래된 버전이 지워지는데, 라벨이 붙은 버전은 지워지지 않는다. 라벨 붙은 버전이 100개를 채운 상태에서 값을 또 바꾸려 하면 `ParameterMaxVersionLimitExceeded`로 실패하니, 안 쓰는 라벨은 `unlabel-parameter-version`으로 떼어 둔다.
+
 ---
 
 ## Throttling과 캐싱
 
 기본 throughput 한도가 낮다. `GetParameters`는 기본 40 TPS다. 인스턴스 100대가 부팅하면서 동시에 파라미터를 긁으면 `ThrottlingException`이 터진다. 오토스케일링으로 한꺼번에 뜰 때 자주 겪는다.
+
+도식은 동시 부팅이 어떻게 장애를 키우는지 보여준다. 실패한 인스턴스가 교체되면서 부팅이 또 몰리는 되먹임이 핵심이다.
+
+```mermaid
+flowchart TD
+    S["오토스케일링으로 인스턴스 N대 동시 부팅"] --> R["각 인스턴스가 GetParameters 호출"]
+    R --> Q{"초당 호출이 한도 40 TPS 이하인가"}
+    Q -->|"예"| OK["설정 로드, 정상 기동"]
+    Q -->|"아니오"| T["ThrottlingException"]
+    T --> RT["SDK 재시도 - 지수 백오프"]
+    RT --> Q2{"재시도 횟수 안에 성공했는가"}
+    Q2 -->|"예"| OK
+    Q2 -->|"아니오"| F["기동 실패, 헬스체크 실패"]
+    F --> RP["인스턴스 교체"]
+    RP --> S
+
+    C1["기동 시 1회 읽고 메모리에 캐시"] -.->|"호출 횟수 감소"| R
+    C2["higher throughput 활성화"] -.->|"한도 상향"| Q
+    C3["기동 지연 jitter"] -.->|"호출 시점 분산"| R
+```
+
+점선이 대응이다. 캐시는 호출 횟수를, higher throughput은 한도를, jitter는 시점을 건드린다. 세 가지는 서로 다른 지점을 막으니 섞어 쓸 수 있다.
 
 대응은 세 가지다.
 
@@ -301,4 +557,4 @@ SecureString을 읽는 역할이면 KMS `kms:Decrypt`를 빼먹지 않는다. �
 
 ## 정리
 
-설정과 비밀값은 Parameter Store에 모으고, 안 민감한 값은 String, 비밀값은 SecureString으로 둔다. 경로는 `/{app}/{env}/{group}/{key}` 형태로 env를 앞쪽에 두어 IAM과 일괄 조회의 경계로 삼는다. 자동 로테이션이 필요하면 그 비밀만 Secrets Manager로 보내고 나머지는 Parameter Store에 둬서 비용을 0원으로 유지한다. 읽기는 기동 시 한 번 캐시해서 40 TPS throttling을 피하고, 배포 전환은 라벨로 처리해 롤백을 빠르게 한다.
+설정과 비밀값은 Parameter Store에 모으고, 안 민감한 값은 String, 비밀값은 SecureString으로 둔다. 경로는 `/{app}/{env}/{group}/{key}` 형태로 env를 앞쪽에 두어 IAM과 일괄 조회의 경계로 삼는다. 자동 로테이션이 필요하면 그 비밀만 Secrets Manager로 보내고 나머지는 Parameter Store에 둬서 비용을 0원으로 유지한다. 읽기는 기동 시 한 번 캐시해서 40 TPS throttling을 피하고, 배포 전환은 라벨로 처리해 롤백을 빠르게 한다. 쓰기 쪽 제약은 미리 알아둔다. Standard의 4KB·10,000개, 빈 값 불가, 타입 변경 불가, `aws/ssm` 키의 교차 계정 불가는 모두 운영 중에 발견하면 값을 지우고 다시 만들어야 하는 종류다.
