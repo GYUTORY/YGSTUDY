@@ -1,7 +1,7 @@
 ---
 title: Linux 배포판 계열
 tags: [linux, devops]
-updated: 2025-12-08
+updated: 2026-11-20
 ---
 
 # Linux 배포판 계열
@@ -28,7 +28,7 @@ Linux 배포판은 패키지 관리자, 설정 파일 위치, 릴리스 주기�
 
 ### 패키지 관리자 명령어 비교
 
-**Red Hat 계열:**
+#### Red Hat 계열 명령어
 ```bash
 # 설치
 yum install package      # RHEL/CentOS 7
@@ -47,7 +47,7 @@ yum provides /usr/bin/command
 dnf provides /usr/bin/command
 ```
 
-**Debian 계열:**
+#### Debian 계열 명령어
 ```bash
 # 설치
 apt install package
@@ -72,13 +72,13 @@ dpkg -S /usr/bin/command
 
 상용 엔터프라이즈 배포판.
 
-**특징:**
+#### RHEL 특징
 - 10년 지원 (EUS 포함 시 13년)
 - 상용 라이선스 필요 (개발/테스트 무료)
 - 패키지 관리자: `yum` (7), `dnf` (8+)
 - 설정 파일: `/etc/sysconfig/`, `/etc/systemd/`
 
-**실무:**
+#### RHEL 사용 시 자주 하는 설정
 - `subscription-manager register`로 라이선스 등록
 - `yum-config-manager --enable rhel-*-optional-rpms`로 옵션 리포지토리 활성화
 - RHEL 7과 8+는 네트워크 설정 방식이 다름
@@ -87,18 +87,18 @@ dpkg -S /usr/bin/command
 
 RHEL 소스 재컴파일 무료 배포판.
 
-**CentOS 7:**
+#### CentOS 7
 - RHEL 7과 100% 호환
 - 2024년 6월 30일 EOL
 - `yum` 사용
 
-**CentOS Stream:**
+#### CentOS Stream
 - RHEL 업스트림 버전
 - 롤링 릴리스
 - 프로덕션 부적합
 - `dnf` 사용
 
-**실무:**
+#### CentOS 이후 선택
 - CentOS 7은 마이그레이션 필요
 - Rocky Linux나 AlmaLinux로 이전 권장
 
@@ -106,12 +106,12 @@ RHEL 소스 재컴파일 무료 배포판.
 
 둘 다 RHEL 호환 무료 배포판.
 
-**공통점:**
+#### Rocky와 AlmaLinux 공통점
 - RHEL과 바이너리 호환
 - `dnf` 패키지 관리자
 - RHEL 8/9 지원
 
-**차이점:**
+#### Rocky와 AlmaLinux 차이점
 
 | 항목 | Rocky Linux | AlmaLinux |
 |------|------------|-----------|
@@ -119,7 +119,7 @@ RHEL 소스 재컴파일 무료 배포판.
 | 지원 | 커뮤니티 | 기업 지원 가능 |
 | 마이그레이션 | `migrate2rocky` | `almalinux-deploy` |
 
-**실무:**
+#### Rocky와 AlmaLinux 선택
 - 둘 다 CentOS 대체로 적합
 - 기업 지원 필요 시 AlmaLinux, 커뮤니티 선호 시 Rocky Linux
 
@@ -127,19 +127,19 @@ RHEL 소스 재컴파일 무료 배포판.
 
 Red Hat 후원 커뮤니티 배포판. 최신 기술 도입.
 
-**특징:**
+#### Fedora 특징
 - 6개월 릴리스 주기
 - 최신 패키지
 - `dnf` 사용
 - RHEL 테스트베드 역할
 
-**실무:**
+#### Fedora 용도
 - 프로덕션 부적합
 - 개발 환경이나 최신 기능 테스트용
 
 ### Red Hat 계열 내 차이점
 
-**RHEL 7 vs 8+:**
+#### RHEL 7과 8+ 차이
 
 | 항목 | RHEL 7 | RHEL 8+ |
 |------|--------|---------|
@@ -149,7 +149,7 @@ Red Hat 후원 커뮤니티 배포판. 최신 기술 도입.
 | OpenSSL | 1.0.2 | 1.1.1 |
 | 네트워크 설정 파일 | `/etc/sysconfig/network-scripts/ifcfg-*` | NetworkManager 설정 |
 
-**네트워크 설정 예시:**
+#### RHEL 네트워크 설정 예시
 
 RHEL 7:
 ```bash
@@ -175,7 +175,7 @@ nmcli connection up eth0
 
 ### Debian vs Ubuntu
 
-**차이점:**
+#### Debian과 Ubuntu 차이점
 
 | 항목 | Debian | Ubuntu |
 |------|--------|--------|
@@ -186,17 +186,17 @@ nmcli connection up eth0
 | 네트워크 설정 | `/etc/network/interfaces` | `/etc/netplan/` (18+) |
 | 초기화 | `systemd` (8+) | `systemd` |
 
-**Debian 특징:**
+#### Debian의 성격
 - 완전 오픈소스 철학
 - 안정성 우선
 - 패키지 검증 엄격
 
-**Ubuntu 특징:**
+#### Ubuntu의 성격
 - 사용자 친화적
 - 클라우드 환경에서 널리 사용
 - `snap` 패키지 시스템
 
-**실무:**
+#### Debian과 Ubuntu 선택
 - Debian: 안정성 중시, 오픈소스 철학
 - Ubuntu: 최신 기능 필요, 클라우드 환경
 
@@ -204,18 +204,18 @@ nmcli connection up eth0
 
 커뮤니티 주도 배포판.
 
-**특징:**
+#### Debian 특징
 - 2~3년 릴리스 주기
 - 완전 오픈소스
 - 패키지 관리자: `apt`, `apt-get`, `dpkg`
 - 설정 파일: `/etc/apt/`, `/etc/default/`
 
-**릴리스:**
+#### Debian 릴리스
 - Debian 12: Bookworm
 - Debian 11: Bullseye
 - Debian 10: Buster
 
-**실무:**
+#### Debian 사용 시 자주 하는 작업
 - `/etc/apt/sources.list`로 리포지토리 관리
 - `apt update && apt upgrade`로 업데이트
 - `apt`는 `apt-get`의 사용자 친화적 래퍼
@@ -224,22 +224,22 @@ nmcli connection up eth0
 
 Debian 기반, Canonical 개발.
 
-**특징:**
+#### Ubuntu 특징
 - 6개월 정기 릴리스, 2년마다 LTS
 - LTS 5년 지원
 - 패키지 관리자: `apt`, `apt-get`, `dpkg`
 - `snap` 패키지 시스템
 
-**버전:**
+#### Ubuntu 버전
 - Ubuntu 22.04 LTS: Jammy Jellyfish
 - Ubuntu 20.04 LTS: Focal Fossa
 - Ubuntu 18.04 LTS: Bionic Beaver
 
-**Ubuntu Server vs Desktop:**
+#### Ubuntu Server와 Desktop
 - Server: GUI 없음, 서버 패키지 중심
 - Desktop: GNOME 포함, 데스크톱 앱 포함
 
-**실무:**
+#### Ubuntu 사용 시 자주 하는 작업
 - `ubuntu-minimal` 이미지로 최소 설치
 - `unattended-upgrades`로 자동 보안 업데이트
 - `do-release-upgrade`로 LTS 간 업그레이드
@@ -247,7 +247,7 @@ Debian 기반, Canonical 개발.
 
 ### Debian 계열 내 차이점
 
-**네트워크 설정:**
+#### Debian 계열 네트워크 설정
 
 Debian:
 ```bash
@@ -274,7 +274,7 @@ network:
           - 8.8.8.8
 ```
 
-**패키지 관리:**
+#### Debian 계열 패키지 관리
 
 Debian은 전통적 패키지만, Ubuntu는 `snap`도 사용:
 ```bash
@@ -297,12 +297,12 @@ snap install package
 | 패키지 관리자 | `zypper` | `zypper` |
 | 설정 도구 | YaST | YaST |
 
-**특징:**
+#### SUSE 특징
 - `zypper`는 `yum`/`apt`와 다른 명령어 구조
 - YaST는 GUI/CLI 설정 도구
 - 유럽에서 주로 사용
 
-**실무:**
+#### SUSE 사용 시 자주 하는 작업
 - `zypper refresh`로 리포지토리 갱신
 - `zypper install package`로 패키지 설치
 - `yast` 명령어로 설정 도구 실행
@@ -318,12 +318,12 @@ snap install package
 | 패키지 관리자 | `pacman` | `pacman` |
 | AUR | 지원 | 지원 |
 
-**특징:**
+#### Arch 특징
 - 롤링 릴리스
 - `pacman -Syu`로 전체 시스템 업데이트
 - AUR 패키지는 수동 빌드 필요
 
-**실무:**
+#### Arch 용도
 - 서버 환경 부적합
 - 개발 환경이나 학습 목적
 
@@ -331,7 +331,7 @@ snap install package
 
 ### 방화벽 관리
 
-**Red Hat 계열 (firewalld):**
+#### firewalld (Red Hat 계열)
 ```bash
 # 서비스 추가
 firewall-cmd --permanent --add-service=http
@@ -346,7 +346,7 @@ firewall-cmd --reload
 firewall-cmd --list-all
 ```
 
-**Debian/Ubuntu (ufw):**
+#### ufw (Debian/Ubuntu)
 ```bash
 # 서비스 허용
 ufw allow http
@@ -362,23 +362,23 @@ ufw status
 
 ### 로그 위치 차이
 
-**Red Hat 계열:**
+#### Red Hat 계열 로그
 - `/var/log/messages`: 시스템 메시지
 - `/var/log/secure`: 보안 관련
 - `journalctl`: systemd 로그
 
-**Debian/Ubuntu:**
+#### Debian/Ubuntu 로그
 - `/var/log/syslog`: 시스템 로그
 - `/var/log/auth.log`: 인증 로그
 - `journalctl`: systemd 로그
 
-**공통:**
+#### 공통 로그
 - `/var/log/`: 애플리케이션 로그
 - `journalctl -u service`: 서비스별 로그
 
 ### 패키지 검색 방법
 
-**Red Hat:**
+#### Red Hat 계열 패키지 검색
 ```bash
 # 파일 제공 패키지 찾기
 dnf provides /usr/bin/python3
@@ -389,7 +389,7 @@ dnf info package
 rpm -qi package
 ```
 
-**Debian:**
+#### Debian 계열 패키지 검색
 ```bash
 # 파일 제공 패키지 찾기 (apt-file 설치 필요)
 apt install apt-file
@@ -420,13 +420,13 @@ systemctl is-active service
 systemctl is-enabled service
 ```
 
-**차이점:**
+#### 서비스 파일 위치 차이
 - Red Hat: `/etc/systemd/system/`에 커스텀 서비스 파일
 - Debian/Ubuntu: 동일하나 일부 기본 서비스 위치가 다를 수 있음
 
 ### 보안 업데이트
 
-**Red Hat 계열:**
+#### Red Hat 계열 보안 업데이트
 ```bash
 # 보안 업데이트만
 dnf update --security
@@ -440,7 +440,7 @@ systemctl enable --now dnf-automatic.timer
 /etc/dnf/automatic.conf
 ```
 
-**Debian/Ubuntu:**
+#### Debian/Ubuntu 보안 업데이트
 ```bash
 # 보안 업데이트 확인
 apt upgrade -s | grep security
@@ -454,7 +454,7 @@ dpkg-reconfigure -plow unattended-upgrades
 /etc/apt/apt.conf.d/20auto-upgrades
 ```
 
-**실무:**
+#### 보안 업데이트 운영 방식
 - 프로덕션은 자동 업데이트보다 수동 검토 후 적용
 - 스테이징에서 먼저 테스트
 - 롤백 계획 수립
@@ -463,18 +463,18 @@ dpkg-reconfigure -plow unattended-upgrades
 
 ### 서버 환경
 
-**엔터프라이즈 서버:**
+#### 엔터프라이즈 서버 선택
 - RHEL: 상용 지원 필요
 - Rocky/AlmaLinux: RHEL 호환 무료
 - Ubuntu LTS: 클라우드, 최신 기능
 - Debian: 안정성 우선
 
-**클라우드:**
+#### 클라우드별 배포판
 - AWS: Amazon Linux 2023, Ubuntu, RHEL
 - Azure: Ubuntu, RHEL, SUSE
 - GCP: Ubuntu, Debian, RHEL
 
-**컨테이너:**
+#### 컨테이너 베이스 선택
 - Alpine: 최소 크기 (5MB)
 - Ubuntu: 범용 (100MB+)
 - Debian: 안정성
@@ -496,21 +496,21 @@ dpkg-reconfigure -plow unattended-upgrades
 
 ### CentOS → Rocky/AlmaLinux
 
-**Rocky Linux:**
+#### Rocky Linux로 이전
 ```bash
 curl -O https://raw.githubusercontent.com/rocky-linux/rocky-tools/main/migrate2rocky/migrate2rocky.sh
 chmod +x migrate2rocky.sh
 ./migrate2rocky.sh -r
 ```
 
-**AlmaLinux:**
+#### AlmaLinux로 이전
 ```bash
 curl -O https://raw.githubusercontent.com/AlmaLinux/almalinux-deploy/master/almalinux-deploy.sh
 chmod +x almalinux-deploy.sh
 ./almalinux-deploy.sh
 ```
 
-**주의사항:**
+#### 마이그레이션 주의사항
 - 백업 필수
 - 테스트 환경에서 먼저 검증
 - 커스텀 패키지 확인
@@ -518,11 +518,11 @@ chmod +x almalinux-deploy.sh
 
 ### 배포판 간 마이그레이션
 
-**가능:**
+#### 이전 가능한 경우
 - 동일 계열 내 (CentOS → Rocky)
 - Ubuntu LTS 간 업그레이드
 
-**불가능:**
+#### 이전 불가능한 경우
 - Red Hat → Debian (재설치 필요)
 - Debian → Arch (재설치 필요)
 
@@ -545,7 +545,7 @@ chmod +x almalinux-deploy.sh
 - Debian
 - Container-Optimized OS
 
-**실무:**
+### 클라우드 이미지 사용 시
 - 클라우드 제공 이미지 사용 권장
 - 커스텀 이미지는 보안 업데이트 관리 필요
 - 이미지 ID는 리전별로 다름
@@ -569,7 +569,7 @@ chmod +x almalinux-deploy.sh
 - 라이선스: 무료 사용 가능
 - 사용: RHEL 환경 호환
 
-**실무:**
+### 컨테이너 이미지 선택
 - 프로덕션: Alpine (크기 최소화)
 - 개발: Ubuntu (패키지 풍부)
 - RHEL 환경: UBI (호환성)
@@ -578,24 +578,20 @@ chmod +x almalinux-deploy.sh
 
 배포판 간 성능 차이는 미미하다. 커널 버전과 설정이 더 중요하다.
 
-**차이가 나는 경우:**
+### 성능 차이가 나는 경우
 - 컴파일 최적화: Gentoo, Alpine
 - 기본 스케줄러 설정
 - I/O 스케줄러 설정
 
-**실무:**
-- 배포판보다 애플리케이션 최적화가 중요
-- 벤치마크로 실제 환경 측정
-
 ## 문서 및 커뮤니티
 
-**문서:**
+### 배포판별 문서
 - RHEL: 공식 문서 우수
 - Ubuntu: 커뮤니티 문서 풍부
 - Debian: 공식 문서 상세
 - Arch: Wiki 매우 상세
 
-**커뮤니티:**
+### 배포판별 커뮤니티
 - Ubuntu: 가장 큰 커뮤니티
 - Red Hat: 엔터프라이즈 지원
 - Debian: 개발자 중심
@@ -605,7 +601,7 @@ chmod +x almalinux-deploy.sh
 
 서버 환경에서는 Red Hat 계열(RHEL, Rocky, AlmaLinux)과 Debian 계열(Ubuntu, Debian)을 주로 사용한다.
 
-**권장:**
+### 권장 배포판
 - 엔터프라이즈: RHEL 또는 Rocky/AlmaLinux
 - 클라우드: Ubuntu LTS
 - 컨테이너: Alpine (프로덕션), Ubuntu (개발)
