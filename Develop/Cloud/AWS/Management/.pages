@@ -1,4 +1,4 @@
 title: Management
 nav:
   - index.md
-- SSM_Parameter_Store_Change_Management.md
+  - SSM_Parameter_Store_Change_Management.md

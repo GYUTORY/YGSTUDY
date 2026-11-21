@@ -1,7 +1,7 @@
 ---
 title: ECS Task Placement
 tags: [aws, cloud, devops]
-updated: 2026-11-14
+updated: 2026-11-21
 ---
 
 # ECS Task Placement
@@ -387,6 +387,3 @@ flowchart TD
 
 strategy 평가 과정은 노출되지 않아 분포는 결과로만 본다. Container Insights에 AZ·instance ID 차원을 두면 평소 분포를 보기 쉽다.
 
-## 배치 시각화
-
-AZ·인스턴스별 task 분포를 눈으로 확인하는 방법은 [ECS Task Placement Visualization](ECS_Task_Placement_Visualization.md)에 정리했다.
