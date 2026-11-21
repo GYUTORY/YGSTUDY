@@ -1,7 +1,7 @@
 ---
 title: Prometheus
 tags: [devops, monitoring, observability]
-updated: 2026-04-09
+updated: 2026-11-21
 ---
 
 # Prometheus
@@ -16,83 +16,61 @@ Prometheus는 시계열 데이터 기반 오픈소스 모니터링 시스템이�
 
 ### 전체 구조
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Prometheus 아키텍처                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐            │
-│  │ Spring Boot  │   │  Node.js     │   │  PostgreSQL  │            │
-│  │ /actuator/   │   │  /metrics    │   │  exporter    │            │
-│  │ prometheus   │   │              │   │  :9187       │            │
-│  └──────┬───────┘   └──────┬───────┘   └──────┬───────┘            │
-│         │                  │                   │                    │
-│         │    HTTP GET (Pull 방식)               │                    │
-│         └──────────────────┼───────────────────┘                    │
-│                            │                                        │
-│                            ▼                                        │
-│                   ┌─────────────────┐                               │
-│                   │   Prometheus    │                                │
-│                   │     Server      │                                │
-│                   │                 │                                │
-│                   │ ┌─────────────┐ │      ┌──────────────────┐     │
-│                   │ │  Retrieval  │ │      │  Service         │     │
-│                   │ │  (scrape)   │◄├──────│  Discovery       │     │
-│                   │ └──────┬──────┘ │      │  (K8s, Consul,   │     │
-│                   │        ▼        │      │   file_sd, DNS)  │     │
-│                   │ ┌─────────────┐ │      └──────────────────┘     │
-│                   │ │   TSDB      │ │                               │
-│                   │ │ (로컬 저장소)│ │───────┐                       │
-│                   │ └──────┬──────┘ │       │ Remote Write          │
-│                   │        │        │       ▼                       │
-│                   │ ┌─────────────┐ │  ┌──────────────┐            │
-│                   │ │  Rule       │ │  │  Thanos /    │            │
-│                   │ │  Engine     │ │  │  Cortex /    │            │
-│                   │ │ (alert+rec) │ │  │  Mimir       │            │
-│                   │ └──────┬──────┘ │  └──────────────┘            │
-│                   └────────┼────────┘                               │
-│                            │                                        │
-│              ┌─────────────┼─────────────┐                          │
-│              ▼                           ▼                          │
-│     ┌─────────────────┐        ┌─────────────────┐                 │
-│     │  Alertmanager   │        │    Grafana       │                 │
-│     │                 │        │  (시각화)         │                 │
-│     │  Slack, Email,  │        └─────────────────┘                 │
-│     │  PagerDuty 등   │                                            │
-│     └─────────────────┘                                            │
-└─────────────────────────────────────────────────────────────────────┘
+아래 도식은 Spring Boot, Node.js, PostgreSQL exporter 같은 타겟을 Prometheus Server가 HTTP GET으로 긁어 가는 구조를 보여준다. 서버 안에서는 Retrieval이 수집하고 TSDB가 저장하며 Rule Engine이 알림을 평가한다. 결과는 Alertmanager와 Grafana로 나가고, Remote Write로 Thanos·Cortex·Mimir에도 보낼 수 있다.
+
+```mermaid
+flowchart TD
+    subgraph Targets["타겟"]
+        SB["Spring Boot<br/>/actuator/prometheus"]
+        NJ["Node.js<br/>/metrics"]
+        PG["PostgreSQL exporter<br/>:9187"]
+    end
+    SD["Service Discovery<br/>K8s, Consul, file_sd, DNS"]
+    subgraph Server["Prometheus Server"]
+        RT["Retrieval (scrape)"] --> TS["TSDB (로컬 저장소)"]
+        TS --> RE["Rule Engine (alert+rec)"]
+    end
+    RW["Thanos / Cortex / Mimir"]
+    AM["Alertmanager<br/>Slack, Email, PagerDuty 등"]
+    GF["Grafana (시각화)"]
+    RT -->|"HTTP GET (Pull 방식)"| SB
+    RT -->|"HTTP GET (Pull 방식)"| NJ
+    RT -->|"HTTP GET (Pull 방식)"| PG
+    SD --> RT
+    TS -->|"Remote Write"| RW
+    RE --> AM
+    RE --> GF
 ```
 
 ### Pull 방식 수집 흐름
 
 Prometheus의 핵심은 Pull 방식이다. Push 방식(애플리케이션이 모니터링 서버로 데이터를 보내는 것)과 비교하면 큰 차이가 있다.
 
-```
-Pull 방식 (Prometheus)
-──────────────────────────────────────────────
+Pull 방식(Prometheus)은 세 단계로 돌아간다.
 
 1. 앱이 /metrics 엔드포인트를 노출한다
 2. Prometheus가 scrape_interval마다 HTTP GET 요청을 보낸다
 3. 응답 본문의 메트릭 텍스트를 파싱해서 TSDB에 저장한다
 
-    ┌─────────────┐     GET /metrics      ┌─────────────┐
-    │ Prometheus  │ ──────────────────────>│   Target    │
-    │   Server    │ <──────────────────────│   (앱)      │
-    │             │   text/plain 응답       │             │
-    └─────────────┘   (메트릭 데이터)       └─────────────┘
+아래 도식은 Prometheus Server가 Target에 GET 요청을 보내고 text/plain 응답을 받는 순서를 보여준다. 이 과정이 scrape_interval(기본 15초)마다 반복된다.
 
-    이 과정이 scrape_interval (기본 15초)마다 반복된다.
+```mermaid
+sequenceDiagram
+    participant P as Prometheus Server
+    participant T as Target (앱)
+    loop scrape_interval마다 반복
+        P->>T: GET /metrics
+        T-->>P: text/plain 응답 (메트릭 데이터)
+    end
+```
 
+Push 방식(Datadog, InfluxDB 등)은 방향이 반대다. 아래 도식처럼 앱이 직접 Monitoring Server로 데이터를 보낸다.
 
-Push 방식 (Datadog, InfluxDB 등)
-──────────────────────────────────────────────
-
-    ┌─────────────┐     POST /write       ┌─────────────┐
-    │   Target    │ ──────────────────────>│ Monitoring  │
-    │   (앱)      │                        │   Server    │
-    └─────────────┘                        └─────────────┘
-
-    앱이 직접 데이터를 보낸다.
+```mermaid
+sequenceDiagram
+    participant T as Target (앱)
+    participant M as Monitoring Server
+    T->>M: POST /write
 ```
 
 Pull 방식의 실무적 장점:
@@ -680,25 +658,13 @@ Prometheus 자체는 클러스터링을 지원하지 않는다. HA를 구성하�
 
 **방법 1: 동일한 설정의 Prometheus 2대 운영**
 
-```
-┌──────────────┐     ┌──────────────┐
-│ Prometheus A │     │ Prometheus B │
-│ (primary)    │     │ (replica)    │
-└──────┬───────┘     └──────┬───────┘
-       │                    │
-       │  동일한 target을     │
-       │  동일한 설정으로 scrape │
-       ▼                    ▼
-┌──────────────────────────────────┐
-│          Alertmanager            │
-│   (중복 알림 자동 dedup)           │
-└──────────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────────┐
-│           Grafana                │
-│ (데이터 소스 2개 등록, 둘 다 조회)  │
-└──────────────────────────────────┘
+아래 도식은 두 Prometheus가 같은 target을 같은 설정으로 scrape하고, Alertmanager가 중복 알림을 걸러내며, Grafana가 두 서버를 모두 조회하는 구조를 보여준다.
+
+```mermaid
+flowchart TD
+    A["Prometheus A (primary)"] -->|"동일한 target을 동일한 설정으로 scrape"| AM["Alertmanager<br/>중복 알림 자동 dedup"]
+    B["Prometheus B (replica)"] -->|"동일한 target을 동일한 설정으로 scrape"| AM
+    AM --> G["Grafana<br/>데이터 소스 2개 등록, 둘 다 조회"]
 ```
 
 두 Prometheus가 같은 타겟을 수집하므로 하나가 죽어도 데이터 유실이 없다. Alertmanager는 `--cluster.peer` 플래그로 클러스터를 구성하면 중복 알림을 자동으로 제거한다.
@@ -711,24 +677,13 @@ alertmanager --cluster.peer=alertmanager-0:9094
 
 **방법 2: Thanos 사이드카**
 
-```
-┌────────────────────┐   ┌────────────────────┐
-│ Prometheus A       │   │ Prometheus B       │
-│ + Thanos Sidecar   │   │ + Thanos Sidecar   │
-└────────┬───────────┘   └────────┬───────────┘
-         │                        │
-         │   블록 업로드            │
-         ▼                        ▼
-    ┌─────────────────────────────────┐
-    │         Object Storage          │
-    │         (S3, GCS 등)            │
-    └─────────────┬───────────────────┘
-                  │
-                  ▼
-    ┌─────────────────────────────────┐
-    │        Thanos Query             │
-    │  (전체 데이터를 통합 조회)         │
-    └─────────────────────────────────┘
+아래 도식은 두 Prometheus의 Thanos Sidecar가 블록을 Object Storage에 올리고, Thanos Query가 그 데이터를 합쳐 조회하는 흐름을 보여준다.
+
+```mermaid
+flowchart TD
+    A["Prometheus A<br/>+ Thanos Sidecar"] -->|"블록 업로드"| S["Object Storage<br/>S3, GCS 등"]
+    B["Prometheus B<br/>+ Thanos Sidecar"] -->|"블록 업로드"| S
+    S --> Q["Thanos Query<br/>전체 데이터를 통합 조회"]
 ```
 
 Thanos Query가 여러 Prometheus의 데이터를 통합해서 조회한다. 장기 보관은 Object Storage에서 처리한다.
@@ -737,19 +692,13 @@ Thanos Query가 여러 Prometheus의 데이터를 통합해서 조회한다. 장
 
 여러 Prometheus 서버의 메트릭을 상위 Prometheus가 수집하는 구조다. 팀별로 Prometheus를 운영하면서 글로벌 뷰가 필요할 때 쓴다.
 
-```
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Prometheus   │  │ Prometheus   │  │ Prometheus   │
-│ (팀 A)       │  │ (팀 B)       │  │ (팀 C)       │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-       │                 │                 │
-       └─────────────────┼─────────────────┘
-                         │ /federate 엔드포인트
-                         ▼
-              ┌────────────────────┐
-              │ Global Prometheus  │
-              │ (집계 메트릭만 수집)  │
-              └────────────────────┘
+아래 도식은 팀별 Prometheus 세 대가 각각 `/federate` 엔드포인트로 Global Prometheus에 집계 메트릭을 넘기는 흐름을 보여준다.
+
+```mermaid
+flowchart TD
+    A["Prometheus (팀 A)"] -->|"/federate"| G["Global Prometheus<br/>집계 메트릭만 수집"]
+    B["Prometheus (팀 B)"] -->|"/federate"| G
+    C["Prometheus (팀 C)"] -->|"/federate"| G
 ```
 
 ```yaml

@@ -1,7 +1,7 @@
 ---
 title: Nginx vs Caddy
 tags: [web-server, proxy, http, docker]
-updated: 2026-04-14
+updated: 2026-11-21
 ---
 
 # Nginx vs Caddy
@@ -12,37 +12,41 @@ updated: 2026-04-14
 
 ## 아키텍처 차이
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      Nginx 아키텍처                       │
-│                                                         │
-│  master process (root)                                  │
-│    ├── worker process 1  ──┐                            │
-│    ├── worker process 2  ──┼── epoll/kqueue 이벤트 루프  │
-│    ├── worker process 3  ──┘   (단일 스레드, 비동기 I/O)  │
-│    └── cache manager                                    │
-│                                                         │
-│  - C로 작성                                              │
-│  - worker 수 = CPU 코어 수 맞추는 게 일반적               │
-│  - 모듈은 컴파일 시점에 포함 (동적 모듈도 있지만 제한적)    │
-│  - 설정 변경 시 reload → 새 worker 생성, 기존 연결 처리 후 │
-│    이전 worker 종료 (graceful)                            │
-└─────────────────────────────────────────────────────────┘
+아래 도식은 두 서버의 프로세스 구성을 보여준다. Nginx는 master 하나가 worker 여러 개를 관리하고, Caddy는 Go 런타임 프로세스 하나가 모든 일을 맡는다.
 
-┌─────────────────────────────────────────────────────────┐
-│                      Caddy 아키텍처                       │
-│                                                         │
-│  단일 프로세스 (Go runtime)                               │
-│    ├── goroutine pool ── net/http 서버                    │
-│    ├── TLS 자동화 모듈 (ACME 클라이언트 내장)              │
-│    ├── 인증서 저장소 (~/.local/share/caddy/)              │
-│    └── Admin API (localhost:2019)                        │
-│                                                         │
-│  - Go로 작성                                             │
-│  - goroutine 기반 동시성 (OS 스레드보다 가벼움)            │
-│  - 모듈은 빌드 시 xcaddy로 추가하거나 Caddyfile에서 선언   │
-│  - 설정 변경 시 Admin API로 무중단 적용 (프로세스 재시작 X) │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph NGINX["Nginx 아키텍처"]
+        direction TB
+        M["master process (root)"]
+        W1["worker process 1"]
+        W2["worker process 2"]
+        W3["worker process 3"]
+        CM["cache manager"]
+        EV["epoll/kqueue 이벤트 루프<br/>단일 스레드, 비동기 I/O"]
+        NN["C로 작성<br/>worker 수는 CPU 코어 수에 맞추는 게 일반적<br/>모듈은 컴파일 시점에 포함 (동적 모듈도 있지만 제한적)<br/>설정 변경 시 reload: 새 worker 생성, 기존 연결 처리 후 이전 worker 종료 (graceful)"]
+        M --> W1
+        M --> W2
+        M --> W3
+        M --> CM
+        W1 --> EV
+        W2 --> EV
+        W3 --> EV
+    end
+
+    subgraph CADDY["Caddy 아키텍처"]
+        direction TB
+        P["단일 프로세스 (Go runtime)"]
+        G["goroutine pool: net/http 서버"]
+        T["TLS 자동화 모듈 (ACME 클라이언트 내장)"]
+        S["인증서 저장소 (~/.local/share/caddy/)"]
+        A["Admin API (localhost:2019)"]
+        CN["Go로 작성<br/>goroutine 기반 동시성 (OS 스레드보다 가벼움)<br/>모듈은 빌드 시 xcaddy로 추가하거나 Caddyfile에서 선언<br/>설정 변경 시 Admin API로 무중단 적용 (프로세스 재시작 없음)"]
+        P --> G
+        P --> T
+        P --> S
+        P --> A
+    end
 ```
 
 Nginx는 master-worker 모델이다. master 프로세스가 worker를 관리하고, 각 worker가 이벤트 루프로 수천 개의 연결을 처리한다. C 기반이라 메모리 사용량이 적고 예측 가능하다.
@@ -55,7 +59,7 @@ Caddy는 Go 런타임 위에서 goroutine으로 요청을 처리한다. Go의 �
 
 ### 정적 파일 서빙
 
-**Nginx:**
+Nginx 설정이다.
 
 ```nginx
 server {
@@ -75,7 +79,7 @@ server {
 }
 ```
 
-**Caddy:**
+Caddy는 같은 작업이 세 줄이다.
 
 ```caddyfile
 example.com {
@@ -89,7 +93,7 @@ Nginx는 `listen`, `server_name`, `location` 블록, `try_files` 같은 지시�
 
 ### 리버스 프록시 + HTTPS
 
-**Nginx (certbot 사용):**
+certbot을 쓰는 Nginx 설정이다.
 
 ```nginx
 # /etc/nginx/sites-available/app.conf
@@ -134,7 +138,7 @@ sudo certbot certonly --nginx -d app.example.com
 echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'" | sudo crontab -
 ```
 
-**Caddy:**
+Caddy 설정이다.
 
 ```caddyfile
 app.example.com {
@@ -209,7 +213,7 @@ https://internal.service.local {
 
 ### 기본 리버스 프록시
 
-**Nginx:**
+Nginx는 upstream 블록으로 서버를 묶는다.
 
 ```nginx
 upstream backend {
@@ -246,7 +250,7 @@ server {
 }
 ```
 
-**Caddy:**
+Caddy는 `reverse_proxy` 한 블록에 서버 목록과 헬스체크를 같이 적는다.
 
 ```caddyfile
 api.example.com {
@@ -269,7 +273,7 @@ Nginx 오픈소스 버전은 active health check를 지원하지 않는다. upst
 
 ### WebSocket 프록시
 
-**Nginx:**
+Nginx 설정이다.
 
 ```nginx
 location /ws {
@@ -284,7 +288,7 @@ location /ws {
 
 Nginx에서 WebSocket 프록시할 때 `proxy_http_version 1.1`과 `Upgrade`, `Connection` 헤더를 명시해야 한다. 빠뜨리면 WebSocket 핸드셰이크가 실패한다. `proxy_read_timeout`도 늘려야 하는데, 기본값 60초가 지나면 유휴 WebSocket 연결을 끊어버린다.
 
-**Caddy:**
+Caddy 설정이다.
 
 ```caddyfile
 example.com {
@@ -296,7 +300,7 @@ Caddy는 WebSocket을 자동 감지해서 별도 설정이 필요 없다. Upgrad
 
 ### 경로별 분기
 
-**Nginx:**
+Nginx 설정이다.
 
 ```nginx
 server {
@@ -330,7 +334,7 @@ server {
 - `proxy_pass http://127.0.0.1:3000;` → `/api/users` 그대로 전달
 - `proxy_pass http://127.0.0.1:3000/;` → `/users`로 변환해서 전달
 
-**Caddy:**
+Caddy 설정이다.
 
 ```caddyfile
 example.com {
@@ -371,7 +375,7 @@ handle_path /api/* {
 
 인터넷에 떠도는 벤치마크 결과를 그대로 믿으면 안 된다. 테스트 조건에 따라 결과가 크게 달라진다.
 
-**일반적인 경향:**
+아래 표는 일반적으로 알려진 경향이다.
 
 | 항목 | Nginx | Caddy |
 |------|-------|-------|
@@ -384,7 +388,7 @@ handle_path /api/* {
 
 Nginx가 raw 성능에서 앞서지만, 대부분의 서비스에서 웹 서버 자체가 병목이 되는 경우는 거의 없다. 백엔드 애플리케이션이나 DB가 병목인 상황에서 웹 서버 성능 차이 10~15%는 의미가 없다.
 
-**성능이 중요한 경우:**
+웹 서버 성능 차이가 의미 있는 경우는 세 가지 정도다.
 
 - 일 수천만 요청 이상의 대규모 트래픽
 - CDN 오리진 서버처럼 정적 파일 서빙이 핵심인 경우
@@ -493,7 +497,7 @@ Caddy는 인증서를 `/data` 디렉토리에 자동 저장한다. Docker named 
 
 Docker Compose 환경에서 서비스 간 통신은 서비스명으로 한다. 컨테이너 IP가 바뀔 수 있으므로 IP를 하드코딩하면 안 된다.
 
-**Nginx:**
+Nginx 설정이다.
 
 ```nginx
 # Docker 내부 DNS resolver 지정이 필요한 경우가 있다
@@ -514,7 +518,7 @@ location / {
 }
 ```
 
-**Caddy:**
+Caddy 설정이다.
 
 ```caddyfile
 example.com {
@@ -596,14 +600,14 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" alway
 
 ## 어떤 상황에서 무엇을 쓸 것인가
 
-**Nginx가 맞는 경우:**
+Nginx가 맞는 경우는 이렇다.
 
 - 대규모 트래픽을 처리하는 프로덕션 환경에서 검증된 안정성이 필요할 때
 - `limit_req`, `proxy_cache`, lua 스크립팅 등 세밀한 제어가 필요할 때
 - 팀에 Nginx 운영 경험이 충분하고, 인프라 자동화(Ansible, Terraform)가 갖춰져 있을 때
 - 이미 Nginx 기반 인프라가 크게 구축되어 있을 때
 
-**Caddy가 맞는 경우:**
+Caddy가 맞는 경우는 이렇다.
 
 - 소규모~중규모 서비스에서 빠르게 HTTPS를 적용해야 할 때
 - 인프라 전담 인력 없이 개발자가 직접 서버를 관리할 때

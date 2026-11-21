@@ -1,7 +1,7 @@
 ---
 title: NoSQL 데이터베이스 개요
 tags: [database, nosql, mongodb, redis]
-updated: 2026-03-29
+updated: 2026-11-21
 ---
 
 # NoSQL 데이터베이스 개요
@@ -77,7 +77,7 @@ const cursor = collection.find({}).readConcern("majority");
 
 데이터를 JSON/BSON 형태의 문서로 저장한다. 하나의 문서 안에 중첩된 구조를 넣을 수 있어서 조인 없이 관련 데이터를 한 번에 가져올 수 있다.
 
-**데이터 구조 예시 — 주문 데이터:**
+주문 데이터는 문서형에서 이렇게 한 문서로 저장한다.
 
 ```json
 {
@@ -110,7 +110,7 @@ const cursor = collection.find({}).readConcern("majority");
 
 RDBMS였으면 orders, order_items, shipping_info 테이블 3개에 나눠 저장하고 조인해야 한다. 문서형 DB는 이걸 한 문서에 담는다.
 
-**쿼리 예제 (MongoDB):**
+MongoDB에서 주문을 조회하고 집계하는 쿼리는 이렇다.
 
 ```javascript
 const { MongoClient } = require('mongodb');
@@ -150,7 +150,7 @@ await orders.createIndex({ user_id: 1, created_at: -1 });
 
 키 하나에 값 하나를 매핑하는 가장 단순한 구조다. 값은 문자열, 숫자, JSON, 바이너리 등 뭐든 될 수 있다. 구조가 단순한 만큼 읽기/쓰기가 빠르다.
 
-**Redis 데이터 구조별 사용 예시:**
+Redis는 자료구조마다 쓰임새가 다르다.
 
 ```bash
 # String — 세션 저장, 캐시
@@ -178,7 +178,7 @@ SISMEMBER online:users u_1234                 # 1 (온라인)
 SCARD online:users                            # 현재 접속자 수
 ```
 
-**애플리케이션 코드에서 캐시 패턴:**
+애플리케이션에서는 캐시를 먼저 조회하고, 없으면 DB에서 읽어 캐시에 채운다.
 
 ```typescript
 @Injectable()
@@ -225,29 +225,25 @@ Cassandra의 핵심은 **파티션 키**와 **클러스터링 키**다.
 - **파티션 키**: 데이터가 어떤 노드에 저장될지 결정한다. 같은 파티션 키를 가진 데이터는 같은 노드에 모인다.
 - **클러스터링 키**: 파티션 내에서 데이터의 정렬 순서를 결정한다.
 
-```
-Partition Key: user_id = "u_1234"
-┌──────────────────────────────────────────────────────┐
-│ Clustering Key (event_at DESC)                       │
-│                                                      │
-│ 2026-03-29 10:30  │ PAGE_VIEW  │ /products/123      │
-│ 2026-03-29 10:25  │ CLICK      │ /banner/spring     │
-│ 2026-03-29 10:20  │ LOGIN      │ null               │
-│ 2026-03-28 22:15  │ PURCHASE   │ order_001          │
-│ ...                                                  │
-└──────────────────────────────────────────────────────┘
+아래 도식은 파티션 키별로 데이터가 묶이고, 각 파티션 안에서 event_at 내림차순으로 정렬되는 모습을 보여준다. 화살표는 정렬 순서이고, 행은 `시각 | 이벤트 타입 | 값` 순서다.
 
-Partition Key: user_id = "u_5678"
-┌──────────────────────────────────────────────────────┐
-│ 2026-03-29 11:00  │ LOGIN      │ null               │
-│ 2026-03-29 09:45  │ PAGE_VIEW  │ /dashboard         │
-│ ...                                                  │
-└──────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph P1["파티션 키 user_id = u_1234 / 클러스터링 키 event_at DESC"]
+        A1["2026-03-29 10:30 | PAGE_VIEW | /products/123"] --> A2["2026-03-29 10:25 | CLICK | /banner/spring"]
+        A2 --> A3["2026-03-29 10:20 | LOGIN | null"]
+        A3 --> A4["2026-03-28 22:15 | PURCHASE | order_001"]
+        A4 --> A5["..."]
+    end
+    subgraph P2["파티션 키 user_id = u_5678"]
+        B1["2026-03-29 11:00 | LOGIN | null"] --> B2["2026-03-29 09:45 | PAGE_VIEW | /dashboard"]
+        B2 --> B3["..."]
+    end
 ```
 
 각 파티션이 독립적이다. 파티션 키 없이 전체 스캔하는 쿼리는 모든 노드를 뒤져야 하니까 느리다.
 
-**Cassandra CQL 예제:**
+위 모델을 CQL로 만들면 이렇다.
 
 ```sql
 -- 키스페이스 생성 (3개 노드 복제)
@@ -304,22 +300,25 @@ CREATE TABLE analytics.events_by_type (
 
 HBase는 Hadoop 위에서 동작하는 컬럼 패밀리 DB다. Google BigTable의 오픈소스 구현이다.
 
-```
-Row Key: "u_1234#20260329103000"
-┌─────────────────────────────────────────────────┐
-│ Column Family: info                             │
-│   info:event_type = "PAGE_VIEW"                 │
-│   info:url = "/products/123"                    │
-│                                                 │
-│ Column Family: meta                             │
-│   meta:device = "mobile"                        │
-│   meta:ip = "192.168.1.100"                     │
-└─────────────────────────────────────────────────┘
+아래 도식은 Row Key 하나 아래에 컬럼 패밀리 두 개(info, meta)가 있고, 각 패밀리가 `패밀리:컬럼 = 값` 형태로 값을 갖는 구조를 보여준다.
+
+```mermaid
+flowchart TB
+    subgraph RK["Row Key #quot;u_1234#35;20260329103000#quot;"]
+        subgraph CF1["Column Family: info"]
+            I1["info:event_type = #quot;PAGE_VIEW#quot;"]
+            I2["info:url = #quot;/products/123#quot;"]
+        end
+        subgraph CF2["Column Family: meta"]
+            M1["meta:device = #quot;mobile#quot;"]
+            M2["meta:ip = #quot;192.168.1.100#quot;"]
+        end
+    end
 ```
 
 HBase에서는 Row Key 설계가 성능의 대부분을 결정한다. Row Key가 순차적이면(예: 타임스탬프만 사용) 특정 Region에 쓰기가 몰리는 핫스팟 문제가 생긴다. `user_id#timestamp` 형태로 Row Key를 잡으면 사용자 단위로 데이터가 분산된다.
 
-**Cassandra vs HBase 비교:**
+두 DB의 차이를 표로 정리했다.
 
 | 항목 | Cassandra | HBase |
 |------|-----------|-------|
@@ -338,7 +337,7 @@ Cassandra는 단독으로 돌릴 수 있고, HBase는 Hadoop(HDFS) + ZooKeeper�
 
 RDBMS에서 관계를 표현하려면 중간 테이블(join table)을 만들고 조인해야 한다. 3단계 이상의 관계(친구의 친구의 친구)를 탐색하면 조인이 기하급수적으로 늘어난다. 그래프 DB는 이런 다단계 관계 탐색에 특화되어 있다.
 
-**Neo4j Cypher 쿼리 예제:**
+Neo4j에서는 Cypher로 관계를 만들고 탐색한다.
 
 ```cypher
 // 노드 생성
@@ -383,7 +382,7 @@ RETURN path
 
 NoSQL은 기본적으로 조인을 지원하지 않거나 성능이 나쁘다. RDBMS에서 정규화된 테이블 3~4개를 조인하던 쿼리를 NoSQL에서는 **비정규화(Denormalization)**로 풀어야 한다.
 
-**RDBMS 구조:**
+정규화된 RDBMS에서는 테이블 4개를 조인한다.
 
 ```sql
 -- 정규화된 테이블 3개
@@ -395,7 +394,7 @@ JOIN products p ON p.id = oi.product_id
 WHERE o.user_id = 1234;
 ```
 
-**MongoDB로 전환한 구조:**
+MongoDB로 옮기면 한 문서에 다 들어간다.
 
 ```json
 {
@@ -417,7 +416,9 @@ WHERE o.user_id = 1234;
 }
 ```
 
-사용자 이름과 상품명을 주문 문서 안에 복사해 넣었다. 조회는 빨라지지만, 사용자가 이름을 바꾸면 과거 주문의 이름도 업데이트할지 결정해야 한다. 대부분의 경우 주문 시점의 이름을 유지하는 게 맞으니까 비정규화가 자연스럽다. 하지만 항상 최신 데이터를 보여줘야 하는 경우에는 별도 조회가 필요하고, 이건 추가 네트워크 호출이다.
+사용자 이름과 상품명을 주문 문서 안에 복사해 넣었다. 조회는 빨라지지만, 사용자가 이름을 바꾸면 과거 주문의 이름도 업데이트할지 결정해야 한다. 대부분의 경우 주문 시점의 이름을 유지하는 게 맞으니까 비정규화가 자연스럽다.
+
+하지만 항상 최신 데이터를 보여줘야 하는 경우에는 별도 조회가 필요하고, 이건 추가 네트워크 호출이다.
 
 ### 2. 트랜잭션을 포기해야 할 수 있다
 
@@ -460,7 +461,7 @@ INSERT INTO users (email, name) VALUES ('kim@dev.com', '김개발')
 IF NOT EXISTS;
 ```
 
-**트랜잭션 없이 일관성을 유지하는 방법:**
+트랜잭션 없이 일관성을 유지하는 방법은 세 가지다.
 
 - **단일 문서/파티션 설계**: 관련 데이터를 한 문서에 넣으면 단일 쓰기 연산으로 원자성 확보
 - **이벤트 소싱**: 상태 변경을 이벤트로 기록하고, 이벤트를 순서대로 재생하여 상태 복원
@@ -529,25 +530,26 @@ RDBMS에서는 외래 키 제약, 유니크 제약, CHECK 제약으로 DB 레벨
 
 ### 판단 흐름
 
-```
-데이터가 10GB 이하인가?
-  → Yes: RDBMS를 쓴다. 끝.
-  → No: 계속 진행
+아래 도식은 위에서 아래로 질문에 답하며 DB를 고르는 순서를 보여준다. 데이터 크기와 트랜잭션 요구로 NoSQL 여부를 가리고, 데이터 구조로 후보를 정한 뒤, 초당 요청 수로 구성 규모를 정한다.
 
-트랜잭션이 핵심 요구사항인가?
-  → Yes: 핵심 데이터는 RDBMS, 나머지만 NoSQL 검토
-  → No: 계속 진행
-
-데이터 구조가 어떤가?
-  → JSON 같은 중첩 구조: MongoDB
-  → 키-값 단순 조회: Redis, DynamoDB
-  → 시계열/이벤트 로그: Cassandra
-  → 엔티티 간 관계 중심: Neo4j
-
-초당 요청 수는?
-  → 1만 이하: 단일 인스턴스로 충분
-  → 1만~10만: 레플리카 + 샤딩 구성
-  → 10만 이상: Cassandra, DynamoDB 같은 분산 네이티브 DB
+```mermaid
+flowchart TD
+    Q1{"데이터가 10GB 이하인가?"}
+    Q1 -->|Yes| R1["RDBMS를 쓴다. 끝."]
+    Q1 -->|No| Q2{"트랜잭션이 핵심 요구사항인가?"}
+    Q2 -->|Yes| R2["핵심 데이터는 RDBMS, 나머지만 NoSQL 검토"]
+    Q2 -->|No| Q3{"데이터 구조가 어떤가?"}
+    Q3 -->|"JSON 같은 중첩 구조"| D1["MongoDB"]
+    Q3 -->|"키-값 단순 조회"| D2["Redis, DynamoDB"]
+    Q3 -->|"시계열/이벤트 로그"| D3["Cassandra"]
+    Q3 -->|"엔티티 간 관계 중심"| D4["Neo4j"]
+    D1 --> Q4{"초당 요청 수는?"}
+    D2 --> Q4
+    D3 --> Q4
+    D4 --> Q4
+    Q4 -->|"1만 이하"| S1["단일 인스턴스로 충분"]
+    Q4 -->|"1만~10만"| S2["레플리카 + 샤딩 구성"]
+    Q4 -->|"10만 이상"| S3["Cassandra, DynamoDB 같은 분산 네이티브 DB"]
 ```
 
 ---
