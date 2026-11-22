@@ -1,7 +1,7 @@
 ---
 title: JWT 구현 및 보안
 tags: [nodejs, jwt, auth, security]
-updated: 2025-12-27
+updated: 2026-11-22
 ---
 
 # JWT 구현 및 보안
@@ -11,6 +11,8 @@ updated: 2025-12-27
 JWT (JSON Web Token)는 클레임 기반의 토큰 인증 방식으로, 상태를 유지하지 않는(stateless) 인증 메커니즘을 제공합니다.
 
 ### JWT의 구조
+
+아래 마인드맵은 JWT를 구성하는 세 부분과 특징, 주로 쓰이는 곳을 한눈에 보여준다.
 
 ```mermaid
 mindmap
@@ -30,6 +32,8 @@ mindmap
 ```
 
 ### JWT vs 세션 비교
+
+아래 도식은 두 방식의 요청 흐름을 나란히 놓은 것이다. 세션은 매 요청마다 서버가 세션 저장소를 조회하고, JWT는 서버가 토큰만 검증하고 끝난다.
 
 ```mermaid
 graph TB
@@ -67,6 +71,8 @@ graph TB
 
 ### JWT 구성 요소
 
+아래 도식은 JWT의 세 부분이 각각 무엇을 담는지 보여준다.
+
 ```mermaid
 graph LR
     A[JWT] --> B[Header]
@@ -89,7 +95,8 @@ graph LR
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJ1c2VybmFtZSI6ImpvaG4iLCJpYXQiOjE2MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 ```
 
-**분해:**
+예시 토큰은 점(.)으로 구분된 세 부분으로 나뉜다.
+
 - **Header**: `{"alg":"HS256","typ":"JWT"}`
 - **Payload**: `{"userId":"123","username":"john","iat":1600000000}`
 - **Signature**: `HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)`
@@ -229,6 +236,8 @@ app.get('/protected', authenticateToken, (req, res) => {
 ## Access Token vs Refresh Token
 
 ### 이중 토큰 구조
+
+아래 시퀀스는 Access Token이 만료됐을 때 클라이언트가 Refresh Token으로 새 토큰을 받아 요청을 이어가는 순서를 보여준다.
 
 ```mermaid
 sequenceDiagram
@@ -411,6 +420,8 @@ app.post('/refresh', async (req, res) => {
 
 ### 블랙리스트 개념
 
+아래 도식은 토큰을 무효화할 때와 검증할 때 블랙리스트를 어떻게 거치는지 보여준다.
+
 ```mermaid
 graph TD
     A[토큰 무효화 요청] --> B[토큰을 블랙리스트에 추가]
@@ -555,11 +566,13 @@ async addToken(token) {
 }
 ```
 
-블랙리스트 자체에 대해서도 한마디. 토큰 전체를 Redis 키로 쓰면 키가 길어지고, 같은 사용자의 토큰을 한꺼번에 지울 수도 없다. `jti` 를 키로 쓰면 짧아지고, `user:{id}:jti` 집합을 함께 두면 전체 로그아웃이 가능해진다. 위 `SecureJWTManager` 가 `jwtid` 를 넣는 이유가 이것인데, 정작 블랙리스트 쪽은 토큰 문자열을 쓰고 있어 둘이 안 맞물린다.
+블랙리스트 설계에도 문제가 있다. 토큰 전체를 Redis 키로 쓰면 키가 길어지고, 같은 사용자의 토큰을 한꺼번에 지울 수도 없다. `jti` 를 키로 쓰면 짧아지고, `user:{id}:jti` 집합을 함께 두면 전체 로그아웃이 가능해진다. 위 `SecureJWTManager` 가 `jwtid` 를 넣는 이유가 이것인데, 정작 블랙리스트 쪽은 토큰 문자열을 쓰고 있어 둘이 안 맞물린다.
 
 ## JWT 보안 취약점 및 대응
 
 ### 주요 보안 취약점
+
+아래 마인드맵은 JWT 취약점을 알고리즘, 토큰 관리, 구현 오류로 나눠 정리한 것이다.
 
 ```mermaid
 mindmap
@@ -779,6 +792,8 @@ function verifyToken(token, secret) {
 
 ### 보안 체크리스트
 
+아래 도식은 이 문서에서 다룬 보안 항목 일곱 가지를 한 곳에 모은 것이다.
+
 ```mermaid
 graph TD
     A[JWT 보안 체크리스트] --> B[알고리즘 명시]
@@ -900,6 +915,8 @@ function authenticateToken(req, res, next) {
 
 ### 의사결정 트리
 
+아래 흐름도는 확장성과 즉시 취소 가능 여부를 기준으로 JWT와 세션 중 하나를 고르는 순서를 보여준다.
+
 ```mermaid
 flowchart TD
     START([인증 방식 선택]) --> Q1{확장성<br/>중요한가?}
@@ -935,7 +952,7 @@ flowchart TD
 
 ### 일반적인 JWT 문제와 해결책
 
-**1. 토큰 갱신 문제:**
+#### 토큰 갱신 문제
 
 | 증상 | 원인 | 해결 방법 |
 |------|------|----------|
@@ -943,7 +960,7 @@ flowchart TD
 | **토큰 갱신 실패** | Refresh Token 만료 | Refresh Token 연장 로직 |
 | **동시 갱신 충돌** | Race Condition | 토큰 갱신 락 사용 |
 
-**2. 보안 취약점:**
+#### 보안 취약점
 
 | 증상 | 원인 | 해결 방법 |
 |------|------|----------|
@@ -953,20 +970,17 @@ flowchart TD
 
 ## 고급 활용
 
-**1. 토큰 갱신:**
-- Refresh Token을 사용하여 Access Token 자동 갱신
+### 토큰 갱신
+
+- Refresh Token으로 Access Token 자동 갱신
 - 토큰 갱신 시 Race Condition 방지
 - Refresh Token Rotation으로 보안 강화
 
-**2. 비용 고려사항:**
-- JWT는 Stateless로 서버 부하 감소
-- 세션은 세션 저장소 비용 필요
-- 토큰 크기로 인한 네트워크 비용 고려
+### 비용
 
-**3. 팀 협업 관점:**
-- 토큰 구조 표준화
-- 토큰 검증 로직 공유
-- 보안 취약점 점검 체크리스트
+- JWT는 Stateless라서 서버 부하가 줄어든다
+- 세션은 세션 저장소 비용이 든다
+- 토큰이 커지면 요청마다 네트워크 비용이 늘어난다
 
 ## 요약
 JWT는 강력한 인증 메커니즘이지만, 올바르게 구현하지 않으면 보안 취약점이 발생할 수 있습니다.

@@ -1,7 +1,7 @@
 ---
 title: PostgreSQL 스키마 마이그레이션
 tags: [postgresql, rdbms, database]
-updated: 2026-08-06
+updated: 2026-11-22
 ---
 
 # PostgreSQL 스키마 마이그레이션
@@ -65,7 +65,8 @@ CREATE INDEX CONCURRENTLY idx_orders_user_id ON orders(user_id);
 
 인덱스 삭제도 `CONCURRENTLY`를 쓸 수 있다. 기본 `DROP INDEX`는 `ACCESS EXCLUSIVE`를 잡기 때문에 운영 중에는 `CONCURRENTLY`가 필요하다.
 
-**CONCURRENTLY 제약:**
+`CONCURRENTLY`에는 제약이 두 가지 있다.
+
 - 트랜잭션 블록 안에서 실행할 수 없다. `BEGIN` 없이 단독으로 실행해야 한다.
 - 고유 인덱스를 `CONCURRENTLY`로 만드는 도중 유니크 위반 데이터가 있으면 `INVALID` 상태가 된다.
 
@@ -119,7 +120,9 @@ ALTER TABLE orders DROP CONSTRAINT orders_user_id_not_null;
 
 타입 변경은 락 회피가 까다롭다. PostgreSQL은 기존 값을 새 타입으로 변환할 수 없거나 변환이 필요하면 전체 행을 재작성한다.
 
-VARCHAR 길이를 늘리는 경우(`VARCHAR(20)` → `VARCHAR(30)`)는 예외다. PostgreSQL은 VARCHAR의 최대 길이를 메타데이터에만 저장하므로 행 재작성이 없고 즉시 완료된다. 반대로 길이를 줄이거나(`VARCHAR(20)` → `VARCHAR(10)`), 타입을 바꾸거나(`VARCHAR` → `INTEGER`), `TEXT` → `VARCHAR(n)`으로 제한을 걸면 전체 재작성이 필요하다.
+VARCHAR 길이를 늘리는 경우(`VARCHAR(20)` → `VARCHAR(30)`)는 예외다. PostgreSQL은 VARCHAR의 최대 길이를 메타데이터에만 저장하므로 행 재작성이 없고 즉시 완료된다.
+
+반대로 길이를 줄이거나(`VARCHAR(20)` → `VARCHAR(10)`), 타입을 바꾸거나(`VARCHAR` → `INTEGER`), `TEXT` → `VARCHAR(n)`으로 제한을 걸면 전체 재작성이 필요하다.
 
 타입 변경을 락 없이 하려면 새 컬럼을 만들고 데이터를 이전해야 한다.
 
@@ -190,7 +193,8 @@ ORDER BY dead_ratio DESC;
 
 dead_ratio가 20% 이상이거나 테이블 크기가 예상보다 크게 크면 pg_repack을 고려한다.
 
-**pg_repack 주의사항:**
+`pg_repack`을 쓸 때는 아래 세 가지를 알아둬야 한다.
+
 - 테이블에 `PRIMARY KEY` 또는 `NOT NULL UNIQUE` 인덱스가 없으면 실행이 거부된다.
 - 실행 중 테이블 크기만큼 디스크 공간을 추가로 사용한다. 100GB 테이블이면 100GB 여유 공간이 필요하다.
 - `pg_repack` 버전과 PostgreSQL 버전을 맞춰야 한다. 버전 불일치 시 실패한다.
@@ -235,7 +239,7 @@ ALTER TABLE users DROP COLUMN IF EXISTS last_name;
 
 두 가지를 동시에 진행한다. 신규 쓰기가 새 컬럼을 채우도록 트리거를 걸고, 기존 데이터를 배치로 마이그레이션한다.
 
-**이중 쓰기 트리거:**
+먼저 이중 쓰기 트리거를 건다.
 
 ```sql
 CREATE OR REPLACE FUNCTION sync_name_split()
@@ -258,7 +262,7 @@ FOR EACH ROW EXECUTE FUNCTION sync_name_split();
 
 트리거를 쓰지 않는다면 서비스 코드에서 이중 쓰기를 구현해야 한다. 그 경우 모든 서비스 인스턴스가 이중 쓰기 버전으로 배포될 때까지 새 컬럼이 NULL인 레코드가 계속 생긴다.
 
-**배치 마이그레이션:**
+기존 데이터는 배치로 옮긴다.
 
 ```sql
 -- 배치 단위로 반복 실행. start_id와 end_id는 외부에서 주입
@@ -291,7 +295,7 @@ FROM batch
 WHERE u.id = batch.id;
 ```
 
-**진행률 모니터링:**
+진행률은 아래 쿼리로 확인한다.
 
 ```sql
 SELECT
@@ -344,14 +348,14 @@ PostgreSQL은 DDL이 트랜잭션 안에서 실행된다. Flyway가 이 파일�
 
 Phase 3 진입 전에 분리 결과를 점검한다.
 
-**NULL 잔존 확인:**
+먼저 NULL이 남아 있는지 본다.
 
 ```sql
 -- 반드시 0건이어야 함
 SELECT COUNT(*) FROM users WHERE first_name IS NULL OR last_name IS NULL;
 ```
 
-**분리 결과 불일치 확인:**
+분리 결과가 원본과 다른 레코드도 찾는다.
 
 ```sql
 -- 분리 후 원본과 재조합한 결과가 다른 레코드
@@ -367,7 +371,7 @@ LIMIT 100;
 
 레코드가 나오면 이름에 공백이 두 개 이상이거나 앞뒤 공백이 있는 케이스다. `split_part`는 두 번째 공백 이후를 버리기 때문에 "Mary Jane Watson" 같은 이름은 last_name이 "Jane"이 된다. 비즈니스 요구사항에 맞게 split 로직을 조정해야 한다.
 
-**이중 쓰기 도중 누락된 레코드 확인:**
+이중 쓰기 도중 누락된 레코드도 확인한다.
 
 트리거 없이 서비스 코드로 이중 쓰기를 했다면, 이중 쓰기 배포 전에 업데이트된 레코드는 새 컬럼이 NULL일 수 있다. 배치가 `WHERE first_name IS NULL` 조건만 보기 때문에, `first_name`이 채워졌지만 `name`과 불일치하는 레코드가 생길 수 있다:
 
@@ -401,14 +405,14 @@ WHERE name IS NOT NULL
 
 `first_name + last_name → full_name`처럼 여러 컬럼을 하나로 합치는 경우도 방향만 반대고 절차는 같다.
 
-**Phase 1 Expand:**
+Phase 1 Expand에서는 새 컬럼만 추가한다.
 
 ```sql
 SET lock_timeout = '2s';
 ALTER TABLE users ADD COLUMN full_name VARCHAR(200) NULL;
 ```
 
-**Phase 2 Migrate — 배치:**
+Phase 2 Migrate에서는 기존 행을 배치로 채운다.
 
 ```sql
 UPDATE users
@@ -422,7 +426,7 @@ WHERE full_name IS NULL
   AND id BETWEEN :start_id AND :end_id;
 ```
 
-**Phase 2 Migrate — 이중 쓰기 트리거:**
+같은 단계에서 이중 쓰기 트리거도 건다.
 
 ```sql
 CREATE OR REPLACE FUNCTION sync_full_name()
@@ -446,7 +450,7 @@ BEFORE INSERT OR UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION sync_full_name();
 ```
 
-**정합성 확인:**
+통합 결과가 기대값과 다른 행으로 정합성을 확인한다.
 
 ```sql
 -- 통합 결과 불일치 확인
@@ -461,7 +465,7 @@ WHERE full_name IS NOT NULL
 LIMIT 50;
 ```
 
-**Phase 3 Contract:**
+Phase 3 Contract에서는 트리거를 지우고 NOT NULL로 전환한 뒤 구 컬럼을 삭제한다.
 
 ```sql
 DROP TRIGGER IF EXISTS trg_sync_full_name ON users;
@@ -597,7 +601,7 @@ ALTER TABLE users DROP COLUMN IF EXISTS last_name;
 
 이중 쓰기 중에 문제가 생기면 서비스를 이전 버전으로 롤백하고 트리거를 제거한다. DB는 Expand 상태 그대로 두면 된다.
 
-**롤백이 필요한 신호 — 이중 쓰기 실패:**
+이중 쓰기 실패는 롤백이 필요한 신호다.
 
 ```sql
 -- remaining이 줄지 않거나 늘고 있으면 이중 쓰기 실패 의심
@@ -609,7 +613,7 @@ FROM users;
 
 배치가 실행 중인데 `remaining_null`이 줄지 않거나 늘고 있다면, 트리거가 동작하지 않거나 서비스 일부 인스턴스가 이중 쓰기를 하지 않는 것이다.
 
-**롤백이 필요한 신호 — 불일치 급증:**
+불일치 급증도 롤백 신호다.
 
 ```sql
 -- 불일치 건수가 늘고 있으면 이중 쓰기 로직에 버그 의심
@@ -623,7 +627,7 @@ WHERE first_name IS NOT NULL
   );
 ```
 
-**롤백이 필요한 신호 — 복제 지연 급증:**
+복제 지연이 급증하는 경우도 있다.
 
 ```sql
 -- 배치 부하로 인한 복제 지연 확인
@@ -633,7 +637,7 @@ FROM pg_stat_replication;
 
 `replay_lag`이 수 분 이상 벌어지면 배치 사이즈를 줄이거나 실행을 일시 중단한다. 복제 지연이 계속 커지면 배치를 멈추고 지연이 해소된 후 재시작한다.
 
-**Migrate 롤백 실행:**
+Migrate 롤백은 트리거를 제거하는 것으로 끝난다.
 
 ```sql
 -- 트리거 제거
@@ -731,7 +735,7 @@ Flyway는 기본적으로 각 마이그레이션 파일을 하나의 트랜잭�
 
 MySQL에서는 DDL이 암묵적으로 커밋되기 때문에 이런 롤백이 안 된다. MySQL용 마이그레이션을 PostgreSQL에서 쓰면 동작 방식이 달라진다.
 
-**실패 시 차이:**
+마이그레이션이 중간에 실패했을 때 두 DB의 상태는 이렇게 다르다.
 
 ```
 MySQL: V5__add_columns.sql에서 두 번째 ALTER TABLE이 실패
@@ -755,7 +759,7 @@ ERROR: CREATE INDEX CONCURRENTLY cannot run inside a transaction block
 
 Flyway 마이그레이션 파일에 `CREATE INDEX CONCURRENTLY`를 넣으면 기본 트랜잭션 래핑 때문에 실패한다. 해결 방법은 두 가지다.
 
-**방법 1: `disableTransactionHandling` 주석 (Flyway 10+)**
+방법 1은 `disableTransactionHandling` 주석을 쓰는 것이다(Flyway 10+).
 
 ```sql
 -- V6__add_idx_orders_user_id.sql
@@ -764,7 +768,7 @@ Flyway 마이그레이션 파일에 `CREATE INDEX CONCURRENTLY`를 넣으면 기
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 ```
 
-**방법 2: Java 마이그레이션으로 분리**
+방법 2는 Java 마이그레이션으로 분리하는 것이다.
 
 ```java
 // V6__AddIdxOrdersUserId.java
