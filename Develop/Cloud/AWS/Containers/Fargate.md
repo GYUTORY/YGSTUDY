@@ -1,7 +1,7 @@
 ---
 title: AWS Fargate
 tags: [aws, cloud, docker]
-updated: 2026-04-14
+updated: 2026-11-22
 ---
 
 # AWS Fargate
@@ -17,6 +17,8 @@ ECS, EKS 두 오케스트레이터 모두에서 실행 모드로 선택할 수 �
 Fargate의 핵심은 Firecracker microVM이다. 각 Task는 독립된 경량 VM 위에서 실행되기 때문에 다른 고객의 워크로드와 커널을 공유하지 않는다.
 
 ![Fargate 내부 아키텍처](images/fargate_architecture.svg)
+
+아래 도식은 물리 호스트 한 대 위에서 Task마다 별도의 Firecracker microVM이 뜨고, 각 Task가 자기 ENI를 하나씩 쓰는 구조를 보여준다.
 
 ```mermaid
 graph TB
@@ -70,8 +72,6 @@ Fargate는 정해진 vCPU-메모리 조합만 사용할 수 있다. 잘못된 �
 
 Windows 컨테이너는 1~4 vCPU만 지원한다.
 
-**리소스 할당 시 주의할 점:**
-
 처음에는 작은 리소스로 시작한다. 0.5 vCPU, 1 GB 메모리. CloudWatch 메트릭으로 실제 사용량을 확인한 후 조정한다. 과도하게 할당하면 비용만 증가한다.
 
 Spring Boot 같은 JVM 기반 애플리케이션은 힙 메모리 설정에 주의해야 한다. Task 메모리를 2 GB로 잡았는데 JVM 힙을 1.5 GB로 설정하면, 메타스페이스와 네이티브 메모리를 합치면 OOM으로 Task가 죽는 경우가 있다. Task 메모리의 60~70% 정도를 힙으로 잡는 게 안전하다.
@@ -85,7 +85,7 @@ JAVA_OPTS="-Xms1024m -Xmx1280m -XX:MaxMetaspaceSize=256m"
 
 Fargate는 Task가 실행되는 시간만큼 비용이 발생한다. vCPU와 메모리 사용량에 따라 초 단위로 청구되며, 최소 1분 과금이다.
 
-**가격 (us-east-1 기준):**
+us-east-1 기준 단가는 vCPU와 메모리가 따로 매겨진다.
 
 - vCPU: $0.04048/시간
 - 메모리: $0.004445/GB/시간
@@ -94,13 +94,13 @@ Fargate는 Task가 실행되는 시간만큼 비용이 발생한다. vCPU와 메
 
 ### 비용 계산 예시
 
-**24시간 실행하는 웹 서비스 (1 vCPU, 2 GB, 1개 Task):**
+1 vCPU, 2 GB Task 1개로 웹 서비스를 24시간 실행하는 경우의 월 비용이다.
 
 - vCPU: 1 x $0.04048 x 720시간 = $29.1
 - 메모리: 2 x $0.004445 x 720시간 = $6.4
 - 월 합계: 약 $35.5
 
-**하루 2시간 배치 작업 (1 vCPU, 2 GB):**
+같은 1 vCPU, 2 GB Task로 하루 2시간 배치 작업을 돌리는 경우의 월 비용이다.
 
 - vCPU: 1 x $0.04048 x 60시간 = $2.4
 - 메모리: 2 x $0.004445 x 60시간 = $0.5
@@ -159,8 +159,6 @@ desired count가 7이면:
 
 Spot Task가 중단될 때 데이터 유실이나 요청 실패가 발생하지 않도록 준비해야 한다.
 
-**SIGTERM 핸들링:**
-
 애플리케이션이 SIGTERM을 받으면 진행 중인 요청을 마무리하고 정리 작업을 수행해야 한다. Spring Boot는 graceful shutdown을 설정한다.
 
 ```yaml
@@ -185,8 +183,6 @@ process.on('SIGTERM', async () => {
 });
 ```
 
-**실무에서 겪는 문제:**
-
 ALB 타겟 해제와 Spot 중단이 동시에 일어나면, ALB가 이미 죽은 Task로 요청을 보내는 순간이 생긴다. `deregistration_delay`를 Spot 중단 경고 시간(2분)보다 짧게 설정해야 한다. 120초 이하, 보통 30~60초로 설정한다.
 
 ```bash
@@ -195,9 +191,7 @@ aws elbv2 modify-target-group-attributes \
   --attributes Key=deregistration_delay.timeout_seconds,Value=60
 ```
 
-**SQS 기반 워커의 경우:**
-
-메시지 처리 중 Spot이 중단되면 메시지가 유실될 수 있다. visibility timeout을 충분히 길게 잡고, 처리 완료 후에만 메시지를 삭제한다. 중단 시 처리 중이던 메시지는 visibility timeout이 지나면 다른 워커가 다시 가져간다.
+SQS 기반 워커는 메시지 처리 중 Spot이 중단되면 메시지가 유실될 수 있다. visibility timeout을 충분히 길게 잡고, 처리 완료 후에만 메시지를 삭제한다. 중단 시 처리 중이던 메시지는 visibility timeout이 지나면 다른 워커가 다시 가져간다.
 
 ```python
 def process_message(message):
@@ -211,8 +205,6 @@ def process_message(message):
         # 삭제하지 않으면 visibility timeout 후 재처리됨
         pass
 ```
-
-**ECS Task 중단 이벤트 감지:**
 
 EventBridge로 Spot 중단 이벤트를 잡아서 알림을 보낼 수 있다.
 
@@ -253,8 +245,6 @@ Fargate 플랫폼 버전은 커널, 컨테이너 런타임, 네트워크 스택 
 
 명시적으로 버전을 고정하고, 새 버전이 나오면 스테이징에서 먼저 검증한 후 프로덕션에 적용한다.
 
-**AWS가 플랫폼 버전을 은퇴시키는 경우:**
-
 오래된 플랫폼 버전은 AWS가 은퇴(deprecate)시킨다. 은퇴된 버전에서 실행 중인 Task는 계속 동작하지만, 새 Task를 시작할 수 없게 된다. 은퇴 알림은 AWS Health Dashboard와 이메일로 온다. 이 알림을 놓치면 배포가 갑자기 실패하는 상황이 발생한다.
 
 ### 플랫폼 버전 확인
@@ -289,7 +279,7 @@ Fargate의 Task 시작 시간은 이미지 크기에 크게 좌우된다. EC2 �
 
 ### 이미지 크기 줄이기
 
-**멀티 스테이지 빌드:**
+멀티 스테이지 빌드를 쓰면 빌드 도구가 최종 이미지에 들어가지 않는다.
 
 ```dockerfile
 # 빌드 스테이지
@@ -307,7 +297,7 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 
 JDK 이미지(약 600 MB) 대신 JRE 이미지(약 200 MB)를 쓰는 것만으로 시작 시간이 크게 줄어든다. Alpine 기반 이미지를 쓰면 더 줄일 수 있다.
 
-**이미지 크기 비교:**
+베이스 이미지별 크기는 대략 이렇다.
 
 | 베이스 이미지 | 크기 | 비고 |
 |-------------|------|------|
@@ -333,7 +323,7 @@ soci push 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/my-app:v1.2.3
 
 250 MB 이상 이미지에서 시작 시간이 눈에 띄게 줄어든다. 750 MB 이미지 기준으로 풀 시간이 약 50% 단축된 사례가 있다.
 
-**SOCI 적용 시 주의사항:**
+SOCI를 적용할 때 걸리는 조건이 세 가지 있다.
 
 - SOCI 인덱스는 이미지 태그별로 생성해야 한다. `latest` 태그를 계속 덮어쓰면 인덱스가 무효화된다
 - 플랫폼 버전 1.4.0 이상에서만 동작한다
@@ -358,7 +348,7 @@ aws ecr create-pull-through-cache-rule \
 
 Task Definition은 컨테이너 실행 방법을 정의한다.
 
-**필수 설정:**
+반드시 지켜야 하는 설정이 세 가지 있다.
 
 1. `networkMode`: 반드시 `awsvpc`여야 한다. Fargate는 awsvpc 모드만 지원한다
 2. `requiresCompatibilities`: `["FARGATE"]`를 명시한다
@@ -404,7 +394,7 @@ Task Definition은 컨테이너 실행 방법을 정의한다.
 
 ### Service 생성과 설정
 
-**네트워크 구성:**
+네트워크 구성은 서브넷, 보안 그룹, 퍼블릭 IP 할당 여부로 정한다.
 
 ```json
 {
@@ -423,12 +413,12 @@ Task Definition은 컨테이너 실행 방법을 정의한다.
 }
 ```
 
-- **Private Subnet + NAT Gateway**: Task가 Private IP만 받는다. NAT Gateway를 통해 외부 통신한다 (권장)
+- **Private Subnet + NAT Gateway**: Task가 Private IP만 받는다. NAT Gateway로 외부와 통신한다 (권장)
 - **Private Subnet + VPC Endpoint**: 인터넷 없이 AWS 서비스에 접근한다. NAT Gateway 비용 절감
 
-Private Subnet에서 실행하고, 외부 접근은 ALB를 통해서만 허용한다.
+Private Subnet에서 실행하고, 외부 접근은 ALB로만 허용한다.
 
-**Auto Scaling 설정:**
+Auto Scaling은 Target Tracking 정책으로 설정한다.
 
 ```json
 {
@@ -452,9 +442,7 @@ Private Subnet에서 실행하고, 외부 접근은 ALB를 통해서만 허용�
 
 ### Task가 시작되지 않는 경우
 
-**CannotPullContainerError:**
-
-가장 흔한 에러다. 원인은 대부분 네트워크 문제다.
+CannotPullContainerError가 가장 흔한 에러다. 원인은 대부분 네트워크 문제다.
 
 - Private Subnet인데 NAT Gateway가 없거나 라우팅 테이블에 NAT가 빠져 있다
 - ECR VPC Endpoint를 쓰는데 S3 Gateway Endpoint가 빠져 있다 (ECR 이미지 레이어는 S3에 저장된다)
@@ -467,9 +455,7 @@ aws ec2 describe-vpc-endpoints \
   --query 'VpcEndpoints[].{Service:ServiceName,State:State}'
 ```
 
-**ResourceNotFoundException (Task execution role):**
-
-executionRoleArn에 지정한 IAM Role이 없거나 권한이 부족한 경우다. 최소한 아래 권한이 필요하다.
+ResourceNotFoundException(Task execution role)은 executionRoleArn에 지정한 IAM Role이 없거나 권한이 부족한 경우에 난다. 최소한 아래 권한이 필요하다.
 
 - `ecr:GetAuthorizationToken`
 - `ecr:BatchGetImage`
@@ -479,9 +465,7 @@ executionRoleArn에 지정한 IAM Role이 없거나 권한이 부족한 경우�
 
 ### Task가 반복적으로 죽는 경우
 
-**OOM(Out of Memory) Kill:**
-
-Task 메모리를 초과하면 Task가 종료된다. CloudWatch에서 `MemoryUtilization`이 100%에 가까웠는지 확인한다. 컨테이너 내부에서 실제 메모리 사용량을 확인하려면 ECS Exec을 쓴다.
+Task 메모리를 초과하면 OOM(Out of Memory) Kill로 Task가 종료된다. CloudWatch에서 `MemoryUtilization`이 100%에 가까웠는지 확인한다. 컨테이너 내부에서 실제 메모리 사용량을 확인하려면 ECS Exec을 쓴다.
 
 ```bash
 aws ecs execute-command \
@@ -496,9 +480,7 @@ cat /sys/fs/cgroup/memory/memory.usage_in_bytes
 cat /sys/fs/cgroup/memory/memory.limit_in_bytes
 ```
 
-**Health Check 실패:**
-
-ALB Health Check가 실패하면 ECS가 Task를 종료하고 새로 시작한다. `startPeriod`를 충분히 길게 설정해야 한다. Spring Boot처럼 시작에 30초 이상 걸리는 애플리케이션은 `startPeriod`를 60~120초로 잡는다.
+Health Check 실패도 원인이 된다. ALB Health Check가 실패하면 ECS가 Task를 종료하고 새로 시작한다. `startPeriod`를 충분히 길게 설정해야 한다. Spring Boot처럼 시작에 30초 이상 걸리는 애플리케이션은 `startPeriod`를 60~120초로 잡는다.
 
 ### ENI 할당 실패
 
