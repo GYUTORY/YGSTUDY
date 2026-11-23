@@ -1,7 +1,7 @@
 ---
 title: API Gateway 심화
 tags: [network, api, proxy, performance]
-updated: 2026-07-25
+updated: 2026-11-23
 ---
 
 # API Gateway 심화
@@ -10,13 +10,21 @@ updated: 2026-07-25
 
 API Gateway는 모든 클라이언트 요청의 **단일 진입점(Single Entry Point)**으로, 마이크로서비스 아키텍처의 핵심 인프라이다. 인증, 라우팅, 레이트 리미팅, 로드 밸런싱 등 **횡단 관심사**를 중앙에서 처리한다.
 
-```
-                        ┌────────────────────────────────────┐
-                        │          API Gateway               │
-  Web ──────┐           │                                    │           ┌── User Service
-  Mobile ───┤──────────▶│  인증 → 라우팅 → 레이트 리밋 → LB  │──────────▶├── Order Service
-  Partner ──┘           │                                    │           ├── Product Service
-                        └────────────────────────────────────┘           └── Payment Service
+아래 도식은 Web, Mobile, Partner 클라이언트가 Gateway 하나로 들어오고, Gateway 안에서 인증, 라우팅, 레이트 리밋, 로드 밸런싱을 거쳐 각 서비스로 나뉘는 흐름을 보여준다.
+
+```mermaid
+flowchart LR
+    Web --> GW
+    Mobile --> GW
+    Partner --> GW
+    subgraph GW["API Gateway"]
+        direction LR
+        A["인증"] --> R["라우팅"] --> L["레이트 리밋"] --> LB["로드 밸런싱"]
+    end
+    GW --> U["User Service"]
+    GW --> O["Order Service"]
+    GW --> P["Product Service"]
+    GW --> Pay["Payment Service"]
 ```
 
 ### API Gateway가 없다면?
@@ -43,10 +51,19 @@ Client → API Gateway → Service A
 
 클라이언트 유형별로 전용 Gateway를 두는 패턴이다.
 
-```
-Web Client    → Web BFF    ─┐
-Mobile Client → Mobile BFF ─┤→ User Service
-Partner API   → Partner BFF ─┘→ Order Service
+아래 도식은 클라이언트 유형마다 BFF가 따로 있고, 각 BFF가 뒤쪽의 User Service와 Order Service를 호출하는 구조를 보여준다.
+
+```mermaid
+flowchart LR
+    WC["Web Client"] --> WB["Web BFF"]
+    MC["Mobile Client"] --> MB["Mobile BFF"]
+    PA["Partner API"] --> PB["Partner BFF"]
+    WB --> US["User Service"]
+    MB --> US
+    PB --> US
+    WB --> OS["Order Service"]
+    MB --> OS
+    PB --> OS
 ```
 
 | 항목 | Edge Gateway | BFF |
@@ -122,33 +139,30 @@ API 남용을 방지하고 서비스를 보호하는 핵심 기능이다.
 | **토큰 버킷** | 일정 속도로 토큰 충전, 요청 시 소비 | 버스트 허용, 가장 많이 사용 |
 | **Leaky 버킷** | 일정 속도로만 요청 처리 | 균일한 처리 속도 보장 |
 
-```
-토큰 버킷 예시 (초당 10 요청, 버스트 20):
+아래 도식은 초당 10 요청, 버스트 20으로 설정한 토큰 버킷이 동작하는 방식을 보여준다. 버킷에는 초당 10개씩 토큰이 차고(최대 20개, 그림은 현재 12개), 요청 하나가 토큰 1개를 쓴다. 토큰이 없으면 요청은 429 Too Many Requests로 거절된다.
 
-  ┌──────────────────┐
-  │  버킷 (max: 20)  │ ← 초당 10개 토큰 충전
-  │  ████████████     │
-  │  (현재 12개)      │
-  └────────┬─────────┘
-           │ 요청마다 토큰 1개 소비
-           ▼
-  요청 → 토큰 있으면 통과, 없으면 429 Too Many Requests
+```mermaid
+flowchart TD
+    F["토큰 충전: 초당 10개"] --> B["버킷 (최대 20개, 현재 12개)"]
+    Req["요청"] --> C{"토큰이 있는가"}
+    B --> C
+    C -->|"있음: 토큰 1개 소비"| OK["통과"]
+    C -->|"없음"| NG["429 Too Many Requests"]
 ```
 
 #### 서킷 브레이커 (Circuit Breaker)
 
-하위 서비스 장애가 Gateway를 통해 전체로 퍼지는 것을 방지한다.
+하위 서비스 장애가 Gateway 전체로 퍼지는 것을 방지한다.
 
-```
-CLOSED (정상)
-  │ 연속 실패 임계치 도달
-  ▼
-OPEN (차단)
-  │ 지정 시간 경과
-  ▼
-HALF-OPEN (테스트)
-  │ 성공 → CLOSED로 복귀
-  │ 실패 → OPEN으로 다시 전환
+아래 도식은 서킷 브레이커의 세 가지 상태와 전환 조건을 보여준다. 정상(CLOSED)에서 연속 실패가 임계치에 닿으면 차단(OPEN)이 되고, 일정 시간이 지나면 HALF-OPEN에서 시험 호출을 한다. 시험 호출이 성공하면 CLOSED로, 실패하면 다시 OPEN으로 돌아간다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> OPEN: 연속 실패 임계치 도달
+    OPEN --> HALF_OPEN: 지정 시간 경과
+    HALF_OPEN --> CLOSED: 성공
+    HALF_OPEN --> OPEN: 실패
 ```
 
 ```
@@ -406,7 +420,7 @@ curl -X POST http://localhost:8001/services/user-service/plugins \
 
 | 카테고리 | 플러그인 | 기능 |
 |---------|---------|------|
-| **인증** | jwt, oauth2, key-auth, basic-auth | 다양한 인증 방식 |
+| **인증** | jwt, oauth2, key-auth, basic-auth | JWT, OAuth2, API 키, Basic 인증 지원 |
 | **보안** | cors, ip-restriction, bot-detection | 접근 제어 |
 | **트래픽** | rate-limiting, request-size-limiting | 트래픽 제어 |
 | **변환** | request-transformer, response-transformer | 요청/응답 수정 |
@@ -482,7 +496,8 @@ static_resources:
 | **적합한 경우** | Spring MSA | 멀티 언어 MSA | K8s 서비스 메시 | AWS 서버리스 |
 | **학습 곡선** | 중간 | 낮음 | 높음 | 낮음 |
 
-**선택 기준:**
+운영 환경에 맞춰 하나를 고른다.
+
 - Spring Boot MSA → **Spring Cloud Gateway**
 - 멀티 언어 + 고성능 → **Kong**
 - Kubernetes + 서비스 메시 → **Envoy (Istio)**

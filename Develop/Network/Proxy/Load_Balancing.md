@@ -1,7 +1,7 @@
 ---
 title: 로드 밸런싱 심화
 tags: [network, web-server, aws, monitoring]
-updated: 2026-03-01
+updated: 2026-11-23
 ---
 
 # 로드 밸런싱 심화
@@ -10,16 +10,14 @@ updated: 2026-03-01
 
 로드 밸런싱(Load Balancing)은 들어오는 네트워크 트래픽을 **여러 서버에 분산**하여 가용성, 성능, 확장성을 확보하는 기술이다.
 
-```
-                         ┌─────────────┐
-                    ┌──▶│   Server 1   │
-                    │    └─────────────┘
-┌────────┐    ┌────┴────┐ ┌─────────────┐
-│ Client │──▶│   LB    │──▶│   Server 2   │
-└────────┘    └────┬────┘ └─────────────┘
-                    │    ┌─────────────┐
-                    └──▶│   Server 3   │
-                         └─────────────┘
+아래 도식은 클라이언트 요청이 LB를 거쳐 서버 3대로 나뉘는 기본 구조를 보여준다.
+
+```mermaid
+flowchart LR
+    Client[Client] --> LB[LB]
+    LB --> S1[Server 1]
+    LB --> S2[Server 2]
+    LB --> S3[Server 3]
 ```
 
 ### L4 vs L7 로드 밸런싱
@@ -286,14 +284,17 @@ backend app_servers
 
 세션을 서버 외부(Redis 등)에 저장하여 **어떤 서버로 라우팅되든 동일 세션 접근**.
 
-```
-Client → LB → Server A ─┐
-Client → LB → Server B ─┤── Redis (세션 저장소)
-Client → LB → Server C ─┘
+아래 도식은 LB가 요청을 어느 서버로 보내든 세 서버가 같은 Redis 세션 저장소를 읽는다는 것을 보여준다. 그래서 Sticky Session이 필요 없고, 서버가 죽어도 세션이 남는다.
 
-→ 어느 서버로 가든 같은 세션 사용
-→ Sticky Session 불필요
-→ 서버 장애 시에도 세션 유지
+```mermaid
+flowchart LR
+    Client[Client] --> LB[LB]
+    LB --> A[Server A]
+    LB --> B[Server B]
+    LB --> C[Server C]
+    A --> Redis[(Redis 세션 저장소)]
+    B --> Redis
+    C --> Redis
 ```
 
 ```yaml
@@ -491,31 +492,25 @@ Resources:
 
 #### Active-Passive (주-대기)
 
-```
-                    ┌──────────┐
-Client ──────────▶│ Active LB │──▶ Servers
-                    └────┬─────┘
-                  Heartbeat│
-                    ┌────┴─────┐
-                    │Passive LB │  (대기, 장애 시 전환)
-                    └──────────┘
+아래 도식은 Active LB가 트래픽을 받고, Passive LB는 Heartbeat로 상태를 감시하며 대기하는 구조를 보여준다. Active가 죽으면 VIP(가상 IP)가 Passive로 넘어간다. VRRP(keepalived)나 AWS HA를 쓴다.
 
-→ Active 장애 시 VIP(가상 IP)가 Passive로 이동
-→ VRRP(keepalived) 또는 AWS HA 사용
+```mermaid
+flowchart LR
+    Client[Client] --> Active[Active LB]
+    Active --> Servers[Servers]
+    Active <-->|Heartbeat| Passive[Passive LB<br/>대기, 장애 시 전환]
 ```
 
 #### Active-Active (이중화)
 
-```
-                    ┌──────────┐
-Client ──DNS──▶   │  LB 1    │──▶ Servers
-          │        └──────────┘
-          │        ┌──────────┐
-          └──────▶│  LB 2    │──▶ Servers
-                    └──────────┘
+아래 도식은 클라이언트가 DNS 라운드 로빈이나 Global LB를 거쳐 LB 1과 LB 2에 나뉘어 들어가는 구조를 보여준다. 두 LB가 모두 활성 상태다.
 
-→ DNS 라운드 로빈 또는 Global LB로 양쪽에 분산
-→ 두 LB 모두 활성 상태
+```mermaid
+flowchart LR
+    Client[Client] -->|DNS| LB1[LB 1]
+    Client -->|DNS| LB2[LB 2]
+    LB1 --> S1[Servers]
+    LB2 --> S2[Servers]
 ```
 
 ### 8. 트러블슈팅
@@ -548,7 +543,9 @@ t=12s  LB 가 "아직 60초 안 지났으니 살아 있다"고 판단하고 재�
 트래픽이 한산할수록 잘 터진다. 요청이 촘촘하면 5초 유휴가 안 생기기 때문이다.
 ```
 
-Node.js 기본값이 여기에 딱 걸린다. `http.createServer()`의 `keepAliveTimeout`은 5,000ms다(Node v22.21.1 실측). AWS ALB의 기본 유휴 타임아웃은 60초다. 아무 설정도 안 하고 ALB 뒤에 Node 서버를 두면 **평소엔 멀쩡하고 트래픽이 적은 새벽에만 502가 몇 건씩 찍히는** 상태가 된다. 재현이 안 되고 백엔드 로그에는 아무것도 안 남는다.
+Node.js 기본값이 여기에 딱 걸린다. `http.createServer()`의 `keepAliveTimeout`은 5,000ms다(Node v22.21.1 실측). AWS ALB의 기본 유휴 타임아웃은 60초다.
+
+아무 설정도 안 하고 ALB 뒤에 Node 서버를 두면 **평소엔 멀쩡하고 트래픽이 적은 새벽에만 502가 몇 건씩 찍히는** 상태가 된다. 재현이 안 되고 백엔드 로그에는 아무것도 안 남는다.
 
 ```javascript
 const server = http.createServer(app);
@@ -563,7 +560,9 @@ server.listen(8080);
 
 ### 10. 헬스 체크가 전체 장애를 만드는 경우
 
-위 `CustomHealthIndicator`는 DB와 Redis를 확인하고 하나라도 실패하면 `DOWN`을 반환한다. 이 엔드포인트를 LB의 헬스 체크에 그대로 물리면, **DB가 잠깐 흔들리는 순간 모든 인스턴스가 동시에 unhealthy가 된다.** 모든 인스턴스가 빠지면 LB에는 보낼 대상이 없고, 503이 나간다. DB가 5초 만에 회복돼도 `rise 2` 조건 때문에 인스턴스가 돌아오는 데 더 걸린다.
+위 `CustomHealthIndicator`는 DB와 Redis를 확인하고 하나라도 실패하면 `DOWN`을 반환한다. 이 엔드포인트를 LB의 헬스 체크에 그대로 물리면, **DB가 잠깐 흔들리는 순간 모든 인스턴스가 동시에 unhealthy가 된다.**
+
+모든 인스턴스가 빠지면 LB에는 보낼 대상이 없고, 503이 나간다. DB가 5초 만에 회복돼도 `rise 2` 조건 때문에 인스턴스가 돌아오는 데 더 걸린다.
 
 문제는 인스턴스가 아니라 DB인데, 인스턴스를 전부 빼는 것으로 대응한 셈이다. 캐시로 응답할 수 있던 요청까지 같이 죽는다.
 
