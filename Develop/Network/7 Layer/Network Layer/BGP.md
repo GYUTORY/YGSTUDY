@@ -1,7 +1,7 @@
 ---
 title: BGP — 인터넷을 굴리는 라우팅 프로토콜
 tags: [network, aws]
-updated: 2026-10-06
+updated: 2026-11-24
 ---
 
 # BGP — 인터넷을 굴리는 라우팅 프로토콜
@@ -10,9 +10,9 @@ updated: 2026-10-06
 
 서버 운영을 5년 하면서 BGP를 직접 만질 일은 사실 드물다. OSPF는 사내 네트워크에서 가끔 마주치지만, BGP는 보통 네트워크 팀이 회선 사업자와 협의해서 세팅해놓고 끝이다. 그런데 어느 날 "특정 리전에서만 응답이 느려진다", "Direct Connect 회선을 새로 뽑는다", "트위터에서 BGP hijack이 났다는데 우리도 영향이 있나?" 같은 질문이 날아온다. 이때 BGP를 모르면 한 발짝도 못 움직인다.
 
-BGP는 AS(Autonomous System) 사이에서 도달 가능한 경로 정보를 교환하는 프로토콜이다. 인터넷의 골격이고, 인터넷에서 가장 신뢰가 없는 프로토콜이기도 하다. 이 문서는 AS와 ASN, eBGP/iBGP의 경계에서 UPDATE가 어떻게 변하는지, 경로를 고르는 순서와 ECMP, Route Reflector, 컨버전스, hijack과 leak을 다루고, 마지막에 AWS Direct Connect와 Site-to-Site VPN에서 BGP 세션이 어떻게 보이는지를 적는다.
+BGP는 AS(Autonomous System) 사이에서 도달 가능한 경로 정보를 교환하는 프로토콜이다. 인터넷의 골격이고, 인터넷에서 가장 신뢰가 없는 프로토콜이기도 하다. 이 문서는 AS와 ASN, AS 사이의 관계, eBGP/iBGP의 경계에서 UPDATE가 어떻게 변하는지, 세션이 올라오는 과정과 OPEN 협상, 경로를 고르는 순서와 ECMP, Route Reflector, 컨버전스, hijack과 leak을 다루고, AWS Direct Connect와 Site-to-Site VPN에서 BGP 세션이 어떻게 보이는지를 거쳐 세션이 안 올라오거나 flap할 때 확인하는 순서로 끝난다.
 
-문서에 나오는 FRR 설정과 출력은 FRR 8.1을 network namespace 여러 개에 띄워서 실제로 돌린 결과다. 라우터 간 링크는 veth로 만들었고, IPsec 터널은 올리지 않았다. community, 세션 상태 머신, RPKI·보안 상세, Kubernetes 환경의 BGP, 실습 구성은 이 문서에서 다루지 않는다.
+문서에 나오는 FRR 설정과 출력은 FRR 8.1을 network namespace 여러 개에 띄워서 실제로 돌린 결과다. 라우터 간 링크는 veth로 만들었고, IPsec 터널은 올리지 않았다. community, RPKI·보안 상세, Kubernetes 환경의 BGP, 실습 구성은 이 문서에서 다루지 않는다.
 
 ## AS — 인터넷의 자치 단위
 
@@ -30,6 +30,40 @@ BGP는 최단 경로를 찾는 프로토콜이 아니다. OSPF는 링크 비용�
 ```
 
 회사 A가 자기 대역을 광고하면 ISP가 자기 ASN을 앞에 붙여 회사 B에게 전달한다. 회사 B는 AS_PATH를 보고 AS 65000을 거쳐 AS 64500까지 간다는 걸 안다.
+
+### transit, peer, customer — 경로는 돈이 흐르는 방향으로 간다
+
+AS 사이의 연결에는 계약 관계가 붙는다. 세 가지다. 돈을 내고 인터넷 전체로 가는 길을 사는 관계가 transit(고객 입장에서는 provider)이고, 서로 자기 고객 대역만 교환하며 정산 없이 연결하는 관계가 peer다. transit을 파는 쪽에서 보면 돈을 내는 상대가 customer다. BGP 메시지에는 이 관계가 적혀 있지 않다. 각 AS가 이웃마다 관계를 알고 있다가 정책으로 광고 범위를 정한다.
+
+```mermaid
+flowchart TB
+    T1["Tier1 A (AS 64496)"]
+    T2["Tier1 B (AS 64497)"]
+    ISP1["ISP 1 (AS 64500)"]
+    ISP2["ISP 2 (AS 64501)"]
+    C1["회사 A (AS 65010)<br/>10.10.0.0/16 원천"]
+    C2["회사 B (AS 65020)"]
+    T1 <-->|"peer"| T2
+    ISP1 <-->|"peer"| ISP2
+    ISP1 -->|"transit 구매"| T1
+    ISP2 -->|"transit 구매"| T2
+    C1 -->|"transit 구매"| ISP1
+    C2 -->|"transit 구매"| ISP2
+    C1 -.->|"1. 10.10.0.0/16 광고"| ISP1
+    ISP1 -.->|"2. customer 경로라 provider와 peer 모두에 광고"| T1
+    ISP1 -.->|"2. 같은 이유로 peer에도 광고"| ISP2
+    ISP2 -.->|"3. peer에서 받은 경로는 customer에게만 광고"| C2
+```
+
+실선은 계약 관계(화살표가 돈을 내는 쪽에서 받는 쪽으로 향한다)이고 점선은 회사 A의 prefix가 퍼지는 방향이다. ISP 1은 customer에게서 받은 경로를 provider(Tier1 A)와 peer(ISP 2) 양쪽에 다 광고한다. 자기 고객의 트래픽을 끌어오는 길이라 돈이 되기 때문이다. 반대로 ISP 2는 peer에게서 받은 경로를 provider(Tier1 B)나 다른 peer에게 넘기지 않고 customer(회사 B)에게만 준다. 그걸 넘기면 공짜로 얻은 경로로 남의 트래픽을 대신 날라주게 된다.
+
+| 경로를 받은 곳 | 광고하는 대상 |
+|---|---|
+| customer | customer, peer, provider 전부 |
+| peer | customer만 |
+| provider | customer만 |
+
+이 규칙이 지켜지면 경로가 올라갔다가(customer → provider) 한 번 옆으로 건너고(peer) 내려오는(provider → customer) 모양이 된다. 중간에 내려갔다가 다시 올라가는 경로는 나올 수 없다. 뒤에서 다루는 Route Leak은 이 규칙을 어겨서 생긴다. 예를 들어 멀티호밍한 고객이 provider A에서 받은 경로를 provider B에 그대로 광고하면, B는 이걸 customer 경로로 받아 자기 peer와 provider에게 다시 퍼뜨린다.
 
 ### 4바이트 ASN과 AS_TRANS
 
@@ -142,6 +176,95 @@ Paths: (1 available, best #1, table default)
 
 두 방식은 성격이 다르다. `next-hop-self`는 NEXT_HOP이 경계 라우터로 고정되어 내부 라우터는 외부 링크 주소를 몰라도 된다. 대신 경계 라우터가 죽으면 그 라우터를 NEXT_HOP으로 가진 경로가 한꺼번에 무효가 된다. 링크 서브넷을 IGP로 퍼뜨리는 쪽은 외부 링크 장애가 IGP를 거쳐 전파되므로 IGP 설계를 같이 봐야 한다. 경계 라우터 여러 대가 같은 외부 AS와 붙는 구성에서는 `next-hop-self`가 기본값에 가깝다.
 
+## 세션이 올라오기까지 — 상태 머신과 OPEN 협상
+
+경로를 주고받기 전에 세션부터 올라와야 한다. `show bgp summary`의 State 열에 `Idle`, `Connect`, `Active`가 찍혀 있으면 세션이 아직 안 올라온 것이고, 각각이 어디서 막혔는지를 가리킨다. BGP는 피어마다 상태 머신 하나를 돌린다. RFC 4271의 상태는 여섯 개다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Connect : Start
+    Connect --> OpenSent : TCP 179 연결 성공, OPEN 전송
+    Connect --> Active : 연결 실패
+    Active --> Connect : ConnectRetry 타이머 만료
+    Active --> OpenSent : 상대가 건 TCP 연결 수락, OPEN 전송
+    OpenSent --> OpenConfirm : OPEN 수신과 검증 통과, KEEPALIVE 전송
+    OpenSent --> Active : TCP 연결 끊김
+    OpenConfirm --> Established : KEEPALIVE 수신
+    OpenConfirm --> Idle : NOTIFICATION 수신 또는 hold timer 만료
+    Established --> Idle : NOTIFICATION, hold timer 만료, TCP 끊김
+    OpenSent --> Idle : OPEN 검증 실패, NOTIFICATION 전송
+```
+
+TCP 연결을 만드는 구간(Connect, Active), OPEN을 주고받는 구간(OpenSent, OpenConfirm), UPDATE를 주고받는 구간(Established)으로 나뉜다. 어느 상태에서든 NOTIFICATION을 보내거나 받으면 Idle로 떨어진다. 그래서 운영에서 State가 `Idle`로 보일 때는 두 경우가 섞여 있다. 막 시작해서 대기 중인 경우와, 오류를 내고 내려와서 재시도를 기다리는 경우다. 후자는 `show bgp neighbors`의 `Last reset` 줄에 사유가 남는다.
+
+FRR 8.1에서 두 피어를 띄워 막힌 지점별로 State를 확인했다. 두 라우터 모두 `timers 3 9`로 맞췄다.
+
+| 상황 | State | 어디서 확인하나 |
+|---|---|---|
+| 양쪽 TCP 179를 iptables `DROP` | `Connect`에서 계속 멈춤 | tcpdump에 SYN만 보이고 응답 없음 |
+| 양쪽 TCP 179를 `REJECT --reject-with tcp-reset` | `Active` | tcpdump에 SYN 직후 RST |
+| 한쪽이 `remote-as`를 잘못 지정(65099) | `Idle`, Up/Down이 `never` | `Last reset`에 `Notification sent (OPEN Message Error/Bad Peer AS)` |
+
+SYN에 아무 응답이 없으면 `Connect`, RST로 거절당하면 `Active`로 보였다. 이 차이가 곧 방화벽이 패킷을 버리는지 상대 쪽 BGP가 안 떠 있는지를 가르는 단서가 된다. 다만 이 매핑은 구현에 따라 다를 수 있어서, 상태 이름만 보고 단정하지 말고 `tcpdump -ni any port 179`로 SYN에 SYN-ACK가 돌아오는지, RST가 오는지를 직접 본다.
+
+OpenSent 이후 단계에서 막히는 건 대부분 OPEN 내용이 안 맞아서다. ASN이 설정과 다르면 위 표처럼 `Bad Peer AS`를 보내고 내려간다. 세션이 한 번도 올라온 적이 없으니 Up/Down은 계속 `never`이고, State는 `Idle`에 머문다. 설정을 고치기 전에는 같은 사유로 재시도를 반복한다.
+
+hold time은 의외로 불일치로 세션이 안 올라오지 않는다. 한쪽을 60/180, 다른 쪽을 3/9로 두고 세션을 올려보니 양쪽 모두 `Hold time is 9, keepalive interval is 3 seconds`로 협상됐다. 두 값 중 작은 쪽이 채택되고 keepalive는 hold의 3분의 1이 된다. `Configured hold time is 180`이라고 설정 쪽 출력이 따로 있으니, 실제로 쓰는 값은 `Hold time is` 줄을 봐야 한다. RFC 4271은 hold time을 0 또는 3초 이상으로 제한하고, 1초나 2초를 보내면 NOTIFICATION(Unacceptable Hold Time)으로 거부하도록 정한다. 이 경우는 직접 확인하지 않았다.
+
+### Capabilities — OPEN 안에서 하는 협상
+
+OPEN 메시지 뒤쪽 Optional Parameters에 capability가 실려 있다(RFC 5492). 양쪽이 모두 광고한 기능만 그 세션에서 쓴다. 한쪽만 광고한 기능은 켜지지 않고, 에러도 안 난다. 세션이 올라오는데 기대한 동작이 없을 때 `show bgp neighbors`의 `Neighbor capabilities` 블록을 봐야 하는 이유다.
+
+```
+sequenceDiagram
+    participant A as r1 (AS 65001, IPv4와 IPv6 activate)
+    participant B as r2 (AS 65002, IPv4만 activate)
+    A->>B: OPEN [4-byte ASN, Route Refresh, MP IPv4 unicast, MP IPv6 unicast]
+    B->>A: OPEN [4-byte ASN, Route Refresh, MP IPv4 unicast]
+    Note over A,B: 양쪽이 보낸 capability의 교집합만 세션에서 사용
+    A->>B: KEEPALIVE
+    B->>A: KEEPALIVE
+    Note over A,B: IPv4 unicast 경로만 교환, IPv6 unicast는 NoNeg
+```
+
+그림의 r1과 r2는 아래 IPv6 예시와 같은 구성이다. 세션은 `Established`로 올라가지만 한쪽만 광고한 IPv6 unicast는 쓰이지 않는다.
+
+```
+Neighbor capabilities:
+  4 Byte AS: advertised and received
+  Extended Message: advertised and received
+  AddPath:
+    IPv4 Unicast: RX advertised and received
+  Route refresh: advertised and received(old & new)
+  Enhanced Route Refresh: advertised and received
+  Address Family IPv4 Unicast: advertised and received
+  Graceful Restart Capability: advertised and received
+```
+
+`advertised and received`면 양쪽이 협상한 것이고, `advertised`만 있으면 내가 보냈는데 상대는 안 보냈다는 뜻이다. 운영에서 실제로 문제를 일으키는 건 세 가지다.
+
+**Multiprotocol Extensions (code 1, RFC 4760).** 주소 체계(AFI)와 용도(SAFI)별로 광고한다. IPv4 unicast, IPv6 unicast, VPNv4 같은 것이 각각 따로다. 한쪽에서만 IPv6 unicast를 `neighbor ... activate`하면 이렇게 나온다.
+
+```
+a# show bgp neighbors 172.20.0.2
+    Address Family IPv4 Unicast: advertised and received
+    Address Family IPv6 Unicast: advertised
+
+a# show bgp summary
+IPv6 Unicast Summary (VRF default):
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+172.20.0.2      4      65002       109       105        0    0    0 00:00:01        NoNeg    NoNeg N/A
+```
+
+IPv4 세션은 `Established`인데 IPv6 쪽 PfxRcd에 `NoNeg`가 찍혔다. 상대가 그 AF를 광고하지 않아서 협상이 안 됐다는 표시다. 반대편은 `Address Family IPv6 Unicast: received`로 보인다. 설정을 한쪽만 하면 이렇게 되고, 새 AF를 activate하는 순간 세션이 한 번 리셋된다(`Cease/Other Configuration Change`). 운영 중인 세션에 AF를 추가할 때는 그 리셋 시간을 감안해야 한다.
+
+**Route Refresh (code 2, RFC 2918).** 상대에게 "경로를 다시 보내라"고 요청하는 기능이다. 이게 있으면 inbound 정책을 바꾼 뒤 `clear bgp <peer> soft in`으로 세션을 끊지 않고 경로만 다시 받는다. 위 출력의 `old & new`는 code 2와 구형 벤더 값(code 128)을 둘 다 협상했다는 표시다. 한쪽에서 `soft in`을 실행하고 `show bgp neighbors`의 메시지 통계를 보니 `Route Refresh` 카운터가 올라갔다. 이 capability가 없는 상대면 `soft-reconfiguration inbound`로 받은 경로 원본을 로컬에 저장해두고 그걸 다시 평가해야 한다. 대신 prefix 수만큼 메모리가 든다. Direct Connect 절의 `soft-reconfiguration inbound` 예시가 이 방식이다.
+
+**4-byte ASN (code 65, RFC 6793).** 위의 AS_TRANS 절에서 본 그것이다. 이 capability에 진짜 ASN이 실린다. `dont-capability-negotiate`로 capability 자체를 끄면 상대는 이 라우터를 2바이트 전용 장비로 취급해서 AS_TRANS 23456을 쓴다.
+
+그 밖에 위 출력에는 Extended Message(UPDATE 최대 크기를 4096에서 65535바이트로 키움), AddPath(prefix 하나에 경로 여러 개를 광고), Graceful Restart(라우터가 재시작해도 상대가 경로를 일정 시간 유지)가 보인다. 세 가지 모두 FRR 8.1 기본값에서 따로 설정하지 않았는데 협상됐다. Graceful Restart가 협상된 피어와 세션이 끊기면 상대가 그 경로를 stale 상태로 일정 시간 유지할 수 있어서, 컨버전스가 예상보다 느릴 때는 이 줄도 확인한다.
+
 ## Path Attribute — 경로 선택의 기준
 
 같은 목적지로 가는 경로가 여러 개 광고되면 BGP는 그중 하나를 골라 라우팅 테이블에 넣는다. 이때 쓰는 기준이 Path Attribute다. 종류는 많지만 실무에서 자주 만지는 건 AS_PATH, LOCAL_PREF, MED이고, 벤더 로컬 값인 Weight가 하나 더 있다.
@@ -163,6 +286,16 @@ route-map으로 prepend를 걸 때 주의할 점이 있다. eBGP로 내보낼 �
 
 AS_SET은 AS_PATH에 들어갈 수 있는 또 다른 세그먼트 타입이다. 순서가 없는 ASN 집합이고, route aggregation에서 만들어진다. 고객 AS 65010과 65011이 각각 10.1.0.0/24, 10.2.0.0/24를 광고하는데 ISP(AS 64500)가 이걸 10.0.0.0/14 하나로 묶어서 상위에 올리면, 기본 동작은 AS_PATH에서 원래 AS 정보를 버리고 `64500`만 남긴다. `as-set` 옵션을 주면 원래 AS들을 집합으로 모아 붙인다.
 
+```mermaid
+flowchart LR
+    C1["고객 AS 65010<br/>10.1.0.0/24"] --> ISP["ISP AS 64500<br/>aggregate-address 10.0.0.0/14"]
+    C2["고객 AS 65011<br/>10.2.0.0/24"] --> ISP
+    ISP -->|"as-set 없음: AS_PATH = 64500"| U1["상위 AS"]
+    ISP -->|"as-set 있음: AS_PATH = 64500 {65010,65011}"| U2["상위 AS"]
+```
+
+위 그림에서 ISP가 두 갈래로 광고하는 AS_PATH를 비교해 보면, 원래 AS 정보가 남느냐가 옵션 하나로 갈린다.
+
 ```
 router bgp 64500
  address-family ipv4 unicast
@@ -181,6 +314,19 @@ as-set이 없으면 상위 AS는 이 aggregate 뒤에 누가 있는지 모르고
 ### LOCAL_PREF와 Weight
 
 둘 다 큰 값이 이기는 속성이라 헷갈리지만 범위가 다르다.
+
+```mermaid
+flowchart LR
+    P1["ispA"] -->|"eBGP UPDATE"| R1
+    P2["ispB"] -->|"eBGP UPDATE"| R1
+    subgraph AS["우리 AS"]
+        R1["r1<br/>Weight는 r1 안에서만 평가"]
+        R2["r2"]
+        R1 -->|"iBGP: LOCAL_PREF 전달"| R2
+    end
+```
+
+그림에서 r1이 r2로 넘기는 화살표에는 LOCAL_PREF만 실리고 Weight는 실리지 않는다. 그 차이가 아래 설명의 핵심이다.
 
 LOCAL_PREF는 AS 안에서만 의미가 있고 iBGP로 전파된다. 기본값은 100이다. 우리 AS 안의 모든 라우터가 같은 값을 보고 같은 출구를 고르게 하는 용도다. KT 회선에서 받은 광고에 200, LG 회선에서 받은 광고에 100을 주면 AS 안의 모든 라우터가 KT 쪽으로 트래픽을 보낸다. 나가는 방향만 제어한다. 들어오는 방향은 prepending이나 MED 같은 다른 수단으로 상대에게 부탁해야 한다.
 
@@ -436,6 +582,15 @@ Site-to-Site VPN은 인터넷 위의 IPsec 터널이고 빠르게 올릴 수 있
 
 세 세션(DX 하나, VPN 터널 둘)을 한 FRR에 올린 구성이다. 평소에는 DX로 나가고, 터널 둘은 백업이다. 터널 2는 prepend로 AWS가 터널 1을 선호하게 한다.
 
+```mermaid
+flowchart LR
+    CGW["FRR 라우터<br/>AS 65001"] ---|"eBGP, 받는 경로 LOCAL_PREF 200"| DX["Direct Connect VIF<br/>AS 7224"]
+    CGW ---|"eBGP, LOCAL_PREF 100"| T1["VPN 터널 1<br/>AS 64512"]
+    CGW ---|"eBGP, LOCAL_PREF 100<br/>광고할 때 prepend"| T2["VPN 터널 2<br/>AS 64512"]
+```
+
+세 세션이 한 라우터에 붙는 모양과 세션별로 거는 정책이 그림의 선 위에 적혀 있다.
+
 ```
 router bgp 65001
  bgp router-id 10.10.0.1
@@ -557,11 +712,79 @@ prepend는 우리가 광고하는 경로에만 걸렸고 우리가 받는 경로
 
 ## 트러블슈팅에서 자주 보는 패턴
 
+BGP 문제는 `show bgp summary` 한 줄에서 갈린다. State/PfxRcd 열이 `Idle`, `Connect`, `Active`면 세션이 안 올라온 것이고, 숫자가 찍혀 있으면 올라온 것이다. 올라왔는데 숫자가 0이면 또 다른 문제다. 확인 순서는 TCP 179 도달성, OPEN 파라미터, 정책 순이다. 앞 단계가 안 풀렸는데 뒤 단계를 보면 시간만 쓴다.
+
+```mermaid
+flowchart TD
+    S["show bgp summary<br/>State/PfxRcd 확인"]
+    S -->|"Connect 또는 Active"| T1{"tcpdump port 179<br/>SYN에 SYN-ACK이 오는가"}
+    S -->|"Idle"| O1["show bgp neighbors<br/>Last reset 사유 확인"]
+    S -->|"Idle (PfxCt)"| P3["max-prefix 초과<br/>Cease/Maximum Number of Prefixes Reached"]
+    S -->|"Established, PfxRcd 0 또는 Policy"| P1{"상대의 PfxSnt가 0인가"}
+    T1 -->|"응답 없음, Connect"| T2["경로상 방화벽, ACL, 라우팅<br/>update-source, ebgp-multihop, MD5 키 확인"]
+    T1 -->|"RST, Active"| T3["상대 BGP 미기동, neighbor 미설정<br/>피어 IP 오타, 소스 주소 불일치"]
+    T1 -->|"SYN-ACK 오는데 Idle로 복귀"| O1
+    O1 -->|"Bad Peer AS"| O2["remote-as와 상대의 실제 local AS 대조"]
+    O1 -->|"Bad BGP Identifier, Unacceptable Hold Time"| O3["router-id 중복, hold time이 0 또는 3초 이상인지 확인"]
+    O1 -->|"Unsupported Optional Parameter, Unsupported Capability"| O4["Neighbor capabilities 블록에서<br/>advertised만 있는 항목 확인"]
+    P1 -->|"예"| P2["상대가 광고하지 않음<br/>상대의 outbound 정책, network 문, redistribute 확인<br/>FRR은 Policy 표시면 ebgp-requires-policy"]
+    P1 -->|"아니오"| P4["내 inbound 정책이 버림<br/>received-routes와 routes 개수 비교<br/>prefix-list, route-map, NoNeg 확인"]
+```
+
+그림에서 가장 헷갈리는 분기는 Established인데 prefix가 0인 경우다. 세션이 올라와 있으니 문제없다고 보기 쉽다. 이때는 양쪽 `show bgp summary`의 `PfxRcd`와 `PfxSnt`를 나란히 본다. 내가 0을 받는데 상대의 PfxSnt도 0이면 상대가 안 보내는 것이고, 상대는 N개를 보냈는데 내 PfxRcd가 0이면 내가 버리는 것이다. `show bgp ipv4 unicast neighbors <peer> received-routes`는 정책 적용 전 원본이라 `soft-reconfiguration inbound`가 켜져 있어야 나오고, 그 목록과 `routes`(정책 통과분)의 차이가 inbound 정책이 버린 경로다.
+
+FRR 8.1에서는 eBGP에 정책이 없으면 `Policy`가 찍힌다. 별도 설정 없이 두 라우터를 eBGP로 붙이면 이렇게 나온다.
+
+```
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+172.20.0.2      4      65002         4         4        0    0    0 00:00:06     (Policy) (Policy) N/A
+```
+
+세션은 `Established`인데 양방향 모두 경로를 안 주고받는다. FRR의 `bgp ebgp-requires-policy`가 기본으로 켜져 있어서, eBGP 피어에 inbound와 outbound route-map이 없으면 경로를 받지도 보내지도 않는다(RFC 8212). 실습이나 테스트 환경에서 FRR을 처음 붙일 때 가장 먼저 만나는 함정이다. route-map을 붙이거나 `no bgp ebgp-requires-policy`로 끄면 같은 세션에서 바로 경로가 오간다.
+
+`maximum-prefix`는 반대 방향의 함정이다. 상대가 갑자기 많은 경로를 보내면 세션을 끊어서 라우팅 테이블을 보호하는 기능이다. 상대가 prefix 4개를 광고하는 구성에서 `neighbor ... maximum-prefix 2`를 걸었더니 이렇게 됐다.
+
+```
+b# show bgp summary
+Neighbor        V         AS   MsgRcvd   MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd   PfxSnt Desc
+172.20.0.1      4      65001        44        51        0    0    0 00:00:05 Idle (PfxCt)        0 N/A
+
+b# show bgp neighbors 172.20.0.1
+  Last reset 00:00:05,   Notification sent (Cease/Maximum Number of Prefixes Reached)
+```
+
+State가 `Idle (PfxCt)`로 표시되고 `Last reset`에 Cease 사유가 남는다. 5초 동안 지켜본 범위에서는 세션이 다시 올라오지 않았다. 자동 재시도 간격은 `maximum-prefix <N> restart <분>` 옵션으로 따로 준다. 경계값에서는 동작이 예상과 달랐다. 같은 한도 2에서 prefix 3개를 받았을 때는 끊기지 않았고, 4개를 받았을 때 끊겼다. 광고되는 prefix 수가 한도에 근접하는 구성이면 한도를 넉넉히 잡는다. Direct Connect의 prefix 수 상한도 같은 식으로 세션을 끊는다.
+
 **경로는 보이는데 ping이 안 됨.** BGP 테이블에 prefix가 있는데 트래픽이 안 흐른다. 대부분 NEXT_HOP 도달성 문제다. 앞에서 본 `inaccessible`이 이 상태다. `show bgp ipv4 unicast <prefix>`에서 NEXT_HOP 옆에 `inaccessible`이 있는지 보고, 그 IP가 IGP 테이블에 있는지 확인한다. iBGP와 RR 환경에서 자주 본다.
 
 **비대칭 라우팅.** 가는 길과 오는 길이 다르다. stateful 보안 장비가 한쪽만 보고 패킷을 버린다. 한쪽에서 LOCAL_PREF로 한 회선을 고르는데 반대쪽은 prepend 때문에 다른 회선을 고르면 생긴다. 양쪽 AS의 정책을 같이 봐야 하고, 위의 두 VPN 터널처럼 한쪽이 router-id로 우연히 결정되는 구간도 후보다.
 
-**flap dampening.** prefix가 짧은 시간에 수십 번 광고/철회되면 한동안 광고에서 제외된다. 광고가 안 들어와서 이상할 때 dampening 상태를 확인한다.
+**세션 flap.** 세션이 올라왔다 내려가기를 반복하면 그때마다 그 피어에게 받은 경로가 전부 철회되고 다시 광고된다. 링크는 살아 있는데 중간 구간이 패킷만 삼키는 상황을 만들어 확인했다. 양쪽 `timers 3 9`로 세션을 올리고 prefix 4개를 주고받는 상태에서, 양쪽 veth의 입력을 iptables로 전부 버렸다.
+
+```mermaid
+sequenceDiagram
+    participant C as custA (AS 65010)
+    participant R as r1 (AS 64500)
+    participant I as ispA (AS 64501)
+    C->>R: KEEPALIVE (마지막으로 도착)
+    Note over C,R: 이후 패킷이 사라짐, 링크는 up
+    Note over R: hold timer 9초 만료
+    R-->>C: NOTIFICATION Hold Timer Expired (전달 안 됨)
+    R-->>R: custA에서 받은 경로 전부 제거
+    R->>I: UPDATE withdraw
+    Note over R,C: Idle에서 Connect로, SYN 재시도 반복
+    Note over C,R: 구간 복구
+    C->>R: TCP 연결 성립, OPEN
+    R->>C: OPEN, KEEPALIVE
+    C->>R: KEEPALIVE
+    C->>R: UPDATE 전체 prefix 재광고
+    R->>I: UPDATE 재광고
+    Note over I: withdraw와 광고가 반복되면 penalty 누적, dampening 적용 대상
+```
+
+위 그림에서 NOTIFICATION은 내 쪽에서 보냈다고 기록될 뿐 상대에게 도착하지 않는다. 같은 구간이 막혀 있기 때문이다. 실제 측정에서는 패킷을 버린 뒤 약 6초 만에 `Notification sent (Hold Timer Expired)`로 Idle이 됐고(마지막 KEEPALIVE가 이미 몇 초 지난 상태에서 시작해서 hold 9초보다 짧았다), 그 순간 라우팅 테이블의 prefix 4개가 0이 됐다. 이후 `Connect`에서 SYN만 반복하다가 iptables 규칙을 지우고 4초쯤 지나 세션이 올라왔고, 1초 뒤에 prefix 4개가 돌아왔다. 중간 구간이 불안정한 회선은 이걸 몇 번이고 되풀이한다. 전체 prefix가 한꺼번에 사라졌다 돌아오니 이웃 AS는 그 횟수만큼 withdraw와 광고를 받는다.
+
+이 상황에서 ispA 같은 이웃이 flap dampening을 켜 두었으면, prefix가 짧은 시간에 수십 번 광고/철회되면서 쌓인 penalty가 한도를 넘어 한동안 광고에서 제외된다. 회선이 복구됐는데도 상대 쪽에서 경로가 안 보이면 dampening 상태(`show bgp ipv4 unicast dampening dampened-paths`)를 확인한다. 근본 해결은 감지 시간을 줄이는 BFD와, 불안정한 구간 자체를 고치는 것이다.
 
 **ASN 충돌.** 사설 ASN을 여러 곳에서 같은 번호로 쓰면 AS_PATH에 자기 ASN이 보여서 광고가 거부된다. 멀티 클라우드에서 의외로 자주 본다. `allowas-in`으로 풀 수 있지만 루프 위험이 따라온다.
 
