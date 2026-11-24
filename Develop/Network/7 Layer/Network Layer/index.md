@@ -9,7 +9,7 @@ hide:
 
 # Network Layer 전체 보기
 
-문서 18개.
+문서 19개.
 
 ## IP
 
@@ -31,6 +31,7 @@ hide:
 - [IPv6 — 주소 고갈 너머의 운영 현실](I_Pv6.md)
 - [MTU·MSS와 Path MTU Discovery 블랙홀](MTU_MSS_PMTUD.md)
 - [OSPF — 내부망을 굴리는 Link-State 라우팅](OSPF.md)
+- [데이터센터 패브릭의 BGP — spine-leaf eBGP, unnumbered, EVPN-VXLAN](BGP_EVPN_VXLAN_Datacenter.md)
 - [라우터 — 패킷이 다음 홉을 찾는 방법](Router.md)
 - [멀티캐스트와 애니캐스트 (Multicast & Anycast)](Multicast_and_Anycast.md)
 - [쿠버네티스에서 쓰는 BGP — 노드가 ToR과 직접 피어링할 때 (Calico, MetalLB, Cilium)](BGP_in_Kubernetes_Calico_Metal_LB_Cilium.md)
