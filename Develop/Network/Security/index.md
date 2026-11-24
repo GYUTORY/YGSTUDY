@@ -12,11 +12,12 @@ updated: 2026-11-24
 
 네트워크 계층의 보안 — TLS, 방화벽, 트래픽 보호.
 
-문서 10개.
+문서 11개.
 
 ## 개요
 
 - [CI/CD 파이프라인 Zero Trust 적용](Zero_Trust_CICD_Pipeline.md)
+- [Site-to-Site VPN 장비 쪽 IPsec 운영](Site_to_Site_VPN_I_Psec_Operations.md)
 - [TLS와 HTTPS - 핸드셰이크 원리와 인증서 운영 실무](TLS_HTTPS.md)
 - [Tor Onion Service v3 운영 - 주소 유도, 6홉 접속, nginx 연결, 키 관리](Tor_Hidden_Service_Operation.md)
 - [Tor 동작 원리 - 3홉 서킷, Directory Authority, 그리고 출구 노드 구간](Tor_Onion_Routing.md)

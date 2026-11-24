@@ -4,6 +4,7 @@ nav:
   - TLS와 HTTPS: TLS_HTTPS.md
   - mTLS: Mutual_TLS.md
   - VPN: VPN.md
+  - Site-to-Site VPN 장비 IPsec 운영: Site_to_Site_VPN_I_Psec_Operations.md
   - 호스트 방화벽: Firewall.md
   - 네트워크 경계 방화벽 아키텍처: Network_Firewall_Architecture.md
   - Zero Trust 네트워크: Zero_Trust_Network.md
