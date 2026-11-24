@@ -9,7 +9,7 @@ hide:
 
 # OSI 7계층 전체 보기
 
-문서 58개.
+문서 59개.
 
 ## Application Layer
 
@@ -33,6 +33,7 @@ hide:
 - [BGP 경로 보안 — RPKI·ROV로 출처를 검증하고, 못 막는 것은 ASPA·필터로 메우기](<Network Layer/BGP_Route_Security_RPKI_ROV.md>)
 - [BGP 세션 보호 — 위조 RST, MD5의 한계, TCP-AO 키 롤오버, GTSM과 max-prefix](<Network Layer/BGP_Session_Security_TCP_AO_GTSM.md>)
 - [BGP 실습 — FRR 라우터 5대로 세션, 경로 선택, 장애 수렴, hijack 재현하기](<Network Layer/BGP_Lab_FRR_Containerlab.md>)
+- [BGP 애니캐스트와 트래픽 엔지니어링 — PoP 광고, 헬스체크 withdraw, 세션 끊김, /24 필터](<Network Layer/BGP_Anycast_and_Traffic_Engineering.md>)
 - [BGP 장애 감지와 재시작 — hold timer, BFD, Graceful Restart, MRAI, dampening 수렴 시간 측정](<Network Layer/BGP_Graceful_Restart_BFD_Convergence.md>)
 - [CIDR](<Network Layer/IP/CIDR.md>)
 - [ICMP — 진단 프로토콜의 안과 밖](<Network Layer/ICMP.md>)

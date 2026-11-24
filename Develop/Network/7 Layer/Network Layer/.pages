@@ -5,3 +5,4 @@ nav:
   - BGP_Graceful_Restart_BFD_Convergence.md
   - BGP_EVPN_VXLAN_Datacenter.md
   - BGP_IXP_Peering_Route_Server.md
+  - BGP_Anycast_and_Traffic_Engineering.md
