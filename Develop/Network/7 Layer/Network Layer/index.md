@@ -9,7 +9,7 @@ hide:
 
 # Network Layer 전체 보기
 
-문서 17개.
+문서 18개.
 
 ## IP
 
@@ -26,6 +26,7 @@ hide:
 - [BGP 경로 보안 — RPKI·ROV로 출처를 검증하고, 못 막는 것은 ASPA·필터로 메우기](BGP_Route_Security_RPKI_ROV.md)
 - [BGP 세션 보호 — 위조 RST, MD5의 한계, TCP-AO 키 롤오버, GTSM과 max-prefix](BGP_Session_Security_TCP_AO_GTSM.md)
 - [BGP 실습 — FRR 라우터 5대로 세션, 경로 선택, 장애 수렴, hijack 재현하기](BGP_Lab_FRR_Containerlab.md)
+- [BGP 장애 감지와 재시작 — hold timer, BFD, Graceful Restart, MRAI, dampening 수렴 시간 측정](BGP_Graceful_Restart_BFD_Convergence.md)
 - [ICMP — 진단 프로토콜의 안과 밖](ICMP.md)
 - [IPv6 — 주소 고갈 너머의 운영 현실](I_Pv6.md)
 - [MTU·MSS와 Path MTU Discovery 블랙홀](MTU_MSS_PMTUD.md)
