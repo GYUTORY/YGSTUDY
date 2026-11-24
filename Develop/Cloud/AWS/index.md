@@ -10,7 +10,7 @@ updated: 2026-11-25
 
 # AWS 전체 보기
 
-문서 201개.
+문서 202개.
 
 ## AI
 
@@ -202,6 +202,7 @@ updated: 2026-11-25
 - [Private vs Public Subnet](Network/Private_vs_Public_Subnet.md)
 - [S3 정적 웹사이트 호스팅](Network/S3_Static_Website_Hosting.md)
 - [Security Groups vs NACLs](Network/Security_Groups_vs_NACLs.md)
+- [TGW Inspection VPC와 Appliance Mode](Network/TGW_Inspection_VPC_Appliance_Mode.md)
 - [VPC Endpoints](Network/VPC_Endpoints.md)
 - [VPC Flow Logs](Network/VPC_Flow_Logs.md)
 - [VPC Reachability Analyzer](Network/VPC_Reachability_Analyzer.md)
