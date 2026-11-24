@@ -10,7 +10,7 @@ updated: 2026-11-24
 
 # AWS 전체 보기
 
-문서 199개.
+문서 200개.
 
 ## AI
 
@@ -193,6 +193,7 @@ updated: 2026-11-24
 - [AWS 네트워크 구성요소를 건물 비유로 이해하기](Network/AWS_Network_Components_Analogy.md)
 - [AWS 라우팅 테이블](Network/Route_Table.md)
 - [AWS 리전과 글로벌 인프라 구조](Network/AWS_Region_AZ_Global.md)
+- [AWS와 GCP를 VPN으로 직접 잇기](Network/AWS_GCP_Multi_Cloud_VPN.md)
 - [CDN + Adaptive Thumbnail](Network/CDN_Adaptive_Thumbnail.md)
 - [CDN 캐시 무효화 정책 (CloudFront·Cloudflare)](<Network/CDN 캐시 무효화 정책.md>)
 - [CloudFront Functions와 Lambda@Edge — 선택과 구현](Network/Cloud_Front_Functions_and_Lambda_at_Edge.md)
