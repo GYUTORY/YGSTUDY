@@ -12,7 +12,7 @@ updated: 2026-11-25
 
 VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 
-문서 34개.
+문서 35개.
 
 ## VPC 네트워킹
 
@@ -59,6 +59,7 @@ VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 - [CloudFront Functions와 Lambda@Edge — 선택과 구현](Cloud_Front_Functions_and_Lambda_at_Edge.md)
 - [TGW Connect Attachment와 SD-WAN GRE](TGW_Connect_SD_WAN_GRE.md)
 - [TGW Inspection VPC와 Appliance Mode](TGW_Inspection_VPC_Appliance_Mode.md)
+- [TGW 멀티 계정 운영과 RAM 공유](TGW_Multi_Account_RAM_Operations.md)
 - [VPC Endpoints](VPC_Endpoints.md)
 - [VPC Flow Logs](VPC_Flow_Logs.md)
 - [VPC Reachability Analyzer](VPC_Reachability_Analyzer.md)
