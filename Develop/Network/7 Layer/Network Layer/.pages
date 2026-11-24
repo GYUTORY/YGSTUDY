@@ -4,3 +4,4 @@ nav:
   - BGP_Session_Security_TCP_AO_GTSM.md
   - BGP_Graceful_Restart_BFD_Convergence.md
   - BGP_EVPN_VXLAN_Datacenter.md
+  - BGP_IXP_Peering_Route_Server.md

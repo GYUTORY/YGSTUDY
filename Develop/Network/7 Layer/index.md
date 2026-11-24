@@ -9,7 +9,7 @@ hide:
 
 # OSI 7계층 전체 보기
 
-문서 57개.
+문서 58개.
 
 ## Application Layer
 
@@ -37,6 +37,7 @@ hide:
 - [CIDR](<Network Layer/IP/CIDR.md>)
 - [ICMP — 진단 프로토콜의 안과 밖](<Network Layer/ICMP.md>)
 - [IPv6 — 주소 고갈 너머의 운영 현실](<Network Layer/I_Pv6.md>)
+- [IXP 피어링과 Route Server — transit·peering 선택, 피어 필터, default route 사고](<Network Layer/BGP_IXP_Peering_Route_Server.md>)
 - [MTU·MSS와 Path MTU Discovery 블랙홀](<Network Layer/MTU_MSS_PMTUD.md>)
 - [OSPF — 내부망을 굴리는 Link-State 라우팅](<Network Layer/OSPF.md>)
 - [Subnet](<Network Layer/IP/Subnet.md>)
