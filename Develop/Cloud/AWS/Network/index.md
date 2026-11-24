@@ -12,7 +12,7 @@ updated: 2026-11-24
 
 VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 
-문서 31개.
+문서 32개.
 
 ## VPC 네트워킹
 
@@ -30,6 +30,7 @@ VPC·Route 53·CloudFront 등 AWS 네트워크 서비스.
 - [Direct Connect](Direct_Connect.md)
 - [Site-to-Site VPN](Site_to_Site_VPN.md)
 - [AWS와 GCP VPN 연결](AWS_GCP_Multi_Cloud_VPN.md)
+- [Customer Gateway](Customer_Gateway.md)
 
 ## 엣지와 배포
 

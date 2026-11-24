@@ -10,7 +10,7 @@ updated: 2026-11-24
 
 # AWS 전체 보기
 
-문서 200개.
+문서 201개.
 
 ## AI
 
@@ -197,6 +197,7 @@ updated: 2026-11-24
 - [CDN + Adaptive Thumbnail](Network/CDN_Adaptive_Thumbnail.md)
 - [CDN 캐시 무효화 정책 (CloudFront·Cloudflare)](<Network/CDN 캐시 무효화 정책.md>)
 - [CloudFront Functions와 Lambda@Edge — 선택과 구현](Network/Cloud_Front_Functions_and_Lambda_at_Edge.md)
+- [Customer Gateway](Network/Customer_Gateway.md)
 - [ENI(Elastic Network Interface) — VPC 안의 모든 IP는 결국 여기로 모인다](Network/Elastic_Network_Interface.md)
 - [Private vs Public Subnet](Network/Private_vs_Public_Subnet.md)
 - [S3 정적 웹사이트 호스팅](Network/S3_Static_Website_Hosting.md)
