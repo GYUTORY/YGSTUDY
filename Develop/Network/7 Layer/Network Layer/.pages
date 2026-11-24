@@ -7,3 +7,4 @@ nav:
   - BGP_IXP_Peering_Route_Server.md
   - BGP_Anycast_and_Traffic_Engineering.md
   - BGP_Route_Reflector_Confederation_Add_Path.md
+  - BGP_Monitoring_BMP_and_Observability.md
