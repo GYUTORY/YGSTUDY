@@ -1,7 +1,7 @@
 ---
 title: Istio와 Service Mesh
 tags: [iac, kubernetes, proxy, observability]
-updated: 2026-04-21
+updated: 2026-11-25
 ---
 
 # Istio와 Service Mesh
@@ -20,21 +20,17 @@ updated: 2026-04-21
 
 Service Mesh는 이 공통 기능을 **애플리케이션 밖으로 빼낸다**. 각 파드 옆에 프록시(사이드카)를 붙여서 모든 네트워크 트래픽을 대신 처리하게 만든다. 애플리케이션은 `localhost:8080`으로 요청만 보내면 되고, 나머지는 프록시가 알아서 한다.
 
-```
-기존 방식 (라이브러리 기반):
-┌─────────────────────┐
-│  App (Java)         │
-│  + Hystrix          │
-│  + Ribbon           │
-│  + Sleuth           │──── mTLS, retry, 트레이싱을
-│  + Eureka Client    │     애플리케이션이 직접 처리
-└─────────────────────┘
+아래 도식은 두 방식에서 네트워크 기능을 누가 처리하는지 보여준다. 라이브러리 방식은 Java 앱 하나가 Hystrix, Ribbon, Sleuth, Eureka Client를 모두 품고 mTLS, 재시도, 트레이싱을 직접 처리한다. Service Mesh 방식은 앱이 사이드카로 요청만 넘기고, 같은 기능을 Envoy가 맡는다.
 
-Service Mesh 방식:
-┌─────────────┐    ┌──────────────┐
-│  App        │───▶│  Sidecar     │──── 네트워크 기능은
-│  (아무 언어)  │    │  (Envoy)     │     프록시가 처리
-└─────────────┘    └──────────────┘
+```mermaid
+flowchart LR
+    subgraph LIB["기존 방식: 라이브러리 기반"]
+        A1["App (Java)<br/>Hystrix, Ribbon,<br/>Sleuth, Eureka Client"] --> N1["mTLS, retry, 트레이싱을<br/>애플리케이션이 직접 처리"]
+    end
+    subgraph MESH["Service Mesh 방식"]
+        A2["App (아무 언어)"] --> S2["Sidecar (Envoy)"]
+        S2 --> N2["네트워크 기능은<br/>프록시가 처리"]
+    end
 ```
 
 실무에서 Istio를 도입하는 시점은 보통 마이크로서비스가 10~20개를 넘어가면서 공통 네트워크 로직을 중앙에서 관리하고 싶어지는 때다. 그 이하라면 Istio의 복잡도가 오히려 손해다.
@@ -51,20 +47,13 @@ Istio는 두 개의 평면으로 나뉜다.
 
 트래픽이 Envoy로 흘러들어가는 원리는 `iptables` 룰이다. Istio가 사이드카를 주입할 때 `istio-init` initContainer를 먼저 실행하는데, 이게 파드 네트워크 네임스페이스 안에서 iptables 룰을 설정해 모든 TCP 트래픽을 Envoy 포트(15001, 15006)로 리다이렉트한다.
 
-```
-파드 네트워크 네임스페이스 내부:
+아래 도식은 파드 네트워크 네임스페이스 안에서 App의 외부 호출이 지나가는 순서를 보여준다. App이 보낸 요청은 iptables 룰에 걸려 Envoy로 넘어가고, Envoy가 mTLS, 재시도, 로깅을 처리한 뒤 실제 목적지로 나간다.
 
-  App 컨테이너 ──(localhost:8080)──▶ 외부 호출
-                                        │
-                                        ▼
-                              iptables 룰이 가로챔
-                                        │
-                                        ▼
-                              Envoy (15001 포트)
-                                        │
-                                        ▼
-                              실제 목적지로 전송
-                              (mTLS, 재시도, 로깅 후)
+```mermaid
+flowchart TD
+    A["App 컨테이너"] -->|"localhost:8080 외부 호출"| B["iptables 룰이 가로챔"]
+    B --> C["Envoy (15001 포트)"]
+    C --> D["실제 목적지로 전송<br/>(mTLS, 재시도, 로깅 후)"]
 ```
 
 Envoy를 쓰는 이유는 C++ 기반으로 빠르고, xDS라는 API로 런타임 설정 변경이 가능하기 때문이다. 재시작 없이 라우팅 룰을 바꿀 수 있는 게 핵심이다.
@@ -79,29 +68,32 @@ Envoy를 쓰는 이유는 C++ 기반으로 빠르고, xDS라는 API로 런타임
 
 실무에서 istiod가 죽으면 어떻게 되느냐 하면, **이미 배포된 Envoy 설정은 계속 동작한다**. 다만 새로운 파드가 뜨거나 설정 변경이 반영되지 않을 뿐이다. 그래서 istiod는 HA 구성(replica 2~3)이 권장된다.
 
-```
-┌─────────────────────────────────────────────────┐
-│              Control Plane                      │
-│  ┌──────────────────────────────────┐          │
-│  │  istiod                          │          │
-│  │  - Config 관리                    │          │
-│  │  - 인증서 발급                     │          │
-│  │  - xDS로 Envoy에 설정 푸시          │          │
-│  └──────────────────────────────────┘          │
-└────────────────┬────────────────────────────────┘
-                 │ xDS (gRPC 스트리밍)
-    ┌────────────┼────────────┐
-    ▼            ▼            ▼
-┌────────┐  ┌────────┐  ┌────────┐
-│ Pod A  │  │ Pod B  │  │ Pod C  │
-│ ┌────┐ │  │ ┌────┐ │  │ ┌────┐ │
-│ │App │ │  │ │App │ │  │ │App │ │
-│ └────┘ │  │ └────┘ │  │ └────┘ │
-│ ┌────┐ │  │ ┌────┐ │  │ ┌────┐ │
-│ │Envoy│─┼──┼▶│Envoy│─┼──┼▶│Envoy│ │
-│ └────┘ │  │ └────┘ │  │ └────┘ │
-└────────┘  └────────┘  └────────┘
-         Data Plane
+아래 도식은 컨트롤 플레인의 istiod가 xDS(gRPC 스트리밍)로 각 파드의 Envoy에 설정을 밀어 넣고, 데이터 플레인에서는 Envoy끼리 트래픽을 주고받는 구조를 보여준다.
+
+```mermaid
+flowchart TD
+    subgraph CP["Control Plane"]
+        I["istiod<br/>Config 관리, 인증서 발급,<br/>xDS로 Envoy에 설정 푸시"]
+    end
+    subgraph DP["Data Plane"]
+        subgraph PA["Pod A"]
+            AA["App"]
+            EA["Envoy"]
+        end
+        subgraph PB["Pod B"]
+            AB["App"]
+            EB["Envoy"]
+        end
+        subgraph PC["Pod C"]
+            AC["App"]
+            EC["Envoy"]
+        end
+        EA --> EB
+        EB --> EC
+    end
+    I -->|"xDS (gRPC 스트리밍)"| EA
+    I -->|"xDS (gRPC 스트리밍)"| EB
+    I -->|"xDS (gRPC 스트리밍)"| EC
 ```
 
 ---
@@ -139,7 +131,7 @@ Gateway 자체는 "어떤 포트/호스트/TLS로 받을지"만 정의한다. �
 
 ### 3.2 VirtualService
 
-라우팅 규칙을 정의한다. 경로, 헤더, 쿼리 스트링, 쿠키 등 다양한 기준으로 트래픽을 분기할 수 있다.
+라우팅 규칙을 정의한다. 경로, 헤더, 쿼리 스트링, 쿠키 기준으로 트래픽을 분기할 수 있다.
 
 ```yaml
 apiVersion: networking.istio.io/v1beta1
@@ -218,24 +210,18 @@ spec:
         version: canary
 ```
 
-서브셋은 서비스의 논리적 구분이고, 라벨 셀렉터로 실제 파드와 매칭한다. VirtualService에서 `subset: v1`이라고 쓴 게 여기 정의된 서브셋을 참조하는 것이다.
+서브셋은 서비스의 논리적 구분이고, 라벨 셀렉터로 실제 파드와 매칭한다. VirtualService의 `subset: v1`은 여기 정의된 서브셋을 가리킨다.
 
 세 리소스의 관계를 정리하면 이렇다.
 
-```
-외부 요청
-  │
-  ▼
-Gateway (어느 포트/호스트로 받을지)
-  │
-  ▼
-VirtualService (어느 서비스/서브셋으로 보낼지)
-  │
-  ▼
-DestinationRule (서브셋 정의, 로드밸런싱, 커넥션 풀)
-  │
-  ▼
-실제 Pod
+아래 도식은 외부 요청이 세 리소스를 차례로 거쳐 파드에 도달하는 순서를 보여준다.
+
+```mermaid
+flowchart TD
+    R["외부 요청"] --> G["Gateway<br/>어느 포트/호스트로 받을지"]
+    G --> V["VirtualService<br/>어느 서비스/서브셋으로 보낼지"]
+    V --> D["DestinationRule<br/>서브셋 정의, 로드밸런싱, 커넥션 풀"]
+    D --> P["실제 Pod"]
 ```
 
 ---
@@ -347,7 +333,7 @@ http:
 
 ### 6.2 재시도
 
-네트워크 일시 오류에 대응한다. 주의할 점은 **POST 같은 비멱등 요청에 무조건 재시도를 걸면 중복 결제 같은 사고가 난다**는 것이다. `retryOn`으로 재시도 조건을 명시해야 한다.
+네트워크 일시 오류에 대응한다. POST 같은 비멱등 요청에 무조건 재시도를 걸면 중복 결제 같은 사고가 난다. `retryOn`으로 재시도 조건을 명시해야 한다.
 
 ```yaml
 http:
@@ -404,7 +390,7 @@ Istio 자체가 메트릭/로그/트레이싱을 쏟아내므로, 이를 수집/
 
 Kiali는 Prometheus에서 메트릭을 읽고, Istio 리소스는 Kubernetes API에서 읽어서 조합한다. 그래서 Prometheus가 없으면 빈 화면만 나온다.
 
-실무에서 Kiali를 쓸 때 주의할 점은 **네임스페이스에 `istio-injection=enabled` 라벨이 없으면 메쉬에 포함 안 되어 토폴로지에 안 나타난다**는 것이다. "왜 우리 서비스가 Kiali에 안 보이지?" 디버깅 1순위다.
+네임스페이스에 `istio-injection=enabled` 라벨이 없으면 메쉬에 포함되지 않아 토폴로지에 나타나지 않는다. "왜 우리 서비스가 Kiali에 안 보이지?" 디버깅 1순위다.
 
 ### 7.2 Jaeger 분산 트레이싱
 
