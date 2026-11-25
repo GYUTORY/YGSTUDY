@@ -1,7 +1,7 @@
 ---
 title: Cloudflare DNS 설정 실무
 tags: [cloud, network, dns, cdn, aws, security]
-updated: 2026-10-01
+updated: 2026-11-25
 ---
 
 # Cloudflare DNS 설정 실무
@@ -29,15 +29,17 @@ flowchart TB
     end
 ```
 
-위쪽은 TLS 연결이 두 번 맺어진다. 클라이언트와 엣지 사이, 엣지와 오리진 사이다. 아래쪽은 Cloudflare가 DNS 응답만 하고 빠지므로 WAF, 캐시, DDoS 완화가 전부 동작하지 않는다. 회색 구름으로 바꾸는 순간 오리진 IP가 `dig` 한 번으로 드러나기 때문에, 한번 노출된 IP는 이후 프록시를 다시 켜도 방화벽에서 Cloudflare 대역만 허용하도록 막아두지 않으면 우회 접근이 가능하다.
+위쪽은 TLS 연결이 두 번 맺어진다. 클라이언트와 엣지 사이, 엣지와 오리진 사이다. 아래쪽은 Cloudflare가 DNS 응답만 하고 빠지므로 WAF, 캐시, DDoS 완화가 전부 동작하지 않는다.
 
-**프록시를 쓰면 발생하는 실질적인 차이:**
+회색 구름으로 바꾸는 순간 오리진 IP가 `dig` 한 번으로 드러난다. 한번 노출된 IP는 이후 프록시를 다시 켜도, 방화벽에서 Cloudflare 대역만 허용하도록 막아두지 않으면 우회 접근이 가능하다.
+
+프록시를 켜면 오리진 쪽에서 달라지는 점이 셋 있다.
 
 - 오리진으로 들어오는 연결은 Cloudflare IP에서 온다. `X-Forwarded-For`나 `CF-Connecting-IP` 헤더를 써야 실제 클라이언트 IP를 얻는다.
 - `dig` 또는 `nslookup`으로 도메인을 조회하면 오리진 IP 대신 Cloudflare IP 대역(`104.x.x.x`, `172.x.x.x`)이 나온다.
 - 오리진의 SSL 인증서 설정에 따라 SSL 모드(Flexible/Full/Full Strict)를 맞춰야 한다. Flexible은 브라우저-Cloudflare 구간만 HTTPS고 오리진은 HTTP다. Full Strict는 오리진에도 유효한 인증서가 있어야 한다.
 
-**DNS-only가 필요한 경우:**
+DNS-only로 둬야 하는 경우는 다음 세 가지다.
 
 - MX 레코드 — Cloudflare 프록시는 MX를 지원하지 않는다. 이메일 서버 레코드는 항상 DNS-only다.
 - SRV, CAA, NS, TXT 레코드 — 이 타입들은 프록시 토글 자체가 없거나 회색 고정이다.
@@ -81,7 +83,9 @@ TTL: Auto
 
 ### 루트 도메인 CNAME flattening과 Route 53 ALIAS
 
-Cloudflare는 CNAME flattening으로 이 제약을 우회한다. `@`에 CNAME을 입력하면 Cloudflare가 대상 호스트명을 직접 조회해서 A/AAAA 레코드로 풀어 응답한다. 클라이언트에게는 CNAME이 보이지 않고 IP만 보이므로 루트에 MX가 공존해도 규칙을 어기지 않는다. 무료 플랜에서는 루트만 flatten되고, 서브도메인 CNAME까지 전부 flatten하는 옵션은 유료 플랜 기능이다.
+Cloudflare는 CNAME flattening으로 이 제약을 우회한다. `@`에 CNAME을 입력하면 Cloudflare가 대상 호스트명을 직접 조회해서 A/AAAA 레코드로 풀어 응답한다.
+
+클라이언트에게는 CNAME이 보이지 않고 IP만 보이므로 루트에 MX가 공존해도 규칙을 어기지 않는다. 무료 플랜에서는 루트만 flatten되고, 서브도메인 CNAME까지 전부 flatten하는 옵션은 유료 플랜 기능이다.
 
 Route 53에는 ALIAS 레코드가 같은 역할을 한다. 콘솔에서 A 레코드를 만들 때 Alias를 켜면 Route 53이 대상 AWS 리소스의 현재 IP로 응답한다. 이름이 CNAME 비슷하게 들리지만 레코드 타입은 A 또는 AAAA다.
 
@@ -94,7 +98,9 @@ Route 53에는 ALIAS 레코드가 같은 역할을 한다. 콘솔에서 A 레코
 | 쿼리 비용 | 무료 | AWS 리소스를 대상으로 한 ALIAS 쿼리는 무료 |
 | 대상 헬스 연동 | 없음 | Evaluate target health 옵션 |
 
-Cloudflare에서 Route 53으로 옮길 때 가장 먼저 걸리는 곳이 대상 제한이다. Cloudflare에서는 루트가 `something.vercel-dns.com` 같은 외부 호스트를 가리키는 CNAME이어도 동작했다. Route 53 ALIAS는 AWS 밖의 호스트를 대상으로 못 잡기 때문에, 이런 루트 레코드는 고정 IP의 A 레코드로 바꾸거나 `www`만 CNAME으로 쓰고 루트는 리다이렉트로 돌려야 한다. 옮기기 전에 루트 레코드의 대상이 AWS 리소스인지부터 확인한다.
+Cloudflare에서 Route 53으로 옮길 때 가장 먼저 걸리는 곳이 대상 제한이다. Cloudflare에서는 루트가 `something.vercel-dns.com` 같은 외부 호스트를 가리키는 CNAME이어도 동작했다.
+
+Route 53 ALIAS는 AWS 밖의 호스트를 대상으로 못 잡기 때문에, 이런 루트 레코드는 고정 IP의 A 레코드로 바꾸거나 `www`만 CNAME으로 쓰고 루트는 리다이렉트로 돌려야 한다. 옮기기 전에 루트 레코드의 대상이 AWS 리소스인지부터 확인한다.
 
 Terraform으로 루트를 CloudFront에 ALIAS로 연결하면 이렇게 쓴다. CloudFront의 호스티드 존 ID `Z2FDTNDATAQYW2`는 모든 배포에서 같은 고정값이다.
 
@@ -135,15 +141,25 @@ flowchart LR
 
 주황 구름이면 캐시가 두 겹이 된다. 겪어본 문제는 대개 이 네 가지다.
 
-첫째, 퍼지가 한쪽만 된다. 배포 파이프라인이 CloudFront Invalidation만 날리면 Cloudflare 엣지에는 옛 파일이 남는다. 정적 파일 해시가 바뀌었는데 HTML만 옛것이 나오는 증상이 여기서 나온다. 두 CDN을 다 비워야 하고, 어느 쪽이 응답했는지는 `cf-cache-status`와 `x-cache` 헤더를 같이 봐야 구분된다.
+첫째, 퍼지가 한쪽만 된다. 배포 파이프라인이 CloudFront Invalidation만 날리면 Cloudflare 엣지에는 옛 파일이 남는다.
 
-둘째, SSL 모드가 Flexible이면 리다이렉트 루프가 난다. Flexible은 Cloudflare가 오리진 쪽을 HTTP로 접속한다. CloudFront 배포의 Viewer protocol policy가 Redirect HTTP to HTTPS면 CloudFront가 301로 되돌려보내고, 클라이언트는 다시 Cloudflare로 들어와 같은 일이 반복된다. Full(Strict)로 바꾸면 해결된다. 이때 CloudFront에 대체 도메인 이름(CNAME)으로 `example.com`이 등록돼 있고 us-east-1의 ACM 인증서가 붙어 있어야 한다. Cloudflare는 원래 Host 헤더를 그대로 넘기기 때문에, 대체 도메인이 없으면 CloudFront가 403을 낸다.
+정적 파일 해시가 바뀌었는데 HTML만 옛것이 나오는 증상이 여기서 나온다. 두 CDN을 다 비워야 하고, 어느 쪽이 응답했는지는 `cf-cache-status`와 `x-cache` 헤더를 같이 봐야 구분된다.
 
-셋째, 클라이언트 IP가 사라진다. CloudFront는 Cloudflare IP를 클라이언트로 보고, 오리진의 접근 로그와 지역 제한, 레이트 리밋이 전부 Cloudflare 대역 기준으로 동작한다. `CloudFront-Viewer-Address` 헤더에도 Cloudflare IP가 찍힌다. 실제 IP는 `CF-Connecting-IP`를 CloudFront origin request policy로 오리진에 전달해야 얻는다.
+둘째, SSL 모드가 Flexible이면 리다이렉트 루프가 난다. Flexible은 Cloudflare가 오리진 쪽을 HTTP로 접속한다.
+
+CloudFront 배포의 Viewer protocol policy가 Redirect HTTP to HTTPS면 CloudFront가 301로 되돌려보내고, 클라이언트는 다시 Cloudflare로 들어와 같은 일이 반복된다. Full(Strict)로 바꾸면 해결된다.
+
+이때 CloudFront에 대체 도메인 이름(CNAME)으로 `example.com`이 등록돼 있고 us-east-1의 ACM 인증서가 붙어 있어야 한다. Cloudflare는 원래 Host 헤더를 그대로 넘기기 때문에, 대체 도메인이 없으면 CloudFront가 403을 낸다.
+
+셋째, 클라이언트 IP가 사라진다. CloudFront는 Cloudflare IP를 클라이언트로 보고, 오리진의 접근 로그와 지역 제한, 레이트 리밋이 전부 Cloudflare 대역 기준으로 동작한다.
+
+`CloudFront-Viewer-Address` 헤더에도 Cloudflare IP가 찍힌다. 실제 IP는 `CF-Connecting-IP`를 CloudFront origin request policy로 오리진에 전달해야 얻는다.
 
 넷째, WAF가 두 곳에서 따로 동작한다. 한쪽에서 차단한 요청이 다른 쪽 로그에는 남지 않아서 원인을 찾을 때 양쪽 대시보드를 번갈아 봐야 한다.
 
-CloudFront가 이미 캐시와 WAF를 맡고 있다면 해당 레코드는 회색 구름(DNS only)으로 둔다. Cloudflare를 DNS 호스팅으로만 쓰는 구성이다. 반대로 Cloudflare 캐시와 WAF를 쓰려는 것이면 CloudFront를 거치지 않고 오리진으로 바로 붙이는 편이 낫다. 두 CDN을 일부러 겹쳐 쓰는 경우는 이중 캐시 TTL과 퍼지 경로를 문서로 남겨두지 않으면 운영하는 사람이 바뀔 때 반드시 사고가 난다.
+CloudFront가 이미 캐시와 WAF를 맡고 있다면 해당 레코드는 회색 구름(DNS only)으로 둔다. Cloudflare를 DNS 호스팅으로만 쓰는 구성이다.
+
+반대로 Cloudflare 캐시와 WAF를 쓰려는 것이면 CloudFront를 거치지 않고 오리진으로 바로 붙이는 편이 낫다. 두 CDN을 일부러 겹쳐 쓰는 경우는 이중 캐시 TTL과 퍼지 경로를 문서로 남겨두지 않으면 운영하는 사람이 바뀔 때 반드시 사고가 난다.
 
 ### MX
 
@@ -183,15 +199,11 @@ TXT 레코드에 큰따옴표를 입력칸에 직접 넣을 필요는 없다. Cl
 
 Cloudflare API를 쓰면 레코드 생성·수정·삭제를 코드로 관리할 수 있다. DDNS 갱신, CI/CD에서 배포 직후 레코드 업데이트 같은 용도에 쓴다.
 
-**토큰 생성 순서:**
+토큰은 대시보드 오른쪽 위 프로필 → API Tokens → Create Token → "Edit zone DNS" 템플릿 선택. Zone Resource를 특정 도메인으로 제한하는 게 낫다. 전체 계정 권한을 주면 토큰 하나 유출로 모든 도메인이 위험해진다.
 
-대시보드 오른쪽 위 프로필 → API Tokens → Create Token → "Edit zone DNS" 템플릿 선택. Zone Resource를 특정 도메인으로 제한하는 게 낫다. 전체 계정 권한을 주면 토큰 하나 유출로 모든 도메인이 위험해진다.
+Zone ID는 도메인 대시보드 오른쪽 사이드바에 있다. API 호출 URL에 이 값이 들어간다.
 
-**Zone ID 확인:**
-
-도메인 대시보드 오른쪽 사이드바에 Zone ID가 있다. API 호출 URL에 이 값이 들어간다.
-
-**레코드 생성:**
+레코드 생성은 POST로 한다.
 
 ```bash
 curl -X POST "https://api.cloudflare.com/client/v4/zones/{ZONE_ID}/dns_records" \
@@ -208,9 +220,7 @@ curl -X POST "https://api.cloudflare.com/client/v4/zones/{ZONE_ID}/dns_records" 
 
 `ttl: 1`은 Cloudflare에서 Auto TTL을 의미한다. 프록시 모드에서는 TTL이 자동으로 300초로 고정되기 때문에 실제로 입력한 TTL 값은 무시된다.
 
-**기존 레코드 업데이트 (PUT):**
-
-레코드 ID를 먼저 조회해야 한다.
+기존 레코드를 PUT으로 업데이트하려면 레코드 ID를 먼저 조회해야 한다.
 
 ```bash
 # 레코드 조회
@@ -232,7 +242,7 @@ curl -X PUT "https://api.cloudflare.com/client/v4/zones/{ZONE_ID}/dns_records/{R
 
 PATCH를 쓰면 변경할 필드만 넘겨도 된다. PUT은 레코드 전체를 교체하므로 `name`, `type`, `content`를 전부 넣어야 한다.
 
-**Python으로 DDNS 갱신:**
+Python으로 DDNS를 갱신하는 스크립트는 이렇게 쓴다.
 
 ```python
 import httpx
@@ -313,7 +323,9 @@ sequenceDiagram
 
 4단계 퍼지는 새 CDN을 비우는 것이다. 검증하면서 요청한 응답이 CloudFront에 캐시되어 있으면 전환 직후 그 응답이 나간다. 오리진이 그 사이 배포됐다면 옛 내용이다. 반대로 CloudFront에서 Cloudflare로 돌아갈 때는 Cloudflare 쪽에서 Purge Everything을 하면 된다. 어느 방향이든 퍼지는 도착 CDN에서 한다.
 
-5단계 이후 프록시가 켜져 있던 레코드는 TTL이 300초로 고정이라 변경 후 5분이면 대부분 끝난다. 사전 인하가 의미 있는 쪽은 DNS only로 TTL을 길게 잡았던 레코드다. 다만 5분이 지나도 일부 리졸버가 TTL을 무시하고 길게 캐시하는 경우가 있어서, 8단계에서 Cloudflare Analytics의 요청량이 0에 가까워진 걸 확인하기 전에는 Cloudflare 설정을 지우지 않는다. 롤백이 필요할 때 옛 경로가 살아 있어야 한다.
+5단계 이후 프록시가 켜져 있던 레코드는 TTL이 300초로 고정이라 변경 후 5분이면 대부분 끝난다. 사전 인하가 의미 있는 쪽은 DNS only로 TTL을 길게 잡았던 레코드다.
+
+다만 5분이 지나도 일부 리졸버가 TTL을 무시하고 길게 캐시하는 경우가 있어서, 8단계에서 Cloudflare Analytics의 요청량이 0에 가까워진 걸 확인하기 전에는 Cloudflare 설정을 지우지 않는다. 롤백이 필요할 때 옛 경로가 살아 있어야 한다.
 
 ## 도메인 이전 절차
 
@@ -352,11 +364,23 @@ flowchart TB
     G --> H["Cloudflare 요청량 0 확인 후 Cloudflare 존 삭제"]
 ```
 
-전파가 48시간씩 걸리는 이유는 레지스트라 화면에서 네임서버를 바꾸면 TLD(.com 등) 존의 위임 정보는 금방 갱신되지만, 이미 옛 네임서버 정보를 캐시한 리졸버는 그 NS 레코드의 TTL이 끝나야 새 정보를 물어보기 때문이다. `.com`은 위임 NS TTL이 보통 172800초(48시간)다. 이 값은 우리가 낮출 수 없다. 레코드 TTL은 사전 인하가 되지만 위임 TTL은 TLD 운영 주체가 정한다.
+전파가 48시간씩 걸리는 이유는 레지스트라 화면에서 네임서버를 바꾸면 TLD(.com 등) 존의 위임 정보는 금방 갱신되지만, 이미 옛 네임서버 정보를 캐시한 리졸버는 그 NS 레코드의 TTL이 끝나야 새 정보를 물어보기 때문이다.
 
-그래서 이 시간 동안은 두 DNS가 모두 응답한다. 리졸버에 따라 Cloudflare에 묻는 쪽과 Route 53에 묻는 쪽이 갈린다. 두 존의 레코드가 하나라도 다르면 사용자마다 다른 서버로 간다. Route 53 존에는 Cloudflare와 같은 레코드를 먼저 넣고 나서 NS를 바꾼다. 프록시가 켜져 있던 레코드는 Cloudflare IP가 아니라 실제 대상인 오리진 IP나 CloudFront를 넣어야 한다. 이전 기간에 레코드를 고쳐야 하면 양쪽 존에 똑같이 반영한다. Cloudflare 존은 48시간이 지나도 요청량이 남아 있으면 지우지 않는다. 일찍 지우면 옛 NS를 캐시한 리졸버가 응답을 받지 못해 SERVFAIL을 반환한다.
+`.com`은 위임 NS TTL이 보통 172800초(48시간)다. 이 값은 우리가 낮출 수 없다. 레코드 TTL은 사전 인하가 되지만 위임 TTL은 TLD 운영 주체가 정한다.
 
-DNSSEC가 걸려 있으면 순서가 하나 더 붙는다. Cloudflare에서 DNSSEC를 켜면 레지스트라에 DS 레코드가 등록돼 있다. 이걸 지우지 않고 NS만 Route 53으로 바꾸면, Route 53 존에는 대응하는 서명이 없으므로 검증을 하는 리졸버(구글 8.8.8.8, 클라우드플레어 1.1.1.1 포함)가 해당 도메인을 SERVFAIL로 처리한다. 일부 사용자만 접속이 안 되는 형태로 나타나서 원인을 찾기 어렵다. DS를 먼저 삭제하고 TTL이 지난 뒤 NS를 바꾼다.
+그래서 이 시간 동안은 두 DNS가 모두 응답한다. 리졸버에 따라 Cloudflare에 묻는 쪽과 Route 53에 묻는 쪽이 갈린다. 두 존의 레코드가 하나라도 다르면 사용자마다 다른 서버로 간다.
+
+Route 53 존에는 Cloudflare와 같은 레코드를 먼저 넣고 나서 NS를 바꾼다. 프록시가 켜져 있던 레코드는 Cloudflare IP가 아니라 실제 대상인 오리진 IP나 CloudFront를 넣어야 한다.
+
+이전 기간에 레코드를 고쳐야 하면 양쪽 존에 똑같이 반영한다. Cloudflare 존은 48시간이 지나도 요청량이 남아 있으면 지우지 않는다.
+
+일찍 지우면 옛 NS를 캐시한 리졸버가 응답을 받지 못해 SERVFAIL을 반환한다.
+
+DNSSEC가 걸려 있으면 순서가 하나 더 붙는다. Cloudflare에서 DNSSEC를 켜면 레지스트라에 DS 레코드가 등록돼 있다.
+
+이걸 지우지 않고 NS만 Route 53으로 바꾸면, Route 53 존에는 대응하는 서명이 없으므로 검증을 하는 리졸버(구글 8.8.8.8, 클라우드플레어 1.1.1.1 포함)가 해당 도메인을 SERVFAIL로 처리한다. 일부 사용자만 접속이 안 되는 형태로 나타나서 원인을 찾기 어렵다.
+
+DS를 먼저 삭제하고 TTL이 지난 뒤 NS를 바꾼다.
 
 진행 상황은 두 지점에서 확인한다.
 
