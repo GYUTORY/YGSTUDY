@@ -1,7 +1,7 @@
 ---
 title: DDD (Domain-Driven Design)
 tags: [architecture]
-updated: 2026-03-31
+updated: 2026-11-25
 ---
 
 # DDD (Domain-Driven Design)
@@ -66,16 +66,29 @@ DDD(도메인 주도 설계)는 복잡한 비즈니스 도메인을 소프트웨
 → 하나의 Product 클래스로 모든 것을 담으면 God Object가 된다
 ```
 
-```
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│   주문 BC     │  │   결제 BC     │  │   배송 BC     │
-│              │  │              │  │              │
-│ Order        │  │ Payment      │  │ Shipment     │
-│ OrderItem    │  │ Transaction  │  │ Delivery     │
-│ Customer(id) │  │ Customer(id) │  │ Address      │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-       │                 │                 │
-       └─── 이벤트로 느슨하게 연결 ──────────┘
+아래 도식은 주문·결제·배송 컨텍스트가 각자 모델을 따로 갖고, 서로는 이벤트로만 느슨하게 이어지는 모습을 보여준다. Customer 는 컨텍스트마다 id 만 들고 있다.
+
+```mermaid
+flowchart TB
+    subgraph ORD["주문 BC"]
+        O1["Order"]
+        O2["OrderItem"]
+        O3["Customer(id)"]
+    end
+    subgraph PAY["결제 BC"]
+        P1["Payment"]
+        P2["Transaction"]
+        P3["Customer(id)"]
+    end
+    subgraph SHIP["배송 BC"]
+        S1["Shipment"]
+        S2["Delivery"]
+        S3["Address"]
+    end
+    EVT["이벤트로 느슨하게 연결"]
+    ORD --- EVT
+    PAY --- EVT
+    SHIP --- EVT
 ```
 
 ### Context Map (컨텍스트 맵)
@@ -90,15 +103,21 @@ DDD(도메인 주도 설계)는 복잡한 비즈니스 도메인을 소프트웨
 | **Anti-Corruption Layer** | 외부 모델을 내부 모델로 변환 | 레거시 시스템 연동 |
 | **Published Language** | 표준 포맷으로 통신 | JSON 이벤트 스키마 |
 
-```
-Anti-Corruption Layer 예시:
+아래 도식은 Anti-Corruption Layer 예시로, 레거시의 CustData 가 LegacyAdapter 를 거쳐 새 시스템의 Customer 로 바뀌는 흐름을 보여준다. 어댑터가 필드명과 형식을 변환한다.
 
-레거시 시스템          ACL (변환 계층)           새 시스템
-┌──────────┐       ┌──────────────┐       ┌──────────┐
-│ CustData │──────▶│ LegacyAdapter│──────▶│ Customer │
-│ cst_nm   │       │ 필드명 변환    │       │ name     │
-│ cst_addr │       │ 형식 변환     │       │ address  │
-└──────────┘       └──────────────┘       └──────────┘
+```mermaid
+flowchart LR
+    subgraph LEGACY["레거시 시스템"]
+        L["CustData<br/>cst_nm<br/>cst_addr"]
+    end
+    subgraph ACL["ACL (변환 계층)"]
+        A["LegacyAdapter<br/>필드명 변환<br/>형식 변환"]
+    end
+    subgraph NEW["새 시스템"]
+        N["Customer<br/>name<br/>address"]
+    end
+    L --> A
+    A --> N
 ```
 
 ---
@@ -180,23 +199,24 @@ public record Address(String city, String street, String zipCode) {
 
 ### Aggregate (집합체)
 
-관련 Entity와 Value Object를 하나의 일관성 경계로 묶는다. 외부에서는 Aggregate Root를 통해서만 접근한다.
+관련 Entity와 Value Object를 하나의 일관성 경계로 묶는다. 외부에서는 Aggregate Root로만 접근한다.
 
-```
-Order Aggregate:
-  ┌─────────────────────────────────┐
-  │  Order (Aggregate Root)         │
-  │    ├── OrderItem (Entity)       │
-  │    ├── OrderItem (Entity)       │
-  │    ├── ShippingAddress (VO)     │
-  │    └── Money totalPrice (VO)    │
-  └─────────────────────────────────┘
+아래 도식은 Order Aggregate 안에서 Aggregate Root 인 Order 가 어떤 Entity 와 Value Object 를 거느리는지 보여준다.
 
-규칙:
-  - 외부에서 OrderItem을 직접 수정 불가
-  - 반드시 Order를 통해서만 조작
-  - 하나의 트랜잭션 = 하나의 Aggregate
+```mermaid
+flowchart TB
+    subgraph AGG["Order Aggregate"]
+        ROOT["Order (Aggregate Root)"]
+        ROOT --> I1["OrderItem (Entity)"]
+        ROOT --> I2["OrderItem (Entity)"]
+        ROOT --> ADDR["ShippingAddress (VO)"]
+        ROOT --> TOTAL["Money totalPrice (VO)"]
+    end
 ```
+
+- 외부에서 OrderItem을 직접 수정할 수 없다.
+- 반드시 Order로만 조작한다.
+- 하나의 트랜잭션 = 하나의 Aggregate
 
 ```java
 // Aggregate Root
@@ -314,7 +334,7 @@ public class OrderService {
 
 ### Rich Domain Model (풍부한 도메인 모델)
 
-비즈니스 로직이 Entity 안에 있다. 상태 변경은 반드시 의미 있는 메서드를 통해서만 이루어진다.
+비즈니스 로직이 Entity 안에 있다. 상태 변경은 반드시 의미 있는 메서드로만 이루어진다.
 
 ```java
 @Entity
@@ -970,7 +990,7 @@ public interface OrderQueryRepository {
 }
 ```
 
-명령(Command)은 Aggregate를 통해, 조회(Query)는 전용 Repository를 통해 처리한다. Aggregate의 ID 참조 원칙을 조회 때문에 포기할 필요는 없다.
+명령(Command)은 Aggregate로, 조회(Query)는 전용 Repository로 처리한다. Aggregate의 ID 참조 원칙을 조회 때문에 포기할 필요는 없다.
 
 ### 결과적 일관성 실패 시 보상 처리
 
@@ -1053,9 +1073,15 @@ public void publishOutboxEvents() {
 }
 ```
 
-이 폴링 루프는 서버가 한 대일 때만 성립한다. 두 대 이상이면 **둘 다 같은 미발행 행을 읽어 각자 발행한다.** `findByPublishedFalse()` 에 잠금이 없고 개수 제한도 없다. 잠금을 걸되 이미 잠긴 행은 건너뛰도록 `FOR UPDATE SKIP LOCKED`(JPA 라면 비관적 잠금 + skip-locked 힌트)를 쓰고, 한 번에 가져올 개수도 제한한다. 밀린 이벤트가 수만 건일 때 전부 메모리로 올리면 그 자체가 장애다.
+이 폴링 루프는 서버가 한 대일 때만 성립한다. 두 대 이상이면 **둘 다 같은 미발행 행을 읽어 각자 발행한다.**
 
-`publish` 성공 후 `markAsPublished` 저장 전에 죽으면 다음 주기에 같은 이벤트가 다시 나간다. 순서를 뒤집으면 이번엔 유실이다. **Outbox 가 보장하는 것은 정확히 1회가 아니라 최소 1회**이고, 그래서 구독자 쪽 중복 처리가 항상 같이 필요하다. 위 `OutboxEvent` 에는 구독자가 중복을 판별할 고유 이벤트 ID 가 payload 에 들어가지 않는다 — 발행 시 `id` 를 메시지 헤더에 함께 실어야 구독자가 "이미 처리한 것"을 알 수 있다.
+`findByPublishedFalse()` 에 잠금이 없고 개수 제한도 없다. 잠금을 걸되 이미 잠긴 행은 건너뛰도록 `FOR UPDATE SKIP LOCKED`(JPA 라면 비관적 잠금 + skip-locked 힌트)를 쓰고, 한 번에 가져올 개수도 제한한다.
+
+밀린 이벤트가 수만 건일 때 전부 메모리로 올리면 그 자체가 장애다.
+
+`publish` 성공 후 `markAsPublished` 저장 전에 죽으면 다음 주기에 같은 이벤트가 다시 나간다. 순서를 뒤집으면 이번엔 유실이다.
+
+**Outbox 가 보장하는 것은 정확히 1회가 아니라 최소 1회**이고, 그래서 구독자 쪽 중복 처리가 항상 같이 필요하다. 위 `OutboxEvent` 에는 구독자가 중복을 판별할 고유 이벤트 ID 가 payload 에 들어가지 않는다 — 발행 시 `id` 를 메시지 헤더에 함께 실어야 구독자가 "이미 처리한 것"을 알 수 있다.
 
 ---
 
@@ -1115,7 +1141,9 @@ public void publishOutboxEvents() {
 
 ### 1단계가 실패하면 나머지는 형식만 남는다
 
-이 순서에서 유일하게 코드가 아닌 것이 1단계이고, 실패도 대개 거기서 난다. 유비쿼터스 언어는 **도메인 전문가와 같은 말을 쓰기로 합의하는 활동**이지 용어집 문서를 만드는 작업이 아니다. 전문가와 정기적으로 대화할 통로가 없으면 개발자끼리 만든 단어 목록이 되고, 그 위에 올린 Bounded Context 는 패키지 나누기, Aggregate 는 엔티티 묶기로 축소된다. 문법은 DDD 인데 모델이 여전히 테이블 구조를 따라간다.
+이 순서에서 유일하게 코드가 아닌 것이 1단계이고, 실패도 대개 거기서 난다. 유비쿼터스 언어는 **도메인 전문가와 같은 말을 쓰기로 합의하는 활동**이지 용어집 문서를 만드는 작업이 아니다.
+
+전문가와 정기적으로 대화할 통로가 없으면 개발자끼리 만든 단어 목록이 되고, 그 위에 올린 Bounded Context 는 패키지 나누기, Aggregate 는 엔티티 묶기로 축소된다. 문법은 DDD 인데 모델이 여전히 테이블 구조를 따라간다.
 
 그래서 앞의 "DDD가 필요한 시점" 표에는 조건이 하나 더 붙는다.
 
