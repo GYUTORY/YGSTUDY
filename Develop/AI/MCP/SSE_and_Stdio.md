@@ -1,13 +1,15 @@
 ---
 title: MCP 전송 방식 — stdio와 SSE/Streamable HTTP
 tags: [ai, mcp]
-updated: 2026-04-27
+updated: 2026-11-26
 volatility: high
 ---
 
 # MCP 전송 방식 — stdio와 SSE/Streamable HTTP
 
-MCP 프로토콜은 JSON-RPC 2.0 메시지를 어떻게 운반할지에 대해 두 가지 공식 전송(transport)을 정의한다. 하나는 로컬 프로세스 간 통신용 **stdio**이고, 다른 하나는 네트워크용 **HTTP 기반 전송**이다. HTTP 쪽은 2024년 말 사양에서 **SSE(Server-Sent Events)** 방식이 먼저 들어왔다가, 2025-03-26 사양 개정에서 **Streamable HTTP**로 대체됐다.
+MCP 프로토콜은 JSON-RPC 2.0 메시지를 운반하는 공식 전송(transport)을 두 가지 정의한다. 하나는 로컬 프로세스 간 통신용 **stdio**이고, 다른 하나는 네트워크용 **HTTP 기반 전송**이다.
+
+HTTP 쪽은 2024년 말 사양에서 **SSE(Server-Sent Events)** 방식이 먼저 들어왔다가, 2025-03-26 사양 개정에서 **Streamable HTTP**로 대체됐다.
 
 이 문서는 두 전송이 실제로 메시지를 어떻게 주고받는지, 프로세스와 연결의 수명 주기는 어떻게 다른지, 인증과 멀티 클라이언트 처리는 어떤 차이가 있는지, 그리고 실제 운영하다가 부딪히는 문제들을 정리한다.
 
@@ -38,23 +40,23 @@ stdio든 HTTP든 이 페이로드 자체는 동일하다. 다른 것은 **프레
 
 stdio는 가장 단순하다. Host(AI 도구)가 MCP 서버를 **자식 프로세스로 fork/exec**하고, 그 프로세스의 **stdin과 stdout을 파이프로 연결**해서 JSON-RPC 메시지를 주고받는다. stderr는 로그용으로 따로 빠진다.
 
-```
-┌──────────────────┐                     ┌──────────────────┐
-│   Host (Cursor)  │                     │   MCP Server     │
-│                  │                     │   (자식 프로세스)  │
-│  ┌────────────┐  │   stdin (write)     │  ┌────────────┐  │
-│  │ stdin pipe │──┼────────────────────▶│  │ process.   │  │
-│  └────────────┘  │                     │  │ stdin      │  │
-│                  │                     │  └────────────┘  │
-│  ┌────────────┐  │   stdout (read)     │  ┌────────────┐  │
-│  │ stdout pipe│◀─┼─────────────────────│  │ process.   │  │
-│  └────────────┘  │                     │  │ stdout     │  │
-│                  │                     │  └────────────┘  │
-│  ┌────────────┐  │   stderr (read)     │  ┌────────────┐  │
-│  │ stderr pipe│◀─┼─────────────────────│  │ process.   │  │
-│  └────────────┘  │   (로그/디버깅용)     │  │ stderr     │  │
-│                  │                     │  └────────────┘  │
-└──────────────────┘                     └──────────────────┘
+아래 도식은 Host와 자식 프로세스 사이의 파이프 세 개와 각각의 방향을 보여준다. stdin은 Host가 쓰고 서버가 읽는다. stdout과 stderr는 서버가 쓰고 Host가 읽는다.
+
+```mermaid
+flowchart LR
+    subgraph Host["Host (Cursor)"]
+        HI[stdin pipe]
+        HO[stdout pipe]
+        HE[stderr pipe]
+    end
+    subgraph Server["MCP Server (자식 프로세스)"]
+        SI[process.stdin]
+        SO[process.stdout]
+        SE[process.stderr]
+    end
+    HI -->|"stdin (write)"| SI
+    SO -->|"stdout (read)"| HO
+    SE -->|"stderr (read, 로그/디버깅용)"| HE
 ```
 
 메시지 프레이밍은 **줄바꿈(`\n`) 구분 JSON**이다. 한 줄에 JSON-RPC 메시지 하나가 통째로 들어가고, 메시지가 끝나면 `\n`을 붙여 보낸다. 그래서 메시지 안에 raw newline이 들어가면 안 된다(JSON 인코딩으로 `\n` 문자열 이스케이프는 괜찮다).
@@ -168,20 +170,17 @@ asyncio.run(main())
 
 그래서 초기 SSE 방식은 다음과 같이 **두 개의 엔드포인트**를 분리해서 썼다.
 
-```
-┌────────────┐    GET /sse           ┌──────────────┐
-│            │──── (SSE 스트림 열기) ─▶│              │
-│            │◀──── event: endpoint ──│              │
-│            │     data: /messages?  │              │
-│  Client    │           sessionId=X │  MCP Server  │
-│            │                       │              │
-│            │    POST /messages     │              │
-│            │──── ?sessionId=X ────▶│              │
-│            │     (JSON-RPC 요청)    │              │
-│            │                       │              │
-│            │◀──── event: message ──│              │
-│            │     data: {응답}       │              │
-└────────────┘                       └──────────────┘
+아래 도식은 SSE 방식에서 연결을 열고 요청을 보내고 응답을 받는 순서를 보여준다. 요청은 POST로 나가고 응답은 처음 열어둔 SSE 스트림으로 돌아온다.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as MCP Server
+
+    C->>S: GET /sse (SSE 스트림 열기)
+    S-->>C: event: endpoint, data: /messages?sessionId=X
+    C->>S: POST /messages?sessionId=X (JSON-RPC 요청)
+    S-->>C: event: message, data: 응답
 ```
 
 - **GET `/sse`**: 클라이언트가 먼저 SSE 연결을 연다. 서버는 첫 이벤트로 `endpoint`를 보내며 "POST는 이 URL로 보내라"고 알려준다 (보통 `sessionId`를 쿼리에 박는다).
@@ -239,25 +238,21 @@ app.listen(3000);
 
 Streamable HTTP는 **단일 엔드포인트(`/mcp`)로 요청과 응답을 모두 처리**한다. SSE의 두 엔드포인트 구조를 하나로 합치고, 응답 형식을 상황에 따라 골라쓸 수 있게 했다.
 
-```
-┌────────────┐    POST /mcp                  ┌──────────────┐
-│            │── (JSON-RPC 요청)              │              │
-│            │── Accept: application/json,   │              │
-│            │           text/event-stream    │              │
-│            │── Mcp-Session-Id: <id>        │              │
-│  Client    │                                │  MCP Server  │
-│            │                                │              │
-│            │  서버는 둘 중 하나로 응답         │              │
-│            │                                │              │
-│            │◀── 200 + JSON 단일 응답         │              │
-│            │     또는                       │              │
-│            │◀── 200 + SSE 스트림            │              │
-│            │     (여러 메시지 푸시 가능)       │              │
-│            │                                │              │
-│            │    GET /mcp                   │              │
-│            │── (서버 → 클라이언트 알림용 스트림)│              │
-│            │◀── SSE 스트림                  │              │
-└────────────┘                                └──────────────┘
+아래 도식은 `/mcp` 하나로 요청과 응답, 서버 알림이 어떻게 갈리는지 보여준다. POST 응답은 JSON 한 번이거나 SSE 스트림이고, 서버 알림은 별도 GET 스트림으로 받는다.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as MCP Server
+
+    C->>S: POST /mcp (JSON-RPC 요청, Accept: application/json + text/event-stream, Mcp-Session-Id 헤더)
+    alt 단일 응답
+        S-->>C: 200 + JSON 단일 응답
+    else 스트리밍 응답
+        S-->>C: 200 + SSE 스트림 (여러 메시지 푸시 가능)
+    end
+    C->>S: GET /mcp (서버 알림용 스트림 열기)
+    S-->>C: SSE 스트림
 ```
 
 핵심 아이디어는 이렇다.
@@ -357,7 +352,7 @@ app.listen(3000);
 
 같은 프로세스 안에서 transport 인스턴스가 세션별로 살아 있다. Stateless 모드로 돌리려면 `sessionIdGenerator`를 `undefined`로 두면 된다.
 
-Python SDK는 ASGI 인터페이스를 통해 FastAPI/Starlette에 마운트한다.
+Python SDK는 ASGI 인터페이스로 FastAPI/Starlette에 마운트한다.
 
 ```python
 from mcp.server import Server
@@ -461,7 +456,8 @@ OAuth 흐름을 직접 구현하기 부담스러우면 Cloudflare Workers의 MCP
 Docker로 패키징한 MCP 서버는 두 가지 패턴이 있다.
 
 - **Streamable HTTP를 노출하는 서비스 컨테이너**: 가장 평범하다. `docker run -p 3000:3000`으로 띄우고, 클라이언트가 `http://localhost:3000/mcp`로 붙는다. Kubernetes에 올리기도 자연스럽다.
-- **stdio 서버를 docker exec로 끼워 넣기**: Host 설정에서 `command`를 `docker`로, `args`를 `["run", "-i", "--rm", "myserver"]`로 잡으면 컨테이너 안의 프로세스가 stdio 서버 역할을 한다. 라이브러리 의존성이 복잡한 서버를 격리해서 쓸 때 좋다. `-i`(interactive)와 `-t`를 빼고 `-i`만 주는 게 포인트다(`-t`는 TTY를 붙여서 stdout이 라인 버퍼링되므로 메시지 프레이밍이 깨진다).
+- **stdio 서버를 docker exec로 끼워 넣기**: Host 설정에서 `command`를 `docker`로, `args`를 `["run", "-i", "--rm", "myserver"]`로 잡으면 컨테이너 안의 프로세스가 stdio 서버 역할을 한다. 라이브러리 의존성이 복잡한 서버를 격리해서 쓸 때 좋다.
+  - `-i`(interactive)만 주고 `-t`는 뺀다. `-t`는 TTY를 붙여서 stdout이 라인 버퍼링되므로 메시지 프레이밍이 깨진다.
 
 ```json
 {
@@ -482,7 +478,9 @@ Docker로 패키징한 MCP 서버는 두 가지 패턴이 있다.
 
 ### 7.1 stdio: stdout 오염 (가장 흔한 사고)
 
-**stdio 서버에서 절대 하면 안 되는 것은 비즈니스 로직 로그를 stdout에 찍는 것**이다. stdout은 JSON-RPC 메시지 전용 채널이다. 거기에 `console.log("hello")` 같은 게 끼면 클라이언트가 그 줄을 JSON-RPC 메시지로 파싱하다 실패한다. 그럼 클라이언트 측에서 "Unexpected token h in JSON at position 0" 같은 에러가 뜨고 연결이 죽는다.
+**stdio 서버에서 절대 하면 안 되는 것은 비즈니스 로직 로그를 stdout에 찍는 것**이다. stdout은 JSON-RPC 메시지 전용 채널이다.
+
+거기에 `console.log("hello")` 같은 게 끼면 클라이언트가 그 줄을 JSON-RPC 메시지로 파싱하다 실패한다. 그럼 클라이언트 측에서 "Unexpected token h in JSON at position 0" 같은 에러가 뜨고 연결이 죽는다.
 
 흔한 사고:
 
@@ -515,7 +513,7 @@ process.on("SIGTERM", () => process.exit(0));
 process.stdin.on("end", () => process.exit(0));
 ```
 
-`process.stdin.on("end")` 부분이 중요하다. Host가 cleanly 종료되지 않고 죽으면 SIGTERM이 안 날아오는 환경이 있다. 그때 stdin EOF가 거의 유일한 종료 신호다.
+`process.stdin.on("end")` 핸들러를 빼먹으면 안 된다. Host가 cleanly 종료되지 않고 죽으면 SIGTERM이 안 날아오는 환경이 있다. 그때 stdin EOF가 거의 유일한 종료 신호다.
 
 ### 7.3 HTTP: 프록시 버퍼링으로 SSE 스트림이 안 나간다
 
@@ -532,7 +530,7 @@ CDN이 앞단에 있다면 보통 `/mcp` 경로는 캐시 우회 + 스트리밍 
 
 ### 7.4 HTTP: 세션 재발급과 만료
 
-`Mcp-Session-Id`로 stateful 모드를 쓸 때, 서버 재시작이나 메모리 삭제로 세션이 사라지면 클라이언트의 다음 요청은 404 또는 400으로 떨어진다. 사양상 서버는 **알 수 없는 세션 ID에 대해 4xx 응답**을 줘야 하고, 클라이언트는 이를 받으면 **세션을 폐기하고 새로 initialize**해야 한다.
+`Mcp-Session-Id`로 stateful 모드를 쓸 때, 서버 재시작이나 메모리 삭제로 세션이 사라지면 클라이언트의 다음 요청은 404 또는 400으로 떨어진다. 사양상 서버는 **알 수 없는 세션 ID에는 4xx 응답**을 줘야 하고, 클라이언트는 이를 받으면 **세션을 폐기하고 새로 initialize**해야 한다.
 
 서버 측에서 챙길 것:
 
@@ -584,4 +582,4 @@ app.use((req, res, next) => {
 - 팀이 공유하거나 원격에 두고 싶으면 Streamable HTTP. OAuth와 세션 관리 비용이 추가되지만 유일한 표준이다.
 - SSE는 새로 안 쓴다. 옛날 서버를 유지보수해야 한다면 Streamable HTTP로 옮길 계획을 세워둔다.
 
-서버를 만들 때는 비즈니스 로직과 transport를 분리해두는 것이 가장 중요하다. 처음에 stdio로 시작했더라도 같은 코드에 transport만 바꿔서 HTTP 서버로 띄울 수 있게 짜두면, 나중에 팀에 공유해야 할 일이 생겨도 이전 부담이 거의 없다.
+서버를 만들 때는 비즈니스 로직과 transport를 분리해둔다. 처음에 stdio로 시작했더라도 같은 코드에 transport만 바꿔서 HTTP 서버로 띄울 수 있게 짜두면, 나중에 팀에 공유해야 할 일이 생겨도 이전 부담이 거의 없다.
