@@ -1,16 +1,24 @@
 ---
 title: IPv6 — 주소 고갈 너머의 운영 현실
 tags: [network, aws]
-updated: 2026-08-02
+updated: 2026-11-26
 ---
 
 # IPv6 — 주소 고갈 너머의 운영 현실
 
 ## 들어가며
 
-IPv6를 처음 진지하게 만진 건 AWS VPC에서 "외부 NAT 비용을 줄여보자"는 이야기가 나왔을 때였다. IPv4 환경에서 프라이빗 서브넷의 트래픽이 외부로 나가려면 NAT Gateway를 거치는데, 시간당 요금에 데이터 처리 요금까지 붙어서 트래픽이 좀만 늘어나도 청구서가 무겁다. 그런데 IPv6는 모든 주소가 사실상 공인이고, 인터넷 통신을 위해 NAT를 거칠 필요가 없으니 NAT Gateway 비용이 빠진다. 좋은 아이디어처럼 들렸다. 막상 작업을 시작하니 SLAAC가 뭔지, ICMPv6를 막으면 왜 통신이 깨지는지, Dual Stack과 IPv6-only가 운영상 어떻게 다른지부터 막혔다.
+IPv6를 처음 진지하게 만진 건 AWS VPC에서 "외부 NAT 비용을 줄여보자"는 이야기가 나왔을 때였다. IPv4 환경에서 프라이빗 서브넷의 트래픽이 외부로 나가려면 NAT Gateway를 거치는데, 시간당 요금에 데이터 처리 요금까지 붙어서 트래픽이 좀만 늘어나도 청구서가 무겁다.
 
-IPv6는 단순히 "주소가 길어진 IPv4"가 아니다. 주소 할당 방식이 다르고, ARP 대신 NDP가 들어왔고, ICMP는 선택 사항이 아니라 필수 인프라가 됐고, NAT를 전제로 만들어진 IPv4 운영 관행이 거의 다 통하지 않는다. 문서나 RFC만 봐서는 안 잡히는 부분이 너무 많다. 이 글은 IPv6의 주소 체계부터 시작해서 SLAAC와 DHCPv6, NDP가 ARP와 어떻게 다른지, IPv6-only/Dual Stack/NAT64+DNS64를 언제 어떻게 쓰는지, AWS VPC에서 IPv6 설계할 때 부딪히는 지점들, 그리고 운영하다 만나는 실무 함정까지 정리한다.
+그런데 IPv6는 모든 주소가 사실상 공인이고, 인터넷 통신을 위해 NAT를 거칠 필요가 없으니 NAT Gateway 비용이 빠진다. 좋은 아이디어처럼 들렸다.
+
+막상 작업을 시작하니 SLAAC가 뭔지, ICMPv6를 막으면 왜 통신이 깨지는지, Dual Stack과 IPv6-only가 운영상 어떻게 다른지부터 막혔다.
+
+IPv6는 단순히 "주소가 길어진 IPv4"가 아니다. 주소 할당 방식이 다르고, ARP 대신 NDP가 들어왔고, ICMP는 선택 사항이 아니라 필수 인프라가 됐고, NAT를 전제로 만들어진 IPv4 운영 관행이 거의 다 통하지 않는다.
+
+문서나 RFC만 봐서는 안 잡히는 부분이 너무 많다.
+
+이 글은 IPv6의 주소 체계부터 시작해서 SLAAC와 DHCPv6, NDP가 ARP와 어떻게 다른지, IPv6-only/Dual Stack/NAT64+DNS64를 언제 어떻게 쓰는지, AWS VPC에서 IPv6 설계할 때 부딪히는 지점들, 그리고 운영하다 만나는 실무 함정까지 정리한다.
 
 ## IPv4 주소 고갈 문제와 IPv6의 등장
 
@@ -18,7 +26,9 @@ IPv4는 32비트 주소 공간을 가진다. 이론상 약 43억 개다. 인터�
 
 IANA의 IPv4 풀은 2011년에 고갈됐다. 그 뒤로는 RIR(지역 인터넷 레지스트리) 단위로 마지막 /8 블록을 나눠 쓰고 있고, APNIC, RIPE 같은 RIR들도 이미 보유 분량이 거의 다 떨어졌다. ISP들은 신규 가입자에게 공인 IPv4를 못 주고 CGNAT(Carrier-Grade NAT)로 묶어서 내보내는 식으로 버틴다.
 
-IPv6는 128비트다. 주소 수가 약 3.4 × 10^38개로, 지구 표면 1제곱미터당 6.7 × 10^23개를 줄 수 있다. 사실상 고갈 걱정이 없는 공간이라 할당 방식 자체가 헐겁다. 일반 가정도 /64 하나(약 1800경 개 주소)를 받는 게 표준이다. 이 풍족함이 IPv6 설계의 곳곳에 녹아 있다. NAT를 안 써도 되고, 호스트가 알아서 주소를 만드는 SLAAC가 가능하고, 임시 주소를 수시로 바꿔 써도 부담이 없다.
+IPv6는 128비트다. 주소 수가 약 3.4 × 10^38개로, 지구 표면 1제곱미터당 6.7 × 10^23개를 줄 수 있다. 사실상 고갈 걱정이 없는 공간이라 할당 방식 자체가 헐겁다.
+
+일반 가정도 /64 하나(약 1800경 개 주소)를 받는 게 표준이다. 이 풍족함이 IPv6 설계의 곳곳에 녹아 있다. NAT를 안 써도 되고, 호스트가 알아서 주소를 만드는 SLAAC가 가능하고, 임시 주소를 수시로 바꿔 써도 부담이 없다.
 
 ## 주소 표기법
 
@@ -98,7 +108,9 @@ GUA는 보통 `[글로벌 라우팅 prefix][서브넷 ID][인터페이스 ID]` �
 
 `fc00::/7` 범위. 실무에서는 `fd00::/8`만 쓰는데, 정의상 `fc00::/8`은 중앙 등록용으로 예약된 채 사실상 안 쓰이기 때문이다. ULA는 IPv4의 `10.0.0.0/8`이나 `192.168.0.0/16` 같은 사설 주소에 해당한다. 인터넷에는 라우팅되지 않고, 조직 내부에서만 쓴다.
 
-ULA 만들 때 주의할 점은 prefix를 무작위로 뽑아 써야 한다는 점이다. `fd00::/8` 다음 40비트(Global ID)는 RFC 4193이 무작위 생성을 권한다. 무작위로 뽑으면 다른 조직과 충돌 확률이 매우 낮아져서, 나중에 두 회사가 VPN으로 연결되거나 합병할 때 주소가 겹치는 사고를 피할 수 있다. IPv4의 10.x.x.x를 모두가 똑같이 써서 VPN 붙일 때마다 충돌 나는 그 문제를 IPv6는 처음부터 피하려고 한다.
+ULA 만들 때 주의할 점은 prefix를 무작위로 뽑아 써야 한다는 점이다. `fd00::/8` 다음 40비트(Global ID)는 RFC 4193이 무작위 생성을 권한다.
+
+무작위로 뽑으면 다른 조직과 충돌 확률이 매우 낮아져서, 나중에 두 회사가 VPN으로 연결되거나 합병할 때 주소가 겹치는 사고를 피할 수 있다. IPv4의 10.x.x.x를 모두가 똑같이 써서 VPN 붙일 때마다 충돌 나는 그 문제를 IPv6는 처음부터 피하려고 한다.
 
 ```bash
 # 리눅스에서 ULA prefix 생성
@@ -114,7 +126,7 @@ ULA를 GUA와 동시에 쓸 수 있다. 외부 통신은 GUA로, 내부 통신�
 
 `fe80::/10` 범위. 같은 링크(L2 세그먼트) 안에서만 유효하다. 라우터가 절대 라우팅하지 않는다. IPv6에서 이 주소는 옵션이 아니라 필수다. 인터페이스가 IPv6를 켜는 순간 자동으로 link-local 주소가 생성된다(보통 EUI-64 방식으로 MAC에서 파생).
 
-link-local은 NDP, OSPFv3, 라우터의 next-hop 광고 같은 링크 단위 프로토콜이 의존한다. 라우터가 RA(Router Advertisement)를 보낼 때 소스 주소는 link-local이고, 클라이언트가 GUA를 통해 외부로 패킷을 보낼 때도 next-hop은 라우터의 link-local 주소다. 그래서 link-local이 죽으면 IPv6 통신 자체가 막힌다.
+link-local은 NDP, OSPFv3, 라우터의 next-hop 광고 같은 링크 단위 프로토콜이 의존한다. 라우터가 RA(Router Advertisement)를 보낼 때 소스 주소는 link-local이고, 클라이언트가 GUA로 외부에 패킷을 보낼 때도 next-hop은 라우터의 link-local 주소다. 그래서 link-local이 죽으면 IPv6 통신 자체가 막힌다.
 
 ssh로 link-local 주소에 접속할 일이 가끔 있다. 인터페이스를 명시해줘야 한다.
 
@@ -197,7 +209,11 @@ RA 메시지에는 세 개의 중요한 플래그가 있다. 이 조합이 SLAAC
 
 ### RA에 RDNSS와 DNSSL이 들어가는 이유
 
-초기 IPv6 표준에는 DNS 서버를 알려주는 방법이 RA에 없었다. DNS 정보를 받으려면 무조건 DHCPv6를 따로 띄워야 했다. 이 비효율을 해결하려고 RFC 8106이 RA에 RDNSS(Recursive DNS Server)와 DNSSL(DNS Search List) 옵션을 추가했다. 이제 RA만으로 IPv6 주소 + DNS 서버 + 검색 도메인까지 다 받을 수 있다. 라우터/방화벽 장비가 RFC 8106을 지원하지 않으면 여전히 DHCPv6를 같이 띄워야 한다. 구형 장비에서 자주 막힌다.
+초기 IPv6 표준에는 DNS 서버를 알려주는 방법이 RA에 없었다. DNS 정보를 받으려면 무조건 DHCPv6를 따로 띄워야 했다.
+
+이 비효율을 해결하려고 RFC 8106이 RA에 RDNSS(Recursive DNS Server)와 DNSSL(DNS Search List) 옵션을 추가했다. 이제 RA만으로 IPv6 주소 + DNS 서버 + 검색 도메인까지 다 받을 수 있다.
+
+라우터/방화벽 장비가 RFC 8106을 지원하지 않으면 여전히 DHCPv6를 같이 띄워야 한다. 구형 장비에서 자주 막힌다.
 
 ## NDP — ARP를 대체한 이웃 탐색 프로토콜
 
@@ -218,7 +234,11 @@ ARP는 4개 메시지 타입(Request, Reply, RARP Request, RARP Reply)이지만 
 
 ARP는 브로드캐스트로 "누가 192.168.1.10 가졌어?"를 묻는다. 같은 링크의 모든 호스트가 이 패킷을 받고, 자기 IP가 아니면 무시한다. 브로드캐스트 도메인이 크면 부담이다.
 
-NDP는 solicited-node multicast를 쓴다. IP의 마지막 24비트를 `ff02::1:ff00:0/104`에 붙여서 만든 멀티캐스트 주소다. 예를 들어 `2001:db8::1234:5678`을 찾으려면 `ff02::1:ff34:5678`로 NS를 보낸다. 같은 링크에서 자기 인터페이스 ID의 끝 24비트가 `34:5678`인 호스트만 이 멀티캐스트를 듣는다. 나머지는 NIC 단에서 걸러서 CPU까지 안 올라온다. 트래픽 부담이 훨씬 적다.
+NDP는 solicited-node multicast를 쓴다. IP의 마지막 24비트를 `ff02::1:ff00:0/104`에 붙여서 만든 멀티캐스트 주소다.
+
+예를 들어 `2001:db8::1234:5678`을 찾으려면 `ff02::1:ff34:5678`로 NS를 보낸다. 같은 링크에서 자기 인터페이스 ID의 끝 24비트가 `34:5678`인 호스트만 이 멀티캐스트를 듣는다. 나머지는 NIC 단에서 걸러서 CPU까지 안 올라온다. 트래픽 부담이 훨씬 적다.
+
+아래 도식은 호스트 A가 solicited-node 멀티캐스트 주소로 NS를 보내고, 해당하는 호스트 B만 NA로 응답하는 흐름을 보여준다.
 
 ```mermaid
 sequenceDiagram
@@ -277,13 +297,13 @@ ARP의 가장 큰 약점이 ARP spoofing이었다. NDP도 마찬가지로 인증
 
 대응책은 스위치 단의 RA Guard다. 라우터로 지정한 포트가 아닌 곳에서 RA가 들어오면 스위치가 그 프레임을 폐기한다. Cisco, Juniper 등 엔터프라이즈 장비에는 다 있고, 가정용 장비는 거의 없다.
 
-```
-[정상 라우터] --포트 1-- [스위치] --포트 2-- [PC]
-                            │
-                            │ RA Guard: 포트 1만 RA 허용
-                            │
-                            ▼
-                  포트 2에서 RA 오면 drop
+아래 도식은 스위치의 RA Guard가 포트 1(정상 라우터)의 RA는 통과시키고 포트 2(PC)에서 들어온 RA는 폐기하는 모습을 보여준다.
+
+```mermaid
+flowchart LR
+    R[정상 라우터] -->|포트 1: RA 허용| S{스위치<br/>RA Guard}
+    P[PC] -->|포트 2: RA 전송| S
+    S -->|포트 2의 RA는 drop| X[폐기]
 ```
 
 ## IPv6-only, Dual Stack, NAT64/DNS64 — 어떻게 마이그레이션할까
@@ -312,7 +332,7 @@ www.google.com.  300 IN AAAA 2404:6800:400a:80a::2004
 
 NAT64는 IPv6 클라이언트가 IPv4 서버로 통신할 때 IPv6 패킷을 IPv4 패킷으로 변환해주는 게이트웨이다. RFC 6146이 정의한다. NAT64만 있으면 안 되고 DNS64가 짝으로 필요하다.
 
-DNS64는 DNS resolver가 클라이언트의 AAAA 질의에 대해, 원래 도메인에 AAAA가 없으면 A 레코드를 IPv6 주소로 합성해서 응답하는 메커니즘이다. RFC 6147. 보통 `64:ff9b::/96` prefix(well-known NAT64 prefix)에 IPv4 주소를 매핑한다.
+DNS64는 DNS resolver가 클라이언트의 AAAA 질의를 받았을 때, 원래 도메인에 AAAA가 없으면 A 레코드를 IPv6 주소로 합성해서 응답하는 메커니즘이다. RFC 6147. 보통 `64:ff9b::/96` prefix(well-known NAT64 prefix)에 IPv4 주소를 매핑한다.
 
 ```
 1. 클라이언트: "ipv4only.example.com AAAA?"
@@ -367,14 +387,13 @@ IPv4 프라이빗 서브넷의 트래픽은 NAT Gateway를 거쳐 외부로 나�
 
 답은 Egress-only Internet Gateway(EIGW)다. 이름 그대로 outbound만 허용하는 게이트웨이다. EIGW는 stateful해서 내부에서 시작한 연결의 응답은 받아들이지만, 외부에서 먼저 시작한 연결은 차단한다. NAT처럼 주소 변환을 하는 건 아니다. IPv6 주소는 그대로 외부에 노출되지만 inbound가 막힌다.
 
-```
-[Private EC2 IPv6: 2600:1f14:abcd:01::5]
-        │
-        ▼
-[Route: ::/0 → eigw-xxxx]
-        │
-        ▼
-[Egress-only IGW] ──→ 인터넷 (outbound만)
+아래 도식은 프라이빗 EC2의 IPv6 트래픽이 `::/0` 라우트를 따라 Egress-only IGW를 거쳐 인터넷으로 나가는 경로를 보여준다. 방향은 outbound뿐이다.
+
+```mermaid
+flowchart TD
+    A["Private EC2<br/>IPv6: 2600:1f14:abcd:01::5"] --> B["Route: ::/0 → eigw-xxxx"]
+    B --> C[Egress-only IGW]
+    C -->|outbound만| D[인터넷]
 ```
 
 이게 청구서에 미치는 영향이 크다. NAT Gateway는 시간당 요금 + 데이터 처리당 요금이 붙어서 트래픽 많은 워크로드에선 큰 비용이다. EIGW는 시간당 요금이 없고 데이터 전송 요금만 있다. IPv6로 외부 트래픽을 빼면 비용이 줄어드는 게 이 차이 때문이다.
@@ -395,7 +414,7 @@ S3는 dual stack 엔드포인트가 따로 있다. `s3.dualstack.ap-northeast-2.
 
 EKS는 1.21부터 IPv6-only 클러스터를 지원한다. 파드와 서비스 모두 IPv6 주소만 받는다. IPv4 한계(서브넷당 주소가 빨리 고갈되는 문제)를 해결한다. EKS의 IPv4 모드에서 큰 클러스터를 운영하면 서브넷의 IP 부족으로 파드 스케일링이 막히는 사고가 흔한데, IPv6는 사실상 무제한이다.
 
-다만 IPv6-only 클러스터의 파드가 외부 IPv4 서비스에 접근하려면 NAT64 또는 NAT Gateway 우회 설정이 필요하다. AWS는 자체 NAT64 서비스(2023년부터)를 통해 이걸 처리한다. 클러스터의 라우팅 테이블에 `64:ff9b::/96` → NAT Gateway 경로를 박으면 IPv6 파드가 IPv4 외부 서비스에 투명하게 붙는다.
+다만 IPv6-only 클러스터의 파드가 외부 IPv4 서비스에 접근하려면 NAT64 또는 NAT Gateway 우회 설정이 필요하다. AWS는 자체 NAT64 서비스(2023년부터)로 이걸 처리한다. 클러스터의 라우팅 테이블에 `64:ff9b::/96` → NAT Gateway 경로를 박으면 IPv6 파드가 IPv4 외부 서비스에 투명하게 붙는다.
 
 ## ICMPv6의 필수성 — 막으면 안 되는 이유
 
@@ -458,7 +477,9 @@ Chain INPUT (policy ACCEPT)
 
 ### 2. SSH가 IPv6로 열려 있는데 fail2ban이 IPv4만 보고 있음
 
-fail2ban이나 sshguard 같은 침입 차단 도구가 기본 설정에서 IPv4 차단만 하는 경우가 있다. SSH brute force가 IPv6로 들어오면 차단이 안 된다. /var/log/auth.log를 보면 IPv6 주소의 실패 로그가 쌓이는데 차단 액션은 안 일어난다. 설정에서 `banaction = iptables-multiport` 대신 `iptables-allports`와 `ip6tables-allports`를 모두 활성화해야 한다.
+fail2ban이나 sshguard 같은 침입 차단 도구가 기본 설정에서 IPv4 차단만 하는 경우가 있다. SSH brute force가 IPv6로 들어오면 차단이 안 된다.
+
+/var/log/auth.log를 보면 IPv6 주소의 실패 로그가 쌓이는데 차단 액션은 안 일어난다. 설정에서 `banaction = iptables-multiport` 대신 `iptables-allports`와 `ip6tables-allports`를 모두 활성화해야 한다.
 
 ### 3. 컨테이너 네트워크에서 IPv6 비활성화
 
