@@ -1,7 +1,7 @@
 ---
 title: ClickHouse
 tags: [database, rdbms]
-updated: 2026-03-25
+updated: 2026-11-26
 ---
 
 # ClickHouse
@@ -31,13 +31,15 @@ ClickHouse는 OLAP(Online Analytical Processing) 워크로드에 특화된 오�
 
 ### 컬럼형 스토리지
 
-**행형 스토리지:**
+행형 스토리지는 한 행의 값을 붙여서 저장한다.
+
 ```
 Row 1: [ID=1, Name=Alice, Age=25, City=Seoul]
 Row 2: [ID=2, Name=Bob, Age=30, City=Busan]
 ```
 
-**컬럼형 스토리지:**
+컬럼형 스토리지는 컬럼 단위로 값을 모아서 저장한다.
+
 ```
 ID:   [1, 2]
 Name: [Alice, Bob]
@@ -51,7 +53,8 @@ City: [Seoul, Busan]
 
 ### 테이블 엔진
 
-**1. MergeTree (기본)**
+#### MergeTree (기본)
+
 ```sql
 CREATE TABLE events (
     date Date,
@@ -63,7 +66,8 @@ PARTITION BY toYYYYMM(date)
 ORDER BY (user_id, date);
 ```
 
-**2. ReplacingMergeTree (중복 제거)**
+#### ReplacingMergeTree (중복 제거)
+
 ```sql
 CREATE TABLE user_stats (
     user_id UInt32,
@@ -73,7 +77,8 @@ CREATE TABLE user_stats (
 ORDER BY user_id;
 ```
 
-**3. SummingMergeTree (자동 집계)**
+#### SummingMergeTree (자동 집계)
+
 ```sql
 CREATE TABLE page_views (
     date Date,
@@ -139,19 +144,22 @@ ORDER BY hour;
 
 ### 성능 최적화
 
-**1. 파티셔닝**
+#### 파티셔닝
+
 ```sql
 PARTITION BY toYYYYMM(date)  -- 월별 파티션
 ```
 
-**2. 정렬 키 (ORDER BY)**
+#### 정렬 키 (ORDER BY)
+
 ```sql
 ORDER BY (user_id, date)  -- 자주 사용하는 필터 컬럼을 앞에
 ```
 
 정렬 키의 첫 번째 컬럼이 가장 중요하다. WHERE 절에서 자주 쓰는 컬럼을 앞에 놓되, 카디널리티가 너무 높은 컬럼(UUID 등)은 피한다.
 
-**3. PREWHERE (필터 최적화)**
+#### PREWHERE (필터 최적화)
+
 ```sql
 SELECT * FROM events
 PREWHERE date = today()  -- 먼저 필터링하여 I/O 줄임
@@ -460,7 +468,7 @@ CREATE TABLE events_distributed ON CLUSTER my_cluster (
 );
 ```
 
-**INSERT 경로:**
+Distributed 테이블에 INSERT하면 샤딩 키로 대상 샤드를 정해 전달한다.
 
 ```sql
 -- Distributed 테이블에 INSERT → 내부적으로 샤딩 키 기반 라우팅
@@ -469,7 +477,7 @@ INSERT INTO events_distributed VALUES (now(), 123, 'click', 1.0);
 
 Distributed INSERT는 중간에 비동기 전송 큐를 거친다. 대량 INSERT에서는 각 노드의 로컬 테이블에 직접 INSERT하는 것이 안정적이다. Distributed INSERT 중 노드 장애가 나면 큐에 쌓인 데이터가 유실될 수 있다.
 
-**샤딩 키 선택 시 주의:**
+샤딩 키는 데이터가 어떻게 흩어지는지를 보고 고른다.
 
 - `rand()`를 쓰면 데이터가 골고루 분산되지만, 같은 user_id의 데이터가 여러 샤드에 흩어진다
 - `sipHash64(user_id)`를 쓰면 같은 사용자 데이터가 한 샤드에 모인다. JOIN이나 GROUP BY에서 유리하다
@@ -631,7 +639,8 @@ Lightweight Delete는 실제 데이터를 즉시 지우지 않고 삭제 마스�
 
 ClickHouse는 INSERT마다 새 파트(part)를 만든다. 1행짜리 INSERT를 초당 수백 번 하면 파트 수가 폭증하고, `Too many parts` 에러가 발생한다.
 
-**권장 배치 크기:**
+배치 크기는 아래 기준으로 잡는다.
+
 - 최소 1,000행 이상, 이상적으로는 10,000~100,000행 단위
 - INSERT 주기는 1초에 1번 이하
 
@@ -666,7 +675,8 @@ ENGINE = Buffer(
 
 Buffer 테이블에 INSERT하면 메모리에 버퍼링되다가 조건(시간, 행 수, 바이트)을 만족하면 대상 테이블에 플러시한다.
 
-**Buffer 테이블의 함정:**
+Buffer 테이블에는 함정이 몇 가지 있다.
+
 - 서버 재시작 시 버퍼에 있던 데이터가 유실된다
 - 대상 테이블의 스키마를 변경하면 Buffer 테이블을 다시 만들어야 한다
 - Materialized View는 Buffer 테이블의 플러시를 트리거로 인식하지 않는 경우가 있다
@@ -792,7 +802,8 @@ FROM system.merges;
 
 **원인:** INSERT가 너무 잦거나 배치가 너무 작아서 파트가 쌓인다. 백그라운드 병합이 INSERT 속도를 따라가지 못한다.
 
-**확인:**
+`system.parts`에서 활성 파트가 많은 테이블을 찾는다.
+
 ```sql
 SELECT
     database,
@@ -806,7 +817,8 @@ HAVING active_parts > 200
 ORDER BY active_parts DESC;
 ```
 
-**해결:**
+파트가 쌓이는 원인을 줄이는 쪽부터 손댄다.
+
 1. INSERT 배치 크기를 키운다 (최소 수천 행 단위)
 2. INSERT 빈도를 줄인다 (초당 1회 이하)
 3. `async_insert`를 켠다
@@ -825,7 +837,8 @@ OPTIMIZE TABLE events PARTITION '202403';
 
 **원인:** JOIN에서 오른쪽 테이블이 크거나, GROUP BY의 카디널리티가 높거나, 정렬 대상이 너무 많다.
 
-**확인:**
+`system.query_log`에서 메모리를 많이 쓰다 실패한 쿼리를 찾는다.
+
 ```sql
 -- 어떤 쿼리가 메모리를 많이 쓰는지
 SELECT
@@ -839,7 +852,8 @@ ORDER BY memory_usage DESC
 LIMIT 10;
 ```
 
-**해결:**
+메모리 제한을 올리거나 디스크 스필을 허용해서 임시로 넘긴다.
+
 ```sql
 -- 1. 쿼리별 메모리 제한 조정
 SET max_memory_usage = 20000000000;  -- 20GB
@@ -862,7 +876,8 @@ SET join_algorithm = 'partial_merge';  -- 메모리 초과 시 디스크 사용
 
 **원인:** ZooKeeper/Keeper 노드 장애, 네트워크 문제, 또는 znode 수 초과
 
-**확인:**
+ZooKeeper 연결 상태와 복제 큐를 확인한다.
+
 ```sql
 -- ZooKeeper 연결 상태
 SELECT * FROM system.zookeeper WHERE path = '/';
@@ -881,7 +896,8 @@ WHERE num_tries > 0
 ORDER BY create_time;
 ```
 
-**해결:**
+Keeper/ZooKeeper 쪽에서 볼 것들이다.
+
 - Keeper/ZooKeeper 노드의 메모리, 디스크, 네트워크 상태 확인
 - `jute.maxbuffer` 크기 확인 (대용량 znode 전송 실패 시)
 - 오래된 테이블의 znode가 쌓여 있으면 정리
@@ -893,13 +909,15 @@ ORDER BY create_time;
 
 **원인:** 대상 샤드 노드가 다운되었거나 비동기 전송 큐가 가득 찼다.
 
-**확인:**
+`system.distribution_queue`로 전송 큐 상태를 본다.
+
 ```sql
 -- Distributed 전송 큐 확인
 SELECT * FROM system.distribution_queue;
 ```
 
-**해결:**
+전송이 막히는 원인은 대부분 대상 노드나 큐 설정이다.
+
 - 대상 노드 상태 확인
 - `distributed_directory_monitor_batch_inserts = 1` 설정으로 전송 효율 개선
 - 안정적인 INSERT가 필요하면 Distributed 테이블 대신 로컬 테이블에 직접 INSERT
@@ -908,7 +926,8 @@ SELECT * FROM system.distribution_queue;
 
 **증상:** `system.merges`에 merge 작업이 오래 걸림. 디스크 I/O 100%.
 
-**확인:**
+`system.merges`에서 오래 걸리는 병합을 찾는다.
+
 ```sql
 SELECT
     database,
@@ -922,7 +941,8 @@ FROM system.merges
 WHERE elapsed > 600;  -- 10분 이상
 ```
 
-**해결:**
+병합이 길어지는 이유는 대개 병합 대상 크기나 디스크 여유 공간이다.
+
 - `OPTIMIZE TABLE FINAL`을 운영 중에 돌리면 이런 상황이 생긴다. 파티션 단위로 나눠서 실행
 - `max_bytes_to_merge_at_max_space_in_pool` 값을 확인 (기본 150GB)
 - 디스크 여유 공간 확인. 병합 시 원본 + 결과 파트 양만큼 공간이 필요하다
