@@ -1,16 +1,22 @@
 ---
 title: ECS에서 Task 여러 개 연결하기 — 단일 Task 다중 컨테이너부터 Service 간 통신까지
 tags: [aws, microservices, cloud]
-updated: 2026-10-07
+updated: 2026-11-28
 ---
 
 # ECS Multi Task Connection
 
 ## 개요
 
-ECS에서 "Task를 여러 개 띄워서 서로 연결한다"는 말은 두 가지 다른 상황을 동시에 가리킨다. 하나는 **하나의 Task 안에 컨테이너 여러 개**를 묶어서 같은 네트워크 네임스페이스를 공유하는 sidecar 패턴이고, 다른 하나는 **서로 다른 Service에 속한 Task끼리** 네트워크로 호출하는 마이크로서비스 패턴이다. 둘은 격리 단위, IP 할당, 보안 그룹, 디스커버리 메커니즘이 모두 다르다.
+ECS에서 "Task를 여러 개 띄워서 서로 연결한다"는 말은 두 가지 다른 상황을 동시에 가리킨다. 하나는 **하나의 Task 안에 컨테이너 여러 개**를 묶어서 같은 네트워크 네임스페이스를 공유하는 sidecar 패턴이고, 다른 하나는 **서로 다른 Service에 속한 Task끼리** 네트워크로 호출하는 마이크로서비스 패턴이다.
 
-실무에서 이 두 가지를 구분 못 하고 시작하면 이상한 구조가 나온다. 같이 죽고 같이 사는 컨테이너를 굳이 다른 Service로 분리해서 ALB로 호출하거나, 독립 배포가 필요한 모듈을 sidecar로 묶어서 한쪽 OOM이 전체를 끌어내리는 경우다. "어떤 연결 방식이 어떤 상황에 맞는지"부터 잡고, 패턴별 Task Definition / Service 설정, 보안 그룹 구성, 트러블슈팅을 다룬다.
+둘은 격리 단위, IP 할당, 보안 그룹, 디스커버리 메커니즘이 모두 다르다.
+
+실무에서 이 두 가지를 구분 못 하고 시작하면 이상한 구조가 나온다. 같이 죽고 같이 사는 컨테이너를 굳이 다른 Service로 분리해서 ALB로 호출하거나, 독립 배포가 필요한 모듈을 sidecar로 묶어서 한쪽 OOM이 전체를 끌어내리는 경우다.
+
+"어떤 연결 방식이 어떤 상황에 맞는지"부터 잡고, 패턴별 Task Definition / Service 설정, 보안 그룹 구성, 트러블슈팅을 다룬다.
+
+아래 도식은 연결 단위에 따라 갈리는 두 갈래와 각 갈래에서 쓰는 구현 수단을 보여준다.
 
 ```mermaid
 flowchart TB
@@ -31,7 +37,11 @@ flowchart TB
 
 ### 같은 Task에 묶는 기준
 
-여러 컨테이너를 한 Task로 묶는 결정은 "같이 살고 같이 죽어도 되는가"로 갈린다. 한 Task 안의 컨테이너는 같은 호스트(EC2면 같은 인스턴스, Fargate면 같은 micro-VM)에서 같은 네트워크/IPC 네임스페이스를 공유한다. 하나가 OOM으로 죽으면 `essential: true`인 다른 컨테이너도 같이 종료되고 Task 전체가 재시작된다. 스케일도 같이 된다. 앱을 2개 띄우면 sidecar도 2개 뜬다.
+여러 컨테이너를 한 Task로 묶는 결정은 "같이 살고 같이 죽어도 되는가"로 갈린다. 한 Task 안의 컨테이너는 같은 호스트(EC2면 같은 인스턴스, Fargate면 같은 micro-VM)에서 같은 네트워크/IPC 네임스페이스를 공유한다.
+
+하나가 OOM으로 죽으면 `essential: true`인 다른 컨테이너도 같이 종료되고 Task 전체가 재시작된다.
+
+스케일도 같이 된다. 앱을 2개 띄우면 sidecar도 2개 뜬다.
 
 이 특성이 맞는 워크로드가 sidecar의 정의다.
 
@@ -51,7 +61,11 @@ flowchart TB
 
 같은 Task 안의 컨테이너는 다음 세 가지 채널로 통신한다.
 
-**1. localhost 포트 호출.** awsvpc 모드에서 모든 컨테이너가 같은 ENI를 공유하므로, 컨테이너 A가 8080을 listen 하면 컨테이너 B에서 `curl http://localhost:8080`으로 호출된다. bridge/host 모드에서도 같은 docker bridge나 host network를 공유하니 동일하게 동작한다. Envoy 같은 프록시가 이 방식으로 앱 트래픽을 가로챈다.
+**1. localhost 포트 호출.** awsvpc 모드에서 모든 컨테이너가 같은 ENI를 공유하므로, 컨테이너 A가 8080을 listen 하면 컨테이너 B에서 `curl http://localhost:8080`으로 호출된다.
+
+bridge/host 모드에서도 같은 docker bridge나 host network를 공유하니 동일하게 동작한다. Envoy 같은 프록시가 이 방식으로 앱 트래픽을 가로챈다.
+
+아래 도식은 한 Task의 ENI 안에서 App, Envoy, FireLens가 포트로 연결되는 모습을 보여준다.
 
 ```mermaid
 graph LR
@@ -145,6 +159,8 @@ stateDiagram-v2
 앱은 `dependsOn`에 건 조건이 전부 충족된 뒤에야 시작한다. 하나라도 충족되지 않으면 앱은 PENDING에 머문다.
 
 `SUCCESS`/`COMPLETE`로 의존하는 init 컨테이너는 반드시 `essential: false`로 두어야 한다. essential인 컨테이너가 종료되면 ECS는 그것을 "Task 실패"로 해석해서 전체를 재기동한다. init이 essential이면 정상 종료된 순간 무한 재시작 루프에 빠진다.
+
+아래 도식은 위 `dependsOn` 설정에서 ECS Agent가 세 컨테이너의 상태를 기다렸다가 app을 시작하는 순서를 보여준다.
 
 ```mermaid
 sequenceDiagram
@@ -249,7 +265,7 @@ API 서버 + Envoy 사이드카 + FireLens 로그 라우터 + DB 마이그레이
 
 - 앱은 `localhost:9901`로 Envoy admin을 접근하고, outbound 트래픽은 Envoy listener 포트(통상 15000번대)로 흘려보낸다.
 - 모든 essential 컨테이너의 합산 메모리 사용량이 Task memory 2048MiB를 넘지 않도록 컨테이너 레벨 hard limit을 설정한다. 앱 1536, Envoy ~256, log-router ~128을 잡고 약간 여유를 둔다.
-- Fargate에서 `awsfirelens` 드라이버를 쓰려면 `log-router` 컨테이너가 `firelensConfiguration`을 가지고 있어야 한다. 이 컨테이너가 떠 있어야 다른 컨테이너의 로그가 라우팅된다. dependsOn에서 `START`만 걸어두는 이유는, Fluent Bit는 startup이 거의 즉시라 추가 healthCheck를 안 걸어도 되기 때문이다.
+- Fargate에서 `awsfirelens` 드라이버를 쓰려면 `log-router` 컨테이너가 `firelensConfiguration`이 있어야 한다. 이 컨테이너가 떠 있어야 다른 컨테이너의 로그가 라우팅된다. dependsOn에서 `START`만 걸어두는 이유는, Fluent Bit는 startup이 거의 즉시라 추가 healthCheck를 안 걸어도 되기 때문이다.
 
 ## Service 간 Task 연결 패턴
 
@@ -266,6 +282,8 @@ API 서버 + Envoy 사이드카 + FireLens 로그 라우터 + DB 마이그레이
 ### 내부 ALB / NLB 패턴
 
 가장 보수적이고 가장 흔한 선택이다. Service에 내부 ALB(`Scheme: internal`)를 붙이고 다른 Service는 ALB DNS 이름으로 호출한다.
+
+아래 도식은 Service A의 Task가 ALB의 Target Group을 거쳐 Service B의 Task로 요청을 보내는 경로를 보여준다.
 
 ```mermaid
 flowchart LR
@@ -286,20 +304,20 @@ flowchart LR
     TG --> B2
 ```
 
-**장점.**
+내부 ALB를 쓰면 얻는 것은 이렇다.
 - L7 라우팅(host/path), HTTP 헤더 기반 라우팅, 가중치 기반 카나리 배포가 가능하다.
 - ALB가 헬스체크와 deregistration delay를 알아서 처리해준다. Task가 종료될 때 in-flight 요청을 끝까지 처리할 시간을 준다.
 - WAF, AWS Shield 같은 보안 서비스 연동이 자연스럽다.
 - 다른 AWS 서비스(API Gateway, AppMesh 등)와 통합하기 쉽다.
 
-**단점.**
+대신 치르는 비용도 있다.
 - LB 자체 비용. ALB는 시간당 $0.0225 + LCU 단위 과금. 내부 호출에도 그대로 붙는다.
 - 트래픽이 LB를 한 번 거쳐서 레이턴시가 1~2ms 추가된다. p99에 민감한 서비스는 의식해야 한다.
 - 매 Service마다 ALB를 따로 둘 거냐, 하나의 ALB에 host/path-based로 합칠 거냐 결정이 필요하다. 후자는 비용은 절약되지만 Service 팀 간 ALB 설정 충돌이 생긴다.
 
 NLB(L4)는 ALB 대신 쓰는 경우가 있다. gRPC를 정통으로 굴리거나(예전엔 ALB가 gRPC를 잘 못 다뤘는데 지금은 지원), TCP 프로토콜 그대로 통과시키거나, 정적 IP가 필요할 때다. 일반 HTTP 마이크로서비스는 ALB가 답이다.
 
-**Service 정의에서 ALB 연결.**
+Service 정의에서는 `loadBalancers`로 ALB의 Target Group을 연결한다.
 
 ```json
 {
@@ -336,6 +354,8 @@ awsvpc 모드라 Target Group은 IP 타입이어야 한다. instance 타입은 �
 
 Cloud Map은 Route 53 Private Hosted Zone과 DNS API를 결합한 서비스 디스커버리 시스템이다. ECS Service에 등록하면 Task가 뜰 때마다 Cloud Map에 IP가 자동 등록되고, 클라이언트는 `service-name.namespace.local` 같은 DNS로 호출한다.
 
+아래 도식은 Task 등록부터 Route 53 DNS 조회, 실제 호출까지의 순서를 보여준다.
+
 ```mermaid
 sequenceDiagram
     participant Client as Service A Task
@@ -352,7 +372,7 @@ sequenceDiagram
     Client->>Target: HTTP 호출
 ```
 
-**Service 정의.**
+Cloud Map은 Service 정의의 `serviceRegistries`로 붙인다.
 
 ```json
 {
@@ -369,7 +389,7 @@ sequenceDiagram
 
 `servicediscovery:service` 리소스를 만들 때 namespace(예: `prod.local`)를 지정하고, 해당 namespace 안에서 `order-api`라는 이름을 잡는다. 클라이언트에서는 `http://order-api.prod.local:8080`으로 호출한다.
 
-**현실에서 부딪히는 한계.**
+Cloud Map을 실제 트래픽에 쓰면 아래 한계에 부딪힌다.
 
 - **DNS TTL 문제**가 가장 크다. Cloud Map의 기본 A record TTL이 60초인데, Task가 죽고 새로 뜨는 순간에 클라이언트가 옛 IP를 60초 동안 캐싱한다. 이 동안 요청이 죽은 IP로 가서 타임아웃 난다. 클라이언트 DNS 캐시 TTL을 줄이거나(JVM은 `networkaddress.cache.ttl=10` 같은 설정), 애플리케이션 재시도 로직이 필수다.
 - **DNS 라운드로빈은 부하 분산이 균등하지 않다.** Java의 `InetAddress.getAllByName()`이 첫 번째 IP만 잡아서 쓰는 경우가 많다. 클라이언트 측 로드밸런서가 없으면 한쪽 Task로 트래픽이 쏠린다.
@@ -380,6 +400,8 @@ sequenceDiagram
 ### Service Connect 패턴 (Envoy 기반)
 
 2022년 말에 나온 ECS Service Connect는 Cloud Map의 디스커버리 + Envoy 사이드카 자동 주입을 합친 매니지드 service mesh다. ECS가 알아서 Envoy를 모든 Task에 사이드카로 붙이고, Envoy가 L7 로드밸런싱과 메트릭 수집을 처리한다.
+
+아래 도식은 앱이 localhost로 자기 Envoy를 부르고, Envoy끼리 서비스 이름으로 통신하는 구조를 보여준다.
 
 ```mermaid
 graph LR
@@ -398,14 +420,14 @@ graph LR
     EnvoyB -.메트릭.-> CW
 ```
 
-**Cloud Map 대비 강점.**
+Cloud Map보다 나은 점은 이렇다.
 - Envoy가 **least-request 기반 L7 로드밸런싱**을 하므로 DNS 라운드로빈보다 분산이 균등하다.
-- DNS TTL 문제가 없다. Envoy가 control plane을 통해 endpoint 변경을 즉시 반영한다.
+- DNS TTL 문제가 없다. Envoy가 control plane에서 endpoint 변경을 받아 즉시 반영한다.
 - **자동 재시도**, **outlier detection**, **circuit breaker**가 내장이다.
 - Task 종료 시 Envoy가 in-flight 요청을 graceful하게 마무리한다.
 - RequestCount, HTTPCode, TargetResponseTime 메트릭이 자동으로 CloudWatch로 간다.
 
-**Service 정의.**
+Service Connect는 Service 정의의 `serviceConnectConfiguration`으로 켠다.
 
 ```json
 {
@@ -526,21 +548,25 @@ Task 간 호출에서 장애가 안 나려면 여러 단계의 타임아웃 값�
 
 ### 타임아웃 계층
 
-```
-[Client App 호출 타임아웃]
-        ▼
-[Service Connect Envoy idle/route 타임아웃]
-        ▼
-[ALB Idle Timeout (default 60초)]
-        ▼
-[Target Container 처리 시간]
-        ▼
-[ALB Deregistration Delay (default 300초)]
+아래 도식은 요청이 지나는 순서대로 타임아웃이 걸리는 지점을 보여준다. 맨 아래 Deregistration Delay는 Task가 내려갈 때만 적용된다.
+
+```mermaid
+flowchart TB
+    T1["Client App 호출 타임아웃"] --> T2["Service Connect Envoy<br/>idle/route 타임아웃"]
+    T2 --> T3["ALB Idle Timeout<br/>(default 60초)"]
+    T3 --> T4["Target Container 처리 시간"]
+    T4 --> T5["ALB Deregistration Delay<br/>(default 300초)"]
 ```
 
 계층마다 연결을 먼저 끊는 쪽이 정해져 있고, 그 순서가 뒤집히면 요청이 이미 닫힌 연결로 나간다. 가장 흔한 함정은 두 가지다.
 
-**1. 백엔드 keep-alive가 ALB Idle Timeout보다 짧을 때.** ALB는 타겟과 맺은 연결을 idle timeout(기본 60초) 동안 재사용한다. 백엔드가 그보다 먼저 연결을 닫으면 ALB는 닫힌 줄 모르고 그 연결로 요청을 보내고, RST를 맞은 요청은 502로 돌아온다. Node.js `http.Server`의 `keepAliveTimeout` 기본값이 5초라서 별다른 설정 없이 Express를 올리면 그대로 이 상태가 된다. 요청이 드문 시간대에 연결이 오래 놀다가 끊기므로 오히려 새벽에 간헐적으로 찍혀서 원인을 늦게 잡는다. 백엔드 keep-alive를 ALB idle timeout보다 길게(예: 65초) 잡는다.
+**1. 백엔드 keep-alive가 ALB Idle Timeout보다 짧을 때.** ALB는 타겟과 맺은 연결을 idle timeout(기본 60초) 동안 재사용한다. 백엔드가 그보다 먼저 연결을 닫으면 ALB는 닫힌 줄 모르고 그 연결로 요청을 보내고, RST를 맞은 요청은 502로 돌아온다.
+
+Node.js `http.Server`의 `keepAliveTimeout` 기본값이 5초라서 별다른 설정 없이 Express를 올리면 그대로 이 상태가 된다. 요청이 드문 시간대에 연결이 오래 놀다가 끊기므로 오히려 새벽에 간헐적으로 찍혀서 원인을 늦게 잡는다.
+
+백엔드 keep-alive를 ALB idle timeout보다 길게(예: 65초) 잡는다.
+
+아래 도식은 앱이 먼저 연결을 닫은 뒤 ALB가 그 연결로 요청을 보내 502가 나는 순서를 보여준다.
 
 ```mermaid
 sequenceDiagram
@@ -561,7 +587,9 @@ sequenceDiagram
     L-->>C: 502 Bad Gateway
 ```
 
-**클라이언트와 ALB 구간은 부등식이 반대다.** 이쪽은 ALB가 60초 idle 연결을 먼저 끊는다. Java HTTP 클라이언트가 풀에 보관한 연결을 그보다 오래 쥐고 있으면 `Connection reset by peer`로 실패한다. 클라이언트 풀의 idle 보관 시간을 ALB idle timeout보다 짧게(예: 55초) 잡거나 eviction을 켠다. 같은 "keep-alive"라도 구간에 따라 누가 더 길어야 하는지가 다르다는 점이 헷갈리는 지점이다.
+**클라이언트와 ALB 구간은 부등식이 반대다.** 이쪽은 ALB가 60초 idle 연결을 먼저 끊는다. Java HTTP 클라이언트가 풀에 보관한 연결을 그보다 오래 쥐고 있으면 `Connection reset by peer`로 실패한다.
+
+클라이언트 풀의 idle 보관 시간을 ALB idle timeout보다 짧게(예: 55초) 잡거나 eviction을 켠다. 같은 "keep-alive"라도 구간에 따라 누가 더 길어야 하는지가 달라서 헷갈린다.
 
 구간별로 어느 값이 더 길어야 하는지는 표에 정리했다. 어긋났을 때 나오는 증상이 서로 달라서 로그만 봐도 어느 구간 문제인지 대체로 좁혀진다.
 
@@ -573,11 +601,17 @@ sequenceDiagram
 | Deregistration delay vs 가장 긴 요청 처리 시간 | Deregistration delay | 배포 중 요청 끊김 |
 | `stopTimeout` vs 앱 graceful shutdown 시간 | `stopTimeout` | SIGKILL로 in-flight 요청 유실 |
 
-**2. Deregistration Delay가 너무 길거나 짧다.** Task가 Service에서 빠지면 ALB가 Target Group에서 deregister 하는데, 이 delay 동안에는 새 요청은 안 보내지만 기존 연결은 유지된다. 너무 짧으면 (예: 30초) graceful shutdown이 끝나기 전에 연결이 끊기고, 너무 길면 (예: 600초) 배포가 한참 동안 안 끝난다. 일반 HTTP API는 60~120초가 적당하다. WebSocket이나 long polling 쓰는 서비스는 600초까지 늘리기도 한다.
+**2. Deregistration Delay가 너무 길거나 짧다.** Task가 Service에서 빠지면 ALB가 Target Group에서 deregister 하는데, 이 delay 동안에는 새 요청은 안 보내지만 기존 연결은 유지된다.
+
+너무 짧으면 (예: 30초) graceful shutdown이 끝나기 전에 연결이 끊기고, 너무 길면 (예: 600초) 배포가 한참 동안 안 끝난다. 일반 HTTP API는 60~120초가 적당하다.
+
+WebSocket이나 long polling 쓰는 서비스는 600초까지 늘리기도 한다.
 
 ### Container stopTimeout과 Service Connect
 
-Service Connect의 Envoy는 SIGTERM을 받으면 새 연결은 거부하고 기존 in-flight만 처리한다. 앱도 마찬가지로 SIGTERM 처리해야 한다. Task Definition `stopTimeout`은 SIGTERM 후 SIGKILL까지 기다리는 시간이다. 기본 30초인데 graceful shutdown이 긴 워커는 90~120초로 늘려야 한다. Fargate 최대 120초.
+Service Connect의 Envoy는 SIGTERM을 받으면 새 연결은 거부하고 기존 in-flight만 처리한다. 앱도 마찬가지로 SIGTERM 처리해야 한다.
+
+Task Definition `stopTimeout`은 SIGTERM 후 SIGKILL까지 기다리는 시간이다. 기본 30초인데 graceful shutdown이 긴 워커는 90~120초로 늘려야 한다(Fargate 최대 120초).
 
 ```json
 {
@@ -591,6 +625,8 @@ Spring Boot라면 `server.shutdown=graceful`과 `spring.lifecycle.timeout-per-sh
 ### healthCheck — 컨테이너와 LB 두 층
 
 ALB 타겟 그룹 헬스체크와 Task Definition 컨테이너 헬스체크는 별개다. 판정하는 주체가 다르고 unhealthy가 났을 때 일어나는 일도 다르다.
+
+아래 도식은 두 헬스체크가 각각 누가 판정하고 실패했을 때 무엇을 하는지를 보여준다.
 
 ```mermaid
 flowchart LR
@@ -606,7 +642,7 @@ flowchart LR
 
 ALB 쪽은 트래픽만 끊고 Task는 살려 두고, 컨테이너 쪽은 Task를 죽인다. 이 차이 때문에 컨테이너 헬스체크를 느슨하게 잡지 않으면 일시적 부하에서 Task가 연쇄로 재시작된다.
 
-둘이 같은 엔드포인트(`/health`)를 보면 일관성이 있다. 다르게 잡으면 ALB는 healthy인데 ECS가 컨테이너를 자꾸 죽이는 식의 모순이 생긴다. 일반적인 권장은 ALB 헬스체크 하나로 충분하다는 것이다. 컨테이너 헬스체크는 sidecar 의존성(`dependsOn: HEALTHY`)을 정의할 때만 추가한다.
+둘이 같은 엔드포인트(`/health`)를 보면 일관성이 있다. 다르게 잡으면 ALB는 healthy인데 ECS가 컨테이너를 자꾸 죽이는 식의 모순이 생긴다. 일반적으로는 ALB 헬스체크 하나로 충분하다. 컨테이너 헬스체크는 sidecar 의존성(`dependsOn: HEALTHY`)을 정의할 때만 추가한다.
 
 `healthCheckGracePeriodSeconds`(Service 레벨)를 부팅 시간보다 충분히 크게 잡아야 한다. Spring Boot는 120초 이상, 일반 Node.js/Go는 30~60초 정도가 무난하다.
 
@@ -720,7 +756,9 @@ awsvpc 모드에서 같은 Task의 컨테이너는 같은 ENI를 공유한다. �
 
 Service Connect 또는 ALB에서 새 Task가 healthy로 전환되는 순간, 옛 Task가 deregister 되는 순간에 트래픽이 잠시 죽은 endpoint로 갈 수 있다.
 
-옛 Task가 내려가는 동안 시간 축에는 세 개의 시계가 따로 돈다. ALB의 deregistration delay, ECS가 컨테이너에 보내는 SIGTERM, SIGKILL까지의 `stopTimeout`이다. 도식은 deregister 직전에 시작된 긴 요청이 이 세 시계 중 어디에서 잘리는지를 보여준다. SIGTERM이 deregistration 완료 이전에 가는지 이후에 가는지는 서비스 구성에 따라 달라질 수 있으니, 컨테이너 로그에 SIGTERM 수신 시각을 남겨 Task 이벤트의 deregister 시각과 비교해 보는 편이 확실하다.
+옛 Task가 내려가는 동안 시간 축에는 세 개의 시계가 따로 돈다. ALB의 deregistration delay, ECS가 컨테이너에 보내는 SIGTERM, SIGKILL까지의 `stopTimeout`이다.
+
+도식은 deregister 직전에 시작된 긴 요청이 이 세 시계 중 어디에서 잘리는지를 보여준다. SIGTERM이 deregistration 완료 이전에 가는지 이후에 가는지는 서비스 구성에 따라 달라질 수 있으니, 컨테이너 로그에 SIGTERM 수신 시각을 남겨 Task 이벤트의 deregister 시각과 비교해 보는 편이 확실하다.
 
 ```mermaid
 sequenceDiagram
@@ -745,9 +783,15 @@ sequenceDiagram
     end
 ```
 
-여기서 두 부분이 자주 어긋난다. 하나는 deregistration delay가 가장 긴 요청보다 짧은 경우로, 앱은 멀쩡히 처리 중인데 ALB가 먼저 연결을 자른다. 다른 하나는 SIGTERM을 받은 앱이 listen 소켓을 즉시 닫는 경우다. deregister 상태가 ALB 내부에 퍼지기 전에 이미 라우팅된 신규 요청이 닫힌 소켓에 부딪혀 502가 난다. 이 경우는 SIGTERM을 받고 몇 초 뒤에 소켓을 닫도록 entrypoint에서 시그널을 가로채 지연시켜야 한다.
+여기서 두 부분이 자주 어긋난다. 하나는 deregistration delay가 가장 긴 요청보다 짧은 경우로, 앱은 멀쩡히 처리 중인데 ALB가 먼저 연결을 자른다.
 
-배포 설정에서는 `minimumHealthyPercent: 100`을 걸어 새 Task가 healthy가 된 뒤에 옛 Task를 내리게 한다. Service Connect 환경에서는 `stopTimeout`을 90~120초로 잡아 Envoy가 in-flight 요청을 마무리할 시간을 준다. 이 모든 설정은 앱이 SIGTERM을 받고 새 요청을 거부한 채 기존 요청을 끝내는 동작을 구현했다는 전제 위에서만 의미가 있다. 앱이 시그널을 무시하면 어느 값을 바꿔도 `stopTimeout` 만료 때 SIGKILL로 끊긴다.
+다른 하나는 SIGTERM을 받은 앱이 listen 소켓을 즉시 닫는 경우다. deregister 상태가 ALB 내부에 퍼지기 전에 이미 라우팅된 신규 요청이 닫힌 소켓에 부딪혀 502가 난다.
+
+이 경우는 SIGTERM을 받고 몇 초 뒤에 소켓을 닫도록 entrypoint에서 시그널을 가로채 지연시켜야 한다.
+
+배포 설정에서는 `minimumHealthyPercent: 100`을 걸어 새 Task가 healthy가 된 뒤에 옛 Task를 내리게 한다. Service Connect 환경에서는 `stopTimeout`을 90~120초로 잡아 Envoy가 in-flight 요청을 마무리할 시간을 준다.
+
+이 모든 설정은 앱이 SIGTERM을 받고 새 요청을 거부한 채 기존 요청을 끝내는 동작을 구현했다는 전제 위에서만 의미가 있다. 앱이 시그널을 무시하면 어느 값을 바꿔도 `stopTimeout` 만료 때 SIGKILL로 끊긴다.
 
 ## 마이크로서비스 구성 시나리오
 
@@ -756,6 +800,8 @@ sequenceDiagram
 ### 시나리오 1: 외부 API + 내부 워커 분리
 
 주문 API(외부 트래픽)와 결제 워커(SQS consumer)를 분리한다. API는 sidecar로 Envoy + FireLens, 워커는 단독.
+
+아래 도식은 외부 요청이 API Task로 들어온 뒤 Service Connect와 SQS를 거쳐 워커와 DB로 이어지는 경로를 보여준다.
 
 ```mermaid
 flowchart TB
@@ -781,6 +827,8 @@ flowchart TB
 ### 시나리오 2: 레거시 + 신규 점진 마이그레이션
 
 기존 모놀리스(EC2 bridge 모드, 내부 ALB)를 새 마이크로서비스(Fargate awsvpc, Service Connect)로 점진적으로 옮기는 중간 단계.
+
+아래 도식은 외부 ALB가 경로별로 레거시와 신규 Target Group에 요청을 나누고, 신규 API가 레거시를 내부 ALB로 호출하는 구조를 보여준다.
 
 ```mermaid
 flowchart LR
